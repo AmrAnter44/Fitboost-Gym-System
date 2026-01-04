@@ -23,6 +23,10 @@ interface Receipt {
   memberId?: string
   ptNumber?: number
   dayUseId?: string
+  isCancelled?: boolean
+  cancelledAt?: string
+  cancelledBy?: string
+  cancelReason?: string
 }
 
 export default function ReceiptsPage() {
@@ -201,14 +205,16 @@ export default function ReceiptsPage() {
 
   const getTotalRevenue = () => {
     if (!Array.isArray(filteredReceipts)) return 0
-    return filteredReceipts.reduce((sum, r) => sum + r.amount, 0)
+    return filteredReceipts
+      .filter(r => !r.isCancelled)
+      .reduce((sum, r) => sum + r.amount, 0)
   }
 
   const getTodayCount = () => {
     if (!Array.isArray(filteredReceipts)) return 0
     const today = new Date().toDateString()
-    return filteredReceipts.filter(r => 
-      new Date(r.createdAt).toDateString() === today
+    return filteredReceipts.filter(r =>
+      !r.isCancelled && new Date(r.createdAt).toDateString() === today
     ).length
   }
 
@@ -216,7 +222,7 @@ export default function ReceiptsPage() {
     if (!Array.isArray(filteredReceipts)) return 0
     const today = new Date().toDateString()
     return filteredReceipts
-      .filter(r => new Date(r.createdAt).toDateString() === today)
+      .filter(r => !r.isCancelled && new Date(r.createdAt).toDateString() === today)
       .reduce((sum, r) => sum + r.amount, 0)
   }
 
@@ -242,10 +248,48 @@ export default function ReceiptsPage() {
     const labels: Record<string, string> = {
       'cash': `💵 ${t('receipts.paymentMethods.cash')}`,
       'visa': `💳 ${t('receipts.paymentMethods.visa')}`,
-      'vodafone_cash': `📱 ${t('receipts.paymentMethods.vodafone_cash')}`,
+      'wallet': `👛 ${t('receipts.paymentMethods.wallet')}`,
       'instapay': `💸 ${t('receipts.paymentMethods.instapay')}`
     }
     return labels[method] || method
+  }
+
+  const handleCancelReceipt = async (receiptId: string) => {
+    if (!canEdit) {
+      setMessage(`❌ ليس لديك صلاحية إلغاء الإيصالات`)
+      setTimeout(() => setMessage(''), 3000)
+      return
+    }
+
+    const confirmed = await confirm({
+      title: `⚠️ إلغاء الإيصال`,
+      message: 'هل أنت متأكد من إلغاء هذا الإيصال؟ سيتم إنشاء مصروف بنفس المبلغ.',
+      confirmText: 'إلغاء الإيصال',
+      cancelText: 'رجوع',
+      type: 'danger'
+    })
+
+    if (!confirmed) return
+
+    try {
+      const response = await fetch(`/api/receipts/${receiptId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'إلغاء يدوي' })
+      })
+
+      if (response.ok) {
+        setMessage(`✅ تم إلغاء الإيصال بنجاح`)
+        fetchReceipts()
+      } else {
+        const error = await response.json()
+        setMessage(`❌ ${error.error || 'فشل إلغاء الإيصال'}`)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setMessage(`❌ حدث خطأ أثناء إلغاء الإيصال`)
+    }
+    setTimeout(() => setMessage(''), 3000)
   }
 
   const handleDelete = async (receiptId: string) => {
@@ -538,7 +582,7 @@ export default function ReceiptsPage() {
               <option value="all">{t('receipts.filters.all')}</option>
               <option value="cash">{t('receipts.paymentMethods.cash')}</option>
               <option value="visa">{t('receipts.paymentMethods.visa')}</option>
-              <option value="vodafone_cash">{t('receipts.paymentMethods.vodafone_cash')}</option>
+              <option value="wallet">{t('receipts.paymentMethods.wallet')}</option>
               <option value="instapay">{t('receipts.paymentMethods.instapay')}</option>
             </select>
           </div>
@@ -835,9 +879,27 @@ export default function ReceiptsPage() {
                 const clientName = details.memberName || details.clientName || details.name || '-'
 
                 return (
-                  <tr key={receipt.id} className="border-t hover:bg-blue-50 transition">
+                  <tr
+                    key={receipt.id}
+                    className={`border-t transition ${
+                      receipt.isCancelled
+                        ? 'bg-red-200 hover:bg-red-300 border-l-4 border-red-600'
+                        : 'hover:bg-blue-50'
+                    }`}
+                  >
                     <td className="px-4 py-4">
-                      <span className="font-bold text-blue-600 text-lg">#{receipt.receiptNumber}</span>
+                      <div>
+                        <span className={`font-bold text-lg ${
+                          receipt.isCancelled ? 'text-red-600' : 'text-blue-600'
+                        }`}>#{receipt.receiptNumber}</span>
+                        {receipt.isCancelled && (
+                          <div className="mt-1">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">
+                              ❌ ملغي
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-4">
                       <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
@@ -926,13 +988,23 @@ export default function ReceiptsPage() {
                           🖨️
                         </button>
 
-                        {canEdit && (
+                        {canEdit && !receipt.isCancelled && (
                           <button
                             onClick={() => handleOpenEdit(receipt)}
                             className="bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 text-sm transition shadow-md hover:shadow-lg"
                             title={t('receipts.actions.edit')}
                           >
                             ✏️
+                          </button>
+                        )}
+
+                        {canEdit && !receipt.isCancelled && (
+                          <button
+                            onClick={() => handleCancelReceipt(receipt.id)}
+                            className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 text-sm transition shadow-md hover:shadow-lg"
+                            title="إلغاء الإيصال"
+                          >
+                            🚫
                           </button>
                         )}
 
@@ -1091,8 +1163,8 @@ export default function ReceiptsPage() {
       {/* Edit Modal */}
       {showEditModal && editingReceipt && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6" dir={direction}>
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-5 max-h-[90vh] overflow-y-auto" dir={direction}>
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-2xl font-bold">✏️ {t('receipts.edit.title')}</h2>
                 <p className="text-sm text-gray-600">{t('receipts.edit.subtitle')} #{editingReceipt.receiptNumber}</p>
@@ -1109,7 +1181,7 @@ export default function ReceiptsPage() {
             </div>
 
             {/* معلومات الإيصال الأساسية */}
-            <div className={`bg-blue-50 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-blue-500 rounded-lg p-4 mb-6`}>
+            <div className={`bg-blue-50 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-blue-500 rounded-lg p-3 mb-4`}>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <span className="text-gray-600">{t('receipts.edit.type')}:</span>
@@ -1124,80 +1196,86 @@ export default function ReceiptsPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              {/* رقم الإيصال */}
-              <div>
-                <label className="block text-sm font-bold mb-2">
-                  {t('receipts.edit.receiptNumberRequired')}
-                </label>
-                <input
-                  type="number"
-                  value={editFormData.receiptNumber}
-                  onChange={(e) => setEditFormData({ ...editFormData, receiptNumber: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="1000"
-                />
-                <p className="text-xs text-amber-600 mt-1">
-                  ⚠️ {t('receipts.edit.receiptNumberWarning')}
-                </p>
+            <div className="space-y-3">
+              {/* الصف الأول: رقم الإيصال والمبلغ */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* رقم الإيصال */}
+                <div>
+                  <label className="block text-sm font-bold mb-1.5">
+                    {t('receipts.edit.receiptNumberRequired')}
+                  </label>
+                  <input
+                    type="number"
+                    value={editFormData.receiptNumber}
+                    onChange={(e) => setEditFormData({ ...editFormData, receiptNumber: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="1000"
+                  />
+                  <p className="text-xs text-amber-600 mt-1">
+                    ⚠️ {t('receipts.edit.receiptNumberWarning')}
+                  </p>
+                </div>
+
+                {/* المبلغ */}
+                <div>
+                  <label className="block text-sm font-bold mb-1.5">
+                    {t('receipts.edit.amountRequired')}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editFormData.amount}
+                    onChange={(e) => setEditFormData({ ...editFormData, amount: parseFloat(e.target.value) })}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
-              {/* المبلغ */}
-              <div>
-                <label className="block text-sm font-bold mb-2">
-                  {t('receipts.edit.amountRequired')}
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editFormData.amount}
-                  onChange={(e) => setEditFormData({ ...editFormData, amount: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="0.00"
-                />
-              </div>
+              {/* الصف الثاني: طريقة الدفع واسم الموظف */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* طريقة الدفع */}
+                <div>
+                  <label className="block text-sm font-bold mb-1.5">
+                    {t('receipts.edit.paymentMethodRequired')}
+                  </label>
+                  <select
+                    value={editFormData.paymentMethod}
+                    onChange={(e) => setEditFormData({ ...editFormData, paymentMethod: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="cash">💵 {t('receipts.paymentMethods.cash')}</option>
+                    <option value="visa">💳 {t('receipts.paymentMethods.visa')}</option>
+                    <option value="wallet">👛 {t('receipts.paymentMethods.wallet')}</option>
+                    <option value="instapay">💸 {t('receipts.paymentMethods.instapay')}</option>
+                  </select>
+                </div>
 
-              {/* طريقة الدفع */}
-              <div>
-                <label className="block text-sm font-bold mb-2">
-                  {t('receipts.edit.paymentMethodRequired')}
-                </label>
-                <select
-                  value={editFormData.paymentMethod}
-                  onChange={(e) => setEditFormData({ ...editFormData, paymentMethod: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="cash">💵 {t('receipts.paymentMethods.cash')}</option>
-                  <option value="visa">💳 {t('receipts.paymentMethods.visa')}</option>
-                  <option value="vodafone_cash">📱 {t('receipts.paymentMethods.vodafone_cash')}</option>
-                  <option value="instapay">💸 {t('receipts.paymentMethods.instapay')}</option>
-                </select>
-              </div>
-
-              {/* اسم الموظف */}
-              <div>
-                <label className="block text-sm font-bold mb-2">
-                  {t('receipts.edit.staffNameOptional')}
-                </label>
-                <input
-                  type="text"
-                  value={editFormData.staffName}
-                  onChange={(e) => setEditFormData({ ...editFormData, staffName: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder={t('receipts.edit.staffPlaceholder')}
-                />
+                {/* اسم الموظف */}
+                <div>
+                  <label className="block text-sm font-bold mb-1.5">
+                    {t('receipts.edit.staffNameOptional')}
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.staffName}
+                    onChange={(e) => setEditFormData({ ...editFormData, staffName: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={t('receipts.edit.staffPlaceholder')}
+                  />
+                </div>
               </div>
 
               {/* تاريخ الإيصال */}
               <div>
-                <label className="block text-sm font-bold mb-2">
+                <label className="block text-sm font-bold mb-1.5">
                   {t('receipts.edit.receiptDateRequired')}
                 </label>
                 <input
                   type="datetime-local"
                   value={editFormData.createdAt}
                   onChange={(e) => setEditFormData({ ...editFormData, createdAt: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   ℹ️ {t('receipts.edit.dateNote')}
@@ -1205,12 +1283,12 @@ export default function ReceiptsPage() {
               </div>
 
               {/* ملاحظة تحذيرية */}
-              <div className={`bg-yellow-50 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-yellow-500 rounded-lg p-4`}>
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">⚠️</div>
+              <div className={`bg-yellow-50 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-yellow-500 rounded-lg p-3`}>
+                <div className="flex items-start gap-2">
+                  <div className="text-xl">⚠️</div>
                   <div>
-                    <p className="font-bold text-yellow-800 mb-1">{t('receipts.edit.warning')}</p>
-                    <p className="text-sm text-yellow-700">
+                    <p className="font-bold text-yellow-800 text-sm mb-0.5">{t('receipts.edit.warning')}</p>
+                    <p className="text-xs text-yellow-700">
                       {t('receipts.edit.warningMessage')}
                     </p>
                   </div>
@@ -1219,10 +1297,10 @@ export default function ReceiptsPage() {
             </div>
 
             {/* الأزرار */}
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-4">
               <button
                 onClick={handleSaveEdit}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-bold shadow-lg hover:shadow-xl"
+                className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition font-bold shadow-lg hover:shadow-xl"
               >
                 ✅ {t('receipts.edit.save')}
               </button>
@@ -1231,7 +1309,7 @@ export default function ReceiptsPage() {
                   setShowEditModal(false)
                   setEditingReceipt(null)
                 }}
-                className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition font-bold"
+                className="px-6 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-bold"
               >
                 {t('receipts.edit.cancel')}
               </button>

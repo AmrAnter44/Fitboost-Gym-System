@@ -16,6 +16,7 @@ interface Member {
   freePTSessions?: number
   subscriptionPrice: number
   remainingAmount: number
+  remainingFreezeDays?: number
   notes?: string
   isActive: boolean
   startDate?: string

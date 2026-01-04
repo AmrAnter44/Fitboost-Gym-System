@@ -282,20 +282,19 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 📊 جراف الإيرادات */}
-      <div className="mb-8">
+      {/* 📊 الجرافات */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* جراف الإيرادات */}
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl shadow-xl border-2 border-blue-200 hover:shadow-2xl transition-shadow duration-300">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <span className="text-3xl">💰</span>
-                <span>{t('dashboard.revenueLast14Days')}</span>
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">{t('dashboard.revenueChartSubtitle')}</p>
-            </div>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <span className="text-3xl">💰</span>
+              <span>{t('dashboard.revenueLast14Days')}</span>
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">{t('dashboard.revenueChartSubtitle')}</p>
           </div>
           {revenueChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={350}>
               <LineChart data={revenueChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
@@ -328,7 +327,53 @@ export default function HomePage() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex flex-col items-center justify-center h-[400px]">
+            <div className="flex flex-col items-center justify-center h-[350px]">
+              <div className="text-6xl mb-4 animate-pulse">📊</div>
+              <p className="text-gray-400 font-semibold">{t('dashboard.loadingData')}</p>
+            </div>
+          )}
+        </div>
+
+        {/* جراف حضور الأعضاء */}
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl shadow-xl border-2 border-green-200 hover:shadow-2xl transition-shadow duration-300">
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <span className="text-3xl">📊</span>
+              <span>{t('dashboard.attendanceLast7Days')}</span>
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">{t('dashboard.attendanceChartSubtitle')}</p>
+          </div>
+          {attendanceChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={attendanceChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="attendanceGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.3}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.5} />
+                <XAxis
+                  dataKey="date"
+                  stroke="#64748b"
+                  style={{ fontSize: '12px', fontWeight: 600 }}
+                  tick={{ fill: '#475569' }}
+                />
+                <YAxis
+                  stroke="#64748b"
+                  style={{ fontSize: '12px', fontWeight: 600 }}
+                  tick={{ fill: '#475569' }}
+                />
+                <Tooltip content={<CustomAttendanceTooltip />} />
+                <Bar
+                  dataKey="attendance"
+                  fill="url(#attendanceGradient)"
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[350px]">
               <div className="text-6xl mb-4 animate-pulse">📊</div>
               <p className="text-gray-400 font-semibold">{t('dashboard.loadingData')}</p>
             </div>

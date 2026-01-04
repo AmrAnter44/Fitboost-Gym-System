@@ -36,6 +36,8 @@ export default function DayUsePage() {
   const [showDeletePopup, setShowDeletePopup] = useState(false)
   const [entryToDelete, setEntryToDelete] = useState<DayUseEntry | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [isRenewing, setIsRenewing] = useState(false)
+  const [renewingEntryId, setRenewingEntryId] = useState<string | null>(null)
 
   const fetchEntries = async () => {
     try {
@@ -65,33 +67,51 @@ export default function DayUsePage() {
     setMessage('')
 
     try {
-      const response = await fetch('/api/dayuse', {
+      // If renewing, use renew endpoint, otherwise use create endpoint
+      const endpoint = isRenewing && renewingEntryId ? '/api/dayuse/renew' : '/api/dayuse'
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          staffName: user?.name || ''
+          staffName: user?.name || '',
+          ...(isRenewing && renewingEntryId ? { entryId: renewingEntryId } : {})
         }),
       })
 
       if (response.ok) {
-        const entry = await response.json()
+        const data = await response.json()
 
         try {
-          const receiptsResponse = await fetch(`/api/receipts?dayUseId=${entry.id}`)
-          const receipts = await receiptsResponse.json()
-
-          if (receipts.length > 0) {
-            const receipt = receipts[0]
+          // If renewing, receipt is returned directly
+          if (isRenewing && data.receipt) {
             setReceiptData({
-              receiptNumber: receipt.receiptNumber,
-              type: receipt.type,
-              amount: receipt.amount,
-              details: JSON.parse(receipt.itemDetails),
-              date: new Date(receipt.createdAt),
-              paymentMethod: formData.paymentMethod  // ✅ تمرير paymentMethod من الفورم
+              receiptNumber: data.receipt.receiptNumber,
+              type: data.receipt.type,
+              amount: data.receipt.amount,
+              details: JSON.parse(data.receipt.itemDetails),
+              date: new Date(data.receipt.createdAt),
+              paymentMethod: formData.paymentMethod
             })
             setShowReceipt(true)
+          } else {
+            // For new entries, fetch receipt from API
+            const receiptsResponse = await fetch(`/api/receipts?dayUseId=${data.id}`)
+            const receipts = await receiptsResponse.json()
+
+            if (receipts.length > 0) {
+              const receipt = receipts[0]
+              setReceiptData({
+                receiptNumber: receipt.receiptNumber,
+                type: receipt.type,
+                amount: receipt.amount,
+                details: JSON.parse(receipt.itemDetails),
+                date: new Date(receipt.createdAt),
+                paymentMethod: formData.paymentMethod
+              })
+              setShowReceipt(true)
+            }
           }
         } catch (err) {
           console.error('Error fetching receipt:', err)
@@ -110,6 +130,8 @@ export default function DayUsePage() {
         setTimeout(() => setMessage(''), 3000)
         fetchEntries()
         setShowForm(false)
+        setIsRenewing(false)
+        setRenewingEntryId(null)
       } else {
         setMessage(t('dayUse.messages.failed'))
       }
@@ -119,6 +141,22 @@ export default function DayUsePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRenewClick = (entry: DayUseEntry) => {
+    setFormData({
+      name: entry.name,
+      phone: entry.phone,
+      serviceType: entry.serviceType,
+      price: entry.price,
+      staffName: user?.name || '',
+      paymentMethod: 'cash',
+    })
+    setIsRenewing(true)
+    setRenewingEntryId(entry.id)
+    setShowForm(true)
+    // Scroll to top to show the form
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleDeleteClick = (entry: DayUseEntry) => {
@@ -157,7 +195,22 @@ export default function DayUsePage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{t('dayUse.title')}</h1>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm)
+            if (!showForm) {
+              // Reset form when opening
+              setFormData({
+                name: '',
+                phone: '',
+                serviceType: 'DayUse',
+                price: 0,
+                staffName: user?.name || '',
+                paymentMethod: 'cash',
+              })
+              setIsRenewing(false)
+              setRenewingEntryId(null)
+            }
+          }}
           className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
         >
           {showForm ? t('dayUse.hideForm') : t('dayUse.addNewOperation')}
@@ -172,7 +225,9 @@ export default function DayUsePage() {
 
       {showForm && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">{t('dayUse.addOperationTitle')}</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            {isRenewing ? '🔄 تجديد خدمة' : t('dayUse.addOperationTitle')}
+          </h2>
           
           {message && (
             <div className={`mb-4 p-3 rounded-lg ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -279,6 +334,12 @@ export default function DayUsePage() {
                 {/* Action Buttons at Top */}
                 <div className="flex justify-end gap-2 mb-3">
                   <button
+                    onClick={() => handleRenewClick(entry)}
+                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition text-sm font-medium shadow-sm"
+                  >
+                    🔄 تجديد
+                  </button>
+                  <button
                     onClick={() => handleDeleteClick(entry)}
                     className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-sm font-medium shadow-sm"
                   >
@@ -384,12 +445,20 @@ export default function DayUsePage() {
                       {new Date(entry.createdAt).toLocaleDateString('ar-EG')}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => handleDeleteClick(entry)}
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition text-sm"
-                      >
-                        🗑️ {t('dayUse.delete')}
-                      </button>
+                      <div className="flex gap-2 justify-center">
+                        <button
+                          onClick={() => handleRenewClick(entry)}
+                          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition text-sm"
+                        >
+                          🔄 تجديد
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(entry)}
+                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition text-sm"
+                        >
+                          🗑️ {t('dayUse.delete')}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

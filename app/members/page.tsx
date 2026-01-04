@@ -24,9 +24,48 @@ interface Member {
   remainingAmount: number
   notes?: string
   isActive: boolean
+  isFrozen: boolean
   startDate?: string
   expiryDate?: string
   createdAt: string
+}
+
+// دالة حساب اسم الباقة بناءً على عدد أيام الاشتراك
+const getPackageName = (startDate: string | undefined, expiryDate: string | undefined, locale: string = 'ar'): string => {
+  if (!startDate || !expiryDate) return '-'
+
+  const start = new Date(startDate)
+  const expiry = new Date(expiryDate)
+  const diffTime = expiry.getTime() - start.getTime()
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays <= 0) return '-'
+
+  const months = Math.round(diffDays / 30)
+
+  if (locale === 'ar') {
+    if (diffDays >= 330 && diffDays <= 395) return 'سنة'
+    else if (diffDays >= 165 && diffDays <= 195) return '6 شهور'
+    else if (diffDays >= 85 && diffDays <= 95) return '3 شهور'
+    else if (diffDays >= 55 && diffDays <= 65) return 'شهرين'
+    else if (diffDays >= 25 && diffDays <= 35) return 'شهر'
+    else if (diffDays >= 10 && diffDays <= 17) return 'أسبوعين'
+    else if (diffDays >= 5 && diffDays <= 9) return 'أسبوع'
+    else if (diffDays === 1) return 'يوم'
+    else if (months > 0) return `${months} ${months === 1 ? 'شهر' : months === 2 ? 'شهرين' : 'شهور'}`
+    else return `${diffDays} ${diffDays === 1 ? 'يوم' : diffDays === 2 ? 'يومين' : 'أيام'}`
+  } else {
+    if (diffDays >= 330 && diffDays <= 395) return 'Year'
+    else if (diffDays >= 165 && diffDays <= 195) return '6 Months'
+    else if (diffDays >= 85 && diffDays <= 95) return '3 Months'
+    else if (diffDays >= 55 && diffDays <= 65) return '2 Months'
+    else if (diffDays >= 25 && diffDays <= 35) return 'Month'
+    else if (diffDays >= 10 && diffDays <= 17) return '2 Weeks'
+    else if (diffDays >= 5 && diffDays <= 9) return 'Week'
+    else if (diffDays === 1) return 'Day'
+    else if (months > 0) return `${months} ${months === 1 ? 'Month' : 'Months'}`
+    else return `${diffDays} ${diffDays === 1 ? 'Day' : 'Days'}`
+  }
 }
 
 export default function MembersPage() {
@@ -58,7 +97,15 @@ export default function MembersPage() {
   const [searchPhone, setSearchPhone] = useState('')
 
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining'>('all')
+  const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [specificDate, setSpecificDate] = useState('')
+
+  // سجل الإيصالات
+  const [showReceiptsModal, setShowReceiptsModal] = useState(false)
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const [memberReceipts, setMemberReceipts] = useState<any[]>([])
+  const [receiptsLoading, setReceiptsLoading] = useState(false)
+  const [lastReceipts, setLastReceipts] = useState<{ [memberId: string]: any }>({})
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -129,8 +176,69 @@ export default function MembersPage() {
     }
   }
 
+  const fetchLastReceipts = async () => {
+    try {
+      const response = await fetch('/api/receipts')
+      const receipts = await response.json()
+
+      const lastReceiptsMap: { [memberId: string]: any } = {}
+
+      receipts.forEach((receipt: any) => {
+        if (receipt.type === 'Member' || receipt.type === 'تجديد عضويه') {
+          const itemDetails = JSON.parse(receipt.itemDetails)
+          const memberId = itemDetails.memberId
+
+          if (memberId) {
+            if (!lastReceiptsMap[memberId] || new Date(receipt.createdAt) > new Date(lastReceiptsMap[memberId].createdAt)) {
+              lastReceiptsMap[memberId] = receipt
+            }
+          }
+        }
+      })
+
+      setLastReceipts(lastReceiptsMap)
+    } catch (error) {
+      console.error('Error fetching last receipts:', error)
+    }
+  }
+
+  const fetchMemberReceipts = async (memberNumber: number) => {
+    setReceiptsLoading(true)
+    try {
+      const response = await fetch('/api/receipts')
+      const allReceipts = await response.json()
+
+      const filtered = allReceipts.filter((receipt: any) => {
+        if (receipt.type === 'Member' || receipt.type === 'تجديد عضويه') {
+          try {
+            const itemDetails = JSON.parse(receipt.itemDetails)
+            // البحث برقم العضوية (memberNumber) بدلاً من memberId
+            return itemDetails.memberNumber === memberNumber
+          } catch (error) {
+            return false
+          }
+        }
+        return false
+      })
+
+      setMemberReceipts(filtered.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
+    } catch (error) {
+      console.error('Error fetching member receipts:', error)
+      setMemberReceipts([])
+    } finally {
+      setReceiptsLoading(false)
+    }
+  }
+
+  const handleShowReceipts = (memberId: string, memberNumber: number) => {
+    setSelectedMemberId(memberId)
+    fetchMemberReceipts(memberNumber)
+    setShowReceiptsModal(true)
+  }
+
   useEffect(() => {
     fetchMembers()
+    fetchLastReceipts()
   }, [])
 
   useEffect(() => {
@@ -174,12 +282,33 @@ export default function MembersPage() {
       })
     }
 
+    if (filterPackage !== 'all') {
+      filtered = filtered.filter((member) => {
+        if (!member.startDate || !member.expiryDate) return false
+
+        const start = new Date(member.startDate)
+        const expiry = new Date(member.expiryDate)
+        const diffDays = Math.round((expiry.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+
+        if (filterPackage === 'month') {
+          return diffDays >= 25 && diffDays <= 35
+        } else if (filterPackage === '3-months') {
+          return diffDays >= 85 && diffDays <= 95
+        } else if (filterPackage === '6-months') {
+          return diffDays >= 165 && diffDays <= 195
+        } else if (filterPackage === 'year') {
+          return diffDays >= 330 && diffDays <= 395
+        }
+        return true
+      })
+    }
+
     if (specificDate) {
       filtered = filtered.filter((member) => {
         if (!member.expiryDate) return false
         const expiryDate = new Date(member.expiryDate)
         const selectedDate = new Date(specificDate)
-        
+
         return (
           expiryDate.getFullYear() === selectedDate.getFullYear() &&
           expiryDate.getMonth() === selectedDate.getMonth() &&
@@ -190,7 +319,7 @@ export default function MembersPage() {
 
     setFilteredMembers(filtered)
     setCurrentPage(1) // إعادة تعيين الصفحة للأولى عند الفلترة
-  }, [searchId, searchName, searchPhone, filterStatus, specificDate, members])
+  }, [searchId, searchName, searchPhone, filterStatus, filterPackage, specificDate, members])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
@@ -218,7 +347,22 @@ export default function MembersPage() {
     setSearchName('')
     setSearchPhone('')
     setFilterStatus('all')
+    setFilterPackage('all')
     setSpecificDate('')
+  }
+
+  // دالة مساعدة لفلترة الأعضاء حسب الحالة
+  const filterByStatus = (member: Member) => {
+    const isExpired = member.expiryDate ? new Date(member.expiryDate) < new Date() : false
+    const daysRemaining = calculateRemainingDays(member.expiryDate)
+    const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
+
+    if (filterStatus === 'all') return true
+    if (filterStatus === 'expired') return isExpired
+    if (filterStatus === 'expiring-soon') return isExpiringSoon
+    if (filterStatus === 'active') return member.isActive && !isExpired
+    if (filterStatus === 'has-remaining') return member.remainingAmount > 0
+    return true
   }
 
   const stats = {
@@ -234,7 +378,31 @@ export default function MembersPage() {
       const daysRemaining = calculateRemainingDays(m.expiryDate)
       return daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
     }).length,
-    hasRemaining: members.filter(m => m.remainingAmount > 0).length
+    hasRemaining: members.filter(m => m.remainingAmount > 0).length,
+    packageMonth: members.filter(m => {
+      if (!filterByStatus(m)) return false
+      if (!m.startDate || !m.expiryDate) return false
+      const diffDays = Math.round((new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / (1000 * 60 * 60 * 24))
+      return diffDays >= 25 && diffDays <= 35
+    }).length,
+    package3Months: members.filter(m => {
+      if (!filterByStatus(m)) return false
+      if (!m.startDate || !m.expiryDate) return false
+      const diffDays = Math.round((new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / (1000 * 60 * 60 * 24))
+      return diffDays >= 85 && diffDays <= 95
+    }).length,
+    package6Months: members.filter(m => {
+      if (!filterByStatus(m)) return false
+      if (!m.startDate || !m.expiryDate) return false
+      const diffDays = Math.round((new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / (1000 * 60 * 60 * 24))
+      return diffDays >= 165 && diffDays <= 195
+    }).length,
+    packageYear: members.filter(m => {
+      if (!filterByStatus(m)) return false
+      if (!m.startDate || !m.expiryDate) return false
+      const diffDays = Math.round((new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / (1000 * 60 * 60 * 24))
+      return diffDays >= 330 && diffDays <= 395
+    }).length
   }
 
   // ✅ التحقق من الصلاحيات
@@ -327,10 +495,11 @@ export default function MembersPage() {
             <span>🎯</span>
             <span>{t('members.quickFilters')}</span>
           </h3>
-          {(filterStatus !== 'all' || specificDate) && (
+          {(filterStatus !== 'all' || filterPackage !== 'all' || specificDate) && (
             <button
               onClick={() => {
                 setFilterStatus('all')
+                setFilterPackage('all')
                 setSpecificDate('')
               }}
               className="bg-purple-100 text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-200 text-sm font-medium"
@@ -397,7 +566,70 @@ export default function MembersPage() {
           </button>
         </div>
 
-        <div className="border-t pt-4">
+        <div className="border-t pt-4 mt-4">
+          <h4 className="text-lg font-bold mb-3 flex items-center gap-2">
+            <span>📦</span>
+            <span>{locale === 'ar' ? 'فلترة حسب الباقة' : 'Filter by Package'}</span>
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            <button
+              onClick={() => setFilterPackage('all')}
+              className={`px-4 py-3 rounded-lg font-medium transition ${
+                filterPackage === 'all'
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {locale === 'ar' ? 'الكل' : 'All'}
+            </button>
+
+            <button
+              onClick={() => setFilterPackage('month')}
+              className={`px-4 py-3 rounded-lg font-medium transition ${
+                filterPackage === 'month'
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {locale === 'ar' ? 'شهر' : 'Month'} ({stats.packageMonth})
+            </button>
+
+            <button
+              onClick={() => setFilterPackage('3-months')}
+              className={`px-4 py-3 rounded-lg font-medium transition ${
+                filterPackage === '3-months'
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {locale === 'ar' ? '3 شهور' : '3 Months'} ({stats.package3Months})
+            </button>
+
+            <button
+              onClick={() => setFilterPackage('6-months')}
+              className={`px-4 py-3 rounded-lg font-medium transition ${
+                filterPackage === '6-months'
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {locale === 'ar' ? '6 شهور' : '6 Months'} ({stats.package6Months})
+            </button>
+
+            <button
+              onClick={() => setFilterPackage('year')}
+              className={`px-4 py-3 rounded-lg font-medium transition ${
+                filterPackage === 'year'
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {locale === 'ar' ? 'سنة' : 'Year'} ({stats.packageYear})
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t pt-4 mt-4">
           <label className="block text-sm font-medium mb-2">
             📅 {t('members.filterByExpiryDate')}
           </label>
@@ -485,7 +717,7 @@ export default function MembersPage() {
         )}
       </div>
 
-      {(searchId || searchName || searchPhone || filterStatus !== 'all' || specificDate) && (
+      {(searchId || searchName || searchPhone || filterStatus !== 'all' || filterPackage !== 'all' || specificDate) && (
         <div className="bg-yellow-50 border-2 border-yellow-300 p-4 rounded-xl mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🔎</span>
@@ -518,6 +750,7 @@ export default function MembersPage() {
                     <th className="px-4 py-3 text-right">{t('members.name')}</th>
                     <th className="px-4 py-3 text-right">{t('members.phone')}</th>
                     <th className="px-4 py-3 text-right">{t('members.price')}</th>
+                    <th className="px-4 py-3 text-right">{locale === 'ar' ? 'الباقة' : 'Package'}</th>
                     <th className="px-4 py-3 text-right">{t('members.status')}</th>
                     <th className="px-4 py-3 text-right">{t('members.startDate')}</th>
                     <th className="px-4 py-3 text-right">{t('members.expiryDate')}</th>
@@ -554,7 +787,7 @@ export default function MembersPage() {
                         <td className="px-4 py-3">{member.name}</td>
                         <td className="px-4 py-3">
                           <a
-                            href={`https://wa.me/+2${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
+                            href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-green-600 hover:text-green-700 hover:underline font-medium"
@@ -564,10 +797,24 @@ export default function MembersPage() {
                         </td>
                         <td className="px-4 py-3">{member.subscriptionPrice} {t('members.egp')}</td>
                         <td className="px-4 py-3">
+                          <span className="text-purple-600 font-bold">
+                            {getPackageName(member.startDate, member.expiryDate, locale)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded text-sm ${
-                            member.isActive && !isExpired ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            member.isFrozen
+                              ? 'bg-blue-100 text-blue-800'
+                              : member.isActive && !isExpired
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
                           }`}>
-                            {member.isActive && !isExpired ? t('members.active') : t('members.expired')}
+                            {member.isFrozen
+                              ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                              : member.isActive && !isExpired
+                                ? t('members.active')
+                                : t('members.expired')
+                            }
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -640,9 +887,18 @@ export default function MembersPage() {
                       <div className="flex-1 min-w-0">
                         <div className="text-xl font-bold text-white mb-1">#{member.memberNumber}</div>
                         <div className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                          member.isActive && !isExpired ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                          member.isFrozen
+                            ? 'bg-blue-400 text-white'
+                            : member.isActive && !isExpired
+                              ? 'bg-green-500 text-white'
+                              : 'bg-red-500 text-white'
                         }`}>
-                          {member.isActive && !isExpired ? `✓ ${t('members.active')}` : `✕ ${t('members.expired')}`}
+                          {member.isFrozen
+                            ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                            : member.isActive && !isExpired
+                              ? `✓ ${t('members.active')}`
+                              : `✕ ${t('members.expired')}`
+                          }
                         </div>
                       </div>
                     </div>
@@ -666,7 +922,7 @@ export default function MembersPage() {
                         <span className="text-xs text-gray-500 font-semibold">{t('members.phone')}</span>
                       </div>
                       <a
-                        href={`https://wa.me/+2${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
+                        href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-base font-mono text-green-600 hover:text-green-700 hover:underline direction-ltr text-right block font-medium"
@@ -675,13 +931,23 @@ export default function MembersPage() {
                       </a>
                     </div>
 
-                    {/* Price Info */}
-                    <div className="bg-green-50 border-2 border-green-200 rounded-lg p-2.5">
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="text-sm">💰</span>
-                        <span className="text-xs text-green-700 font-semibold">{t('members.price')}</span>
+                    {/* Price and Package Info */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-green-50 border-2 border-green-200 rounded-lg p-2.5">
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="text-sm">💰</span>
+                          <span className="text-xs text-green-700 font-semibold">{t('members.price')}</span>
+                        </div>
+                        <div className="text-base font-bold text-green-600">{member.subscriptionPrice} {t('members.egp')}</div>
                       </div>
-                      <div className="text-base font-bold text-green-600">{member.subscriptionPrice} {t('members.egp')}</div>
+
+                      <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-2.5">
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="text-sm">📦</span>
+                          <span className="text-xs text-purple-700 font-semibold">{locale === 'ar' ? 'الباقة' : 'Package'}</span>
+                        </div>
+                        <div className="text-base font-bold text-purple-600">{getPackageName(member.startDate, member.expiryDate, locale)}</div>
+                      </div>
                     </div>
 
                     {/* Dates */}
@@ -722,6 +988,32 @@ export default function MembersPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Last Receipt Box */}
+                    {lastReceipts[member.id] && (
+                      <div
+                        onClick={() => handleShowReceipts(member.id, member.memberNumber)}
+                        className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-orange-200 rounded-lg p-2.5 cursor-pointer hover:shadow-md transition"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm">🧾</span>
+                          <span className="text-xs text-orange-700 font-semibold">{locale === 'ar' ? 'آخر إيصال' : 'Last Receipt'}</span>
+                        </div>
+                        <div className="text-sm font-bold text-orange-600">
+                          #{lastReceipts[member.id].receiptNumber} - {lastReceipts[member.id].amount} {t('members.egp')}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {new Date(lastReceipts[member.id].createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                        <div className="text-xs text-blue-600 mt-1 font-semibold">
+                          {locale === 'ar' ? '⬅️ اضغط لعرض السجل' : 'Click to view history ➡️'}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Action Button */}
                     <button
@@ -998,6 +1290,137 @@ export default function MembersPage() {
             <div className="p-4 bg-gray-50 border-t flex justify-end">
               <button
                 onClick={() => setShowAttendanceModal(false)}
+                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Member Receipts Modal */}
+      {showReceiptsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-orange-600 to-yellow-600 text-white p-6 rounded-t-lg">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <span>🧾</span>
+                <span>{locale === 'ar' ? 'سجل الإيصالات' : 'Receipts History'}</span>
+              </h2>
+              <p className="text-orange-100 mt-1">
+                {selectedMemberId && members.find(m => m.id === selectedMemberId)?.name}
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {receiptsLoading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin text-6xl mb-4">⏳</div>
+                  <p className="text-xl text-gray-600">{locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+                </div>
+              ) : memberReceipts.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-xl">
+                    {locale === 'ar' ? 'لا توجد إيصالات' : 'No receipts found'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {memberReceipts.map((receipt) => {
+                    const itemDetails = JSON.parse(receipt.itemDetails)
+                    return (
+                      <div
+                        key={receipt.id}
+                        className="bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
+                                #{receipt.receiptNumber}
+                              </span>
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                receipt.isCancelled
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-green-100 text-green-700'
+                              }`}>
+                                {receipt.isCancelled
+                                  ? (locale === 'ar' ? '❌ ملغي' : '❌ Cancelled')
+                                  : (locale === 'ar' ? '✓ نشط' : '✓ Active')
+                                }
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className="text-gray-500">{locale === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
+                                <span className="font-bold text-green-600 mr-2">{receipt.amount} {t('members.egp')}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">{locale === 'ar' ? 'الطريقة:' : 'Method:'}</span>
+                                <span className="font-semibold mr-2">
+                                  {receipt.paymentMethod === 'cash' ? (locale === 'ar' ? 'كاش 💵' : 'Cash 💵')
+                                    : receipt.paymentMethod === 'visa' ? (locale === 'ar' ? 'فيزا 💳' : 'Visa 💳')
+                                    : receipt.paymentMethod === 'instapay' ? (locale === 'ar' ? 'إنستاباي 📱' : 'Instapay 📱')
+                                    : (locale === 'ar' ? 'محفظة 💰' : 'Wallet 💰')
+                                  }
+                                </span>
+                              </div>
+                              {itemDetails.packageType && (
+                                <div>
+                                  <span className="text-gray-500">{locale === 'ar' ? 'الباقة:' : 'Package:'}</span>
+                                  <span className="font-semibold mr-2">{itemDetails.packageType}</span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-gray-500">{locale === 'ar' ? 'التاريخ:' : 'Date:'}</span>
+                                <span className="font-mono text-xs mr-2">
+                                  {new Date(receipt.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+                            {itemDetails.startDate && itemDetails.expiryDate && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-600">
+                                  <span className="font-semibold">{locale === 'ar' ? 'الفترة:' : 'Period:'}</span>
+                                  <span className="font-mono mr-2">
+                                    {new Date(itemDetails.startDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  </span>
+                                  <span className="mx-1">→</span>
+                                  <span className="font-mono">
+                                    {new Date(itemDetails.expiryDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                {locale === 'ar' ? 'إجمالي الإيصالات:' : 'Total Receipts:'} <span className="font-bold">{memberReceipts.length}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setShowReceiptsModal(false)
+                  setSelectedMemberId(null)
+                  setMemberReceipts([])
+                }}
                 className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
               >
                 {t('common.close')}

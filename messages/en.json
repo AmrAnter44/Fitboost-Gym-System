@@ -29,7 +29,8 @@
     "status": "Status",
     "notes": "Notes",
     "currency": "EGP",
-    "startDate": "Start Date"
+    "startDate": "Start Date",
+    "phone": "Phone"
   },
   "nav": {
     "home": "Home",
@@ -61,7 +62,15 @@
     "position": "Position",
     "searchHint": "💡 Press",
     "searchHintEnter": "to search or",
-    "searchHintEsc": "to close"
+    "searchHintEsc": "to close",
+    "searchErrors": {
+      "pleaseEnterNumber": "⚠️ Please enter member number or staff number",
+      "invalidStaffNumber": "❌ Staff number must be 9 digits (example: 100000022)",
+      "attendanceFailed": "Attendance registration failed",
+      "attendanceError": "An error occurred during attendance registration",
+      "notFound": "🚨 Number \"{number}\" not found",
+      "searchError": "❌ An error occurred during search"
+    }
   },
   "roles": {
     "admin": "👑 Admin",
@@ -1099,6 +1108,30 @@
         "deleteFailed": "Failed to delete attendance record. Please try again.",
         "deleteError": "An error occurred while deleting the record. Please try again."
       }
+    },
+    "renewal": {
+      "title": "Renew PT Sessions",
+      "subtitle": "Renew subscription with new sessions",
+      "ptNumber": "PT Number",
+      "clientName": "Client Name",
+      "currentCoach": "Current Coach",
+      "currentRemainingSessions": "Current Remaining Sessions",
+      "currentExpiryDate": "Current Expiry Date",
+      "renewalData": "Renewal Data",
+      "newSessionsCount": "Number of New Sessions",
+      "totalPrice": "Total Price",
+      "newSubscriptionPeriod": "New Subscription Period",
+      "subscriptionDuration": "New Subscription Duration:",
+      "dateError": "Expiry date must be after start date",
+      "summary": "Renewal Summary",
+      "replacementWarning": "Renewal will replace current remaining sessions ({sessionsRemaining} sessions) with new sessions",
+      "newSessionsLabel": "Number of New Sessions:",
+      "paidAmount": "Paid Amount:",
+      "renewing": "Renewing...",
+      "renewButton": "✅ Renew Sessions",
+      "successMessage": "PT sessions renewed successfully!",
+      "failureMessage": "Renewal failed",
+      "connectionError": "Connection error occurred"
     }
   },
   "staff": {
@@ -1207,6 +1240,21 @@
     "deleteModal": {
       "title": "Delete Staff",
       "message": "Are you sure you want to delete this staff member?"
+    },
+    "loans": {
+      "title": "Staff Loans",
+      "totalLoans": "Total Loans",
+      "paidLoans": "Paid Loans",
+      "unpaidLoans": "Unpaid Loans",
+      "viewAll": "View All Loans",
+      "addLoan": "Add Loan",
+      "amount": "Amount",
+      "date": "Date",
+      "status": "Status",
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "noLoans": "No loans for this staff member",
+      "viewInExpenses": "View in Expenses"
     }
   },
   "receipts": {
@@ -1256,7 +1304,7 @@
     "paymentMethods": {
       "cash": "Cash",
       "visa": "Visa",
-      "vodafone_cash": "Vodafone Cash",
+      "wallet": "Wallet",
       "instapay": "InstaPay"
     },
     "table": {
@@ -1374,11 +1422,13 @@
     "subtitle": "Manage gym expenses and staff loans",
     "addExpense": "Add New Expense",
     "hideForm": "Hide Form",
+    "loansButton": "Loans",
     "loading": "Loading...",
     "stats": {
       "totalExpenses": "Total Expenses",
       "gymExpenses": "Gym Expenses",
-      "staffLoans": "Staff Loans"
+      "staffLoans": "Staff Loans",
+      "currentMonth": "Current Month"
     },
     "form": {
       "title": "Add New Expense",
@@ -1417,6 +1467,7 @@
       "unpaid": "Unpaid"
     },
     "actions": {
+      "edit": "Edit",
       "delete": "Delete"
     },
     "empty": "No expenses currently",
@@ -1432,6 +1483,29 @@
       "deleteSuccess": "Expense deleted successfully",
       "deleteError": "Failed to delete expense",
       "error": "An error occurred"
+    },
+    "loansModal": {
+      "title": "Staff Loans",
+      "subtitle": "Selected month staff loans summary",
+      "noLoans": "No staff loans this month",
+      "totalLoans": "Total Loans:",
+      "staffMember": "Staff Member",
+      "totalAmount": "Total Amount",
+      "selectMonth": "Select Month:",
+      "months": {
+        "january": "January",
+        "february": "February",
+        "march": "March",
+        "april": "April",
+        "may": "May",
+        "june": "June",
+        "july": "July",
+        "august": "August",
+        "september": "September",
+        "october": "October",
+        "november": "November",
+        "december": "December"
+      }
     },
     "noPermission": "You don't have permission to view expenses"
   },
@@ -1773,13 +1847,52 @@
     "noData": "No data for this day",
     "viewMode": {
       "daily": "Daily Closing",
-      "monthly": "Monthly Closing"
+      "monthly": "Monthly Closing",
+      "yearly": "Annual Closing",
+      "comparison": "Comparison & Analysis"
+    },
+    "comparison": {
+      "startMonth": "From Month",
+      "endMonth": "To Month",
+      "periodInfo": "Comparing from {start} to {end} ({count} months)",
+      "totalRevenue": "Total Revenue",
+      "totalExpenses": "Total Expenses",
+      "totalNetProfit": "Total Net Profit",
+      "totalSubscriptions": "Total Subscriptions",
+      "average": "Average",
+      "revenueExpensesTrend": "Revenue & Expenses Trend",
+      "revenue": "Revenue",
+      "expenses": "Expenses",
+      "netProfit": "Net Profit",
+      "revenueBreakdown": "Revenue Breakdown",
+      "floorRevenue": "Floor Revenue",
+      "ptRevenue": "PT Revenue",
+      "subscriptionsChart": "Subscriptions Chart",
+      "memberSubscriptions": "Member Subscriptions",
+      "ptSubscriptions": "PT Subscriptions",
+      "detailedTable": "Detailed Comparison Table",
+      "month": "Month",
+      "growth": "Growth",
+      "subscriptions": "Subscriptions",
+      "members": "Members",
+      "total": "Total",
+      "insights": "Performance Insights",
+      "bestMonth": "Best Month",
+      "worstMonth": "Weakest Month",
+      "trend": "Overall Trend",
+      "growing": "Growing",
+      "declining": "Declining",
+      "stable": "Stable",
+      "noData": "No data for comparison",
+      "selectPeriod": "Select comparison period from above"
     },
     "controls": {
       "selectDay": "Select Day",
       "selectMonth": "Select Month",
+      "selectYear": "Select Year",
       "viewDayDetails": "View details for {date}",
-      "viewMonthDetails": "View all days of {month}"
+      "viewMonthDetails": "View all days of {month}",
+      "viewYearDetails": "View statistics for {year}"
     },
     "buttons": {
       "print": "Print",

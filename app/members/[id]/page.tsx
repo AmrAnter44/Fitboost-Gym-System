@@ -8,7 +8,6 @@ import PaymentMethodSelector from '../../../components/Paymentmethodselector'
 import RenewalForm from '../../../components/RenewalForm'
 import UpgradeForm from '../../../components/UpgradeForm'
 import { formatDateYMD, calculateRemainingDays } from '../../../lib/dateFormatter'
-import BarcodeWhatsApp from '../../../components/BarcodeWhatsApp'
 import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
 import { FlexibilityAssessment, ExerciseTestData, MedicalQuestions, FitnessTestData } from '../../../types/fitness-test'
@@ -21,15 +20,23 @@ interface Member {
   phone: string
   inBodyScans: number
   invitations: number
-  freePTSessions?: number
+  freePTSessions: number
   remainingFreezeDays: number
   subscriptionPrice: number
   remainingAmount: number
   notes?: string
   isActive: boolean
+  isFrozen: boolean
+  profileImage?: string
   startDate?: string
   expiryDate?: string
   createdAt: string
+  coachId?: string
+  coach?: {
+    id: string
+    name: string
+    staffCode: string
+  }
 }
 
 interface Receipt {
@@ -53,12 +60,74 @@ interface Receipt {
   }
 }
 
+// دالة حساب اسم الباقة بناءً على عدد أيام الاشتراك
+const getPackageName = (startDate: string | undefined, expiryDate: string | undefined, locale: string = 'ar'): string => {
+  if (!startDate || !expiryDate) return '-'
+
+  const start = new Date(startDate)
+  const expiry = new Date(expiryDate)
+  const diffTime = expiry.getTime() - start.getTime()
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays <= 0) return '-'
+
+  // حساب عدد الشهور
+  const months = Math.round(diffDays / 30)
+
+  if (locale === 'ar') {
+    if (diffDays >= 330 && diffDays <= 395) {
+      return 'سنة'
+    } else if (diffDays >= 165 && diffDays <= 195) {
+      return '6 شهور'
+    } else if (diffDays >= 85 && diffDays <= 95) {
+      return '3 شهور'
+    } else if (diffDays >= 55 && diffDays <= 65) {
+      return 'شهرين'
+    } else if (diffDays >= 25 && diffDays <= 35) {
+      return 'شهر'
+    } else if (diffDays >= 10 && diffDays <= 17) {
+      return 'أسبوعين'
+    } else if (diffDays >= 5 && diffDays <= 9) {
+      return 'أسبوع'
+    } else if (diffDays === 1) {
+      return 'يوم'
+    } else if (months > 0) {
+      return `${months} ${months === 1 ? 'شهر' : months === 2 ? 'شهرين' : 'شهور'}`
+    } else {
+      return `${diffDays} ${diffDays === 1 ? 'يوم' : diffDays === 2 ? 'يومين' : 'أيام'}`
+    }
+  } else {
+    // English
+    if (diffDays >= 330 && diffDays <= 395) {
+      return 'Year'
+    } else if (diffDays >= 165 && diffDays <= 195) {
+      return '6 Months'
+    } else if (diffDays >= 85 && diffDays <= 95) {
+      return '3 Months'
+    } else if (diffDays >= 55 && diffDays <= 65) {
+      return '2 Months'
+    } else if (diffDays >= 25 && diffDays <= 35) {
+      return 'Month'
+    } else if (diffDays >= 10 && diffDays <= 17) {
+      return '2 Weeks'
+    } else if (diffDays >= 5 && diffDays <= 9) {
+      return 'Week'
+    } else if (diffDays === 1) {
+      return 'Day'
+    } else if (months > 0) {
+      return `${months} ${months === 1 ? 'Month' : 'Months'}`
+    } else {
+      return `${diffDays} ${diffDays === 1 ? 'Day' : 'Days'}`
+    }
+  }
+}
+
 export default function MemberDetailPage() {
   const params = useParams()
   const router = useRouter()
   const memberId = params.id as string
   const { hasPermission, loading: permissionsLoading } = usePermissions()
-  const { t, direction } = useLanguage()
+  const { t, direction, locale } = useLanguage()
 
   const [member, setMember] = useState<Member | null>(null)
   const [loading, setLoading] = useState(true)
@@ -69,6 +138,12 @@ export default function MemberDetailPage() {
   const [showUpgradeForm, setShowUpgradeForm] = useState(false)
   const [lastReceiptNumber, setLastReceiptNumber] = useState<number | null>(null)
   const [ptSubscription, setPtSubscription] = useState<any>(null)
+
+  // سجل الإيصالات
+  const [showReceiptsModal, setShowReceiptsModal] = useState(false)
+  const [memberReceipts, setMemberReceipts] = useState<any[]>([])
+  const [receiptsLoading, setReceiptsLoading] = useState(false)
+  const [lastReceipt, setLastReceipt] = useState<any>(null)
 
   const [confirmModal, setConfirmModal] = useState<{
     show: boolean
@@ -172,9 +247,14 @@ export default function MemberDetailPage() {
 
   const fetchMember = async () => {
     try {
-      const response = await fetch('/api/members')
-      const members = await response.json()
-      const foundMember = members.find((m: Member) => m.id === memberId)
+      const response = await fetch(`/api/members/${memberId}`)
+
+      if (!response.ok) {
+        setMessage(`❌ ${t('memberDetails.memberNotFound')}`)
+        return
+      }
+
+      const foundMember = await response.json()
 
       if (foundMember) {
         // ✅ تحويل كل الأرقام لـ integers
@@ -189,6 +269,7 @@ export default function MemberDetailPage() {
         }
 
         console.log('Member data:', memberWithDefaults)
+        console.log('Coach data:', memberWithDefaults.coach)
         setMember(memberWithDefaults)
 
         // جلب آخر إيصال للعضو
@@ -234,11 +315,51 @@ export default function MemberDetailPage() {
         if (receipts && receipts.length > 0) {
           // أول إيصال في القائمة هو الأحدث (orderBy createdAt desc)
           setLastReceiptNumber(receipts[0].receiptNumber)
+          setLastReceipt(receipts[0])
         }
       }
     } catch (error) {
       console.error('Error fetching last receipt:', error)
     }
+  }
+
+  const fetchMemberReceipts = async () => {
+    setReceiptsLoading(true)
+    try {
+      const response = await fetch('/api/receipts')
+      const allReceipts = await response.json()
+
+      if (!member) {
+        setMemberReceipts([])
+        setReceiptsLoading(false)
+        return
+      }
+
+      const filtered = allReceipts.filter((receipt: any) => {
+        if (receipt.type === 'Member' || receipt.type === 'تجديد عضويه') {
+          try {
+            const itemDetails = JSON.parse(receipt.itemDetails)
+            // البحث برقم العضوية (memberNumber) بدلاً من memberId
+            return itemDetails.memberNumber === member.memberNumber
+          } catch (error) {
+            return false
+          }
+        }
+        return false
+      })
+
+      setMemberReceipts(filtered.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
+    } catch (error) {
+      console.error('Error fetching member receipts:', error)
+      setMemberReceipts([])
+    } finally {
+      setReceiptsLoading(false)
+    }
+  }
+
+  const handleShowReceipts = () => {
+    fetchMemberReceipts()
+    setShowReceiptsModal(true)
   }
 
   const fetchFitnessTest = async () => {
@@ -819,9 +940,76 @@ export default function MemberDetailPage() {
       )}
 
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-2xl p-8 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className={member.coach ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "grid grid-cols-1 md:grid-cols-3 gap-6"}>
           <div>
-            <p className="text-sm opacity-90 mb-2">{t('memberDetails.membershipNumber')}</p>
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-sm opacity-90">{t('memberDetails.membershipNumber')}</p>
+              <button
+                onClick={async () => {
+                  // توليد الباركود وإرساله
+                  try {
+                    const res = await fetch('/api/barcode', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ text: member.memberNumber.toString() }),
+                    })
+                    const data = await res.json()
+
+                    if (data.barcode) {
+                      // تحميل الباركود
+                      const a = document.createElement('a')
+                      a.href = data.barcode
+                      a.download = `barcode-${member.memberNumber}.png`
+                      a.click()
+
+                      // فتح واتساب
+                      setTimeout(() => {
+                        const baseMessage = `Membership Barcode #${member.memberNumber} for member ${member.name}\n\n🌐 *Website:*\nhttps://www.xgym.website/`
+                        const termsAndConditions = `\n\n━━━━━━━━━━━━━━━━━━━━\n*شروط وأحكام*\n━━━━━━━━━━━━━━━━━━━━\nالساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه`
+                        const message = baseMessage + termsAndConditions
+                        const phone = member.phone.replace(/\D/g, '')
+                        const url = `https://wa.me/2${phone}?text=${encodeURIComponent(message)}`
+                        window.open(url, '_blank')
+                      }, 500)
+                    }
+                  } catch (error) {
+                    console.error('Error:', error)
+                  }
+                }}
+                className="bg-green-500 hover:bg-green-600 text-white rounded-full p-1.5 transition-all hover:scale-110"
+                title="Send Barcode via WhatsApp"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+              </button>
+              {hasPermission('canEditMembers') && (
+                <button
+                  onClick={() => {
+                    setEditBasicInfoData({
+                      name: member.name,
+                      phone: member.phone,
+                      subscriptionPrice: member.subscriptionPrice,
+                      inBodyScans: member.inBodyScans ?? 0,
+                      invitations: member.invitations ?? 0,
+                      freePTSessions: member.freePTSessions ?? 0,
+                      remainingFreezeDays: member.remainingFreezeDays ?? 0,
+                      notes: member.notes || '',
+                      startDate: member.startDate ? formatDateYMD(member.startDate) : '',
+                      expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : ''
+                    })
+                    setActiveModal('edit-basic-info')
+                  }}
+                  disabled={loading}
+                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1.5 transition-all hover:scale-110 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  title={t('memberDetails.editModal.title')}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                  </svg>
+                </button>
+              )}
+            </div>
             <p className="text-5xl font-bold">#{member.memberNumber}</p>
           </div>
           <div>
@@ -832,14 +1020,26 @@ export default function MemberDetailPage() {
             <p className="text-sm opacity-90 mb-2">{t('memberDetails.phoneNumber')}</p>
             <p className="text-2xl font-mono">{member.phone}</p>
           </div>
+          {member.coach && (
+            <div>
+              <p className="text-sm opacity-90 mb-2">👨‍🏫 المدرب</p>
+              <p className="text-3xl font-bold">{member.coach.name}</p>
+              <p className="text-sm opacity-75">#{member.coach.staffCode}</p>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 pt-6 border-t border-white border-opacity-20">
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="bg-white bg-opacity-20 rounded-lg p-4">
               <p className="text-sm opacity-90">{t('memberDetails.status')}</p>
               <p className="text-lg font-bold">
-                {member.isActive && !isExpired ? `✅ ${t('memberDetails.active')}` : `❌ ${t('memberDetails.expired')}`}
+                {member.isFrozen
+                  ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                  : member.isActive && !isExpired
+                    ? `✅ ${t('memberDetails.active')}`
+                    : `❌ ${t('memberDetails.expired')}`
+                }
               </p>
             </div>
             <div className="bg-white bg-opacity-20 rounded-lg p-4">
@@ -862,14 +1062,30 @@ export default function MemberDetailPage() {
               <p className="text-2xl font-bold">{member.subscriptionPrice} {t('memberDetails.egp')}</p>
             </div>
             <div className="bg-white bg-opacity-20 rounded-lg p-4">
-              <p className="text-sm opacity-90">{t('memberDetails.remainingAmount')}</p>
-              <p className="text-2xl font-bold text-yellow-300">{member.remainingAmount} {t('memberDetails.egp')}</p>
+              <p className="text-sm opacity-90">{locale === 'ar' ? 'الباقة' : 'Package'}</p>
+              <p className="text-2xl font-bold">{getPackageName(member.startDate, member.expiryDate, locale)}</p>
             </div>
-            <div className="bg-white bg-opacity-20 rounded-lg p-4">
-              <p className="text-sm opacity-90">{t('memberDetails.lastReceipt')}</p>
-              <p className="text-2xl font-bold text-green-300">
-                {lastReceiptNumber ? `#${lastReceiptNumber}` : '---'}
+            <div
+              className="bg-white bg-opacity-20 rounded-lg p-4 cursor-pointer hover:bg-opacity-30 transition-all transform hover:scale-105"
+              onClick={lastReceipt ? handleShowReceipts : undefined}
+              title={lastReceipt ? (locale === 'ar' ? 'اضغط لعرض سجل الإيصالات' : 'Click to view receipts history') : ''}
+            >
+              <p className="text-sm opacity-90 flex items-center gap-1">
+                🧾 {t('memberDetails.lastReceipt')}
+                {lastReceipt && (
+                  <span className="text-xs opacity-75">({locale === 'ar' ? 'اضغط للعرض' : 'Click'})</span>
+                )}
               </p>
+              {lastReceipt ? (
+                <div>
+                  <p className="text-2xl font-bold text-green-300">#{lastReceiptNumber}</p>
+                  <p className="text-xs opacity-75 mt-1">
+                    {lastReceipt.amount} {t('memberDetails.egp')} • {new Date(lastReceipt.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-2xl font-bold text-green-300">---</p>
+              )}
             </div>
           </div>
         </div>
@@ -887,14 +1103,6 @@ export default function MemberDetailPage() {
           </div>
         )}
       </div>
-
-            <div className="mb-6">
-              <BarcodeWhatsApp
-                memberNumber={member.memberNumber}
-                memberName={member.name}
-                memberPhone={member.phone}
-              />
-            </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-green-500">
@@ -1029,126 +1237,53 @@ export default function MemberDetailPage() {
       )}
 
       {/* Payment & Edit Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {/* Payment Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-green-100 p-3 rounded-full">
-              <span className="text-3xl">💰</span>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold">{t('memberDetails.paymentModal.title')}</h3>
-              <p className="text-sm text-gray-600">{t('memberDetails.paymentModal.remainingLabel', { amount: member.remainingAmount.toString() })}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setActiveModal('payment')}
-            disabled={member.remainingAmount <= 0 || loading}
-            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
-          >
-            {t('memberDetails.paymentModal.payButton')}
-          </button>
-        </div>
-
-        {/* Edit Card */}
-        {hasPermission('canEditMembers') && (
-          <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-blue-200">
+      <div className={`grid grid-cols-1 ${member.remainingAmount > 0 ? 'md:grid-cols-2' : ''} gap-6 mb-6`}>
+        {/* Payment Card - Only show if there's remaining amount */}
+        {member.remainingAmount > 0 && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <span className="text-3xl">✏️</span>
+              <div className="bg-green-100 p-3 rounded-full">
+                <span className="text-3xl">💰</span>
               </div>
               <div>
-                <h3 className="text-xl font-bold">{t('memberDetails.editModal.title')}</h3>
-                <p className="text-sm text-gray-600">{t('memberDetails.editModal.subtitle')}</p>
+                <h3 className="text-xl font-bold">{t('memberDetails.paymentModal.title')}</h3>
+                <p className="text-sm text-gray-600">{t('memberDetails.paymentModal.remainingLabel', { amount: member.remainingAmount.toString() })}</p>
               </div>
             </div>
             <button
-              onClick={() => {
-                setEditBasicInfoData({
-                  name: member.name,
-                  phone: member.phone,
-                  subscriptionPrice: member.subscriptionPrice,
-                  inBodyScans: member.inBodyScans ?? 0,
-                  invitations: member.invitations ?? 0,
-                  freePTSessions: member.freePTSessions ?? 0,
-                  remainingFreezeDays: member.remainingFreezeDays ?? 0,
-                  notes: member.notes || '',
-                  startDate: member.startDate ? formatDateYMD(member.startDate) : '',
-                  expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : ''
-                })
-                setActiveModal('edit-basic-info')
-              }}
+              onClick={() => setActiveModal('payment')}
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
             >
-              {t('memberDetails.editModal.editButton')}
+              {t('memberDetails.paymentModal.payButton')}
             </button>
           </div>
         )}
       </div>
 
-      {/* Fitness Test Section */}
-      {(hasPermission('canCreateFitnessTest') || hasPermission('canViewFitnessTests')) && (
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-teal-500 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-teal-100 p-3 rounded-full">
-              <span className="text-3xl">📋</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {/* Upgrade Package - Show only for active members with subscription */}
+        {member?.isActive && member?.startDate && (
+          <div className="bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-300 rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-orange-200 p-3 rounded-full">
+                <span className="text-3xl">🚀</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-orange-800">{t('upgrade.upgradePackage')}</h3>
+                <p className="text-sm text-orange-700">{t('upgrade.upgradeDescription')}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold">{t('memberDetails.fitnessTest.title')}</h3>
-              <p className="text-sm text-gray-600">
-                {fitnessTestExists
-                  ? t('memberDetails.fitnessTest.createdBy', { coachName: fitnessTestData?.coachName || t('memberDetails.fitnessTest.coach') })
-                  : t('memberDetails.fitnessTest.notCreated')}
-              </p>
-            </div>
-          </div>
-          {hasPermission('canCreateFitnessTest') && (
             <button
-              onClick={handleOpenFitnessTest}
+              onClick={() => setShowUpgradeForm(true)}
               disabled={loading}
-              className={`w-full ${
-                fitnessTestExists ? 'bg-blue-600 hover:bg-blue-700' : 'bg-teal-600 hover:bg-teal-700'
-              } text-white py-3 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed font-bold`}
+              className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-lg hover:from-orange-700 hover:to-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg transition-all"
             >
-              {fitnessTestExists ? t('memberDetails.fitnessTest.viewTest') : t('memberDetails.fitnessTest.createTest')}
+              🚀 {t('upgrade.upgradePackage')}
             </button>
-          )}
-          {!hasPermission('canCreateFitnessTest') && hasPermission('canViewFitnessTests') && fitnessTestExists && (
-            <button
-              onClick={handleOpenFitnessTest}
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
-            >
-              {t('memberDetails.fitnessTest.viewTest')}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Upgrade Package - Show only for active members with subscription */}
-      {member?.isActive && member?.startDate && (
-        <div className="bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-300 rounded-xl shadow-lg p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-orange-200 p-3 rounded-full">
-              <span className="text-3xl">🚀</span>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-orange-800">{t('upgrade.upgradePackage')}</h3>
-              <p className="text-sm text-orange-700">{t('upgrade.upgradeDescription')}</p>
-            </div>
           </div>
-          <button
-            onClick={() => setShowUpgradeForm(true)}
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-lg hover:from-orange-700 hover:to-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg transition-all"
-          >
-            🚀 {t('upgrade.upgradePackage')}
-          </button>
-        </div>
-      )}
+        )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-green-200 p-3 rounded-full">
@@ -2213,6 +2348,134 @@ export default function MemberDetailPage() {
           paymentMethod={receiptData.paymentMethod}
           onClose={() => setShowReceipt(false)}
         />
+      )}
+
+      {/* Member Receipts Modal */}
+      {showReceiptsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-orange-600 to-yellow-600 text-white p-6 rounded-t-lg">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <span>🧾</span>
+                <span>{locale === 'ar' ? 'سجل الإيصالات' : 'Receipts History'}</span>
+              </h2>
+              <p className="text-orange-100 mt-1">{member?.name} - #{member?.memberNumber}</p>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {receiptsLoading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin text-6xl mb-4">⏳</div>
+                  <p className="text-xl text-gray-600">{locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+                </div>
+              ) : memberReceipts.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-xl">
+                    {locale === 'ar' ? 'لا توجد إيصالات' : 'No receipts found'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {memberReceipts.map((receipt) => {
+                    const itemDetails = JSON.parse(receipt.itemDetails)
+                    return (
+                      <div
+                        key={receipt.id}
+                        className="bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
+                                #{receipt.receiptNumber}
+                              </span>
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                receipt.isCancelled
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-green-100 text-green-700'
+                              }`}>
+                                {receipt.isCancelled
+                                  ? (locale === 'ar' ? '❌ ملغي' : '❌ Cancelled')
+                                  : (locale === 'ar' ? '✓ نشط' : '✓ Active')
+                                }
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className="text-gray-500">{locale === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
+                                <span className="font-bold text-green-600 mr-2">{receipt.amount} {t('memberDetails.egp')}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">{locale === 'ar' ? 'الطريقة:' : 'Method:'}</span>
+                                <span className="font-semibold mr-2">
+                                  {receipt.paymentMethod === 'cash' ? (locale === 'ar' ? 'كاش 💵' : 'Cash 💵')
+                                    : receipt.paymentMethod === 'visa' ? (locale === 'ar' ? 'فيزا 💳' : 'Visa 💳')
+                                    : receipt.paymentMethod === 'instapay' ? (locale === 'ar' ? 'إنستاباي 📱' : 'Instapay 📱')
+                                    : (locale === 'ar' ? 'محفظة 💰' : 'Wallet 💰')
+                                  }
+                                </span>
+                              </div>
+                              {itemDetails.packageType && (
+                                <div>
+                                  <span className="text-gray-500">{locale === 'ar' ? 'الباقة:' : 'Package:'}</span>
+                                  <span className="font-semibold mr-2">{itemDetails.packageType}</span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-gray-500">{locale === 'ar' ? 'التاريخ:' : 'Date:'}</span>
+                                <span className="font-mono text-xs mr-2">
+                                  {new Date(receipt.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+                            {itemDetails.startDate && itemDetails.expiryDate && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-600">
+                                  <span className="font-semibold">{locale === 'ar' ? 'الفترة:' : 'Period:'}</span>
+                                  <span className="font-mono mr-2">
+                                    {new Date(itemDetails.startDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  </span>
+                                  <span className="mx-1">→</span>
+                                  <span className="font-mono">
+                                    {new Date(itemDetails.expiryDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                {locale === 'ar' ? 'إجمالي الإيصالات:' : 'Total Receipts:'} <span className="font-bold">{memberReceipts.length}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setShowReceiptsModal(false)
+                  setMemberReceipts([])
+                }}
+                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

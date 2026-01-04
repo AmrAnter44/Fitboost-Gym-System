@@ -21,7 +21,16 @@ export async function GET(
 
     const member = await prisma.member.findUnique({
       where: { id: memberId },
-      include: { receipts: true }
+      include: {
+        receipts: true,
+        coach: {
+          select: {
+            id: true,
+            name: true,
+            staffCode: true
+          }
+        }
+      }
     })
 
     if (!member) {
@@ -30,6 +39,18 @@ export async function GET(
         { status: 404 }
       )
     }
+
+    console.log('👤 جلب بيانات العضو:', {
+      id: member.id,
+      memberNumber: member.memberNumber,
+      name: member.name,
+      coachId: member.coachId,
+      coach: member.coach ? {
+        id: member.coach.id,
+        name: member.coach.name,
+        staffCode: member.coach.staffCode
+      } : 'لا يوجد كوتش'
+    })
 
     return NextResponse.json(member, { status: 200 })
   } catch (error: any) {

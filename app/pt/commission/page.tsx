@@ -44,16 +44,41 @@ interface CommissionResult {
   gymShare: number
 }
 
+interface MemberSignupCommission {
+  coachId: string
+  coachName: string
+  staffCode: string
+  count: number
+  totalAmount: number
+  commissions: Array<{
+    id: string
+    amount: number
+    description: string
+    createdAt: string
+  }>
+}
+
+interface Receipt {
+  receiptNumber: number
+  type: string
+  amount: number
+  itemDetails: string
+  createdAt: string
+  ptNumber?: number
+}
+
 export default function CoachCommissionPage() {
   const { t } = useLanguage()
   const [coaches, setCoaches] = useState<Staff[]>([])
   const [ptSessions, setPtSessions] = useState<PTSession[]>([])
+  const [receipts, setReceipts] = useState<Receipt[]>([])
   const [selectedCoach, setSelectedCoach] = useState<string>('')
   const [customIncome, setCustomIncome] = useState<string>('')
   const [useCustomIncome, setUseCustomIncome] = useState(false)
   const [result, setResult] = useState<CommissionResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [coachEarnings, setCoachEarnings] = useState<CoachEarnings | null>(null)
+  const [memberSignupCommissions, setMemberSignupCommissions] = useState<MemberSignupCommission[]>([])
 
   // تحديد الفترة الزمنية (أول يوم في الشهر الحالي إلى آخر يوم)
   const today = new Date()
@@ -66,6 +91,10 @@ export default function CoachCommissionPage() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    fetchMemberSignupCommissions()
+  }, [dateFrom, dateTo])
 
   // اختيار الكوتش تلقائياً إذا كان واحد فقط (حالة الكوتش المسجل دخوله)
   useEffect(() => {
@@ -88,10 +117,28 @@ export default function CoachCommissionPage() {
       const ptResponse = await fetch('/api/pt')
       const ptData: PTSession[] = await ptResponse.json()
       setPtSessions(ptData)
+
+      // جلب الإيصالات
+      const receiptsResponse = await fetch('/api/receipts')
+      const receiptsData: Receipt[] = await receiptsResponse.json()
+      setReceipts(receiptsData)
     } catch (error) {
       console.error('Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchMemberSignupCommissions = async () => {
+    try {
+      const response = await fetch(`/api/commissions/member-signups?startDate=${dateFrom}&endDate=${dateTo}`)
+      if (response.ok) {
+        const data = await response.json()
+        setMemberSignupCommissions(data)
+        console.log('💰 عمولات تسجيل الأعضاء:', data)
+      }
+    } catch (error) {
+      console.error('Error fetching member signup commissions:', error)
     }
   }
 
@@ -104,30 +151,69 @@ export default function CoachCommissionPage() {
     return 45
   }
 
-  // دالة حساب أرباح الكوتش من PT
+  // دالة حساب أرباح الكوتش من PT (من الإيصالات - الطريقة الصحيحة)
   const calculateCoachEarnings = (coachName: string, startDate: string, endDate: string): CoachEarnings => {
-    // فلترة جلسات الكوتش
-    const coachSessions = ptSessions.filter((session) => session.coachName === coachName)
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    end.setHours(23, 59, 59, 999)
 
-    // فلترة حسب الفترة الزمنية
-    const periodSessions = coachSessions.filter((session) => {
-      if (!session.createdAt) return false
-      const sessionDate = new Date(session.createdAt)
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      end.setHours(23, 59, 59, 999) // نهاية اليوم
-      return sessionDate >= start && sessionDate <= end
+    // حساب الإيرادات من إيصالات PT (برايفت جديد + تجديد برايفت)
+    const ptReceipts = receipts.filter((receipt) => {
+      // فلترة إيصالات PT فقط
+      if (receipt.type !== 'برايفت جديد' && receipt.type !== 'تجديد برايفت') return false
+
+      // التحقق من التاريخ
+      const receiptDate = new Date(receipt.createdAt)
+      if (receiptDate < start || receiptDate > end) return false
+
+      // التحقق من اسم الكوتش في itemDetails
+      try {
+        const details = JSON.parse(receipt.itemDetails)
+        return details.coachName === coachName
+      } catch {
+        return false
+      }
     })
 
-    // حساب الإحصائيات
-    const totalSessions = periodSessions.reduce((sum, s) => sum + s.sessionsPurchased, 0)
-    const remainingSessions = periodSessions.reduce((sum, s) => sum + s.sessionsRemaining, 0)
-    const completedSessions = totalSessions - remainingSessions
-    const totalRevenue = periodSessions.reduce(
-      (sum, s) => sum + s.sessionsPurchased * s.pricePerSession,
-      0
+    console.log('💰 إيصالات PT للكوتش', coachName, ':', ptReceipts.length, 'إيصال')
+
+    // حساب الإيرادات من الإيصالات (المبالغ الفعلية المدفوعة)
+    const ptRevenue = ptReceipts.reduce((sum, receipt) => sum + receipt.amount, 0)
+
+    // إضافة عمولات تسجيل الأعضاء
+    const coachSignupCommissions = memberSignupCommissions.find(c => c.coachName === coachName)
+    const signupRevenue = coachSignupCommissions?.totalAmount || 0
+
+    console.log('💵 إيرادات الكوتش', coachName, ':', {
+      ptRevenue,
+      signupRevenue,
+      total: ptRevenue + signupRevenue
+    })
+
+    // إجمالي الإيرادات = PT + تسجيل الأعضاء
+    const totalRevenue = ptRevenue + signupRevenue
+
+    // جمع بيانات الجلسات للإحصائيات (من أرقام PT في الإيصالات)
+    const ptNumbersFromReceipts = new Set(
+      ptReceipts.map((receipt) => {
+        try {
+          const details = JSON.parse(receipt.itemDetails)
+          return details.ptNumber
+        } catch {
+          return null
+        }
+      }).filter(Boolean)
     )
-    const clients = new Set(periodSessions.map((s) => s.clientName)).size
+
+    // الحصول على معلومات الجلسات الفعلية من جدول PT
+    const relatedSessions = ptSessions.filter((session) =>
+      ptNumbersFromReceipts.has(session.ptNumber) && session.coachName === coachName
+    )
+
+    const totalSessions = relatedSessions.reduce((sum, s) => sum + s.sessionsPurchased, 0)
+    const remainingSessions = relatedSessions.reduce((sum, s) => sum + s.sessionsRemaining, 0)
+    const completedSessions = totalSessions - remainingSessions
+    const clients = new Set(relatedSessions.map((s) => s.clientName)).size
 
     return {
       coachName,
@@ -153,23 +239,47 @@ export default function CoachCommissionPage() {
     const earnings = calculateCoachEarnings(selectedCoach, dateFrom, dateTo)
     setCoachEarnings(earnings)
 
-    // تحديد الدخل (مخصص أو من PT)
-    let income: number
+    // حساب PT Revenue من الإيصالات (بدون signup commissions)
+    const start = new Date(dateFrom)
+    const end = new Date(dateTo)
+    end.setHours(23, 59, 59, 999)
+
+    const coachPTReceipts = receipts.filter((receipt) => {
+      if (receipt.type !== 'برايفت جديد' && receipt.type !== 'تجديد برايفت') return false
+      const receiptDate = new Date(receipt.createdAt)
+      if (receiptDate < start || receiptDate > end) return false
+      try {
+        const details = JSON.parse(receipt.itemDetails)
+        return details.coachName === selectedCoach
+      } catch {
+        return false
+      }
+    })
+    const ptRevenue = coachPTReceipts.reduce((sum, receipt) => sum + receipt.amount, 0)
+
+    // حساب signup revenue (الكوتش ياخده كامل)
+    const coachSignupCommissions = memberSignupCommissions.find(c => c.coachName === selectedCoach)
+    const signupRevenue = coachSignupCommissions?.totalAmount || 0
+
+    // تحديد الدخل من PT (مخصص أو من PT)
+    let ptIncome: number
     if (useCustomIncome && customIncome) {
-      income = parseFloat(customIncome)
+      ptIncome = parseFloat(customIncome)
     } else {
-      income = earnings.totalRevenue
+      ptIncome = ptRevenue
     }
 
-    const percentage = calculatePercentage(income)
-    const commission = (income * percentage) / 100
-    const gymShare = income - commission
+    const percentage = calculatePercentage(ptIncome)
+    const ptCommission = (ptIncome * percentage) / 100
+    const totalCommission = ptCommission + signupRevenue // signup revenue كامل
+    const totalIncome = ptIncome + signupRevenue
+    const gymShare = totalIncome - totalCommission
 
     setResult({
       coachName: selectedCoach,
-      monthlyIncome: income,
+      monthlyIncome: totalIncome,
       percentage: percentage,
-      commission: commission,
+      commission: totalCommission,
       gymShare: gymShare,
     })
   }
@@ -404,41 +514,136 @@ export default function CoachCommissionPage() {
                 </div>
               </div>
 
-              {/* إحصائيات PT */}
-              {coachEarnings && !useCustomIncome && (
-                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-xl p-5">
-                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                    <span>📊</span>
-                    <span>{t('pt.commission.ptStats')}</span>
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-lg p-3 text-center">
-                      <p className="text-xs text-gray-600 mb-1">{t('pt.commission.totalSessions')}</p>
-                      <p className="text-2xl font-bold text-teal-600">
-                        {coachEarnings.totalSessions}
-                      </p>
+              {/* تفصيل إيصالات PT */}
+              {coachEarnings && !useCustomIncome && (() => {
+                const start = new Date(dateFrom)
+                const end = new Date(dateTo)
+                end.setHours(23, 59, 59, 999)
+
+                const coachPTReceipts = receipts.filter((receipt) => {
+                  if (receipt.type !== 'برايفت جديد' && receipt.type !== 'تجديد برايفت') return false
+                  const receiptDate = new Date(receipt.createdAt)
+                  if (receiptDate < start || receiptDate > end) return false
+                  try {
+                    const details = JSON.parse(receipt.itemDetails)
+                    return details.coachName === result.coachName
+                  } catch {
+                    return false
+                  }
+                })
+
+                return coachPTReceipts.length > 0 ? (
+                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-xl p-5">
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                      <span>📊</span>
+                      <span>إيصالات PT ({coachPTReceipts.length})</span>
+                    </h3>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {coachPTReceipts.map((receipt, index) => {
+                        let details: any = {}
+                        try {
+                          details = JSON.parse(receipt.itemDetails)
+                        } catch {}
+                        return (
+                          <div key={receipt.receiptNumber} className="bg-white rounded-lg p-3 border border-teal-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-teal-100 text-teal-800 font-bold w-8 h-8 rounded-full flex items-center justify-center text-sm">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-800">
+                                    إيصال #{receipt.receiptNumber} - {receipt.type}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {details.clientName || 'N/A'} - PT #{details.ptNumber || 'N/A'}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(receipt.createdAt).toLocaleDateString('ar-EG', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric'
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-bold text-teal-600">{receipt.amount.toLocaleString('ar-EG')} جنيه</p>
+                              </div>
+                            </div>
+                            {details.sessionsPurchased && (
+                              <div className="grid grid-cols-2 gap-2 mt-2">
+                                <div className="bg-gray-50 rounded p-2 text-center">
+                                  <p className="text-xs text-gray-600">الحصص</p>
+                                  <p className="text-sm font-bold text-gray-800">{details.sessionsPurchased}</p>
+                                </div>
+                                <div className="bg-gray-50 rounded p-2 text-center">
+                                  <p className="text-xs text-gray-600">السعر/حصة</p>
+                                  <p className="text-sm font-bold text-gray-800">{details.pricePerSession}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
-                    <div className="bg-white rounded-lg p-3 text-center">
-                      <p className="text-xs text-gray-600 mb-1">{t('pt.commission.completedSessions')}</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {coachEarnings.completedSessions}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 text-center">
-                      <p className="text-xs text-gray-600 mb-1">{t('pt.commission.remainingSessions')}</p>
-                      <p className="text-2xl font-bold text-orange-600">
-                        {coachEarnings.remainingSessions}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 text-center">
-                      <p className="text-xs text-gray-600 mb-1">{t('pt.commission.numberOfClients')}</p>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {coachEarnings.clients}
-                      </p>
+                    <div className="mt-3 pt-3 border-t-2 border-teal-200">
+                      <div className="flex justify-between items-center bg-teal-100 rounded-lg p-3">
+                        <span className="font-bold text-gray-700">إجمالي إيرادات PT:</span>
+                        <span className="text-xl font-bold text-teal-600">
+                          {coachPTReceipts.reduce((sum, receipt) => sum + receipt.amount, 0).toLocaleString('ar-EG')} جنيه
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : null
+              })()}
+
+              {/* تفصيل اشتراكات الأعضاء */}
+              {coachEarnings && !useCustomIncome && (() => {
+                const coachSignupData = memberSignupCommissions.find(c => c.coachName === result.coachName)
+                return coachSignupData && coachSignupData.count > 0 ? (
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5">
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                      <span>💵</span>
+                      <span>اشتراكات الأعضاء ({coachSignupData.count})</span>
+                    </h3>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {coachSignupData.commissions.map((commission, index) => (
+                        <div key={commission.id} className="bg-white rounded-lg p-3 flex items-center justify-between border border-green-200">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-green-100 text-green-800 font-bold w-8 h-8 rounded-full flex items-center justify-center text-sm">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-gray-800">{commission.description || 'تسجيل عضو جديد'}</p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(commission.createdAt).toLocaleDateString('ar-EG', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-green-600">{commission.amount} جنيه</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 pt-3 border-t-2 border-green-200">
+                      <div className="flex justify-between items-center bg-green-100 rounded-lg p-3">
+                        <span className="font-bold text-gray-700">إجمالي عمولات الاشتراكات:</span>
+                        <span className="text-xl font-bold text-green-600">{coachSignupData.totalAmount} جنيه</span>
+                      </div>
+                      <div className="mt-2 bg-green-200 rounded-lg p-2 text-center">
+                        <p className="text-xs font-bold text-green-800">✅ الكوتش ياخد المبلغ كامل 100%</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null
+              })()}
 
               {/* الدخل الشهري */}
               <div className="bg-gradient-to-br from-cyan-50 to-blue-50 border-2 border-cyan-200 rounded-xl p-5">
@@ -469,6 +674,7 @@ export default function CoachCommissionPage() {
                   <div>
                     <p className="text-white/90 text-sm mb-1">{t('pt.commission.percentage')}</p>
                     <p className="text-5xl font-black">{result.percentage}%</p>
+                    <p className="text-white/70 text-xs mt-2">على إيرادات PT فقط</p>
                   </div>
                   <div className="text-6xl opacity-30">📊</div>
                 </div>
@@ -490,26 +696,87 @@ export default function CoachCommissionPage() {
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t-2 border-white/30">
-                  <p className="text-white/80 text-sm text-center">
-                    ✨ {t('pt.commission.percentageNote', { percentage: result.percentage.toString() })}
-                  </p>
+                  {!useCustomIncome && (() => {
+                    const coachSignupData = memberSignupCommissions.find(c => c.coachName === result.coachName)
+                    const signupRevenue = coachSignupData?.totalAmount || 0
+                    if (signupRevenue > 0) {
+                      return (
+                        <p className="text-white/90 text-xs text-center">
+                          💡 العمولة = (PT × {result.percentage}%) + عمولات الاشتراكات ({signupRevenue} جنيه)
+                        </p>
+                      )
+                    }
+                    return (
+                      <p className="text-white/80 text-sm text-center">
+                        ✨ {t('pt.commission.percentageNote', { percentage: result.percentage.toString() })}
+                      </p>
+                    )
+                  })()}
                 </div>
               </div>
 
               {/* معادلة الحساب */}
               <div className="bg-gradient-to-br from-slate-50 to-gray-100 border-2 border-slate-300 rounded-xl p-5">
-                <h3 className="font-bold text-center mb-3 text-gray-700">{t('pt.commission.calculationFormula')}</h3>
-                <div className="bg-white rounded-lg p-4 font-mono text-center">
-                  <p className="text-lg">
-                    {result.monthlyIncome.toLocaleString('ar-EG')} × {result.percentage}% ={' '}
-                    <span className="font-bold text-green-600">
-                      {result.commission.toLocaleString('ar-EG', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{' '}
-                      {t('pt.commission.egp')}
-                    </span>
-                  </p>
+                <h3 className="font-bold text-center mb-3 text-gray-700">معادلة الحساب</h3>
+                <div className="bg-white rounded-lg p-4 text-center">
+                  {!useCustomIncome && (() => {
+                    const start = new Date(dateFrom)
+                    const end = new Date(dateTo)
+                    end.setHours(23, 59, 59, 999)
+
+                    const coachPTReceipts = receipts.filter((receipt) => {
+                      if (receipt.type !== 'برايفت جديد' && receipt.type !== 'تجديد برايفت') return false
+                      const receiptDate = new Date(receipt.createdAt)
+                      if (receiptDate < start || receiptDate > end) return false
+                      try {
+                        const details = JSON.parse(receipt.itemDetails)
+                        return details.coachName === result.coachName
+                      } catch {
+                        return false
+                      }
+                    })
+                    const ptRevenue = coachPTReceipts.reduce((sum, receipt) => sum + receipt.amount, 0)
+                    const coachSignupData = memberSignupCommissions.find(c => c.coachName === result.coachName)
+                    const signupRevenue = coachSignupData?.totalAmount || 0
+                    const ptCommission = (ptRevenue * result.percentage) / 100
+
+                    if (signupRevenue > 0) {
+                      return (
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-700">
+                            <span className="font-bold text-teal-600">{ptRevenue.toLocaleString('ar-EG')}</span> (PT) ×
+                            <span className="font-bold text-purple-600"> {result.percentage}%</span> =
+                            <span className="font-bold text-green-600"> {ptCommission.toLocaleString('ar-EG')}</span>
+                          </p>
+                          <p className="text-lg font-bold text-gray-500">+</p>
+                          <p className="text-sm text-gray-700">
+                            <span className="font-bold text-green-600">{signupRevenue.toLocaleString('ar-EG')}</span> (عمولات اشتراكات)
+                          </p>
+                          <div className="border-t-2 border-gray-300 pt-2 mt-2">
+                            <p className="text-lg font-bold">
+                              المجموع = <span className="text-green-600">{result.commission.toLocaleString('ar-EG', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}</span> {t('pt.commission.egp')}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    } else {
+                      return (
+                        <p className="text-lg">
+                          {result.monthlyIncome.toLocaleString('ar-EG')} × {result.percentage}% ={' '}
+                          <span className="font-bold text-green-600">
+                            {result.commission.toLocaleString('ar-EG', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>{' '}
+                          {t('pt.commission.egp')}
+                        </p>
+                      )
+                    }
+                  })()}
                 </div>
               </div>
 
@@ -695,6 +962,74 @@ export default function CoachCommissionPage() {
           )}
         </div>
       )}
+
+      {/* جدول عمولات تسجيل الأعضاء */}
+      <div className="mt-6 bg-white rounded-xl shadow-lg p-6">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <span>💵</span>
+          <span>
+            عمولات تسجيل الأعضاء ({new Date(dateFrom).toLocaleDateString('ar-EG')} - {new Date(dateTo).toLocaleDateString('ar-EG')})
+          </span>
+        </h2>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gradient-to-r from-green-100 to-emerald-200">
+              <tr>
+                <th className="px-4 py-3 text-right">الكوتش</th>
+                <th className="px-4 py-3 text-center">رقم الموظف</th>
+                <th className="px-4 py-3 text-center">عدد الاشتراكات</th>
+                <th className="px-4 py-3 text-center">قيمة العمولة الواحدة</th>
+                <th className="px-4 py-3 text-center">إجمالي العمولات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {memberSignupCommissions.length > 0 ? (
+                memberSignupCommissions.map((commission) => (
+                  <tr key={commission.coachId} className="border-t hover:bg-gray-50">
+                    <td className="px-4 py-3 font-semibold">{commission.coachName}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">#{commission.staffCode}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-block bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full">
+                        {commission.count}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold text-gray-700">
+                      50 {t('pt.commission.egp')}
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold text-green-600 text-lg">
+                      {commission.totalAmount.toLocaleString('ar-EG')} {t('pt.commission.egp')}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-gray-500">
+                    <div className="text-6xl mb-4">📭</div>
+                    <p className="text-xl">لا توجد عمولات تسجيل أعضاء في هذه الفترة</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            {memberSignupCommissions.length > 0 && (
+              <tfoot className="bg-gradient-to-r from-green-50 to-emerald-100 font-bold">
+                <tr>
+                  <td className="px-4 py-3" colSpan={2}>الإجمالي</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="inline-block bg-blue-500 text-white font-bold px-3 py-1 rounded-full">
+                      {memberSignupCommissions.reduce((sum, c) => sum + c.count, 0)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">-</td>
+                  <td className="px-4 py-3 text-center text-green-600 text-xl">
+                    {memberSignupCommissions.reduce((sum, c) => sum + c.totalAmount, 0).toLocaleString('ar-EG')} {t('pt.commission.egp')}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

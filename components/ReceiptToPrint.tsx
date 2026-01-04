@@ -1,7 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { printReceiptFromData } from '../lib/printSystem'
+import Toast from './Toast'
+import { useLanguage } from '../contexts/LanguageContext'
 
 interface ReceiptProps {
   receiptNumber: number
@@ -14,6 +16,20 @@ interface ReceiptProps {
 }
 
 export function ReceiptToPrint({ receiptNumber, type, amount, details, date, paymentMethod, onClose }: ReceiptProps) {
+  const { t } = useLanguage()
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
+  const [phone, setPhone] = useState('')
+  const [sending, setSending] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
+
+  // عرض Toast عند إنشاء الإيصال
+  useEffect(() => {
+    setToast({
+      message: t('receipt.created', { number: receiptNumber.toString() }),
+      type: 'success'
+    })
+  }, [])
+
   const handlePrint = () => {
     printReceiptFromData(
       receiptNumber,
@@ -25,54 +41,268 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     )
   }
 
-  // طباعة تلقائية عند التحميل
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      handlePrint()
-    }, 300)
+  const prepareReceiptMessage = () => {
+    const receiptDate = new Date(date)
+    const formattedDate = receiptDate.toLocaleDateString('ar-EG')
+    const formattedTime = receiptDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
 
-    return () => clearTimeout(timer)
-  }, [])
+    let message = `━━━━━━━━━━━━━━━━━━━━\n`
+    message += `*ايصال رقم #${receiptNumber}*\n`
+    message += `━━━━━━━━━━━━━━━━━━━━\n\n`
+
+    const typeName = type === 'Member' ? 'اشتراك عضوية' : type === 'PT' ? 'تدريب شخصي' : type === 'DayUse' ? 'Day Use' : type === 'Expense' ? 'مصروف' : type
+    message += `*النوع:* ${typeName}\n\n`
+
+    if (details.memberNumber) {
+      message += `*رقم العضو:* ${details.memberNumber}\n`
+    }
+    if (details.memberName || details.clientName || details.name) {
+      message += `*الاسم:* ${details.memberName || details.clientName || details.name}\n`
+    }
+    if (details.phone || details.memberPhone || details.clientPhone) {
+      message += `*الهاتف:* ${details.phone || details.memberPhone || details.clientPhone}\n`
+    }
+    message += `\n`
+
+    if (type === 'Member' && details.subscriptionDays) {
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      message += `*تفاصيل الاشتراك*\n`
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      if (details.startDate) {
+        message += `• من: ${new Date(details.startDate).toLocaleDateString('ar-EG')}\n`
+      }
+      if (details.expiryDate) {
+        message += `• الى: ${new Date(details.expiryDate).toLocaleDateString('ar-EG')}\n`
+      }
+      message += `• المدة: ${details.subscriptionDays} يوم\n`
+
+      const extras = []
+      if (details.freePTSessions > 0) extras.push(`${details.freePTSessions} جلسة PT`)
+      if (details.inBodyScans > 0) extras.push(`${details.inBodyScans} InBody`)
+      if (details.invitations > 0) extras.push(`${details.invitations} دعوة`)
+      if (extras.length > 0) {
+        message += `*هدايا:* ${extras.join(' + ')}\n`
+      }
+      message += `\n`
+    }
+
+    if (type === 'PT') {
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      message += `*تفاصيل التدريب*\n`
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      if (details.ptNumber) {
+        message += `• رقم PT: ${details.ptNumber}\n`
+      }
+      if (details.sessions) {
+        message += `• عدد الجلسات: ${details.sessions}\n`
+      }
+      if (details.pricePerSession) {
+        message += `• سعر الجلسة: ${details.pricePerSession} ج.م\n`
+      }
+      message += `\n`
+    }
+
+    message += `━━━━━━━━━━━━━━━━━━━━\n`
+    message += `*التفاصيل المالية*\n`
+    message += `━━━━━━━━━━━━━━━━━━━━\n`
+
+    if (details.subscriptionPrice > 0) {
+      message += `• سعر الاشتراك: ${details.subscriptionPrice} ج.م\n`
+    }
+    if (details.totalPrice > 0 && type === 'PT') {
+      message += `• الاجمالي: ${details.totalPrice} ج.م\n`
+    }
+
+    message += `*المدفوع:* ${amount} ج.م\n`
+
+    if (details.remainingAmount > 0) {
+      message += `*المتبقي:* ${details.remainingAmount} ج.م\n`
+    }
+
+    const paymentName = (paymentMethod || details.paymentMethod) === 'cash' ? 'كاش' :
+                        (paymentMethod || details.paymentMethod) === 'visa' ? 'فيزا' :
+                        (paymentMethod || details.paymentMethod) === 'instapay' ? 'InstaPay' :
+                        (paymentMethod || details.paymentMethod) === 'wallet' ? 'محفظة' :
+                        (paymentMethod || details.paymentMethod)
+    message += `*طريقة الدفع:* ${paymentName}\n`
+    message += `\n`
+
+    message += `━━━━━━━━━━━━━━━━━━━━\n`
+    message += `*التاريخ:* ${formattedDate}\n`
+    message += `*الوقت:* ${formattedTime}\n`
+    if (details.staffName) {
+      message += `*الموظف:* ${details.staffName}\n`
+    }
+    message += `━━━━━━━━━━━━━━━━━━━━\n\n`
+
+    message += `شكرا لثقتكم بنا\n`
+    message += `نتمنى لكم تجربة رائعة\n\n`
+
+    message += `━━━━━━━━━━━━━━━━━━━━\n`
+    message += `*شروط وأحكام*\n`
+    message += `━━━━━━━━━━━━━━━━━━━━\n`
+    message += `الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n`
+    message += `١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n`
+    message += `٢- لا يجوز التمرين بخلاف الزى الرياضى\n`
+    message += `٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n`
+    message += `٤- الاداره غير مسئوله عن المتعلقات الشخصيه\n\n`
+
+    message += `🌐 *الموقع الإلكتروني:*\n`
+    message += `https://www.xgym.website/`
+
+    return message
+  }
+
+  const handleSendWhatsApp = () => {
+    if (!phone || phone.trim().length < 10) {
+      setToast({ message: 'يرجى إدخال رقم هاتف صحيح', type: 'warning' })
+      return
+    }
+
+    setSending(true)
+
+    try {
+      const receiptMessage = prepareReceiptMessage()
+      const cleanPhone = phone.replace(/\D/g, '')
+      const url = `https://wa.me/20${cleanPhone}?text=${encodeURIComponent(receiptMessage)}`
+      window.open(url, '_blank')
+
+      setToast({ message: 'سيتم فتح واتساب الآن', type: 'success' })
+      setShowWhatsAppModal(false)
+      setPhone('')
+    } catch (err) {
+      console.error(err)
+      setToast({ message: 'حدث خطأ أثناء الإرسال', type: 'error' })
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 no-print">
-      <div className="bg-white rounded-2xl p-6 max-w-md shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-gray-800">طباعة الإيصال</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-3xl font-light transition"
-          >
-            ×
-          </button>
-        </div>
-        
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <div className="text-center text-gray-600">
-            <div className="text-5xl mb-3">🖨️</div>
-            <p className="font-medium">إيصال رقم <span className="text-blue-600">#{receiptNumber}</span></p>
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 no-print">
+        <div className="bg-white rounded-2xl p-6 max-w-md shadow-2xl">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-gray-800">إيصال الدفع</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-3xl font-light transition"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="text-center text-gray-600">
+              <div className="text-5xl mb-3">📄</div>
+              <p className="font-medium">إيصال رقم <span className="text-blue-600">#{receiptNumber}</span></p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={handlePrint}
+              className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium text-lg shadow-md hover:shadow-lg"
+            >
+              🖨️ طباعة
+            </button>
+            <button
+              onClick={() => {
+                // تعبئة رقم الهاتف تلقائياً إذا كان موجود
+                const phoneNumber = details.phone || details.memberPhone || details.clientPhone
+                if (phoneNumber) {
+                  setPhone(phoneNumber)
+                }
+                setShowWhatsAppModal(true)
+              }}
+              className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium text-lg shadow-md hover:shadow-lg"
+            >
+              📲 إرسال عبر واتساب
+            </button>
+            <button
+              onClick={onClose}
+              className="w-full bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-medium"
+            >
+              إغلاق
+            </button>
+          </div>
+
+          <div className="mt-4 text-xs text-gray-500 text-center">
+            <p>💡 يمكنك طباعة الإيصال أو إرساله عبر واتساب</p>
           </div>
         </div>
-        
-        <div className="space-y-3">
-          <button
-            onClick={handlePrint}
-            className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium text-lg shadow-md hover:shadow-lg"
-          >
-            🖨️ طباعة
-          </button>
-          <button
-            onClick={onClose}
-            className="w-full bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-medium"
-          >
-            إغلاق
-          </button>
-        </div>
-        
-        <div className="mt-4 text-xs text-gray-500 text-center">
-          <p>💡 تأكد من تشغيل الطابعة قبل الطباعة</p>
-        </div>
       </div>
-    </div>
+
+      {/* WhatsApp Modal */}
+      {showWhatsAppModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+          style={{ zIndex: 10000 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowWhatsAppModal(false)
+              setPhone('')
+            }
+          }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl">📱</span>
+                <div>
+                  <h3 className="text-2xl font-bold">إرسال تفاصيل الإيصال</h3>
+                  <p className="text-sm text-gray-500">إيصال #{receiptNumber}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowWhatsAppModal(false)
+                  setPhone('')
+                }}
+                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-gray-700 mb-2">📞 رقم الهاتف *</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="01xxxxxxxxx"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-lg"
+                dir="ltr"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleSendWhatsApp}
+                disabled={sending || !phone || phone.trim().length < 10}
+                className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 flex items-center justify-center gap-2 font-medium"
+              >
+                {sending ? <>⏳ جاري الإرسال...</> : <>📲 إرسال عبر واتساب</>}
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowWhatsAppModal(false)
+                  setPhone('')
+                }}
+                disabled={sending}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

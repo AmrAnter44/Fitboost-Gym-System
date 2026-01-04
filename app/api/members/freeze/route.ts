@@ -79,7 +79,8 @@ export async function POST(request: Request) {
       data: {
         expiryDate: newExpiryDate,
         remainingFreezeDays: newRemainingFreezeDays,
-        isFrozen: true
+        isFrozen: true,
+        isActive: true // تفعيل العضوية لأن التاريخ الجديد في المستقبل
       }
     })
 
@@ -161,10 +162,14 @@ export async function PUT(request: Request) {
     }
 
     // 4. تحديث بيانات العضو (إلغاء التجميد)
+    // التحقق من صلاحية الاشتراك
+    const isStillActive = member.expiryDate ? new Date(member.expiryDate) > new Date() : false
+
     const updatedMember = await prisma.member.update({
       where: { id: memberId },
       data: {
-        isFrozen: false
+        isFrozen: false,
+        isActive: isStillActive
       }
     })
 

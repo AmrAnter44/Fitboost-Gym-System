@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
+import { requireValidLicense } from '../../../lib/license'
 
 // 🔧 دالة للبحث عن رقم إيصال متاح (integers فقط)
 async function getNextAvailableReceiptNumber(startingNumber: number): Promise<number> {
@@ -100,7 +101,8 @@ export async function POST(request: Request) {
       staffName,
       isOther,
       customCreatedAt,
-      skipReceipt  // ✅ خيار عدم إنشاء إيصال
+      skipReceipt,  // ✅ خيار عدم إنشاء إيصال
+      coachId  // 👨‍🏫 معرف الكوتش (اختياري)
     } = body
 
     console.log('📝 إضافة عضو جديد:', {
@@ -108,7 +110,8 @@ export async function POST(request: Request) {
       name,
       profileImage,
       isOther,
-      staffName: staffName || '(غير محدد)'
+      staffName: staffName || '(غير محدد)',
+      coachId: coachId || 'لا يوجد'  // 👨‍🏫 معرف الكوتش
     })
 
     // ✅ التحقق من الحقول المطلوبة
@@ -200,6 +203,7 @@ export async function POST(request: Request) {
       notes,
       startDate: startDate ? new Date(startDate) : null,
       expiryDate: expiryDate ? new Date(expiryDate) : null,
+      coachId: coachId || null,  // 👨‍🏫 ربط العضو بالكوتش (اختياري)
     }
 
     // إذا كان هناك تاريخ مخصص من الأدمن، استخدمه
@@ -237,6 +241,33 @@ export async function POST(request: Request) {
         }
       } catch (counterError) {
         console.error('⚠️ خطأ في تحديث MemberCounter (غير حرج):', counterError)
+      }
+    }
+
+    // 👨‍🏫 إنشاء عمولة للكوتش إذا تم اختياره
+    if (coachId) {
+      try {
+        const commissionData: any = {
+          staffId: coachId,
+          memberId: member.id,
+          amount: 50,
+          type: 'member_signup',
+          description: `عمولة تسجيل عضو جديد: ${name} (#${cleanMemberNumber || 'Other'})`,
+        }
+
+        // استخدام نفس التاريخ المخصص إذا كان موجوداً
+        if (customCreatedAt) {
+          commissionData.createdAt = new Date(customCreatedAt)
+        }
+
+        const commission = await prisma.commission.create({
+          data: commissionData,
+        })
+
+        console.log('✅ تم إنشاء عمولة:', commission.id, 'مبلغ:', commission.amount, 'جنيه للكوتش')
+      } catch (commissionError) {
+        console.error('⚠️ خطأ في إنشاء العمولة (غير حرج):', commissionError)
+        // لا نفشل العملية بأكملها إذا فشل إنشاء العمولة
       }
     }
 
@@ -301,6 +332,9 @@ export async function POST(request: Request) {
         receiptData.createdAt = new Date(customCreatedAt)
         console.log('⏰ استخدام تاريخ مخصص للإيصال:', new Date(customCreatedAt))
       }
+
+      // 🔒 License validation check
+      await requireValidLicense()
 
       const receipt = await prisma.receipt.create({
         data: receiptData,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
+import { requireValidLicense } from "../../../../lib/license";
 
 export async function POST(req: Request) {
   try {
@@ -27,6 +28,9 @@ export async function POST(req: Request) {
     });
 
     // ✅ 3️⃣ إنشاء إيصال مرتبط بالـ DayUse
+    // 🔒 License validation check
+    await requireValidLicense();
+
     await prisma.receipt.create({
       data: {
         receiptNumber,

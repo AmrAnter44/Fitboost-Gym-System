@@ -13,9 +13,15 @@ interface Member {
   freePTSessions: number
   inBodyScans: number
   invitations: number
-  startDate: string | Date
-  expiryDate: string | Date
+  remainingFreezeDays: number
+  remainingAmount: number
+  isFrozen: boolean
+  profileImage?: string
+  notes?: string
+  startDate?: string | Date
+  expiryDate?: string | Date
   isActive: boolean
+  createdAt: string
 }
 
 interface Offer {
@@ -40,7 +46,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
   const { t } = useLanguage()
   const [offers, setOffers] = useState<Offer[]>([])
   const [selectedOfferId, setSelectedOfferId] = useState<string>('')
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'visa' | 'installment'>('cash')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'visa' | 'instapay' | 'wallet'>('cash')
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -52,13 +58,30 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch('/api/auth/me')
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include' // ✅ إرسال الـ cookies مع الطلب
+      })
+
+      console.log('📡 Response status:', response.status)
+
       if (response.ok) {
         const data = await response.json()
-        setCurrentUser(data.user)
+        console.log('✅ User data received:', data)
+
+        if (data.user && data.user.name) {
+          setCurrentUser(data.user)
+          console.log('✅ Current user set:', data.user.name)
+        } else {
+          console.error('⚠️ User data missing name:', data)
+          setError('خطأ: بيانات المستخدم غير كاملة. يرجى تسجيل الدخول مرة أخرى.')
+        }
+      } else {
+        console.error('❌ Failed to fetch user. Status:', response.status)
+        setError('خطأ: لم يتم العثور على بيانات المستخدم المسجل. يرجى تسجيل الدخول مرة أخرى.')
       }
     } catch (error) {
-      console.error('Error fetching current user:', error)
+      console.error('❌ Error fetching current user:', error)
+      setError('خطأ في الاتصال: تعذر جلب بيانات المستخدم. تأكد من اتصالك بالإنترنت.')
     }
   }
 
@@ -330,12 +353,12 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
               </label>
               <Paymentmethodselector
                 value={paymentMethod}
-                onChange={setPaymentMethod}
+                onChange={(method) => setPaymentMethod(method as 'cash' | 'visa' | 'instapay' | 'wallet')}
               />
             </div>
 
-            {/* عرض اسم الموظف الحالي */}
-            {currentUser && (
+            {/* عرض اسم الموظف الحالي أو تحذير */}
+            {currentUser ? (
               <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-700 mb-1">
                   👨‍💼 {t('members.staffName')}:
@@ -343,6 +366,22 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                 <p className="font-bold text-blue-900 text-lg">
                   {currentUser.name}
                 </p>
+              </div>
+            ) : (
+              <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+                <p className="text-sm text-red-700 mb-2 font-bold">
+                  ⚠️ تحذير: لم يتم تحميل بيانات المستخدم المسجل
+                </p>
+                <p className="text-xs text-red-600 mb-3">
+                  لن يتم تسجيل اسم الموظف في الإيصال. يرجى إعادة المحاولة أو تسجيل الدخول مرة أخرى.
+                </p>
+                <button
+                  type="button"
+                  onClick={fetchCurrentUser}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors"
+                >
+                  🔄 إعادة المحاولة
+                </button>
               </div>
             )}
           </div>

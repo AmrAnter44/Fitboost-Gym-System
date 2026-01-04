@@ -159,8 +159,15 @@ export default function Navbar() {
 
   const checkMemberStatusAndPlaySound = (member: any) => {
     const isActive = member.isActive
+    const isFrozen = member.isFrozen
     const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
     const today = new Date()
+
+    // فحص التجميد أولاً
+    if (isFrozen) {
+      playWarningSound()
+      return 'frozen'
+    }
 
     if (!isActive || (expiryDate && expiryDate < today)) {
       playAlarmSound()
@@ -206,7 +213,7 @@ export default function Navbar() {
   const handleQuickSearch = async () => {
     if (!quickSearchId.trim()) {
       playAlarmSound()
-      setSearchMessage({ type: 'error', text: '⚠️ يرجى إدخال رقم العضوية أو رقم الموظف' })
+      setSearchMessage({ type: 'error', text: t('nav.searchErrors.pleaseEnterNumber') })
       return
     }
 
@@ -221,7 +228,7 @@ export default function Navbar() {
 
       if (numericCode < 100000000) {
         playAlarmSound()
-        setSearchMessage({ type: 'error', text: '❌ رقم الموظف يجب أن يكون 9 أرقام (مثال: 100000022)' })
+        setSearchMessage({ type: 'error', text: t('nav.searchErrors.invalidStaffNumber') })
         setQuickSearchId('')
         setTimeout(() => {
           setSearchMessage(null)
@@ -254,12 +261,12 @@ export default function Navbar() {
           })
         } else {
           playAlarmSound()
-          setSearchMessage({ type: 'error', text: data.error || 'فشل تسجيل الحضور' })
+          setSearchMessage({ type: 'error', text: data.error || t('nav.searchErrors.attendanceFailed') })
         }
       } catch (error) {
         console.error('Attendance error:', error)
         playAlarmSound()
-        setSearchMessage({ type: 'error', text: 'حدث خطأ في تسجيل الحضور' })
+        setSearchMessage({ type: 'error', text: t('nav.searchErrors.attendanceError') })
       }
 
       setQuickSearchId('')
@@ -288,12 +295,14 @@ export default function Navbar() {
 
         const status = checkMemberStatusAndPlaySound(member)
 
-        if (status === 'expired') {
-          setSearchMessage({ type: 'error', text: `🚨 ${member.name} - الاشتراك منتهي!` })
+        if (status === 'frozen') {
+          setSearchMessage({ type: 'warning', text: `❄️ ${member.name} - ${locale === 'ar' ? 'الاشتراك مجمد' : 'Subscription Frozen'}` })
+        } else if (status === 'expired') {
+          setSearchMessage({ type: 'error', text: `🚨 ${member.name} - ${locale === 'ar' ? 'الاشتراك منتهي!' : 'Subscription Expired!'}` })
         } else if (status === 'warning') {
-          setSearchMessage({ type: 'warning', text: `⚠️ ${member.name} - الاشتراك قريب من الانتهاء!` })
+          setSearchMessage({ type: 'warning', text: `⚠️ ${member.name} - ${locale === 'ar' ? 'الاشتراك قريب من الانتهاء!' : 'Subscription Expiring Soon!'}` })
         } else {
-          setSearchMessage({ type: 'success', text: `✅ ${member.name} - الاشتراك صالح` })
+          setSearchMessage({ type: 'success', text: `✅ ${member.name} - ${locale === 'ar' ? 'الاشتراك صالح' : 'Active Subscription'}` })
         }
 
         setQuickSearchId('')
@@ -303,7 +312,7 @@ export default function Navbar() {
         }, 1500)
       } else {
         playAlarmSound()
-        setSearchMessage({ type: 'error', text: `🚨 لم يتم العثور على رقم "${inputValue}"` })
+        setSearchMessage({ type: 'error', text: t('nav.searchErrors.notFound', { number: inputValue }) })
         setQuickSearchId('')
         setTimeout(() => {
           setSearchMessage(null)
@@ -313,7 +322,7 @@ export default function Navbar() {
     } catch (error) {
       console.error('Quick search error:', error)
       playAlarmSound()
-      setSearchMessage({ type: 'error', text: '❌ حدث خطأ في البحث' })
+      setSearchMessage({ type: 'error', text: t('nav.searchErrors.searchError') })
     } finally {
       setIsSearching(false)
     }
@@ -406,8 +415,8 @@ export default function Navbar() {
               ))}
             </div>
 
-            {/* الأيقونات الثلاثة عمودية على اليمين */}
-            <div className="flex flex-col gap-1 py-1">
+            {/* الأيقونات أفقية على اليمين */}
+            <div className="flex flex-row gap-2 items-center py-1">
               {/* User Icon - Dropdown */}
               {user && (
                 <div className="relative">

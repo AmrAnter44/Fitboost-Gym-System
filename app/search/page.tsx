@@ -14,7 +14,7 @@ type SearchMode = 'id' | 'name'
 
 export default function SearchPage() {
   const router = useRouter()
-  const { t, direction } = useLanguage()
+  const { t, direction, locale } = useLanguage()
 
   const getPositionLabel = (position: string | null | undefined): string => {
     if (!position) return '-'
@@ -32,6 +32,44 @@ export default function SearchPage() {
     }
     const key = POSITION_MAP[position] || 'other'
     return t(`positions.${key}` as any)
+  }
+
+  // دالة حساب اسم الباقة بناءً على عدد أيام الاشتراك
+  const getPackageName = (startDate: string | undefined, expiryDate: string | undefined): string => {
+    if (!startDate || !expiryDate) return '-'
+
+    const start = new Date(startDate)
+    const expiry = new Date(expiryDate)
+    const diffTime = expiry.getTime() - start.getTime()
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays <= 0) return '-'
+
+    const months = Math.round(diffDays / 30)
+
+    if (locale === 'ar') {
+      if (diffDays >= 330 && diffDays <= 395) return 'سنة'
+      else if (diffDays >= 165 && diffDays <= 195) return '6 شهور'
+      else if (diffDays >= 85 && diffDays <= 95) return '3 شهور'
+      else if (diffDays >= 55 && diffDays <= 65) return 'شهرين'
+      else if (diffDays >= 25 && diffDays <= 35) return 'شهر'
+      else if (diffDays >= 10 && diffDays <= 17) return 'أسبوعين'
+      else if (diffDays >= 5 && diffDays <= 9) return 'أسبوع'
+      else if (diffDays === 1) return 'يوم'
+      else if (months > 0) return `${months} ${months === 1 ? 'شهر' : months === 2 ? 'شهرين' : 'شهور'}`
+      else return `${diffDays} ${diffDays === 1 ? 'يوم' : diffDays === 2 ? 'يومين' : 'أيام'}`
+    } else {
+      if (diffDays >= 330 && diffDays <= 395) return 'Year'
+      else if (diffDays >= 165 && diffDays <= 195) return '6 Months'
+      else if (diffDays >= 85 && diffDays <= 95) return '3 Months'
+      else if (diffDays >= 55 && diffDays <= 65) return '2 Months'
+      else if (diffDays >= 25 && diffDays <= 35) return 'Month'
+      else if (diffDays >= 10 && diffDays <= 17) return '2 Weeks'
+      else if (diffDays >= 5 && diffDays <= 9) return 'Week'
+      else if (diffDays === 1) return 'Day'
+      else if (months > 0) return `${months} ${months === 1 ? 'Month' : 'Months'}`
+      else return `${diffDays} ${diffDays === 1 ? 'Day' : 'Days'}`
+    }
   }
 
   const [searchMode, setSearchMode] = useState<SearchMode>('id')
@@ -542,107 +580,49 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="container mx-auto p-3 sm:p-4 md:p-6 min-h-screen" dir={direction}>
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 flex items-center gap-2 sm:gap-3">
+    <div className="container mx-auto p-2 sm:p-3 md:p-4 min-h-screen" dir={direction}>
+      <div className="mb-2 sm:mb-3">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 flex items-center gap-2">
           <span>🔍</span>
           <span>{t('search.title')}</span>
         </h1>
-        <p className="text-sm sm:text-base text-gray-600">{t('search.subtitle')}</p>
-        <p className="text-xs sm:text-sm text-orange-600 mt-2">
-          🔊 <strong>{t('search.soundGreen')}</strong> {t('search.activeSubscription')} |
-          <strong className="text-yellow-600"> {t('search.soundYellow')}</strong> {t('search.expiringSoon')} |
-          <strong className="text-cyan-600"> {t('search.soundCyan')}</strong> {t('search.frozenSubscription')} |
-          <strong className="text-red-600"> {t('search.soundRed')}</strong> {t('search.expiredOrNotFound')}
-        </p>
-        <p className="text-xs sm:text-sm text-blue-600 mt-2 font-bold">
-          👷 <strong>{t('search.staffAttendance')}</strong> {t('search.enter9Digits')} <code className="bg-blue-100 px-1 sm:px-2 py-1 rounded text-xs sm:text-sm">100000022</code> {t('search.forAutoRegistration')}
-        </p>
-      </div>
-
-      <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-lg mb-4 sm:mb-6 border-2 sm:border-4 border-blue-200">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <button
-            onClick={() => {
-              setSearchMode('id')
-              setSearched(false)
-              setResults([])
-            }}
-            className={`flex-1 px-3 py-2.5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm md:text-base lg:text-lg transition-all ${
-              searchMode === 'id'
-                ? 'bg-blue-600 text-white shadow-lg scale-105'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <span className="hidden sm:inline">🎯 {t('search.searchByIdOrAttendance')}</span>
-            <span className="sm:hidden">🎯 {t('search.idOrAttendanceShort')}</span>
-          </button>
-          <button
-            onClick={() => {
-              setSearchMode('name')
-              setSearched(false)
-              setResults([])
-            }}
-            className={`flex-1 px-3 py-2.5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm md:text-base lg:text-lg transition-all ${
-              searchMode === 'name'
-                ? 'bg-green-600 text-white shadow-lg scale-105'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <span className="hidden sm:inline">👤 {t('search.searchByNamePhone')}</span>
-            <span className="sm:hidden">👤 {t('search.namePhoneShort')}</span>
-          </button>
-        </div>
       </div>
 
       {searchMode === 'id' && (
-        <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl shadow-lg mb-4 sm:mb-6 border-2 sm:border-4 border-blue-200">
-          <div className="mb-4 sm:mb-6">
-            <label className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-blue-800 flex items-center gap-2">
-              <span>🎯</span>
-              <span className="hidden sm:inline">{t('search.searchByIdOrStaff')}</span>
-              <span className="sm:hidden">{t('search.idOrAttendanceShort')}</span>
-            </label>
-            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
-              <p className="text-blue-800 font-bold mb-2 text-sm sm:text-base">📝 {t('search.howToUse')}</p>
-              <ul className="text-blue-700 space-y-1 text-xs sm:text-sm">
-                <li>• <strong>{t('search.searchMemberInstruction')}</strong> {t('search.searchMemberDetails')} (<code className="bg-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">1001</code>)</li>
-                <li>• <strong>{t('search.staffAttendanceInstruction')}</strong> {t('search.staffAttendanceDetails')} (<code className="bg-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs sm:text-sm">100000022</code>)</li>
-              </ul>
-            </div>
-            
+        <div className="bg-white p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl shadow-lg mb-3 sm:mb-4 border-2 border-blue-200">
+          <div className="mb-3 sm:mb-4">
             {/* 🆕 رسالة تسجيل الحضور */}
             {attendanceMessage && (
-              <div className={`mb-3 sm:mb-4 p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 sm:border-4 animate-slideDown ${
+              <div className={`mb-2 sm:mb-3 p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 animate-slideDown ${
                 attendanceMessage.type === 'success'
                   ? 'bg-gradient-to-r from-green-50 to-green-100 border-green-500'
                   : 'bg-gradient-to-r from-red-50 to-red-100 border-red-500'
               }`}>
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="text-4xl sm:text-5xl md:text-6xl">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="text-3xl sm:text-4xl md:text-5xl">
                     {attendanceMessage.type === 'success' ? '✅' : '🚨'}
                   </div>
                   <div className="flex-1">
-                    <h3 className={`text-lg sm:text-xl md:text-2xl font-bold mb-1 sm:mb-2 ${
+                    <h3 className={`text-base sm:text-lg md:text-xl font-bold mb-1 ${
                       attendanceMessage.type === 'success' ? 'text-green-800' : 'text-red-800'
                     }`}>
                       {attendanceMessage.type === 'success' ? t('search.registeredSuccessfully') : t('search.registrationError')}
                     </h3>
-                    <p className={`text-base sm:text-lg md:text-xl font-bold ${
+                    <p className={`text-sm sm:text-base md:text-lg font-bold ${
                       attendanceMessage.type === 'success' ? 'text-green-700' : 'text-red-700'
                     }`}>
                       {attendanceMessage.text}
                     </p>
                     {attendanceMessage.staff && (
-                      <div className="mt-3 sm:mt-4 bg-white/50 rounded-lg sm:rounded-xl p-3 sm:p-4">
-                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <div className="mt-2 sm:mt-3 bg-white/50 rounded-lg p-2 sm:p-3">
+                        <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <p className="text-xs sm:text-sm text-gray-600">{t('nav.employee')}</p>
-                            <p className="text-sm sm:text-base md:text-lg font-bold text-gray-800">{attendanceMessage.staff.name}</p>
+                            <p className="text-xs text-gray-600">{t('nav.employee')}</p>
+                            <p className="text-sm sm:text-base font-bold text-gray-800">{attendanceMessage.staff.name}</p>
                           </div>
                           <div>
-                            <p className="text-xs sm:text-sm text-gray-600">{t('nav.position')}</p>
-                            <p className="text-sm sm:text-base md:text-lg font-bold text-gray-800">{getPositionLabel(attendanceMessage.staff.position)}</p>
+                            <p className="text-xs text-gray-600">{t('nav.position')}</p>
+                            <p className="text-sm sm:text-base font-bold text-gray-800">{getPositionLabel(attendanceMessage.staff.position)}</p>
                           </div>
                         </div>
                       </div>
@@ -651,26 +631,63 @@ export default function SearchPage() {
                 </div>
               </div>
             )}
-            
+
             <div className="flex gap-2 sm:gap-3">
-              <input
-                ref={memberIdRef}
-                type="text"
-                value={memberId}
-                onChange={(e) => setMemberId(e.target.value)}
-                onKeyPress={handleIdKeyPress}
-                className="flex-1 px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 lg:px-6 lg:py-6 border-2 sm:border-4 border-green-300 rounded-lg sm:rounded-xl text-lg sm:text-xl md:text-2xl lg:text-4xl font-bold text-center focus:border-green-600 focus:ring-2 sm:focus:ring-4 focus:ring-green-200 transition"
-                placeholder={t('search.idPlaceholder')}
-                autoFocus
-              />
-              <button
-                onClick={() => handleSearchById()}
-                disabled={loading || !memberId.trim()}
-                className="px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 lg:px-8 lg:py-6 bg-green-600 text-white text-sm sm:text-base md:text-lg lg:text-xl font-bold rounded-lg sm:rounded-xl hover:bg-green-700 disabled:bg-gray-400 transition whitespace-nowrap"
-              >
-                <span className="hidden sm:inline">{loading ? '⏳' : '🔍'} {t('search.search')}</span>
-                <span className="sm:hidden">{loading ? '⏳' : '🔍'}</span>
-              </button>
+              {/* Mode Selector Buttons - 20% */}
+              <div className="flex flex-col gap-2" style={{width: '20%'}}>
+                <button
+                  onClick={() => {
+                    setSearchMode('id')
+                    setSearched(false)
+                    setResults([])
+                  }}
+                  className={`px-2 py-2 sm:py-3 md:py-4 lg:py-5 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
+                    (searchMode as SearchMode) === 'id'
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  title={t('search.searchByIdOrAttendance')}
+                >
+                  🎯
+                </button>
+                <button
+                  onClick={() => {
+                    setSearchMode('name')
+                    setSearched(false)
+                    setResults([])
+                  }}
+                  className={`px-2 py-2 sm:py-3 md:py-4 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
+                    (searchMode as SearchMode) === 'name'
+                      ? 'bg-green-600 text-white shadow-lg'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  title={t('search.searchByNamePhone')}
+                >
+                  👤
+                </button>
+              </div>
+
+              {/* Search Input - 80% */}
+              <div className="flex gap-2 sm:gap-3" style={{width: '80%'}}>
+                <input
+                  ref={memberIdRef}
+                  type="text"
+                  value={memberId}
+                  onChange={(e) => setMemberId(e.target.value)}
+                  onKeyPress={handleIdKeyPress}
+                  className="flex-1 px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 border-2 border-green-300 rounded-lg text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-center focus:border-green-600 focus:ring-2 focus:ring-green-200 transition"
+                  placeholder={t('search.idPlaceholder')}
+                  autoFocus
+                />
+                <button
+                  onClick={() => handleSearchById()}
+                  disabled={loading || !memberId.trim()}
+                  className="px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 bg-green-600 text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition whitespace-nowrap"
+                >
+                  <span className="hidden sm:inline">{loading ? '⏳' : '🔍'} {t('search.search')}</span>
+                  <span className="sm:hidden">{loading ? '⏳' : '🔍'}</span>
+                </button>
+              </div>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 mt-2">
               💡 {t('search.pressEnter')}
@@ -680,80 +697,116 @@ export default function SearchPage() {
       )}
 
       {searchMode === 'name' && (
-        <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl shadow-lg mb-4 sm:mb-6 border-2 sm:border-4 border-green-200">
-          <label className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-green-800 flex items-center gap-2">
-            <span>👤</span>
-            <span>{t('search.searchByNamePhone')}</span>
-          </label>
+        <div className="bg-white p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl shadow-lg mb-3 sm:mb-4 border-2 border-green-200">
+          <div className="mb-3 sm:mb-4">
+            {/* 🆕 رسالة الخطأ */}
+            {attendanceMessage && (
+              <div className="mb-2 sm:mb-3 p-2 sm:p-3 rounded-lg border-2 bg-red-50 border-red-500 animate-slideDown">
+                <p className="text-sm sm:text-base font-bold text-red-700">
+                  {attendanceMessage.text}
+                </p>
+              </div>
+            )}
 
-          {/* 🆕 رسالة الخطأ */}
-          {attendanceMessage && (
-            <div className="mb-3 sm:mb-4 p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 bg-red-50 border-red-500 animate-slideDown">
-              <p className="text-base sm:text-lg font-bold text-red-700">
-                {attendanceMessage.text}
-              </p>
-            </div>
-          )}
+            <div className="flex gap-2 sm:gap-3">
+              {/* Mode Selector Buttons - 20% */}
+              <div className="flex flex-col gap-2" style={{width: '20%'}}>
+                <button
+                  onClick={() => {
+                    setSearchMode('id')
+                    setSearched(false)
+                    setResults([])
+                  }}
+                  className={`px-2 py-2 sm:py-3 md:py-4 lg:py-5 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
+                    (searchMode as SearchMode) === 'id'
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  title={t('search.searchByIdOrAttendance')}
+                >
+                  🎯
+                </button>
+                <button
+                  onClick={() => {
+                    setSearchMode('name')
+                    setSearched(false)
+                    setResults([])
+                  }}
+                  className={`px-2 py-2 sm:py-3 md:py-4 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
+                    (searchMode as SearchMode) === 'name'
+                      ? 'bg-green-600 text-white shadow-lg'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  title={t('search.searchByNamePhone')}
+                >
+                  👤
+                </button>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">{t('search.name')}</label>
-              <input
-                ref={nameRef}
-                type="text"
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-                onKeyPress={handleNameKeyPress}
-                className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-green-300 rounded-lg text-sm sm:text-base md:text-lg focus:border-green-600 focus:ring-2 sm:focus:ring-4 focus:ring-green-200 transition"
-                placeholder={t('search.namePlaceholder')}
-              />
+              {/* Search Fields - 80% */}
+              <div className="flex-1" style={{width: '80%'}}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">{t('search.name')}</label>
+                    <input
+                      ref={nameRef}
+                      type="text"
+                      value={searchName}
+                      onChange={(e) => setSearchName(e.target.value)}
+                      onKeyPress={handleNameKeyPress}
+                      className="w-full px-2 py-2 md:px-3 md:py-2 lg:px-4 lg:py-3 border-2 border-green-300 rounded-lg text-xs sm:text-sm md:text-base lg:text-lg focus:border-green-600 focus:ring-2 focus:ring-green-200 transition"
+                      placeholder={t('search.namePlaceholder')}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1">{t('search.phoneNumber')}</label>
+                    <input
+                      type="tel"
+                      value={searchPhone}
+                      onChange={(e) => setSearchPhone(e.target.value)}
+                      onKeyPress={handleNameKeyPress}
+                      className="w-full px-2 py-2 md:px-3 md:py-2 lg:px-4 lg:py-3 border-2 border-green-300 rounded-lg text-xs sm:text-sm md:text-base lg:text-lg focus:border-green-600 focus:ring-2 focus:ring-green-200 transition"
+                      placeholder={t('search.phonePlaceholder')}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleSearchByName()}
+                  disabled={loading || (!searchName.trim() && !searchPhone.trim())}
+                  className="w-full px-3 py-2 sm:py-2 md:px-4 md:py-3 bg-green-600 text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
+                >
+                  🔍 {t('search.search')}
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">{t('search.phoneNumber')}</label>
-              <input
-                type="tel"
-                value={searchPhone}
-                onChange={(e) => setSearchPhone(e.target.value)}
-                onKeyPress={handleNameKeyPress}
-                className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-green-300 rounded-lg text-sm sm:text-base md:text-lg focus:border-green-600 focus:ring-2 sm:focus:ring-4 focus:ring-green-200 transition"
-                placeholder={t('search.phonePlaceholder')}
-              />
-            </div>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">
+              💡 {t('search.searchTip')}
+            </p>
           </div>
-
-          <button
-            onClick={() => handleSearchByName()}
-            disabled={loading || (!searchName.trim() && !searchPhone.trim())}
-            className="w-full px-4 py-2.5 sm:py-3 md:px-6 md:py-4 bg-green-600 text-white text-sm sm:text-base md:text-lg lg:text-xl font-bold rounded-lg sm:rounded-xl hover:bg-green-700 disabled:bg-gray-400 transition"
-          >
-            🔍 {t('search.search')}
-          </button>
-
-          <p className="text-xs sm:text-sm text-gray-500 mt-2">
-            💡 {t('search.searchTip')}
-          </p>
         </div>
       )}
 
       {lastSearchTime && (
-        <div className="bg-gray-100 p-2 sm:p-3 rounded-lg text-center text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+        <div className="bg-gray-100 p-1.5 sm:p-2 rounded text-center text-xs text-gray-600 mb-2 sm:mb-3">
           {t('search.lastSearch')} {lastSearchTime.toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
         </div>
       )}
 
       {searched && (
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden border-2 sm:border-4 border-green-200 animate-fadeIn">
+        <div className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden border-2 border-green-200 animate-fadeIn">
           {loading ? (
-            <div className="text-center py-12 sm:py-16 md:py-20">
-              <div className="inline-block animate-spin text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4">⏳</div>
-              <p className="text-lg sm:text-xl md:text-2xl text-gray-600 font-bold">{t('search.searching')}</p>
+            <div className="text-center py-8 sm:py-10 md:py-12">
+              <div className="inline-block animate-spin text-3xl sm:text-4xl md:text-5xl mb-2 sm:mb-3">⏳</div>
+              <p className="text-base sm:text-lg md:text-xl text-gray-600 font-bold">{t('search.searching')}</p>
             </div>
           ) : results.length === 0 ? (
-            <div className="text-center py-12 sm:py-16 md:py-20 bg-red-50 animate-pulse">
-              <div className="text-5xl sm:text-6xl md:text-8xl mb-4 sm:mb-6 animate-bounce">🚨</div>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 mb-2 sm:mb-3 px-4">{t('search.noResults')}</p>
-              <p className="text-base sm:text-lg md:text-xl text-red-500 px-4">
+            <div className="text-center py-8 sm:py-10 md:py-12 bg-red-50 animate-pulse">
+              <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4 animate-bounce">🚨</div>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 mb-2 px-4">{t('search.noResults')}</p>
+              <p className="text-sm sm:text-base md:text-lg text-red-500 px-4">
                 {searchMode === 'id'
                   ? `${t('search.searchingFor')} "${memberId}"`
                   : `${t('search.searchingFor')} "${searchName || searchPhone}"`
@@ -761,21 +814,21 @@ export default function SearchPage() {
               </p>
             </div>
           ) : (
-            <div className="p-4 sm:p-6">
-              <div className="mb-3 sm:mb-4 text-center">
-                <span className="bg-green-100 text-green-800 px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-base sm:text-lg md:text-xl font-bold">
+            <div className="p-3 sm:p-4">
+              <div className="mb-2 sm:mb-3 text-center">
+                <span className="bg-green-100 text-green-800 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base md:text-lg font-bold">
                   ✅ {t('search.foundResults')} {results.length} {results.length === 1 ? t('search.result') : t('search.results')}
                 </span>
               </div>
-              
-              <div className="space-y-4 sm:space-y-6">
+
+              <div className="space-y-3 sm:space-y-4">
                 {results.map((result, index) => (
-                  <div key={index} className="border-2 sm:border-4 border-blue-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:bg-blue-50 transition">
+                  <div key={index} className="border-2 border-blue-200 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-blue-50 transition">
                     {result.type === 'member' && (
                       <div>
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0 mb-4">
-                          <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 sm:border-4 border-blue-300 bg-gray-100 flex-shrink-0">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-3">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-blue-300 bg-gray-100 flex-shrink-0">
                               {result.data.profileImage ? (
                                 <img 
                                   src={result.data.profileImage} 
@@ -784,7 +837,7 @@ export default function SearchPage() {
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                  <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                   </svg>
                                 </div>
@@ -792,116 +845,118 @@ export default function SearchPage() {
                             </div>
 
                             <div>
-                              <span className="bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base md:text-lg font-bold">
+                              <span className="bg-blue-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
                                 👤 {t('search.member')}
                               </span>
-                              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mt-2 sm:mt-3">{result.data.name}</h3>
+                              <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-1.5 sm:mt-2">{result.data.name}</h3>
                             </div>
                           </div>
                           {/* ✅ عرض رقم العضوية فقط إذا كان موجود (ليس Other) */}
                           {result.data.memberNumber !== null && (
-                            <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-600">
+                            <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600">
                               #{result.data.memberNumber}
                             </span>
                           )}
                           {result.data.memberNumber === null && (
-                            <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-500 bg-gray-100 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg">
+                            <span className="text-base sm:text-lg md:text-xl font-bold text-gray-500 bg-gray-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded">
                               Other
                             </span>
                           )}
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
-                          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                            <p className="text-xs sm:text-sm text-gray-600">{t('common.phone')}</p>
-                            <p className="text-sm sm:text-base md:text-xl font-bold">{result.data.phone}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2 sm:mb-3">
+                          <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                            <p className="text-xs text-gray-600">{t('common.phone')}</p>
+                            <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.phone}</p>
                           </div>
-                          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                            <p className="text-xs sm:text-sm text-gray-600">{t('search.price')}</p>
-                            <p className="text-sm sm:text-base md:text-xl font-bold">{result.data.subscriptionPrice} {t('members.egp')}</p>
+                          <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                            <p className="text-xs text-gray-600">{t('search.price')}</p>
+                            <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.subscriptionPrice} {t('members.egp')}</p>
                           </div>
-                          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                            <p className="text-xs sm:text-sm text-gray-600">{t('search.remaining')}</p>
-                            <p className="text-sm sm:text-base md:text-xl font-bold text-red-600">{result.data.remainingAmount} {t('members.egp')}</p>
+                          <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                            <p className="text-xs text-gray-600">{locale === 'ar' ? 'الباقة' : 'Package'}</p>
+                            <p className="text-xs sm:text-sm md:text-base font-bold text-purple-600">{getPackageName(result.data.startDate, result.data.expiryDate)}</p>
                           </div>
-                          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                            <p className="text-xs sm:text-sm text-gray-600">{t('search.status')}</p>
-                            <span className={`inline-block px-2 sm:px-3 py-1 rounded-lg text-sm sm:text-base md:text-lg font-bold ${
+                          <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                            <p className="text-xs text-gray-600">{t('search.status')}</p>
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs sm:text-sm md:text-base font-bold ${
                               result.data.isFrozen
-                                ? 'bg-cyan-500 text-white animate-pulse'
+                                ? 'bg-blue-500 text-white'
                                 : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
                                 ? 'bg-green-500 text-white'
                                 : 'bg-red-500 text-white animate-pulse'
                             }`}>
-                              {result.data.isFrozen ? `❄️ ${t('search.frozen')}` : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date()) ? `✅ ${t('search.active')}` : `🚨 ${t('search.expired')}`}
+                              {result.data.isFrozen
+                                ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                                : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
+                                  ? `✅ ${t('search.active')}`
+                                  : `🚨 ${t('search.expired')}`
+                              }
                             </span>
                           </div>
                         </div>
 
-                        {result.data.startDate && (
-                          <div className="mb-3 sm:mb-4 bg-blue-50 border-2 border-blue-400 rounded-lg p-3 sm:p-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs sm:text-sm text-gray-600">{t('common.startDate')}</p>
-                                <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800">
-                                  {new Date(result.data.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
-                                </p>
-                              </div>
+                        {(result.data.startDate || result.data.expiryDate) && (
+                          <div className="mb-2 sm:mb-3 bg-gradient-to-r from-blue-50 to-yellow-50 border-2 border-blue-300 rounded p-2 sm:p-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {result.data.startDate && (
+                                <div>
+                                  <p className="text-xs text-gray-600">{t('common.startDate')}</p>
+                                  <p className="text-sm sm:text-base md:text-lg font-bold text-gray-800">
+                                    {new Date(result.data.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
+                                  </p>
+                                </div>
+                              )}
+                              {result.data.expiryDate && (
+                                <div>
+                                  <p className="text-xs text-gray-600">{t('search.expiryDate')}</p>
+                                  <p className="text-sm sm:text-base md:text-lg font-bold text-gray-800">
+                                    {new Date(result.data.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
+                                  </p>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
+                            {(() => {
+                              const days = calculateRemainingDays(result.data.expiryDate)
+                              if (days === null) return null
 
-                        {result.data.expiryDate && (
-                          <div className="mb-3 sm:mb-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg p-3 sm:p-4">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-                              <div>
-                                <p className="text-xs sm:text-sm text-gray-600">{t('search.expiryDate')}</p>
-                                <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800">
-                                  {new Date(result.data.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
-                                </p>
-                              </div>
-                              {(() => {
-                                const days = calculateRemainingDays(result.data.expiryDate)
-                                if (days === null) return null
-
-                                if (days < 0) {
-                                  return (
-                                    <div className={direction === 'rtl' ? 'text-right' : 'text-left'}>
-                                      <p className="text-red-600 font-bold text-base sm:text-lg md:text-2xl animate-pulse">
-                                        🚨 {t('search.expiredSince')} {Math.abs(days)} {t('search.day')}
-                                      </p>
-                                    </div>
-                                  )
-                                } else if (days <= 7) {
-                                  return (
-                                    <div className={direction === 'rtl' ? 'text-right' : 'text-left'}>
-                                      <p className="text-orange-600 font-bold text-base sm:text-lg md:text-2xl">
-                                        ⚠️ {t('search.daysRemaining')} {days} {t('search.daysOnly')}
-                                      </p>
-                                    </div>
-                                  )
-                                } else {
-                                  return (
-                                    <div className={direction === 'rtl' ? 'text-right' : 'text-left'}>
-                                      <p className="text-green-600 font-bold text-base sm:text-lg md:text-2xl">
-                                        ✅ {t('search.daysRemaining')} {days} {t('search.day')}
-                                      </p>
-                                    </div>
-                                  )
-                                }
-                              })()}
-                            </div>
+                              if (days < 0) {
+                                return (
+                                  <div className={`mt-2 pt-2 border-t-2 border-red-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                                    <p className="text-red-600 font-bold text-sm sm:text-base md:text-lg animate-pulse">
+                                      🚨 {t('search.expiredSince')} {Math.abs(days)} {t('search.day')}
+                                    </p>
+                                  </div>
+                                )
+                              } else if (days <= 7) {
+                                return (
+                                  <div className={`mt-2 pt-2 border-t-2 border-orange-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                                    <p className="text-orange-600 font-bold text-sm sm:text-base md:text-lg">
+                                      ⚠️ {t('search.daysRemaining')} {days} {t('search.daysOnly')}
+                                    </p>
+                                  </div>
+                                )
+                              } else {
+                                return (
+                                  <div className={`mt-2 pt-2 border-t-2 border-green-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                                    <p className="text-green-600 font-bold text-sm sm:text-base md:text-lg">
+                                      ✅ {t('search.daysRemaining')} {days} {t('search.day')}
+                                    </p>
+                                  </div>
+                                )
+                              }
+                            })()}
                           </div>
                         )}
 
                         {/* عرض الملاحظات */}
                         {result.data.notes && (
-                          <div className="mb-3 sm:mb-4 bg-blue-50 border-2 border-blue-400 rounded-lg p-3 sm:p-4">
-                            <div className="flex items-start gap-2 mb-2">
-                              <span className="text-lg sm:text-xl">📝</span>
-                              <p className="text-xs sm:text-sm font-bold text-blue-800">{t('search.notes')}</p>
+                          <div className="mb-2 sm:mb-3 bg-blue-50 border-2 border-blue-400 rounded p-2 sm:p-3">
+                            <div className="flex items-start gap-1 mb-1">
+                              <span className="text-base sm:text-lg">📝</span>
+                              <p className="text-xs font-bold text-blue-800">{t('search.notes')}</p>
                             </div>
-                            <p className="text-sm sm:text-base md:text-lg text-gray-700 leading-relaxed whitespace-pre-wrap">
+                            <p className="text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
                               {result.data.notes}
                             </p>
                           </div>
@@ -981,10 +1036,10 @@ export default function SearchPage() {
                           </div>
                         )}
 
-                        <div className="grid grid-cols-1 gap-2 sm:gap-3">
+                        <div className="grid grid-cols-1 gap-2">
                           <button
                             onClick={() => handleViewMemberDetails(result.data.id)}
-                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl font-bold text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-blue-700 hover:to-blue-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
                           >
                             <span>👁️</span>
                             <span>{t('search.viewFullDetails')}</span>
@@ -996,37 +1051,37 @@ export default function SearchPage() {
                     
                     {result.type === 'pt' && (
                       <div>
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="flex justify-between items-start mb-3">
                           <div>
-                            <span className="bg-green-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base md:text-lg font-bold">
+                            <span className="bg-green-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
                               💪 PT
                             </span>
-                            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mt-2 sm:mt-3">{result.data.clientName}</h3>
+                            <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-1.5 sm:mt-2">{result.data.clientName}</h3>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
-                          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                            <p className="text-xs sm:text-sm text-gray-600">{t('common.phone')}</p>
-                            <p className="text-sm sm:text-base md:text-xl font-bold">{result.data.phone}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2 sm:mb-3">
+                          <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                            <p className="text-xs text-gray-600">{t('common.phone')}</p>
+                            <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.phone}</p>
                           </div>
-                          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                            <p className="text-xs sm:text-sm text-gray-600">{t('search.coach')}</p>
-                            <p className="text-sm sm:text-base md:text-xl font-bold">{result.data.coachName}</p>
+                          <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                            <p className="text-xs text-gray-600">{t('search.coach')}</p>
+                            <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.coachName}</p>
                           </div>
-                          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                            <p className="text-xs sm:text-sm text-gray-600">{t('search.sessionsRemaining')}</p>
-                            <p className="text-sm sm:text-base md:text-xl font-bold text-green-600">{result.data.sessionsRemaining}</p>
+                          <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                            <p className="text-xs text-gray-600">{t('search.sessionsRemaining')}</p>
+                            <p className="text-xs sm:text-sm md:text-base font-bold text-green-600">{result.data.sessionsRemaining}</p>
                           </div>
-                          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                            <p className="text-xs sm:text-sm text-gray-600">{t('search.sessionPrice')}</p>
-                            <p className="text-sm sm:text-base md:text-xl font-bold">{result.data.pricePerSession} {t('members.egp')}</p>
+                          <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                            <p className="text-xs text-gray-600">{t('search.sessionPrice')}</p>
+                            <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.pricePerSession} {t('members.egp')}</p>
                           </div>
                         </div>
 
                         <button
                           onClick={() => handleViewPTDetails(result.data.id)}
-                          className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl font-bold text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                          className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-green-700 hover:to-green-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
                         >
                           <span>👁️</span>
                           <span>{t('search.viewFullDetails')}</span>

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { formatDateYMD } from '../../../../lib/dateFormatter'
+import { requireValidLicense } from '../../../../lib/license'
 
 // دالة حساب الأيام بين تاريخين
 function calculateDaysBetween(date1Str: string | Date, date2Str: string | Date): number {
@@ -207,6 +208,9 @@ export async function POST(request: Request) {
     }
 
     // 14. إنشاء الإيصال
+    // 🔒 License validation check
+    await requireValidLicense()
+
     const receipt = await prisma.receipt.create({
       data: {
         receiptNumber,

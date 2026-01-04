@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
+import { requireValidLicense } from '../../../../lib/license'
 
 export async function POST(request: Request) {
   try {
@@ -22,12 +23,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'العضو غير موجود' }, { status: 404 })
     }
 
-    // جلب رقم الإيصال التالي
-    const lastReceipt = await prisma.receipt.findFirst({
-      orderBy: { receiptNumber: 'desc' }
+    // ✅ Atomic increment للعداد - thread-safe
+    const counter = await prisma.receiptCounter.upsert({
+      where: { id: 1 },
+      update: { current: { increment: 1 } },
+      create: { id: 1, current: 1001 },
     })
-
-    const receiptNumber = lastReceipt ? lastReceipt.receiptNumber + 1 : 1000
+    const receiptNumber = counter.current
 
     // تفاصيل الإيصال
     const itemDetails = {
@@ -40,6 +42,9 @@ export async function POST(request: Request) {
     }
 
     // إنشاء الإيصال
+    // 🔒 License validation check
+    await requireValidLicense()
+
     const receipt = await prisma.receipt.create({
       data: {
         receiptNumber,

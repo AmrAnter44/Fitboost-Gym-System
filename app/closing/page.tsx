@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface DailyData {
   date: string
@@ -28,10 +29,20 @@ export default function ClosingPage() {
   const [dailyData, setDailyData] = useState<DailyData[]>([])
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('monthly')
+  const [viewMode, setViewMode] = useState<'daily' | 'monthly' | 'yearly' | 'comparison'>('monthly')
   const [expandedDay, setExpandedDay] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState(new Date().toISOString().split('T')[0])
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+
+  // للمقارنة بين الشهور
+  const [comparisonStartMonth, setComparisonStartMonth] = useState(() => {
+    const date = new Date()
+    date.setMonth(date.getMonth() - 3)
+    return date.toISOString().slice(0, 7)
+  })
+  const [comparisonEndMonth, setComparisonEndMonth] = useState(new Date().toISOString().slice(0, 7))
+  const [monthlyComparison, setMonthlyComparison] = useState<any[]>([])
 
   const [totals, setTotals] = useState({
     floor: 0,
@@ -70,14 +81,18 @@ export default function ClosingPage() {
           // في الوضع اليومي، نعرض اليوم المحدد فقط
           const selectedDate = new Date(selectedDay)
           return d.toDateString() === selectedDate.toDateString()
-        } else {
+        } else if (viewMode === 'monthly') {
           // في الوضع الشهري، نعرض الشهر المحدد
           const [year, month] = selectedMonth.split('-')
           return d.getFullYear() === parseInt(year) && d.getMonth() === parseInt(month) - 1
+        } else if (viewMode === 'yearly') {
+          // في الوضع السنوي، نعرض السنة المحددة
+          return d.getFullYear() === parseInt(selectedYear)
         }
+        return false
       }
 
-      const filteredReceipts = receipts.filter((r: any) => filterDate(r.createdAt))
+      const filteredReceipts = receipts.filter((r: any) => !r.isCancelled && filterDate(r.createdAt))
       const filteredExpenses = expenses.filter((e: any) => filterDate(e.createdAt))
 
       const dailyMap: { [key: string]: DailyData } = {}
@@ -212,8 +227,89 @@ export default function ClosingPage() {
   }
 
   useEffect(() => {
-    fetchData()
-  }, [viewMode, selectedDay, selectedMonth])
+    if (viewMode === 'comparison') {
+      fetchComparisonData()
+    } else {
+      fetchData()
+    }
+  }, [viewMode, selectedDay, selectedMonth, selectedYear, comparisonStartMonth, comparisonEndMonth])
+
+  const fetchComparisonData = async () => {
+    try {
+      setLoading(true)
+
+      const receiptsRes = await fetch('/api/receipts')
+      const receipts = await receiptsRes.json()
+
+      const expensesRes = await fetch('/api/expenses')
+      const expenses = await expensesRes.json()
+
+      // تحديد الأشهر المطلوبة
+      const startDate = new Date(comparisonStartMonth + '-01')
+      const endDate = new Date(comparisonEndMonth + '-01')
+
+      const monthsData: any[] = []
+      const currentDate = new Date(startDate)
+
+      while (currentDate <= endDate) {
+        const year = currentDate.getFullYear()
+        const month = currentDate.getMonth()
+        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`
+
+        // فلترة البيانات لهذا الشهر
+        const monthReceipts = receipts.filter((r: any) => {
+          if (r.isCancelled) return false
+          const d = new Date(r.createdAt)
+          return d.getFullYear() === year && d.getMonth() === month
+        })
+
+        const monthExpenses = expenses.filter((e: any) => {
+          const d = new Date(e.createdAt)
+          return d.getFullYear() === year && d.getMonth() === month
+        })
+
+        // حساب المجاميع
+        const floorRevenue = monthReceipts
+          .filter((r: any) => r.type === 'Member' || r.type === 'تجديد عضويه')
+          .reduce((sum: number, r: any) => sum + r.amount, 0)
+
+        const ptRevenue = monthReceipts
+          .filter((r: any) => r.type === 'PT' || r.type === 'اشتراك برايفت' || r.type === 'تجديد برايفت')
+          .reduce((sum: number, r: any) => sum + r.amount, 0)
+
+        const totalExpenses = monthExpenses.reduce((sum: number, e: any) => sum + e.amount, 0)
+        const totalRevenue = floorRevenue + ptRevenue
+        const netProfit = totalRevenue - totalExpenses
+
+        // عدد الاشتراكات
+        const memberSubscriptions = monthReceipts.filter((r: any) => r.type === 'Member' || r.type === 'تجديد عضويه').length
+        const ptSubscriptions = monthReceipts.filter((r: any) => r.type === 'PT' || r.type === 'اشتراك برايفت' || r.type === 'تجديد برايفت').length
+
+        monthsData.push({
+          month: monthKey,
+          monthName: currentDate.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
+          floorRevenue,
+          ptRevenue,
+          totalRevenue,
+          totalExpenses,
+          netProfit,
+          memberSubscriptions,
+          ptSubscriptions,
+          totalSubscriptions: memberSubscriptions + ptSubscriptions,
+          receiptsCount: monthReceipts.length
+        })
+
+        currentDate.setMonth(currentDate.getMonth() + 1)
+      }
+
+      setMonthlyComparison(monthsData)
+
+    } catch (error) {
+      console.error('Error fetching comparison data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handlePrint = () => {
     window.print()
@@ -560,6 +656,26 @@ export default function ClosingPage() {
           >
             📆 {t('closing.viewMode.monthly')}
           </button>
+          <button
+            onClick={() => setViewMode('yearly')}
+            className={`px-6 py-3 rounded-lg font-bold transition ${
+              viewMode === 'yearly'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            📅 {t('closing.viewMode.yearly')}
+          </button>
+          <button
+            onClick={() => setViewMode('comparison')}
+            className={`px-6 py-3 rounded-lg font-bold transition ${
+              viewMode === 'comparison'
+                ? 'bg-purple-600 text-white shadow-lg'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            📊 {t('closing.viewMode.comparison')}
+          </button>
         </div>
       </div>
 
@@ -587,7 +703,7 @@ export default function ClosingPage() {
                 })}
               </p>
             </div>
-          ) : (
+          ) : viewMode === 'monthly' ? (
             /* اختيار الشهر للعرض الشهري */
             <div>
               <label className="block text-sm font-medium mb-2">📅 {t('closing.controls.selectMonth')}</label>
@@ -600,6 +716,53 @@ export default function ClosingPage() {
               <p className="text-sm text-gray-600 mt-2">
                 {t('closing.controls.viewMonthDetails', {
                   month: new Date(selectedMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })
+                })}
+              </p>
+            </div>
+          ) : viewMode === 'yearly' ? (
+            /* اختيار السنة للعرض السنوي */
+            <div>
+              <label className="block text-sm font-medium mb-2">📅 {t('closing.controls.selectYear')}</label>
+              <input
+                type="number"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                min="2020"
+                max="2030"
+                className="px-4 py-2 border-2 rounded-lg font-mono text-lg"
+              />
+              <p className="text-sm text-gray-600 mt-2">
+                {t('closing.controls.viewYearDetails', { year: selectedYear })}
+              </p>
+            </div>
+          ) : (
+            /* اختيار فترة المقارنة */
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">📅 {t('closing.comparison.startMonth')}</label>
+                  <input
+                    type="month"
+                    value={comparisonStartMonth}
+                    onChange={(e) => setComparisonStartMonth(e.target.value)}
+                    className="w-full px-4 py-2 border-2 rounded-lg font-mono text-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">📅 {t('closing.comparison.endMonth')}</label>
+                  <input
+                    type="month"
+                    value={comparisonEndMonth}
+                    onChange={(e) => setComparisonEndMonth(e.target.value)}
+                    className="w-full px-4 py-2 border-2 rounded-lg font-mono text-lg"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">
+                {t('closing.comparison.periodInfo', {
+                  start: new Date(comparisonStartMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
+                  end: new Date(comparisonEndMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
+                  count: monthlyComparison.length.toString()
                 })}
               </p>
             </div>
@@ -646,8 +809,275 @@ export default function ClosingPage() {
             </p>
           </div>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6 no-print">
+          {/* Comparison View */}
+          {viewMode === 'comparison' ? (
+            <div className="space-y-6">
+              {/* Summary Cards for Comparison */}
+              {monthlyComparison.length > 0 && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
+                      <p className="text-sm opacity-90">{t('closing.comparison.totalRevenue')}</p>
+                      <p className="text-3xl font-bold">
+                        {monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0).toFixed(0)}
+                      </p>
+                      <p className="text-xs opacity-75 mt-2">
+                        {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0) / monthlyComparison.length).toFixed(0)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-lg shadow-lg">
+                      <p className="text-sm opacity-90">{t('closing.comparison.totalExpenses')}</p>
+                      <p className="text-3xl font-bold">
+                        {monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0).toFixed(0)}
+                      </p>
+                      <p className="text-xs opacity-75 mt-2">
+                        {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0) / monthlyComparison.length).toFixed(0)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
+                      <p className="text-sm opacity-90">{t('closing.comparison.totalNetProfit')}</p>
+                      <p className="text-3xl font-bold">
+                        {monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0).toFixed(0)}
+                      </p>
+                      <p className="text-xs opacity-75 mt-2">
+                        {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0) / monthlyComparison.length).toFixed(0)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+                      <p className="text-sm opacity-90">{t('closing.comparison.totalSubscriptions')}</p>
+                      <p className="text-3xl font-bold">
+                        {monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0)}
+                      </p>
+                      <p className="text-xs opacity-75 mt-2">
+                        {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0) / monthlyComparison.length).toFixed(0)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Revenue & Expenses Trend Chart */}
+                  <div className="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.revenueExpensesTrend')}</h3>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <LineChart data={monthlyComparison}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="monthName"
+                          angle={-45}
+                          textAnchor="end"
+                          height={100}
+                          style={{ fontSize: '12px' }}
+                        />
+                        <YAxis style={{ fontSize: '12px' }} />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="totalRevenue"
+                          stroke="#10b981"
+                          strokeWidth={3}
+                          name={t('closing.comparison.revenue')}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="totalExpenses"
+                          stroke="#ef4444"
+                          strokeWidth={3}
+                          name={t('closing.comparison.expenses')}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="netProfit"
+                          stroke="#3b82f6"
+                          strokeWidth={3}
+                          name={t('closing.comparison.netProfit')}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Revenue Breakdown Chart */}
+                  <div className="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.revenueBreakdown')}</h3>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={monthlyComparison}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="monthName"
+                          angle={-45}
+                          textAnchor="end"
+                          height={100}
+                          style={{ fontSize: '12px' }}
+                        />
+                        <YAxis style={{ fontSize: '12px' }} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="floorRevenue" fill="#60a5fa" name={t('closing.comparison.floorRevenue')} />
+                        <Bar dataKey="ptRevenue" fill="#34d399" name={t('closing.comparison.ptRevenue')} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Subscriptions Chart */}
+                  <div className="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.subscriptionsChart')}</h3>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={monthlyComparison}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="monthName"
+                          angle={-45}
+                          textAnchor="end"
+                          height={100}
+                          style={{ fontSize: '12px' }}
+                        />
+                        <YAxis style={{ fontSize: '12px' }} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="memberSubscriptions" fill="#8b5cf6" name={t('closing.comparison.memberSubscriptions')} />
+                        <Bar dataKey="ptSubscriptions" fill="#ec4899" name={t('closing.comparison.ptSubscriptions')} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Detailed Comparison Table */}
+                  <div className="bg-white rounded-lg shadow-lg overflow-x-auto">
+                    <h3 className="text-xl font-bold p-6 border-b">{t('closing.comparison.detailedTable')}</h3>
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="bg-gray-200">
+                          <th className="border border-gray-400 px-4 py-3 text-center font-bold">{t('closing.comparison.month')}</th>
+                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-blue-100">{t('closing.comparison.floorRevenue')}</th>
+                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-green-100">{t('closing.comparison.ptRevenue')}</th>
+                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-yellow-100">{t('closing.comparison.totalRevenue')}</th>
+                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-red-100">{t('closing.comparison.expenses')}</th>
+                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-green-200">{t('closing.comparison.netProfit')}</th>
+                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-purple-100">{t('closing.comparison.subscriptions')}</th>
+                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-gray-100">{t('closing.comparison.growth')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {monthlyComparison.map((month, index) => {
+                          const prevMonth = index > 0 ? monthlyComparison[index - 1] : null
+                          const growthPercent = prevMonth ? ((month.totalRevenue - prevMonth.totalRevenue) / prevMonth.totalRevenue * 100) : 0
+
+                          return (
+                            <tr key={month.month} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="border border-gray-300 px-4 py-3 font-medium">{month.monthName}</td>
+                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-blue-600`}>
+                                {month.floorRevenue.toFixed(0)}
+                              </td>
+                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600`}>
+                                {month.ptRevenue.toFixed(0)}
+                              </td>
+                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600 text-lg`}>
+                                {month.totalRevenue.toFixed(0)}
+                              </td>
+                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600`}>
+                                {month.totalExpenses.toFixed(0)}
+                              </td>
+                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700 text-lg`}>
+                                {month.netProfit.toFixed(0)}
+                              </td>
+                              <td className="border border-gray-300 px-4 py-3 text-center font-bold text-purple-600">
+                                {month.totalSubscriptions}
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {t('closing.comparison.members')}: {month.memberSubscriptions} | PT: {month.ptSubscriptions}
+                                </div>
+                              </td>
+                              <td className="border border-gray-300 px-4 py-3 text-center">
+                                {prevMonth ? (
+                                  <span className={`font-bold ${growthPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {growthPercent >= 0 ? '↑' : '↓'} {Math.abs(growthPercent).toFixed(1)}%
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-yellow-100 font-bold">
+                          <td className="border border-gray-400 px-4 py-3 text-center">{t('closing.comparison.total')}</td>
+                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-blue-700`}>
+                            {monthlyComparison.reduce((sum, m) => sum + m.floorRevenue, 0).toFixed(0)}
+                          </td>
+                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700`}>
+                            {monthlyComparison.reduce((sum, m) => sum + m.ptRevenue, 0).toFixed(0)}
+                          </td>
+                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 text-lg`}>
+                            {monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0).toFixed(0)}
+                          </td>
+                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700`}>
+                            {monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0).toFixed(0)}
+                          </td>
+                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 text-lg`}>
+                            {monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0).toFixed(0)}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-3 text-center text-purple-700">
+                            {monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0)}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-3"></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  {/* Performance Insights */}
+                  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.insights')}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {monthlyComparison.length > 0 && (
+                        <>
+                          <div className="bg-white/20 p-4 rounded-lg">
+                            <p className="text-sm opacity-90">{t('closing.comparison.bestMonth')}</p>
+                            <p className="text-2xl font-bold mt-2">
+                              {monthlyComparison.reduce((best, m) => m.totalRevenue > best.totalRevenue ? m : best).monthName}
+                            </p>
+                            <p className="text-sm opacity-75 mt-1">
+                              {monthlyComparison.reduce((best, m) => m.totalRevenue > best.totalRevenue ? m : best).totalRevenue.toFixed(0)} {t('closing.currency')}
+                            </p>
+                          </div>
+                          <div className="bg-white/20 p-4 rounded-lg">
+                            <p className="text-sm opacity-90">{t('closing.comparison.worstMonth')}</p>
+                            <p className="text-2xl font-bold mt-2">
+                              {monthlyComparison.reduce((worst, m) => m.totalRevenue < worst.totalRevenue ? m : worst).monthName}
+                            </p>
+                            <p className="text-sm opacity-75 mt-1">
+                              {monthlyComparison.reduce((worst, m) => m.totalRevenue < worst.totalRevenue ? m : worst).totalRevenue.toFixed(0)} {t('closing.currency')}
+                            </p>
+                          </div>
+                          <div className="bg-white/20 p-4 rounded-lg">
+                            <p className="text-sm opacity-90">{t('closing.comparison.trend')}</p>
+                            <p className="text-2xl font-bold mt-2">
+                              {monthlyComparison.length > 1 &&
+                                monthlyComparison[monthlyComparison.length - 1].totalRevenue > monthlyComparison[0].totalRevenue
+                                ? `↗ ${t('closing.comparison.growing')}`
+                                : monthlyComparison[monthlyComparison.length - 1].totalRevenue < monthlyComparison[0].totalRevenue
+                                ? `↘ ${t('closing.comparison.declining')}`
+                                : `→ ${t('closing.comparison.stable')}`
+                              }
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {monthlyComparison.length === 0 && (
+                <div className="bg-white p-12 rounded-lg shadow-lg text-center">
+                  <p className="text-gray-500 text-xl">{t('closing.comparison.noData')}</p>
+                  <p className="text-gray-400 mt-2">{t('closing.comparison.selectPeriod')}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6 no-print">
             <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 rounded-lg shadow-lg">
               <p className="text-sm opacity-90">{t('closing.stats.totalRevenue')}</p>
               <p className="text-3xl font-bold">{totals.totalRevenue.toFixed(0)}</p>
@@ -715,10 +1145,13 @@ export default function ClosingPage() {
               </div>
             </div>
           </div>
+            </>
+          )}
 
           {/* Excel-like Table */}
-          <div className="bg-white rounded-lg shadow-lg overflow-x-auto mb-6">
-            {viewMode === 'daily' ? (
+          {viewMode !== 'comparison' && (
+            <div className="bg-white rounded-lg shadow-lg overflow-x-auto mb-6">
+              {viewMode === 'daily' ? (
               /* عرض تفاصيل اليوم المحدد مباشرة */
               dailyData.length > 0 ? (
                 <div className="p-6 space-y-6">
@@ -1204,8 +1637,9 @@ export default function ClosingPage() {
                 </tr>
               </tbody>
             </table>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </>
       )}
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {prisma} from "../../../lib/prisma";
+import { requireValidLicense } from "../../../lib/license";
 
 // ✅ GET كل العمليات
 export async function GET() {
@@ -56,26 +57,12 @@ export async function POST(request: Request) {
       )
     }
 
-    // إنشاء الإدخال
-    const entry = await prisma.dayUseInBody.create({
-      data: {
-        name,
-        phone,
-        serviceType,
-        price,
-        staffName,
-      },
+    // ✅ Atomic increment للعداد - thread-safe
+    const counter = await prisma.receiptCounter.upsert({
+      where: { id: 1 },
+      update: { current: { increment: 1 } },
+      create: { id: 1, current: 1001 },
     });
-
-    // ✅ الحصول أو إنشاء العداد للإيصالات
-    let counter = await prisma.receiptCounter.findUnique({ where: { id: 1 } });
-
-    if (!counter) {
-      counter = await prisma.receiptCounter.create({
-        data: { id: 1, current: 1000 },
-      });
-    }
-
     const receiptNumber = counter.current;
 
     // ✅ تحديد الاسم بالعربي حسب نوع الخدمة
@@ -88,29 +75,44 @@ export async function POST(request: Request) {
         ? "تأجير لوجر"
         : serviceType;
 
-    // ✅ إنشاء الإيصال وربطه بالـ DayUse
-    await prisma.receipt.create({
-      data: {
-        receiptNumber,
-        type: typeArabic,
-        amount: price,
-        paymentMethod: paymentMethod || "كاش",
-        itemDetails: JSON.stringify({
+    // 🔒 License validation check
+    await requireValidLicense();
+
+    // ✅ إنشاء DayUse و Receipt في transaction واحدة لضمان الذرية
+    const result = await prisma.$transaction(async (tx) => {
+      // إنشاء الإدخال
+      const entry = await tx.dayUseInBody.create({
+        data: {
           name,
           phone,
-          serviceType: typeArabic,
+          serviceType,
           price,
           staffName,
-        }),
-        dayUseId: entry.id,
-      },
+        },
+      });
+
+      // إنشاء الإيصال وربطه بالـ DayUse
+      const receipt = await tx.receipt.create({
+        data: {
+          receiptNumber,
+          type: typeArabic,
+          amount: price,
+          paymentMethod: paymentMethod || "كاش",
+          itemDetails: JSON.stringify({
+            name,
+            phone,
+            serviceType: typeArabic,
+            price,
+            staffName,
+          }),
+          dayUseId: entry.id,
+        },
+      });
+
+      return { entry, receipt };
     });
 
-    // ✅ تحديث رقم الإيصال بعد الإنشاء
-    await prisma.receiptCounter.update({
-      where: { id: 1 },
-      data: { current: receiptNumber + 1 },
-    });
+    const entry = result.entry;
 
     // ✅ إنشاء visitor تلقائياً من الدعوة (إذا لم يكن موجوداً)
     try {

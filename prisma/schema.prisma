@@ -24,12 +24,16 @@ model Member {
   isFrozen          Boolean      @default(false)
   startDate         DateTime?
   expiryDate        DateTime?
+  coachId           String?
   createdAt         DateTime     @default(now())
   invitationRecords    Invitation[]
   receipts             Receipt[]
   checkIns             MemberCheckIn[]
   fitnessTest          FitnessTest?
   fitnessTestRequests  FitnessTestRequest[]
+  coach                Staff?       @relation("CoachMembers", fields: [coachId], references: [id], onDelete: SetNull)
+
+  @@index([coachId])
 }
 
 model MemberCheckIn {
@@ -142,6 +146,10 @@ model Receipt {
   memberId      String?
   ptNumber      Int?
   dayUseId      String?
+  isCancelled   Boolean       @default(false)
+  cancelledAt   DateTime?
+  cancelledBy   String?
+  cancelReason  String?
   dayUse        DayUseInBody? @relation(fields: [dayUseId], references: [id])
   pt            PT?           @relation(fields: [ptNumber], references: [ptNumber])
   member        Member?       @relation(fields: [memberId], references: [id])
@@ -190,6 +198,8 @@ model Staff {
   fitnessTests        FitnessTest[]
   fitnessTestRequests FitnessTestRequest[] @relation("FitnessTestRequests")
   rotations           Rotation[]
+  commissions         Commission[]
+  members             Member[]       @relation("CoachMembers")
 
   @@index([staffCode])
 }
@@ -219,6 +229,24 @@ model Expense {
   staffId     String?
   isPaid      Boolean  @default(false)
   staff       Staff?   @relation(fields: [staffId], references: [id])
+}
+
+model Commission {
+  id          String   @id @default(cuid())
+  staffId     String
+  memberId    String?
+  amount      Float
+  type        String
+  description String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  staff       Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+  @@index([type])
+  @@index([createdAt])
 }
 
 model Invitation {
@@ -372,4 +400,12 @@ model Rotation {
 
   @@index([staffId])
   @@index([dayOfWeek])
+}
+
+model LicenseValidation {
+  id            String   @id @default("singleton")
+  isValid       Boolean  @default(true)
+  lastCheckedAt DateTime @default(now())
+  errorMessage  String?
+  signature     String?
 }

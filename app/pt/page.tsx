@@ -68,7 +68,6 @@ export default function PTPage() {
     phone: '',
     sessionsPurchased: 8,
     coachName: '',
-    pricePerSession: 0,
     totalPrice: 0,
     remainingAmount: 0,
     startDate: formatDateYMD(new Date()),
@@ -168,7 +167,6 @@ export default function PTPage() {
       phone: '',
       sessionsPurchased: 8,
       coachName: '',
-      pricePerSession: 0,
       totalPrice: 0,
       remainingAmount: 0,
       startDate: formatDateYMD(new Date()),
@@ -180,23 +178,6 @@ export default function PTPage() {
     setShowForm(false)
   }
 
-  // دالة لتحديث السعر الإجمالي عند تغيير سعر الحصة أو عدد الحصص
-  const handlePricePerSessionChange = (value: number) => {
-    const totalPrice = value * formData.sessionsPurchased
-    setFormData({ ...formData, pricePerSession: value, totalPrice })
-  }
-
-  // دالة لتحديث سعر الحصة عند تغيير السعر الإجمالي
-  const handleTotalPriceChange = (value: number) => {
-    const pricePerSession = formData.sessionsPurchased > 0 ? value / formData.sessionsPurchased : 0
-    setFormData({ ...formData, totalPrice: value, pricePerSession })
-  }
-
-  // دالة لتحديث عدد الحصص وإعادة حساب الأسعار
-  const handleSessionsChange = (value: number) => {
-    const pricePerSession = value > 0 ? formData.totalPrice / value : 0
-    setFormData({ ...formData, sessionsPurchased: value, pricePerSession })
-  }
 
   const calculateExpiryFromMonths = (months: number) => {
     if (!formData.startDate) return
@@ -219,7 +200,6 @@ export default function PTPage() {
       phone: session.phone,
       sessionsPurchased: session.sessionsPurchased,
       coachName: session.coachName,
-      pricePerSession: session.pricePerSession,
       totalPrice: totalPrice,
       remainingAmount: 0, // Will be populated if PT model has it
       startDate: session.startDate ? formatDateYMD(session.startDate) : '',
@@ -379,10 +359,6 @@ export default function PTPage() {
 
     return matchesSearch && matchesCoach && matchesStatus && matchesSessions
   })
-
-  const totalSessions = sessions.reduce((sum, s) => sum + s.sessionsPurchased, 0)
-  const remainingSessions = sessions.reduce((sum, s) => sum + s.sessionsRemaining, 0)
-  const activePTs = sessions.filter((s) => s.sessionsRemaining > 0).length
 
   // ✅ التحقق من الصلاحيات
   if (permissionsLoading) {
@@ -548,7 +524,7 @@ export default function PTPage() {
                   required
                   min="1"
                   value={formData.sessionsPurchased}
-                  onChange={(e) => handleSessionsChange(parseInt(e.target.value) || 0)}
+                  onChange={(e) => setFormData({ ...formData, sessionsPurchased: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border rounded-lg"
                   placeholder={t('pt.sessionsPlaceholder')}
                 />
@@ -564,7 +540,7 @@ export default function PTPage() {
                   min="0"
                   step="0.01"
                   value={formData.totalPrice}
-                  onChange={(e) => handleTotalPriceChange(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setFormData({ ...formData, totalPrice: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border rounded-lg bg-yellow-50 border-yellow-300"
                   placeholder={t('pt.totalPricePlaceholder')}
                 />
@@ -585,24 +561,6 @@ export default function PTPage() {
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {t('pt.remainingAmountNote')}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('pt.pricePerSession')}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.pricePerSession}
-                  onChange={(e) => handlePricePerSessionChange(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border rounded-lg bg-gray-50"
-                  placeholder={t('pt.pricePerSessionPlaceholder')}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {t('pt.pricePerSessionNote')}
                 </p>
               </div>
 
@@ -667,12 +625,6 @@ export default function PTPage() {
                     {formData.totalPrice.toFixed(2)} {t('pt.egp')}
                   </span>
                 </div>
-                <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
-                  <span>{t('pt.pricePerSessionSingle')}</span>
-                  <span className="font-semibold">
-                    {formData.pricePerSession.toFixed(2)} {t('pt.egp')}
-                  </span>
-                </div>
                 <div className="flex justify-between items-center mt-2 text-sm border-t pt-2">
                   <span className="font-semibold text-blue-700">{t('pt.paidAmount')}</span>
                   <span className="font-bold text-blue-600">
@@ -711,38 +663,6 @@ export default function PTPage() {
           </form>
         </div>
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm mb-1">{t('pt.totalSessions')}</p>
-              <p className="text-4xl font-bold">{totalSessions}</p>
-            </div>
-            <div className="text-5xl opacity-20">💪</div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm mb-1">{t('pt.remainingSessions')}</p>
-              <p className="text-4xl font-bold">{remainingSessions}</p>
-            </div>
-            <div className="text-5xl opacity-20">⏳</div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm mb-1">{t('pt.activePTs')}</p>
-              <p className="text-4xl font-bold">{activePTs}</p>
-            </div>
-            <div className="text-5xl opacity-20">🔥</div>
-          </div>
-        </div>
-      </div>
 
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
         <div className="mb-4">
@@ -833,7 +753,6 @@ export default function PTPage() {
                     <th className="px-4 py-3 text-right">{t('pt.client')}</th>
                     <th className="px-4 py-3 text-right">{t('pt.coach')}</th>
                     <th className="px-4 py-3 text-right">{t('pt.sessions')}</th>
-                    <th className="px-4 py-3 text-right">{t('pt.price')}</th>
                     <th className="px-4 py-3 text-right">{t('pt.total')}</th>
                     <th className="px-4 py-3 text-right">{t('pt.remaining')}</th>
                     <th className="px-4 py-3 text-right">{t('pt.dates')}</th>
@@ -880,7 +799,6 @@ export default function PTPage() {
                             <p className="text-xs text-gray-500">{t('pt.of')} {session.sessionsPurchased}</p>
                           </div>
                         </td>
-                        <td className="px-4 py-3">{session.pricePerSession} {t('pt.egp')}</td>
                         <td className="px-4 py-3 font-bold text-green-600">
                           {(session.sessionsPurchased * session.pricePerSession).toFixed(0)} {t('pt.egp')}
                         </td>
@@ -1033,22 +951,13 @@ export default function PTPage() {
                     </div>
 
                     {/* Price Info */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-2.5">
-                        <div className="flex items-center gap-1 mb-1">
-                          <span className="text-sm">💰</span>
-                          <span className="text-xs text-blue-700 font-semibold">{t('pt.pricePerSessionShort')}</span>
-                        </div>
-                        <div className="text-base font-bold text-blue-600">{session.pricePerSession} {t('pt.egp')}</div>
+                    <div className="bg-green-50 border-2 border-green-200 rounded-lg p-2.5">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-sm">💵</span>
+                        <span className="text-xs text-green-700 font-semibold">{t('pt.total')}</span>
                       </div>
-                      <div className="bg-green-50 border-2 border-green-200 rounded-lg p-2.5">
-                        <div className="flex items-center gap-1 mb-1">
-                          <span className="text-sm">💵</span>
-                          <span className="text-xs text-green-700 font-semibold">{t('pt.total')}</span>
-                        </div>
-                        <div className="text-base font-bold text-green-600">
-                          {(session.sessionsPurchased * session.pricePerSession).toFixed(0)} {t('pt.egp')}
-                        </div>
+                      <div className="text-base font-bold text-green-600">
+                        {(session.sessionsPurchased * session.pricePerSession).toFixed(0)} {t('pt.egp')}
                       </div>
                     </div>
 

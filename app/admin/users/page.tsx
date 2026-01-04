@@ -455,7 +455,7 @@ export default function AdminUsersPage() {
       {/* Modal: إضافة مستخدم */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">➕ إضافة مستخدم جديد</h2>
               <button
@@ -466,7 +466,7 @@ export default function AdminUsersPage() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   الاسم <span className="text-red-600">*</span>
@@ -525,7 +525,7 @@ export default function AdminUsersPage() {
               </div>
 
               {newUserData.role === 'COACH' && (
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium mb-2">
                     الموظف <span className="text-red-600">*</span>
                   </label>
@@ -557,13 +557,13 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
-              <div className="bg-blue-50 border-r-4 border-blue-500 p-4 rounded">
+              <div className="md:col-span-2 bg-blue-50 border-r-4 border-blue-500 p-4 rounded">
                 <p className="text-sm text-blue-800">
                   <strong>📌 ملاحظة:</strong> بعد إنشاء المستخدم، يمكنك تعديل صلاحياته التفصيلية من قائمة المستخدمين.
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="md:col-span-2 flex gap-3">
                 <button
                   onClick={handleAddUser}
                   disabled={loading}

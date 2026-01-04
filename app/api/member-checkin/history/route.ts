@@ -57,26 +57,31 @@ export async function GET(request: Request) {
       const endDate = new Date(endDateParam)
       endDate.setHours(23, 59, 59, 999)
 
-      // تجميع البيانات حسب اليوم للجرافات
-      // ✅ استخدام datetime بدلاً من date لتجنب مشاكل timezone
-      const dailyStats = await prisma.$queryRaw<
-        Array<{ date: string; count: bigint }>
-      >`
-        SELECT
-          strftime('%Y-%m-%d', checkInTime) as date,
-          CAST(COUNT(*) as INTEGER) as count
-        FROM MemberCheckIn
-        WHERE checkInTime >= ${startDate.toISOString()}
-          AND checkInTime <= ${endDate.toISOString()}
-        GROUP BY strftime('%Y-%m-%d', checkInTime)
-        ORDER BY date ASC
-      `
+      // جلب جميع السجلات في الفترة المحددة
+      const checkInsInRange = await prisma.memberCheckIn.findMany({
+        where: {
+          checkInTime: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        select: {
+          checkInTime: true,
+        },
+      })
 
-      // تحويل BigInt إلى Number
-      const formattedDailyStats = dailyStats.map(stat => ({
-        date: stat.date,
-        count: Number(stat.count)
-      }))
+      // تجميع البيانات حسب اليوم
+      const dailyMap: { [key: string]: number } = {}
+
+      checkInsInRange.forEach((checkIn) => {
+        const dateKey = checkIn.checkInTime.toISOString().split('T')[0]
+        dailyMap[dateKey] = (dailyMap[dateKey] || 0) + 1
+      })
+
+      // تحويل إلى array وترتيب
+      const formattedDailyStats = Object.entries(dailyMap)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date))
 
       console.log('📊 إحصائيات يومية:', {
         startDate: startDate.toISOString(),

@@ -822,7 +822,7 @@ const handleScan = async (staffCode: string) => {
       )}
 
       {/* الإحصائيات */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -864,6 +864,19 @@ const handleScan = async (staffCode: string) => {
             <div className="text-5xl opacity-20">💪</div>
           </div>
         </div>
+
+        <Link
+          href="/expenses"
+          className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg p-6 shadow-lg hover:shadow-2xl transition-all hover:scale-105 active:scale-95"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-red-100 text-sm mb-1">{t('staff.loans.title')}</p>
+              <p className="text-xl font-bold">{t('staff.loans.viewInExpenses')}</p>
+            </div>
+            <div className="text-5xl opacity-20">💸</div>
+          </div>
+        </Link>
       </div>
 
       {/* جدول الموظفين */}

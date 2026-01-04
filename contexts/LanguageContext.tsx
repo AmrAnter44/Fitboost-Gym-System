@@ -52,7 +52,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
 
     if (typeof value !== 'string') {
-      console.warn(`Translation missing for key: ${key}`)
+      // فقط اظهر التحذير اذا كانت الرسائل محملة بالفعل (ليس كائن فارغ)
+      if (Object.keys(messages).length > 0) {
+        console.warn(`Translation missing for key: ${key}`)
+      }
       return key
     }
 

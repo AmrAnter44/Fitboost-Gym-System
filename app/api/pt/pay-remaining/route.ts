@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
+import { requireValidLicense } from '../../../../lib/license'
 
 // POST - دفع المبلغ المتبقي
 export async function POST(request: Request) {
@@ -69,6 +70,9 @@ export async function POST(request: Request) {
           data: { id: 1, current: 1000 }
         })
       }
+
+      // 🔒 License validation check
+      await requireValidLicense()
 
       const receipt = await prisma.receipt.create({
         data: {

@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
+import { requireValidLicense } from '../../../../lib/license'
 
 // 🔧 دالة للبحث عن رقم إيصال متاح
 async function getNextAvailableReceiptNumber(startingNumber: number): Promise<number> {
@@ -140,6 +141,9 @@ export async function POST(request: Request) {
         const end = new Date(expiryDate)
         subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
       }
+
+      // 🔒 License validation check
+      await requireValidLicense()
 
       const receipt = await prisma.receipt.create({
         data: {

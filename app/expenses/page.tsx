@@ -41,6 +41,9 @@ export default function ExpensesPage() {
     expenseName: ''
   })
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
+  const [showLoansModal, setShowLoansModal] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
   const [formData, setFormData] = useState({
     type: 'gym_expense' as 'gym_expense' | 'staff_loan',
@@ -231,9 +234,55 @@ export default function ExpensesPage() {
     }
   }
 
-  const filteredExpenses = filterType === 'all' 
-    ? expenses 
+  const filteredExpenses = filterType === 'all'
+    ? expenses
     : expenses.filter(e => e.type === filterType)
+
+  // فلترة المصروفات للشهر الحالي فقط للإحصائيات
+  const currentMonthExpenses = expenses.filter(expense => {
+    const expenseDate = new Date(expense.createdAt)
+    const now = new Date()
+    return expenseDate.getMonth() === now.getMonth() &&
+           expenseDate.getFullYear() === now.getFullYear()
+  })
+
+  // حساب سلف كل موظف للشهر المختار
+  const getStaffLoansGrouped = () => {
+    const loansMap = new Map<string, { staffName: string; total: number }>()
+
+    // فلترة المصروفات للشهر والسنة المختارة
+    const selectedMonthExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.createdAt)
+      return expenseDate.getMonth() === selectedMonth &&
+             expenseDate.getFullYear() === selectedYear
+    })
+
+    selectedMonthExpenses
+      .filter(e => e.type === 'staff_loan' && e.staff)
+      .forEach(expense => {
+        const staffName = expense.staff!.name
+        const current = loansMap.get(staffName) || { staffName, total: 0 }
+        loansMap.set(staffName, {
+          staffName,
+          total: current.total + expense.amount
+        })
+      })
+
+    return Array.from(loansMap.values()).sort((a, b) => b.total - a.total)
+  }
+
+  // حساب إجمالي السلف للشهر المختار
+  const getSelectedMonthTotalLoans = () => {
+    const selectedMonthExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.createdAt)
+      return expenseDate.getMonth() === selectedMonth &&
+             expenseDate.getFullYear() === selectedYear
+    })
+
+    return selectedMonthExpenses
+      .filter(e => e.type === 'staff_loan')
+      .reduce((sum, e) => sum + e.amount, 0)
+  }
 
   const getTotalExpenses = () => {
     return filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
@@ -269,27 +318,35 @@ export default function ExpensesPage() {
           <h1 className="text-3xl font-bold">💸 {t('expenses.title')}</h1>
           <p className="text-gray-600">{t('expenses.subtitle')}</p>
         </div>
-        <button
-          onClick={() => {
-            if (showForm) {
-              setShowForm(false)
-              setEditingExpense(null)
-              setFormData({
-                type: 'gym_expense',
-                amount: 0,
-                description: '',
-                notes: '',
-                staffId: '',
-                createdAt: '',
-              })
-            } else {
-              setShowForm(true)
-            }
-          }}
-          className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700"
-        >
-          {showForm ? t('expenses.hideForm') : `➕ ${t('expenses.addExpense')}`}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowLoansModal(true)}
+            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition"
+          >
+            💵 {t('expenses.loansButton')}
+          </button>
+          <button
+            onClick={() => {
+              if (showForm) {
+                setShowForm(false)
+                setEditingExpense(null)
+                setFormData({
+                  type: 'gym_expense',
+                  amount: 0,
+                  description: '',
+                  notes: '',
+                  staffId: '',
+                  createdAt: '',
+                })
+              } else {
+                setShowForm(true)
+              }
+            }}
+            className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition"
+          >
+            {showForm ? t('expenses.hideForm') : `➕ ${t('expenses.addExpense')}`}
+          </button>
+        </div>
       </div>
 
       {message && (
@@ -304,7 +361,10 @@ export default function ExpensesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">{t('expenses.stats.totalExpenses')}</p>
-              <p className="text-3xl font-bold text-orange-600">{getTotalExpenses()} {t('members.egp')}</p>
+              <p className="text-3xl font-bold text-orange-600">
+                {currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0)} {t('members.egp')}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">📅 {t('expenses.stats.currentMonth')}</p>
             </div>
             <div className="text-4xl">💸</div>
           </div>
@@ -315,8 +375,9 @@ export default function ExpensesPage() {
             <div>
               <p className="text-gray-600 text-sm">{t('expenses.stats.gymExpenses')}</p>
               <p className="text-3xl font-bold text-orange-600">
-                {expenses.filter(e => e.type === 'gym_expense').reduce((sum, e) => sum + e.amount, 0)} {t('members.egp')}
+                {currentMonthExpenses.filter(e => e.type === 'gym_expense').reduce((sum, e) => sum + e.amount, 0)} {t('members.egp')}
               </p>
+              <p className="text-xs text-gray-500 mt-1">📅 {t('expenses.stats.currentMonth')}</p>
             </div>
             <div className="text-4xl">🔧</div>
           </div>
@@ -327,8 +388,9 @@ export default function ExpensesPage() {
             <div>
               <p className="text-gray-600 text-sm">{t('expenses.stats.staffLoans')}</p>
               <p className="text-3xl font-bold text-purple-600">
-                {expenses.filter(e => e.type === 'staff_loan').reduce((sum, e) => sum + e.amount, 0)} {t('members.egp')}
+                {currentMonthExpenses.filter(e => e.type === 'staff_loan').reduce((sum, e) => sum + e.amount, 0)} {t('members.egp')}
               </p>
+              <p className="text-xs text-gray-500 mt-1">📅 {t('expenses.stats.currentMonth')}</p>
             </div>
             <div className="text-4xl">💵</div>
           </div>
@@ -490,7 +552,7 @@ export default function ExpensesPage() {
                         onClick={() => handleEdit(expense)}
                         className="text-blue-600 hover:text-blue-800 font-bold text-sm"
                       >
-                        ✏️ تعديل
+                        ✏️ {t('expenses.actions.edit')}
                       </button>
                     )}
                     <button
@@ -614,7 +676,7 @@ export default function ExpensesPage() {
                             onClick={() => handleEdit(expense)}
                             className="text-blue-600 hover:text-blue-800 font-bold"
                           >
-                            ✏️ تعديل
+                            ✏️ {t('expenses.actions.edit')}
                           </button>
                         )}
                         <button
@@ -717,6 +779,104 @@ export default function ExpensesPage() {
           animation: scaleIn 0.3s ease-out;
         }
       `}</style>
+
+      {/* Staff Loans Modal */}
+      {showLoansModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4 rounded-t-2xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold mb-1">💵 {t('expenses.loansModal.title')}</h2>
+                  <p className="text-purple-100 text-sm">{t('expenses.loansModal.subtitle')}</p>
+                </div>
+                <button
+                  onClick={() => setShowLoansModal(false)}
+                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Month/Year Selector */}
+              <div className="mb-4 flex gap-2 items-center">
+                <label className="text-sm font-medium text-gray-700">{t('expenses.loansModal.selectMonth')}</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  className="px-3 py-2 border-2 border-purple-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none"
+                >
+                  <option value={0}>{t('expenses.loansModal.months.january')}</option>
+                  <option value={1}>{t('expenses.loansModal.months.february')}</option>
+                  <option value={2}>{t('expenses.loansModal.months.march')}</option>
+                  <option value={3}>{t('expenses.loansModal.months.april')}</option>
+                  <option value={4}>{t('expenses.loansModal.months.may')}</option>
+                  <option value={5}>{t('expenses.loansModal.months.june')}</option>
+                  <option value={6}>{t('expenses.loansModal.months.july')}</option>
+                  <option value={7}>{t('expenses.loansModal.months.august')}</option>
+                  <option value={8}>{t('expenses.loansModal.months.september')}</option>
+                  <option value={9}>{t('expenses.loansModal.months.october')}</option>
+                  <option value={10}>{t('expenses.loansModal.months.november')}</option>
+                  <option value={11}>{t('expenses.loansModal.months.december')}</option>
+                </select>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="px-3 py-2 border-2 border-purple-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+
+              {getStaffLoansGrouped().length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="text-lg">📭 {t('expenses.loansModal.noLoans')}</p>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-purple-50 border-l-4 border-r-4 border-purple-500 p-4 rounded-lg mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">{t('expenses.loansModal.totalLoans')}</span>
+                      <span className="text-2xl font-bold text-purple-600">
+                        {getSelectedMonthTotalLoans()} {t('members.egp')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {getStaffLoansGrouped().map((loan, index) => (
+                      <div
+                        key={loan.staffName}
+                        className="bg-white border-2 border-purple-100 hover:border-purple-300 rounded-lg p-4 transition"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-purple-100 text-purple-700 font-bold rounded-full w-10 h-10 flex items-center justify-center">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-800">{loan.staffName}</p>
+                              <p className="text-xs text-gray-500">{t('expenses.loansModal.staffMember')}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-purple-600">{loan.total} {t('members.egp')}</p>
+                            <p className="text-xs text-gray-500">{t('expenses.loansModal.totalAmount')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

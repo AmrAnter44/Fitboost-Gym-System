@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import PaymentMethodSelector from '../components/Paymentmethodselector'
+import CoachSelector from './CoachSelector'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 import { printReceiptFromData } from '../lib/printSystem'
 import { usePermissions } from '../hooks/usePermissions'
@@ -39,7 +40,8 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
     paymentMethod: 'cash' as 'cash' | 'visa' | 'instapay' | 'wallet',
     staffName: user?.name || '',
     isOther: false,
-    skipReceipt: false  // ✅ خيار عدم إنشاء إيصال
+    skipReceipt: false,  // ✅ خيار عدم إنشاء إيصال
+    coachId: null as string | null  // 👨‍🏫 معرف الكوتش
   })
 
   useEffect(() => {
@@ -249,12 +251,14 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       remainingFreezeDays: parseInt(formData.remainingFreezeDays.toString()),
       subscriptionPrice: parseInt(formData.subscriptionPrice.toString()),
       staffName: user?.name || '',
-      customCreatedAt: customCreatedAt ? customCreatedAt.toISOString() : null
+      customCreatedAt: customCreatedAt ? customCreatedAt.toISOString() : null,
+      coachId: formData.coachId  // 👨‍🏫 إرسال معرف الكوتش
     }
 
     console.log('📤 إرسال البيانات:', {
       isOther: cleanedData.isOther,
-      memberNumber: cleanedData.memberNumber
+      memberNumber: cleanedData.memberNumber,
+      coachId: cleanedData.coachId  // 👨‍🏫 معرف الكوتش
     })
 
     try {
@@ -504,6 +508,13 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
           </div>
         </div>
       </div>
+
+      {/* 👨‍🏫 اختيار الكوتش */}
+      <CoachSelector
+        value={formData.coachId}
+        onChange={(coachId) => setFormData({ ...formData, coachId })}
+        required={false}
+      />
 
       <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-3">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">

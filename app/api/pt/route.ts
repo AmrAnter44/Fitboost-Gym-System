@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
+import { requireValidLicense } from '../../../lib/license'
 // @ts-ignore
 import bwipjs from 'bwip-js'
 
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
       phone,
       sessionsPurchased,
       coachName,
-      pricePerSession,
+      totalPrice,
       remainingAmount,
       startDate,
       expiryDate,
@@ -63,7 +64,10 @@ export async function POST(request: Request) {
       staffName
     } = body
 
-    console.log('📝 إضافة جلسة PT جديدة:', { ptNumber, clientName, sessionsPurchased })
+    // حساب سعر الحصة الواحدة من السعر الإجمالي
+    const pricePerSession = sessionsPurchased > 0 ? totalPrice / sessionsPurchased : 0
+
+    console.log('📝 إضافة جلسة PT جديدة:', { ptNumber, clientName, sessionsPurchased, totalPrice, pricePerSession })
 
     // ✅ التحقق من الحقول المطلوبة
     if (!ptNumber) {
@@ -101,9 +105,9 @@ export async function POST(request: Request) {
       )
     }
 
-    if (pricePerSession === undefined || pricePerSession < 0) {
+    if (totalPrice === undefined || totalPrice < 0) {
       return NextResponse.json(
-        { error: 'سعر الجلسة مطلوب ولا يمكن أن يكون سالب' },
+        { error: 'السعر الإجمالي مطلوب ولا يمكن أن يكون سالب' },
         { status: 400 }
       )
     }
@@ -206,15 +210,10 @@ export async function POST(request: Request) {
 
     console.log('✅ تم إنشاء جلسة PT:', pt.ptNumber)
 
-    // إنشاء إيصال
+    // إنشاء إيصال باستخدام Transaction
     try {
-      let counter = await prisma.receiptCounter.findUnique({ where: { id: 1 } })
-      
-      if (!counter) {
-        counter = await prisma.receiptCounter.create({
-          data: { id: 1, current: 1000 }
-        })
-      }
+      // 🔒 License validation check
+      await requireValidLicense()
 
       const totalAmount = sessionsPurchased * pricePerSession
       const paidAmount = totalAmount - (remainingAmount || 0)
@@ -226,39 +225,90 @@ export async function POST(request: Request) {
         subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
       }
 
-      const receipt = await prisma.receipt.create({
-        data: {
-          receiptNumber: counter.current,
-          type: 'اشتراك برايفت',
-          amount: paidAmount,  // ✅ المبلغ المدفوع فقط
-          paymentMethod: paymentMethod || 'cash',
-          staffName: staffName || '',
-          itemDetails: JSON.stringify({
+      // استخدام Transaction مع البحث عن أول رقم متاح
+      await prisma.$transaction(async (tx) => {
+        // جلب العداد الحالي
+        let counter = await tx.receiptCounter.findUnique({
+          where: { id: 1 }
+        })
+
+        if (!counter) {
+          counter = await tx.receiptCounter.create({
+            data: { id: 1, current: 1000 }
+          })
+        }
+
+        let receiptNumber = counter.current
+        let foundAvailable = false
+        let attempts = 0
+        const maxAttempts = 100 // حد أقصى للمحاولات لتجنب infinite loop
+
+        // البحث عن أول رقم متاح
+        while (!foundAvailable && attempts < maxAttempts) {
+          const existingReceipt = await tx.receipt.findUnique({
+            where: { receiptNumber: receiptNumber }
+          })
+
+          if (!existingReceipt) {
+            // الرقم متاح!
+            foundAvailable = true
+            console.log(`✅ وجدنا رقم إيصال متاح: ${receiptNumber}`)
+          } else {
+            // الرقم مستخدم، جرب الرقم التالي
+            console.log(`⏭️ رقم ${receiptNumber} مستخدم، جرب ${receiptNumber + 1}`)
+            receiptNumber++
+            attempts++
+          }
+        }
+
+        if (!foundAvailable) {
+          throw new Error('فشل في إيجاد رقم إيصال متاح بعد 100 محاولة')
+        }
+
+        // تحديث العداد للرقم التالي
+        await tx.receiptCounter.update({
+          where: { id: 1 },
+          data: { current: receiptNumber + 1 }
+        })
+
+        console.log('🔢 استخدام رقم الإيصال:', receiptNumber, '| العداد الجديد:', receiptNumber + 1)
+
+        // إنشاء الإيصال
+        const receipt = await tx.receipt.create({
+          data: {
+            receiptNumber: receiptNumber,
+            type: 'برايفت جديد',
+            amount: Number(paidAmount),
+            paymentMethod: paymentMethod || 'cash',
+            staffName: staffName || '',
+            itemDetails: JSON.stringify({
+              ptNumber: pt.ptNumber,
+              clientName,
+              phone: phone,
+              sessionsPurchased: Number(sessionsPurchased),
+              pricePerSession: Number(pricePerSession),
+              totalAmount: Number(totalAmount),
+              paidAmount: Number(paidAmount),
+              remainingAmount: Number(remainingAmount || 0),
+              coachName,
+              startDate: startDate || null,
+              expiryDate: expiryDate || null,
+              subscriptionDays: subscriptionDays
+            }),
             ptNumber: pt.ptNumber,
-            clientName,
-            phone: phone,
-            sessionsPurchased,
-            pricePerSession,
-            totalAmount,
-            paidAmount,  // ✅ المبلغ المدفوع
-            remainingAmount: remainingAmount || 0,  // ✅ المبلغ المتبقي
-            coachName,
-            startDate: startDate,
-            expiryDate: expiryDate,
-            subscriptionDays: subscriptionDays
-          }),
-        },
+          },
+        })
+
+        console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber)
       })
 
-      console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber)
-
-      await prisma.receiptCounter.update({
-        where: { id: 1 },
-        data: { current: counter.current + 1 }
-      })
-
-    } catch (receiptError) {
+    } catch (receiptError: any) {
       console.error('❌ خطأ في إنشاء الإيصال:', receiptError)
+      console.error('❌ تفاصيل الخطأ:', {
+        message: receiptError.message,
+        code: receiptError.code,
+        meta: receiptError.meta
+      })
     }
 
     return NextResponse.json(pt, { status: 201 })
