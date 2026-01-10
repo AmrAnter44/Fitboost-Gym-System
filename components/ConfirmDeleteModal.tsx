@@ -1,3 +1,7 @@
+'use client'
+
+import { useLanguage } from '../contexts/LanguageContext'
+
 interface ConfirmDeleteModalProps {
   isOpen: boolean
   onClose: () => void
@@ -17,11 +21,13 @@ export default function ConfirmDeleteModal({
   itemName,
   loading = false,
 }: ConfirmDeleteModalProps) {
+  const { direction } = useLanguage()
+
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden" dir={direction}>
         {/* Header */}
         <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
           <div className="flex items-center gap-3">

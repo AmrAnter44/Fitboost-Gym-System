@@ -10,6 +10,8 @@ import { ReceiptDetailModal } from '../../components/ReceiptDetailModal'
 import { printReceiptFromData } from '../../lib/printSystem'
 import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel as getPaymentLabel } from '../../lib/paymentHelpers'
+import { useToast } from '../../contexts/ToastContext'
 
 interface Receipt {
   id: string
@@ -34,11 +36,11 @@ export default function ReceiptsPage() {
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
   const { t, direction } = useLanguage()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
+  const toast = useToast()
 
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterPayment, setFilterPayment] = useState('all')
@@ -123,13 +125,13 @@ export default function ReceiptsPage() {
       const response = await fetch('/api/receipts')
       
       if (response.status === 401) {
-        setMessage('❌ يجب تسجيل الدخول أولاً')
+        toast.error('يجب تسجيل الدخول أولاً')
         setTimeout(() => router.push('/login'), 2000)
         return
       }
       
       if (response.status === 403) {
-        setMessage('❌ ليس لديك صلاحية عرض الإيصالات')
+        toast.error('ليس لديك صلاحية عرض الإيصالات')
         setReceipts([])
         setFilteredReceipts([])
         return
@@ -147,13 +149,13 @@ export default function ReceiptsPage() {
         }
       } else {
         const error = await response.json()
-        setMessage(`❌ ${error.error || 'فشل جلب الإيصالات'}`)
+        toast.error(error.error || 'فشل جلب الإيصالات')
         setReceipts([])
         setFilteredReceipts([])
       }
     } catch (error) {
       console.error('Error fetching receipts:', error)
-      setMessage('❌ حدث خطأ أثناء جلب الإيصالات')
+      toast.error('حدث خطأ أثناء جلب الإيصالات')
       setReceipts([])
       setFilteredReceipts([])
     } finally {
@@ -244,7 +246,23 @@ export default function ReceiptsPage() {
     return labels[type] || type
   }
 
-  const getPaymentMethodLabel = (method: string) => {
+  const getPaymentMethodLabel = (method: string, amount?: number) => {
+    // ✅ معالجة الدفع المتعدد
+    if (isMultiPayment(method)) {
+      const normalized = normalizePaymentMethod(method, amount || 0)
+      return (
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-purple-600 font-bold">🔀 دفع متعدد</span>
+          {normalized.methods.map((m, idx) => (
+            <span key={idx} className="text-xs">
+              {getPaymentLabel(m.method, 'ar')}: {m.amount.toFixed(2)} ج.م
+            </span>
+          ))}
+        </div>
+      )
+    }
+
+    // دفع واحد
     const labels: Record<string, string> = {
       'cash': `💵 ${t('receipts.paymentMethods.cash')}`,
       'visa': `💳 ${t('receipts.paymentMethods.visa')}`,
@@ -256,8 +274,7 @@ export default function ReceiptsPage() {
 
   const handleCancelReceipt = async (receiptId: string) => {
     if (!canEdit) {
-      setMessage(`❌ ليس لديك صلاحية إلغاء الإيصالات`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error('ليس لديك صلاحية إلغاء الإيصالات')
       return
     }
 
@@ -279,23 +296,21 @@ export default function ReceiptsPage() {
       })
 
       if (response.ok) {
-        setMessage(`✅ تم إلغاء الإيصال بنجاح`)
+        toast.success('تم إلغاء الإيصال بنجاح')
         fetchReceipts()
       } else {
         const error = await response.json()
-        setMessage(`❌ ${error.error || 'فشل إلغاء الإيصال'}`)
+        toast.error(error.error || 'فشل إلغاء الإيصال')
       }
     } catch (error) {
       console.error('Error:', error)
-      setMessage(`❌ حدث خطأ أثناء إلغاء الإيصال`)
+      toast.error('حدث خطأ أثناء إلغاء الإيصال')
     }
-    setTimeout(() => setMessage(''), 3000)
   }
 
   const handleDelete = async (receiptId: string) => {
     if (!canDelete) {
-      setMessage(`❌ ${t('receipts.noPermissionDelete')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error(t('receipts.noPermissionDelete'))
       return
     }
 
@@ -315,23 +330,21 @@ export default function ReceiptsPage() {
       })
 
       if (response.ok) {
-        setMessage(`✅ ${t('receipts.delete.success')}`)
+        toast.success(t('receipts.delete.success'))
         fetchReceipts()
       } else {
         const error = await response.json()
-        setMessage(`❌ ${error.error || t('receipts.delete.error')}`)
+        toast.error(error.error || t('receipts.delete.error'))
       }
     } catch (error) {
       console.error('Error:', error)
-      setMessage(`❌ ${t('receipts.delete.errorOccurred')}`)
+      toast.error(t('receipts.delete.errorOccurred'))
     }
-    setTimeout(() => setMessage(''), 3000)
   }
 
   const handleOpenEdit = (receipt: Receipt) => {
     if (!canEdit) {
-      setMessage(`❌ ${t('receipts.noPermissionEdit')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error(t('receipts.noPermissionEdit'))
       return
     }
 
@@ -370,19 +383,18 @@ export default function ReceiptsPage() {
       })
 
       if (response.ok) {
-        setMessage(`✅ ${t('receipts.edit.success')}`)
+        toast.success(t('receipts.edit.success'))
         setShowEditModal(false)
         setEditingReceipt(null)
         fetchReceipts()
       } else {
         const error = await response.json()
-        setMessage(`❌ ${error.error || t('receipts.edit.error')}`)
+        toast.error(error.error || t('receipts.edit.error'))
       }
     } catch (error) {
       console.error('Error:', error)
-      setMessage(`❌ ${t('receipts.messages.updateError')}`)
+      toast.error(t('receipts.messages.updateError'))
     }
-    setTimeout(() => setMessage(''), 3000)
   }
 
   const handlePrint = (receipt: Receipt) => {
@@ -420,15 +432,14 @@ export default function ReceiptsPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage(`✅ ${data.message}`)
+        toast.success(data.message)
         setShowReceiptNumberEdit(false)
       } else {
-        setMessage(`❌ ${data.error}`)
+        toast.error(data.error)
       }
     } catch (error) {
-      setMessage('❌ حدث خطأ في التحديث')
+      toast.error('حدث خطأ في التحديث')
     }
-    setTimeout(() => setMessage(''), 3000)
   }
 
   if (loading) {
@@ -453,14 +464,6 @@ export default function ReceiptsPage() {
           )}
         </div>
       </div>
-
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {message}
-        </div>
-      )}
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -496,7 +499,7 @@ export default function ReceiptsPage() {
       </div>
 
       {/* تعديل رقم الإيصال التالي - قسم صغير */}
-      <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
+      <div className="bg-white rounded-xl shadow-lg p-4 mb-6" dir={direction}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-xl">🔢</span>
@@ -538,7 +541,7 @@ export default function ReceiptsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-6" dir={direction}>
         <h3 className="text-lg font-bold mb-4">🔍 {t('receipts.filters.title')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -549,6 +552,7 @@ export default function ReceiptsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('receipts.filters.searchPlaceholder')}
               className="w-full px-3 py-2 md:px-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+              dir={direction}
             />
           </div>
 
@@ -605,7 +609,7 @@ export default function ReceiptsPage() {
       {/* Receipts Display */}
       <>
         {/* Mobile Cards View */}
-        <div className="md:hidden space-y-4 mb-6">
+        <div className="md:hidden space-y-4 mb-6" dir={direction}>
           {currentReceipts.map((receipt) => {
             let details: any = {}
             try {
@@ -658,25 +662,79 @@ export default function ReceiptsPage() {
                 </div>
 
                 {/* Subscription Duration - للتجديد والاشتراك الجديد */}
-                {(receipt.type === 'تجديد عضويه' || receipt.type === 'عضوية' || receipt.type === 'Member' ||
-                  receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت') && details.duration && (
+                {(receipt.type === 'تجديد عضويه' || receipt.type === 'عضوية' || receipt.type === 'Member') && (details.duration || details.subscriptionDays) && (
                   <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-3 mb-4 border-2 border-orange-200">
                     <div className="flex items-center gap-2">
                       <span className="text-orange-600 text-lg">⏰</span>
                       <div>
                         <p className="text-xs text-orange-700 font-semibold">{t('receipts.card.subscriptionDuration')}</p>
                         <p className="font-bold text-orange-900 text-lg">
-                          {details.duration} {details.duration === 1 ? t('receipts.card.month') : t('receipts.card.months')}
+                          {details.duration ? (
+                            `${details.duration} ${details.duration === 1 ? t('receipts.card.month') : t('receipts.card.months')}`
+                          ) : details.subscriptionDays ? (
+                            details.subscriptionDays >= 30 ?
+                              `${Math.round(details.subscriptionDays / 30)} ${Math.round(details.subscriptionDays / 30) === 1 ? 'شهر' : 'شهور'}`
+                              : `${details.subscriptionDays} ${details.subscriptionDays === 1 ? 'يوم' : 'أيام'}`
+                          ) : '-'}
                         </p>
                       </div>
                     </div>
-                    {details.endDate && (
+                    {(details.endDate || details.expiryDate) && (
                       <div className="mt-2 pt-2 border-t border-orange-200">
                         <p className="text-xs text-orange-700">
-                          📅 {t('receipts.card.expiresOn')}: <span className="font-semibold">{new Date(details.endDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          📅 {t('receipts.card.expiresOn')}: <span className="font-semibold">{new Date(details.endDate || details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
                         </p>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* PT Details - معلومات البرايفت */}
+                {(receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت') && (
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 mb-4 border-2 border-purple-300">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-purple-600 text-2xl">🏋️</span>
+                      <div>
+                        <p className="text-xs text-purple-700 font-semibold">تفاصيل البرايفت</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {details.sessionsPurchased && (
+                        <div className="flex items-center justify-between bg-white rounded-lg p-2 border border-purple-200">
+                          <span className="text-sm text-gray-600">🎯 عدد الجلسات:</span>
+                          <span className="font-bold text-purple-700 text-lg">{details.sessionsPurchased} جلسة</span>
+                        </div>
+                      )}
+                      {details.coachName && (
+                        <div className="flex items-center justify-between bg-white rounded-lg p-2 border border-purple-200">
+                          <span className="text-sm text-gray-600">👨‍🏫 الكوتش:</span>
+                          <span className="font-bold text-purple-700">{details.coachName}</span>
+                        </div>
+                      )}
+                      {details.pricePerSession && (
+                        <div className="flex items-center justify-between bg-white rounded-lg p-2 border border-purple-200">
+                          <span className="text-sm text-gray-600">💵 سعر الجلسة:</span>
+                          <span className="font-bold text-purple-700">{details.pricePerSession} {t('members.egp')}</span>
+                        </div>
+                      )}
+                      {(details.startDate && details.expiryDate) && (
+                        <div className="bg-white rounded-lg p-2 border border-purple-200">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-600">📅 من:</span>
+                            <span className="font-semibold text-purple-700">{new Date(details.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span className="text-gray-600">📅 إلى:</span>
+                            <span className="font-semibold text-purple-700">{new Date(details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                          {details.subscriptionDays && (
+                            <div className="text-xs text-purple-600 text-center mt-2 pt-2 border-t border-purple-200">
+                              ⏰ المدة: {details.subscriptionDays} يوم
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -742,7 +800,7 @@ export default function ReceiptsPage() {
 
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500 text-sm">💳 {t('receipts.table.paymentMethod')}</span>
-                    <span className="text-sm font-semibold text-gray-700">{getPaymentMethodLabel(receipt.paymentMethod)}</span>
+                    <span className="text-sm font-semibold text-gray-700">{getPaymentMethodLabel(receipt.paymentMethod, receipt.amount)}</span>
                   </div>
 
                   {details.discount > 0 && (
@@ -853,9 +911,9 @@ export default function ReceiptsPage() {
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden md:block bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="hidden md:block bg-white rounded-xl shadow-lg overflow-hidden" dir={direction}>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full" dir={direction}>
               <thead className="bg-gradient-to-r from-gray-100 to-gray-200">
                 <tr>
                   <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold`}>{t('receipts.table.receiptNumber')}</th>
@@ -928,16 +986,41 @@ export default function ReceiptsPage() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="space-y-1">
-                        {/* مدة الاشتراك للتجديد والاشتراك الجديد */}
-                        {(receipt.type === 'تجديد عضويه' || receipt.type === 'عضوية' || receipt.type === 'Member' ||
-                          receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت') && details.duration && (
+                        {/* مدة الاشتراك للعضويات */}
+                        {(receipt.type === 'تجديد عضويه' || receipt.type === 'عضوية' || receipt.type === 'Member') && (details.duration || details.subscriptionDays) && (
                           <div className="bg-orange-50 border border-orange-200 rounded px-2 py-1">
                             <p className="text-xs text-orange-700 font-semibold">
-                              ⏰ {details.duration} {details.duration === 1 ? 'شهر' : 'شهور'}
+                              ⏰ {details.duration ? (
+                                `${details.duration} ${details.duration === 1 ? 'شهر' : 'شهور'}`
+                              ) : details.subscriptionDays ? (
+                                details.subscriptionDays >= 30 ?
+                                  `${Math.round(details.subscriptionDays / 30)} ${Math.round(details.subscriptionDays / 30) === 1 ? 'شهر' : 'شهور'}`
+                                  : `${details.subscriptionDays} ${details.subscriptionDays === 1 ? 'يوم' : 'أيام'}`
+                              ) : '-'}
                             </p>
-                            {details.endDate && (
+                            {(details.endDate || details.expiryDate) && (
                               <p className="text-xs text-orange-600 mt-0.5">
-                                حتى {new Date(details.endDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
+                                حتى {new Date(details.endDate || details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {/* تفاصيل PT */}
+                        {(receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت') && (
+                          <div className="bg-purple-50 border border-purple-200 rounded px-2 py-1 space-y-1">
+                            {details.sessionsPurchased && (
+                              <p className="text-xs text-purple-700 font-semibold">
+                                🎯 {details.sessionsPurchased} جلسة
+                              </p>
+                            )}
+                            {details.coachName && (
+                              <p className="text-xs text-purple-600">
+                                👨‍🏫 {details.coachName}
+                              </p>
+                            )}
+                            {details.subscriptionDays && (
+                              <p className="text-xs text-purple-600">
+                                ⏰ {details.subscriptionDays} يوم
                               </p>
                             )}
                           </div>
@@ -958,7 +1041,7 @@ export default function ReceiptsPage() {
                       <span className="font-bold text-green-600 text-lg">{receipt.amount.toLocaleString()} {t('common.currency')}</span>
                     </td>
                     <td className="px-4 py-4">
-                      <span className="text-sm font-semibold">{getPaymentMethodLabel(receipt.paymentMethod)}</span>
+                      <span className="text-sm font-semibold">{getPaymentMethodLabel(receipt.paymentMethod, receipt.amount)}</span>
                     </td>
                     <td className="px-4 py-4">
                       <span className="text-sm text-gray-600">{receipt.staffName || '-'}</span>
@@ -1052,7 +1135,7 @@ export default function ReceiptsPage() {
 
         {/* Pagination Controls */}
         {filteredReceipts.length > 0 && totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-gray-50 rounded-lg">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-gray-50 rounded-lg" dir={direction}>
             {/* معلومات الصفحة */}
             <div className="text-sm text-gray-600">
               {t('receipts.pagination.showing', {

@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { requireValidLicense } from '../../../../lib/license'
+import {
+  type PaymentMethod,
+  validatePaymentDistribution,
+  serializePaymentMethods
+} from '../../../../lib/paymentHelpers'
 
 // POST - دفع المبلغ المتبقي
 export async function POST(request: Request) {
@@ -74,12 +79,27 @@ export async function POST(request: Request) {
       // 🔒 License validation check
       await requireValidLicense()
 
+      // ✅ معالجة وسائل الدفع المتعددة
+      let finalPaymentMethod: string
+      if (Array.isArray(paymentMethod)) {
+        const validation = validatePaymentDistribution(paymentMethod, paymentAmount)
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: validation.message || 'توزيع المبالغ غير صحيح' },
+            { status: 400 }
+          )
+        }
+        finalPaymentMethod = serializePaymentMethods(paymentMethod)
+      } else {
+        finalPaymentMethod = paymentMethod || 'cash'
+      }
+
       const receipt = await prisma.receipt.create({
         data: {
           receiptNumber: counter.current,
           type: 'دفع باقي برايفت',
           amount: paymentAmount,
-          paymentMethod: paymentMethod || 'cash',
+          paymentMethod: finalPaymentMethod,
           staffName: staffName || '',
           itemDetails: JSON.stringify({
             ptNumber: pt.ptNumber,
@@ -100,6 +120,28 @@ export async function POST(request: Request) {
         where: { id: 1 },
         data: { current: counter.current + 1 }
       })
+
+      // ✅ إنشاء سجل عمولة للكوتش
+      try {
+        // البحث عن coachUserId من اسم الكوتش
+        const coachStaff = await prisma.staff.findFirst({
+          where: { name: pt.coachName },
+          include: { user: true }
+        })
+
+        if (coachStaff?.user) {
+          const { createPTCommission } = await import('../../../../lib/commissionHelpers')
+          await createPTCommission(
+            prisma,
+            coachStaff.user.id,
+            paymentAmount,
+            `عمولة دفع باقي برايفت - ${pt.clientName} (#${pt.ptNumber})`,
+            pt.ptNumber
+          )
+        }
+      } catch (commissionError) {
+        console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
+      }
 
       return NextResponse.json({
         success: true,

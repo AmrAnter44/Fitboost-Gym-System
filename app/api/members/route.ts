@@ -3,6 +3,12 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
 import { requireValidLicense } from '../../../lib/license'
+import {
+  type PaymentMethod,
+  validatePaymentDistribution,
+  serializePaymentMethods
+} from '../../../lib/paymentHelpers'
+import { logError } from '../../../lib/errorLogger'
 
 // 🔧 دالة للبحث عن رقم إيصال متاح (integers فقط)
 async function getNextAvailableReceiptNumber(startingNumber: number): Promise<number> {
@@ -51,7 +57,19 @@ export async function GET(request: Request) {
     return NextResponse.json(members, { status: 200 })
   } catch (error: any) {
     console.error('❌ Error fetching members:', error)
-    
+
+    // Log error to file
+    const statusCode = error.message === 'Unauthorized' ? 401
+      : error.message.includes('Forbidden') ? 403
+      : 500
+
+    logError({
+      error,
+      endpoint: '/api/members',
+      method: 'GET',
+      statusCode
+    })
+
     // التعامل مع أخطاء الصلاحيات
     if (error.message === 'Unauthorized') {
       return NextResponse.json(
@@ -59,15 +77,15 @@ export async function GET(request: Request) {
         { status: 401 }
       )
     }
-    
+
     if (error.message.includes('Forbidden')) {
       return NextResponse.json(
         { error: 'ليس لديك صلاحية عرض الأعضاء' },
         { status: 403 }
       )
     }
-    
-    return NextResponse.json([], { 
+
+    return NextResponse.json([], {
       status: 200,
       headers: {
         'X-Error': 'Failed to fetch members'
@@ -241,6 +259,15 @@ export async function POST(request: Request) {
         }
       } catch (counterError) {
         console.error('⚠️ خطأ في تحديث MemberCounter (غير حرج):', counterError)
+
+        // Log error to file (non-critical)
+        logError({
+          error: counterError,
+          endpoint: '/api/members',
+          method: 'POST',
+          statusCode: 200, // Non-critical, doesn't fail the request
+          additionalContext: { errorType: 'MemberCounter update failed (non-critical)' }
+        })
       }
     }
 
@@ -267,6 +294,16 @@ export async function POST(request: Request) {
         console.log('✅ تم إنشاء عمولة:', commission.id, 'مبلغ:', commission.amount, 'جنيه للكوتش')
       } catch (commissionError) {
         console.error('⚠️ خطأ في إنشاء العمولة (غير حرج):', commissionError)
+
+        // Log error to file (non-critical)
+        logError({
+          error: commissionError,
+          endpoint: '/api/members',
+          method: 'POST',
+          statusCode: 200, // Non-critical, doesn't fail the request
+          additionalContext: { errorType: 'Commission creation failed (non-critical)', coachId }
+        })
+
         // لا نفشل العملية بأكملها إذا فشل إنشاء العمولة
       }
     }
@@ -294,6 +331,24 @@ export async function POST(request: Request) {
 
       const paidAmount = cleanSubscriptionPrice - cleanRemainingAmount
 
+      // ✅ معالجة وسائل الدفع المتعددة
+      let finalPaymentMethod: string
+      if (Array.isArray(paymentMethod)) {
+        // التحقق من صحة توزيع المبالغ
+        const validation = validatePaymentDistribution(paymentMethod, paidAmount)
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: validation.message || 'توزيع المبالغ غير صحيح' },
+            { status: 400 }
+          )
+        }
+        // تحويل لـ JSON للتخزين
+        finalPaymentMethod = serializePaymentMethods(paymentMethod)
+      } else {
+        // طريقة دفع واحدة (backward compatible)
+        finalPaymentMethod = paymentMethod || 'cash'
+      }
+
       let subscriptionDays = null
       if (startDate && expiryDate) {
         const start = new Date(startDate)
@@ -305,7 +360,7 @@ export async function POST(request: Request) {
         receiptNumber: availableReceiptNumber,
         type: 'Member',
         amount: paidAmount,
-        paymentMethod: paymentMethod || 'cash',
+        paymentMethod: finalPaymentMethod,
         staffName: staffName.trim(),
         itemDetails: JSON.stringify({
           memberNumber: cleanMemberNumber,
@@ -361,6 +416,19 @@ export async function POST(request: Request) {
 
     } catch (receiptError) {
       console.error('❌ خطأ في إنشاء الإيصال:', receiptError)
+
+      // Log error to file
+      logError({
+        error: receiptError,
+        endpoint: '/api/members',
+        method: 'POST',
+        statusCode: 500,
+        additionalContext: {
+          errorType: 'Receipt creation failed',
+          isDuplicateReceipt: receiptError instanceof Error && receiptError.message.includes('Unique constraint')
+        }
+      })
+
       if (receiptError instanceof Error && receiptError.message.includes('Unique constraint')) {
         console.error('❌ رقم الإيصال مكرر! المحاولة مرة أخرى...')
       }
@@ -377,7 +445,19 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('❌ خطأ في إضافة العضو:', error)
-    
+
+    // Log error to file
+    const statusCode = error.message === 'Unauthorized' ? 401
+      : error.message.includes('Forbidden') ? 403
+      : 500
+
+    logError({
+      error,
+      endpoint: '/api/members',
+      method: 'POST',
+      statusCode
+    })
+
     // التعامل مع أخطاء الصلاحيات
     if (error.message === 'Unauthorized') {
       return NextResponse.json(
@@ -385,14 +465,14 @@ export async function POST(request: Request) {
         { status: 401 }
       )
     }
-    
+
     if (error.message.includes('Forbidden')) {
       return NextResponse.json(
         { error: 'ليس لديك صلاحية إضافة أعضاء' },
         { status: 403 }
       )
     }
-    
+
     return NextResponse.json({ error: 'فشل إضافة العضو' }, { status: 500 })
   }
 }
@@ -454,7 +534,19 @@ export async function PUT(request: Request) {
     return NextResponse.json(member)
   } catch (error: any) {
     console.error('Error updating member:', error)
-    
+
+    // Log error to file
+    const statusCode = error.message === 'Unauthorized' ? 401
+      : error.message.includes('Forbidden') ? 403
+      : 500
+
+    logError({
+      error,
+      endpoint: '/api/members',
+      method: 'PUT',
+      statusCode
+    })
+
     // التعامل مع أخطاء الصلاحيات
     if (error.message === 'Unauthorized') {
       return NextResponse.json(
@@ -462,14 +554,14 @@ export async function PUT(request: Request) {
         { status: 401 }
       )
     }
-    
+
     if (error.message.includes('Forbidden')) {
       return NextResponse.json(
         { error: 'ليس لديك صلاحية تعديل الأعضاء' },
         { status: 403 }
       )
     }
-    
+
     return NextResponse.json({ error: 'فشل تحديث العضو' }, { status: 500 })
   }
 }
@@ -491,7 +583,19 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ message: 'تم الحذف بنجاح' })
   } catch (error: any) {
     console.error('Error deleting member:', error)
-    
+
+    // Log error to file
+    const statusCode = error.message === 'Unauthorized' ? 401
+      : error.message.includes('Forbidden') ? 403
+      : 500
+
+    logError({
+      error,
+      endpoint: '/api/members',
+      method: 'DELETE',
+      statusCode
+    })
+
     // التعامل مع أخطاء الصلاحيات
     if (error.message === 'Unauthorized') {
       return NextResponse.json(
@@ -499,14 +603,14 @@ export async function DELETE(request: Request) {
         { status: 401 }
       )
     }
-    
+
     if (error.message.includes('Forbidden')) {
       return NextResponse.json(
         { error: 'ليس لديك صلاحية حذف الأعضاء' },
         { status: 403 }
       )
     }
-    
+
     return NextResponse.json({ error: 'فشل حذف العضو' }, { status: 500 })
   }
 }

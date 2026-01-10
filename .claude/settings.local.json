@@ -14,7 +14,10 @@
       "Bash(dir /s /b \"c:\\\\Users\\\\amran\\\\Desktop\\\\systems\\\\engkish\\\\x gym\\\\app\\\\api\")",
       "Bash(npx prisma migrate dev:*)",
       "Bash(npx prisma db push)",
-      "Bash(npx prisma generate:*)"
+      "Bash(npx prisma generate:*)",
+      "Bash(npm run build:*)",
+      "Bash(powershell:*)",
+      "Bash(Select-String -Pattern \"error|Failed|successfully|✓ Generating\")"
     ]
   }
 }

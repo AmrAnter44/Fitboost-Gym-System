@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useToast } from '../../contexts/ToastContext'
 import PermissionDenied from '../../components/PermissionDenied'
 import { formatDateYMD } from '../../lib/dateFormatter'
 import { useConfirm } from '../../hooks/useConfirm'
@@ -37,7 +38,8 @@ interface PTSession {
 export default function PTPage() {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
-  const { t } = useLanguage()
+  const { t, direction } = useLanguage()
+  const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
 
   const [sessions, setSessions] = useState<PTSession[]>([])
@@ -46,7 +48,6 @@ export default function PTPage() {
   const [editingSession, setEditingSession] = useState<PTSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [coachesLoading, setCoachesLoading] = useState(true)
-  const [message, setMessage] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [showQRModal, setShowQRModal] = useState(false)
   const [selectedSession, setSelectedSession] = useState<PTSession | null>(null)
@@ -141,11 +142,9 @@ export default function PTPage() {
           clientName: member.name,
           phone: member.phone
         }))
-        setMessage(`✅ تم تحميل بيانات العضو: ${member.name}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(`تم تحميل بيانات العضو: ${member.name}`)
       } else {
-        setMessage(`⚠️ لم يتم العثور على عضو برقم ${memberNumber}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.warning(`لم يتم العثور على عضو برقم ${memberNumber}`)
       }
     } catch (error) {
       console.error('Error fetching member:', error)
@@ -214,7 +213,6 @@ export default function PTPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setMessage('')
 
     try {
       const url = '/api/pt'
@@ -232,16 +230,15 @@ export default function PTPage() {
       const result = await response.json()
 
       if (response.ok) {
-        setMessage(editingSession ? t('pt.messages.sessionUpdated') : t('pt.messages.sessionAdded'))
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(editingSession ? t('pt.messages.sessionUpdated') : t('pt.messages.sessionAdded'))
         fetchSessions()
         resetForm()
       } else {
-        setMessage(`${t('pt.messages.operationFailed')} - ${result.error || ''}`)
+        toast.error(`${t('pt.messages.operationFailed')} - ${result.error || ''}`)
       }
     } catch (error) {
       console.error(error)
-      setMessage(t('pt.messages.error'))
+      toast.error(t('pt.messages.error'))
     } finally {
       setLoading(false)
     }
@@ -266,13 +263,12 @@ export default function PTPage() {
         throw new Error(errorData.error || t('pt.messages.deleteFailed'))
       }
 
-      setMessage(t('pt.messages.sessionDeleted'))
+      toast.success(t('pt.messages.sessionDeleted'))
       fetchSessions()
     } catch (error: any) {
       console.error('Error:', error)
-      setMessage(`${t('pt.messages.deleteFailed')} - ${error.message || ''}`)
+      toast.error(`${t('pt.messages.deleteFailed')} - ${error.message || ''}`)
     }
-    setTimeout(() => setMessage(''), 3000)
   }
 
   const handleRenew = (session: PTSession) => {
@@ -311,17 +307,16 @@ export default function PTPage() {
       const result = await response.json()
 
       if (response.ok) {
-        setMessage(t('pt.messages.paymentSuccess'))
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('pt.messages.paymentSuccess'))
         fetchSessions()
         setShowPaymentModal(false)
         setPaymentSession(null)
       } else {
-        setMessage(`${t('pt.messages.paymentFailed')} - ${result.error || ''}`)
+        toast.error(`${t('pt.messages.paymentFailed')} - ${result.error || ''}`)
       }
     } catch (error) {
       console.error('Error paying remaining:', error)
-      setMessage(t('pt.messages.paymentFailed'))
+      toast.error(t('pt.messages.paymentFailed'))
     } finally {
       setLoading(false)
     }
@@ -376,7 +371,7 @@ export default function PTPage() {
   const isCoach = user?.role === 'COACH'
 
   return (
-    <div className="container mx-auto p-4 sm:p-6" dir="rtl">
+    <div className="container mx-auto p-4 sm:p-6" dir={direction}>
       <div className="mb-6">
         <div className="mb-4">
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">💪 {t('pt.title')}</h1>
@@ -413,18 +408,8 @@ export default function PTPage() {
         </div>
       </div>
 
-      {message && (
-        <div
-          className={`mb-6 p-4 rounded-lg ${
-            message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {message}
-        </div>
-      )}
-
       {!isCoach && showForm && (
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-blue-100">
+        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-blue-100" dir={direction}>
           <h2 className="text-xl font-semibold mb-4">
             {editingSession ? t('pt.editSession') : t('pt.addSession')}
           </h2>
@@ -664,7 +649,7 @@ export default function PTPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6" dir={direction}>
         <div className="mb-4">
           <input
             type="text"
@@ -746,17 +731,17 @@ export default function PTPage() {
           {/* Desktop Table - Hidden on mobile/tablet */}
           <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full" dir={direction}>
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-4 py-3 text-right">{t('pt.ptNumber')}</th>
-                    <th className="px-4 py-3 text-right">{t('pt.client')}</th>
-                    <th className="px-4 py-3 text-right">{t('pt.coach')}</th>
-                    <th className="px-4 py-3 text-right">{t('pt.sessions')}</th>
-                    <th className="px-4 py-3 text-right">{t('pt.total')}</th>
-                    <th className="px-4 py-3 text-right">{t('pt.remaining')}</th>
-                    <th className="px-4 py-3 text-right">{t('pt.dates')}</th>
-                    {!isCoach && <th className="px-4 py-3 text-right">{t('pt.actions')}</th>}
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.ptNumber')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.client')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.coach')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.sessions')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.total')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.remaining')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.dates')}</th>
+                    {!isCoach && <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.actions')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -903,7 +888,7 @@ export default function PTPage() {
           </div>
 
           {/* Mobile/Tablet Cards - Hidden on desktop */}
-          <div className="lg:hidden space-y-3">
+          <div className="lg:hidden space-y-3" dir={direction}>
             {filteredSessions.map((session) => {
               const isExpiringSoon =
                 session.expiryDate &&
@@ -1088,7 +1073,7 @@ export default function PTPage() {
       {/* Barcode Modal */}
       {showQRModal && selectedSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6" dir={direction}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">{t('pt.barcodeModal.title')} - {selectedSession.clientName}</h2>
               <button
@@ -1161,8 +1146,7 @@ export default function PTPage() {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(selectedSession.qrCode || '')
-                      setMessage(t('pt.barcodeModal.codeCopied'))
-                      setTimeout(() => setMessage(''), 2000)
+                      toast.success(t('pt.barcodeModal.codeCopied'))
                     }}
                     className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium"
                   >
@@ -1186,8 +1170,7 @@ export default function PTPage() {
                     link.click()
                     document.body.removeChild(link)
 
-                    setMessage(t('pt.barcodeModal.barcodeDownloaded'))
-                    setTimeout(() => setMessage(''), 2000)
+                    toast.success(t('pt.barcodeModal.barcodeDownloaded'))
                   }}
                   className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold flex items-center justify-center gap-2"
                 >
@@ -1217,20 +1200,18 @@ export default function PTPage() {
                           }),
                           files: [file]
                         })
-                        setMessage(t('pt.barcodeModal.barcodeDownloaded'))
+                        toast.success(t('pt.barcodeModal.barcodeDownloaded'))
                       } else {
                         // Fallback: تحميل الصورة
                         const link = document.createElement('a')
                         link.href = selectedSession.qrCodeImage
                         link.download = `PT_${selectedSession.ptNumber}_QR.png`
                         link.click()
-                        setMessage(t('pt.barcodeModal.shareNotSupported'))
+                        toast.info(t('pt.barcodeModal.shareNotSupported'))
                       }
-                      setTimeout(() => setMessage(''), 2000)
                     } catch (error) {
                       console.error('Share error:', error)
-                      setMessage(t('pt.barcodeModal.shareFailed'))
-                      setTimeout(() => setMessage(''), 3000)
+                      toast.error(t('pt.barcodeModal.shareFailed'))
                     }
                   }}
                   className="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2"
@@ -1272,7 +1253,7 @@ export default function PTPage() {
       {/* Payment Modal */}
       {showPaymentModal && paymentSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">{t('pt.paymentModal.title')}</h2>
               <button

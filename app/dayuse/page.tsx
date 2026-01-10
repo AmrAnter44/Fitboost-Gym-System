@@ -5,6 +5,8 @@ import { ReceiptToPrint } from '../../components/ReceiptToPrint'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useToast } from '../../contexts/ToastContext'
+import type { PaymentMethod } from '../../lib/paymentHelpers'
 
 interface DayUseEntry {
   id: string
@@ -17,19 +19,19 @@ interface DayUseEntry {
 }
 
 export default function DayUsePage() {
-  const { t } = useLanguage()
+  const { t, direction } = useLanguage()
   const { user } = usePermissions()
+  const toast = useToast()
   const [entries, setEntries] = useState<DayUseEntry[]>([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     serviceType: 'DayUse',
     price: 0,
     staffName: user?.name || '',
-    paymentMethod: 'cash',
+    paymentMethod: 'cash' as string | PaymentMethod[],
   })
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptData, setReceiptData] = useState<any>(null)
@@ -64,7 +66,6 @@ export default function DayUsePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setMessage('')
 
     try {
       // If renewing, use renew endpoint, otherwise use create endpoint
@@ -126,18 +127,17 @@ export default function DayUsePage() {
           paymentMethod: 'cash',
         })
 
-        setMessage(t('dayUse.messages.success'))
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('dayUse.messages.success'))
         fetchEntries()
         setShowForm(false)
         setIsRenewing(false)
         setRenewingEntryId(null)
       } else {
-        setMessage(t('dayUse.messages.failed'))
+        toast.error(t('dayUse.messages.failed'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(t('dayUse.messages.error'))
+      toast.error(t('dayUse.messages.error'))
     } finally {
       setLoading(false)
     }
@@ -174,24 +174,23 @@ export default function DayUsePage() {
       })
 
       if (response.ok) {
-        setMessage(t('dayUse.messages.deleteSuccess'))
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('dayUse.messages.deleteSuccess'))
         fetchEntries()
         setShowDeletePopup(false)
         setEntryToDelete(null)
       } else {
-        setMessage(t('dayUse.messages.deleteFailed'))
+        toast.error(t('dayUse.messages.deleteFailed'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(t('dayUse.messages.deleteError'))
+      toast.error(t('dayUse.messages.deleteError'))
     } finally {
       setDeleting(false)
     }
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 md:px-6" dir="rtl">
+    <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{t('dayUse.title')}</h1>
         <button
@@ -217,24 +216,12 @@ export default function DayUsePage() {
         </button>
       </div>
 
-      {message && !showForm && (
-        <div className={`mb-4 p-3 rounded-lg ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {message}
-        </div>
-      )}
-
       {showForm && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-xl font-semibold mb-4">
             {isRenewing ? '🔄 تجديد خدمة' : t('dayUse.addOperationTitle')}
           </h2>
-          
-          {message && (
-            <div className={`mb-4 p-3 rounded-lg ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {message}
-            </div>
-          )}
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>

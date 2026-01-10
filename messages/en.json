@@ -197,7 +197,9 @@
       "cash": "Cash",
       "visa": "Visa",
       "instapay": "InstaPay",
-      "wallet": "E-Wallet"
+      "wallet": "E-Wallet",
+      "multiplePayments": "Multiple Payments",
+      "useMultiplePayments": "Use Multiple Payment Methods"
     },
     "form": {
       "memberAddedSuccessfully": "Member added successfully!",
@@ -272,7 +274,13 @@
     "technicalSupport": "Technical Support",
     "supportDescription": "Contact us via WhatsApp for technical support",
     "contactSupport": "Contact via WhatsApp",
-    "poweredBy": "Powered by"
+    "poweredBy": "Powered by",
+    "barcodeScanner": "Barcode Scanner Settings",
+    "selectDevice": "Select Barcode Device",
+    "noDevices": "No devices found",
+    "detectingDevices": "Detecting devices",
+    "autoScanEnabled": "Auto-scan enabled",
+    "defaultDevice": "Use default camera"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -743,7 +751,21 @@
     "deleteRecordTitle": "Delete Attendance Record",
     "deleteRecordMessage": "Are you sure you want to delete this record?",
     "hoursAndMinutes": "{hours} hours and {minutes} minutes",
-    "minutes": "{minutes} minutes"
+    "minutes": "{minutes} minutes",
+    "checkOutTime": "Check-out Time",
+    "notCheckedOut": "Not checked out yet",
+    "working": "Working...",
+    "workHours": "Work Hours",
+    "hoursCount": "{count} hour(s)",
+    "minutesCount": "{count} minute(s)",
+    "justStarted": "Just started",
+    "notCalculated": "Not calculated",
+    "finished": "Finished",
+    "workingNow": "Working now",
+    "presentNow": "Present now",
+    "leftWork": "Left work",
+    "missingCheckout": "Missing checkout",
+    "oldRecord": "Old record"
   },
   "memberAttendance": {
     "title": "Member Attendance Reports",
@@ -2192,5 +2214,21 @@
       "renewalFailed": "Failed to renew subscription",
       "unexpectedError": "An unexpected error occurred"
     }
+  },
+  "multiPayment": {
+    "title": "Split Amount Across Multiple Payment Methods",
+    "totalAmount": "Total Amount",
+    "remaining": "Remaining",
+    "paid": "Paid",
+    "enterAmount": "Enter Amount",
+    "mustMatchTotal": "Total must match the required amount exactly",
+    "validation": {
+      "totalMismatch": "Total amount {total} does not equal required {expected}",
+      "invalidAmount": "All amounts must be greater than zero"
+    },
+    "confirm": "Confirm Payment",
+    "cancel": "Cancel",
+    "progress": "Progress",
+    "complete": "Complete"
   }
 }

@@ -6,6 +6,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
 import FollowUpForm from './FollowUpForm'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useToast } from '../../contexts/ToastContext'
 
 interface Visitor {
   id: string
@@ -37,6 +38,7 @@ interface Member {
 export default function FollowUpsPage() {
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const { t, direction } = useLanguage()
+  const toast = useToast()
 
   const [followUps, setFollowUps] = useState<FollowUp[]>([])
   const [visitors, setVisitors] = useState<Visitor[]>([])
@@ -48,7 +50,6 @@ export default function FollowUpsPage() {
   const [showForm, setShowForm] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedVisitorForHistory, setSelectedVisitorForHistory] = useState<Visitor | null>(null)
-  const [message, setMessage] = useState('')
   const [selectedVisitorId, setSelectedVisitorId] = useState<string>('')
 
   // Filters
@@ -267,8 +268,6 @@ export default function FollowUpsPage() {
     nextFollowUpDate: string
     contacted: boolean
   }) => {
-    setMessage('')
-
     try {
       // ✅ البحث عن بيانات الزائر/العضو للإرسال إلى الـ API
       let visitorData = null
@@ -312,18 +311,17 @@ export default function FollowUpsPage() {
       })
 
       if (response.ok) {
-        setMessage('✅ تم إضافة المتابعة بنجاح!')
-        setTimeout(() => setMessage(''), 3000)
+        toast.success('تم إضافة المتابعة بنجاح!')
         await fetchFollowUps()
         setShowForm(false)
         setSelectedVisitorId('')
       } else {
         const data = await response.json()
-        setMessage(`❌ ${data.error || 'فشل إضافة المتابعة'}`)
+        toast.error(data.error || 'فشل إضافة المتابعة')
       }
     } catch (error) {
       console.error(error)
-      setMessage('❌ حدث خطأ')
+      toast.error('حدث خطأ')
     }
   }
 
@@ -675,13 +673,6 @@ export default function FollowUpsPage() {
           </div>
         </div>
       </div>
-
-      {/* Message Alert */}
-      {message && (
-        <div className={`mb-4 p-3 rounded-lg font-medium ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {message}
-        </div>
-      )}
 
       {/* Add Follow-Up Form - Modal Popup (Lightweight) */}
       {showForm && (

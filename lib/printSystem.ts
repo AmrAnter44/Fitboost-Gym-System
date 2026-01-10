@@ -1,4 +1,5 @@
 // نظام طباعة موحد - مع إضافة اسم الموظف
+import { normalizePaymentMethod, isMultiPayment } from './paymentHelpers'
 
 interface ReceiptData {
   receiptNumber: number
@@ -54,10 +55,22 @@ function generateReceiptHTML(data: ReceiptData): string {
 
   // التحقق إذا كان إيصال تجديد
   const isRenewal = type.includes('تجديد') || details.isRenewal === true
-  
-  // طريقة الدفع
-  const paymentMethod = details.paymentMethod || 'cash'
-  const paymentMethodLabel = getPaymentMethodLabel(paymentMethod)
+
+  // ✅ معالجة طرق الدفع (واحدة أو متعددة)
+  const paymentMethodRaw = details.paymentMethod || 'cash'
+  const isMulti = typeof paymentMethodRaw === 'string' && isMultiPayment(paymentMethodRaw)
+
+  let paymentMethodDisplay: string
+  if (isMulti) {
+    // دفع متعدد - عرض جميع الطرق
+    const normalized = normalizePaymentMethod(paymentMethodRaw, amount)
+    paymentMethodDisplay = normalized.methods
+      .map(m => `${getPaymentMethodLabel(m.method)} (${m.amount.toFixed(2)} ج.م)`)
+      .join('<br>')
+  } else {
+    // دفع واحد
+    paymentMethodDisplay = getPaymentMethodLabel(paymentMethodRaw)
+  }
 
   // اسم الموظف
   const staffName = details.staffName || ''
@@ -274,13 +287,13 @@ function generateReceiptHTML(data: ReceiptData): string {
     <p>إيصال استلام</p>
     <p>${type}</p>
     
-    ${isRenewal 
-      ? '<div class="type-badge renewal">🔄 تجديد اشتراك</div>' 
+    ${isRenewal
+      ? '<div class="type-badge renewal">🔄 تجديد اشتراك</div>'
       : '<div class="type-badge new">✨ اشتراك جديد</div>'
     }
-    
-    <div class="payment-method-badge">${paymentMethodLabel}</div>
-    
+
+    <div class="payment-method-badge ${isMulti ? 'multi-payment' : ''}">${paymentMethodDisplay}</div>
+
     ${staffName ? `<div class="staff-badge">👷 ${staffName}</div>` : ''}
   </div>
 

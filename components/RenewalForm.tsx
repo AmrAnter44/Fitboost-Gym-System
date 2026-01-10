@@ -5,6 +5,7 @@ import PaymentMethodSelector from './Paymentmethodselector'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '@/contexts/LanguageContext'
+import type { PaymentMethod } from '../lib/paymentHelpers'
 
 interface Member {
   id: string
@@ -64,7 +65,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [startDate, setStartDate] = useState(formatDateYMD(new Date()))
   const [expiryDate, setExpiryDate] = useState('')
   const [notes, setNotes] = useState(member.notes || '')
-  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [paymentMethod, setPaymentMethod] = useState<string | PaymentMethod[]>('cash')
   const [staffName, setStaffName] = useState(user?.name || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

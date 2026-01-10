@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
+import { useToast } from '../contexts/ToastContext'
 
 interface InvitationModalProps {
   isOpen: boolean
@@ -11,22 +13,22 @@ interface InvitationModalProps {
 }
 
 export function InvitationModal({ isOpen, memberName, memberId, onClose, onSuccess }: InvitationModalProps) {
+  const { direction } = useLanguage()
+  const toast = useToast()
   const [guestName, setGuestName] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
 
   if (!isOpen) return null
 
   const handleSubmit = async () => {
     if (!guestName.trim() || !guestPhone.trim()) {
-      setMessage({ type: 'error', text: '⚠️ يرجى إدخال اسم ورقم هاتف الضيف' })
+      toast.warning('يرجى إدخال اسم ورقم هاتف الضيف')
       return
     }
 
     setSubmitting(true)
-    setMessage(null)
 
     try {
       const response = await fetch('/api/invitations', {
@@ -41,17 +43,17 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
       })
 
       if (response.ok) {
-        setMessage({ type: 'success', text: '✅ تم تسجيل الدعوة بنجاح!' })
+        toast.success('تم تسجيل الدعوة بنجاح!')
         setTimeout(() => {
           onSuccess()
           handleClose()
         }, 1500)
       } else {
         const error = await response.json()
-        setMessage({ type: 'error', text: `❌ ${error.error || 'فشل تسجيل الدعوة'}` })
+        toast.error(error.error || 'فشل تسجيل الدعوة')
       }
     } catch (error) {
-      setMessage({ type: 'error', text: '❌ حدث خطأ أثناء التسجيل' })
+      toast.error('حدث خطأ أثناء التسجيل')
     } finally {
       setSubmitting(false)
     }
@@ -61,7 +63,6 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
     setGuestName('')
     setGuestPhone('')
     setNotes('')
-    setMessage(null)
     onClose()
   }
 
@@ -69,6 +70,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={(e) => e.target === e.currentTarget && !submitting && handleClose()}
+      dir={direction}
     >
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
@@ -87,14 +89,6 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
             ×
           </button>
         </div>
-
-        {message && (
-          <div className={`mb-4 p-4 rounded-lg ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-          }`}>
-            <p className="font-bold">{message.text}</p>
-          </div>
-        )}
 
         <div className="space-y-4">
           <div>
@@ -173,8 +167,9 @@ interface SimpleServiceModalProps {
 }
 
 export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, onClose, onSuccess }: SimpleServiceModalProps) {
+  const { direction } = useLanguage()
+  const toast = useToast()
   const [submitting, setSubmitting] = useState(false)
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
 
   if (!isOpen) return null
 
@@ -195,7 +190,6 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
 
   const handleConfirm = async () => {
     setSubmitting(true)
-    setMessage(null)
 
     try {
       const response = await fetch('/api/members/deduct-service', {
@@ -208,24 +202,23 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
       })
 
       if (response.ok) {
-        setMessage({ type: 'success', text: `✅ تم خصم ${serviceNames[serviceType]} بنجاح!` })
+        toast.success(`تم خصم ${serviceNames[serviceType]} بنجاح!`)
         setTimeout(() => {
           onSuccess()
           handleClose()
         }, 1500)
       } else {
         const error = await response.json()
-        setMessage({ type: 'error', text: `❌ ${error.error || 'فشل الخصم'}` })
+        toast.error(error.error || 'فشل الخصم')
       }
     } catch (error) {
-      setMessage({ type: 'error', text: '❌ حدث خطأ أثناء الخصم' })
+      toast.error('حدث خطأ أثناء الخصم')
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleClose = () => {
-    setMessage(null)
     onClose()
   }
 
@@ -235,6 +228,7 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={(e) => e.target === e.currentTarget && !submitting && handleClose()}
+      dir={direction}
     >
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
         <div className="text-center mb-6">
@@ -245,36 +239,26 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
           <p className="text-gray-600">للعضو: {memberName}</p>
         </div>
 
-        {message && (
-          <div className={`mb-4 p-4 rounded-lg ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-          }`}>
-            <p className="font-bold text-center">{message.text}</p>
-          </div>
-        )}
-
-        {!message && (
-          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-4">
-            <p className="text-yellow-800 text-center">
-              ⚠️ هل أنت متأكد من خصم {serviceNames[serviceType]} واحدة؟
-            </p>
-          </div>
-        )}
+        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-4">
+          <p className="text-yellow-800 text-center">
+            ⚠️ هل أنت متأكد من خصم {serviceNames[serviceType]} واحدة؟
+          </p>
+        </div>
 
         <div className="flex gap-3">
           <button
             onClick={handleConfirm}
-            disabled={submitting || message?.type === 'success'}
+            disabled={submitting}
             className={`flex-1 bg-${color.bg}-600 text-white py-3 rounded-lg hover:bg-${color.hover}-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold transition`}
           >
-            {submitting ? '⏳ جاري الخصم...' : message?.type === 'success' ? '✅ تم الخصم' : '✅ تأكيد الخصم'}
+            {submitting ? '⏳ جاري الخصم...' : '✅ تأكيد الخصم'}
           </button>
           <button
             onClick={handleClose}
             disabled={submitting}
             className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold disabled:opacity-50"
           >
-            {message?.type === 'success' ? 'إغلاق' : 'إلغاء'}
+            إلغاء
           </button>
         </div>
       </div>

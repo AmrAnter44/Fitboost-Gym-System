@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useToast } from '../../contexts/ToastContext'
 
 interface Visitor {
   id: string
@@ -35,12 +36,12 @@ interface FollowUp {
 export default function VisitorsPage() {
   const router = useRouter()
   const { t, direction } = useLanguage()
+  const toast = useToast()
   const [visitors, setVisitors] = useState<Visitor[]>([])
   const [stats, setStats] = useState<Stats[]>([])
   const [followUps, setFollowUps] = useState<FollowUp[]>([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedVisitorForHistory, setSelectedVisitorForHistory] = useState<Visitor | null>(null)
 
@@ -153,7 +154,6 @@ export default function VisitorsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setMessage('')
 
     try {
       const response = await fetch('/api/visitors', {
@@ -166,17 +166,15 @@ export default function VisitorsPage() {
 
       if (response.ok) {
         setFormData({ name: '', phone: '', notes: '', source: 'walk-in', interestedIn: '' })
-        setMessage(`✅ ${t('visitors.messages.addSuccess')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('visitors.messages.addSuccess'))
         fetchVisitors()
         setShowForm(false)
       } else {
-        setMessage(`❌ ${data.error || t('visitors.messages.addError')}`)
-        setTimeout(() => setMessage(''), 5000)
+        toast.error(data.error || t('visitors.messages.addError'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(`❌ ${t('visitors.messages.error')}`)
+      toast.error(t('visitors.messages.error'))
     } finally {
       setLoading(false)
     }
@@ -190,11 +188,10 @@ export default function VisitorsPage() {
         body: JSON.stringify({ id, status: newStatus }),
       })
       fetchVisitors()
-      setMessage(`✅ ${t('visitors.messages.statusUpdateSuccess')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.success(t('visitors.messages.statusUpdateSuccess'))
     } catch (error) {
       console.error('Error updating status:', error)
-      setMessage(`❌ ${t('visitors.messages.statusUpdateError')}`)
+      toast.error(t('visitors.messages.statusUpdateError'))
     }
   }
 
@@ -210,13 +207,12 @@ export default function VisitorsPage() {
     try {
       await fetch(`/api/visitors?id=${visitorToDelete.id}`, { method: 'DELETE' })
       fetchVisitors()
-      setMessage(`✅ ${t('visitors.messages.deleteSuccess')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.success(t('visitors.messages.deleteSuccess'))
       setShowDeleteModal(false)
       setVisitorToDelete(null)
     } catch (error) {
       console.error('Error deleting visitor:', error)
-      setMessage(`❌ ${t('visitors.messages.deleteError')}`)
+      toast.error(t('visitors.messages.deleteError'))
     } finally {
       setDeleteLoading(false)
     }
@@ -362,13 +358,6 @@ export default function VisitorsPage() {
           ))}
         </div>
       </div>
-
-      {/* Message Alert */}
-      {message && (
-        <div className={`mb-4 p-3 rounded-lg ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {message}
-        </div>
-      )}
 
       {/* Add Visitor Form */}
       {showForm && (

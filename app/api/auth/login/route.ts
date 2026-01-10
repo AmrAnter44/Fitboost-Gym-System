@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { logError } from '../../../../lib/errorLogger'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
@@ -99,6 +100,15 @@ export async function POST(request: Request) {
     
   } catch (error) {
     console.error('Login error:', error)
+
+    // Log error to file
+    logError({
+      error,
+      endpoint: '/api/auth/login',
+      method: 'POST',
+      statusCode: 500
+    })
+
     return NextResponse.json(
       { error: 'حدث خطأ في تسجيل الدخول' },
       { status: 500 }

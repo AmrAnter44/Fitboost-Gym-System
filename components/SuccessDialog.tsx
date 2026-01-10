@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 interface SuccessDialogProps {
   isOpen: boolean
@@ -19,6 +20,8 @@ export default function SuccessDialog({
   onClose,
   type = 'success'
 }: SuccessDialogProps) {
+  const { direction } = useLanguage()
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -66,7 +69,7 @@ export default function SuccessDialog({
       <div
         className={`bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 border-4 ${colors.border}`}
         onClick={(e) => e.stopPropagation()}
-        dir="rtl"
+        dir={direction}
       >
         <div className={`${colors.bg} p-6 rounded-t-xl`}>
           <div className="flex items-center gap-4">

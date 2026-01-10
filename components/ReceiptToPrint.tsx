@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { printReceiptFromData } from '../lib/printSystem'
 import Toast from './Toast'
 import { useLanguage } from '../contexts/LanguageContext'
+import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel } from '../lib/paymentHelpers'
 
 interface ReceiptProps {
   receiptNumber: number
@@ -86,18 +87,22 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
       message += `\n`
     }
 
-    if (type === 'PT') {
+    if (type === 'PT' || type.includes('برايفت')) {
       message += `━━━━━━━━━━━━━━━━━━━━\n`
       message += `*تفاصيل التدريب*\n`
       message += `━━━━━━━━━━━━━━━━━━━━\n`
       if (details.ptNumber) {
         message += `• رقم PT: ${details.ptNumber}\n`
       }
-      if (details.sessions) {
-        message += `• عدد الجلسات: ${details.sessions}\n`
+      if (details.sessions || details.sessionsPurchased) {
+        message += `• عدد الجلسات: ${details.sessions || details.sessionsPurchased}\n`
       }
       if (details.pricePerSession) {
         message += `• سعر الجلسة: ${details.pricePerSession} ج.م\n`
+      }
+      // ✅ عرض المبلغ المتبقي المرتجع في حالة التجديد
+      if (details.oldRemainingAmount && details.oldRemainingAmount > 0) {
+        message += `• المبلغ المتبقي المرتجع: ${details.oldRemainingAmount} ج.م ✅\n`
       }
       message += `\n`
     }
@@ -119,12 +124,19 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
       message += `*المتبقي:* ${details.remainingAmount} ج.م\n`
     }
 
-    const paymentName = (paymentMethod || details.paymentMethod) === 'cash' ? 'كاش' :
-                        (paymentMethod || details.paymentMethod) === 'visa' ? 'فيزا' :
-                        (paymentMethod || details.paymentMethod) === 'instapay' ? 'InstaPay' :
-                        (paymentMethod || details.paymentMethod) === 'wallet' ? 'محفظة' :
-                        (paymentMethod || details.paymentMethod)
-    message += `*طريقة الدفع:* ${paymentName}\n`
+    // ✅ طريقة الدفع (واحدة أو متعددة)
+    const pmValue = paymentMethod || details.paymentMethod
+    const isMulti = isMultiPayment(pmValue)
+    if (isMulti) {
+      const normalized = normalizePaymentMethod(pmValue, amount)
+      message += `*طريقة الدفع:* متعددة\n`
+      normalized.methods.forEach(m => {
+        message += `  • ${getPaymentMethodLabel(m.method, 'ar')}: ${m.amount.toFixed(2)} ج.م\n`
+      })
+    } else {
+      const paymentName = getPaymentMethodLabel(pmValue, 'ar')
+      message += `*طريقة الدفع:* ${paymentName}\n`
+    }
     message += `\n`
 
     message += `━━━━━━━━━━━━━━━━━━━━\n`

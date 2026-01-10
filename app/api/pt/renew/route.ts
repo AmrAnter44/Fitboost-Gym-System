@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requireValidLicense } from '../../../../lib/license'
+import {
+  type PaymentMethod,
+  validatePaymentDistribution,
+  serializePaymentMethods
+} from '../../../../lib/paymentHelpers'
 
 export async function POST(request: Request) {
   try {
@@ -47,7 +52,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // تحديث جلسة PT (استبدال البيانات بالبيانات الجديدة)
+    // حفظ المبلغ المتبقي القديم قبل التحديث
+    const oldRemainingAmount = existingPT.remainingAmount || 0
+
+    // تحديث جلسة PT (استبدال البيانات بالبيانات الجديدة وإرجاع المبلغ المتبقي)
     const updatedPT = await prisma.pT.update({
       where: { ptNumber: parseInt(ptNumber) },
       data: {
@@ -58,10 +66,14 @@ export async function POST(request: Request) {
         pricePerSession,
         startDate: startDate ? new Date(startDate) : existingPT.startDate,
         expiryDate: expiryDate ? new Date(expiryDate) : existingPT.expiryDate,
+        remainingAmount: 0, // ✅ تصفير المبلغ المتبقي عند التجديد
       },
     })
 
     console.log('✅ تم تحديث جلسة PT:', updatedPT.ptNumber)
+    if (oldRemainingAmount > 0) {
+      console.log(`💰 تم إرجاع المبلغ المتبقي: ${oldRemainingAmount} ج.م`)
+    }
 
     // إنشاء إيصال للتجديد باستخدام Transaction
     try {
@@ -128,13 +140,25 @@ export async function POST(request: Request) {
 
         console.log('🔢 استخدام رقم الإيصال:', receiptNumber, '| العداد الجديد:', receiptNumber + 1)
 
+        // ✅ معالجة وسائل الدفع المتعددة
+        let finalPaymentMethod: string
+        if (Array.isArray(paymentMethod)) {
+          const validation = validatePaymentDistribution(paymentMethod, totalAmount)
+          if (!validation.valid) {
+            throw new Error(validation.message || 'توزيع المبالغ غير صحيح')
+          }
+          finalPaymentMethod = serializePaymentMethods(paymentMethod)
+        } else {
+          finalPaymentMethod = paymentMethod || 'cash'
+        }
+
         // إنشاء الإيصال
         const receipt = await tx.receipt.create({
           data: {
             receiptNumber: receiptNumber,
             type: 'تجديد برايفت',
             amount: totalAmount,
-            paymentMethod: paymentMethod || 'cash',
+            paymentMethod: finalPaymentMethod,
             staffName: staffName || '',
             itemDetails: JSON.stringify({
               ptNumber: updatedPT.ptNumber,
@@ -149,10 +173,40 @@ export async function POST(request: Request) {
               subscriptionDays: subscriptionDays,
               oldSessionsRemaining: existingPT.sessionsRemaining,
               newSessionsRemaining: updatedPT.sessionsRemaining,
+              oldRemainingAmount: oldRemainingAmount, // ✅ المبلغ المتبقي القديم المرتجع
+              newRemainingAmount: 0, // ✅ المبلغ المتبقي الجديد (صفر)
             }),
             ptNumber: updatedPT.ptNumber,
           },
         })
+
+        // ✅ البحث عن coachUserId من الكوتش
+        let coachUserId = null
+        if (coachName || existingPT.coachName) {
+          const coachStaff = await tx.staff.findFirst({
+            where: { name: coachName || existingPT.coachName },
+            include: { user: true }
+          })
+          if (coachStaff?.user) {
+            coachUserId = coachStaff.user.id
+          }
+        }
+
+        // ✅ إنشاء سجل عمولة للكوتش
+        if (coachUserId && totalAmount > 0) {
+          try {
+            const { createPTCommission } = await import('../../../../lib/commissionHelpers')
+            await createPTCommission(
+              tx,
+              coachUserId,
+              totalAmount,
+              `عمولة تجديد برايفت - ${existingPT.clientName} (#${updatedPT.ptNumber})`,
+              updatedPT.ptNumber
+            )
+          } catch (commissionError) {
+            console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
+          }
+        }
 
         return receipt
       })

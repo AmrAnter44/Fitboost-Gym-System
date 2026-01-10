@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { requireValidLicense } from '../../../../lib/license'
+import {
+  type PaymentMethod,
+  validatePaymentDistribution,
+  serializePaymentMethods
+} from '../../../../lib/paymentHelpers'
 
 export async function POST(request: Request) {
   try {
@@ -31,13 +36,28 @@ export async function POST(request: Request) {
     })
     const receiptNumber = counter.current
 
+    // ✅ معالجة وسائل الدفع المتعددة
+    let finalPaymentMethod: string
+    if (Array.isArray(paymentMethod)) {
+      const validation = validatePaymentDistribution(paymentMethod, amount)
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.message || 'توزيع المبالغ غير صحيح' },
+          { status: 400 }
+        )
+      }
+      finalPaymentMethod = serializePaymentMethods(paymentMethod)
+    } else {
+      finalPaymentMethod = paymentMethod || 'cash'
+    }
+
     // تفاصيل الإيصال
     const itemDetails = {
       memberNumber: member.memberNumber,
       memberName: member.name,
       paidAmount: amount,
       remainingAmount: member.remainingAmount - amount,
-      paymentMethod: paymentMethod || 'cash',
+      paymentMethod: finalPaymentMethod,
       notes: notes || ''
     }
 
@@ -51,7 +71,7 @@ export async function POST(request: Request) {
         type: 'Payment', // نوع جديد: دفع متبقي
         amount,
         itemDetails: JSON.stringify(itemDetails),
-        paymentMethod: paymentMethod || 'cash',
+        paymentMethod: finalPaymentMethod,
         memberId
       }
     })

@@ -4,9 +4,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useToast } from '../../contexts/ToastContext'
 
 export default function EmergencySignupPage() {
   const router = useRouter()
+  const toast = useToast()
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -14,7 +16,6 @@ export default function EmergencySignupPage() {
     confirmPassword: '',
     secretKey: '' // مفتاح سري للحماية
   })
-  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
   // 🔒 غير هذا المفتاح السري لحماية الصفحة
@@ -25,19 +26,19 @@ export default function EmergencySignupPage() {
 
     // التحقق من المفتاح السري
     if (formData.secretKey !== SECRET_KEY) {
-      setMessage('❌ المفتاح السري غير صحيح')
+      toast.error('المفتاح السري غير صحيح')
       return
     }
 
     // التحقق من تطابق كلمة المرور
     if (formData.password !== formData.confirmPassword) {
-      setMessage('❌ كلمتا المرور غير متطابقتين')
+      toast.error('كلمتا المرور غير متطابقتين')
       return
     }
 
     // التحقق من طول كلمة المرور
     if (formData.password.length < 6) {
-      setMessage('❌ كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
       return
     }
 
@@ -57,15 +58,15 @@ export default function EmergencySignupPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage('✅ تم إنشاء حساب الأدمن بنجاح! جاري التحويل...')
+        toast.success('تم إنشاء حساب الأدمن بنجاح! جاري التحويل...')
         setTimeout(() => {
           router.push('/login')
         }, 2000)
       } else {
-        setMessage(`❌ ${data.error || 'حدث خطأ'}`)
+        toast.error(data.error || 'حدث خطأ')
       }
     } catch (error) {
-      setMessage('❌ حدث خطأ في الاتصال')
+      toast.error('حدث خطأ في الاتصال')
     } finally {
       setLoading(false)
     }
@@ -83,16 +84,6 @@ export default function EmergencySignupPage() {
             استخدم هذه الصفحة فقط في حالة فقدان حساب الأدمن
           </p>
         </div>
-
-        {message && (
-          <div className={`mb-6 p-4 rounded-lg ${
-            message.includes('✅') 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
-          }`}>
-            {message}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -3,6 +3,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '../../../contexts/LanguageContext'
+import { useToast } from '../../../contexts/ToastContext'
 import { Permissions, PERMISSION_GROUPS, PERMISSION_LABELS, PERMISSION_ICONS } from '../../../types/permissions'
 
 interface User {
@@ -31,10 +33,11 @@ interface Staff {
 
 export default function AdminUsersPage() {
   const router = useRouter()
+  const { direction } = useLanguage()
+  const toast = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [staff, setStaff] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
   
   // State للـ Modal إضافة مستخدم
   const [showAddModal, setShowAddModal] = useState(false)
@@ -71,12 +74,12 @@ export default function AdminUsersPage() {
         const data = await response.json()
         setUsers(data)
       } else if (response.status === 403) {
-        setMessage('❌ ليس لديك صلاحية الوصول')
+        toast.error('ليس لديك صلاحية الوصول')
         setTimeout(() => router.push('/'), 2000)
       }
     } catch (error) {
       console.error('Error fetching users:', error)
-      setMessage('❌ فشل جلب المستخدمين')
+      toast.error('فشل جلب المستخدمين')
     } finally {
       setLoading(false)
     }
@@ -96,14 +99,12 @@ export default function AdminUsersPage() {
 
   const handleAddUser = async () => {
     if (!newUserData.name || !newUserData.email || !newUserData.password) {
-      setMessage('⚠️ يرجى ملء جميع الحقول')
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning('يرجى ملء جميع الحقول')
       return
     }
 
     if (newUserData.role === 'COACH' && !newUserData.staffId) {
-      setMessage('⚠️ يجب اختيار موظف لحساب الكوتش')
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning('يجب اختيار موظف لحساب الكوتش')
       return
     }
 
@@ -118,18 +119,17 @@ export default function AdminUsersPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage('✅ تم إضافة المستخدم بنجاح')
+        toast.success('تم إضافة المستخدم بنجاح')
         setShowAddModal(false)
         setNewUserData({ name: '', email: '', password: '', role: 'STAFF', staffId: '' })
         fetchUsers()
       } else {
-        setMessage(`❌ ${data.error || 'فشل إضافة المستخدم'}`)
+        toast.error(data.error || 'فشل إضافة المستخدم')
       }
     } catch (error) {
-      setMessage('❌ حدث خطأ')
+      toast.error('حدث خطأ')
     } finally {
       setLoading(false)
-      setTimeout(() => setMessage(''), 3000)
     }
   }
 
@@ -151,17 +151,16 @@ export default function AdminUsersPage() {
       })
 
       if (response.ok) {
-        setMessage('✅ تم تحديث الصلاحيات بنجاح')
+        toast.success('تم تحديث الصلاحيات بنجاح')
         setShowPermissionsModal(false)
         fetchUsers()
       } else {
-        setMessage('❌ فشل تحديث الصلاحيات')
+        toast.error('فشل تحديث الصلاحيات')
       }
     } catch (error) {
-      setMessage('❌ حدث خطأ')
+      toast.error('حدث خطأ')
     } finally {
       setLoading(false)
-      setTimeout(() => setMessage(''), 3000)
     }
   }
 
@@ -181,16 +180,15 @@ export default function AdminUsersPage() {
           })
 
           if (response.ok) {
-            setMessage(`✅ تم ${user.isActive ? 'إيقاف' : 'تفعيل'} المستخدم`)
+            toast.success(`تم ${user.isActive ? 'إيقاف' : 'تفعيل'} المستخدم`)
             fetchUsers()
           } else {
-            setMessage('❌ فشل تحديث حالة المستخدم')
+            toast.error('فشل تحديث حالة المستخدم')
           }
         } catch (error) {
-          setMessage('❌ حدث خطأ')
+          toast.error('حدث خطأ')
         } finally {
           setLoading(false)
-          setTimeout(() => setMessage(''), 3000)
         }
       }
     })
@@ -211,16 +209,15 @@ export default function AdminUsersPage() {
           })
 
           if (response.ok) {
-            setMessage('✅ تم حذف المستخدم بنجاح')
+            toast.success('تم حذف المستخدم بنجاح')
             fetchUsers()
           } else {
-            setMessage('❌ فشل حذف المستخدم')
+            toast.error('فشل حذف المستخدم')
           }
         } catch (error) {
-          setMessage('❌ حدث خطأ')
+          toast.error('حدث خطأ')
         } finally {
           setLoading(false)
-          setTimeout(() => setMessage(''), 3000)
         }
       }
     })
@@ -233,8 +230,7 @@ export default function AdminUsersPage() {
       message: `سيتم إرسال رابط إعادة تعيين كلمة المرور إلى "${user.email}"`,
       onConfirm: async () => {
         setShowConfirmModal(false)
-        setMessage('✅ تم إرسال رابط إعادة التعيين')
-        setTimeout(() => setMessage(''), 3000)
+        toast.success('تم إرسال رابط إعادة التعيين')
       }
     })
     setShowConfirmModal(true)
@@ -271,7 +267,7 @@ export default function AdminUsersPage() {
 
   if (loading && users.length === 0) {
     return (
-      <div className="container mx-auto p-6 text-center" dir="rtl">
+      <div className="container mx-auto p-6 text-center" dir={direction}>
         <div className="text-6xl mb-4">⏳</div>
         <p className="text-xl">جاري التحميل...</p>
       </div>
@@ -279,7 +275,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="container mx-auto p-6" dir="rtl">
+    <div className="container mx-auto p-6" dir={direction}>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">👥 إدارة المستخدمين</h1>
@@ -293,16 +289,6 @@ export default function AdminUsersPage() {
           <span>إضافة مستخدم</span>
         </button>
       </div>
-
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.includes('✅') ? 'bg-green-100 text-green-800' : 
-          message.includes('⚠️') ? 'bg-yellow-100 text-yellow-800' : 
-          'bg-red-100 text-red-800'
-        }`}>
-          {message}
-        </div>
-      )}
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">

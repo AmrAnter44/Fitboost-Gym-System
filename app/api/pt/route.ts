@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
 import { requireValidLicense } from '../../../lib/license'
+import {
+  type PaymentMethod,
+  validatePaymentDistribution,
+  serializePaymentMethods
+} from '../../../lib/paymentHelpers'
 // @ts-ignore
 import bwipjs from 'bwip-js'
 
@@ -273,13 +278,25 @@ export async function POST(request: Request) {
 
         console.log('🔢 استخدام رقم الإيصال:', receiptNumber, '| العداد الجديد:', receiptNumber + 1)
 
+        // ✅ معالجة وسائل الدفع المتعددة
+        let finalPaymentMethod: string
+        if (Array.isArray(paymentMethod)) {
+          const validation = validatePaymentDistribution(paymentMethod, Number(paidAmount))
+          if (!validation.valid) {
+            throw new Error(validation.message || 'توزيع المبالغ غير صحيح')
+          }
+          finalPaymentMethod = serializePaymentMethods(paymentMethod)
+        } else {
+          finalPaymentMethod = paymentMethod || 'cash'
+        }
+
         // إنشاء الإيصال
         const receipt = await tx.receipt.create({
           data: {
             receiptNumber: receiptNumber,
             type: 'برايفت جديد',
             amount: Number(paidAmount),
-            paymentMethod: paymentMethod || 'cash',
+            paymentMethod: finalPaymentMethod,
             staffName: staffName || '',
             itemDetails: JSON.stringify({
               ptNumber: pt.ptNumber,
@@ -300,6 +317,23 @@ export async function POST(request: Request) {
         })
 
         console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber)
+
+        // ✅ إنشاء سجل عمولة للكوتش (إذا كان لديه حساب)
+        if (coachUserId && paidAmount > 0) {
+          try {
+            const { createPTCommission } = await import('../../../lib/commissionHelpers')
+            await createPTCommission(
+              tx, // استخدام tx بدلاً من prisma داخل transaction
+              coachUserId,
+              Number(paidAmount),
+              `عمولة برايفت جديد - ${clientName} (#${pt.ptNumber})`,
+              pt.ptNumber
+            )
+          } catch (commissionError) {
+            console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
+            // لا نفشل العملية إذا فشلت العمولة
+          }
+        }
       })
 
     } catch (receiptError: any) {

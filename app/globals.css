@@ -21,6 +21,92 @@ body {
   overflow-x: hidden;
 }
 
+/* RTL/LTR Support */
+[dir="rtl"] {
+  text-align: right;
+  font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+[dir="ltr"] {
+  text-align: left;
+}
+
+/* تحسين الخط العربي للعناوين والأزرار */
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] h5,
+[dir="rtl"] h6 {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+[dir="rtl"] button,
+[dir="rtl"] .font-bold {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+}
+
+[dir="rtl"] .font-semibold {
+  font-weight: 600;
+}
+
+[dir="rtl"] strong,
+[dir="rtl"] b {
+  font-weight: 700;
+}
+
+/* RTL Table Support */
+[dir="rtl"] table {
+  direction: rtl;
+  font-weight: 600;
+}
+
+[dir="rtl"] table thead th {
+  font-weight: 700;
+}
+
+[dir="ltr"] table {
+  direction: ltr;
+}
+
+/* تحسين الخط في الـ inputs والـ labels */
+[dir="rtl"] label {
+  font-weight: 600;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] select,
+[dir="rtl"] textarea {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 500;
+}
+
+/* تحسين الخط في الكروت والبطاقات */
+[dir="rtl"] .bg-white,
+[dir="rtl"] .card {
+  font-weight: 600;
+}
+
+/* تحسين الخط في الروابط */
+[dir="rtl"] a {
+  font-weight: 600;
+}
+
+/* RTL Flexbox Support */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* RTL Grid Support */
+[dir="rtl"] .grid {
+  direction: rtl;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
@@ -29,7 +115,7 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -129,6 +215,27 @@ button:disabled {
 
 .animate-slide-in-right {
   animation: slideInRight 0.3s ease-out;
+}
+
+/* Toast Animations */
+@keyframes slideInToast {
+  from {
+    opacity: 0;
+    transform: translateX(400px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shrinkWidth {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
 }
 
 /* تحسينات للكروت */

@@ -7,6 +7,9 @@ import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 import { printReceiptFromData } from '../lib/printSystem'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useToast } from '../contexts/ToastContext'
+import type { PaymentMethod } from '../lib/paymentHelpers'
+import { serializePaymentMethods } from '../lib/paymentHelpers'
 
 interface MemberFormProps {
   onSuccess: () => void
@@ -15,9 +18,9 @@ interface MemberFormProps {
 
 export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormProps) {
   const { user } = usePermissions()
-  const { t } = useLanguage()
+  const { t, direction } = useLanguage()
+  const toast = useToast()
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
   const [nextMemberNumber, setNextMemberNumber] = useState<number | null>(null)
   const [nextReceiptNumber, setNextReceiptNumber] = useState<number | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
@@ -37,7 +40,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
     notes: '',
     startDate: formatDateYMD(new Date()),
     expiryDate: '',
-    paymentMethod: 'cash' as 'cash' | 'visa' | 'instapay' | 'wallet',
+    paymentMethod: 'cash' as string | PaymentMethod[],
     staffName: user?.name || '',
     isOther: false,
     skipReceipt: false,  // ✅ خيار عدم إنشاء إيصال
@@ -64,8 +67,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         console.error('❌ خطأ في جلب رقم العضوية:', error)
         setNextMemberNumber(1001)
         setFormData(prev => ({ ...prev, memberNumber: '1001' }))
-        setMessage(`⚠️ ${t('members.form.errorFetchingNumber')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.warning(t('members.form.errorFetchingNumber'))
       }
     }
 
@@ -176,24 +178,23 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
     if (!file) return
 
     if (!file.type.startsWith('image/')) {
-      setMessage(`❌ ${t('members.form.selectImageOnly')}`)
+      toast.error(t('members.form.selectImageOnly'))
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setMessage(`❌ ${t('members.form.imageSizeTooLarge')}`)
+      toast.error(t('members.form.imageSizeTooLarge'))
       return
     }
 
     try {
-      setMessage(`🔄 ${t('members.form.compressingImage')}`)
+      toast.info(t('members.form.compressingImage'))
       const compressedBase64 = await compressImage(file)
       setImagePreview(compressedBase64)
       setFormData(prev => ({ ...prev, profileImage: compressedBase64 }))
-      setMessage('')
     } catch (error) {
       console.error('خطأ في ضغط الصورة:', error)
-      setMessage(`❌ ${t('members.form.imageCompressionFailed')}`)
+      toast.error(t('members.form.imageCompressionFailed'))
     }
   }
 
@@ -226,14 +227,13 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setMessage('')
 
     if (formData.startDate && formData.expiryDate) {
       const start = new Date(formData.startDate)
       const end = new Date(formData.expiryDate)
 
       if (end <= start) {
-        setMessage(`❌ ${t('members.form.expiryMustBeAfterStart')}`)
+        toast.error(t('members.form.expiryMustBeAfterStart'))
         setLoading(false)
         return
       }
@@ -272,9 +272,9 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
 
       if (response.ok) {
         if (formData.skipReceipt) {
-          setMessage(`✅ ${t('members.form.memberAddedWithoutReceipt')}`)
+          toast.success(t('members.form.memberAddedWithoutReceipt'))
         } else {
-          setMessage(`✅ ${t('members.form.memberAddedSuccessfully')}`)
+          toast.success(t('members.form.memberAddedSuccessfully'))
         }
 
         if (data.receipt) {
@@ -286,6 +286,11 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               : null
 
             const paidAmount = cleanedData.subscriptionPrice
+
+            // تحويل paymentMethod إلى string للطباعة
+            const paymentMethodStr = typeof formData.paymentMethod === 'string'
+              ? formData.paymentMethod
+              : serializePaymentMethods(formData.paymentMethod)
 
             const receiptDetails = {
               memberNumber: data.member.memberNumber,
@@ -300,7 +305,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               inBodyScans: cleanedData.inBodyScans,
               invitations: cleanedData.invitations,
               freePTSessions: cleanedData.freePTSessions,
-              paymentMethod: formData.paymentMethod,
+              paymentMethod: paymentMethodStr,
               staffName: formData.staffName
             }
 
@@ -310,7 +315,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               cleanedData.subscriptionPrice,
               receiptDetails,
               new Date(data.receipt.createdAt),
-              formData.paymentMethod
+              paymentMethodStr
             )
           }, 500)
         }
@@ -326,10 +331,10 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
           onSuccess()
         }, 2000)
       } else {
-        setMessage(`❌ ${data.error || t('common.error')}`)
+        toast.error(data.error || t('common.error'))
       }
     } catch (error) {
-      setMessage(`❌ ${t('members.form.errorConnection')}`)
+      toast.error(t('members.form.errorConnection'))
       console.error('Error:', error)
     } finally {
       setLoading(false)
@@ -356,20 +361,11 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       expiryDate: formatDateYMD(expiryDate)
     }))
 
-    setMessage(`✅ ${t('members.form.offerApplied', { offerName: offer.name })}`)
-    setTimeout(() => setMessage(''), 2000)
+    toast.success(t('members.form.offerApplied', { offerName: offer.name }))
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      {message && (
-        <div className={`p-3 rounded-lg text-center font-medium text-sm ${
-          message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {message}
-        </div>
-      )}
-
+    <form onSubmit={handleSubmit} className="space-y-3" dir={direction}>
       {/* قسم العروض */}
       <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-4">
         <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-purple-800">
@@ -722,8 +718,10 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
             value={formData.paymentMethod}
             onChange={(method) => setFormData({
               ...formData,
-              paymentMethod: method as 'cash' | 'visa' | 'instapay' | 'wallet'
+              paymentMethod: method
             })}
+            allowMultiple={true}
+            totalAmount={paidAmount}
           />
         </div>
 

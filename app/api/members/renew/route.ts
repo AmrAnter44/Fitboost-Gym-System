@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { requireValidLicense } from '../../../../lib/license'
+import {
+  type PaymentMethod,
+  validatePaymentDistribution,
+  serializePaymentMethods
+} from '../../../../lib/paymentHelpers'
 
 // 🔧 دالة للبحث عن رقم إيصال متاح
 async function getNextAvailableReceiptNumber(startingNumber: number): Promise<number> {
@@ -145,12 +150,27 @@ export async function POST(request: Request) {
       // 🔒 License validation check
       await requireValidLicense()
 
+      // ✅ معالجة وسائل الدفع المتعددة
+      let finalPaymentMethod: string
+      if (Array.isArray(paymentMethod)) {
+        const validation = validatePaymentDistribution(paymentMethod, paidAmount)
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: validation.message || 'توزيع المبالغ غير صحيح' },
+            { status: 400 }
+          )
+        }
+        finalPaymentMethod = serializePaymentMethods(paymentMethod)
+      } else {
+        finalPaymentMethod = paymentMethod || 'cash'
+      }
+
       const receipt = await prisma.receipt.create({
         data: {
           receiptNumber: availableReceiptNumber,
           type: 'تجديد عضويه',
           amount: paidAmount,
-          paymentMethod: paymentMethod || 'cash',
+          paymentMethod: finalPaymentMethod,
           staffName: staffName.trim(),
           itemDetails: JSON.stringify({
             memberNumber: member.memberNumber,

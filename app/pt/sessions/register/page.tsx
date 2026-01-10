@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useToast } from '../../../../contexts/ToastContext'
 
 interface PTSession {
   ptNumber: number
@@ -13,10 +14,10 @@ interface PTSession {
 
 export default function RegisterPTSessionPage() {
   const router = useRouter()
+  const toast = useToast()
   const [sessions, setSessions] = useState<PTSession[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [message, setMessage] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [generatedQRCode, setGeneratedQRCode] = useState<string | null>(null)
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
@@ -59,7 +60,6 @@ export default function RegisterPTSessionPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
-    setMessage('')
 
     try {
       // دمج التاريخ والوقت
@@ -78,7 +78,7 @@ export default function RegisterPTSessionPage() {
       const result = await response.json()
 
       if (response.ok) {
-        setMessage('✅ تم تسجيل الحضور بنجاح!')
+        toast.success('تم تسجيل الحضور بنجاح!')
 
         // حفظ QR code وعرض النافذة المنبثقة
         if (result.qrCode) {
@@ -97,15 +97,12 @@ export default function RegisterPTSessionPage() {
 
         // تحديث القائمة
         fetchPTSessions()
-
-        // إخفاء الرسالة بعد 3 ثواني
-        setTimeout(() => setMessage(''), 3000)
       } else {
-        setMessage(`❌ ${result.error || 'فشل تسجيل الحضور'}`)
+        toast.error(result.error || 'فشل تسجيل الحضور')
       }
     } catch (error) {
       console.error(error)
-      setMessage('❌ حدث خطأ في الاتصال')
+      toast.error('حدث خطأ في الاتصال')
     } finally {
       setSubmitting(false)
     }
@@ -199,12 +196,6 @@ export default function RegisterPTSessionPage() {
         {/* نموذج التسجيل */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-4">بيانات الحضور</h2>
-
-          {message && (
-            <div className={`mb-4 p-4 rounded-lg ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {message}
-            </div>
-          )}
 
           {selectedPT && (
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
@@ -373,8 +364,7 @@ export default function RegisterPTSessionPage() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(generatedQRCode)
-                  setMessage('✅ تم نسخ QR Code')
-                  setTimeout(() => setMessage(''), 2000)
+                  toast.success('تم نسخ QR Code')
                 }}
                 className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium mb-3"
               >

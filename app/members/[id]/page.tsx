@@ -10,8 +10,10 @@ import UpgradeForm from '../../../components/UpgradeForm'
 import { formatDateYMD, calculateRemainingDays } from '../../../lib/dateFormatter'
 import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
+import type { PaymentMethod } from '../../../lib/paymentHelpers'
 import { FlexibilityAssessment, ExerciseTestData, MedicalQuestions, FitnessTestData } from '../../../types/fitness-test'
 import { useLanguage } from '../../../contexts/LanguageContext'
+import { useToast } from '../../../contexts/ToastContext'
 
 interface Member {
   id: string
@@ -128,10 +130,10 @@ export default function MemberDetailPage() {
   const memberId = params.id as string
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const { t, direction, locale } = useLanguage()
+  const toast = useToast()
 
   const [member, setMember] = useState<Member | null>(null)
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptData, setReceiptData] = useState<any>(null)
   const [showRenewalForm, setShowRenewalForm] = useState(false)
@@ -152,7 +154,11 @@ export default function MemberDetailPage() {
     onConfirm: () => void
   } | null>(null)
 
-  const [paymentData, setPaymentData] = useState({
+  const [paymentData, setPaymentData] = useState<{
+    amount: number
+    paymentMethod: string | PaymentMethod[]
+    notes: string
+  }>({
     amount: 0,
     paymentMethod: 'cash',
     notes: ''
@@ -250,7 +256,7 @@ export default function MemberDetailPage() {
       const response = await fetch(`/api/members/${memberId}`)
 
       if (!response.ok) {
-        setMessage(`❌ ${t('memberDetails.memberNotFound')}`)
+        toast.error(t('memberDetails.memberNotFound'))
         return
       }
 
@@ -275,11 +281,11 @@ export default function MemberDetailPage() {
         // جلب آخر إيصال للعضو
         fetchLastReceipt(memberId)
       } else {
-        setMessage(`❌ ${t('memberDetails.memberNotFound')}`)
+        toast.error(t('memberDetails.memberNotFound'))
       }
     } catch (error) {
       console.error('Error:', error)
-      setMessage(`❌ ${t('memberDetails.errorLoadingData')}`)
+      toast.error(t('memberDetails.errorLoadingData'))
     } finally {
       setLoading(false)
     }
@@ -432,19 +438,16 @@ export default function MemberDetailPage() {
 
   const handlePayment = async () => {
     if (!member || paymentData.amount <= 0) {
-      setMessage(`⚠️ ${t('memberDetails.paymentModal.enterValidAmount')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning(t('memberDetails.paymentModal.enterValidAmount'))
       return
     }
 
     if (paymentData.amount > member.remainingAmount) {
-      setMessage(`⚠️ ${t('memberDetails.paymentModal.amountExceedsRemaining')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning(t('memberDetails.paymentModal.amountExceedsRemaining'))
       return
     }
 
     setLoading(true)
-    setMessage('')
 
     try {
       // ✅ تحويل لـ integer
@@ -486,18 +489,17 @@ export default function MemberDetailPage() {
           setLastReceiptNumber(receipt.receiptNumber)
         }
 
-        setMessage(`✅ ${t('memberDetails.paymentModal.paymentSuccess')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('memberDetails.paymentModal.paymentSuccess'))
 
         setPaymentData({ amount: 0, paymentMethod: 'cash', notes: '' })
         setActiveModal(null)
         fetchMember()
       } else {
-        setMessage(`❌ ${t('memberDetails.paymentModal.paymentFailed')}`)
+        toast.error(t('memberDetails.paymentModal.paymentFailed'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(`❌ ${t('memberDetails.error')}`)
+      toast.error(t('memberDetails.error'))
     } finally {
       setLoading(false)
     }
@@ -505,8 +507,7 @@ export default function MemberDetailPage() {
 
   const handleUseInBody = async () => {
     if (!member || (member.inBodyScans ?? 0) <= 0) {
-      setMessage(`⚠️ ${t('memberDetails.noInBodyRemaining')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning(t('memberDetails.noInBodyRemaining'))
       return
     }
 
@@ -528,12 +529,11 @@ export default function MemberDetailPage() {
           })
 
           if (response.ok) {
-            setMessage(`✅ ${t('memberDetails.inBodyUsed')}`)
-            setTimeout(() => setMessage(''), 3000)
+            toast.success(t('memberDetails.inBodyUsed'))
             fetchMember()
           }
         } catch (error) {
-          setMessage(`❌ ${t('memberDetails.error')}`)
+          toast.error(t('memberDetails.error'))
         } finally {
           setLoading(false)
         }
@@ -543,8 +543,7 @@ export default function MemberDetailPage() {
 
   const handleUseInvitation = async () => {
     if (!member || (member.invitations ?? 0) <= 0) {
-      setMessage(`⚠️ ${t('memberDetails.noInvitationsRemaining')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning(t('memberDetails.noInvitationsRemaining'))
       return
     }
 
@@ -555,13 +554,11 @@ export default function MemberDetailPage() {
     if (!member) return
 
     if (!invitationData.guestName.trim() || !invitationData.guestPhone.trim()) {
-      setMessage(`⚠️ ${t('memberDetails.invitationModal.enterGuestInfo')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning(t('memberDetails.invitationModal.enterGuestInfo'))
       return
     }
 
     setLoading(true)
-    setMessage('')
 
     try {
       const response = await fetch('/api/invitations', {
@@ -578,8 +575,7 @@ export default function MemberDetailPage() {
       const result = await response.json()
 
       if (response.ok) {
-        setMessage(`✅ ${t('memberDetails.invitationModal.invitationSuccess')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('memberDetails.invitationModal.invitationSuccess'))
 
         setInvitationData({
           guestName: '',
@@ -590,13 +586,11 @@ export default function MemberDetailPage() {
 
         fetchMember()
       } else {
-        setMessage(`❌ ${result.error || t('memberDetails.invitationModal.invitationFailed')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.error(result.error || t('memberDetails.invitationModal.invitationFailed'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(`❌ ${t('memberDetails.connectionError')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error(t('memberDetails.connectionError'))
     } finally {
       setLoading(false)
     }
@@ -604,8 +598,7 @@ export default function MemberDetailPage() {
 
   const handleUseFreePT = async () => {
     if (!member || (member.freePTSessions ?? 0) <= 0) {
-      setMessage(`⚠️ ${t('memberDetails.noFreePTRemaining')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning(t('memberDetails.noFreePTRemaining'))
       return
     }
 
@@ -627,12 +620,11 @@ export default function MemberDetailPage() {
           })
 
           if (response.ok) {
-            setMessage(`✅ ${t('memberDetails.freePTUsed')}`)
-            setTimeout(() => setMessage(''), 3000)
+            toast.success(t('memberDetails.freePTUsed'))
             fetchMember()
           }
         } catch (error) {
-          setMessage(`❌ ${t('memberDetails.error')}`)
+          toast.error(t('memberDetails.error'))
         } finally {
           setLoading(false)
         }
@@ -642,13 +634,11 @@ export default function MemberDetailPage() {
 
   const handleEditBasicInfo = async () => {
     if (!member || !editBasicInfoData.name.trim() || !editBasicInfoData.phone.trim()) {
-      setMessage(`⚠️ ${t('memberDetails.editModal.enterNameAndPhone')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning(t('memberDetails.editModal.enterNameAndPhone'))
       return
     }
 
     setLoading(true)
-    setMessage('')
 
     try {
       const response = await fetch('/api/members', {
@@ -670,8 +660,7 @@ export default function MemberDetailPage() {
       })
 
       if (response.ok) {
-        setMessage(`✅ ${t('memberDetails.editModal.updateSuccess')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('memberDetails.editModal.updateSuccess'))
 
         setEditBasicInfoData({
           name: '',
@@ -689,13 +678,11 @@ export default function MemberDetailPage() {
         fetchMember()
       } else {
         const result = await response.json()
-        setMessage(`❌ ${result.error || t('memberDetails.editModal.updateFailed')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.error(result.error || t('memberDetails.editModal.updateFailed'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(`❌ ${t('memberDetails.connectionError')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error(t('memberDetails.connectionError'))
     } finally {
       setLoading(false)
     }
@@ -703,13 +690,11 @@ export default function MemberDetailPage() {
 
   const handleAddRemainingAmount = async () => {
     if (!member || addRemainingAmountData.amount <= 0) {
-      setMessage(`⚠️ ${t('memberDetails.addRemainingAmountModal.enterValidAmount')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning(t('memberDetails.addRemainingAmountModal.enterValidAmount'))
       return
     }
 
     setLoading(true)
-    setMessage('')
 
     try {
       const cleanAmount = parseInt(addRemainingAmountData.amount.toString())
@@ -725,21 +710,18 @@ export default function MemberDetailPage() {
       })
 
       if (response.ok) {
-        setMessage(`✅ ${t('memberDetails.addRemainingAmountModal.amountAdded', { amount: cleanAmount.toString() })}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('memberDetails.addRemainingAmountModal.amountAdded', { amount: cleanAmount.toString() }))
 
         setAddRemainingAmountData({ amount: 0, notes: '' })
         setActiveModal(null)
         fetchMember()
       } else {
         const result = await response.json()
-        setMessage(`❌ ${result.error || t('memberDetails.addRemainingAmountModal.updateFailed')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.error(result.error || t('memberDetails.addRemainingAmountModal.updateFailed'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(`❌ ${t('memberDetails.connectionError')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error(t('memberDetails.connectionError'))
     } finally {
       setLoading(false)
     }
@@ -747,15 +729,13 @@ export default function MemberDetailPage() {
 
   const handleFreeze = async () => {
     if (!member || !member.expiryDate || freezeData.days <= 0) {
-      setMessage(`⚠️ ${t('memberDetails.freezeModal.enterValidDays')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning(t('memberDetails.freezeModal.enterValidDays'))
       return
     }
 
     // التحقق من رصيد الفريز الكافي
     if (freezeData.days > member.remainingFreezeDays) {
-      setMessage(`❌ رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم`)
       return
     }
 
@@ -773,19 +753,16 @@ export default function MemberDetailPage() {
       const result = await response.json()
 
       if (response.ok) {
-        setMessage(`✅ تم تجميد الاشتراك لمدة ${freezeData.days} يوم بنجاح`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(`تم تجميد الاشتراك لمدة ${freezeData.days} يوم بنجاح`)
 
         setFreezeData({ days: 0, reason: '' })
         setActiveModal(null)
         fetchMember()
       } else {
-        setMessage(`❌ ${result.error || 'فشل التجميد'}`)
-        setTimeout(() => setMessage(''), 5000)
+        toast.error(result.error || 'فشل التجميد')
       }
     } catch (error) {
-      setMessage(`❌ ${t('memberDetails.error')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error(t('memberDetails.error'))
     } finally {
       setLoading(false)
     }
@@ -807,16 +784,16 @@ export default function MemberDetailPage() {
           })
 
           if (response.ok) {
-            setMessage(`✅ ${t('memberDetails.deleteModal.deleteSuccess')}`)
+            toast.success(t('memberDetails.deleteModal.deleteSuccess'))
             setTimeout(() => {
               router.push('/members')
             }, 1500)
           } else {
-            setMessage(`❌ ${t('memberDetails.deleteModal.deleteFailed')}`)
+            toast.error(t('memberDetails.deleteModal.deleteFailed'))
           }
         } catch (error) {
           console.error(error)
-          setMessage(`❌ ${t('memberDetails.deleteModal.deleteError')}`)
+          toast.error(t('memberDetails.deleteModal.deleteError'))
         } finally {
           setLoading(false)
         }
@@ -873,19 +850,16 @@ export default function MemberDetailPage() {
       })
 
       if (response.ok) {
-        setMessage(`✅ ${t('memberDetails.fitnessTest.saveSuccess')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('memberDetails.fitnessTest.saveSuccess'))
         setActiveModal(null)
         fetchFitnessTest()
       } else {
         const result = await response.json()
-        setMessage(`❌ ${result.error || t('memberDetails.fitnessTest.saveFailed')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.error(result.error || t('memberDetails.fitnessTest.saveFailed'))
       }
     } catch (error) {
       console.error('Error:', error)
-      setMessage(`❌ ${t('memberDetails.fitnessTest.saveError')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error(t('memberDetails.fitnessTest.saveError'))
     } finally {
       setLoading(false)
     }
@@ -933,11 +907,6 @@ export default function MemberDetailPage() {
         </button>
       </div>
 
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg ${message.includes('✅') ? 'bg-green-100 text-green-800' : message.includes('⚠️') ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-          {message}
-        </div>
-      )}
 
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-2xl p-8 mb-6">
         <div className={member.coach ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "grid grid-cols-1 md:grid-cols-3 gap-6"}>
@@ -1865,19 +1834,16 @@ export default function MemberDetailPage() {
                       })
 
                       if (response.ok) {
-                        setMessage('✅ تم إرسال الطلب للمدرب بنجاح!')
-                        setTimeout(() => setMessage(''), 3000)
+                        toast.success('تم إرسال الطلب للمدرب بنجاح!')
                         setActiveModal(null)
                         setSelectedCoachId('')
                       } else {
                         const result = await response.json()
-                        setMessage(`❌ ${result.error || 'فشل إرسال الطلب'}`)
-                        setTimeout(() => setMessage(''), 3000)
+                        toast.error(result.error || 'فشل إرسال الطلب')
                       }
                     } catch (error) {
                       console.error('Error:', error)
-                      setMessage('❌ حدث خطأ في إرسال الطلب')
-                      setTimeout(() => setMessage(''), 3000)
+                      toast.error('حدث خطأ في إرسال الطلب')
                     } finally {
                       setLoading(false)
                     }
@@ -2316,8 +2282,7 @@ export default function MemberDetailPage() {
 
             fetchMember()
             setShowRenewalForm(false)
-            setMessage(`✅ ${t('renewall.renewalSuccessMessage')}`)
-            setTimeout(() => setMessage(''), 3000)
+            toast.success(t('renewall.renewalSuccessMessage'))
           }}
           onClose={() => setShowRenewalForm(false)}
         />
@@ -2330,8 +2295,7 @@ export default function MemberDetailPage() {
           onSuccess={() => {
             setShowUpgradeForm(false)
             fetchMember()
-            setMessage(`✅ ${t('upgrade.upgradeSuccess')}`)
-            setTimeout(() => setMessage(''), 3000)
+            toast.success(t('upgrade.upgradeSuccess'))
           }}
           onClose={() => setShowUpgradeForm(false)}
         />

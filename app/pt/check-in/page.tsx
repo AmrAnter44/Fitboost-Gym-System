@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useToast } from '../../../contexts/ToastContext'
 
 interface SessionInfo {
   id: string
@@ -15,9 +16,9 @@ interface SessionInfo {
 
 export default function PTCheckInPage() {
   const router = useRouter()
+  const toast = useToast()
   const [qrCode, setQrCode] = useState('')
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
 
@@ -25,13 +26,11 @@ export default function PTCheckInPage() {
     e.preventDefault()
 
     if (!qrCode.trim() || qrCode.trim().length === 0) {
-      setMessage('⚠️ يرجى إدخال رقم PT أو Barcode')
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning('يرجى إدخال رقم PT أو Barcode')
       return
     }
 
     setLoading(true)
-    setMessage('')
 
     try {
       const response = await fetch('/api/pt/check-in', {
@@ -46,15 +45,13 @@ export default function PTCheckInPage() {
         setSessionInfo(result.session)
         setShowSuccess(true)
         setQrCode('')
-        setMessage('✅ تم تسجيل حضورك بنجاح!')
+        toast.success('تم تسجيل حضورك بنجاح!')
       } else {
-        setMessage(`❌ ${result.error || 'Barcode غير صحيح'}`)
-        setTimeout(() => setMessage(''), 5000)
+        toast.error(result.error || 'Barcode غير صحيح')
       }
     } catch (error) {
       console.error('Error:', error)
-      setMessage('❌ حدث خطأ في الاتصال')
-      setTimeout(() => setMessage(''), 5000)
+      toast.error('حدث خطأ في الاتصال')
     } finally {
       setLoading(false)
     }
@@ -161,16 +158,6 @@ export default function PTCheckInPage() {
         </div>
 
         {/* Message */}
-        {message && (
-          <div className={`mb-6 p-4 rounded-xl ${
-            message.includes('✅')
-              ? 'bg-green-100 text-green-800 border-2 border-green-300'
-              : 'bg-red-100 text-red-800 border-2 border-red-300'
-          }`}>
-            {message}
-          </div>
-        )}
-
         {/* Form */}
         <form onSubmit={handleCheckIn} className="space-y-6">
           <div>

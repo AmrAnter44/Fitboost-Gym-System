@@ -1,6 +1,7 @@
 // lib/auth.ts - نظام المصادقة والصلاحيات المحدث
 import jwt from 'jsonwebtoken'
 import { Permissions } from '../types/permissions'
+import { logError } from './errorLogger'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 

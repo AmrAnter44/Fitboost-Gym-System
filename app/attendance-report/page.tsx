@@ -55,6 +55,11 @@ export default function AttendanceReportPage() {
   const [dateTo, setDateTo] = useState('')
   const [selectedStaff, setSelectedStaff] = useState<string>('')
 
+  // تحديد الشهر والسنة
+  const currentDate = new Date()
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth()) // 0-11
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
+
   // Delete confirmation modal
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [attendanceToDelete, setAttendanceToDelete] = useState<Attendance | null>(null)
@@ -108,14 +113,61 @@ export default function AttendanceReportPage() {
     }
   }
 
+  // دالة لتحديث التواريخ بناءً على الشهر والسنة
+  const updateDatesFromMonth = (month: number, year: number) => {
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+
+    const formatDate = (date: Date) => {
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      return `${y}-${m}-${d}`
+    }
+
+    setDateFrom(formatDate(firstDay))
+    setDateTo(formatDate(lastDay))
+  }
+
   useEffect(() => {
     fetchStaff()
-    fetchAttendance()
+    // تهيئة التواريخ للشهر الحالي عند التحميل
+    updateDatesFromMonth(selectedMonth, selectedYear)
   }, [])
 
   useEffect(() => {
     fetchAttendance()
   }, [dateFrom, dateTo, selectedStaff])
+
+  // تحديث التواريخ عند تغيير الشهر أو السنة
+  const handleMonthChange = (month: number) => {
+    setSelectedMonth(month)
+    updateDatesFromMonth(month, selectedYear)
+  }
+
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year)
+    updateDatesFromMonth(selectedMonth, year)
+  }
+
+  // أسماء الشهور
+  const monthsAr = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ]
+
+  const monthsEn = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+
+  const months = direction === 'rtl' ? monthsAr : monthsEn
+
+  // إنشاء قائمة السنوات (من 2020 حتى السنة الحالية + 1)
+  const years = Array.from(
+    { length: currentDate.getFullYear() - 2019 + 1 },
+    (_, i) => 2020 + i
+  ).reverse() // ترتيب عكسي لعرض الأحدث أولاً
 
   const deleteAttendance = (record: Attendance) => {
     setAttendanceToDelete(record)
@@ -215,8 +267,61 @@ export default function AttendanceReportPage() {
         </button>
       </div>
 
+      {/* اختيار الشهر والسنة */}
+      <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-blue-200">
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <span>📅</span>
+          <span>{direction === 'rtl' ? 'اختر الشهر' : 'Select Month'}</span>
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-bold mb-2">
+              {direction === 'rtl' ? 'الشهر' : 'Month'}
+            </label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => handleMonthChange(Number(e.target.value))}
+              className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:border-blue-500 transition font-bold text-lg bg-white"
+            >
+              {months.map((month, index) => (
+                <option key={index} value={index}>
+                  {month}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold mb-2">
+              {direction === 'rtl' ? 'السنة' : 'Year'}
+            </label>
+            <select
+              value={selectedYear}
+              onChange={(e) => handleYearChange(Number(e.target.value))}
+              className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:border-blue-500 transition font-bold text-lg bg-white"
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* عرض الفترة المختارة */}
+        <div className="mt-4 p-3 bg-blue-100 rounded-lg border-2 border-blue-300">
+          <p className="text-sm text-blue-800 text-center">
+            <span className="font-bold">{direction === 'rtl' ? 'الفترة المختارة:' : 'Selected Period:'}</span>
+            {' '}
+            {dateFrom} {direction === 'rtl' ? 'إلى' : 'to'} {dateTo}
+          </p>
+        </div>
+      </div>
+
       {/* فلاتر البحث */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-blue-100">
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
         <h3 className="text-xl font-bold mb-4">🔍 {t('attendanceReport.searchFilters')}</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -334,7 +439,7 @@ export default function AttendanceReportPage() {
         </div>
       )}
 
-      {/* جدول السجلات */}
+      {/* سجلات الحضور بتصميم Cards */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600">
           <h3 className="text-xl font-bold text-white">📋 {t('attendanceReport.attendanceRecords')}</h3>
@@ -343,65 +448,196 @@ export default function AttendanceReportPage() {
         {loading ? (
           <div className="text-center py-12 text-gray-500">{t('attendanceReport.loading')}</div>
         ) : attendance.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('attendanceReport.date')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('attendanceReport.staffNumber')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('attendanceReport.name')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('attendanceReport.position')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('attendanceReport.checkInTime')}</th>
-                  <th className="px-4 py-3 text-center">{t('attendanceReport.status')}</th>
-                  <th className="px-4 py-3 text-center">{t('attendanceReport.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attendance.map((att) => (
-                  <tr key={att.id} className={`border-t hover:bg-gray-50 ${att.checkOut === null ? 'bg-green-50' : ''}`}>
-                    <td className="px-4 py-3">
-                      {new Date(att.checkIn).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="bg-blue-500 text-white px-3 py-1 rounded-lg font-bold text-sm">
-                        #{att.staff.staffCode}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-bold">{att.staff.name}</td>
-                    <td className="px-4 py-3">{getPositionLabel(att.staff.position)}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {new Date(att.checkIn).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {att.checkOut === null ? (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-                          🟢 {t('attendanceReport.inside')}
+          <div className="p-6 space-y-4">
+            {attendance.map((att) => {
+              const checkInTime = new Date(att.checkIn)
+              const checkOutTime = att.checkOut ? new Date(att.checkOut) : null
+              const currentTime = new Date()
+
+              // التحقق إذا كان السجل من اليوم الحالي
+              const isToday = checkInTime.toDateString() === currentTime.toDateString()
+              const isActuallyInside = att.checkOut === null && isToday
+
+              // حساب الساعات الفعلية
+              let actualMinutes = att.duration || 0
+              if (!att.checkOut) {
+                // إذا كان السجل من اليوم الحالي، احسب حتى الآن
+                if (isToday) {
+                  actualMinutes = Math.floor((currentTime.getTime() - checkInTime.getTime()) / (1000 * 60))
+                } else {
+                  // إذا كان سجل قديم، لا تحسب (سيظهر 0)
+                  actualMinutes = 0
+                }
+              }
+
+              const hours = Math.floor(actualMinutes / 60)
+              const minutes = actualMinutes % 60
+
+              return (
+                <div
+                  key={att.id}
+                  className={`border-2 rounded-xl p-6 transition hover:shadow-lg ${
+                    isActuallyInside
+                      ? 'bg-green-50 border-green-300'
+                      : att.checkOut === null
+                      ? 'bg-red-50 border-red-300'
+                      : 'bg-white border-gray-200'
+                  }`}
+                >
+                  {/* Header: التاريخ والاسم */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-lg">
+                          #{att.staff.staffCode}
                         </span>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-800">{att.staff.name}</h3>
+                          <p className="text-sm text-gray-600">{getPositionLabel(att.staff.position)}</p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        📅 {checkInTime.toLocaleDateString('ar-EG', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => deleteAttendance(att)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+                    >
+                      <span>🗑️</span>
+                      <span className="text-sm font-semibold">{t('attendanceReport.delete')}</span>
+                    </button>
+                  </div>
+
+                  {/* الأوقات والساعات */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* وقت الدخول */}
+                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">🕐</span>
+                        <p className="text-xs font-bold text-blue-700">{t('attendanceReport.checkInTime')}</p>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-800">
+                        {checkInTime.toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true,
+                        })}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        {checkInTime.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'short' })}
+                      </p>
+                    </div>
+
+                    {/* وقت الخروج */}
+                    <div
+                      className={`border-2 rounded-lg p-4 ${
+                        checkOutTime
+                          ? 'bg-orange-50 border-orange-200'
+                          : 'bg-yellow-50 border-yellow-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">🕐</span>
+                        <p className="text-xs font-bold text-orange-700">{t('attendanceReport.checkOutTime')}</p>
+                      </div>
+                      {checkOutTime ? (
+                        <>
+                          <p className="text-2xl font-bold text-orange-800">
+                            {checkOutTime.toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true,
+                            })}
+                          </p>
+                          <p className="text-xs text-orange-600 mt-1">
+                            {checkOutTime.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'short' })}
+                          </p>
+                        </>
                       ) : (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500 text-white">
-                          🔴 {t('attendanceReport.outside')}
-                        </span>
+                        <>
+                          <p className="text-lg font-bold text-yellow-800">{t('attendanceReport.notCheckedOut')}</p>
+                          <p className="text-xs text-yellow-600 mt-1">{t('attendanceReport.working')}</p>
+                        </>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => deleteAttendance(att)}
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+                    </div>
+
+                    {/* ساعات العمل */}
+                    <div
+                      className={`border-2 rounded-lg p-4 ${
+                        att.checkOut
+                          ? 'bg-purple-50 border-purple-200'
+                          : 'bg-green-50 border-green-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-2xl">⏱️</span>
+                        <p className="text-xs font-bold text-purple-700">{t('attendanceReport.workHours')}</p>
+                      </div>
+
+                      {hours === 0 && minutes === 0 ? (
+                        <p className="text-lg font-bold text-gray-600">
+                          {att.checkOut === null && !isToday ? t('attendanceReport.notCalculated') : t('attendanceReport.justStarted')}
+                        </p>
+                      ) : (
+                        <div className="flex gap-2 justify-center">
+                          {hours > 0 && (
+                            <div className="bg-white border-2 border-purple-300 rounded-lg px-3 py-2 flex-1 text-center">
+                              <div className="text-2xl font-bold text-purple-800">{hours}</div>
+                              <div className="text-xs text-purple-600">ساعة</div>
+                            </div>
+                          )}
+                          {minutes > 0 && (
+                            <div className="bg-white border-2 border-blue-300 rounded-lg px-3 py-2 flex-1 text-center">
+                              <div className="text-2xl font-bold text-blue-800">{minutes}</div>
+                              <div className="text-xs text-blue-600">دقيقة</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <p
+                        className={`text-xs mt-2 font-semibold text-center ${
+                          att.checkOut ? 'text-purple-600' : 'text-green-600'
+                        }`}
                       >
-                        🗑️ {t('attendanceReport.delete')}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        {att.checkOut ? `✅ ${t('attendanceReport.finished')}` : `⏳ ${t('attendanceReport.workingNow')}`}
+                      </p>
+                    </div>
+
+                    {/* الحالة */}
+                    <div className="flex items-center justify-center">
+                      {isActuallyInside ? (
+                        <div className="bg-green-500 text-white rounded-xl p-4 text-center shadow-lg animate-pulse w-full">
+                          <div className="text-4xl mb-2">🟢</div>
+                          <p className="font-bold text-lg">{t('attendanceReport.inside')}</p>
+                          <p className="text-xs text-green-100">{t('attendanceReport.presentNow')}</p>
+                        </div>
+                      ) : att.checkOut === null ? (
+                        <div className="bg-red-500 text-white rounded-xl p-4 text-center w-full border-2 border-red-700">
+                          <div className="text-4xl mb-2">⚠️</div>
+                          <p className="font-bold text-lg">{t('attendanceReport.missingCheckout')}</p>
+                          <p className="text-xs text-red-100">{t('attendanceReport.oldRecord')}</p>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-500 text-white rounded-xl p-4 text-center w-full">
+                          <div className="text-4xl mb-2">🔴</div>
+                          <p className="font-bold text-lg">{t('attendanceReport.outside')}</p>
+                          <p className="text-xs text-gray-100">{t('attendanceReport.leftWork')}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         ) : (
           <div className="text-center py-12 text-gray-400">

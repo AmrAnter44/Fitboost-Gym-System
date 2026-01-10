@@ -43,7 +43,7 @@ interface UpgradeFormProps {
 }
 
 export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormProps) {
-  const { t } = useLanguage()
+  const { t, direction } = useLanguage()
   const [offers, setOffers] = useState<Offer[]>([])
   const [selectedOfferId, setSelectedOfferId] = useState<string>('')
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'visa' | 'instapay' | 'wallet'>('cash')
@@ -183,7 +183,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8" dir={direction}>
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2">

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { normalizePaymentMethod, isMultiPayment } from '../../lib/paymentHelpers'
 
 interface DailyData {
   date: string
@@ -15,6 +16,11 @@ interface DailyData {
   instapay: number
   cash: number
   wallet: number
+  remainingAmount: number  // 💰 الفلوس الباقية
+  remainingCash: number     // 💰 الفلوس الباقية - كاش
+  remainingVisa: number     // 💰 الفلوس الباقية - فيزا
+  remainingInstapay: number // 💰 الفلوس الباقية - إنستاباي
+  remainingWallet: number   // 💰 الفلوس الباقية - محفظة
   staffLoans: { [key: string]: number }
   receipts: any[]
   expensesList: any[]
@@ -52,6 +58,11 @@ export default function ClosingPage() {
     instapay: 0,
     cash: 0,
     wallet: 0,
+    remainingAmount: 0,      // 💰 الفلوس الباقية
+    remainingCash: 0,        // 💰 الفلوس الباقية - كاش
+    remainingVisa: 0,        // 💰 الفلوس الباقية - فيزا
+    remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
+    remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
     totalPayments: 0,
     totalRevenue: 0,
     netProfit: 0
@@ -116,6 +127,11 @@ export default function ClosingPage() {
             instapay: 0,
             cash: 0,
             wallet: 0,
+            remainingAmount: 0,      // 💰 الفلوس الباقية
+            remainingCash: 0,        // 💰 الفلوس الباقية - كاش
+            remainingVisa: 0,        // 💰 الفلوس الباقية - فيزا
+            remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
+            remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
             staffLoans: {},
             receipts: [],
             expensesList: []
@@ -124,22 +140,88 @@ export default function ClosingPage() {
 
         dailyMap[date].receipts.push(receipt)
 
+        // استخراج المبلغ المتبقي من itemDetails
+        let remainingAmountInReceipt = 0
+        try {
+          const details = JSON.parse(receipt.itemDetails)
+          remainingAmountInReceipt = details.remainingAmount || 0
+        } catch (e) {
+          // ignore parsing errors
+        }
+
         // تحديد نوع الإيصال
-        if (receipt.type === 'Member' || receipt.type === 'تجديد عضويه') {
+        if (receipt.type === 'Member' || receipt.type === 'تجديد عضويه' || receipt.type === 'Payment') {
+          // floor يشمل: اشتراكات جديدة، تجديدات، ودفع المتبقي من العضويات
           dailyMap[date].floor += receipt.amount
-        } else if (receipt.type === 'PT' || receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت') {
+
+          // إضافة المبلغ المتبقي للعضويات الجديدة فقط (ليس Payment)
+          if (remainingAmountInReceipt > 0 && receipt.type !== 'Payment') {
+            dailyMap[date].remainingAmount += remainingAmountInReceipt
+
+            // توزيع المبلغ المتبقي حسب طريقة الدفع
+            const paymentMethodRaw = receipt.paymentMethod || 'cash'
+            if (isMultiPayment(paymentMethodRaw)) {
+              // دفع متعدد - توزيع المبلغ المتبقي بنفس نسبة التوزيع
+              const normalized = normalizePaymentMethod(paymentMethodRaw, receipt.amount)
+              normalized.methods.forEach(pm => {
+                const ratio = pm.amount / receipt.amount
+                const remainingForThisMethod = remainingAmountInReceipt * ratio
+
+                if (pm.method === 'visa') {
+                  dailyMap[date].remainingVisa += remainingForThisMethod
+                } else if (pm.method === 'instapay') {
+                  dailyMap[date].remainingInstapay += remainingForThisMethod
+                } else if (pm.method === 'wallet') {
+                  dailyMap[date].remainingWallet += remainingForThisMethod
+                } else {
+                  dailyMap[date].remainingCash += remainingForThisMethod
+                }
+              })
+            } else {
+              // دفع واحد
+              if (paymentMethodRaw === 'visa') {
+                dailyMap[date].remainingVisa += remainingAmountInReceipt
+              } else if (paymentMethodRaw === 'instapay') {
+                dailyMap[date].remainingInstapay += remainingAmountInReceipt
+              } else if (paymentMethodRaw === 'wallet') {
+                dailyMap[date].remainingWallet += remainingAmountInReceipt
+              } else {
+                dailyMap[date].remainingCash += remainingAmountInReceipt
+              }
+            }
+          }
+        } else if (receipt.type === 'PT' || receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت' || receipt.type === 'دفع باقي برايفت' || receipt.type === 'برايفت جديد') {
+          // PT يشمل: اشتراكات جديدة، تجديدات، ودفع الباقي
           dailyMap[date].pt += receipt.amount
         }
 
-        const paymentMethod = receipt.paymentMethod || 'cash'
-        if (paymentMethod === 'visa') {
-          dailyMap[date].visa += receipt.amount
-        } else if (paymentMethod === 'instapay') {
-          dailyMap[date].instapay += receipt.amount
-        } else if (paymentMethod === 'wallet') {
-          dailyMap[date].wallet += receipt.amount
+        // ✅ CRITICAL: توزيع المبالغ حسب وسائل الدفع الفعلية (دعم الدفع المتعدد)
+        const paymentMethodRaw = receipt.paymentMethod || 'cash'
+        if (isMultiPayment(paymentMethodRaw)) {
+          // دفع متعدد - توزيع المبالغ حسب كل طريقة
+          const normalized = normalizePaymentMethod(paymentMethodRaw, receipt.amount)
+          normalized.methods.forEach(pm => {
+            if (pm.method === 'visa') {
+              dailyMap[date].visa += pm.amount
+            } else if (pm.method === 'instapay') {
+              dailyMap[date].instapay += pm.amount
+            } else if (pm.method === 'wallet') {
+              dailyMap[date].wallet += pm.amount
+            } else {
+              dailyMap[date].cash += pm.amount
+            }
+          })
         } else {
-          dailyMap[date].cash += receipt.amount
+          // دفع واحد (backward compatible)
+          if (paymentMethodRaw === 'visa') {
+            dailyMap[date].visa += receipt.amount
+          } else if (paymentMethodRaw === 'instapay') {
+            dailyMap[date].instapay += receipt.amount
+          } else if (paymentMethodRaw === 'wallet') {
+            dailyMap[date].wallet += receipt.amount
+          } else {
+            dailyMap[date].cash += receipt.amount
+          }
         }
       })
 
@@ -162,6 +244,11 @@ export default function ClosingPage() {
             instapay: 0,
             cash: 0,
             wallet: 0,
+            remainingAmount: 0,      // 💰 الفلوس الباقية
+            remainingCash: 0,        // 💰 الفلوس الباقية - كاش
+            remainingVisa: 0,        // 💰 الفلوس الباقية - فيزا
+            remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
+            remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
             staffLoans: {},
             receipts: [],
             expensesList: []
@@ -199,6 +286,11 @@ export default function ClosingPage() {
         acc.instapay += day.instapay
         acc.cash += day.cash
         acc.wallet += day.wallet
+        acc.remainingAmount += day.remainingAmount        // 💰 الفلوس الباقية
+        acc.remainingCash += day.remainingCash            // 💰 الفلوس الباقية - كاش
+        acc.remainingVisa += day.remainingVisa            // 💰 الفلوس الباقية - فيزا
+        acc.remainingInstapay += day.remainingInstapay    // 💰 الفلوس الباقية - إنستاباي
+        acc.remainingWallet += day.remainingWallet        // 💰 الفلوس الباقية - محفظة
         return acc
       }, {
         floor: 0,
@@ -208,6 +300,11 @@ export default function ClosingPage() {
         instapay: 0,
         cash: 0,
         wallet: 0,
+        remainingAmount: 0,      // 💰 الفلوس الباقية
+        remainingCash: 0,        // 💰 الفلوس الباقية - كاش
+        remainingVisa: 0,        // 💰 الفلوس الباقية - فيزا
+        remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
+        remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
         totalPayments: 0,
         totalRevenue: 0,
         netProfit: 0
@@ -270,11 +367,11 @@ export default function ClosingPage() {
 
         // حساب المجاميع
         const floorRevenue = monthReceipts
-          .filter((r: any) => r.type === 'Member' || r.type === 'تجديد عضويه')
+          .filter((r: any) => r.type === 'Member' || r.type === 'تجديد عضويه' || r.type === 'Payment')
           .reduce((sum: number, r: any) => sum + r.amount, 0)
 
         const ptRevenue = monthReceipts
-          .filter((r: any) => r.type === 'PT' || r.type === 'اشتراك برايفت' || r.type === 'تجديد برايفت')
+          .filter((r: any) => r.type === 'PT' || r.type === 'اشتراك برايفت' || r.type === 'تجديد برايفت' || r.type === 'دفع باقي برايفت' || r.type === 'برايفت جديد')
           .reduce((sum: number, r: any) => sum + r.amount, 0)
 
         const totalExpenses = monthExpenses.reduce((sum: number, e: any) => sum + e.amount, 0)
@@ -283,7 +380,7 @@ export default function ClosingPage() {
 
         // عدد الاشتراكات
         const memberSubscriptions = monthReceipts.filter((r: any) => r.type === 'Member' || r.type === 'تجديد عضويه').length
-        const ptSubscriptions = monthReceipts.filter((r: any) => r.type === 'PT' || r.type === 'اشتراك برايفت' || r.type === 'تجديد برايفت').length
+        const ptSubscriptions = monthReceipts.filter((r: any) => r.type === 'PT' || r.type === 'اشتراك برايفت' || r.type === 'تجديد برايفت' || r.type === 'برايفت جديد').length
 
         monthsData.push({
           month: monthKey,
@@ -329,6 +426,11 @@ export default function ClosingPage() {
       const headerRow = mainSheet.addRow([
         t('closing.table.date'),
         t('closing.table.floor'),
+        direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining',
+        direction === 'rtl' ? 'باقي كاش' : 'Rem. Cash',
+        direction === 'rtl' ? 'باقي فيزا' : 'Rem. Visa',
+        direction === 'rtl' ? 'باقي إنستا' : 'Rem. Insta',
+        direction === 'rtl' ? 'باقي محفظة' : 'Rem. Wallet',
         t('closing.table.pt'),
         t('closing.table.cash'),
         t('closing.table.visa'),
@@ -362,6 +464,11 @@ export default function ClosingPage() {
         const row = mainSheet.addRow([
           new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US'),
           day.floor > 0 ? day.floor : 0,
+          day.remainingAmount > 0 ? day.remainingAmount : 0,
+          day.remainingCash > 0 ? day.remainingCash : 0,
+          day.remainingVisa > 0 ? day.remainingVisa : 0,
+          day.remainingInstapay > 0 ? day.remainingInstapay : 0,
+          day.remainingWallet > 0 ? day.remainingWallet : 0,
           day.pt > 0 ? day.pt : 0,
           day.cash > 0 ? day.cash : 0,
           day.visa > 0 ? day.visa : 0,
@@ -401,6 +508,11 @@ export default function ClosingPage() {
       const totalsRow = mainSheet.addRow([
         t('closing.table.totalLabel'),
         totals.floor,
+        totals.remainingAmount,
+        totals.remainingCash,
+        totals.remainingVisa,
+        totals.remainingInstapay,
+        totals.remainingWallet,
         totals.pt,
         totals.cash,
         totals.visa,
@@ -618,7 +730,39 @@ export default function ClosingPage() {
     return types[type] || type
   }
 
-  const getPaymentMethodLabel = (method: string) => {
+  const getPaymentMethodLabel = (method: string, amount?: number) => {
+    // ✅ معالجة الدفع المتعدد
+    if (isMultiPayment(method)) {
+      const normalized = normalizePaymentMethod(method, amount || 0)
+      const emojis = normalized.methods.map(m => {
+        if (m.method === 'cash') return '💵'
+        if (m.method === 'visa') return '💳'
+        if (m.method === 'instapay') return '📱'
+        if (m.method === 'wallet') return '💰'
+        return '💵'
+      }).join('')
+
+      return (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs font-bold text-purple-600">🔀 {emojis}</span>
+          {normalized.methods.map((m, idx) => {
+            const methodLabels: { [key: string]: string } = {
+              'cash': t('closing.paymentMethods.cash'),
+              'visa': t('closing.paymentMethods.visa'),
+              'instapay': t('closing.paymentMethods.instapay'),
+              'wallet': t('closing.paymentMethods.wallet')
+            }
+            return (
+              <span key={idx} className="text-xs whitespace-nowrap">
+                {methodLabels[m.method]}: {m.amount.toFixed(0)}
+              </span>
+            )
+          })}
+        </div>
+      )
+    }
+
+    // دفع واحد
     const methods: { [key: string]: string } = {
       'cash': `${t('closing.paymentMethods.cash')} 💵`,
       'visa': `${t('closing.paymentMethods.visa')} 💳`,
@@ -1375,6 +1519,11 @@ export default function ClosingPage() {
                 <tr className="bg-gray-200 border-2 border-gray-400">
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold">{t('closing.table.date')}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-blue-100">{t('closing.table.floor')}</th>
+                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-100">💰 {direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining'}</th>
+                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">💵 {direction === 'rtl' ? 'باقي كاش' : 'Rem. Cash'}</th>
+                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">💳 {direction === 'rtl' ? 'باقي فيزا' : 'Rem. Visa'}</th>
+                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">📱 {direction === 'rtl' ? 'باقي إنستا' : 'Rem. Insta'}</th>
+                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">💰 {direction === 'rtl' ? 'باقي محفظة' : 'Rem. Wallet'}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-green-100">{t('closing.table.pt')}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-green-50">{t('closing.table.cash')} 💵</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-blue-50">{t('closing.table.visa')} 💳</th>
@@ -1405,6 +1554,21 @@ export default function ClosingPage() {
                       </td>
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-blue-600`}>
                         {day.floor > 0 ? day.floor.toFixed(0) : '-'}
+                      </td>
+                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600`}>
+                        {day.remainingAmount > 0 ? day.remainingAmount.toFixed(0) : '-'}
+                      </td>
+                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-500`}>
+                        {day.remainingCash > 0 ? day.remainingCash.toFixed(0) : '-'}
+                      </td>
+                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-500`}>
+                        {day.remainingVisa > 0 ? day.remainingVisa.toFixed(0) : '-'}
+                      </td>
+                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-500`}>
+                        {day.remainingInstapay > 0 ? day.remainingInstapay.toFixed(0) : '-'}
+                      </td>
+                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-500`}>
+                        {day.remainingWallet > 0 ? day.remainingWallet.toFixed(0) : '-'}
                       </td>
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600`}>
                         {day.pt > 0 ? day.pt.toFixed(0) : '-'}
@@ -1448,7 +1612,7 @@ export default function ClosingPage() {
                     {/* تفاصيل اليوم */}
                     {expandedDay === day.date && (
                       <tr className="bg-blue-50 no-print">
-                        <td colSpan={(staffList?.length || 0) + 12} className="border border-gray-400 p-4">
+                        <td colSpan={(staffList?.length || 0) + 17} className="border border-gray-400 p-4">
                           <div className="space-y-4">
                             {/* الإيصالات */}
                             {day.receipts.length > 0 && (
@@ -1586,6 +1750,21 @@ export default function ClosingPage() {
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-blue-700 text-lg`}>
                     {totals.floor.toFixed(0)}
                   </td>
+                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 text-lg`}>
+                    {totals.remainingAmount.toFixed(0)}
+                  </td>
+                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 text-lg`}>
+                    {totals.remainingCash.toFixed(0)}
+                  </td>
+                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 text-lg`}>
+                    {totals.remainingVisa.toFixed(0)}
+                  </td>
+                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 text-lg`}>
+                    {totals.remainingInstapay.toFixed(0)}
+                  </td>
+                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 text-lg`}>
+                    {totals.remainingWallet.toFixed(0)}
+                  </td>
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 text-lg`}>
                     {totals.pt.toFixed(0)}
                   </td>
@@ -1628,7 +1807,7 @@ export default function ClosingPage() {
 
                 {/* Net Profit Row */}
                 <tr className="bg-green-100 border-t-2 border-green-600 font-bold">
-                  <td colSpan={3} className="border border-gray-400 px-3 py-3 text-center text-lg">
+                  <td colSpan={8} className="border border-gray-400 px-3 py-3 text-center text-lg">
                     {t('closing.stats.netProfit')}
                   </td>
                   <td colSpan={(staffList?.length || 0) + 9} className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-2xl text-green-700`}>

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { FlexibilityAssessment, ExerciseTestData, MedicalQuestions } from '../../../types/fitness-test'
+import { useToast } from '../../../contexts/ToastContext'
 
 function NewFitnessTestContent() {
   const router = useRouter()
@@ -10,9 +11,9 @@ function NewFitnessTestContent() {
   const memberId = searchParams.get('memberId')
   const coachId = searchParams.get('coachId')
   const requestId = searchParams.get('requestId')
+  const toast = useToast()
 
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
   const [member, setMember] = useState<any>(null)
   const [coach, setCoach] = useState<any>(null)
 
@@ -63,7 +64,7 @@ function NewFitnessTestContent() {
 
   useEffect(() => {
     if (!memberId || !coachId) {
-      setMessage('❌ معلومات غير مكتملة')
+      toast.error('معلومات غير مكتملة')
       return
     }
 
@@ -76,7 +77,7 @@ function NewFitnessTestContent() {
           setMember(foundMember)
         } else {
           console.error('فشل جلب بيانات العضو')
-          setMessage('❌ لم يتم العثور على العضو')
+          toast.error('لم يتم العثور على العضو')
         }
 
         // Fetch coach data
@@ -89,7 +90,7 @@ function NewFitnessTestContent() {
         }
       } catch (error) {
         console.error('Error fetching data:', error)
-        setMessage('❌ حدث خطأ في جلب البيانات')
+        toast.error('حدث خطأ في جلب البيانات')
       }
     }
 
@@ -112,7 +113,7 @@ function NewFitnessTestContent() {
       })
 
       if (response.ok) {
-        setMessage('✅ تم حفظ اختبار اللياقة بنجاح!')
+        toast.success('تم حفظ اختبار اللياقة بنجاح!')
 
         // إذا كان هناك requestId، قم بتحديث حالته إلى completed
         if (requestId) {
@@ -128,13 +129,11 @@ function NewFitnessTestContent() {
         }, 1500)
       } else {
         const result = await response.json()
-        setMessage(`❌ ${result.error || 'فشل حفظ الاختبار'}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.error(result.error || 'فشل حفظ الاختبار')
       }
     } catch (error) {
       console.error('Error:', error)
-      setMessage('❌ حدث خطأ في الحفظ')
-      setTimeout(() => setMessage(''), 3000)
+      toast.error('حدث خطأ في الحفظ')
     } finally {
       setLoading(false)
     }
@@ -206,12 +205,6 @@ function NewFitnessTestContent() {
           </div>
         </div>
 
-        {/* Message */}
-        {message && (
-          <div className="bg-white rounded-xl p-4 mb-6 text-center">
-            <p className="text-xl font-bold">{message}</p>
-          </div>
-        )}
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-2xl p-6">

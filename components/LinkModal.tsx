@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useRef } from 'react'
 import QRCode from 'qrcode'
+import { useLanguage } from '../contexts/LanguageContext'
 
 interface LinkModalProps {
   onClose: () => void
 }
 
 export default function LinkModal({ onClose }: LinkModalProps) {
+  const { direction } = useLanguage()
   const [url, setUrl] = useState<string>('')
   const [ip, setIp] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -97,6 +99,7 @@ export default function LinkModal({ onClose }: LinkModalProps) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
+      dir={direction}
     >
       <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full p-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3">

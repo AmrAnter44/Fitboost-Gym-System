@@ -199,7 +199,9 @@
       "cash": "كاش",
       "visa": "فيزا",
       "instapay": "إنستا باي",
-      "wallet": "محفظة إلكترونية"
+      "wallet": "محفظة إلكترونية",
+      "multiplePayments": "دفع متعدد",
+      "useMultiplePayments": "استخدام أكثر من وسيلة دفع"
     },
     "form": {
       "memberAddedSuccessfully": "تم إضافة العضو بنجاح!",
@@ -274,7 +276,13 @@
     "technicalSupport": "الدعم الفني",
     "supportDescription": "تواصل معنا عبر واتساب للحصول على الدعم الفني",
     "contactSupport": "تواصل عبر واتساب",
-    "poweredBy": "مدعوم من"
+    "poweredBy": "مدعوم من",
+    "barcodeScanner": "إعدادات الباركود سكانر",
+    "selectDevice": "اختر جهاز الباركود",
+    "noDevices": "لم يتم العثور على أجهزة",
+    "detectingDevices": "جاري البحث عن الأجهزة",
+    "autoScanEnabled": "المسح التلقائي مفعّل",
+    "defaultDevice": "استخدام الكاميرا الافتراضية"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -750,7 +758,21 @@
     "deleteRecordTitle": "حذف سجل حضور",
     "deleteRecordMessage": "هل أنت متأكد من حذف هذا السجل؟",
     "hoursAndMinutes": "{hours} ساعة و {minutes} دقيقة",
-    "minutes": "{minutes} دقيقة"
+    "minutes": "{minutes} دقيقة",
+    "checkOutTime": "وقت الخروج",
+    "notCheckedOut": "لم ينصرف بعد",
+    "working": "جاري العمل...",
+    "workHours": "ساعات العمل",
+    "hoursCount": "{count} ساعة",
+    "minutesCount": "{count} دقيقة",
+    "justStarted": "بدأ للتو",
+    "notCalculated": "غير محسوب",
+    "finished": "انتهى",
+    "workingNow": "يعمل الآن",
+    "presentNow": "موجود الآن",
+    "leftWork": "انصرف",
+    "missingCheckout": "لم يسجل الخروج",
+    "oldRecord": "سجل قديم"
   },
   "memberAttendance": {
     "title": "تقارير حضور الأعضاء",
@@ -2186,6 +2208,22 @@
       "renewalFailed": "فشل تجديد الاشتراك",
       "unexpectedError": "حدث خطأ غير متوقع"
     }
+  },
+  "multiPayment": {
+    "title": "تقسيم المبلغ على وسائل دفع متعددة",
+    "totalAmount": "المبلغ الكلي",
+    "remaining": "المتبقي",
+    "paid": "المدفوع",
+    "enterAmount": "أدخل المبلغ",
+    "mustMatchTotal": "يجب أن يساوي المجموع المبلغ الكلي بالضبط",
+    "validation": {
+      "totalMismatch": "المبلغ الكلي {total} لا يساوي المطلوب {expected}",
+      "invalidAmount": "جميع المبالغ يجب أن تكون أكبر من صفر"
+    },
+    "confirm": "تأكيد الدفع",
+    "cancel": "إلغاء",
+    "progress": "التقدم",
+    "complete": "مكتمل"
   },
   "receipt": {
     "created": "تم إنشاء الإيصال رقم #{number}"

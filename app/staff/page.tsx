@@ -8,6 +8,7 @@ import PermissionDenied from '../../components/PermissionDenied'
 import StaffBarcodeWhatsApp from '../../components/StaffBarcodeWhatsApp'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useToast } from '../../contexts/ToastContext'
 
 interface Staff {
   id: string
@@ -48,7 +49,8 @@ const POSITION_MAP: { [key: string]: string } = {
 
 export default function StaffPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, direction } = useLanguage()
+  const toast = useToast()
 
   const POSITIONS = [
     { value: 'مدرب', label: `💪 ${t('positions.trainer')}`, icon: '💪' },
@@ -75,7 +77,6 @@ export default function StaffPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null)
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
   const [showOtherPosition, setShowOtherPosition] = useState(false)
 
   // Delete confirmation modal
@@ -331,19 +332,18 @@ const handleScan = async (staffCode: string) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setMessage('')
 
     const finalPosition =
       formData.position === 'other' ? formData.customPosition : formData.position
 
     if (!finalPosition) {
-      setMessage(t('staff.messages.selectPosition'))
+      toast.warning(t('staff.messages.selectPosition'))
       setLoading(false)
       return
     }
 
     if (!formData.staffCode) {
-      setMessage(t('staff.messages.enterNumber'))
+      toast.warning(t('staff.messages.enterNumber'))
       setLoading(false)
       return
     }
@@ -351,7 +351,7 @@ const handleScan = async (staffCode: string) => {
     // ✅ التحقق من أن الرقم 9 أرقام
     const numericCode = formData.staffCode.replace(/[sS]/g, '')
     if (!/^\d{9}$/.test(numericCode)) {
-      setMessage(t('staff.messages.invalidNumber'))
+      toast.warning(t('staff.messages.invalidNumber'))
       setLoading(false)
       return
     }
@@ -378,17 +378,15 @@ const handleScan = async (staffCode: string) => {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage(editingStaff ? t('staff.messages.updated') : t('staff.messages.added'))
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(editingStaff ? t('staff.messages.updated') : t('staff.messages.added'))
         fetchStaff()
         resetForm()
       } else {
-        setMessage(`❌ ${data.error || t('staff.messages.failed')}`)
-        setTimeout(() => setMessage(''), 5000)
+        toast.error(data.error || t('staff.messages.failed'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(t('staff.messages.error'))
+      toast.error(t('staff.messages.error'))
     } finally {
       setLoading(false)
     }
@@ -429,19 +427,16 @@ const handleScan = async (staffCode: string) => {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage(t('staff.messages.deleted'))
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('staff.messages.deleted'))
         fetchStaff()
         setShowDeleteModal(false)
         setStaffToDelete(null)
       } else {
-        setMessage(`❌ ${data.error || t('staff.messages.deleteFailed')}`)
-        setTimeout(() => setMessage(''), 5000)
+        toast.error(data.error || t('staff.messages.deleteFailed'))
       }
     } catch (error) {
       console.error('Error deleting staff:', error)
-      setMessage(t('staff.messages.deleteError'))
-      setTimeout(() => setMessage(''), 5000)
+      toast.error(t('staff.messages.deleteError'))
     } finally {
       setDeleteLoading(false)
     }
@@ -494,7 +489,7 @@ const handleScan = async (staffCode: string) => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 md:px-6" dir="rtl">
+    <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       {/* ✅ قسم Scanner للحضور والانصراف */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-2xl p-8 mb-8 text-white">
         <div className="flex items-center justify-between mb-6">
@@ -573,53 +568,135 @@ const handleScan = async (staffCode: string) => {
         {todayAttendance.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-100">
+              <thead className="bg-gradient-to-r from-blue-100 to-purple-100">
                 <tr>
-                  <th className="px-4 py-3 text-right">{t('staff.attendance.number')}</th>
-                  <th className="px-4 py-3 text-right">{t('staff.attendance.name')}</th>
-                  <th className="px-4 py-3 text-right">{t('staff.attendance.position')}</th>
-                  <th className="px-4 py-3 text-right">{t('staff.attendance.checkInTime')}</th>
-                  <th className="px-4 py-3 text-center">{t('staff.attendance.status')}</th>
-                  <th className="px-4 py-3 text-center">{t('staff.attendance.duration')}</th>
+                  <th className="px-4 py-3 text-right font-bold">{t('staff.attendance.number')}</th>
+                  <th className="px-4 py-3 text-right font-bold">{t('staff.attendance.name')}</th>
+                  <th className="px-4 py-3 text-right font-bold">{t('staff.attendance.position')}</th>
+                  <th className="px-4 py-3 text-center font-bold">
+                    <div className="flex items-center justify-center gap-2">
+                      <span>🕐</span>
+                      <span>وقت الدخول</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center font-bold">
+                    <div className="flex items-center justify-center gap-2">
+                      <span>🕐</span>
+                      <span>وقت الخروج</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center font-bold">
+                    <div className="flex items-center justify-center gap-2">
+                      <span>⏱️</span>
+                      <span>ساعات العمل</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center font-bold">{t('staff.attendance.status')}</th>
                 </tr>
               </thead>
               <tbody>
-                {todayAttendance.map((att) => (
-                  <tr key={att.id} className={`border-t hover:bg-gray-50 ${att.checkOut === null ? 'bg-green-50' : 'bg-gray-50'}`}>
-                    <td className="px-4 py-3">
-                      <span className="bg-blue-500 text-white px-3 py-1 rounded-lg font-bold">
-                        #{att.staff.staffCode}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-bold">{att.staff.name}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs ${getPositionColor(
-                          att.staff.position || ''
-                        )}`}
-                      >
-                        {getPositionIcon(att.staff.position || '')} {getPositionLabel(att.staff.position)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {new Date(att.checkIn).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {att.checkOut === null ? (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-                          🟢 {t('staff.attendance.inside')}
+                {todayAttendance.map((att) => {
+                  const checkInTime = new Date(att.checkIn)
+                  const checkOutTime = att.checkOut ? new Date(att.checkOut) : null
+                  const currentTime = new Date()
+
+                  // حساب الساعات الفعلية
+                  let actualMinutes = att.duration || 0
+                  if (!att.checkOut) {
+                    // إذا لم يسجل الخروج بعد، احسب حتى الآن
+                    actualMinutes = Math.floor((currentTime.getTime() - checkInTime.getTime()) / (1000 * 60))
+                  }
+
+                  const hours = Math.floor(actualMinutes / 60)
+                  const minutes = actualMinutes % 60
+
+                  return (
+                    <tr key={att.id} className={`border-t hover:bg-gray-50 transition ${att.checkOut === null ? 'bg-green-50 border-r-4 border-green-500' : 'bg-white'}`}>
+                      <td className="px-4 py-4">
+                        <span className="bg-blue-500 text-white px-3 py-1 rounded-lg font-bold text-sm">
+                          #{att.staff.staffCode}
                         </span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500 text-white">
-                          🔴 {t('staff.attendance.outside')}
+                      </td>
+                      <td className="px-4 py-4 font-bold text-gray-800">{att.staff.name}</td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getPositionColor(
+                            att.staff.position || ''
+                          )}`}
+                        >
+                          {getPositionIcon(att.staff.position || '')} {getPositionLabel(att.staff.position)}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center font-bold text-blue-600">
-                      {formatDuration(att.duration)}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <div className="bg-blue-50 px-4 py-2 rounded-lg inline-block border-2 border-blue-200">
+                          <div className="text-lg font-bold text-blue-800">
+                            {checkInTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </div>
+                          <div className="text-xs text-blue-600">
+                            {checkInTime.toLocaleDateString('ar-EG', { weekday: 'short' })}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        {checkOutTime ? (
+                          <div className="bg-orange-50 px-4 py-2 rounded-lg inline-block border-2 border-orange-200">
+                            <div className="text-lg font-bold text-orange-800">
+                              {checkOutTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </div>
+                            <div className="text-xs text-orange-600">
+                              {checkOutTime.toLocaleDateString('ar-EG', { weekday: 'short' })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-yellow-50 px-4 py-2 rounded-lg inline-block border-2 border-yellow-300">
+                            <div className="text-sm font-bold text-yellow-800">
+                              لم ينصرف بعد
+                            </div>
+                            <div className="text-xs text-yellow-600">
+                              جاري العمل...
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <div className={`px-4 py-3 rounded-lg inline-block border-2 ${att.checkOut ? 'bg-purple-50 border-purple-200' : 'bg-green-50 border-green-300'}`}>
+                          {hours === 0 && minutes === 0 ? (
+                            <div className="text-lg font-bold text-gray-600">بدأ للتو</div>
+                          ) : (
+                            <div className="flex gap-2 justify-center mb-2">
+                              {hours > 0 && (
+                                <div className="bg-white border-2 border-purple-300 rounded px-3 py-1">
+                                  <div className="text-xl font-bold text-purple-800">{hours}</div>
+                                  <div className="text-xs text-purple-600">ساعة</div>
+                                </div>
+                              )}
+                              {minutes > 0 && (
+                                <div className="bg-white border-2 border-blue-300 rounded px-3 py-1">
+                                  <div className="text-xl font-bold text-blue-800">{minutes}</div>
+                                  <div className="text-xs text-blue-600">دقيقة</div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div className={`text-xs ${att.checkOut ? 'text-purple-600' : 'text-green-600'} font-semibold`}>
+                            {att.checkOut ? '✅ انتهى' : '⏳ يعمل الآن'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        {att.checkOut === null ? (
+                          <span className="px-4 py-2 rounded-full text-sm font-bold bg-green-500 text-white shadow-lg animate-pulse">
+                            🟢 {t('staff.attendance.inside')}
+                          </span>
+                        ) : (
+                          <span className="px-4 py-2 rounded-full text-sm font-bold bg-gray-500 text-white">
+                            🔴 {t('staff.attendance.outside')}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -647,16 +724,6 @@ const handleScan = async (staffCode: string) => {
           {showForm ? t('staff.hideForm') : `➕ ${t('staff.addNewStaff')}`}
         </button>
       </div>
-
-      {message && (
-        <div
-          className={`mb-6 p-4 rounded-lg ${
-            message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {message}
-        </div>
-      )}
 
       {/* نموذج الإضافة/التعديل */}
       {showForm && (

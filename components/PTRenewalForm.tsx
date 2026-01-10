@@ -5,6 +5,8 @@ import { calculateDaysBetween, formatDateYMD, formatDurationInMonths } from '../
 import PaymentMethodSelector from './Paymentmethodselector'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useToast } from '../contexts/ToastContext'
+import type { PaymentMethod } from '../lib/paymentHelpers'
 
 interface Staff {
   id: string
@@ -35,6 +37,7 @@ interface PTRenewalFormProps {
 export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewalFormProps) {
   const { user } = usePermissions()
   const { t, direction } = useLanguage()
+  const toast = useToast()
   const [coaches, setCoaches] = useState<Staff[]>([])
   const [coachesLoading, setCoachesLoading] = useState(true)
 
@@ -50,7 +53,16 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     return formatDateYMD(new Date())
   }
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    phone: string
+    sessionsPurchased: number
+    coachName: string
+    totalPrice: number
+    startDate: string
+    expiryDate: string
+    paymentMethod: string | PaymentMethod[]
+    staffName: string
+  }>({
     phone: session.phone,
     sessionsPurchased: 0,
     coachName: session.coachName,
@@ -61,7 +73,6 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     staffName: user?.name || '',
   })
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
 
   useEffect(() => {
     fetchCoaches()
@@ -109,14 +120,13 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setMessage('')
 
     if (formData.startDate && formData.expiryDate) {
       const start = new Date(formData.startDate)
       const end = new Date(formData.expiryDate)
 
       if (end <= start) {
-        setMessage(`❌ ${t('pt.renewal.dateError')}`)
+        toast.error(t('pt.renewal.dateError'))
         setLoading(false)
         return
       }
@@ -136,7 +146,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
       const result = await response.json()
 
       if (response.ok) {
-        setMessage(`✅ ${t('pt.renewal.successMessage')}`)
+        toast.success(t('pt.renewal.successMessage'))
 
         if (result.receipt) {
           try {
@@ -157,11 +167,11 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
           onClose()
         }, 1500)
       } else {
-        setMessage(`❌ ${result.error || t('pt.renewal.failureMessage')}`)
+        toast.error(result.error || t('pt.renewal.failureMessage'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(`❌ ${t('pt.renewal.connectionError')}`)
+      toast.error(t('pt.renewal.connectionError'))
     } finally {
       setLoading(false)
     }
@@ -215,12 +225,6 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
               </div>
             )}
           </div>
-
-          {message && (
-            <div className={`mb-3 p-3 rounded-lg text-sm ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {message}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">

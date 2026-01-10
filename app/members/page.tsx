@@ -72,7 +72,7 @@ export default function MembersPage() {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const { customCreatedAt } = useAdminDate()
-  const { t, locale } = useLanguage()
+  const { t, locale, direction } = useLanguage()
 
   const [members, setMembers] = useState<Member[]>([])
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([])
@@ -419,7 +419,7 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="container mx-auto p-6" dir="rtl">
+    <div className="container mx-auto p-6" dir={direction}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <h1 className="text-3xl font-bold">{t('members.managementTitle')}</h1>
         <div className="flex gap-3">
@@ -450,7 +450,7 @@ export default function MembersPage() {
       </div>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6" dir={direction}>
           <h2 className="text-xl font-semibold mb-4">{t('members.addMember')}</h2>
           <MemberForm
             onSuccess={() => {
@@ -462,7 +462,7 @@ export default function MembersPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6" dir={direction}>
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-xl shadow-lg">
           <div className="text-3xl font-bold">{stats.total}</div>
           <div className="text-sm opacity-90">{t('members.totalMembers')}</div>
@@ -489,7 +489,7 @@ export default function MembersPage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-purple-200">
+      <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-purple-200" dir={direction}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold flex items-center gap-2">
             <span>🎯</span>
@@ -639,6 +639,7 @@ export default function MembersPage() {
               value={specificDate}
               onChange={(e) => setSpecificDate(e.target.value)}
               className="flex-1 px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition"
+              dir={direction}
             />
             {specificDate && (
               <button
@@ -657,7 +658,7 @@ export default function MembersPage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-blue-200">
+      <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-blue-200" dir={direction}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold flex items-center gap-2">
             <span>🔍</span>
@@ -672,7 +673,7 @@ export default function MembersPage() {
             </button>
           )}
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">{t('members.membershipNumber')} (ID)</label>
@@ -682,9 +683,10 @@ export default function MembersPage() {
               onChange={(e) => setSearchId(e.target.value)}
               className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition"
               placeholder={t('members.searchByMembershipNumber')}
+              dir={direction}
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium mb-2">{t('members.name')}</label>
             <input
@@ -693,9 +695,10 @@ export default function MembersPage() {
               onChange={(e) => setSearchName(e.target.value)}
               className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition"
               placeholder={t('members.searchByName')}
+              dir={direction}
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium mb-2">{t('members.phone')}</label>
             <input
@@ -704,6 +707,7 @@ export default function MembersPage() {
               onChange={(e) => setSearchPhone(e.target.value)}
               className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition"
               placeholder={t('members.searchByPhone')}
+              dir={direction}
             />
           </div>
         </div>
@@ -718,7 +722,7 @@ export default function MembersPage() {
       </div>
 
       {(searchId || searchName || searchPhone || filterStatus !== 'all' || filterPackage !== 'all' || specificDate) && (
-        <div className="bg-yellow-50 border-2 border-yellow-300 p-4 rounded-xl mb-6 flex items-center justify-between">
+        <div className="bg-yellow-50 border-2 border-yellow-300 p-4 rounded-xl mb-6 flex items-center justify-between" dir={direction}>
           <div className="flex items-center gap-2">
             <span className="text-2xl">🔎</span>
             <div>
@@ -742,19 +746,19 @@ export default function MembersPage() {
           {/* Desktop Table - Hidden on mobile/tablet */}
           <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full" dir={direction}>
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-4 py-3 text-right">{t('members.image')}</th>
-                    <th className="px-4 py-3 text-right">ID</th>
-                    <th className="px-4 py-3 text-right">{t('members.name')}</th>
-                    <th className="px-4 py-3 text-right">{t('members.phone')}</th>
-                    <th className="px-4 py-3 text-right">{t('members.price')}</th>
-                    <th className="px-4 py-3 text-right">{locale === 'ar' ? 'الباقة' : 'Package'}</th>
-                    <th className="px-4 py-3 text-right">{t('members.status')}</th>
-                    <th className="px-4 py-3 text-right">{t('members.startDate')}</th>
-                    <th className="px-4 py-3 text-right">{t('members.expiryDate')}</th>
-                    <th className="px-4 py-3 text-right">{t('members.actions')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.image')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>ID</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.name')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.phone')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.price')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{locale === 'ar' ? 'الباقة' : 'Package'}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.status')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.startDate')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.expiryDate')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -865,7 +869,7 @@ export default function MembersPage() {
               const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
 
               return (
-                <div key={member.id} className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-gray-200 hover:shadow-lg transition">
+                <div key={member.id} className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-gray-200 hover:shadow-lg transition" dir={direction}>
                   {/* Header with Image and Member Number */}
                   <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-2.5">
                     <div className="flex items-center gap-2.5">
@@ -1032,7 +1036,7 @@ export default function MembersPage() {
 
       {/* Pagination Controls */}
       {!loading && filteredMembers.length > 0 && (
-            <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+            <div className="mt-6 bg-white rounded-lg shadow-md p-6" dir={direction}>
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 {/* معلومات الصفحة */}
                 <div className="text-sm text-gray-600">
@@ -1135,7 +1139,7 @@ export default function MembersPage() {
           )}
 
       {filteredMembers.length === 0 && !loading && (
-        <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
+        <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500" dir={direction}>
           {(searchId || searchName || searchPhone || filterStatus !== 'all' || specificDate) ? (
             <>
               <div className="text-6xl mb-4">🔍</div>
@@ -1159,7 +1163,7 @@ export default function MembersPage() {
       {/* Modal سجل الحضور */}
       {showAttendanceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" dir={direction}>
             {/* Header */}
             <div className="bg-gradient-to-r from-green-600 to-green-700 p-6 text-white flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -1175,7 +1179,7 @@ export default function MembersPage() {
             </div>
 
             {/* Filters */}
-            <div className="p-6 bg-gray-50 border-b">
+            <div className="p-6 bg-gray-50 border-b" dir={direction}>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-2">{t('members.fromDate')}</label>
@@ -1184,6 +1188,7 @@ export default function MembersPage() {
                     value={attendanceStartDate}
                     onChange={(e) => setAttendanceStartDate(e.target.value)}
                     className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                    dir={direction}
                   />
                 </div>
                 <div>
@@ -1193,6 +1198,7 @@ export default function MembersPage() {
                     value={attendanceEndDate}
                     onChange={(e) => setAttendanceEndDate(e.target.value)}
                     className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                    dir={direction}
                   />
                 </div>
                 <div className="flex items-end">
@@ -1235,14 +1241,14 @@ export default function MembersPage() {
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full" dir={direction}>
                       <thead className="bg-gray-100 sticky top-0">
                         <tr>
-                          <th className="px-4 py-3 text-right">{t('members.rank')}</th>
-                          <th className="px-4 py-3 text-right">{t('members.membershipNumber')}</th>
-                          <th className="px-4 py-3 text-right">{t('members.name')}</th>
-                          <th className="px-4 py-3 text-right">{t('members.phone')}</th>
-                          <th className="px-4 py-3 text-right">{t('members.attendanceCount')}</th>
+                          <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.rank')}</th>
+                          <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.membershipNumber')}</th>
+                          <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.name')}</th>
+                          <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.phone')}</th>
+                          <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.attendanceCount')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1301,8 +1307,8 @@ export default function MembersPage() {
 
       {/* Member Receipts Modal */}
       {showReceiptsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" dir={direction}>
             {/* Header */}
             <div className="bg-gradient-to-r from-orange-600 to-yellow-600 text-white p-6 rounded-t-lg">
               <h2 className="text-2xl font-bold flex items-center gap-2">

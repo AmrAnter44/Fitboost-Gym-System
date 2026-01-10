@@ -6,6 +6,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import PermissionDenied from '../../components/PermissionDenied'
 import { useAdminDate } from '../../contexts/AdminDateContext'
+import { useToast } from '../../contexts/ToastContext'
 
 interface Staff {
   id: string
@@ -28,12 +29,12 @@ export default function ExpensesPage() {
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const { t, direction } = useLanguage()
   const { customCreatedAt } = useAdminDate()
+  const toast = useToast()
 
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'gym_expense' | 'staff_loan'>('all')
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; expenseId: string | null; expenseName: string }>({
     show: false,
@@ -97,7 +98,6 @@ export default function ExpensesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setMessage('')
 
     try {
       // إذا كان تعديل، استخدم handleUpdate
@@ -136,16 +136,15 @@ export default function ExpensesPage() {
           createdAt: '',
         })
 
-        setMessage(`✅ ${t('expenses.messages.addSuccess')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('expenses.messages.addSuccess'))
         fetchExpenses()
         setShowForm(false)
       } else {
-        setMessage(`❌ ${t('expenses.messages.addError')}`)
+        toast.error(t('expenses.messages.addError'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(`❌ ${t('expenses.messages.error')}`)
+      toast.error(t('expenses.messages.error'))
     } finally {
       setLoading(false)
     }
@@ -177,16 +176,15 @@ export default function ExpensesPage() {
           createdAt: '',
         })
         setEditingExpense(null)
-        setMessage(`✅ ${t('expenses.messages.updateSuccess')}`)
-        setTimeout(() => setMessage(''), 3000)
+        toast.success(t('expenses.messages.updateSuccess'))
         fetchExpenses()
         setShowForm(false)
       } else {
-        setMessage(`❌ ${t('expenses.messages.updateError')}`)
+        toast.error(t('expenses.messages.updateError'))
       }
     } catch (error) {
       console.error(error)
-      setMessage(`❌ ${t('expenses.messages.error')}`)
+      toast.error(t('expenses.messages.error'))
     } finally {
       setLoading(false)
     }
@@ -206,12 +204,10 @@ export default function ExpensesPage() {
     try {
       await fetch(`/api/expenses?id=${deleteConfirm.expenseId}`, { method: 'DELETE' })
       fetchExpenses()
-      setMessage(`✅ ${t('expenses.messages.deleteSuccess')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.success(t('expenses.messages.deleteSuccess'))
     } catch (error) {
       console.error('Error:', error)
-      setMessage(`❌ ${t('expenses.messages.deleteError')}`)
-      setTimeout(() => setMessage(''), 3000)
+      toast.error(t('expenses.messages.deleteError'))
     } finally {
       setDeleteConfirm({ show: false, expenseId: null, expenseName: '' })
     }
@@ -349,14 +345,8 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {message}
-        </div>
-      )}
-
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" dir={direction}>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex items-center justify-between">
             <div>
@@ -399,7 +389,7 @@ export default function ExpensesPage() {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6" dir={direction}>
           <h2 className="text-xl font-semibold mb-4">
             {editingExpense ? '✏️ تعديل المصروف' : t('expenses.form.title')}
           </h2>
@@ -517,11 +507,12 @@ export default function ExpensesPage() {
       )}
 
       {/* Filter */}
-      <div className="mb-4">
+      <div className="mb-4" dir={direction}>
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value as any)}
           className="px-4 py-2 border rounded-lg"
+          dir={direction}
         >
           <option value="all">{t('expenses.filter.all')}</option>
           <option value="gym_expense">{t('expenses.filter.gymExpenses')}</option>
@@ -535,7 +526,7 @@ export default function ExpensesPage() {
       ) : (
         <>
           {/* Cards للموبايل */}
-          <div className="md:hidden space-y-4">
+          <div className="md:hidden space-y-4" dir={direction}>
             {filteredExpenses.map((expense) => (
               <div
                 key={expense.id}
@@ -626,8 +617,8 @@ export default function ExpensesPage() {
           </div>
 
           {/* الجدول للشاشات الكبيرة */}
-          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
-            <table className="w-full">
+          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden" dir={direction}>
+            <table className="w-full" dir={direction}>
               <thead className="bg-gray-100">
                 <tr>
                   <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('expenses.table.type')}</th>

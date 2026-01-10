@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Toast from './Toast';
+import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel } from '../lib/paymentHelpers';
 
 interface ReceiptWhatsAppProps {
   receipt: {
@@ -80,18 +81,22 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
     }
 
     // تفاصيل PT
-    if (data.type === 'PT') {
+    if (data.type === 'PT' || data.type.includes('برايفت')) {
       message += `━━━━━━━━━━━━━━━━━━━━\n`;
       message += `*تفاصيل التدريب*\n`;
       message += `━━━━━━━━━━━━━━━━━━━━\n`;
       if (details.ptNumber) {
         message += `• رقم PT: ${details.ptNumber}\n`;
       }
-      if (details.sessions) {
-        message += `• عدد الجلسات: ${details.sessions}\n`;
+      if (details.sessions || details.sessionsPurchased) {
+        message += `• عدد الجلسات: ${details.sessions || details.sessionsPurchased}\n`;
       }
       if (details.pricePerSession) {
         message += `• سعر الجلسة: ${details.pricePerSession} ج.م\n`;
+      }
+      // ✅ عرض المبلغ المتبقي المرتجع في حالة التجديد
+      if (details.oldRemainingAmount && details.oldRemainingAmount > 0) {
+        message += `• المبلغ المتبقي المرتجع: ${details.oldRemainingAmount} ج.م ✅\n`;
       }
       message += `\n`;
     }
@@ -114,9 +119,18 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
       message += `*المتبقي:* ${details.remainingAmount} ج.م\n`;
     }
 
-    // طريقة الدفع
-    const paymentName = data.paymentMethod === 'cash' ? 'كاش' : data.paymentMethod === 'visa' ? 'فيزا' : data.paymentMethod === 'instapay' ? 'InstaPay' : data.paymentMethod === 'wallet' ? 'محفظة' : data.paymentMethod;
-    message += `*طريقة الدفع:* ${paymentName}\n`;
+    // ✅ طريقة الدفع (واحدة أو متعددة)
+    const isMulti = isMultiPayment(data.paymentMethod)
+    if (isMulti) {
+      const normalized = normalizePaymentMethod(data.paymentMethod, data.amount)
+      message += `*طريقة الدفع:* متعددة\n`
+      normalized.methods.forEach(m => {
+        message += `  • ${getPaymentMethodLabel(m.method, 'ar')}: ${m.amount.toFixed(2)} ج.م\n`
+      })
+    } else {
+      const paymentName = getPaymentMethodLabel(data.paymentMethod, 'ar')
+      message += `*طريقة الدفع:* ${paymentName}\n`
+    }
     message += `\n`;
 
     // التاريخ والموظف

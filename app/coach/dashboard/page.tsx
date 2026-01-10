@@ -6,6 +6,7 @@ import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
 import { formatDateYMD } from '../../../lib/dateFormatter'
 import dynamic from 'next/dynamic'
+import { useToast } from '../../../contexts/ToastContext'
 
 const QRScanner = dynamic(() => import('../../../components/QRScanner'), {
   ssr: false,
@@ -40,11 +41,11 @@ interface User {
 export default function CoachDashboardPage() {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
+  const toast = useToast()
 
   const [sessions, setSessions] = useState<PTSession[]>([])
   const [filteredSessions, setFilteredSessions] = useState<PTSession[]>([])
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'attended'>('pending')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
@@ -75,7 +76,7 @@ export default function CoachDashboardPage() {
       setSessions(sessions)
     } catch (error) {
       console.error('Error fetching sessions:', error)
-      setMessage('❌ فشل تحميل الجلسات')
+      toast.error('فشل تحميل الجلسات')
     } finally {
       setLoading(false)
     }
@@ -119,8 +120,7 @@ export default function CoachDashboardPage() {
     const codeToUse = qrCode || qrCodeInput.trim()
 
     if (!codeToUse) {
-      setMessage('⚠️ يرجى إدخال QR Code')
-      setTimeout(() => setMessage(''), 3000)
+      toast.warning('يرجى إدخال QR Code')
       return
     }
 
@@ -134,20 +134,17 @@ export default function CoachDashboardPage() {
       const result = await response.json()
 
       if (response.ok) {
-        setMessage(`✅ تم تسجيل حضور ${result.session.clientName} بنجاح!`)
+        toast.success(`تم تسجيل حضور ${result.session.clientName} بنجاح!`)
         setQrCodeInput('')
         setShowQRInput(false)
         setShowQRScanner(false)
-        setTimeout(() => setMessage(''), 3000)
         fetchMySessions()
       } else {
-        setMessage(`❌ ${result.error || 'QR Code غير صحيح'}`)
-        setTimeout(() => setMessage(''), 5000)
+        toast.error(result.error || 'QR Code غير صحيح')
       }
     } catch (error) {
       console.error('Error with QR code:', error)
-      setMessage('❌ حدث خطأ في تسجيل الحضور')
-      setTimeout(() => setMessage(''), 5000)
+      toast.error('حدث خطأ في تسجيل الحضور')
     }
   }
 
@@ -207,15 +204,6 @@ export default function CoachDashboardPage() {
         </h1>
         <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">حصصك التدريبية</p>
       </div>
-
-      {/* Message */}
-      {message && (
-        <div className={`mb-4 p-4 rounded-lg ${
-          message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {message}
-        </div>
-      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -559,8 +547,7 @@ export default function CoachDashboardPage() {
         <QRScanner
           onScan={handleQRScan}
           onError={(error) => {
-            setMessage(`❌ ${error}`)
-            setTimeout(() => setMessage(''), 5000)
+            toast.error(error)
           }}
           isScanning={showQRScanner}
           onClose={() => setShowQRScanner(false)}

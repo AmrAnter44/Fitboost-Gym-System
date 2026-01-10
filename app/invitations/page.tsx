@@ -19,7 +19,7 @@ interface Invitation {
 }
 
 export default function InvitationsPage() {
-  const { t } = useLanguage()
+  const { t, direction } = useLanguage()
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -120,7 +120,7 @@ export default function InvitationsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 md:px-6" dir="rtl">
+    <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-3">
