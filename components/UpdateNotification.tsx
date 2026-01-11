@@ -1,133 +1,124 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUpdate } from '@/contexts/UpdateContext'
 
 interface UpdateInfo {
-  version: string
-  releaseDate?: string
-  releaseNotes?: string
-}
-
-interface DownloadProgress {
-  percent: number
-  transferred: number
-  total: number
-  bytesPerSecond: number
+  latestVersion: string
+  downloadUrl: string
+  releaseNotes: string
+  publishedAt: string
+  htmlUrl: string
 }
 
 export default function UpdateNotification() {
-  const { t, direction } = useLanguage()
+  const { direction } = useLanguage()
   const { setUpdateAvailable: setGlobalUpdateAvailable } = useUpdate()
   const [updateAvailable, setUpdateAvailable] = useState(false)
-  const [updateDownloaded, setUpdateDownloaded] = useState(false)
-  const [downloadProgress, setDownloadProgress] = useState(0)
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [isElectron, setIsElectron] = useState(false)
-  const [progressInfo, setProgressInfo] = useState<DownloadProgress | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const [isUpToDate, setIsUpToDate] = useState(false)
 
-  useEffect(() => {
-    // التحقق من بيئة Electron
-    const electron = (window as any).electron
-    if (electron?.isElectron) {
-      setIsElectron(true)
-      setupUpdateListeners(electron)
+  // Get current version from package.json
+  const currentVersion = '1.0.7'
+
+  // Simple version comparison (major.minor.patch)
+  const compareVersions = (v1: string, v2: string): number => {
+    const parts1 = v1.split('.').map(Number)
+    const parts2 = v2.split('.').map(Number)
+
+    for (let i = 0; i < 3; i++) {
+      if (parts1[i] > parts2[i]) return 1
+      if (parts1[i] < parts2[i]) return -1
     }
-
-    return () => {
-      // تنظيف المستمعين
-      electron?.offUpdateListeners?.()
-    }
-  }, [])
-
-  const setupUpdateListeners = (electron: any) => {
-    // عند توفر تحديث جديد
-    electron.onUpdateAvailable?.((info: UpdateInfo) => {
-      console.log('🔄 Update available:', info)
-      setUpdateInfo(info)
-      setUpdateAvailable(true)
-      setGlobalUpdateAvailable(true) // ✅ تحديث الـ context للـ badge
-      setDownloadProgress(0)
-      setIsChecking(false)
-      setIsUpToDate(false)
-    })
-
-    // عند عدم وجود تحديثات
-    electron.onUpdateNotAvailable?.((info: UpdateInfo) => {
-      console.log('✅ App is up to date:', info)
-      setUpdateInfo(info)
-      setIsUpToDate(true)
-      setIsChecking(false)
-      setGlobalUpdateAvailable(false) // ✅ إخفاء الـ badge
-      // إخفاء التنبيه بعد 4 ثواني
-      setTimeout(() => setIsUpToDate(false), 4000)
-    })
-
-    // عند تحميل التحديث
-    electron.onUpdateDownloaded?.((info: UpdateInfo) => {
-      console.log('✅ Update downloaded:', info)
-      setUpdateDownloaded(true)
-      setDownloadProgress(100)
-      setIsChecking(false)
-      // الـ badge يظل ظاهر لحد ما يثبت التحديث
-    })
-
-    // نسبة التحميل
-    electron.onDownloadProgress?.((progress: DownloadProgress) => {
-      console.log(`📥 Download progress: ${progress.percent.toFixed(2)}%`)
-      setDownloadProgress(progress.percent)
-      setProgressInfo(progress)
-    })
-
-    // عند حدوث خطأ
-    electron.onUpdateError?.((errorInfo: { message: string }) => {
-      console.error('❌ Update error:', errorInfo)
-      setError(errorInfo.message)
-      setTimeout(() => setError(null), 5000)
-    })
-  }
-
-  const handleInstallUpdate = () => {
-    const electron = (window as any).electron
-    electron?.quitAndInstall?.()
+    return 0
   }
 
   const handleCheckForUpdates = async () => {
     setIsChecking(true)
-    const electron = (window as any).electron
-    electron?.checkForUpdates?.()
+    setError(null)
+    setUpdateInfo(null)
 
-    // إخفاء loading بعد 3 ثواني
-    setTimeout(() => setIsChecking(false), 3000)
+    try {
+      const response = await fetch('/api/check-update')
+
+      if (!response.ok) {
+        throw new Error('فشل التحقق من التحديثات')
+      }
+
+      const data: UpdateInfo = await response.json()
+      setUpdateInfo(data)
+
+      // Compare versions
+      const isNewVersion = compareVersions(data.latestVersion, currentVersion) > 0
+
+      if (isNewVersion) {
+        setUpdateAvailable(true)
+        setGlobalUpdateAvailable(true)
+      } else {
+        setIsUpToDate(true)
+        setGlobalUpdateAvailable(false)
+        // إخفاء التنبيه بعد 4 ثواني
+        setTimeout(() => setIsUpToDate(false), 4000)
+      }
+    } catch (err) {
+      console.error('Error checking for updates:', err)
+      setError('فشل التحقق من التحديثات. تأكد من اتصال الإنترنت.')
+      setTimeout(() => setError(null), 5000)
+    } finally {
+      setIsChecking(false)
+    }
+  }
+
+  const handleDownloadUpdate = () => {
+    if (updateInfo?.htmlUrl) {
+      window.open(updateInfo.htmlUrl, '_blank')
+    }
   }
 
   const handleDismiss = () => {
     setUpdateAvailable(false)
-    setUpdateDownloaded(false)
     setUpdateInfo(null)
-    setProgressInfo(null)
+    setGlobalUpdateAvailable(false)
   }
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
   }
-
-  const formatSpeed = (bytesPerSecond: number) => {
-    return formatBytes(bytesPerSecond) + '/s'
-  }
-
-  if (!isElectron) return null
 
   return (
     <>
+      {/* Floating Check Updates Button - bottom left */}
+      <button
+        onClick={handleCheckForUpdates}
+        disabled={isChecking}
+        className="fixed bottom-4 left-4 z-[9999] bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 rounded-full shadow-2xl hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        title={direction === 'rtl' ? 'التحقق من التحديثات' : 'Check for Updates'}
+      >
+        {isChecking ? (
+          <>
+            <span className="animate-spin text-lg">⏳</span>
+            <span className="text-sm font-bold">
+              {direction === 'rtl' ? 'جاري التحقق...' : 'Checking...'}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-lg">🔄</span>
+            <span className="text-sm font-bold">
+              {direction === 'rtl' ? 'تحقق من التحديثات' : 'Check Updates'}
+            </span>
+          </>
+        )}
+      </button>
+
       {/* Error notification */}
       {error && (
         <div
@@ -172,13 +163,8 @@ export default function UpdateNotification() {
               </p>
               <p className="text-sm opacity-90">
                 {direction === 'rtl'
-                  ? `النسخة ${updateInfo?.version || '1.0.0'} هي أحدث إصدار متاح`
-                  : `Version ${updateInfo?.version || '1.0.0'} is the latest available`}
-              </p>
-              <p className="text-xs opacity-75 mt-2">
-                {direction === 'rtl'
-                  ? 'سيتم التحقق من التحديثات تلقائياً كل 6 ساعات'
-                  : 'Updates are checked automatically every 6 hours'}
+                  ? `النسخة ${currentVersion} هي أحدث إصدار متاح`
+                  : `Version ${currentVersion} is the latest available`}
               </p>
             </div>
             <button
@@ -191,96 +177,60 @@ export default function UpdateNotification() {
         </div>
       )}
 
-      {/* Update downloading notification */}
-      {updateAvailable && !updateDownloaded && (
-        <div
-          className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-blue-500 to-blue-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-blue-400"
-          style={{ minWidth: '380px', maxWidth: '420px' }}
-          dir={direction}
-        >
-          <div className="flex items-start gap-3">
-            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
-              <span className="text-2xl">🔄</span>
-            </div>
-            <div className="flex-1">
-              <p className="font-bold mb-1 text-lg">
-                {direction === 'rtl' ? 'تحديث جديد متاح!' : 'New Update Available!'}
-              </p>
-              <p className="text-sm opacity-90 mb-3">
-                {direction === 'rtl' ? 'النسخة' : 'Version'} {updateInfo?.version}
-              </p>
-
-              {/* Progress bar */}
-              <div className="w-full bg-white/20 rounded-full h-4 mb-2 overflow-hidden backdrop-blur-sm">
-                <div
-                  className="bg-gradient-to-r from-white to-blue-100 h-4 rounded-full transition-all duration-300 flex items-center justify-center shadow-sm"
-                  style={{ width: `${downloadProgress}%` }}
-                >
-                  {downloadProgress > 15 && (
-                    <span className="text-xs font-bold text-blue-600 px-2">
-                      {downloadProgress.toFixed(0)}%
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Download info */}
-              <div className="flex justify-between items-center text-xs opacity-85">
-                <span>
-                  {direction === 'rtl' ? 'جاري التحميل...' : 'Downloading...'}
-                </span>
-                {progressInfo && (
-                  <span className="font-mono">
-                    {formatBytes(progressInfo.transferred)} / {formatBytes(progressInfo.total)}
-                    {progressInfo.bytesPerSecond > 0 && (
-                      <span className="ml-2 opacity-75">
-                        ({formatSpeed(progressInfo.bytesPerSecond)})
-                      </span>
-                    )}
-                  </span>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={handleDismiss}
-              className="text-white/70 hover:text-white transition-colors text-xl"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Update ready to install notification */}
-      {updateDownloaded && (
+      {/* Update available notification */}
+      {updateAvailable && updateInfo && (
         <div
           className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-green-500 to-green-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-green-400"
-          style={{ minWidth: '380px', maxWidth: '420px' }}
+          style={{ minWidth: '400px', maxWidth: '450px' }}
           dir={direction}
         >
           <div className="flex items-start gap-3">
             <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
-              <span className="text-3xl">✅</span>
+              <span className="text-3xl">🎉</span>
             </div>
             <div className="flex-1">
               <p className="font-bold mb-1 text-xl">
-                {direction === 'rtl' ? 'التحديث جاهز! 🎉' : 'Update Ready! 🎉'}
+                {direction === 'rtl' ? 'تحديث جديد متاح!' : 'New Update Available!'}
               </p>
-              <p className="text-sm opacity-90 mb-4">
-                {direction === 'rtl'
-                  ? `النسخة ${updateInfo?.version} تم تحميلها بنجاح`
-                  : `Version ${updateInfo?.version} downloaded successfully`}
+
+              {/* Current vs Latest */}
+              <div className="bg-white/20 rounded-lg p-3 mb-3 backdrop-blur-sm">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs opacity-90">
+                    {direction === 'rtl' ? 'الإصدار الحالي:' : 'Current:'}
+                  </span>
+                  <span className="font-bold">{currentVersion}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs opacity-90">
+                    {direction === 'rtl' ? 'الإصدار الجديد:' : 'Latest:'}
+                  </span>
+                  <span className="font-bold text-yellow-200">{updateInfo.latestVersion}</span>
+                </div>
+              </div>
+
+              {/* Release Date */}
+              <p className="text-xs opacity-90 mb-3">
+                📅 {formatDate(updateInfo.publishedAt)}
               </p>
+
+              {/* Release Notes Preview */}
+              {updateInfo.releaseNotes && (
+                <div className="bg-white/10 rounded-lg p-2 mb-3 max-h-20 overflow-y-auto text-xs opacity-90">
+                  {updateInfo.releaseNotes.split('\n').slice(0, 3).join('\n')}
+                  {updateInfo.releaseNotes.split('\n').length > 3 && '...'}
+                </div>
+              )}
 
               {/* Action buttons */}
               <div className="flex gap-2">
                 <button
-                  onClick={handleInstallUpdate}
+                  onClick={handleDownloadUpdate}
                   className="flex-1 bg-white text-green-600 px-4 py-2.5 rounded-lg font-bold hover:bg-green-50 hover:shadow-lg transition-all transform hover:scale-105"
                 >
                   <span className="flex items-center justify-center gap-2">
-                    🔄
-                    {direction === 'rtl' ? 'إعادة تشغيل وتثبيت' : 'Restart & Install'}
+                    📥
+                    {direction === 'rtl' ? 'تحميل التحديث' : 'Download Update'}
                   </span>
                 </button>
                 <button
@@ -291,10 +241,10 @@ export default function UpdateNotification() {
                 </button>
               </div>
 
-              <p className="text-xs opacity-75 mt-3 text-center">
+              <p className="text-xs opacity-75 mt-2 text-center">
                 {direction === 'rtl'
-                  ? 'سيتم التثبيت عند إعادة تشغيل البرنامج'
-                  : 'Update will install when app restarts'}
+                  ? 'سيتم فتح صفحة التحميل في متصفح جديد'
+                  : 'Download page will open in browser'}
               </p>
             </div>
           </div>

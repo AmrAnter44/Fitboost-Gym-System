@@ -90,3 +90,6 @@ desktop.ini
 
 # Logs
 logs/
+
+# Claude Code settings (may contain tokens)
+.claude/settings.local.json
