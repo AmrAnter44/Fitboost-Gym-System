@@ -7,6 +7,7 @@ import { LicenseProvider } from '../contexts/LicenseContext'
 import { ToastProvider } from '../contexts/ToastContext'
 import { DeviceSettingsProvider } from '../contexts/DeviceSettingsContext'
 import { SearchProvider } from '../contexts/SearchContext'
+import { UpdateProvider } from '../contexts/UpdateContext'
 import Navbar from './Navbar'
 import { PreventInputScroll } from '../app/PreventInputScroll'
 import LicenseLockedScreen from './LicenseLockedScreen'
@@ -22,16 +23,18 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         <DeviceSettingsProvider>
           <SearchProvider>
             <ToastProvider>
-              <AdminDateProvider>
-                <LicenseLockedScreen />
-                <PreventInputScroll />
-                <BarcodeInputDetector />
-                <UpdateNotification />
-                <Navbar />
-                <ToastContainer />
-                <SearchModal />
-                <main>{children}</main>
-              </AdminDateProvider>
+              <UpdateProvider>
+                <AdminDateProvider>
+                  <LicenseLockedScreen />
+                  <PreventInputScroll />
+                  <BarcodeInputDetector />
+                  <UpdateNotification />
+                  <Navbar />
+                  <ToastContainer />
+                  <SearchModal />
+                  <main>{children}</main>
+                </AdminDateProvider>
+              </UpdateProvider>
             </ToastProvider>
           </SearchProvider>
         </DeviceSettingsProvider>

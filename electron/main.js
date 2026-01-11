@@ -99,10 +99,10 @@ function setupAutoUpdater() {
   autoUpdater.autoDownload = true; // تحميل تلقائي
   autoUpdater.autoInstallOnAppQuit = true; // تثبيت عند الإغلاق
 
-  // فحص التحديثات كل 10 دقائق
+  // فحص التحديثات كل 6 ساعات
   setInterval(() => {
     autoUpdater.checkForUpdates();
-  }, 10 * 60 * 1000);
+  }, 6 * 60 * 60 * 1000);
 
   // عند العثور على تحديث
   autoUpdater.on('update-available', (info) => {

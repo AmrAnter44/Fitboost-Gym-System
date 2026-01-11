@@ -7,12 +7,14 @@ import { usePermissions } from '../hooks/usePermissions'
 import type { Permissions } from '../types/permissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useSearch } from '../contexts/SearchContext'
+import { useUpdate } from '../contexts/UpdateContext'
 
 export default function Navbar() {
   const pathname = usePathname()
   const { openSearch } = useSearch()
   const { hasPermission, user } = usePermissions()
   const { t, locale } = useLanguage()
+  const { updateAvailable } = useUpdate()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
 
@@ -110,12 +112,16 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3 xl:px-4 py-2 xl:py-2.5 rounded-lg transition-all hover:bg-white/15 text-center flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 border border-transparent ${
+                  className={`px-3 xl:px-4 py-2 xl:py-2.5 rounded-lg transition-all hover:bg-white/15 text-center flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 border border-transparent relative ${
                     pathname === link.href ? 'bg-white/20 font-bold border-white/30 shadow-lg' : 'hover:border-white/20'
                   }`}
                 >
                   <span className="text-base xl:text-lg drop-shadow">{link.icon}</span>
                   <span className="text-sm xl:text-base font-bold whitespace-nowrap">{link.label}</span>
+                  {/* Update badge for Settings */}
+                  {link.href === '/settings' && updateAvailable && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-blue-600 animate-pulse"></span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -246,7 +252,7 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setShowDrawer(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:translate-x-2 ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:translate-x-2 relative ${
                     pathname === link.href
                       ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 font-bold shadow-md border-r-4 border-blue-500'
                       : 'text-gray-700 hover:bg-gray-100/80'
@@ -254,6 +260,10 @@ export default function Navbar() {
                 >
                   <span className="text-2xl drop-shadow">{link.icon}</span>
                   <span className="text-base">{link.label}</span>
+                  {/* Update badge for Settings */}
+                  {link.href === '/settings' && updateAvailable && (
+                    <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                  )}
                 </Link>
               ))}
             </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useUpdate } from '@/contexts/UpdateContext'
 
 interface UpdateInfo {
   version: string
@@ -18,6 +19,7 @@ interface DownloadProgress {
 
 export default function UpdateNotification() {
   const { t, direction } = useLanguage()
+  const { setUpdateAvailable: setGlobalUpdateAvailable } = useUpdate()
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [updateDownloaded, setUpdateDownloaded] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
@@ -48,6 +50,7 @@ export default function UpdateNotification() {
       console.log('🔄 Update available:', info)
       setUpdateInfo(info)
       setUpdateAvailable(true)
+      setGlobalUpdateAvailable(true) // ✅ تحديث الـ context للـ badge
       setDownloadProgress(0)
       setIsChecking(false)
       setIsUpToDate(false)
@@ -59,6 +62,7 @@ export default function UpdateNotification() {
       setUpdateInfo(info)
       setIsUpToDate(true)
       setIsChecking(false)
+      setGlobalUpdateAvailable(false) // ✅ إخفاء الـ badge
       // إخفاء التنبيه بعد 4 ثواني
       setTimeout(() => setIsUpToDate(false), 4000)
     })
@@ -69,6 +73,7 @@ export default function UpdateNotification() {
       setUpdateDownloaded(true)
       setDownloadProgress(100)
       setIsChecking(false)
+      // الـ badge يظل ظاهر لحد ما يثبت التحديث
     })
 
     // نسبة التحميل
@@ -172,8 +177,8 @@ export default function UpdateNotification() {
               </p>
               <p className="text-xs opacity-75 mt-2">
                 {direction === 'rtl'
-                  ? 'سيتم التحقق من التحديثات تلقائياً كل 10 دقائق'
-                  : 'Updates are checked automatically every 10 minutes'}
+                  ? 'سيتم التحقق من التحديثات تلقائياً كل 6 ساعات'
+                  : 'Updates are checked automatically every 6 hours'}
               </p>
             </div>
             <button
