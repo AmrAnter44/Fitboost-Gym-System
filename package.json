@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
@@ -15,7 +15,7 @@
     "db:studio": "prisma studio",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:4001 && electron .\"",
     "electron:build": "electron-builder",
-    "electron:build:win": "electron-builder --win --x64"
+    "electron:build:win": "electron-builder --win --x64 --publish never"
   },
   "dependencies": {
     "@next/env": "^16.0.3",

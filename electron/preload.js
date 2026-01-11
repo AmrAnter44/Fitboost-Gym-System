@@ -38,12 +38,17 @@ contextBridge.exposeInMainWorld('electron', {
 
   // Auto Updater: Check for updates
   checkForUpdates: () => {
-    ipcRenderer.send('check-for-updates');
+    return ipcRenderer.invoke('check-for-updates');
   },
 
-  // Auto Updater: Quit and install
-  quitAndInstall: () => {
-    ipcRenderer.send('quit-and-install');
+  // Auto Updater: Download update
+  downloadUpdate: () => {
+    return ipcRenderer.invoke('download-update');
+  },
+
+  // Auto Updater: Install update and restart
+  installUpdate: () => {
+    return ipcRenderer.invoke('install-update');
   },
 
   // Auto Updater: Listen for update available

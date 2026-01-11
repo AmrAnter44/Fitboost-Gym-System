@@ -26,55 +26,84 @@ export default function SettingsPage() {
     checkAuth()
   }, [])
 
-  // Version comparison function
-  const compareVersions = (v1: string, v2: string): number => {
-    const parts1 = v1.split('.').map(Number)
-    const parts2 = v2.split('.').map(Number)
+  // Setup electron update listeners
+  useEffect(() => {
+    if (typeof window === 'undefined') return
 
-    for (let i = 0; i < 3; i++) {
-      if (parts1[i] > parts2[i]) return 1
-      if (parts1[i] < parts2[i]) return -1
+    const electron = (window as any).electron
+    if (!electron?.isElectron) return
+
+    // Listen for update available
+    electron.onUpdateAvailable?.((info: any) => {
+      console.log('✅ Update available:', info)
+      setUpdateInfo(info)
+      setIsCheckingUpdates(false)
+    })
+
+    // Listen for no update
+    electron.onUpdateNotAvailable?.((info: any) => {
+      console.log('ℹ️ No updates available')
+      setShowUpdateSuccess(true)
+      setIsCheckingUpdates(false)
+      setTimeout(() => setShowUpdateSuccess(false), 4000)
+    })
+
+    // Listen for update error
+    electron.onUpdateError?.((err: any) => {
+      console.error('❌ Update error:', err)
+      setUpdateError(err.message || 'فشل التحقق من التحديثات')
+      setIsCheckingUpdates(false)
+      setTimeout(() => setUpdateError(null), 5000)
+    })
+
+    // Cleanup listeners
+    return () => {
+      electron.offUpdateListeners?.()
     }
-    return 0
-  }
+  }, [])
 
-  // Handle check for updates using API
+  // Handle check for updates using Electron
   const handleCheckForUpdates = async () => {
+    if (typeof window === 'undefined') return
+
+    const electron = (window as any).electron
+    if (!electron?.isElectron) {
+      setUpdateError('التحديثات متاحة فقط في تطبيق Electron')
+      setTimeout(() => setUpdateError(null), 3000)
+      return
+    }
+
     setIsCheckingUpdates(true)
     setUpdateError(null)
     setUpdateInfo(null)
     setShowUpdateSuccess(false)
 
     try {
-      const response = await fetch('/api/check-update')
-      if (!response.ok) {
-        throw new Error('فشل التحقق من التحديثات')
+      const result = await electron.checkForUpdates?.()
+      if (result?.error) {
+        throw new Error(result.error)
       }
-
-      const data = await response.json()
-      setUpdateInfo(data)
-
-      // Compare versions
-      const currentVersion = '1.0.8'
-      const isNewVersion = compareVersions(data.latestVersion, currentVersion) > 0
-
-      if (!isNewVersion) {
-        setShowUpdateSuccess(true)
-        setTimeout(() => setShowUpdateSuccess(false), 4000)
-      }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error checking for updates:', err)
-      setUpdateError('فشل التحقق من التحديثات. تأكد من اتصال الإنترنت.')
-      setTimeout(() => setUpdateError(null), 5000)
-    } finally {
+      setUpdateError(err.message || 'فشل التحقق من التحديثات')
       setIsCheckingUpdates(false)
+      setTimeout(() => setUpdateError(null), 5000)
     }
   }
 
-  const handleDownloadUpdate = () => {
-    if (updateInfo?.htmlUrl) {
-      window.open(updateInfo.htmlUrl, '_blank')
-      setUpdateInfo(null) // Clear after opening
+  const handleDownloadUpdate = async () => {
+    if (typeof window === 'undefined') return
+
+    const electron = (window as any).electron
+    if (!electron?.isElectron) return
+
+    try {
+      await electron.downloadUpdate?.()
+      setUpdateInfo(null) // سيتم عرض progress من خلال UpdateNotification
+    } catch (err: any) {
+      console.error('Error downloading update:', err)
+      setUpdateError(err.message || 'فشل تحميل التحديث')
+      setTimeout(() => setUpdateError(null), 5000)
     }
   }
 
@@ -549,8 +578,8 @@ export default function SettingsPage() {
                   </p>
                   <p className="text-sm opacity-90">
                     {locale === 'ar'
-                      ? 'النسخة 1.0.8 هي أحدث إصدار متاح'
-                      : 'Version 1.0.8 is the latest available'}
+                      ? 'النسخة 1.0.9 هي أحدث إصدار متاح'
+                      : 'Version 1.0.9 is the latest available'}
                   </p>
                 </div>
                 <button
@@ -564,7 +593,7 @@ export default function SettingsPage() {
           )}
 
           {/* Update available notification */}
-          {updateInfo && compareVersions(updateInfo.latestVersion, '1.0.8') > 0 && (
+          {updateInfo && (
             <div className="mb-4 bg-gradient-to-br from-green-500 to-green-600 text-white p-5 rounded-xl shadow-lg animate-slideDown border border-green-400">
               <div className="flex items-start gap-3">
                 <span className="text-3xl">🎉</span>
@@ -579,13 +608,13 @@ export default function SettingsPage() {
                       <span className="text-xs opacity-90">
                         {locale === 'ar' ? 'الإصدار الحالي:' : 'Current:'}
                       </span>
-                      <span className="font-bold">1.0.8</span>
+                      <span className="font-bold">1.0.9</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs opacity-90">
                         {locale === 'ar' ? 'الإصدار الجديد:' : 'Latest:'}
                       </span>
-                      <span className="font-bold text-yellow-200">{updateInfo.latestVersion}</span>
+                      <span className="font-bold text-yellow-200">{updateInfo.version}</span>
                     </div>
                   </div>
 
@@ -641,8 +670,8 @@ export default function SettingsPage() {
                 </p>
                 <p className="text-xs text-gray-500">
                   {locale === 'ar'
-                    ? 'النسخة الحالية: 1.0.8'
-                    : 'Current version: 1.0.8'
+                    ? 'النسخة الحالية: 1.0.9'
+                    : 'Current version: 1.0.9'
                   }
                 </p>
               </div>

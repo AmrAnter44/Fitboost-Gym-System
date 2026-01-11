@@ -6,6 +6,7 @@ const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const HID = require('node-hid');
+const { autoUpdater } = require('electron-updater');
 
 // Load uiohook-napi from unpacked location in production
 let uIOhook;
@@ -561,12 +562,136 @@ ipcMain.handle('detect-hid-devices', async () => {
   }
 });
 
+// ------------------ Auto Updater Setup ------------------
+
+function setupAutoUpdater() {
+  if (isDev) {
+    console.log('⚠️ Auto-updater disabled in development mode');
+    return;
+  }
+
+  console.log('🔄 Setting up auto-updater...');
+
+  // Configure autoUpdater
+  autoUpdater.autoDownload = false; // لا تحمل تلقائياً، نخلي المستخدم يوافق الأول
+  autoUpdater.autoInstallOnAppQuit = true; // تثبيت عند إغلاق التطبيق
+
+  // عند اكتشاف تحديث جديد
+  autoUpdater.on('update-available', (info) => {
+    console.log('✅ Update available:', info.version);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', {
+        version: info.version,
+        releaseNotes: info.releaseNotes,
+        releaseDate: info.releaseDate
+      });
+    }
+  });
+
+  // عند عدم وجود تحديث
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('ℹ️ No updates available. Current version:', info.version);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-not-available', {
+        version: info.version
+      });
+    }
+  });
+
+  // عند حدوث خطأ
+  autoUpdater.on('error', (error) => {
+    console.error('❌ Auto-updater error:', error);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-error', {
+        message: error.message
+      });
+    }
+  });
+
+  // تقدم التحميل
+  autoUpdater.on('download-progress', (progressInfo) => {
+    console.log(`📥 Download progress: ${progressInfo.percent.toFixed(2)}%`);
+    if (mainWindow) {
+      mainWindow.webContents.send('download-progress', {
+        percent: progressInfo.percent,
+        transferred: progressInfo.transferred,
+        total: progressInfo.total,
+        bytesPerSecond: progressInfo.bytesPerSecond
+      });
+    }
+  });
+
+  // عند اكتمال التحميل
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('✅ Update downloaded. Version:', info.version);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-downloaded', {
+        version: info.version,
+        releaseNotes: info.releaseNotes
+      });
+    }
+  });
+
+  // التحقق من التحديثات عند بدء التطبيق
+  setTimeout(() => {
+    console.log('🔍 Checking for updates...');
+    autoUpdater.checkForUpdates().catch(err => {
+      console.error('❌ Failed to check for updates:', err);
+    });
+  }, 3000); // انتظر 3 ثواني بعد بدء التطبيق
+}
+
+// ------------------ IPC Handlers for Updates ------------------
+
+// التحقق من التحديثات يدوياً
+ipcMain.handle('check-for-updates', async () => {
+  if (isDev) {
+    return { error: 'Updates disabled in development mode' };
+  }
+
+  try {
+    console.log('🔍 Manual update check requested...');
+    const result = await autoUpdater.checkForUpdates();
+    return { success: true, updateInfo: result.updateInfo };
+  } catch (error) {
+    console.error('❌ Update check failed:', error);
+    return { error: error.message };
+  }
+});
+
+// بدء تحميل التحديث
+ipcMain.handle('download-update', async () => {
+  if (isDev) {
+    return { error: 'Updates disabled in development mode' };
+  }
+
+  try {
+    console.log('📥 Starting update download...');
+    await autoUpdater.downloadUpdate();
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Download failed:', error);
+    return { error: error.message };
+  }
+});
+
+// تثبيت التحديث وإعادة التشغيل
+ipcMain.handle('install-update', () => {
+  if (isDev) {
+    return { error: 'Updates disabled in development mode' };
+  }
+
+  console.log('🔄 Installing update and restarting...');
+  autoUpdater.quitAndInstall(false, true);
+});
+
 // ------------------ أحداث التطبيق ------------------
 
 app.whenReady().then(async () => {
   if (!isDev) await startProductionServer();
   createWindow();
   setupBarcodeScanner();
+  setupAutoUpdater(); // إعداد نظام التحديثات
 });
 
 app.on('window-all-closed', () => {
