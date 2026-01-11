@@ -17,7 +17,26 @@
       "Bash(npx prisma generate:*)",
       "Bash(npm run build:*)",
       "Bash(powershell:*)",
-      "Bash(Select-String -Pattern \"error|Failed|successfully|✓ Generating\")"
+      "Bash(Select-String -Pattern \"error|Failed|successfully|✓ Generating\")",
+      "Bash(test:*)",
+      "Bash(git remote remove:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(wmic process:*)",
+      "Bash(npx next build)",
+      "Bash(set GH_TOKEN=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)",
+      "Bash(npm run electron:build:win:*)",
+      "Bash(dir:*)",
+      "Bash(ls:*)",
+      "Bash(gh release create:*)",
+      "Bash(npx electron-builder:*)",
+      "Bash(export GH_TOKEN=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)",
+      "Bash(curl -s -H \"Authorization: token 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\" https://api.github.com/repos/AmrAnter44/sys-Xgym/releases/latest)",
+      "Bash(curl -s -H \"Authorization: token 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\" https://api.github.com/repos/AmrAnter44/sys-Xgym/releases)",
+      "Bash(curl -s -H \"Authorization: token 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\" \"https://api.github.com/repos/AmrAnter44/sys-Xgym/releases/275781801/assets\")",
+      "Bash(curl -s -X PATCH -H \"Authorization: token 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\" -H \"Content-Type: application/json\" -d '{\"\"draft\"\":false,\"\"body\"\":\"\"🎉 النسخة الأولى من نظام إدارة الصالات الرياضية\\\\n\\\\n### المميزات الرئيسية:\\\\n✅ نظام الباركود التلقائي مع المسح الأصلي \\(Native Scanner\\)\\\\n✅ نظام التحديثات التلقائية مع واجهة مستخدم احترافية\\\\n✅ حماية البيانات عبر التحديثات\\\\n✅ إشعارات التحديثات في شريط التنقل\\\\n✅ فحص التحديثات كل 6 ساعات\\\\n✅ واجهة مستخدم محسّنة لعملية التحديث\\\\n\\\\n### التحديثات التقنية:\\\\n- قاعدة البيانات محفوظة في AppData \\(آمنة من الحذف\\)\\\\n- نظام باركود قائم على uiohook-napi\\\\n- نظام تحديثات قائم على electron-updater\\\\n- شارة إشعارات حمراء في القائمة عند توفر تحديث\\\\n\\\\n### كيفية التثبيت:\\\\n1. قم بتحميل ملف \\\\\"\"X-Gym-Management-Setup-1.0.0.exe\\\\\"\"\\\\n2. قم بتشغيل الملف واتبع خطوات التثبيت\\\\n3. سيتم فحص التحديثات تلقائياً كل 6 ساعات\"\"}' \"https://api.github.com/repos/AmrAnter44/sys-Xgym/releases/275781801\")"
     ]
   }
 }

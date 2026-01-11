@@ -77,13 +77,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "build/icon.ico",
-      "publish": [
-        {
-          "provider": "generic",
-          "url": "http://localhost:3000/updates"
-        }
-      ]
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
