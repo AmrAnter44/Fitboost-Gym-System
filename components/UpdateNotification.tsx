@@ -26,6 +26,7 @@ export default function UpdateNotification() {
   const [isElectron, setIsElectron] = useState(false)
   const [progressInfo, setProgressInfo] = useState<DownloadProgress | null>(null)
   const [isChecking, setIsChecking] = useState(false)
+  const [isUpToDate, setIsUpToDate] = useState(false)
 
   useEffect(() => {
     // التحقق من بيئة Electron
@@ -48,6 +49,18 @@ export default function UpdateNotification() {
       setUpdateInfo(info)
       setUpdateAvailable(true)
       setDownloadProgress(0)
+      setIsChecking(false)
+      setIsUpToDate(false)
+    })
+
+    // عند عدم وجود تحديثات
+    electron.onUpdateNotAvailable?.((info: UpdateInfo) => {
+      console.log('✅ App is up to date:', info)
+      setUpdateInfo(info)
+      setIsUpToDate(true)
+      setIsChecking(false)
+      // إخفاء التنبيه بعد 4 ثواني
+      setTimeout(() => setIsUpToDate(false), 4000)
     })
 
     // عند تحميل التحديث
@@ -55,6 +68,7 @@ export default function UpdateNotification() {
       console.log('✅ Update downloaded:', info)
       setUpdateDownloaded(true)
       setDownloadProgress(100)
+      setIsChecking(false)
     })
 
     // نسبة التحميل
@@ -112,20 +126,59 @@ export default function UpdateNotification() {
       {/* Error notification */}
       {error && (
         <div
-          className="fixed top-4 right-4 z-[10000] bg-red-500 text-white p-4 rounded-lg shadow-xl animate-slideDown"
+          className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-red-500 to-red-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-red-400"
+          style={{ minWidth: '380px', maxWidth: '420px' }}
           dir={direction}
         >
           <div className="flex items-start gap-3">
-            <span className="text-2xl">❌</span>
+            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+              <span className="text-2xl">❌</span>
+            </div>
             <div className="flex-1">
-              <p className="font-bold mb-1">
+              <p className="font-bold mb-1 text-lg">
                 {direction === 'rtl' ? 'خطأ في التحديث' : 'Update Error'}
               </p>
               <p className="text-sm opacity-90">{error}</p>
             </div>
             <button
               onClick={() => setError(null)}
-              className="text-white/80 hover:text-white"
+              className="text-white/70 hover:text-white transition-colors text-xl"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Up to date notification */}
+      {isUpToDate && (
+        <div
+          className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-emerald-400"
+          style={{ minWidth: '380px', maxWidth: '420px' }}
+          dir={direction}
+        >
+          <div className="flex items-start gap-3">
+            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+              <span className="text-3xl">✨</span>
+            </div>
+            <div className="flex-1">
+              <p className="font-bold mb-1 text-xl">
+                {direction === 'rtl' ? 'أنت تستخدم أحدث إصدار! 🎉' : 'You\'re up to date! 🎉'}
+              </p>
+              <p className="text-sm opacity-90">
+                {direction === 'rtl'
+                  ? `النسخة ${updateInfo?.version || '1.0.0'} هي أحدث إصدار متاح`
+                  : `Version ${updateInfo?.version || '1.0.0'} is the latest available`}
+              </p>
+              <p className="text-xs opacity-75 mt-2">
+                {direction === 'rtl'
+                  ? 'سيتم التحقق من التحديثات تلقائياً كل 10 دقائق'
+                  : 'Updates are checked automatically every 10 minutes'}
+              </p>
+            </div>
+            <button
+              onClick={() => setIsUpToDate(false)}
+              className="text-white/70 hover:text-white transition-colors text-xl"
             >
               ✕
             </button>

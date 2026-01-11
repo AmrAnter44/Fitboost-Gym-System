@@ -16,9 +16,31 @@ export default function SettingsPage() {
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [devices, setDevices] = useState<any[]>([])
   const [loadingDevices, setLoadingDevices] = useState(false)
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false)
 
   useEffect(() => {
     checkAuth()
+  }, [])
+
+  // استمع لأحداث التحديث عشان نوقف loading
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const electron = (window as any).electron
+    if (!electron?.isElectron) return
+
+    const handleUpdateResult = () => {
+      setIsCheckingUpdates(false)
+    }
+
+    // استمع لكل النتائج الممكنة
+    electron.onUpdateAvailable?.(handleUpdateResult)
+    electron.onUpdateNotAvailable?.(handleUpdateResult)
+    electron.onUpdateError?.(handleUpdateResult)
+
+    return () => {
+      electron.offUpdateListeners?.()
+    }
   }, [])
 
   // تحديث خيار barcode scanner عند تغيير اللغة
@@ -395,13 +417,28 @@ export default function SettingsPage() {
                 </div>
                 <button
                   onClick={() => {
+                    setIsCheckingUpdates(true)
                     const electron = (window as any).electron
                     electron?.checkForUpdates?.()
                   }}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-cyan-700 font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-lg active:scale-95"
+                  disabled={isCheckingUpdates}
+                  className={`bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg ${
+                    isCheckingUpdates
+                      ? 'opacity-70 cursor-not-allowed'
+                      : 'hover:from-blue-700 hover:to-cyan-700 hover:scale-105 active:scale-95'
+                  }`}
                 >
-                  <span>🔍</span>
-                  <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
+                  {isCheckingUpdates ? (
+                    <>
+                      <span className="inline-block animate-spin">⏳</span>
+                      <span>{locale === 'ar' ? 'جاري التحقق...' : 'Checking...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🔍</span>
+                      <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

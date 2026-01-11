@@ -48,6 +48,13 @@ contextBridge.exposeInMainWorld('electron', {
     });
   },
 
+  // Auto Updater: Listen for no update available
+  onUpdateNotAvailable: (callback) => {
+    ipcRenderer.on('update-not-available', (event, info) => {
+      callback(info);
+    });
+  },
+
   // Auto Updater: Listen for update downloaded
   onUpdateDownloaded: (callback) => {
     ipcRenderer.on('update-downloaded', (event, info) => {
@@ -72,6 +79,7 @@ contextBridge.exposeInMainWorld('electron', {
   // Auto Updater: Remove all update listeners
   offUpdateListeners: () => {
     ipcRenderer.removeAllListeners('update-available');
+    ipcRenderer.removeAllListeners('update-not-available');
     ipcRenderer.removeAllListeners('update-downloaded');
     ipcRenderer.removeAllListeners('download-progress');
     ipcRenderer.removeAllListeners('update-error');

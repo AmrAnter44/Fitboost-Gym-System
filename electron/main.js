@@ -117,6 +117,9 @@ function setupAutoUpdater() {
   // عند عدم وجود تحديثات
   autoUpdater.on('update-not-available', (info) => {
     console.log('✅ App is up to date:', info.version);
+    mainWindow.webContents.send('update-not-available', {
+      version: info.version
+    });
   });
 
   // عند تحميل التحديث
