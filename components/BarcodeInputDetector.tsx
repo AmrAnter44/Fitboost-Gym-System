@@ -67,19 +67,31 @@ export default function BarcodeInputDetector() {
   useEffect(() => {
     if (!autoScanEnabled) return
 
-    // في Electron مع barcode scanner، استخدم native detection فقط
     const isBarcodeScanner = selectedScanner === 'keyboard-wedge-scanner'
-    if (isElectronApp && isBarcodeScanner) {
-      console.log('🔍 Using native Electron barcode detection, skipping DOM events')
-      return
-    }
+
+    // ✅ FIX: Don't skip DOM events in Electron - run them in parallel as safety net
+    // Removed early return to enable device isolation
 
     const handleKeyDown = (event: KeyboardEvent) => {
       // التحقق: هل نحن في Electron وتم اختيار barcode scanner؟
       const shouldInterceptInput = isElectronApp && isBarcodeScanner
 
-      // تجاهل إذا كان التركيز على حقل إدخال (إلا إذا كنا في Electron مع barcode scanner)
-      if (!shouldInterceptInput) {
+      // ✅ FIX: In Electron with barcode scanner, intercept ALL keyboard events
+      // EXCEPT when user is intentionally typing in the search modal
+      if (shouldInterceptInput) {
+        const target = event.target as HTMLElement
+
+        // Allow typing ONLY in the search modal's input fields
+        const isSearchModalInput = target.closest('[data-search-modal]')
+
+        if (!isSearchModalInput) {
+          // ✅ Prevent barcode keypresses from reaching other inputs
+          event.preventDefault()
+          event.stopPropagation()
+          console.log('🔒 Barcode input blocked from:', target.tagName)
+        }
+      } else {
+        // Original logic: skip if focused on input (for non-Electron or non-barcode scenarios)
         const target = event.target as HTMLElement
         if (
           target.tagName === 'INPUT' ||
@@ -208,12 +220,12 @@ export default function BarcodeInputDetector() {
       console.log('⚠️ Document not focused in Electron - keyboard events may not work')
     }
 
-    // إضافة المستمع
-    document.addEventListener('keydown', handleKeyDown)
+    // ✅ FIX: Use capture phase to intercept events before they reach inputs
+    document.addEventListener('keydown', handleKeyDown, true)
 
     // التنظيف
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keydown', handleKeyDown, true)
       if (clearTimeoutRef.current) {
         clearTimeout(clearTimeoutRef.current)
       }

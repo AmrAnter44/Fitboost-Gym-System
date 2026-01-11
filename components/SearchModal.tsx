@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { InvitationModal, SimpleServiceModal } from './ServiceDeductionModals'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -96,7 +96,10 @@ export default function SearchModal() {
       // Reset search state when opening
       setSearched(false)
       setResults([])
-      setMemberId('') // Clear previous value
+      // ✅ FIX: Don't clear memberId if searchValue is present (prevents race condition)
+      if (!searchValue) {
+        setMemberId('')
+      }
 
       // Auto-focus
       setTimeout(() => {
@@ -112,23 +115,7 @@ export default function SearchModal() {
       setResults([])
       setMemberId('')
     }
-  }, [isOpen, searchMode])
-
-  // Handle search value from barcode
-  useEffect(() => {
-    if (isOpen && searchValue && !searched) {
-      console.log('🔍 SearchModal: Received barcode value:', searchValue)
-      setMemberId(searchValue)
-
-      // Increased delay for Electron
-      const delay = (window as any).electron?.isElectron ? 300 : 150
-
-      setTimeout(() => {
-        console.log('🔍 SearchModal: Starting auto-search...')
-        handleSearchById(true)
-      }, delay)
-    }
-  }, [isOpen, searchValue, searched])
+  }, [isOpen, searchMode, searchValue])
 
   // Close modal on ESC
   useEffect(() => {
@@ -306,7 +293,7 @@ export default function SearchModal() {
     }
   }
 
-  const handleSearchById = async (silent: boolean = false) => {
+  const handleSearchById = useCallback(async (silent: boolean = false) => {
     if (!memberId.trim()) {
       if (!silent) playAlarmSound()
       return
@@ -423,7 +410,23 @@ export default function SearchModal() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [memberId, playAlarmSound, playSuccessSound, handleMemberCheckIn, checkMemberStatusAndPlaySound])
+
+  // Handle search value from barcode (placed after handleSearchById to avoid reference error)
+  useEffect(() => {
+    if (isOpen && searchValue && !searched) {
+      console.log('🔍 SearchModal: Received barcode value:', searchValue)
+      setMemberId(searchValue)
+
+      // Increased delay for Electron
+      const delay = (window as any).electron?.isElectron ? 300 : 150
+
+      setTimeout(() => {
+        console.log('🔍 SearchModal: Starting auto-search...')
+        handleSearchById(true)
+      }, delay)
+    }
+  }, [isOpen, searchValue, searched, handleSearchById])
 
   const handleSearchByName = async (silent: boolean = false) => {
     if (!searchName.trim() && !searchPhone.trim()) {
@@ -569,7 +572,7 @@ export default function SearchModal() {
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-[9999] overflow-auto" dir={direction}>
+      <div className="fixed inset-0 z-[9999] overflow-auto" dir={direction} data-search-modal>
         <div className="min-h-screen p-1 sm:p-2">
           <div className="bg-white rounded-xl shadow-2xl max-w-3xl mx-auto my-2 animate-slideDown">
             {/* Header */}
@@ -678,6 +681,7 @@ export default function SearchModal() {
                           onKeyPress={handleIdKeyPress}
                           className="flex-1 px-3 py-2 border-2 border-green-300 rounded-lg text-base sm:text-lg font-bold text-center focus:border-green-600 focus:ring-1 focus:ring-green-200 transition"
                           placeholder={t('search.idPlaceholder')}
+                          data-search-input
                           autoFocus
                         />
                         <button
@@ -753,6 +757,7 @@ export default function SearchModal() {
                               onKeyPress={handleNameKeyPress}
                               className="w-full px-2 py-1.5 border-2 border-green-300 rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 transition"
                               placeholder={t('search.namePlaceholder')}
+                              data-search-input
                             />
                           </div>
 
@@ -765,6 +770,7 @@ export default function SearchModal() {
                               onKeyPress={handleNameKeyPress}
                               className="w-full px-2 py-1.5 border-2 border-green-300 rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 transition"
                               placeholder={t('search.phonePlaceholder')}
+                              data-search-input
                             />
                           </div>
                         </div>
