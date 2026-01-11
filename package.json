@@ -107,8 +107,7 @@
     "publish": {
       "provider": "github",
       "owner": "AmrAnter44",
-      "repo": "sys-Xgym",
-      "private": true
+      "repo": "sys-Xgym"
     }
   }
 }
