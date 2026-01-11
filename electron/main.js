@@ -5,8 +5,24 @@ const isDev = require('electron-is-dev');
 const fs = require('fs');
 const http = require('http');
 const os = require('os');
-const uIOhook = require('uiohook-napi');
 const { autoUpdater } = require('electron-updater');
+
+// Load uiohook-napi from unpacked location in production
+let uIOhook;
+try {
+  if (!isDev && process.resourcesPath) {
+    // في Production - من app.asar.unpacked
+    const unpackedPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'uiohook-napi');
+    uIOhook = require(unpackedPath);
+  } else {
+    // في Development
+    uIOhook = require('uiohook-napi');
+  }
+  console.log('✅ uiohook-napi loaded successfully');
+} catch (error) {
+  console.error('❌ Failed to load uiohook-napi:', error.message);
+  uIOhook = null;
+}
 
 let mainWindow;
 let serverProcess;
@@ -19,6 +35,11 @@ let barcodeEnabled = false;
 
 function setupBarcodeScanner() {
   console.log('🔍 Setting up barcode scanner with uiohook-napi...');
+
+  if (!uIOhook) {
+    console.error('❌ uiohook-napi not available - barcode scanner disabled');
+    return;
+  }
 
   uIOhook.on('keydown', (e) => {
     if (!barcodeEnabled || !mainWindow) return;
@@ -239,24 +260,63 @@ function getDatabasePath() {
     fs.mkdirSync(dbDir, { recursive: true });
   }
 
-  // ✅ Migration: نسخ قاعدة البيانات من المكان القديم (إن وُجدت)
-  if (!fs.existsSync(dbPath)) {
-    const oldPaths = [
-      path.join(process.resourcesPath, 'app', 'prisma', 'gym.db'),
-      path.join(process.cwd(), 'prisma', 'gym.db'),
-      path.join(__dirname, '..', 'prisma', 'gym.db')
-    ];
+  // ✅ التحقق من قاعدة البيانات - لو فارغة نحذفها
+  if (fs.existsSync(dbPath)) {
+    const stats = fs.statSync(dbPath);
+    const sizeMB = stats.size / 1024 / 1024;
 
-    for (const oldPath of oldPaths) {
-      if (fs.existsSync(oldPath)) {
-        console.log('🔄 Migrating database from old location...');
-        console.log('   From:', oldPath);
-        console.log('   To:', dbPath);
-        fs.copyFileSync(oldPath, dbPath);
-        console.log('✅ Database migrated successfully!');
-        break;
-      }
+    if (sizeMB < 0.1) {
+      console.log('⚠️ Database exists but is empty or corrupted (size: ' + sizeMB.toFixed(2) + ' MB)');
+      console.log('🗑️ Deleting empty database...');
+      fs.unlinkSync(dbPath);
+      console.log('✅ Empty database deleted');
+    } else {
+      console.log(`✅ Database already exists at: ${dbPath} (${sizeMB.toFixed(2)} MB)`);
+      return dbPath;
     }
+  }
+
+  // ✅ Migration: نسخ قاعدة البيانات من seed
+  console.log('🔍 Database not found, searching for seed database...');
+
+  const seedPaths = [
+    // في Production - من extraResources (جنب app.asar)
+    path.join(process.resourcesPath, 'seed-database', 'gym.db'),
+    // في Development
+    path.join(process.cwd(), 'prisma', 'prisma', 'gym.db'),
+    path.join(process.cwd(), 'prisma', 'gym.db'),
+    path.join(__dirname, '..', 'prisma', 'prisma', 'gym.db'),
+    path.join(__dirname, '..', 'prisma', 'gym.db')
+  ];
+
+  let dbCopied = false;
+  for (const seedPath of seedPaths) {
+    console.log(`   Checking: ${seedPath}`);
+    if (fs.existsSync(seedPath)) {
+      console.log('   ✅ Found!');
+      console.log('🔄 Copying initial database...');
+      console.log('   From:', seedPath);
+      console.log('   To:', dbPath);
+      try {
+        fs.copyFileSync(seedPath, dbPath);
+
+        // التحقق من أن القاعدة فيها بيانات
+        const stats = fs.statSync(dbPath);
+        console.log(`✅ Database copied successfully! Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+
+        dbCopied = true;
+        break;
+      } catch (error) {
+        console.error('   ❌ Failed to copy:', error.message);
+      }
+    } else {
+      console.log('   ❌ Not found');
+    }
+  }
+
+  if (!dbCopied) {
+    console.log('⚠️ No seed database found in any location!');
+    console.log('ℹ️ Database will be created empty - you need to run setup wizard');
   }
 
   return dbPath;
@@ -288,8 +348,10 @@ async function startProductionServer() {
 
     // البحث عن مسار Next.js standalone
     const possiblePaths = [
-      // في حالة extraResources (Production)
-      path.join(process.resourcesPath, 'app'),
+      // في حالة Production - داخل app.asar.unpacked
+      path.join(process.resourcesPath, 'app.asar.unpacked', '.next', 'standalone'),
+      // في حالة Production - داخل app.asar (fallback)
+      path.join(app.getAppPath(), '.next', 'standalone'),
       // في حالة development
       path.join(process.cwd(), '.next', 'standalone'),
       // fallback

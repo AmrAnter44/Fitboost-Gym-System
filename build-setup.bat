@@ -70,8 +70,10 @@ echo ========================================================
 echo          ✓✓✓ BUILD COMPLETE SUCCESS! ✓✓✓
 echo ========================================================
 echo.
-echo Setup file location: dist\GymSystem-Setup-1.0.0.exe
+echo Setup file location: dist\Gym Management Setup 1.0.0.exe
 echo Port forwarding: ENABLED (0.0.0.0:4001)
+echo Auto-Update: ENABLED (GitHub Releases)
+echo Database: Safe location (AppData - persists across updates)
 echo.
 echo يمكنك الآن تشغيل Setup واستخدام التطبيق من أي جهاز على نفس الشبكة
 echo استخدم http://YOUR_IP:4001 للوصول من أجهزة أخرى
