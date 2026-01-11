@@ -22,7 +22,7 @@ export default function UpdateNotification() {
   const [isUpToDate, setIsUpToDate] = useState(false)
 
   // Get current version from package.json
-  const currentVersion = '1.0.7'
+  const currentVersion = '1.0.8'
 
   // Simple version comparison (major.minor.patch)
   const compareVersions = (v1: string, v2: string): number => {
@@ -95,30 +95,6 @@ export default function UpdateNotification() {
 
   return (
     <>
-      {/* Floating Check Updates Button - bottom left */}
-      <button
-        onClick={handleCheckForUpdates}
-        disabled={isChecking}
-        className="fixed bottom-4 left-4 z-[9999] bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 rounded-full shadow-2xl hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        title={direction === 'rtl' ? 'التحقق من التحديثات' : 'Check for Updates'}
-      >
-        {isChecking ? (
-          <>
-            <span className="animate-spin text-lg">⏳</span>
-            <span className="text-sm font-bold">
-              {direction === 'rtl' ? 'جاري التحقق...' : 'Checking...'}
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="text-lg">🔄</span>
-            <span className="text-sm font-bold">
-              {direction === 'rtl' ? 'تحقق من التحديثات' : 'Check Updates'}
-            </span>
-          </>
-        )}
-      </button>
-
       {/* Error notification */}
       {error && (
         <div

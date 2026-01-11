@@ -17,41 +17,66 @@ export default function SettingsPage() {
   const [devices, setDevices] = useState<any[]>([])
   const [loadingDevices, setLoadingDevices] = useState(false)
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false)
+  const [updateInfo, setUpdateInfo] = useState<any>(null)
+  const [updateError, setUpdateError] = useState<string | null>(null)
+  const [showUpdateSuccess, setShowUpdateSuccess] = useState(false)
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     checkAuth()
   }, [])
 
-  // استمع لأحداث التحديث عشان نوقف loading
-  useEffect(() => {
-    if (typeof window === 'undefined') return
+  // Version comparison function
+  const compareVersions = (v1: string, v2: string): number => {
+    const parts1 = v1.split('.').map(Number)
+    const parts2 = v2.split('.').map(Number)
 
-    const electron = (window as any).electron
-    if (!electron?.isElectron) return
+    for (let i = 0; i < 3; i++) {
+      if (parts1[i] > parts2[i]) return 1
+      if (parts1[i] < parts2[i]) return -1
+    }
+    return 0
+  }
 
-    const handleUpdateResult = () => {
-      console.log('📥 Update result received, stopping loading...')
+  // Handle check for updates using API
+  const handleCheckForUpdates = async () => {
+    setIsCheckingUpdates(true)
+    setUpdateError(null)
+    setUpdateInfo(null)
+    setShowUpdateSuccess(false)
+
+    try {
+      const response = await fetch('/api/check-update')
+      if (!response.ok) {
+        throw new Error('فشل التحقق من التحديثات')
+      }
+
+      const data = await response.json()
+      setUpdateInfo(data)
+
+      // Compare versions
+      const currentVersion = '1.0.8'
+      const isNewVersion = compareVersions(data.latestVersion, currentVersion) > 0
+
+      if (!isNewVersion) {
+        setShowUpdateSuccess(true)
+        setTimeout(() => setShowUpdateSuccess(false), 4000)
+      }
+    } catch (err) {
+      console.error('Error checking for updates:', err)
+      setUpdateError('فشل التحقق من التحديثات. تأكد من اتصال الإنترنت.')
+      setTimeout(() => setUpdateError(null), 5000)
+    } finally {
       setIsCheckingUpdates(false)
-      if (checkTimeoutRef.current) {
-        clearTimeout(checkTimeoutRef.current)
-        checkTimeoutRef.current = null
-      }
     }
+  }
 
-    // استمع لكل النتائج الممكنة
-    console.log('🎧 Setting up update listeners...')
-    electron.onUpdateAvailable?.(handleUpdateResult)
-    electron.onUpdateNotAvailable?.(handleUpdateResult)
-    electron.onUpdateError?.(handleUpdateResult)
-
-    return () => {
-      if (checkTimeoutRef.current) {
-        clearTimeout(checkTimeoutRef.current)
-        checkTimeoutRef.current = null
-      }
+  const handleDownloadUpdate = () => {
+    if (updateInfo?.htmlUrl) {
+      window.open(updateInfo.htmlUrl, '_blank')
+      setUpdateInfo(null) // Clear after opening
     }
-  }, [])
+  }
 
   // إضافة الخيارات الأساسية عند التحميل الأول وتحديث التسميات عند تغيير اللغة
   useEffect(() => {
@@ -488,74 +513,163 @@ export default function SettingsPage() {
         </div>
 
         {/* قسم التحديثات */}
-        {typeof window !== 'undefined' && (window as any).electron?.isElectron && (
-          <div className="border-t pt-6 mt-6">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
-              <span>🔄</span>
-              <span>{locale === 'ar' ? 'التحديثات' : 'Updates'}</span>
-            </h2>
+        <div className="border-t pt-6 mt-6">
+          <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <span>🔄</span>
+            <span>{locale === 'ar' ? 'التحديثات' : 'Updates'}</span>
+          </h2>
 
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border-2 border-blue-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
-                    <span>⬇️</span>
-                    <span>{locale === 'ar' ? 'التحديثات التلقائية' : 'Automatic Updates'}</span>
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {locale === 'ar'
-                      ? 'يتم فحص التحديثات تلقائياً كل 10 دقائق'
-                      : 'Updates are checked automatically every 10 minutes'
-                    }
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {locale === 'ar'
-                      ? 'النسخة الحالية: 1.0.4'
-                      : 'Current version: 1.0.4'
-                    }
-                  </p>
+          {/* Error notification */}
+          {updateError && (
+            <div className="mb-4 bg-gradient-to-br from-red-500 to-red-600 text-white p-4 rounded-xl shadow-lg animate-slideDown border border-red-400">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">❌</span>
+                <div className="flex-1">
+                  <p className="font-bold">{locale === 'ar' ? 'خطأ في التحديث' : 'Update Error'}</p>
+                  <p className="text-sm opacity-90">{updateError}</p>
                 </div>
                 <button
-                  onClick={() => {
-                    console.log('🔍 Manual update check started...')
-                    setIsCheckingUpdates(true)
-
-                    const electron = (window as any).electron
-                    electron?.checkForUpdates?.()
-
-                    // Fallback timeout - إيقاف loading بعد 10 ثواني لو مفيش رد
-                    if (checkTimeoutRef.current) {
-                      clearTimeout(checkTimeoutRef.current)
-                    }
-                    checkTimeoutRef.current = setTimeout(() => {
-                      console.log('⏱️ Update check timeout, stopping loading...')
-                      setIsCheckingUpdates(false)
-                      checkTimeoutRef.current = null
-                    }, 10000)
-                  }}
-                  disabled={isCheckingUpdates}
-                  className={`bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg ${
-                    isCheckingUpdates
-                      ? 'opacity-70 cursor-not-allowed'
-                      : 'hover:from-blue-700 hover:to-cyan-700 hover:scale-105 active:scale-95'
-                  }`}
+                  onClick={() => setUpdateError(null)}
+                  className="text-white/70 hover:text-white transition-colors text-xl"
                 >
-                  {isCheckingUpdates ? (
-                    <>
-                      <span className="inline-block animate-spin">⏳</span>
-                      <span>{locale === 'ar' ? 'جاري التحقق...' : 'Checking...'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>🔍</span>
-                      <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
-                    </>
-                  )}
+                  ✕
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Success notification - up to date */}
+          {showUpdateSuccess && (
+            <div className="mb-4 bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-4 rounded-xl shadow-lg animate-slideDown border border-emerald-400">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">✨</span>
+                <div className="flex-1">
+                  <p className="font-bold text-lg">
+                    {locale === 'ar' ? 'أنت تستخدم أحدث إصدار! 🎉' : 'You\'re up to date! 🎉'}
+                  </p>
+                  <p className="text-sm opacity-90">
+                    {locale === 'ar'
+                      ? 'النسخة 1.0.8 هي أحدث إصدار متاح'
+                      : 'Version 1.0.8 is the latest available'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowUpdateSuccess(false)}
+                  className="text-white/70 hover:text-white transition-colors text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Update available notification */}
+          {updateInfo && compareVersions(updateInfo.latestVersion, '1.0.8') > 0 && (
+            <div className="mb-4 bg-gradient-to-br from-green-500 to-green-600 text-white p-5 rounded-xl shadow-lg animate-slideDown border border-green-400">
+              <div className="flex items-start gap-3">
+                <span className="text-3xl">🎉</span>
+                <div className="flex-1">
+                  <p className="font-bold mb-2 text-xl">
+                    {locale === 'ar' ? 'تحديث جديد متاح!' : 'New Update Available!'}
+                  </p>
+
+                  {/* Current vs Latest */}
+                  <div className="bg-white/20 rounded-lg p-3 mb-3 backdrop-blur-sm">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs opacity-90">
+                        {locale === 'ar' ? 'الإصدار الحالي:' : 'Current:'}
+                      </span>
+                      <span className="font-bold">1.0.8</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs opacity-90">
+                        {locale === 'ar' ? 'الإصدار الجديد:' : 'Latest:'}
+                      </span>
+                      <span className="font-bold text-yellow-200">{updateInfo.latestVersion}</span>
+                    </div>
+                  </div>
+
+                  {/* Release Notes Preview */}
+                  {updateInfo.releaseNotes && (
+                    <div className="bg-white/10 rounded-lg p-2 mb-3 max-h-20 overflow-y-auto text-xs opacity-90">
+                      {updateInfo.releaseNotes.split('\n').slice(0, 3).join('\n')}
+                      {updateInfo.releaseNotes.split('\n').length > 3 && '...'}
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDownloadUpdate}
+                      className="flex-1 bg-white text-green-600 px-4 py-2.5 rounded-lg font-bold hover:bg-green-50 hover:shadow-lg transition-all transform hover:scale-105"
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        📥
+                        {locale === 'ar' ? 'تحميل التحديث' : 'Download Update'}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setUpdateInfo(null)}
+                      className="px-4 py-2.5 rounded-lg font-bold bg-white/20 hover:bg-white/30 transition-colors"
+                    >
+                      {locale === 'ar' ? 'لاحقاً' : 'Later'}
+                    </button>
+                  </div>
+
+                  <p className="text-xs opacity-75 mt-2 text-center">
+                    {locale === 'ar'
+                      ? 'سيتم فتح صفحة التحميل في متصفح جديد'
+                      : 'Download page will open in browser'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main update check card */}
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border-2 border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                  <span>⬇️</span>
+                  <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
+                </h3>
+                <p className="text-sm text-gray-600 mb-2">
+                  {locale === 'ar'
+                    ? 'تحقق من وجود تحديثات جديدة للتطبيق'
+                    : 'Check if new updates are available'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {locale === 'ar'
+                    ? 'النسخة الحالية: 1.0.8'
+                    : 'Current version: 1.0.8'
+                  }
+                </p>
+              </div>
+              <button
+                onClick={handleCheckForUpdates}
+                disabled={isCheckingUpdates}
+                className={`bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg ${
+                  isCheckingUpdates
+                    ? 'opacity-70 cursor-not-allowed'
+                    : 'hover:from-blue-700 hover:to-cyan-700 hover:scale-105 active:scale-95'
+                }`}
+              >
+                {isCheckingUpdates ? (
+                  <>
+                    <span className="inline-block animate-spin">⏳</span>
+                    <span>{locale === 'ar' ? 'جاري التحقق...' : 'Checking...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔍</span>
+                    <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* قسم الدعم الفني */}
         <div className="border-t pt-6 mt-6">
@@ -616,6 +730,24 @@ export default function SettingsPage() {
       {showLinkModal && (
         <LinkModal onClose={() => setShowLinkModal(false)} />
       )}
+
+      {/* Animation styles */}
+      <style jsx global>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
+        }
+      `}</style>
     </div>
   )
 }
