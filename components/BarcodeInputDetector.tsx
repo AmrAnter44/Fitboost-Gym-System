@@ -67,7 +67,11 @@ export default function BarcodeInputDetector() {
   useEffect(() => {
     if (!autoScanEnabled) return
 
-    const isBarcodeScanner = selectedScanner === 'keyboard-wedge-scanner'
+    // ✅ FIX: Recognize ANY selected device (except cameras) as a barcode scanner
+    // This allows users to select actual HID devices from the list, not just the default option
+    const isBarcodeScanner = selectedScanner &&
+                             selectedScanner !== 'none' &&
+                             !selectedScanner.startsWith('videoinput')
 
     // ✅ FIX: Don't skip DOM events in Electron - run them in parallel as safety net
     // Removed early return to enable device isolation

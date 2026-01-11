@@ -578,8 +578,8 @@ export default function SettingsPage() {
                   </p>
                   <p className="text-sm opacity-90">
                     {locale === 'ar'
-                      ? 'النسخة 1.0.9 هي أحدث إصدار متاح'
-                      : 'Version 1.0.9 is the latest available'}
+                      ? 'النسخة 1.0.12 هي أحدث إصدار متاح'
+                      : 'Version 1.0.12 is the latest available'}
                   </p>
                 </div>
                 <button
@@ -608,7 +608,7 @@ export default function SettingsPage() {
                       <span className="text-xs opacity-90">
                         {locale === 'ar' ? 'الإصدار الحالي:' : 'Current:'}
                       </span>
-                      <span className="font-bold">1.0.9</span>
+                      <span className="font-bold">1.0.12</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs opacity-90">
@@ -670,8 +670,8 @@ export default function SettingsPage() {
                 </p>
                 <p className="text-xs text-gray-500">
                   {locale === 'ar'
-                    ? 'النسخة الحالية: 1.0.9'
-                    : 'Current version: 1.0.9'
+                    ? 'النسخة الحالية: 1.0.12'
+                    : 'Current version: 1.0.12'
                   }
                 </p>
               </div>

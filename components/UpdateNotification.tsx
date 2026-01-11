@@ -23,7 +23,7 @@ export default function UpdateNotification() {
   const [updateDownloaded, setUpdateDownloaded] = useState(false)
 
   // Get current version from package.json
-  const currentVersion = '1.0.9'
+  const currentVersion = '1.0.12'
 
   // Setup electron update listeners
   useEffect(() => {
