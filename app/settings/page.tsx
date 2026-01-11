@@ -21,6 +21,23 @@ export default function SettingsPage() {
     checkAuth()
   }, [])
 
+  // تحديث خيار barcode scanner عند تغيير اللغة
+  useEffect(() => {
+    const barcodeScannerOption = {
+      id: 'keyboard-wedge-scanner',
+      label: locale === 'ar' ? 'قارئ باركود (Keyboard Wedge)' : 'Barcode Scanner (Keyboard Wedge)',
+      kind: 'barcodescanner'
+    }
+
+    // إذا كانت القائمة فارغة أو تحتوي على barcode scanner فقط، نضيفه
+    if (devices.length === 0) {
+      setDevices([barcodeScannerOption])
+    } else if (devices.length > 0 && devices[0]?.kind === 'barcodescanner') {
+      // تحديث barcode scanner مع الاحتفاظ بالأجهزة الأخرى
+      setDevices([barcodeScannerOption, ...devices.slice(1)])
+    }
+  }, [locale])
+
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/me')
@@ -43,11 +60,38 @@ export default function SettingsPage() {
   const detectDevices = async () => {
     setLoadingDevices(true)
     try {
-      const detectedDevices = await Html5Qrcode.getCameras()
-      setDevices(detectedDevices)
+      // قراءة جميع الأجهزة المتصلة (كاميرات، ماكينات باركود، إلخ)
+      const allDevices = await navigator.mediaDevices.enumerateDevices()
+
+      // فلترة الأجهزة لتشمل videoinput (كاميرات) و audioinput (بعض الباركود سكانرز)
+      const inputDevices = allDevices.filter(
+        device => device.kind === 'videoinput' || device.kind === 'audioinput'
+      )
+
+      // تحويل الأجهزة للصيغة المطلوبة
+      const formattedDevices = inputDevices.map(device => ({
+        id: device.deviceId,
+        label: device.label || `${device.kind === 'videoinput' ? 'Camera' : 'Input Device'} ${device.deviceId.substring(0, 8)}`,
+        kind: device.kind
+      }))
+
+      // إضافة خيار barcode scanner يدوياً لأنها تعمل بنظام keyboard wedge
+      const barcodeScannerOption = {
+        id: 'keyboard-wedge-scanner',
+        label: locale === 'ar' ? 'قارئ باركود (Keyboard Wedge)' : 'Barcode Scanner (Keyboard Wedge)',
+        kind: 'barcodescanner'
+      }
+
+      setDevices([barcodeScannerOption, ...formattedDevices])
     } catch (error) {
       console.error('Error detecting devices:', error)
-      setDevices([])
+      // في حالة الخطأ، نضيف خيار barcode scanner على الأقل
+      const barcodeScannerOption = {
+        id: 'keyboard-wedge-scanner',
+        label: locale === 'ar' ? 'قارئ باركود (Keyboard Wedge)' : 'Barcode Scanner (Keyboard Wedge)',
+        kind: 'barcodescanner'
+      }
+      setDevices([barcodeScannerOption])
     } finally {
       setLoadingDevices(false)
     }
@@ -231,23 +275,13 @@ export default function SettingsPage() {
                 {t('settings.selectDevice')}
               </label>
 
-              {devices.length === 0 && !loadingDevices && (
-                <button
-                  onClick={detectDevices}
-                  className="w-full p-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center gap-2"
-                >
-                  <span>🔍</span>
-                  <span>{t('settings.detectingDevices')}</span>
-                </button>
-              )}
-
               {loadingDevices && (
                 <div className="p-4 bg-blue-50 rounded-xl text-blue-700 text-center">
-                  <span className="animate-spin inline-block">⏳</span> {t('settings.detectingDevices')}...
+                  <span className="animate-spin inline-block">⏳</span> {locale === 'ar' ? 'جاري الكشف عن الكاميرات...' : 'Detecting cameras...'}
                 </div>
               )}
 
-              {devices.length > 0 && (
+              {!loadingDevices && (
                 <div className="space-y-3">
                   <select
                     value={selectedScanner || 'none'}
@@ -257,26 +291,27 @@ export default function SettingsPage() {
                     <option value="none">{t('settings.defaultDevice')}</option>
                     {devices.map((device) => (
                       <option key={device.id} value={device.id}>
-                        {device.label || `Camera ${device.id}`}
+                        {device.kind === 'barcodescanner' ? '🔦' : device.kind === 'videoinput' ? '📹' : '🔌'} {device.label}
                       </option>
                     ))}
                   </select>
 
                   <button
                     onClick={detectDevices}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                    className="text-sm text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
                   >
-                    🔄 {locale === 'ar' ? 'إعادة الكشف' : 'Re-detect Devices'}
+                    <span>📹</span>
+                    <span>{locale === 'ar' ? 'اكتشف الكاميرات' : 'Detect Cameras'}</span>
                   </button>
                 </div>
               )}
             </div>
 
             {/* Info Message */}
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-yellow-800 text-sm">
-              ℹ️ {locale === 'ar'
-                ? 'ملاحظة: قارئ الباركود الفيزيائي (keyboard wedge) يعمل تلقائياً بدون الحاجة لاختيار جهاز. اختيار الكاميرا مخصص لمسح QR Code من الموبايل.'
-                : 'Note: Physical barcode scanners (keyboard wedge) work automatically without device selection. Camera selection is for QR Code scanning from mobile.'
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-300 rounded-lg text-blue-800 text-sm">
+              💡 {locale === 'ar'
+                ? 'نصيحة: اختر "قارئ باركود (Keyboard Wedge)" إذا كنت تستخدم ماسح باركود USB. الكاميرات مخصصة لمسح QR Code من الموبايل فقط.'
+                : 'Tip: Select "Barcode Scanner (Keyboard Wedge)" if you are using a USB barcode scanner. Cameras are for QR Code scanning from mobile only.'
               }
             </div>
 

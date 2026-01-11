@@ -16,8 +16,10 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const [searchValue, setSearchValue] = useState<string | null>(null)
 
   const openSearch = (value?: string) => {
+    console.log('🔓 SearchContext: openSearch called with value:', value)
     setSearchValue(value || null)
     setIsOpen(true)
+    console.log('✅ SearchContext: Modal state updated - isOpen:', true, 'searchValue:', value)
   }
 
   const closeSearch = () => {

@@ -13,6 +13,7 @@ import LicenseLockedScreen from './LicenseLockedScreen'
 import ToastContainer from './ToastContainer'
 import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
+import UpdateNotification from './UpdateNotification'
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
@@ -25,6 +26,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                 <LicenseLockedScreen />
                 <PreventInputScroll />
                 <BarcodeInputDetector />
+                <UpdateNotification />
                 <Navbar />
                 <ToastContainer />
                 <SearchModal />

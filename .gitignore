@@ -62,3 +62,31 @@ nul
 # Environment
 .env
 prisma\dev.db
+
+# Electron builds & installers
+dist/
+release/
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.snap
+*.msi
+
+# Database files
+prisma/gym.db
+prisma/dev.db
+prisma/*.db
+*.db-journal
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/

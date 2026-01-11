@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDeviceSettings } from '../contexts/DeviceSettingsContext'
 import { useSearch } from '../contexts/SearchContext'
 
@@ -9,24 +9,85 @@ interface KeystrokeData {
   timestamp: number
 }
 
+// التحقق من أننا في Electron
+const isElectron = () => {
+  if (typeof window === 'undefined') return false
+  // Check both window.electron.isElectron and userAgent
+  return !!(window as any).electron?.isElectron ||
+         navigator.userAgent.toLowerCase().includes('electron')
+}
+
 export default function BarcodeInputDetector() {
   const { openSearch } = useSearch()
-  const { autoScanEnabled } = useDeviceSettings()
+  const { autoScanEnabled, selectedScanner } = useDeviceSettings()
   const keystrokeBuffer = useRef<KeystrokeData[]>([])
   const clearTimeoutRef = useRef<NodeJS.Timeout>()
+  const [isElectronApp, setIsElectronApp] = useState(false)
+
+  // التحقق من البيئة عند التحميل
+  useEffect(() => {
+    setIsElectronApp(isElectron())
+  }, [])
+
+  // استخدام native barcode detection في Electron
+  useEffect(() => {
+    if (!isElectronApp || !autoScanEnabled) return
+
+    const isBarcodeScanner = selectedScanner === 'keyboard-wedge-scanner'
+    if (!isBarcodeScanner) return
+
+    console.log('🔍 Setting up Electron native barcode detection...')
+
+    // تفعيل الباركود في Electron main process
+    ;(window as any).electron?.enableBarcodeScanner?.(true)
+
+    // الاستماع للأحداث من main process
+    const handleBarcodeFromElectron = (barcode: string) => {
+      console.log('🔍 Barcode received from Electron main process:', barcode)
+      console.log('🔓 Opening search modal with barcode...')
+
+      try {
+        openSearch(barcode)
+        console.log('✅ Search modal opened successfully')
+      } catch (error) {
+        console.error('❌ Error opening search modal:', error)
+      }
+    }
+
+    ;(window as any).electron?.onBarcodeDetected?.(handleBarcodeFromElectron)
+
+    // التنظيف
+    return () => {
+      console.log('🔍 Cleaning up Electron barcode detection...')
+      ;(window as any).electron?.enableBarcodeScanner?.(false)
+      ;(window as any).electron?.offBarcodeDetected?.()
+    }
+  }, [isElectronApp, autoScanEnabled, selectedScanner, openSearch])
 
   useEffect(() => {
     if (!autoScanEnabled) return
 
+    // في Electron مع barcode scanner، استخدم native detection فقط
+    const isBarcodeScanner = selectedScanner === 'keyboard-wedge-scanner'
+    if (isElectronApp && isBarcodeScanner) {
+      console.log('🔍 Using native Electron barcode detection, skipping DOM events')
+      return
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      // تجاهل إذا كان التركيز على حقل إدخال
-      const target = event.target as HTMLElement
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        return
+      // التحقق: هل نحن في Electron وتم اختيار barcode scanner؟
+      const shouldInterceptInput = isElectronApp && isBarcodeScanner
+
+      // تجاهل إذا كان التركيز على حقل إدخال (إلا إذا كنا في Electron مع barcode scanner)
+      if (!shouldInterceptInput) {
+        const target = event.target as HTMLElement
+        if (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable
+        ) {
+          return
+        }
       }
 
       const now = Date.now()
@@ -42,31 +103,65 @@ export default function BarcodeInputDetector() {
 
         // التحقق: هل لدينا 6+ أحرف؟
         if (buffer.length >= 6) {
-          // التحقق: هل تم كتابتها بسرعة؟ (كل حرف في أقل من 100ms من السابق)
+          // Relax timing for Electron (150ms instead of 100ms)
+          const timeDiffThreshold = isElectronApp ? 150 : 100
+
+          // التحقق: هل تم كتابتها بسرعة؟
           let isRapid = true
           for (let i = 1; i < buffer.length; i++) {
             const timeDiff = buffer[i].timestamp - buffer[i - 1].timestamp
-            if (timeDiff > 100) {
+            if (timeDiff > timeDiffThreshold) {
               isRapid = false
               break
             }
           }
 
-          // التحقق: هل المدة الإجمالية أقل من 500ms؟
+          // Relax time limit for Electron (800ms instead of 500ms)
           const totalTime = buffer[buffer.length - 1].timestamp - buffer[0].timestamp
-          const isWithinTimeLimit = totalTime < 500
+          const timeLimitThreshold = isElectronApp ? 800 : 500
+          const isWithinTimeLimit = totalTime < timeLimitThreshold
 
           if (isRapid && isWithinTimeLimit) {
             // استخراج القيمة
             const barcodeValue = buffer.map((k) => k.key).join('')
 
             console.log('🔍 Barcode detected:', barcodeValue)
+            console.log('📱 Environment:', {
+              isElectronApp,
+              shouldInterceptInput,
+              userAgent: navigator.userAgent
+            })
+            console.log('⏱️ Timing:', {
+              totalTime,
+              charCount: buffer.length,
+              avgTimeBetween: buffer.length > 1 ? totalTime / (buffer.length - 1) : 0,
+              thresholds: { timeDiffThreshold, timeLimitThreshold }
+            })
 
-            // فتح modal البحث مع القيمة
-            openSearch(barcodeValue)
+            // Log to Electron main process if available
+            if ((window as any).electron?.logKeyboardEvent) {
+              (window as any).electron.logKeyboardEvent({
+                type: 'barcode-detected',
+                value: barcodeValue,
+                charCount: buffer.length,
+                totalTime,
+                isElectronApp
+              })
+            }
+
+            console.log('🔓 Opening search modal...')
 
             // منع السلوك الافتراضي
             event.preventDefault()
+            event.stopPropagation()
+
+            // فتح modal البحث مع القيمة
+            try {
+              openSearch(barcodeValue)
+              console.log('✅ Search modal opened successfully')
+            } catch (error) {
+              console.error('❌ Error opening search modal:', error)
+            }
           }
         }
 
@@ -83,6 +178,19 @@ export default function BarcodeInputDetector() {
         !event.altKey &&
         !event.metaKey
       ) {
+        // منع الكتابة في Electron فقط إذا كان barcode scanner مختار والتركيز على input
+        if (shouldInterceptInput) {
+          const target = event.target as HTMLElement
+          if (
+            target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.isContentEditable
+          ) {
+            event.preventDefault()
+            event.stopPropagation()
+          }
+        }
+
         keystrokeBuffer.current.push({
           key: event.key,
           timestamp: now
@@ -95,6 +203,11 @@ export default function BarcodeInputDetector() {
       }
     }
 
+    // Check focus in Electron
+    if (isElectronApp && document.hasFocus && !document.hasFocus()) {
+      console.log('⚠️ Document not focused in Electron - keyboard events may not work')
+    }
+
     // إضافة المستمع
     document.addEventListener('keydown', handleKeyDown)
 
@@ -105,7 +218,7 @@ export default function BarcodeInputDetector() {
         clearTimeout(clearTimeoutRef.current)
       }
     }
-  }, [autoScanEnabled, openSearch])
+  }, [autoScanEnabled, openSearch, selectedScanner, isElectronApp])
 
   // هذا المكون لا يعرض شيء
   return null

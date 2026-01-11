@@ -89,9 +89,16 @@ export default function SearchModal() {
   const [invitationModal, setInvitationModal] = useState<{isOpen: boolean, memberId: string, memberName: string}>({ isOpen: false, memberId: '', memberName: '' })
   const [serviceModal, setServiceModal] = useState<{isOpen: boolean, type: 'freePT' | 'inBody', memberId: string, memberName: string}>({ isOpen: false, type: 'freePT', memberId: '', memberName: '' })
 
-  // Auto-focus when modal opens
+  // Reset when modal opens/closes
   useEffect(() => {
     if (isOpen) {
+      console.log('🔓 SearchModal opened')
+      // Reset search state when opening
+      setSearched(false)
+      setResults([])
+      setMemberId('') // Clear previous value
+
+      // Auto-focus
       setTimeout(() => {
         if (searchMode === 'id') {
           memberIdRef.current?.focus()
@@ -99,18 +106,29 @@ export default function SearchModal() {
           nameRef.current?.focus()
         }
       }, 100)
+    } else {
+      // Reset on close too
+      setSearched(false)
+      setResults([])
+      setMemberId('')
     }
   }, [isOpen, searchMode])
 
   // Handle search value from barcode
   useEffect(() => {
     if (isOpen && searchValue && !searched) {
+      console.log('🔍 SearchModal: Received barcode value:', searchValue)
       setMemberId(searchValue)
+
+      // Increased delay for Electron
+      const delay = (window as any).electron?.isElectron ? 300 : 150
+
       setTimeout(() => {
+        console.log('🔍 SearchModal: Starting auto-search...')
         handleSearchById(true)
-      }, 150)
+      }, delay)
     }
-  }, [isOpen, searchValue])
+  }, [isOpen, searchValue, searched])
 
   // Close modal on ESC
   useEffect(() => {
@@ -552,62 +570,62 @@ export default function SearchModal() {
 
       {/* Modal */}
       <div className="fixed inset-0 z-[9999] overflow-auto" dir={direction}>
-        <div className="min-h-screen p-2 sm:p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl mx-auto my-4 animate-slideDown">
+        <div className="min-h-screen p-1 sm:p-2">
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl mx-auto my-2 animate-slideDown">
             {/* Header */}
-            <div className="bg-blue-600 text-white p-4 rounded-t-2xl flex items-center justify-between sticky top-0 z-10">
-              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                <span>🔍</span>
+            <div className="bg-blue-600 text-white p-2 sm:p-3 rounded-t-xl flex items-center justify-between sticky top-0 z-10">
+              <h1 className="text-base sm:text-lg font-bold flex items-center gap-1">
+                <span className="text-sm">🔍</span>
                 <span>{t('search.title')}</span>
               </h1>
               <button
                 onClick={closeSearch}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
                 title="Close (ESC)"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {/* Content - استخدام نفس JSX من صفحة البحث */}
-            <div className="p-4">
+            <div className="p-2 sm:p-3">
               {/* Search Mode Selector and Input */}
               {searchMode === 'id' && (
-                <div className="bg-gray-50 p-4 rounded-xl mb-4 border-2 border-blue-200">
-                  <div className="mb-4">
+                <div className="bg-gray-50 p-2 sm:p-3 rounded-lg mb-2 border border-blue-200">
+                  <div className="mb-2">
                     {attendanceMessage && (
-                      <div className={`mb-3 p-4 rounded-xl border-2 animate-slideDown ${
+                      <div className={`mb-2 p-2 sm:p-3 rounded-lg border-2 animate-slideDown ${
                         attendanceMessage.type === 'success'
                           ? 'bg-gradient-to-r from-green-50 to-green-100 border-green-500'
                           : 'bg-gradient-to-r from-red-50 to-red-100 border-red-500'
                       }`}>
-                        <div className="flex items-start gap-3">
-                          <div className="text-4xl">
+                        <div className="flex items-start gap-2">
+                          <div className="text-2xl sm:text-3xl">
                             {attendanceMessage.type === 'success' ? '✅' : '🚨'}
                           </div>
                           <div className="flex-1">
-                            <h3 className={`text-lg font-bold mb-1 ${
+                            <h3 className={`text-sm sm:text-base font-bold mb-0.5 ${
                               attendanceMessage.type === 'success' ? 'text-green-800' : 'text-red-800'
                             }`}>
                               {attendanceMessage.type === 'success' ? t('search.registeredSuccessfully') : t('search.registrationError')}
                             </h3>
-                            <p className={`text-base font-bold ${
+                            <p className={`text-xs sm:text-sm font-bold ${
                               attendanceMessage.type === 'success' ? 'text-green-700' : 'text-red-700'
                             }`}>
                               {attendanceMessage.text}
                             </p>
                             {attendanceMessage.staff && (
-                              <div className="mt-3 bg-white/50 rounded-lg p-3">
+                              <div className="mt-2 bg-white/50 rounded-lg p-2">
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
                                     <p className="text-xs text-gray-600">{t('nav.employee')}</p>
-                                    <p className="text-base font-bold text-gray-800">{attendanceMessage.staff.name}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-gray-800">{attendanceMessage.staff.name}</p>
                                   </div>
                                   <div>
                                     <p className="text-xs text-gray-600">{t('nav.position')}</p>
-                                    <p className="text-base font-bold text-gray-800">{getPositionLabel(attendanceMessage.staff.position)}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-gray-800">{getPositionLabel(attendanceMessage.staff.position)}</p>
                                   </div>
                                 </div>
                               </div>
@@ -617,15 +635,15 @@ export default function SearchModal() {
                       </div>
                     )}
 
-                    <div className="flex gap-3">
-                      <div className="flex flex-col gap-2" style={{width: '20%'}}>
+                    <div className="flex gap-2">
+                      <div className="flex flex-col gap-1.5" style={{width: '18%'}}>
                         <button
                           onClick={() => {
                             setSearchMode('id')
                             setSearched(false)
                             setResults([])
                           }}
-                          className={`px-2 py-4 rounded-lg font-bold text-2xl transition-all ${
+                          className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             searchMode === 'id'
                               ? 'bg-blue-600 text-white shadow-lg'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -640,7 +658,7 @@ export default function SearchModal() {
                             setSearched(false)
                             setResults([])
                           }}
-                          className={`px-2 py-4 rounded-lg font-bold text-2xl transition-all ${
+                          className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             (searchMode as SearchMode) === 'name'
                               ? 'bg-green-600 text-white shadow-lg'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -651,27 +669,27 @@ export default function SearchModal() {
                         </button>
                       </div>
 
-                      <div className="flex gap-3" style={{width: '80%'}}>
+                      <div className="flex gap-2 flex-1">
                         <input
                           ref={memberIdRef}
                           type="text"
                           value={memberId}
                           onChange={(e) => setMemberId(e.target.value)}
                           onKeyPress={handleIdKeyPress}
-                          className="flex-1 px-4 py-3 border-2 border-green-300 rounded-lg text-xl font-bold text-center focus:border-green-600 focus:ring-2 focus:ring-green-200 transition"
+                          className="flex-1 px-3 py-2 border-2 border-green-300 rounded-lg text-base sm:text-lg font-bold text-center focus:border-green-600 focus:ring-1 focus:ring-green-200 transition"
                           placeholder={t('search.idPlaceholder')}
                           autoFocus
                         />
                         <button
                           onClick={() => handleSearchById()}
                           disabled={loading || !memberId.trim()}
-                          className="px-5 py-3 bg-green-600 text-white text-base font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition whitespace-nowrap"
+                          className="px-3 sm:px-4 py-2 bg-green-600 text-white text-sm sm:text-base font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition whitespace-nowrap"
                         >
                           {loading ? '⏳' : '🔍'} {t('search.search')}
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1.5">
                       💡 {t('search.pressEnter')}
                     </p>
                   </div>
@@ -679,25 +697,25 @@ export default function SearchModal() {
               )}
 
               {(searchMode as SearchMode) === 'name' && (
-                <div className="bg-gray-50 p-4 rounded-xl mb-4 border-2 border-green-200">
-                  <div className="mb-4">
+                <div className="bg-gray-50 p-2 sm:p-3 rounded-lg mb-2 border border-green-200">
+                  <div className="mb-2">
                     {attendanceMessage && (
-                      <div className="mb-3 p-3 rounded-lg border-2 bg-red-50 border-red-500 animate-slideDown">
-                        <p className="text-base font-bold text-red-700">
+                      <div className="mb-2 p-2 rounded-lg border-2 bg-red-50 border-red-500 animate-slideDown">
+                        <p className="text-xs sm:text-sm font-bold text-red-700">
                           {attendanceMessage.text}
                         </p>
                       </div>
                     )}
 
-                    <div className="flex gap-3">
-                      <div className="flex flex-col gap-2" style={{width: '20%'}}>
+                    <div className="flex gap-2">
+                      <div className="flex flex-col gap-1.5" style={{width: '18%'}}>
                         <button
                           onClick={() => {
                             setSearchMode('id')
                             setSearched(false)
                             setResults([])
                           }}
-                          className={`px-2 py-4 rounded-lg font-bold text-2xl transition-all ${
+                          className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             searchMode === 'id'
                               ? 'bg-blue-600 text-white shadow-lg'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -712,7 +730,7 @@ export default function SearchModal() {
                             setSearched(false)
                             setResults([])
                           }}
-                          className={`px-2 py-4 rounded-lg font-bold text-2xl transition-all ${
+                          className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             (searchMode as SearchMode) === 'name'
                               ? 'bg-green-600 text-white shadow-lg'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -723,29 +741,29 @@ export default function SearchModal() {
                         </button>
                       </div>
 
-                      <div className="flex-1" style={{width: '80%'}}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                      <div className="flex-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                           <div>
-                            <label className="block text-xs font-medium mb-1">{t('search.name')}</label>
+                            <label className="block text-xs font-medium mb-0.5">{t('search.name')}</label>
                             <input
                               ref={nameRef}
                               type="text"
                               value={searchName}
                               onChange={(e) => setSearchName(e.target.value)}
                               onKeyPress={handleNameKeyPress}
-                              className="w-full px-3 py-2 border-2 border-green-300 rounded-lg text-base focus:border-green-600 focus:ring-2 focus:ring-green-200 transition"
+                              className="w-full px-2 py-1.5 border-2 border-green-300 rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 transition"
                               placeholder={t('search.namePlaceholder')}
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium mb-1">{t('search.phoneNumber')}</label>
+                            <label className="block text-xs font-medium mb-0.5">{t('search.phoneNumber')}</label>
                             <input
                               type="tel"
                               value={searchPhone}
                               onChange={(e) => setSearchPhone(e.target.value)}
                               onKeyPress={handleNameKeyPress}
-                              className="w-full px-3 py-2 border-2 border-green-300 rounded-lg text-base focus:border-green-600 focus:ring-2 focus:ring-green-200 transition"
+                              className="w-full px-2 py-1.5 border-2 border-green-300 rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 transition"
                               placeholder={t('search.phonePlaceholder')}
                             />
                           </div>
@@ -754,14 +772,14 @@ export default function SearchModal() {
                         <button
                           onClick={() => handleSearchByName()}
                           disabled={loading || (!searchName.trim() && !searchPhone.trim())}
-                          className="w-full px-4 py-3 bg-green-600 text-white text-base font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
+                          className="w-full px-3 py-2 bg-green-600 text-white text-sm sm:text-base font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
                         >
                           🔍 {t('search.search')}
                         </button>
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1.5">
                       💡 {t('search.searchTip')}
                     </p>
                   </div>
@@ -776,17 +794,17 @@ export default function SearchModal() {
 
               {/* Results - نفس الكود من صفحة البحث */}
               {searched && (
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-green-200 animate-fadeIn">
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-green-200 animate-fadeIn">
                   {loading ? (
-                    <div className="text-center py-12">
-                      <div className="inline-block animate-spin text-5xl mb-3">⏳</div>
-                      <p className="text-xl text-gray-600 font-bold">{t('search.searching')}</p>
+                    <div className="text-center py-6 sm:py-8">
+                      <div className="inline-block animate-spin text-3xl sm:text-4xl mb-2">⏳</div>
+                      <p className="text-sm sm:text-base text-gray-600 font-bold">{t('search.searching')}</p>
                     </div>
                   ) : results.length === 0 ? (
-                    <div className="text-center py-12 bg-red-50 animate-pulse">
-                      <div className="text-6xl mb-4 animate-bounce">🚨</div>
-                      <p className="text-2xl font-bold text-red-600 mb-2 px-4">{t('search.noResults')}</p>
-                      <p className="text-lg text-red-500 px-4">
+                    <div className="text-center py-6 sm:py-8 bg-red-50 animate-pulse">
+                      <div className="text-4xl sm:text-5xl mb-2 sm:mb-3 animate-bounce">🚨</div>
+                      <p className="text-base sm:text-lg font-bold text-red-600 mb-1 px-3">{t('search.noResults')}</p>
+                      <p className="text-sm text-red-500 px-3">
                         {searchMode === 'id'
                           ? `${t('search.searchingFor')} "${memberId}"`
                           : `${t('search.searchingFor')} "${searchName || searchPhone}"`
@@ -794,21 +812,21 @@ export default function SearchModal() {
                       </p>
                     </div>
                   ) : (
-                    <div className="p-4 max-h-[60vh] overflow-y-auto">
-                      <div className="mb-3 text-center">
-                        <span className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-base font-bold">
+                    <div className="p-2 sm:p-3 max-h-[60vh] overflow-y-auto">
+                      <div className="mb-2 text-center">
+                        <span className="bg-green-100 text-green-800 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold">
                           ✅ {t('search.foundResults')} {results.length} {results.length === 1 ? t('search.result') : t('search.results')}
                         </span>
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="space-y-2">
                         {results.map((result, index) => (
-                          <div key={index} className="border-2 border-blue-200 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-blue-50 transition">
+                          <div key={index} className="border border-blue-200 rounded-lg p-2 sm:p-3 hover:bg-blue-50 transition">
                             {result.type === 'member' && (
                               <div>
-                                <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-3">
-                                  <div className="flex items-center gap-2 sm:gap-3">
-                                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-blue-300 bg-gray-100 flex-shrink-0">
+                                <div className="flex flex-col sm:flex-row justify-between items-start gap-1.5 mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-blue-300 bg-gray-100 flex-shrink-0">
                                       {result.data.profileImage ? (
                                         <img
                                           src={result.data.profileImage}
@@ -817,7 +835,7 @@ export default function SearchModal() {
                                         />
                                       ) : (
                                         <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                          <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                           </svg>
                                         </div>
@@ -825,40 +843,40 @@ export default function SearchModal() {
                                     </div>
 
                                     <div>
-                                      <span className="bg-blue-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
+                                      <span className="bg-blue-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold">
                                         👤 {t('search.member')}
                                       </span>
-                                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-1.5 sm:mt-2">{result.data.name}</h3>
+                                      <h3 className="text-sm sm:text-base md:text-lg font-bold mt-0.5 sm:mt-1">{result.data.name}</h3>
                                     </div>
                                   </div>
                                   {result.data.memberNumber !== null && (
-                                    <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600">
+                                    <span className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
                                       #{result.data.memberNumber}
                                     </span>
                                   )}
                                   {result.data.memberNumber === null && (
-                                    <span className="text-base sm:text-lg md:text-xl font-bold text-gray-500 bg-gray-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded">
+                                    <span className="text-xs sm:text-sm font-bold text-gray-500 bg-gray-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                                       Other
                                     </span>
                                   )}
                                 </div>
 
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2 sm:mb-3">
-                                  <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-1.5 sm:mb-2">
+                                  <div className="bg-gray-50 p-1.5 sm:p-2 rounded">
                                     <p className="text-xs text-gray-600">{t('common.phone')}</p>
-                                    <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.phone}</p>
+                                    <p className="text-xs sm:text-sm font-bold">{result.data.phone}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                                  <div className="bg-gray-50 p-1.5 sm:p-2 rounded">
                                     <p className="text-xs text-gray-600">{t('search.price')}</p>
-                                    <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.subscriptionPrice} {t('members.egp')}</p>
+                                    <p className="text-xs sm:text-sm font-bold">{result.data.subscriptionPrice} {t('members.egp')}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                                  <div className="bg-gray-50 p-1.5 sm:p-2 rounded">
                                     <p className="text-xs text-gray-600">{locale === 'ar' ? 'الباقة' : 'Package'}</p>
-                                    <p className="text-xs sm:text-sm md:text-base font-bold text-purple-600">{getPackageName(result.data.startDate, result.data.expiryDate)}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-purple-600">{getPackageName(result.data.startDate, result.data.expiryDate)}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-2 sm:p-3 rounded">
+                                  <div className="bg-gray-50 p-1.5 sm:p-2 rounded">
                                     <p className="text-xs text-gray-600">{t('search.status')}</p>
-                                    <span className={`inline-block px-2 py-0.5 rounded text-xs sm:text-sm md:text-base font-bold ${
+                                    <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold ${
                                       result.data.isFrozen
                                         ? 'bg-blue-500 text-white'
                                         : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())

@@ -356,6 +356,7 @@
     "daysRemaining": "باقي {days} يوم",
     "subscriptionPrice": "سعر الاشتراك",
     "remainingAmount": "المبلغ المتبقي",
+    "freezeDays": "أيام الفريز",
     "freezeDaysRemaining": "أيام الفريز المتبقية",
     "editImage": "تعديل الصورة",
     "editMemberImage": "تعديل صورة العضو",
