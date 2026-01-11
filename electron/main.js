@@ -5,7 +5,6 @@ const isDev = require('electron-is-dev');
 const fs = require('fs');
 const http = require('http');
 const os = require('os');
-const { autoUpdater } = require('electron-updater');
 const HID = require('node-hid');
 
 // Load uiohook-napi from unpacked location in production
@@ -100,80 +99,6 @@ function setupBarcodeScanner() {
   // Start listening
   uIOhook.start();
   console.log('✅ Barcode scanner listening...');
-}
-
-// ------------------ Auto Updater Setup ------------------
-
-function setupAutoUpdater() {
-  console.log('🔄 Setting up auto updater...');
-
-  // تعطيل التحديث التلقائي في وضع التطوير
-  if (isDev) {
-    console.log('⚠️ Auto-updater disabled in development mode');
-    autoUpdater.checkForUpdates = () => {
-      console.log('Development mode - skipping update check');
-      return Promise.resolve(null);
-    };
-    return;
-  }
-
-  // إعداد autoUpdater
-  autoUpdater.autoDownload = true; // تحميل تلقائي
-  autoUpdater.autoInstallOnAppQuit = true; // تثبيت عند الإغلاق
-
-  // فحص التحديثات كل 6 ساعات
-  setInterval(() => {
-    autoUpdater.checkForUpdates();
-  }, 6 * 60 * 60 * 1000);
-
-  // عند العثور على تحديث
-  autoUpdater.on('update-available', (info) => {
-    console.log('🔄 Update available:', info.version);
-    mainWindow.webContents.send('update-available', {
-      version: info.version,
-      releaseDate: info.releaseDate,
-      releaseNotes: info.releaseNotes
-    });
-  });
-
-  // عند عدم وجود تحديثات
-  autoUpdater.on('update-not-available', (info) => {
-    console.log('✅ App is up to date:', info.version);
-    mainWindow.webContents.send('update-not-available', {
-      version: info.version
-    });
-  });
-
-  // عند تحميل التحديث
-  autoUpdater.on('update-downloaded', (info) => {
-    console.log('✅ Update downloaded:', info.version);
-    mainWindow.webContents.send('update-downloaded', {
-      version: info.version,
-      releaseNotes: info.releaseNotes
-    });
-  });
-
-  // نسبة التحميل
-  autoUpdater.on('download-progress', (progressObj) => {
-    const percent = progressObj.percent.toFixed(2);
-    console.log(`📥 Download progress: ${percent}%`);
-    mainWindow.webContents.send('download-progress', {
-      percent: parseFloat(percent),
-      transferred: progressObj.transferred,
-      total: progressObj.total,
-      bytesPerSecond: progressObj.bytesPerSecond
-    });
-  });
-
-  // عند حدوث خطأ
-  autoUpdater.on('error', (error) => {
-    console.error('❌ Update error:', error);
-    mainWindow.webContents.send('update-error', {
-      message: error.message
-    });
-  });
-
-  console.log('✅ Auto updater ready');
 }
 
 // ------------------ وظائف مساعدة ------------------
@@ -636,39 +561,12 @@ ipcMain.handle('detect-hid-devices', async () => {
   }
 });
 
-// ✅ Handlers للتحديث التلقائي
-ipcMain.on('check-for-updates', () => {
-  if (isDev) {
-    console.log('⚠️ Development mode - simulating update check...');
-    // في dev mode، بعث event "update-not-available" للـ renderer
-    setTimeout(() => {
-      mainWindow.webContents.send('update-not-available', {
-        version: '1.0.0'
-      });
-    }, 1000);
-  } else {
-    autoUpdater.checkForUpdates();
-  }
-});
-
-ipcMain.on('quit-and-install', () => {
-  autoUpdater.quitAndInstall();
-});
-
 // ------------------ أحداث التطبيق ------------------
 
 app.whenReady().then(async () => {
   if (!isDev) await startProductionServer();
   createWindow();
   setupBarcodeScanner();
-  setupAutoUpdater();
-
-  // فحص التحديثات بعد 3 ثواني من بدء التشغيل
-  setTimeout(() => {
-    if (!isDev) {
-      autoUpdater.checkForUpdates();
-    }
-  }, 3000);
 });
 
 app.on('window-all-closed', () => {
