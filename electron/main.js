@@ -466,7 +466,15 @@ ipcMain.on('enable-barcode-scanner', (event, enabled) => {
 
 // ✅ Handlers للتحديث التلقائي
 ipcMain.on('check-for-updates', () => {
-  if (!isDev) {
+  if (isDev) {
+    console.log('⚠️ Development mode - simulating update check...');
+    // في dev mode، بعث event "update-not-available" للـ renderer
+    setTimeout(() => {
+      mainWindow.webContents.send('update-not-available', {
+        version: '1.0.0'
+      });
+    }, 1000);
+  } else {
     autoUpdater.checkForUpdates();
   }
 });

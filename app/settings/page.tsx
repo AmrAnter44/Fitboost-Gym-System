@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '../../contexts/LanguageContext'
@@ -17,6 +17,7 @@ export default function SettingsPage() {
   const [devices, setDevices] = useState<any[]>([])
   const [loadingDevices, setLoadingDevices] = useState(false)
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false)
+  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -30,16 +31,25 @@ export default function SettingsPage() {
     if (!electron?.isElectron) return
 
     const handleUpdateResult = () => {
+      console.log('📥 Update result received, stopping loading...')
       setIsCheckingUpdates(false)
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current)
+        checkTimeoutRef.current = null
+      }
     }
 
     // استمع لكل النتائج الممكنة
+    console.log('🎧 Setting up update listeners...')
     electron.onUpdateAvailable?.(handleUpdateResult)
     electron.onUpdateNotAvailable?.(handleUpdateResult)
     electron.onUpdateError?.(handleUpdateResult)
 
     return () => {
-      electron.offUpdateListeners?.()
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current)
+        checkTimeoutRef.current = null
+      }
     }
   }, [])
 
@@ -417,9 +427,21 @@ export default function SettingsPage() {
                 </div>
                 <button
                   onClick={() => {
+                    console.log('🔍 Manual update check started...')
                     setIsCheckingUpdates(true)
+
                     const electron = (window as any).electron
                     electron?.checkForUpdates?.()
+
+                    // Fallback timeout - إيقاف loading بعد 10 ثواني لو مفيش رد
+                    if (checkTimeoutRef.current) {
+                      clearTimeout(checkTimeoutRef.current)
+                    }
+                    checkTimeoutRef.current = setTimeout(() => {
+                      console.log('⏱️ Update check timeout, stopping loading...')
+                      setIsCheckingUpdates(false)
+                      checkTimeoutRef.current = null
+                    }, 10000)
                   }}
                   disabled={isCheckingUpdates}
                   className={`bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg ${
