@@ -6,6 +6,7 @@ const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const { autoUpdater } = require('electron-updater');
+const HID = require('node-hid');
 
 // Load uiohook-napi from unpacked location in production
 let uIOhook;
@@ -447,7 +448,8 @@ function createWindow() {
       webSecurity: false,
       partition: 'persist:gym', // حفظ الـ cookies والـ session
       enableRemoteModule: false,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      enableBlinkFeatures: 'WebHID,WebSerial' // تفعيل Web HID و Web Serial APIs
     },
     autoHideMenuBar: !isDev,
     title: 'نظام إدارة الصالة الرياضية',
@@ -478,6 +480,41 @@ function createWindow() {
   // Ensure window has focus for keyboard events
   mainWindow.on('focus', () => {
     console.log('✅ Electron window focused');
+  });
+
+  // Handle HID device selection
+  mainWindow.webContents.session.on('select-hid-device', (event, details, callback) => {
+    console.log('🔍 HID device selection requested:', details);
+    event.preventDefault();
+
+    // إذا كان هناك أجهزة متاحة، اختر الأول (أو يمكنك عرض قائمة للمستخدم)
+    if (details.deviceList && details.deviceList.length > 0) {
+      console.log('📱 Available HID devices:', details.deviceList.length);
+      details.deviceList.forEach((device, index) => {
+        console.log(`  Device ${index + 1}:`, {
+          productName: device.productName,
+          vendorId: device.vendorId,
+          productId: device.productId
+        });
+      });
+
+      // السماح للمستخدم باختيار أي جهاز
+      callback(details.deviceList[0].deviceId);
+    } else {
+      console.log('⚠️ No HID devices available');
+      callback(null);
+    }
+  });
+
+  // Handle HID device permission check
+  mainWindow.webContents.session.setDevicePermissionHandler((details) => {
+    console.log('🔐 Device permission check:', details);
+    // السماح بالوصول لجميع أجهزة HID
+    if (details.deviceType === 'hid') {
+      console.log('✅ HID device permission granted');
+      return true;
+    }
+    return false;
   });
 
   const startUrl = 'http://localhost:4001';
@@ -524,6 +561,79 @@ ipcMain.on('log-keyboard-event', (event, data) => {
 ipcMain.on('enable-barcode-scanner', (event, enabled) => {
   barcodeEnabled = enabled;
   console.log('🔍 Barcode scanner', enabled ? 'enabled' : 'disabled');
+});
+
+// ✅ Handler للكشف عن أجهزة HID (USB, لوحات المفاتيح, الماوس, الباركود سكانر)
+ipcMain.handle('detect-hid-devices', async () => {
+  try {
+    console.log('🔍 Detecting HID devices...');
+    const devices = HID.devices();
+
+    console.log(`📱 Found ${devices.length} HID devices`);
+
+    // فلترة وتنسيق الأجهزة
+    const formattedDevices = devices.map((device, index) => {
+      const deviceName = device.product || `USB Device ${index + 1}`;
+      const vendorName = device.manufacturer || 'Unknown Vendor';
+      const vendorId = device.vendorId?.toString(16).padStart(4, '0') || '0000';
+      const productId = device.productId?.toString(16).padStart(4, '0') || '0000';
+
+      // تحديد نوع الجهاز بناءً على usage أو interface
+      let deviceType = 'unknown';
+      let emoji = '🔌';
+
+      if (device.product) {
+        const productLower = device.product.toLowerCase();
+        if (productLower.includes('keyboard') || productLower.includes('keypad')) {
+          deviceType = 'keyboard';
+          emoji = '⌨️';
+        } else if (productLower.includes('mouse') || productLower.includes('pointing')) {
+          deviceType = 'mouse';
+          emoji = '🖱️';
+        } else if (productLower.includes('barcode') || productLower.includes('scanner')) {
+          deviceType = 'barcode';
+          emoji = '🔦';
+        }
+      }
+
+      // إذا كان الجهاز من نوع HID Usage Page 1 (Generic Desktop)
+      if (device.usagePage === 1) {
+        if (device.usage === 6) {
+          deviceType = 'keyboard';
+          emoji = '⌨️';
+        } else if (device.usage === 2) {
+          deviceType = 'mouse';
+          emoji = '🖱️';
+        }
+      }
+
+      return {
+        id: `hid-${vendorId}-${productId}-${index}`,
+        label: `${emoji} ${deviceName} (${vendorName})`,
+        vendorId: device.vendorId,
+        productId: device.productId,
+        manufacturer: device.manufacturer,
+        product: device.product,
+        serialNumber: device.serialNumber,
+        path: device.path,
+        type: deviceType,
+        usagePage: device.usagePage,
+        usage: device.usage
+      };
+    });
+
+    // ترتيب الأجهزة: باركود سكانر أولاً، ثم لوحات المفاتيح، ثم الباقي
+    const sortedDevices = formattedDevices.sort((a, b) => {
+      const order = { barcode: 0, keyboard: 1, mouse: 2, unknown: 3 };
+      return order[a.type] - order[b.type];
+    });
+
+    console.log('✅ HID devices formatted and sorted');
+    return sortedDevices;
+  } catch (error) {
+    console.error('❌ Error detecting HID devices:', error);
+    return [];
+  }
 });
 
 // ✅ Handlers للتحديث التلقائي

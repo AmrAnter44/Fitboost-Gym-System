@@ -31,6 +31,11 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.removeAllListeners('barcode-detected');
   },
 
+  // New: Detect HID devices (keyboards, mice, barcode scanners)
+  detectHIDDevices: () => {
+    return ipcRenderer.invoke('detect-hid-devices');
+  },
+
   // Auto Updater: Check for updates
   checkForUpdates: () => {
     ipcRenderer.send('check-for-updates');

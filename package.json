@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
@@ -35,6 +35,7 @@
     "jsonwebtoken": "^9.0.2",
     "jsqr": "^1.4.0",
     "next": "^14.2.33",
+    "node-hid": "^3.2.0",
     "postcss": "^8.5.6",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
@@ -79,13 +80,16 @@
       ".next/standalone/**/*",
       "!.next/standalone/node_modules",
       "node_modules/uiohook-napi/**/*",
-      "node_modules/better-sqlite3/**/*"
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/node-hid/**/*"
     ],
     "extraResources": [
       {
         "from": ".next/standalone/node_modules",
         "to": "app.asar.unpacked/.next/standalone/node_modules",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "prisma/prisma/gym.db",
