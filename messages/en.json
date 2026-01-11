@@ -280,7 +280,17 @@
     "noDevices": "No devices found",
     "detectingDevices": "Detecting devices",
     "autoScanEnabled": "Auto-scan enabled",
-    "defaultDevice": "Use default camera"
+    "defaultDevice": "Use default camera",
+    "updates": "Updates",
+    "automaticUpdates": "Automatic Updates",
+    "checkForUpdates": "Check for Updates",
+    "currentVersion": "Current version",
+    "updateChecking": "Checking for updates...",
+    "updateAvailable": "New update available!",
+    "updateDownloading": "Downloading update...",
+    "updateReady": "Update ready to install",
+    "restartAndInstall": "Restart & Install",
+    "later": "Later"
   },
   "dashboard": {
     "title": "Dashboard",

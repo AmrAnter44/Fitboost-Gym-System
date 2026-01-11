@@ -365,6 +365,49 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* قسم التحديثات */}
+        {typeof window !== 'undefined' && (window as any).electron?.isElectron && (
+          <div className="border-t pt-6 mt-6">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <span>🔄</span>
+              <span>{locale === 'ar' ? 'التحديثات' : 'Updates'}</span>
+            </h2>
+
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border-2 border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    <span>⬇️</span>
+                    <span>{locale === 'ar' ? 'التحديثات التلقائية' : 'Automatic Updates'}</span>
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {locale === 'ar'
+                      ? 'يتم فحص التحديثات تلقائياً كل 10 دقائق'
+                      : 'Updates are checked automatically every 10 minutes'
+                    }
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {locale === 'ar'
+                      ? 'النسخة الحالية: 1.0.0'
+                      : 'Current version: 1.0.0'
+                    }
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const electron = (window as any).electron
+                    electron?.checkForUpdates?.()
+                  }}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-cyan-700 font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-lg active:scale-95"
+                >
+                  <span>🔍</span>
+                  <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* قسم الدعم الفني */}
         <div className="border-t pt-6 mt-6">
           <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">

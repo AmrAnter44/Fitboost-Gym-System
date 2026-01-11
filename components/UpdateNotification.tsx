@@ -24,6 +24,8 @@ export default function UpdateNotification() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isElectron, setIsElectron] = useState(false)
+  const [progressInfo, setProgressInfo] = useState<DownloadProgress | null>(null)
+  const [isChecking, setIsChecking] = useState(false)
 
   useEffect(() => {
     // التحقق من بيئة Electron
@@ -59,6 +61,7 @@ export default function UpdateNotification() {
     electron.onDownloadProgress?.((progress: DownloadProgress) => {
       console.log(`📥 Download progress: ${progress.percent.toFixed(2)}%`)
       setDownloadProgress(progress.percent)
+      setProgressInfo(progress)
     })
 
     // عند حدوث خطأ
@@ -74,10 +77,20 @@ export default function UpdateNotification() {
     electron?.quitAndInstall?.()
   }
 
+  const handleCheckForUpdates = async () => {
+    setIsChecking(true)
+    const electron = (window as any).electron
+    electron?.checkForUpdates?.()
+
+    // إخفاء loading بعد 3 ثواني
+    setTimeout(() => setIsChecking(false), 3000)
+  }
+
   const handleDismiss = () => {
     setUpdateAvailable(false)
     setUpdateDownloaded(false)
     setUpdateInfo(null)
+    setProgressInfo(null)
   }
 
   const formatBytes = (bytes: number) => {
@@ -86,6 +99,10 @@ export default function UpdateNotification() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  const formatSpeed = (bytesPerSecond: number) => {
+    return formatBytes(bytesPerSecond) + '/s'
   }
 
   if (!isElectron) return null
@@ -119,43 +136,56 @@ export default function UpdateNotification() {
       {/* Update downloading notification */}
       {updateAvailable && !updateDownloaded && (
         <div
-          className="fixed top-4 right-4 z-[10000] bg-blue-500 text-white p-4 rounded-lg shadow-xl animate-slideDown"
-          style={{ minWidth: '320px' }}
+          className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-blue-500 to-blue-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-blue-400"
+          style={{ minWidth: '380px', maxWidth: '420px' }}
           dir={direction}
         >
           <div className="flex items-start gap-3">
-            <span className="text-2xl">🔄</span>
+            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+              <span className="text-2xl">🔄</span>
+            </div>
             <div className="flex-1">
-              <p className="font-bold mb-1">
+              <p className="font-bold mb-1 text-lg">
                 {direction === 'rtl' ? 'تحديث جديد متاح!' : 'New Update Available!'}
               </p>
-              <p className="text-sm opacity-90 mb-2">
+              <p className="text-sm opacity-90 mb-3">
                 {direction === 'rtl' ? 'النسخة' : 'Version'} {updateInfo?.version}
               </p>
 
               {/* Progress bar */}
-              <div className="w-full bg-white/30 rounded-full h-3 mb-2 overflow-hidden">
+              <div className="w-full bg-white/20 rounded-full h-4 mb-2 overflow-hidden backdrop-blur-sm">
                 <div
-                  className="bg-white h-3 rounded-full transition-all duration-300 flex items-center justify-center"
+                  className="bg-gradient-to-r from-white to-blue-100 h-4 rounded-full transition-all duration-300 flex items-center justify-center shadow-sm"
                   style={{ width: `${downloadProgress}%` }}
                 >
-                  {downloadProgress > 10 && (
-                    <span className="text-xs font-bold text-blue-500">
+                  {downloadProgress > 15 && (
+                    <span className="text-xs font-bold text-blue-600 px-2">
                       {downloadProgress.toFixed(0)}%
                     </span>
                   )}
                 </div>
               </div>
 
-              <p className="text-xs opacity-75">
-                {direction === 'rtl'
-                  ? 'جاري تحميل التحديث...'
-                  : 'Downloading update...'}
-              </p>
+              {/* Download info */}
+              <div className="flex justify-between items-center text-xs opacity-85">
+                <span>
+                  {direction === 'rtl' ? 'جاري التحميل...' : 'Downloading...'}
+                </span>
+                {progressInfo && (
+                  <span className="font-mono">
+                    {formatBytes(progressInfo.transferred)} / {formatBytes(progressInfo.total)}
+                    {progressInfo.bytesPerSecond > 0 && (
+                      <span className="ml-2 opacity-75">
+                        ({formatSpeed(progressInfo.bytesPerSecond)})
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
             </div>
             <button
               onClick={handleDismiss}
-              className="text-white/80 hover:text-white"
+              className="text-white/70 hover:text-white transition-colors text-xl"
             >
               ✕
             </button>
@@ -166,37 +196,48 @@ export default function UpdateNotification() {
       {/* Update ready to install notification */}
       {updateDownloaded && (
         <div
-          className="fixed top-4 right-4 z-[10000] bg-green-500 text-white p-4 rounded-lg shadow-xl animate-slideDown"
-          style={{ minWidth: '320px' }}
+          className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-green-500 to-green-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-green-400"
+          style={{ minWidth: '380px', maxWidth: '420px' }}
           dir={direction}
         >
           <div className="flex items-start gap-3">
-            <span className="text-3xl">✅</span>
+            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+              <span className="text-3xl">✅</span>
+            </div>
             <div className="flex-1">
-              <p className="font-bold mb-1 text-lg">
-                {direction === 'rtl' ? 'التحديث جاهز!' : 'Update Ready!'}
+              <p className="font-bold mb-1 text-xl">
+                {direction === 'rtl' ? 'التحديث جاهز! 🎉' : 'Update Ready! 🎉'}
               </p>
-              <p className="text-sm opacity-90 mb-3">
+              <p className="text-sm opacity-90 mb-4">
                 {direction === 'rtl'
-                  ? `النسخة ${updateInfo?.version} جاهزة للتثبيت`
-                  : `Version ${updateInfo?.version} ready to install`}
+                  ? `النسخة ${updateInfo?.version} تم تحميلها بنجاح`
+                  : `Version ${updateInfo?.version} downloaded successfully`}
               </p>
 
               {/* Action buttons */}
               <div className="flex gap-2">
                 <button
                   onClick={handleInstallUpdate}
-                  className="flex-1 bg-white text-green-600 px-4 py-2 rounded-lg font-bold hover:bg-green-50 transition-colors"
+                  className="flex-1 bg-white text-green-600 px-4 py-2.5 rounded-lg font-bold hover:bg-green-50 hover:shadow-lg transition-all transform hover:scale-105"
                 >
-                  {direction === 'rtl' ? 'إعادة تشغيل وتثبيت' : 'Restart & Install'}
+                  <span className="flex items-center justify-center gap-2">
+                    🔄
+                    {direction === 'rtl' ? 'إعادة تشغيل وتثبيت' : 'Restart & Install'}
+                  </span>
                 </button>
                 <button
                   onClick={handleDismiss}
-                  className="px-4 py-2 rounded-lg font-bold bg-white/20 hover:bg-white/30 transition-colors"
+                  className="px-4 py-2.5 rounded-lg font-bold bg-white/20 hover:bg-white/30 transition-colors"
                 >
                   {direction === 'rtl' ? 'لاحقاً' : 'Later'}
                 </button>
               </div>
+
+              <p className="text-xs opacity-75 mt-3 text-center">
+                {direction === 'rtl'
+                  ? 'سيتم التثبيت عند إعادة تشغيل البرنامج'
+                  : 'Update will install when app restarts'}
+              </p>
             </div>
           </div>
         </div>

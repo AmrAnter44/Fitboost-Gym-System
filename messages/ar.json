@@ -282,7 +282,17 @@
     "noDevices": "لم يتم العثور على أجهزة",
     "detectingDevices": "جاري البحث عن الأجهزة",
     "autoScanEnabled": "المسح التلقائي مفعّل",
-    "defaultDevice": "استخدام الكاميرا الافتراضية"
+    "defaultDevice": "استخدام الكاميرا الافتراضية",
+    "updates": "التحديثات",
+    "automaticUpdates": "التحديثات التلقائية",
+    "checkForUpdates": "التحقق من التحديثات",
+    "currentVersion": "النسخة الحالية",
+    "updateChecking": "جاري التحقق من التحديثات...",
+    "updateAvailable": "تحديث جديد متاح!",
+    "updateDownloading": "جاري تحميل التحديث...",
+    "updateReady": "التحديث جاهز للتثبيت",
+    "restartAndInstall": "إعادة تشغيل وتثبيت",
+    "later": "لاحقاً"
   },
   "dashboard": {
     "title": "لوحة التحكم",
