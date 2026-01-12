@@ -11,7 +11,7 @@ import { Html5Qrcode } from 'html5-qrcode'
 export default function SettingsPage() {
   const router = useRouter()
   const { locale, setLanguage, t, direction } = useLanguage()
-  const { selectedScanner, setSelectedScanner, autoScanEnabled, setAutoScanEnabled } = useDeviceSettings()
+  const { selectedScanner, selectedScannerFingerprint, setSelectedScanner, autoScanEnabled, setAutoScanEnabled, strictMode, setStrictMode } = useDeviceSettings()
   const [user, setUser] = useState<any>(null)
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [devices, setDevices] = useState<any[]>([])
@@ -22,9 +22,24 @@ export default function SettingsPage() {
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false)
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Auto-detection states
+  const [isDetecting, setIsDetecting] = useState(false)
+  const [detectionInput, setDetectionInput] = useState('')
+
   useEffect(() => {
     checkAuth()
   }, [])
+
+  // ✅ Send device name to Electron when component mounts (restore from localStorage)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).electron?.setCurrentDeviceName) {
+      if (selectedScanner && selectedScannerFingerprint?.deviceName) {
+        const deviceName = selectedScannerFingerprint.deviceName
+        ;(window as any).electron.setCurrentDeviceName(deviceName)
+        console.log('📤 Restored device name in Electron:', deviceName)
+      }
+    }
+  }, [selectedScanner, selectedScannerFingerprint])
 
   // Setup electron update listeners
   useEffect(() => {
@@ -118,6 +133,22 @@ export default function SettingsPage() {
           kind: 'barcodescanner'
         }
       ]
+
+      console.log('📋 Setting initial devices:', basicOptions)
+      console.log('💾 Current selectedScanner from context:', selectedScanner)
+      console.log('🔑 Current selectedScannerFingerprint:', selectedScannerFingerprint)
+
+      // ✅ إذا كان فيه جهاز محفوظ ومش موجود في القائمة، نضيفه
+      if (selectedScanner && selectedScanner !== 'keyboard-wedge-scanner') {
+        const savedDeviceLabel = selectedScannerFingerprint?.deviceName || selectedScanner
+        console.log('➕ Adding saved device to initial list:', savedDeviceLabel)
+        basicOptions.push({
+          id: selectedScanner,
+          label: `📱 ${savedDeviceLabel}`,
+          kind: 'hid'
+        })
+      }
+
       setDevices(basicOptions)
     } else {
       // تحديث تسميات الأجهزة عند تغيير اللغة
@@ -132,7 +163,7 @@ export default function SettingsPage() {
       })
       setDevices(updatedDevices)
     }
-  }, [locale])
+  }, [locale, selectedScanner, selectedScannerFingerprint])
 
   const checkAuth = async () => {
     try {
@@ -233,11 +264,112 @@ export default function SettingsPage() {
   }
 
 
+  // ✅ Auto-match saved device when devices list changes
+  useEffect(() => {
+    if (devices.length === 0) {
+      console.log('⏳ No devices loaded yet, waiting...')
+      return
+    }
+
+    // If we already have a selected scanner and it exists in the list, we're good
+    if (selectedScanner && devices.some(d => d.id === selectedScanner)) {
+      console.log('✅ Current device is valid:', selectedScanner)
+      return
+    }
+
+    // If we don't have a saved fingerprint or scanner, nothing to restore
+    if (!selectedScannerFingerprint && !selectedScanner) {
+      console.log('ℹ️ No saved device found')
+      return
+    }
+
+    // Try to find device by fingerprint or ID
+    console.log('🔍 Trying to restore saved device:', { selectedScanner, selectedScannerFingerprint })
+
+    let matchedDevice = null
+
+    // First try: exact ID match
+    if (selectedScanner) {
+      matchedDevice = devices.find(d => d.id === selectedScanner)
+      if (matchedDevice) {
+        console.log('🎯 Matched by exact ID:', selectedScanner)
+      }
+    }
+
+    // Second try: Match HID devices by vendorId + productId (most reliable)
+    if (!matchedDevice && selectedScannerFingerprint?.vendorId && selectedScannerFingerprint?.productId) {
+      matchedDevice = devices.find(d => {
+        if (d.kind !== 'hid' || !d.raw) return false
+        const deviceVendorId = d.raw.vendorId?.toString(16)
+        const deviceProductId = d.raw.productId?.toString(16)
+        const match = deviceVendorId === selectedScannerFingerprint.vendorId &&
+               deviceProductId === selectedScannerFingerprint.productId
+        if (match) {
+          console.log('🎯 Matched by VID/PID:', deviceVendorId, deviceProductId)
+        }
+        return match
+      })
+    }
+
+    // Third try: Match by device name (for keyboard-wedge or cameras)
+    if (!matchedDevice && selectedScannerFingerprint?.deviceName) {
+      matchedDevice = devices.find(d => {
+        const match = d.label === selectedScannerFingerprint.deviceName ||
+                      d.id === selectedScannerFingerprint.deviceName
+        if (match) {
+          console.log('🎯 Matched by device name:', d.label)
+        }
+        return match
+      })
+    }
+
+    if (matchedDevice) {
+      console.log('✅ Restored saved device:', matchedDevice.id, matchedDevice.label)
+      // Don't call setSelectedScanner here - it's already in state, just verify it matches
+    } else {
+      console.log('⚠️ Could not find saved device in list')
+      console.log('📋 Available devices:', devices.map(d => ({ id: d.id, label: d.label, kind: d.kind })))
+    }
+  }, [devices])
+
+
   const handleDeviceChange = (deviceId: string) => {
     if (deviceId === 'none') {
-      setSelectedScanner(undefined)
+      setSelectedScanner(undefined, undefined)
+      // Clear device name in Electron
+      if (typeof window !== 'undefined' && (window as any).electron?.setCurrentDeviceName) {
+        (window as any).electron.setCurrentDeviceName('No Device')
+      }
     } else {
-      setSelectedScanner(deviceId)
+      // Find the device in our list to get its raw data
+      const device = devices.find(d => d.id === deviceId)
+
+      // Extract fingerprint for HID devices
+      let fingerprint = undefined
+      if (device?.kind === 'hid' && device.raw) {
+        fingerprint = {
+          vendorId: device.raw.vendorId?.toString(16),
+          productId: device.raw.productId?.toString(16),
+          manufacturer: device.raw.manufacturer,
+          product: device.raw.product,
+          deviceName: device.label
+        }
+      } else if (device) {
+        // For other devices (keyboard-wedge, cameras), just save the name
+        fingerprint = {
+          deviceName: device.label
+        }
+      }
+
+      setSelectedScanner(deviceId, fingerprint)
+      console.log('💾 Saving device:', { deviceId, fingerprint })
+
+      // ✅ Send device name to Electron main process for logging
+      if (typeof window !== 'undefined' && (window as any).electron?.setCurrentDeviceName) {
+        const nameToSend = device?.label || deviceId
+        ;(window as any).electron.setCurrentDeviceName(nameToSend)
+        console.log('📤 Sent device name to Electron:', nameToSend)
+      }
     }
   }
 
@@ -375,7 +507,7 @@ export default function SettingsPage() {
 
           <div className="bg-gray-50 rounded-xl p-6">
             {/* Auto-Scan Toggle */}
-            <div className="mb-6 p-4 bg-white rounded-lg border-2 border-gray-200">
+            <div className="mb-4 p-4 bg-white rounded-lg border-2 border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-1">
@@ -405,6 +537,41 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Strict Mode Toggle */}
+            {selectedScanner && (
+              <div className="mb-6 p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border-2 border-amber-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+                      <span>🔒</span>
+                      <span>{locale === 'ar' ? 'وضع العزل الكامل' : 'Strict Isolation Mode'}</span>
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {locale === 'ar'
+                        ? 'عزل الجهاز تماماً - كل الكتابة منه تروح للبحث فقط'
+                        : 'Complete device isolation - all input goes to search only'
+                      }
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setStrictMode(!strictMode)}
+                    className={`relative w-16 h-8 rounded-full transition-colors ${
+                      strictMode ? 'bg-amber-500' : 'bg-gray-300'
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
+                        strictMode
+                          ? (locale === 'ar' ? 'translate-x-1' : 'translate-x-8')
+                          : (locale === 'ar' ? 'translate-x-8' : 'translate-x-1')
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            )}
+
+
             {/* Device Selector */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -420,6 +587,7 @@ export default function SettingsPage() {
               {!loadingDevices && (
                 <div className="space-y-3">
                   <select
+                    key={`scanner-select-${selectedScanner || 'none'}`}
                     value={selectedScanner || 'none'}
                     onChange={(e) => handleDeviceChange(e.target.value)}
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
@@ -427,7 +595,7 @@ export default function SettingsPage() {
                     <option value="none">{t('settings.defaultDevice')}</option>
                     {devices.map((device) => (
                       <option key={device.id} value={device.id}>
-                        {device.label}
+                        {device.label} {selectedScanner === device.id ? '✓' : ''}
                       </option>
                     ))}
                   </select>
@@ -578,8 +746,8 @@ export default function SettingsPage() {
                   </p>
                   <p className="text-sm opacity-90">
                     {locale === 'ar'
-                      ? 'النسخة 1.0.12 هي أحدث إصدار متاح'
-                      : 'Version 1.0.12 is the latest available'}
+                      ? 'النسخة 1.0.13 هي أحدث إصدار متاح'
+                      : 'Version 1.0.13 is the latest available'}
                   </p>
                 </div>
                 <button
@@ -608,7 +776,7 @@ export default function SettingsPage() {
                       <span className="text-xs opacity-90">
                         {locale === 'ar' ? 'الإصدار الحالي:' : 'Current:'}
                       </span>
-                      <span className="font-bold">1.0.12</span>
+                      <span className="font-bold">1.0.13</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs opacity-90">
@@ -670,8 +838,8 @@ export default function SettingsPage() {
                 </p>
                 <p className="text-xs text-gray-500">
                   {locale === 'ar'
-                    ? 'النسخة الحالية: 1.0.12'
-                    : 'Current version: 1.0.12'
+                    ? 'النسخة الحالية: 1.0.13'
+                    : 'Current version: 1.0.13'
                   }
                 </p>
               </div>
@@ -760,6 +928,7 @@ export default function SettingsPage() {
         <LinkModal onClose={() => setShowLinkModal(false)} />
       )}
 
+
       {/* Animation styles */}
       <style jsx global>{`
         @keyframes slideDown {
@@ -775,6 +944,34 @@ export default function SettingsPage() {
 
         .animate-slideDown {
           animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
         }
       `}</style>
     </div>

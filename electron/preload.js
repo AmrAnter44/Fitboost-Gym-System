@@ -36,6 +36,26 @@ contextBridge.exposeInMainWorld('electron', {
     return ipcRenderer.invoke('detect-hid-devices');
   },
 
+  // New: Set current device name for logging
+  setCurrentDeviceName: (deviceName) => {
+    ipcRenderer.send('set-current-device-name', deviceName);
+  },
+
+  // New: Set strict mode for HID device isolation
+  setStrictMode: (enabled) => {
+    ipcRenderer.send('set-strict-mode', enabled);
+  },
+
+  // New: Set barcode detection configuration
+  setBarcodeConfig: (config) => {
+    ipcRenderer.send('set-barcode-config', config);
+  },
+
+  // New: Set SearchModal active state
+  setSearchModalActive: (isActive) => {
+    ipcRenderer.send('set-search-modal-active', isActive);
+  },
+
   // Auto Updater: Check for updates
   checkForUpdates: () => {
     return ipcRenderer.invoke('check-for-updates');

@@ -390,6 +390,22 @@ function createWindow() {
   });
 
   // Add keyboard event logging for barcode scanner debugging
+  let currentDeviceName = 'Unknown Device';
+  let strictModeEnabled = true; // Default to strict mode ON
+  let keystrokeBufferStrict = [];
+  let keystrokeTimerStrict = null;
+
+  // إعدادات الكشف عن الباركود
+  let barcodeConfig = {
+    minDigits: 1,
+    maxDigits: 4,
+    maxTimeBetweenKeys: 25,
+    maxTotalTime: 150
+  };
+
+  // تتبع حالة SearchModal
+  let isSearchModalActive = false;
+
   mainWindow.webContents.on('before-input-event', (event, input) => {
     // Log all keyboard events for debugging
     if (input.type === 'keyDown') {
@@ -397,10 +413,94 @@ function createWindow() {
         key: input.key,
         code: input.code,
         type: input.type,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        device: currentDeviceName,
+        strictMode: strictModeEnabled
       });
+
+      // ✅ إذا كان الوضع الصارم مفعّل وكان الجهاز HID محدد (ماعدا لو في SearchModal)
+      if (strictModeEnabled && currentDeviceName !== 'Unknown Device' && currentDeviceName !== 'keyboard-wedge-scanner' && !isSearchModalActive) {
+        const now = Date.now();
+
+        // Enter key
+        if (input.code === 'Enter' || input.key === 'Enter') {
+          if (keystrokeBufferStrict.length >= barcodeConfig.minDigits && keystrokeBufferStrict.length <= barcodeConfig.maxDigits) {
+            // Check if all are numbers
+            const barcodeValue = keystrokeBufferStrict.map(k => k.key).join('');
+            const isAllNumbers = /^\d+$/.test(barcodeValue);
+
+            // Check timing - rapid input
+            let isRapid = true;
+            for (let i = 1; i < keystrokeBufferStrict.length; i++) {
+              const timeDiff = keystrokeBufferStrict[i].timestamp - keystrokeBufferStrict[i - 1].timestamp;
+              if (timeDiff > barcodeConfig.maxTimeBetweenKeys) {
+                isRapid = false;
+                break;
+              }
+            }
+
+            const totalTime = keystrokeBufferStrict.length > 1
+              ? keystrokeBufferStrict[keystrokeBufferStrict.length - 1].timestamp - keystrokeBufferStrict[0].timestamp
+              : 0;
+            const isWithinTimeLimit = totalTime < barcodeConfig.maxTotalTime;
+
+            if (isRapid && isWithinTimeLimit && isAllNumbers) {
+              console.log('🔒 STRICT MODE: Barcode detected from HID device:', barcodeValue);
+              console.log('⚙️ Config:', barcodeConfig);
+              console.log('🚫 Blocking keyboard event and sending to SearchModal');
+
+              // منع الحدث من الوصول للـ renderer
+              event.preventDefault();
+
+              // إرسال الباركود للـ renderer عبر IPC
+              mainWindow.webContents.send('barcode-detected', barcodeValue);
+            }
+          }
+
+          keystrokeBufferStrict = [];
+          return;
+        }
+
+        // Normal keys - collect them
+        if (input.key && input.key.length === 1) {
+          keystrokeBufferStrict.push({
+            key: input.key,
+            timestamp: now
+          });
+
+          // Clear buffer after 500ms of inactivity
+          clearTimeout(keystrokeTimerStrict);
+          keystrokeTimerStrict = setTimeout(() => {
+            keystrokeBufferStrict = [];
+          }, 500);
+        }
+      }
     }
-    // Don't prevent - let events flow to renderer
+    // If not strict mode or not HID device, let events flow to renderer normally
+  });
+
+  // Listen for device name updates from renderer
+  ipcMain.on('set-current-device-name', (event, deviceName) => {
+    currentDeviceName = deviceName || 'Unknown Device';
+    console.log('📱 Current scanner device set to:', currentDeviceName);
+  });
+
+  // Listen for strict mode updates from renderer
+  ipcMain.on('set-strict-mode', (event, enabled) => {
+    strictModeEnabled = enabled;
+    console.log('🔒 Strict mode set to:', enabled ? 'ENABLED' : 'DISABLED');
+  });
+
+  // Listen for barcode config updates from renderer
+  ipcMain.on('set-barcode-config', (event, config) => {
+    barcodeConfig = config;
+    console.log('⚙️ Barcode config updated:', config);
+  });
+
+  // Listen for SearchModal active state updates
+  ipcMain.on('set-search-modal-active', (event, isActive) => {
+    isSearchModalActive = isActive;
+    console.log('🔍 SearchModal active state:', isActive ? 'ACTIVE' : 'INACTIVE');
   });
 
   // Ensure window has focus for keyboard events
