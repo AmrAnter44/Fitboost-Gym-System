@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
@@ -72,7 +72,6 @@
       ".next/standalone/**/*",
       "!.next/standalone/node_modules",
       ".next/static/**/*",
-      "public/**/*",
       "build/**/*",
       "prisma/**/*",
       "package.json"
@@ -82,9 +81,7 @@
       "!.next/standalone/node_modules",
       "node_modules/uiohook-napi/**/*",
       "node_modules/better-sqlite3/**/*",
-      "node_modules/node-hid/**/*",
-      "public/**/*",
-      "build/**/*"
+      "node_modules/node-hid/**/*"
     ],
     "extraResources": [
       {
@@ -97,20 +94,6 @@
       {
         "from": "prisma/prisma/gym.db",
         "to": "seed-database/gym.db"
-      },
-      {
-        "from": "public",
-        "to": "public",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "build",
-        "to": "build",
-        "filter": [
-          "**/*"
-        ]
       }
     ],
     "win": {
