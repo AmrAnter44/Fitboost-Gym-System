@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
@@ -73,6 +73,7 @@
       "!.next/standalone/node_modules",
       ".next/static/**/*",
       "public/**/*",
+      "build/**/*",
       "prisma/**/*",
       "package.json"
     ],
@@ -81,7 +82,9 @@
       "!.next/standalone/node_modules",
       "node_modules/uiohook-napi/**/*",
       "node_modules/better-sqlite3/**/*",
-      "node_modules/node-hid/**/*"
+      "node_modules/node-hid/**/*",
+      "public/**/*",
+      "build/**/*"
     ],
     "extraResources": [
       {
