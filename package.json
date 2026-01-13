@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
@@ -97,6 +97,20 @@
       {
         "from": "prisma/prisma/gym.db",
         "to": "seed-database/gym.db"
+      },
+      {
+        "from": "public",
+        "to": "public",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "build",
+        "to": "build",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
@@ -109,7 +123,9 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     },
     "publish": {
       "provider": "github",
