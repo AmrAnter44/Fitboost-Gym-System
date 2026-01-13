@@ -324,7 +324,7 @@ async function startProductionServer() {
       });
     } else {
       // تشغيل standalone server.js
-      console.log('Starting standalone server');
+      console.log('Starting standalone server with custom public folder support');
 
       // التحقق من وجود مجلد public
       const publicPath = path.join(appPath, 'public');
@@ -341,18 +341,39 @@ async function startProductionServer() {
       console.log('App path:', appPath);
       console.log('Database URL:', DATABASE_URL);
 
-      serverProcess = spawn('node', [serverFile], {
-        cwd: appPath,
-        env: {
-          ...process.env,
-          NODE_ENV: 'production',
-          PORT: '4001',
-          HOSTNAME: '0.0.0.0',
-          DATABASE_URL: DATABASE_URL
-        },
-        shell: false,
-        stdio: 'pipe'
-      });
+      // استخدام custom server wrapper للـ public folder support
+      const customServerPath = path.join(__dirname, 'standalone-server.js');
+      const useCustomServer = fs.existsSync(customServerPath);
+
+      if (useCustomServer) {
+        console.log('✓ Using custom server with public folder support');
+        serverProcess = spawn('node', [customServerPath, appPath], {
+          cwd: appPath,
+          env: {
+            ...process.env,
+            NODE_ENV: 'production',
+            PORT: '4001',
+            HOSTNAME: '0.0.0.0',
+            DATABASE_URL: DATABASE_URL
+          },
+          shell: false,
+          stdio: 'pipe'
+        });
+      } else {
+        console.warn('⚠️ Custom server not found, using default server.js');
+        serverProcess = spawn('node', [serverFile], {
+          cwd: appPath,
+          env: {
+            ...process.env,
+            NODE_ENV: 'production',
+            PORT: '4001',
+            HOSTNAME: '0.0.0.0',
+            DATABASE_URL: DATABASE_URL
+          },
+          shell: false,
+          stdio: 'pipe'
+        });
+      }
     }
 
     serverProcess.stdout.on('data', data => console.log(`Next: ${data}`));
