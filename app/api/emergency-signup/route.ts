@@ -1,7 +1,7 @@
 // app/api/emergency-signup/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 
 // 🔒 غير هذا المفتاح السري (يجب أن يطابق المفتاح في الصفحة)
 const SECRET_KEY = 'GYM_EMERGENCY_2024'
