@@ -42,28 +42,34 @@ const nextServer = require(serverFile);
 
 // Create HTTP server
 const server = http.createServer((req, res) => {
-  // Check if request is for a public file
-  if (req.url.startsWith('/') && !req.url.startsWith('/api') && !req.url.startsWith('/_next')) {
-    const filePath = path.join(publicDir, req.url);
+  // Parse URL to remove query strings
+  const urlPath = req.url.split('?')[0];
+
+  // Check if request is for a public file (but not API or Next.js routes)
+  if (!urlPath.startsWith('/api') && !urlPath.startsWith('/_next')) {
+    const filePath = path.join(publicDir, urlPath);
 
     // Security: prevent directory traversal
-    if (filePath.startsWith(publicDir) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      const ext = path.extname(filePath).toLowerCase();
-      const contentType = mimeTypes[ext] || 'application/octet-stream';
+    if (filePath.startsWith(publicDir) && fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      if (stats.isFile()) {
+        const ext = path.extname(filePath).toLowerCase();
+        const contentType = mimeTypes[ext] || 'application/octet-stream';
 
-      console.log('📄 Serving static file:', req.url);
+        console.log('📄 Serving static file:', urlPath);
 
-      fs.readFile(filePath, (err, data) => {
-        if (err) {
-          console.error('❌ Error reading file:', err);
-          res.writeHead(500);
-          res.end('Internal Server Error');
-        } else {
-          res.writeHead(200, { 'Content-Type': contentType });
-          res.end(data);
-        }
-      });
-      return;
+        fs.readFile(filePath, (err, data) => {
+          if (err) {
+            console.error('❌ Error reading file:', err);
+            res.writeHead(500);
+            res.end('Internal Server Error');
+          } else {
+            res.writeHead(200, { 'Content-Type': contentType });
+            res.end(data);
+          }
+        });
+        return;
+      }
     }
   }
 
