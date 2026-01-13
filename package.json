@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
@@ -64,8 +64,6 @@
   "build": {
     "appId": "com.gym.management",
     "productName": "Gym Management",
-    "npmRebuild": false,
-    "buildDependenciesFromSource": false,
     "directories": {
       "output": "dist"
     },
