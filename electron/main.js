@@ -342,7 +342,18 @@ async function startProductionServer() {
       console.log('Database URL:', DATABASE_URL);
 
       // استخدام custom server wrapper للـ public folder support
-      const customServerPath = path.join(__dirname, 'standalone-server.js');
+      // في production، الـ standalone-server.js موجود في app.asar.unpacked
+      let customServerPath = path.join(__dirname, 'standalone-server.js');
+
+      // لو مش موجود في asar، جرب في unpacked
+      if (!fs.existsSync(customServerPath) && !isDev) {
+        // في production، __dirname = app.asar/electron
+        // محتاجين نروح لـ app.asar.unpacked/electron
+        const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
+        customServerPath = path.join(unpackedPath, 'standalone-server.js');
+        console.log('Looking for custom server in unpacked:', customServerPath);
+      }
+
       const useCustomServer = fs.existsSync(customServerPath);
 
       if (useCustomServer) {
