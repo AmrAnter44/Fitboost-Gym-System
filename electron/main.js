@@ -345,8 +345,8 @@ async function startProductionServer() {
       // في production، الـ standalone-server.js موجود في app.asar.unpacked
       let customServerPath = path.join(__dirname, 'standalone-server.js');
 
-      // لو مش موجود في asar، جرب في unpacked
-      if (!fs.existsSync(customServerPath) && !isDev) {
+      // في production، دايماً استخدم unpacked version
+      if (!isDev) {
         // في production، __dirname = app.asar/electron
         // محتاجين نروح لـ app.asar.unpacked/electron
         const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
@@ -358,6 +358,7 @@ async function startProductionServer() {
 
       if (useCustomServer) {
         console.log('✓ Using custom server with public folder support');
+        console.log('Custom server path:', customServerPath);
         serverProcess = spawn('node', [customServerPath, appPath], {
           cwd: appPath,
           env: {
