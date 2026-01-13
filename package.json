@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev -p 4001 -H 0.0.0.0",
     "build": "prisma generate && next build && npm run postbuild",
-    "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = path.join('.next', 'static'); const dest = path.join('.next', 'standalone', '.next', 'static'); if (fs.existsSync(src) && fs.existsSync('.next/standalone')) { fs.cpSync(src, dest, { recursive: true }); console.log('✅ Static files copied to standalone'); }\"",
+    "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const staticSrc = path.join('.next', 'static'); const staticDest = path.join('.next', 'standalone', '.next', 'static'); const publicSrc = 'public'; const publicDest = path.join('.next', 'standalone', 'public'); if (fs.existsSync(staticSrc) && fs.existsSync('.next/standalone')) { fs.cpSync(staticSrc, staticDest, { recursive: true }); console.log('✅ Static files copied to standalone'); } if (fs.existsSync(publicSrc) && fs.existsSync('.next/standalone')) { fs.cpSync(publicSrc, publicDest, { recursive: true }); console.log('✅ Public files copied to standalone'); }\"",
     "start": "next start -p 4001 -H 0.0.0.0",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",

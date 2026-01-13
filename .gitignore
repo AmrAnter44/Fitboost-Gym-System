@@ -18,7 +18,7 @@
 /out/
 
 # production
-/build
+# /build - COMMENTED OUT: We need build folder for electron icons
 
 # misc
 .DS_Store
@@ -53,7 +53,7 @@ dist
 node_modules
 .next
 dist
-build
+# build - COMMENTED OUT: We need build folder for electron icons
 out
 nul
 # Logs
