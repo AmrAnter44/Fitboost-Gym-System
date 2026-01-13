@@ -326,6 +326,14 @@ async function startProductionServer() {
       // تشغيل standalone server.js
       console.log('Starting standalone server');
 
+      // التحقق من وجود مجلد public
+      const publicPath = path.join(appPath, 'public');
+      if (fs.existsSync(publicPath)) {
+        console.log('✓ Public folder found at:', publicPath);
+      } else {
+        console.warn('⚠️ Public folder NOT found at:', publicPath);
+      }
+
       // استخدام المسار الدائم لقاعدة البيانات
       const dbPath = getDatabasePath();
       const DATABASE_URL = `file:${dbPath}`;
