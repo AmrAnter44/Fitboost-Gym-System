@@ -51,8 +51,11 @@ export default function SettingsPage() {
     // Listen for update available
     electron.onUpdateAvailable?.((info: any) => {
       console.log('✅ Update available:', info)
-      setUpdateInfo(info)
+      // لا نعرض updateInfo في الصفحة، سيتم عرضه فقط في toast
       setIsCheckingUpdates(false)
+      // عرض رسالة نجاح بدلاً من updateInfo
+      setShowUpdateSuccess(true)
+      setTimeout(() => setShowUpdateSuccess(false), 4000)
     })
 
     // Listen for no update
@@ -106,21 +109,7 @@ export default function SettingsPage() {
     }
   }
 
-  const handleDownloadUpdate = async () => {
-    if (typeof window === 'undefined') return
-
-    const electron = (window as any).electron
-    if (!electron?.isElectron) return
-
-    try {
-      await electron.downloadUpdate?.()
-      setUpdateInfo(null) // سيتم عرض progress من خلال UpdateNotification
-    } catch (err: any) {
-      console.error('Error downloading update:', err)
-      setUpdateError(err.message || 'فشل تحميل التحديث')
-      setTimeout(() => setUpdateError(null), 5000)
-    }
-  }
+  // handleDownloadUpdate removed - updates are now handled via UpdateNotification toast component
 
   // إضافة الخيارات الأساسية عند التحميل الأول وتحديث التسميات عند تغيير اللغة
   useEffect(() => {
@@ -760,68 +749,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Update available notification */}
-          {updateInfo && (
-            <div className="mb-4 bg-gradient-to-br from-green-500 to-green-600 text-white p-5 rounded-xl shadow-lg animate-slideDown border border-green-400">
-              <div className="flex items-start gap-3">
-                <span className="text-3xl">🎉</span>
-                <div className="flex-1">
-                  <p className="font-bold mb-2 text-xl">
-                    {locale === 'ar' ? 'تحديث جديد متاح!' : 'New Update Available!'}
-                  </p>
-
-                  {/* Current vs Latest */}
-                  <div className="bg-white/20 rounded-lg p-3 mb-3 backdrop-blur-sm">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs opacity-90">
-                        {locale === 'ar' ? 'الإصدار الحالي:' : 'Current:'}
-                      </span>
-                      <span className="font-bold">1.0.13</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs opacity-90">
-                        {locale === 'ar' ? 'الإصدار الجديد:' : 'Latest:'}
-                      </span>
-                      <span className="font-bold text-yellow-200">{updateInfo.version}</span>
-                    </div>
-                  </div>
-
-                  {/* Release Notes Preview */}
-                  {updateInfo.releaseNotes && (
-                    <div className="bg-white/10 rounded-lg p-2 mb-3 max-h-20 overflow-y-auto text-xs opacity-90">
-                      {updateInfo.releaseNotes.split('\n').slice(0, 3).join('\n')}
-                      {updateInfo.releaseNotes.split('\n').length > 3 && '...'}
-                    </div>
-                  )}
-
-                  {/* Action buttons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleDownloadUpdate}
-                      className="flex-1 bg-white text-green-600 px-4 py-2.5 rounded-lg font-bold hover:bg-green-50 hover:shadow-lg transition-all transform hover:scale-105"
-                    >
-                      <span className="flex items-center justify-center gap-2">
-                        📥
-                        {locale === 'ar' ? 'تحميل التحديث' : 'Download Update'}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setUpdateInfo(null)}
-                      className="px-4 py-2.5 rounded-lg font-bold bg-white/20 hover:bg-white/30 transition-colors"
-                    >
-                      {locale === 'ar' ? 'لاحقاً' : 'Later'}
-                    </button>
-                  </div>
-
-                  <p className="text-xs opacity-75 mt-2 text-center">
-                    {locale === 'ar'
-                      ? 'سيتم فتح صفحة التحميل في متصفح جديد'
-                      : 'Download page will open in browser'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Update notifications removed - now shown only in toast via UpdateNotification component */}
 
           {/* Main update check card */}
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border-2 border-blue-200">
