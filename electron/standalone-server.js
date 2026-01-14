@@ -45,35 +45,46 @@ const server = http.createServer((req, res) => {
   // Parse URL to remove query strings
   const urlPath = req.url.split('?')[0];
 
+  console.log('📥 Incoming request:', urlPath);
+
   // Check if request is for a public file (but not API or Next.js routes)
-  if (!urlPath.startsWith('/api') && !urlPath.startsWith('/_next')) {
+  if (!urlPath.startsWith('/api') && !urlPath.startsWith('/_next') && urlPath !== '/') {
     const filePath = path.join(publicDir, urlPath);
+    console.log('🔍 Checking path:', filePath);
+    console.log('🔍 Path starts with public?', filePath.startsWith(publicDir));
+    console.log('🔍 File exists?', fs.existsSync(filePath));
 
     // Security: prevent directory traversal
     if (filePath.startsWith(publicDir) && fs.existsSync(filePath)) {
-      const stats = fs.statSync(filePath);
-      if (stats.isFile()) {
-        const ext = path.extname(filePath).toLowerCase();
-        const contentType = mimeTypes[ext] || 'application/octet-stream';
+      try {
+        const stats = fs.statSync(filePath);
+        console.log('🔍 Is file?', stats.isFile());
 
-        console.log('📄 Serving static file:', urlPath);
+        if (stats.isFile()) {
+          const ext = path.extname(filePath).toLowerCase();
+          const contentType = mimeTypes[ext] || 'application/octet-stream';
 
-        fs.readFile(filePath, (err, data) => {
-          if (err) {
-            console.error('❌ Error reading file:', err);
-            res.writeHead(500);
-            res.end('Internal Server Error');
-          } else {
-            res.writeHead(200, { 'Content-Type': contentType });
-            res.end(data);
-          }
-        });
-        return;
+          console.log('✅ Serving static file:', urlPath, 'Type:', contentType);
+
+          const data = fs.readFileSync(filePath);
+          res.writeHead(200, {
+            'Content-Type': contentType,
+            'Content-Length': data.length,
+            'Cache-Control': 'public, max-age=31536000'
+          });
+          res.end(data);
+          return;
+        }
+      } catch (err) {
+        console.error('❌ Error reading file:', err);
       }
+    } else {
+      console.log('⚠️ File not found or path issue');
     }
   }
 
   // Forward to Next.js server
+  console.log('➡️ Forwarding to Next.js:', urlPath);
   nextServer.handle(req, res);
 });
 
