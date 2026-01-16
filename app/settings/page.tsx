@@ -835,17 +835,15 @@ export default function SettingsPage() {
         <div className="border-t pt-6 mt-6">
           <div className="text-center">
             <a
-              href="https://www.fitboost.website/en"
+              href="https://fitboost.website"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <span className="text-sm text-gray-500">{t('settings.poweredBy')}</span>
-              <img
-                src="/assets/FB.png"
-                alt="FitBoost"
-                className="h-6 w-auto"
-              />
+              <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                FitBoost
+              </span>
             </a>
           </div>
         </div>
