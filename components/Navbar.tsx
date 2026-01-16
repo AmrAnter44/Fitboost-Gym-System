@@ -12,11 +12,16 @@ import { useUpdate } from '../contexts/UpdateContext'
 export default function Navbar() {
   const pathname = usePathname()
   const { openSearch } = useSearch()
-  const { hasPermission, user } = usePermissions()
+  const { hasPermission, user, loading } = usePermissions()
   const { t, locale } = useLanguage()
   const { updateAvailable } = useUpdate()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
+
+  // Don't show navbar if no user is logged in
+  if (!loading && !user) {
+    return null
+  }
 
   const allLinks = [
     { href: '/members', label: t('nav.members'), icon: '👥', permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
