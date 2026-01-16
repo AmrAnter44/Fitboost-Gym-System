@@ -87,9 +87,22 @@ const server = http.createServer((req, res) => {
   console.log('➡️ Forwarding to Next.js:', urlPath);
   if (!server.nextHandler) {
     // Lazy load Next.js handler only when needed
-    server.nextHandler = require(serverFile);
+    const NextServer = require(serverFile);
+    // Next.js standalone server exports the handler directly
+    server.nextHandler = NextServer;
+    console.log('✅ Next.js handler loaded');
   }
-  server.nextHandler.handle(req, res);
+
+  // Call the handler - Next.js standalone exports a request handler
+  if (typeof server.nextHandler === 'function') {
+    server.nextHandler(req, res);
+  } else if (server.nextHandler && typeof server.nextHandler.handle === 'function') {
+    server.nextHandler.handle(req, res);
+  } else {
+    console.error('❌ Next.js handler not found or invalid');
+    res.writeHead(500);
+    res.end('Internal Server Error: Next.js handler not available');
+  }
 });
 
 server.listen(PORT, HOSTNAME, () => {
