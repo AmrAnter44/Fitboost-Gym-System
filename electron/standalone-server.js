@@ -37,10 +37,10 @@ const mimeTypes = {
   '.webp': 'image/webp'
 };
 
-// Load Next.js server
-const nextServer = require(serverFile);
+// DON'T require server.js directly as it starts its own server
+// Instead, we'll create our own server and use Next.js handler
 
-// Create HTTP server
+// Create HTTP server FIRST
 const server = http.createServer((req, res) => {
   // Parse URL to remove query strings
   const urlPath = req.url.split('?')[0];
@@ -83,9 +83,13 @@ const server = http.createServer((req, res) => {
     }
   }
 
-  // Forward to Next.js server
+  // Forward to Next.js server - require it here to avoid auto-start
   console.log('➡️ Forwarding to Next.js:', urlPath);
-  nextServer.handle(req, res);
+  if (!server.nextHandler) {
+    // Lazy load Next.js handler only when needed
+    server.nextHandler = require(serverFile);
+  }
+  server.nextHandler.handle(req, res);
 });
 
 server.listen(PORT, HOSTNAME, () => {
