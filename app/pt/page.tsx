@@ -10,6 +10,7 @@ import { formatDateYMD } from '../../lib/dateFormatter'
 import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
+import type { PaymentMethod } from '../../lib/paymentHelpers'
 
 interface Staff {
   id: string
@@ -53,9 +54,12 @@ export default function PTPage() {
   const [selectedSession, setSelectedSession] = useState<PTSession | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentSession, setPaymentSession] = useState<PTSession | null>(null)
-  const [paymentFormData, setPaymentFormData] = useState({
+  const [paymentFormData, setPaymentFormData] = useState<{
+    paymentAmount: number
+    paymentMethod: string | PaymentMethod[]
+  }>({
     paymentAmount: 0,
-    paymentMethod: 'cash' as 'cash' | 'visa' | 'instapay' | 'wallet'
+    paymentMethod: 'cash'
   })
 
   // فلاتر إضافية
@@ -63,7 +67,19 @@ export default function PTPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [filterSessions, setFilterSessions] = useState<'all' | 'low' | 'zero'>('all')
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    ptNumber: string
+    clientName: string
+    phone: string
+    sessionsPurchased: number
+    coachName: string
+    totalPrice: number
+    remainingAmount: number
+    startDate: string
+    expiryDate: string
+    paymentMethod: string | PaymentMethod[]
+    staffName: string
+  }>({
     ptNumber: '',
     clientName: '',
     phone: '',
@@ -73,7 +89,7 @@ export default function PTPage() {
     remainingAmount: 0,
     startDate: formatDateYMD(new Date()),
     expiryDate: '',
-    paymentMethod: 'cash' as 'cash' | 'visa' | 'instapay' | 'wallet',
+    paymentMethod: 'cash',
     staffName: user?.name || '',
   })
 
