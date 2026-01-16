@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireValidLicense } from "../../../../lib/license";
+import {
+  type PaymentMethod,
+  validatePaymentDistribution,
+  serializePaymentMethods
+} from "../../../../lib/paymentHelpers";
 
 /**
  * POST /api/dayuse/renew
@@ -53,6 +58,21 @@ export async function POST(req: Request) {
     // 🔒 License validation check
     await requireValidLicense();
 
+    // ✅ معالجة وسائل الدفع المتعددة
+    let finalPaymentMethod: string
+    if (Array.isArray(paymentMethod)) {
+      const validation = validatePaymentDistribution(paymentMethod, price)
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.message || 'توزيع المبالغ غير صحيح' },
+          { status: 400 }
+        )
+      }
+      finalPaymentMethod = serializePaymentMethods(paymentMethod)
+    } else {
+      finalPaymentMethod = paymentMethod || 'cash'
+    }
+
     // Create receipt only (no new DayUse entry)
     const receipt = await prisma.receipt.create({
       data: {
@@ -66,7 +86,7 @@ export async function POST(req: Request) {
           isRenewal: true,
           originalEntryId: entryId
         }),
-        paymentMethod,
+        paymentMethod: finalPaymentMethod,
         dayUseId: entryId,
       },
     });

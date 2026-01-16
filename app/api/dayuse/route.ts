@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import {prisma} from "../../../lib/prisma";
 import { requireValidLicense } from "../../../lib/license";
+import {
+  type PaymentMethod,
+  validatePaymentDistribution,
+  serializePaymentMethods
+} from "../../../lib/paymentHelpers";
 
 // ✅ GET كل العمليات
 export async function GET() {
@@ -78,6 +83,21 @@ export async function POST(request: Request) {
     // 🔒 License validation check
     await requireValidLicense();
 
+    // ✅ معالجة وسائل الدفع المتعددة
+    let finalPaymentMethod: string
+    if (Array.isArray(paymentMethod)) {
+      const validation = validatePaymentDistribution(paymentMethod, price)
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.message || 'توزيع المبالغ غير صحيح' },
+          { status: 400 }
+        )
+      }
+      finalPaymentMethod = serializePaymentMethods(paymentMethod)
+    } else {
+      finalPaymentMethod = paymentMethod || 'cash'
+    }
+
     // ✅ إنشاء DayUse و Receipt في transaction واحدة لضمان الذرية
     const result = await prisma.$transaction(async (tx) => {
       // إنشاء الإدخال
@@ -97,7 +117,7 @@ export async function POST(request: Request) {
           receiptNumber,
           type: typeArabic,
           amount: price,
-          paymentMethod: paymentMethod || "كاش",
+          paymentMethod: finalPaymentMethod,
           itemDetails: JSON.stringify({
             name,
             phone,

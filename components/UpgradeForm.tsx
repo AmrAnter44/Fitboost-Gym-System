@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import Paymentmethodselector from './Paymentmethodselector'
+import type { PaymentMethod } from '../lib/paymentHelpers'
 
 interface Member {
   id: string
@@ -46,7 +47,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
   const { t, direction } = useLanguage()
   const [offers, setOffers] = useState<Offer[]>([])
   const [selectedOfferId, setSelectedOfferId] = useState<string>('')
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'visa' | 'instapay' | 'wallet'>('cash')
+  const [paymentMethod, setPaymentMethod] = useState<string | PaymentMethod[]>('cash')
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -353,7 +354,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
               </label>
               <Paymentmethodselector
                 value={paymentMethod}
-                onChange={(method) => setPaymentMethod(method as 'cash' | 'visa' | 'instapay' | 'wallet')}
+                onChange={setPaymentMethod}
               />
             </div>
 

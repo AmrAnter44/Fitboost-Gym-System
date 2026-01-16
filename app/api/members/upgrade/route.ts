@@ -4,6 +4,11 @@ import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { formatDateYMD } from '../../../../lib/dateFormatter'
 import { requireValidLicense } from '../../../../lib/license'
+import {
+  type PaymentMethod,
+  validatePaymentDistribution,
+  serializePaymentMethods
+} from '../../../../lib/paymentHelpers'
 
 // دالة حساب الأيام بين تاريخين
 function calculateDaysBetween(date1Str: string | Date, date2Str: string | Date): number {
@@ -207,7 +212,22 @@ export async function POST(request: Request) {
       paymentMethod
     }
 
-    // 14. إنشاء الإيصال
+    // 14. معالجة وسائل الدفع المتعددة
+    let finalPaymentMethod: string
+    if (Array.isArray(paymentMethod)) {
+      const validation = validatePaymentDistribution(paymentMethod, upgradeAmount)
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.message || 'توزيع المبالغ غير صحيح' },
+          { status: 400 }
+        )
+      }
+      finalPaymentMethod = serializePaymentMethods(paymentMethod)
+    } else {
+      finalPaymentMethod = paymentMethod || 'cash'
+    }
+
+    // 15. إنشاء الإيصال
     // 🔒 License validation check
     await requireValidLicense()
 
@@ -217,7 +237,7 @@ export async function POST(request: Request) {
         type: 'ترقية باكدج',
         amount: upgradeAmount,
         itemDetails: JSON.stringify(itemDetails),
-        paymentMethod: paymentMethod || 'cash',
+        paymentMethod: finalPaymentMethod,
         memberId: member.id,
         staffName: staffName || 'غير محدد'
       }
@@ -237,7 +257,7 @@ export async function POST(request: Request) {
       receipt: {
         receiptNumber,
         amount: upgradeAmount,
-        paymentMethod: paymentMethod || 'cash',
+        paymentMethod: finalPaymentMethod,
         staffName: staffName || 'غير محدد',
         itemDetails,
         createdAt: receipt.createdAt
