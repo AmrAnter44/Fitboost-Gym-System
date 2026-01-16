@@ -141,7 +141,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <div className="bg-white rounded-lg shadow-lg p-3 border-2 border-blue-400">
                     <img
-                      src="/icon.png"
+                      src="/assets/icon.png"
                       alt="Gym Logo"
                       className="w-16 h-16 object-contain"
                     />

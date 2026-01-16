@@ -842,7 +842,7 @@ export default function SettingsPage() {
             >
               <span className="text-sm text-gray-500">{t('settings.poweredBy')}</span>
               <img
-                src="/FB.png"
+                src="/assets/FB.png"
                 alt="FitBoost"
                 className="h-6 w-auto"
               />

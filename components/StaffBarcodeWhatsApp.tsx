@@ -133,7 +133,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
             <div className="flex justify-center mb-4">
               <div className="bg-white rounded-lg shadow-lg p-3 border-2 border-purple-400">
                 <img
-                  src="/icon.png"
+                  src="/assets/icon.png"
                   alt="Gym Logo"
                   className="w-16 h-16 object-contain"
                 />
