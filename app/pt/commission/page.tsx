@@ -90,7 +90,7 @@ export default function CoachCommissionPage() {
   const [ptCommissions, setPtCommissions] = useState<PTCommission[]>([])
 
   // أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة)
-  const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
+  const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت', 'PT Day Use']
 
   // تحديد الفترة الزمنية (أول يوم في الشهر الحالي إلى آخر يوم)
   const today = new Date()
@@ -611,7 +611,9 @@ export default function CoachCommissionPage() {
                                     إيصال #{receipt.receiptNumber} - {receipt.type}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {details.clientName || 'N/A'} - PT #{details.ptNumber || 'N/A'}
+                                    {details.clientName || 'N/A'} - {
+                                      details.ptNumber < 0 ? '🏃 Day Use' : `PT #${details.ptNumber || 'N/A'}`
+                                    }
                                   </p>
                                   <p className="text-xs text-gray-500">
                                     {new Date(receipt.createdAt).toLocaleDateString('ar-EG', {

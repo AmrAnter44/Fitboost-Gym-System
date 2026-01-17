@@ -4,12 +4,15 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
 import MemberForm from '../../components/MemberForm'
 import { useAdminDate } from '../../contexts/AdminDateContext'
 import { formatDateYMD, calculateRemainingDays } from '../../lib/dateFormatter'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { fetchMembers, fetchOffers } from '../../lib/api/members'
+import { useToast } from '../../contexts/ToastContext'
 
 interface Member {
   id: string
@@ -73,11 +76,24 @@ export default function MembersPage() {
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const { customCreatedAt } = useAdminDate()
   const { t, locale, direction } = useLanguage()
+  const toast = useToast()
 
-  const [members, setMembers] = useState<Member[]>([])
+  // ✅ استخدام useQuery لجلب الأعضاء
+  const {
+    data: membersData = [],
+    isLoading: loading,
+    error: membersError,
+    refetch: refetchMembers
+  } = useQuery({
+    queryKey: ['members'],
+    queryFn: fetchMembers,
+    enabled: !permissionsLoading && hasPermission('canViewMembers'),
+    retry: 1,
+    staleTime: 2 * 60 * 1000, // البيانات تعتبر fresh لمدة دقيقتين
+  })
+
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([])
   const [showForm, setShowForm] = useState(false)
-  const [loading, setLoading] = useState(true)
 
   // سجل الحضور
   const [showAttendanceModal, setShowAttendanceModal] = useState(false)
@@ -111,48 +127,26 @@ export default function MembersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
 
-  const fetchMembers = async () => {
-    try {
-      const response = await fetch('/api/members')
+  // ✅ معالجة أخطاء الأعضاء
+  useEffect(() => {
+    if (membersError) {
+      const errorMessage = (membersError as Error).message
 
-      if (response.status === 401) {
-        router.push('/login')
-        return
-      }
-
-      if (response.status === 403) {
-        return
-      }
-
-      const data = await response.json()
-
-      if (Array.isArray(data)) {
-        // ✅ تحويل كل الأرقام لـ integers
-        const cleanedMembers = data.map(member => ({
-          ...member,
-          memberNumber: parseInt(member.memberNumber?.toString() || '0'),
-          inBodyScans: parseInt(member.inBodyScans?.toString() || '0'),
-          invitations: parseInt(member.invitations?.toString() || '0'),
-          remainingFreezeDays: parseInt(member.remainingFreezeDays?.toString() || '0'),
-          subscriptionPrice: parseInt(member.subscriptionPrice?.toString() || '0'),
-          remainingAmount: parseInt(member.remainingAmount?.toString() || '0')
-        }))
-
-        setMembers(cleanedMembers)
-        setFilteredMembers(cleanedMembers)
+      if (errorMessage === 'UNAUTHORIZED') {
+        toast.error('يجب تسجيل الدخول أولاً')
+        setTimeout(() => router.push('/login'), 2000)
+      } else if (errorMessage === 'FORBIDDEN') {
+        toast.error('ليس لديك صلاحية عرض الأعضاء')
       } else {
-        console.error('Invalid data format:', data)
-        setMembers([])
-        setFilteredMembers([])
+        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات الأعضاء')
       }
-    } catch (error) {
-      console.error('Error fetching members:', error)
-      setMembers([])
-      setFilteredMembers([])
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [membersError, toast, router])
+
+  // ✅ تحديث filtered members عند تغيير البيانات
+  useEffect(() => {
+    setFilteredMembers(membersData)
+  }, [membersData])
 
   const fetchAttendanceSummary = async () => {
     setAttendanceLoading(true)
@@ -237,12 +231,11 @@ export default function MembersPage() {
   }
 
   useEffect(() => {
-    fetchMembers()
     fetchLastReceipts()
   }, [])
 
   useEffect(() => {
-    let filtered = members
+    let filtered = membersData
 
     if (searchId || searchName || searchPhone) {
       filtered = filtered.filter((member) => {
@@ -319,7 +312,7 @@ export default function MembersPage() {
 
     setFilteredMembers(filtered)
     setCurrentPage(1) // إعادة تعيين الصفحة للأولى عند الفلترة
-  }, [searchId, searchName, searchPhone, filterStatus, filterPackage, specificDate, members])
+  }, [searchId, searchName, searchPhone, filterStatus, filterPackage, specificDate, membersData])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
@@ -366,38 +359,38 @@ export default function MembersPage() {
   }
 
   const stats = {
-    total: members.length,
-    active: members.filter(m => {
+    total: membersData.length,
+    active: membersData.filter(m => {
       const isExpired = m.expiryDate ? new Date(m.expiryDate) < new Date() : false
       return m.isActive && !isExpired
     }).length,
-    expired: members.filter(m => {
+    expired: membersData.filter(m => {
       return m.expiryDate ? new Date(m.expiryDate) < new Date() : false
     }).length,
-    expiringSoon: members.filter(m => {
+    expiringSoon: membersData.filter(m => {
       const daysRemaining = calculateRemainingDays(m.expiryDate)
       return daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
     }).length,
-    hasRemaining: members.filter(m => m.remainingAmount > 0).length,
-    packageMonth: members.filter(m => {
+    hasRemaining: membersData.filter(m => m.remainingAmount > 0).length,
+    packageMonth: membersData.filter(m => {
       if (!filterByStatus(m)) return false
       if (!m.startDate || !m.expiryDate) return false
       const diffDays = Math.round((new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / (1000 * 60 * 60 * 24))
       return diffDays >= 25 && diffDays <= 35
     }).length,
-    package3Months: members.filter(m => {
+    package3Months: membersData.filter(m => {
       if (!filterByStatus(m)) return false
       if (!m.startDate || !m.expiryDate) return false
       const diffDays = Math.round((new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / (1000 * 60 * 60 * 24))
       return diffDays >= 85 && diffDays <= 95
     }).length,
-    package6Months: members.filter(m => {
+    package6Months: membersData.filter(m => {
       if (!filterByStatus(m)) return false
       if (!m.startDate || !m.expiryDate) return false
       const diffDays = Math.round((new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / (1000 * 60 * 60 * 24))
       return diffDays >= 165 && diffDays <= 195
     }).length,
-    packageYear: members.filter(m => {
+    packageYear: membersData.filter(m => {
       if (!filterByStatus(m)) return false
       if (!m.startDate || !m.expiryDate) return false
       const diffDays = Math.round((new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / (1000 * 60 * 60 * 24))
@@ -454,7 +447,7 @@ export default function MembersPage() {
           <h2 className="text-xl font-semibold mb-4">{t('members.addMember')}</h2>
           <MemberForm
             onSuccess={() => {
-              fetchMembers()
+              refetchMembers()
               setShowForm(false)
             }}
             customCreatedAt={customCreatedAt}
@@ -715,7 +708,7 @@ export default function MembersPage() {
         {(searchId || searchName || searchPhone) && (
           <div className="mt-4 text-center">
             <span className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm font-medium">
-              📊 {t('members.showing', { count: filteredMembers.length.toString(), total: members.length.toString() })}
+              📊 {t('members.showing', { count: filteredMembers.length.toString(), total: membersData.length.toString() })}
             </span>
           </div>
         )}
@@ -727,7 +720,7 @@ export default function MembersPage() {
             <span className="text-2xl">🔎</span>
             <div>
               <p className="font-bold text-yellow-800">{t('members.filtersActive')}</p>
-              <p className="text-sm text-yellow-700">{t('members.showing', { count: filteredMembers.length.toString(), total: members.length.toString() })}</p>
+              <p className="text-sm text-yellow-700">{t('members.showing', { count: filteredMembers.length.toString(), total: membersData.length.toString() })}</p>
             </div>
           </div>
           <button
@@ -1316,7 +1309,7 @@ export default function MembersPage() {
                 <span>{locale === 'ar' ? 'سجل الإيصالات' : 'Receipts History'}</span>
               </h2>
               <p className="text-orange-100 mt-1">
-                {selectedMemberId && members.find(m => m.id === selectedMemberId)?.name}
+                {selectedMemberId && membersData.find(m => m.id === selectedMemberId)?.name}
               </p>
             </div>
 

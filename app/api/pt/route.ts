@@ -206,9 +206,33 @@ export async function POST(request: Request) {
       qrCodeImage: qrCodeImage
     }
 
-    // إضافة ptNumber فقط إذا تم إدخاله يدوياً
+    // إضافة ptNumber
     if (ptNumber) {
-      ptData.ptNumber = parseInt(ptNumber)
+      const ptNum = parseInt(ptNumber)
+
+      // إذا كان الرقم سالب (Day Use)، ابحث عن أول رقم سالب متاح
+      if (ptNum < 0) {
+        let availableNumber = -1
+        let found = false
+
+        // البحث عن أول رقم سالب متاح
+        while (!found) {
+          const existing = await prisma.pT.findUnique({
+            where: { ptNumber: availableNumber }
+          })
+
+          if (!existing) {
+            found = true
+            ptData.ptNumber = availableNumber
+            console.log(`✅ تم العثور على رقم Day Use متاح: ${availableNumber}`)
+          } else {
+            availableNumber-- // جرب الرقم التالي (-2, -3, ...)
+          }
+        }
+      } else {
+        // رقم موجب عادي
+        ptData.ptNumber = ptNum
+      }
     }
 
     const pt = await prisma.pT.create({
@@ -293,10 +317,13 @@ export async function POST(request: Request) {
         }
 
         // إنشاء الإيصال
+        // تحديد نوع الإيصال بناءً على إذا كان Day Use أم لا
+        const receiptType = pt.ptNumber < 0 ? 'PT Day Use' : 'برايفت جديد'
+
         const receipt = await tx.receipt.create({
           data: {
             receiptNumber: receiptNumber,
-            type: 'برايفت جديد',
+            type: receiptType,
             amount: Number(paidAmount),
             paymentMethod: finalPaymentMethod,
             staffName: staffName || '',
@@ -396,8 +423,29 @@ export async function PUT(request: Request) {
 
       return NextResponse.json(updatedPT)
     } else {
-      const updateData: any = { ...data }
-      
+      // تحديث بيانات PT
+      const updateData: any = {}
+
+      // الحقول النصية
+      if (data.clientName !== undefined) updateData.clientName = data.clientName
+      if (data.phone !== undefined) updateData.phone = data.phone
+      if (data.coachName !== undefined) updateData.coachName = data.coachName
+
+      // الحقول الرقمية
+      if (data.sessionsPurchased !== undefined) updateData.sessionsPurchased = parseInt(data.sessionsPurchased)
+      if (data.sessionsRemaining !== undefined) updateData.sessionsRemaining = parseInt(data.sessionsRemaining)
+      if (data.pricePerSession !== undefined) updateData.pricePerSession = parseFloat(data.pricePerSession)
+      if (data.totalPrice !== undefined) {
+        // إذا تم إرسال totalPrice، احسب pricePerSession
+        const totalPrice = parseFloat(data.totalPrice)
+        const sessions = data.sessionsPurchased !== undefined ? parseInt(data.sessionsPurchased) : undefined
+        if (sessions && sessions > 0) {
+          updateData.pricePerSession = totalPrice / sessions
+        }
+      }
+      if (data.remainingAmount !== undefined) updateData.remainingAmount = parseFloat(data.remainingAmount)
+
+      // التواريخ
       if (data.startDate) {
         updateData.startDate = new Date(data.startDate)
       }

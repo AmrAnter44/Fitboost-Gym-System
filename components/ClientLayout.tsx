@@ -8,6 +8,7 @@ import { ToastProvider } from '../contexts/ToastContext'
 import { DeviceSettingsProvider } from '../contexts/DeviceSettingsContext'
 import { SearchProvider } from '../contexts/SearchContext'
 import { UpdateProvider } from '../contexts/UpdateContext'
+import QueryProvider from './QueryProvider'
 import Navbar from './Navbar'
 import { PreventInputScroll } from '../app/PreventInputScroll'
 import LicenseLockedScreen from './LicenseLockedScreen'
@@ -18,27 +19,29 @@ import UpdateNotification from './UpdateNotification'
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <LicenseProvider>
-      <LanguageProvider>
-        <DeviceSettingsProvider>
-          <SearchProvider>
-            <ToastProvider>
-              <UpdateProvider>
-                <AdminDateProvider>
-                  <LicenseLockedScreen />
-                  <PreventInputScroll />
-                  <BarcodeInputDetector />
-                  <UpdateNotification />
-                  <Navbar />
-                  <ToastContainer />
-                  <SearchModal />
-                  <main>{children}</main>
-                </AdminDateProvider>
-              </UpdateProvider>
-            </ToastProvider>
-          </SearchProvider>
-        </DeviceSettingsProvider>
-      </LanguageProvider>
-    </LicenseProvider>
+    <QueryProvider>
+      <LicenseProvider>
+        <LanguageProvider>
+          <DeviceSettingsProvider>
+            <SearchProvider>
+              <ToastProvider>
+                <UpdateProvider>
+                  <AdminDateProvider>
+                    <LicenseLockedScreen />
+                    <PreventInputScroll />
+                    <BarcodeInputDetector />
+                    <UpdateNotification />
+                    <Navbar />
+                    <ToastContainer />
+                    <SearchModal />
+                    <main>{children}</main>
+                  </AdminDateProvider>
+                </UpdateProvider>
+              </ToastProvider>
+            </SearchProvider>
+          </DeviceSettingsProvider>
+        </LanguageProvider>
+      </LicenseProvider>
+    </QueryProvider>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -11,6 +12,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
+import { fetchPTSessions, fetchCoaches } from '../../lib/api/pt'
 
 interface Staff {
   id: string
@@ -43,12 +45,34 @@ export default function PTPage() {
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
 
-  const [sessions, setSessions] = useState<PTSession[]>([])
-  const [coaches, setCoaches] = useState<Staff[]>([])
+  // ✅ استخدام useQuery لجلب جلسات PT
+  const {
+    data: sessions = [],
+    isLoading: loading,
+    error: sessionsError,
+    refetch: refetchSessions
+  } = useQuery({
+    queryKey: ['pt-sessions'],
+    queryFn: fetchPTSessions,
+    enabled: !permissionsLoading && hasPermission('canViewPT'),
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // ✅ استخدام useQuery لجلب المدربين
+  const {
+    data: coaches = [],
+    isLoading: coachesLoading
+  } = useQuery({
+    queryKey: ['coaches'],
+    queryFn: fetchCoaches,
+    enabled: !permissionsLoading,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // المدربين مش بيتغيروا كتير
+  })
+
   const [showForm, setShowForm] = useState(false)
   const [editingSession, setEditingSession] = useState<PTSession | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [coachesLoading, setCoachesLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showQRModal, setShowQRModal] = useState(false)
   const [selectedSession, setSelectedSession] = useState<PTSession | null>(null)
@@ -66,6 +90,7 @@ export default function PTPage() {
   const [filterCoach, setFilterCoach] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [filterSessions, setFilterSessions] = useState<'all' | 'low' | 'zero'>('all')
+  const [filterType, setFilterType] = useState<'all' | 'regular' | 'dayuse'>('all')
 
   const [isDayUse, setIsDayUse] = useState(false)
 
@@ -74,6 +99,7 @@ export default function PTPage() {
     clientName: string
     phone: string
     sessionsPurchased: number
+    sessionsRemaining: number
     coachName: string
     totalPrice: number
     remainingAmount: number
@@ -86,6 +112,7 @@ export default function PTPage() {
     clientName: '',
     phone: '',
     sessionsPurchased: 8,
+    sessionsRemaining: 8,
     coachName: '',
     totalPrice: 0,
     remainingAmount: 0,
@@ -95,53 +122,26 @@ export default function PTPage() {
     staffName: user?.name || '',
   })
 
+  // ✅ معالجة أخطاء جلسات PT
   useEffect(() => {
-    fetchSessions()
-    fetchCoaches()
-  }, [])
+    if (sessionsError) {
+      const errorMessage = (sessionsError as Error).message
+
+      if (errorMessage === 'UNAUTHORIZED') {
+        router.push('/login')
+      } else if (errorMessage === 'FORBIDDEN') {
+        // لا نفعل شيء - PermissionDenied سيظهر
+      } else {
+        toast.error(errorMessage || 'حدث خطأ أثناء جلب الجلسات')
+      }
+    }
+  }, [sessionsError, router, toast])
 
   useEffect(() => {
     if (user && !formData.staffName) {
       setFormData(prev => ({ ...prev, staffName: user.name }))
     }
   }, [user])
-
-  const fetchSessions = async () => {
-    try {
-      const response = await fetch('/api/pt')
-
-      if (response.status === 401) {
-        router.push('/login')
-        return
-      }
-
-      if (response.status === 403) {
-        return
-      }
-
-      const data = await response.json()
-      setSessions(data)
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchCoaches = async () => {
-    try {
-      const response = await fetch('/api/staff')
-      const data: Staff[] = await response.json()
-      const activeCoaches = data.filter(
-        (staff) => staff.isActive && staff.position?.toLowerCase().includes('مدرب')
-      )
-      setCoaches(activeCoaches)
-    } catch (error) {
-      console.error('Error fetching coaches:', error)
-    } finally {
-      setCoachesLoading(false)
-    }
-  }
 
   // دالة جلب بيانات العضو بناءً على رقم العضوية وملء الحقول تلقائياً
   const fetchMemberByNumber = async (memberNumber: string) => {
@@ -183,6 +183,7 @@ export default function PTPage() {
       clientName: '',
       phone: '',
       sessionsPurchased: 8,
+      sessionsRemaining: 8,
       coachName: '',
       totalPrice: 0,
       remainingAmount: 0,
@@ -193,6 +194,7 @@ export default function PTPage() {
     })
     setEditingSession(null)
     setShowForm(false)
+    setIsDayUse(false)
   }
 
 
@@ -216,9 +218,10 @@ export default function PTPage() {
       clientName: session.clientName,
       phone: session.phone,
       sessionsPurchased: session.sessionsPurchased,
+      sessionsRemaining: session.sessionsRemaining,
       coachName: session.coachName,
       totalPrice: totalPrice,
-      remainingAmount: 0, // Will be populated if PT model has it
+      remainingAmount: session.remainingAmount || 0,
       startDate: session.startDate ? formatDateYMD(session.startDate) : '',
       expiryDate: session.expiryDate ? formatDateYMD(session.expiryDate) : '',
       paymentMethod: 'cash',
@@ -226,11 +229,13 @@ export default function PTPage() {
     })
     setEditingSession(session)
     setShowForm(true)
+    // تحديد إذا كان Day Use
+    setIsDayUse(session.ptNumber < 0)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    
 
     try {
       const url = '/api/pt'
@@ -249,7 +254,7 @@ export default function PTPage() {
 
       if (response.ok) {
         toast.success(editingSession ? t('pt.messages.sessionUpdated') : t('pt.messages.sessionAdded'))
-        fetchSessions()
+        refetchSessions()
         resetForm()
       } else {
         toast.error(`${t('pt.messages.operationFailed')} - ${result.error || ''}`)
@@ -258,7 +263,7 @@ export default function PTPage() {
       console.error(error)
       toast.error(t('pt.messages.error'))
     } finally {
-      setLoading(false)
+      
     }
   }
 
@@ -282,7 +287,7 @@ export default function PTPage() {
       }
 
       toast.success(t('pt.messages.sessionDeleted'))
-      fetchSessions()
+      refetchSessions()
     } catch (error: any) {
       console.error('Error:', error)
       toast.error(`${t('pt.messages.deleteFailed')} - ${error.message || ''}`)
@@ -310,7 +315,7 @@ export default function PTPage() {
     if (!paymentSession) return
 
     try {
-      setLoading(true)
+      
       const response = await fetch('/api/pt/pay-remaining', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -326,7 +331,7 @@ export default function PTPage() {
 
       if (response.ok) {
         toast.success(t('pt.messages.paymentSuccess'))
-        fetchSessions()
+        refetchSessions()
         setShowPaymentModal(false)
         setPaymentSession(null)
       } else {
@@ -336,7 +341,7 @@ export default function PTPage() {
       console.error('Error paying remaining:', error)
       toast.error(t('pt.messages.paymentFailed'))
     } finally {
-      setLoading(false)
+      
     }
   }
 
@@ -370,7 +375,12 @@ export default function PTPage() {
     if (filterSessions === 'zero') matchesSessions = session.sessionsRemaining === 0
     else if (filterSessions === 'low') matchesSessions = session.sessionsRemaining > 0 && session.sessionsRemaining <= 3
 
-    return matchesSearch && matchesCoach && matchesStatus && matchesSessions
+    // فلتر النوع (PT عادي / Day Use)
+    let matchesType = true
+    if (filterType === 'regular') matchesType = session.ptNumber >= 0
+    else if (filterType === 'dayuse') matchesType = session.ptNumber < 0
+
+    return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType
   })
 
   // ✅ التحقق من الصلاحيات
@@ -428,9 +438,16 @@ export default function PTPage() {
 
       {!isCoach && showForm && (
         <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-blue-100" dir={direction}>
-          <h2 className="text-xl font-semibold mb-4">
-            {editingSession ? t('pt.editSession') : t('pt.addSession')}
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              {editingSession ? t('pt.editSession') : t('pt.addSession')}
+            </h2>
+            {editingSession && isDayUse && (
+              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                🏃 Day Use
+              </span>
+            )}
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -519,13 +536,14 @@ export default function PTPage() {
                 )}
               </div>
 
-              {/* Day Use Checkbox */}
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isDayUse}
-                    onChange={(e) => {
+              {/* Day Use Checkbox - مخفي في وضع التعديل */}
+              {!editingSession && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isDayUse}
+                      onChange={(e) => {
                       setIsDayUse(e.target.checked)
                       // إذا تم تفعيل Day Use، اضبط عدد الجلسات على 1 والمبلغ المتبقي على 0 ورقم PT سالب
                       if (e.target.checked) {
@@ -555,6 +573,7 @@ export default function PTPage() {
                   </div>
                 </label>
               </div>
+              )}
 
               {!isDayUse && (
                 <div>
@@ -570,6 +589,26 @@ export default function PTPage() {
                     className="w-full px-3 py-2 border rounded-lg"
                     placeholder={t('pt.sessionsPlaceholder')}
                   />
+                </div>
+              )}
+
+              {!isDayUse && editingSession && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    الجلسات المتبقية <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={formData.sessionsRemaining}
+                    onChange={(e) => setFormData({ ...formData, sessionsRemaining: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border rounded-lg bg-blue-50 border-blue-300"
+                    placeholder="عدد الجلسات المتبقية"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 يمكنك تعديل عدد الجلسات المتبقية للعميل
+                  </p>
                 </div>
               )}
 
@@ -729,7 +768,7 @@ export default function PTPage() {
         </div>
 
         {/* الفلاتر */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {/* فلتر المدرب */}
           <div>
             <label className="block text-sm font-medium mb-1.5">{t('pt.filterByCoach')}</label>
@@ -773,16 +812,31 @@ export default function PTPage() {
               <option value="zero">{t('pt.sessionsZero')}</option>
             </select>
           </div>
+
+          {/* فلتر النوع (PT عادي / Day Use) */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">نوع الجلسة</label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as any)}
+              className="w-full px-3 py-2 border-2 rounded-lg"
+            >
+              <option value="all">الكل</option>
+              <option value="regular">PT عادي</option>
+              <option value="dayuse">🏃 Day Use</option>
+            </select>
+          </div>
         </div>
 
         {/* زر إعادة تعيين الفلاتر */}
-        {(filterCoach || filterStatus !== 'all' || filterSessions !== 'all') && (
+        {(filterCoach || filterStatus !== 'all' || filterSessions !== 'all' || filterType !== 'all') && (
           <div className="mt-3 flex justify-end">
             <button
               onClick={() => {
                 setFilterCoach('')
                 setFilterStatus('all')
                 setFilterSessions('all')
+                setFilterType('all')
               }}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
             >
@@ -827,7 +881,11 @@ export default function PTPage() {
                         }`}
                       >
                         <td className="px-4 py-3">
-                          <span className="font-bold text-blue-600">#{session.ptNumber}</span>
+                          {session.ptNumber < 0 ? (
+                            <span className="font-bold text-blue-600">🏃 Day Use</span>
+                          ) : (
+                            <span className="font-bold text-blue-600">#{session.ptNumber}</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div>
@@ -885,19 +943,24 @@ export default function PTPage() {
                         {!isCoach && (
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-2">
-                              <button
-                                onClick={() => handleRegisterSession(session)}
-                                disabled={session.sessionsRemaining === 0}
-                                className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                              >
-                                {t('pt.attendance')}
-                              </button>
-                              <button
-                                onClick={() => handleRenew(session)}
-                                className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
-                              >
-                                {t('pt.renew')}
-                              </button>
+                              {/* إخفاء زر الحضور للـ Day Use */}
+                              {session.ptNumber >= 0 && (
+                                <button
+                                  onClick={() => handleRegisterSession(session)}
+                                  disabled={session.sessionsRemaining === 0}
+                                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                >
+                                  {t('pt.attendance')}
+                                </button>
+                              )}
+                              {session.ptNumber >= 0 && (
+                                <button
+                                  onClick={() => handleRenew(session)}
+                                  className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+                                >
+                                  {t('pt.renew')}
+                                </button>
+                              )}
                               {(session.remainingAmount || 0) > 0 && (
                                 <button
                                   onClick={() => handleOpenPaymentModal(session)}
@@ -906,38 +969,12 @@ export default function PTPage() {
                                   {t('pt.payRemaining')}
                                 </button>
                               )}
-                              {session.qrCode && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedSession(session)
-                                      setShowQRModal(true)
-                                    }}
-                                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 flex items-center gap-1"
-                                  >
-                                    {t('pt.barcode')}
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const checkInUrl = `${window.location.origin}/pt/check-in`
-                                      const text = t('pt.whatsappWithBarcode', {
-                                        clientName: session.clientName,
-                                        qrCode: session.qrCode,
-                                        checkInUrl,
-                                        sessionsRemaining: session.sessionsRemaining.toString(),
-                                        sessionsPurchased: session.sessionsPurchased.toString(),
-                                        coachName: session.coachName
-                                      })
-                                      const phone = session.phone.startsWith('0') ? '2' + session.phone : session.phone
-                                      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
-                                      window.open(whatsappUrl, '_blank')
-                                    }}
-                                    className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 flex items-center gap-1"
-                                  >
-                                    {t('pt.whatsapp')}
-                                  </button>
-                                </>
-                              )}
+                              <button
+                                onClick={() => handleEdit(session)}
+                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 flex items-center gap-1"
+                              >
+                                ✏️ {t('pt.edit')}
+                              </button>
                               <button
                                 onClick={() => handleDelete(session.ptNumber)}
                                 className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 flex items-center gap-1"
@@ -973,7 +1010,9 @@ export default function PTPage() {
                   {/* Header */}
                   <div className={`p-2.5 ${isExpired ? 'bg-red-600' : isExpiringSoon ? 'bg-orange-600' : 'bg-gradient-to-r from-purple-600 to-purple-700'}`}>
                     <div className="flex items-center justify-between">
-                      <div className="text-xl font-bold text-white">#{session.ptNumber}</div>
+                      <div className="text-xl font-bold text-white">
+                        {session.ptNumber < 0 ? '🏃 Day Use' : `#${session.ptNumber}`}
+                      </div>
                       <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                         session.sessionsRemaining === 0 ? 'bg-red-500' : session.sessionsRemaining <= 3 ? 'bg-orange-500' : 'bg-green-500'
                       } text-white`}>
@@ -1060,19 +1099,24 @@ export default function PTPage() {
                     {/* Action Buttons */}
                     {!isCoach && (
                       <div className="grid grid-cols-2 gap-2 pt-1">
-                        <button
-                          onClick={() => handleRegisterSession(session)}
-                          disabled={session.sessionsRemaining === 0}
-                          className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1"
-                        >
-                          {t('pt.attendance')}
-                        </button>
-                        <button
-                          onClick={() => handleRenew(session)}
-                          className="bg-purple-600 text-white py-2 rounded-lg text-sm hover:bg-purple-700 font-bold flex items-center justify-center gap-1"
-                        >
-                          {t('pt.renew')}
-                        </button>
+                        {/* إخفاء أزرار الحضور والتجديد للـ Day Use */}
+                        {session.ptNumber >= 0 && (
+                          <>
+                            <button
+                              onClick={() => handleRegisterSession(session)}
+                              disabled={session.sessionsRemaining === 0}
+                              className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1"
+                            >
+                              {t('pt.attendance')}
+                            </button>
+                            <button
+                              onClick={() => handleRenew(session)}
+                              className="bg-purple-600 text-white py-2 rounded-lg text-sm hover:bg-purple-700 font-bold flex items-center justify-center gap-1"
+                            >
+                              {t('pt.renew')}
+                            </button>
+                          </>
+                        )}
                         {(session.remainingAmount || 0) > 0 && (
                           <button
                             onClick={() => handleOpenPaymentModal(session)}
@@ -1082,41 +1126,16 @@ export default function PTPage() {
                             <span>{t('pt.payRemaining').replace('💰 ', '')} ({(session.remainingAmount || 0).toFixed(0)} {t('pt.egp')})</span>
                           </button>
                         )}
-                        {session.qrCode && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setSelectedSession(session)
-                                setShowQRModal(true)
-                              }}
-                              className="bg-blue-500 text-white py-2 rounded-lg text-sm hover:bg-blue-600 font-bold flex items-center justify-center gap-1"
-                            >
-                              {t('pt.barcode')}
-                            </button>
-                            <button
-                              onClick={() => {
-                                const checkInUrl = `${window.location.origin}/pt/check-in`
-                                const text = t('pt.whatsappWithBarcode', {
-                                  clientName: session.clientName,
-                                  qrCode: session.qrCode,
-                                  checkInUrl,
-                                  sessionsRemaining: session.sessionsRemaining.toString(),
-                                  sessionsPurchased: session.sessionsPurchased.toString(),
-                                  coachName: session.coachName
-                                })
-                                const phone = session.phone.startsWith('0') ? '2' + session.phone : session.phone
-                                const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
-                                window.open(whatsappUrl, '_blank')
-                              }}
-                              className="bg-green-500 text-white py-2 rounded-lg text-sm hover:bg-green-600 font-bold flex items-center justify-center gap-1"
-                            >
-                              {t('pt.whatsapp')}
-                            </button>
-                          </>
-                        )}
+                        <button
+                          onClick={() => handleEdit(session)}
+                          className="bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700 font-bold flex items-center justify-center gap-1"
+                        >
+                          <span>✏️</span>
+                          <span>{t('pt.edit')}</span>
+                        </button>
                         <button
                           onClick={() => handleDelete(session.ptNumber)}
-                          className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 font-bold flex items-center justify-center gap-1 col-span-2"
+                          className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 font-bold flex items-center justify-center gap-1"
                         >
                           <span>🗑️</span>
                           <span>{t('pt.deleteSubscription')}</span>

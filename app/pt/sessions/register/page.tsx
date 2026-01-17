@@ -178,7 +178,7 @@ export default function RegisterPTSessionPage() {
                       <p className="text-sm text-gray-600">{pt.phone}</p>
                     </div>
                     <span className="bg-green-600 text-white px-3 py-1 rounded-full font-bold text-sm">
-                      #{pt.ptNumber}
+                      {pt.ptNumber < 0 ? '🏃 Day Use' : `#${pt.ptNumber}`}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -201,7 +201,7 @@ export default function RegisterPTSessionPage() {
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
               <h3 className="font-bold text-lg mb-2">الجلسة المحددة:</h3>
               <div className="space-y-1">
-                <p><span className="font-semibold">رقم PT:</span> #{selectedPT.ptNumber}</p>
+                <p><span className="font-semibold">رقم PT:</span> {selectedPT.ptNumber < 0 ? '🏃 Day Use' : `#${selectedPT.ptNumber}`}</p>
                 <p><span className="font-semibold">العميل:</span> {selectedPT.clientName}</p>
                 <p><span className="font-semibold">المدرب:</span> {selectedPT.coachName}</p>
                 <p><span className="font-semibold">الجلسات المتبقية:</span> 

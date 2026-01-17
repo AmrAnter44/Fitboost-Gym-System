@@ -260,7 +260,11 @@ export default function PTSessionHistoryPage() {
                       className={`border-t hover:bg-gray-50 ${isToday ? 'bg-green-50' : ''}`}
                     >
                       <td className="px-4 py-3">
-                        <span className="font-bold text-green-600">#{session.ptNumber}</span>
+                        {session.ptNumber < 0 ? (
+                          <span className="font-bold text-blue-600">🏃 Day Use</span>
+                        ) : (
+                          <span className="font-bold text-green-600">#{session.ptNumber}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import PermissionDenied from '../../components/PermissionDenied'
@@ -12,6 +13,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel as getPaymentLabel } from '../../lib/paymentHelpers'
 import { useToast } from '../../contexts/ToastContext'
+import { fetchReceipts, fetchNextReceiptNumber } from '../../lib/api/receipts'
 
 interface Receipt {
   id: string
@@ -39,11 +41,42 @@ export default function ReceiptsPage() {
   const toast = useToast()
 
   // أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة)
-  const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
+  const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت', 'PT Day Use']
 
-  const [receipts, setReceipts] = useState<Receipt[]>([])
+  // ✅ استخدام useQuery لجلب الإيصالات
+  const {
+    data: receipts = [],
+    isLoading: loading,
+    error: receiptsError,
+    refetch: refetchReceipts
+  } = useQuery({
+    queryKey: ['receipts'],
+    queryFn: fetchReceipts,
+    enabled: !permissionsLoading && hasPermission('canViewReceipts'),
+    retry: 1,
+    staleTime: 2 * 60 * 1000, // البيانات تعتبر fresh لمدة دقيقتين
+  })
+
+  // ✅ استخدام useQuery لجلب رقم الإيصال التالي
+  const {
+    data: fetchedNextReceiptNumber = 1000
+  } = useQuery({
+    queryKey: ['nextReceiptNumber'],
+    queryFn: fetchNextReceiptNumber,
+    enabled: !permissionsLoading && hasPermission('canViewReceipts'),
+    retry: 1,
+    staleTime: 60 * 1000, // fresh لمدة دقيقة
+  })
+
+  // State محلي لتعديل رقم الإيصال التالي
+  const [nextReceiptNumber, setNextReceiptNumber] = useState(fetchedNextReceiptNumber)
+
+  // تحديث الـ state المحلي عند تغيير البيانات المجلوبة
+  useEffect(() => {
+    setNextReceiptNumber(fetchedNextReceiptNumber)
+  }, [fetchedNextReceiptNumber])
+
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterPayment, setFilterPayment] = useState('all')
@@ -57,7 +90,6 @@ export default function ReceiptsPage() {
     staffName: '',
     createdAt: ''
   })
-  const [nextReceiptNumber, setNextReceiptNumber] = useState(1000)
   const [showReceiptNumberEdit, setShowReceiptNumberEdit] = useState(false)
 
   // Pagination
@@ -67,6 +99,22 @@ export default function ReceiptsPage() {
   // ✅ جميع الـ hooks يجب أن تكون قبل أي return
   const canEdit = hasPermission('canEditReceipts')
   const canDelete = hasPermission('canDeleteReceipts')
+
+  // ✅ معالجة أخطاء الإيصالات
+  useEffect(() => {
+    if (receiptsError) {
+      const errorMessage = (receiptsError as Error).message
+
+      if (errorMessage === 'UNAUTHORIZED') {
+        toast.error('يجب تسجيل الدخول أولاً')
+        setTimeout(() => router.push('/login'), 2000)
+      } else if (errorMessage === 'FORBIDDEN') {
+        toast.error('ليس لديك صلاحية عرض الإيصالات')
+      } else {
+        toast.error(errorMessage || 'حدث خطأ أثناء جلب الإيصالات')
+      }
+    }
+  }, [receiptsError, toast, router])
 
   // ✅ تعريف الدوال قبل استخدامها في useEffect
   const applyFilters = () => {
@@ -128,75 +176,10 @@ export default function ReceiptsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const fetchReceipts = async () => {
-    try {
-      const response = await fetch('/api/receipts')
-      
-      if (response.status === 401) {
-        toast.error('يجب تسجيل الدخول أولاً')
-        setTimeout(() => router.push('/login'), 2000)
-        return
-      }
-      
-      if (response.status === 403) {
-        toast.error('ليس لديك صلاحية عرض الإيصالات')
-        setReceipts([])
-        setFilteredReceipts([])
-        return
-      }
-
-      if (response.ok) {
-        const data = await response.json()
-        if (Array.isArray(data)) {
-          setReceipts(data)
-          setFilteredReceipts(data)
-        } else {
-          console.error('البيانات المستلمة ليست array:', data)
-          setReceipts([])
-          setFilteredReceipts([])
-        }
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'فشل جلب الإيصالات')
-        setReceipts([])
-        setFilteredReceipts([])
-      }
-    } catch (error) {
-      console.error('Error fetching receipts:', error)
-      toast.error('حدث خطأ أثناء جلب الإيصالات')
-      setReceipts([])
-      setFilteredReceipts([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ✅ useEffect بعد تعريف الدوال
-  useEffect(() => {
-    if (!permissionsLoading && hasPermission('canViewReceipts')) {
-      fetchReceipts()
-    }
-  }, [permissionsLoading])
-
+  // ✅ تطبيق الفلاتر عند تغيير البيانات أو الفلاتر
   useEffect(() => {
     applyFilters()
   }, [receipts, searchTerm, filterType, filterPayment])
-
-  // جلب رقم الإيصال التالي
-  useEffect(() => {
-    const fetchNextNumber = async () => {
-      try {
-        const response = await fetch('/api/receipts/next-number')
-        const data = await response.json()
-        setNextReceiptNumber(data.nextNumber)
-      } catch (error) {
-        console.error('Error fetching next receipt number:', error)
-      }
-    }
-    if (!permissionsLoading && hasPermission('canViewReceipts')) {
-      fetchNextNumber()
-    }
-  }, [permissionsLoading])
 
   // ✅ التحقق من الصلاحيات بعد كل الـ hooks
   if (permissionsLoading) {
@@ -312,7 +295,7 @@ export default function ReceiptsPage() {
 
       if (response.ok) {
         toast.success('تم إلغاء الإيصال بنجاح')
-        fetchReceipts()
+        refetchReceipts()
       } else {
         const error = await response.json()
         toast.error(error.error || 'فشل إلغاء الإيصال')
@@ -346,7 +329,7 @@ export default function ReceiptsPage() {
 
       if (response.ok) {
         toast.success(t('receipts.delete.success'))
-        fetchReceipts()
+        refetchReceipts()
       } else {
         const error = await response.json()
         toast.error(error.error || t('receipts.delete.error'))
@@ -401,7 +384,7 @@ export default function ReceiptsPage() {
         toast.success(t('receipts.edit.success'))
         setShowEditModal(false)
         setEditingReceipt(null)
-        fetchReceipts()
+        refetchReceipts()
       } else {
         const error = await response.json()
         toast.error(error.error || t('receipts.edit.error'))
@@ -667,7 +650,7 @@ export default function ReceiptsPage() {
                         )}
                         {details.ptNumber && (
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">
-                            PT #{details.ptNumber}
+                            {details.ptNumber < 0 ? '🏃 Day Use' : `PT #${details.ptNumber}`}
                           </span>
                         )}
                       </div>
@@ -992,7 +975,7 @@ export default function ReceiptsPage() {
                           )}
                           {details.ptNumber && (
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                              PT #{details.ptNumber}
+                              {details.ptNumber < 0 ? '🏃 Day Use' : `PT #${details.ptNumber}`}
                             </span>
                           )}
                         </div>

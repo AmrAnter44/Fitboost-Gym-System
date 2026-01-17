@@ -86,7 +86,9 @@ export default function PTCheckInPage() {
               </div>
               <div className="flex justify-between items-center border-b border-blue-200 pb-2">
                 <span className="text-gray-600">رقم PT:</span>
-                <span className="font-bold text-blue-900">#{sessionInfo.ptNumber}</span>
+                <span className="font-bold text-blue-900">
+                  {sessionInfo.ptNumber < 0 ? '🏃 Day Use' : `#${sessionInfo.ptNumber}`}
+                </span>
               </div>
               <div className="flex justify-between items-center border-b border-blue-200 pb-2">
                 <span className="text-gray-600">الكوتش:</span>
