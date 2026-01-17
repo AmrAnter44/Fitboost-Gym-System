@@ -436,19 +436,20 @@ export default function PTPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  {t('pt.ptId')} <span className="text-red-600">*</span>
+                  {t('pt.ptId')} {!isDayUse && <span className="text-red-600">*</span>}
+                  {isDayUse && <span className="text-xs text-gray-500">(اختياري)</span>}
                 </label>
                 <input
                   type="number"
-                  required
+                  required={!isDayUse}
                   disabled={!!editingSession}
                   value={formData.ptNumber}
                   onChange={(e) => setFormData({ ...formData, ptNumber: e.target.value })}
                   onKeyPress={handleIdKeyPress}
                   className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
-                  placeholder={t('pt.ptIdPlaceholder')}
+                  placeholder={isDayUse ? 'اختياري - يمكن تركه فارغ' : t('pt.ptIdPlaceholder')}
                 />
-                <p className="text-xs text-gray-500 mt-1">💡 اضغط Enter لتحميل بيانات العضو تلقائياً</p>
+                {!isDayUse && <p className="text-xs text-gray-500 mt-1">💡 اضغط Enter لتحميل بيانات العضو تلقائياً</p>}
               </div>
 
               <div>
