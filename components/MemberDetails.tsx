@@ -682,6 +682,8 @@ export default function MemberDetailPage() {
                 <PaymentMethodSelector
                   value={paymentData.paymentMethod}
                   onChange={(method) => setPaymentData({ ...paymentData, paymentMethod: method })}
+                  allowMultiple={true}
+                  totalAmount={paymentData.amount}
                   required
                 />
               </div>

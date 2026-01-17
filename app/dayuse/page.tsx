@@ -292,6 +292,8 @@ export default function DayUsePage() {
               <PaymentMethodSelector
                 value={formData.paymentMethod}
                 onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
+                allowMultiple={true}
+                totalAmount={formData.price}
                 required
               />
             </div>

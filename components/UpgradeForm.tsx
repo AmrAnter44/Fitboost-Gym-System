@@ -355,6 +355,8 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
               <Paymentmethodselector
                 value={paymentMethod}
                 onChange={setPaymentMethod}
+                allowMultiple={true}
+                totalAmount={selectedOffer ? calculateUpgradeAmount(selectedOffer.price) : 0}
               />
             </div>
 

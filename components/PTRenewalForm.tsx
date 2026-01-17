@@ -402,6 +402,8 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                   <PaymentMethodSelector
                     value={formData.paymentMethod}
                     onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
+                    allowMultiple={true}
+                    totalAmount={formData.totalPrice}
                     required
                   />
                 </div>

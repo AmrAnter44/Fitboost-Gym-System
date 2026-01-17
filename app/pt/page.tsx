@@ -613,7 +613,9 @@ export default function PTPage() {
             <div>
               <PaymentMethodSelector
                 value={formData.paymentMethod}
-                onChange={(method) => setFormData({ ...formData, paymentMethod: method as 'cash' | 'visa' | 'instapay' | 'wallet' })}
+                onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
+                allowMultiple={true}
+                totalAmount={formData.totalPrice - formData.remainingAmount}
                 required={false}
               />
             </div>
@@ -1359,7 +1361,9 @@ export default function PTPage() {
               <div>
                 <PaymentMethodSelector
                   value={paymentFormData.paymentMethod}
-                  onChange={(method) => setPaymentFormData({ ...paymentFormData, paymentMethod: method as 'cash' | 'visa' | 'instapay' | 'wallet' })}
+                  onChange={(method) => setPaymentFormData({ ...paymentFormData, paymentMethod: method })}
+                  allowMultiple={true}
+                  totalAmount={paymentFormData.paymentAmount}
                   required={true}
                 />
               </div>

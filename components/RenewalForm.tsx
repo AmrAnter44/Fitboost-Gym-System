@@ -540,6 +540,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
             <PaymentMethodSelector
               value={paymentMethod}
               onChange={setPaymentMethod}
+              allowMultiple={true}
+              totalAmount={calculatePaidAmount()}
             />
           </div>
 
