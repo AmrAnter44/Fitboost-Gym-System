@@ -311,10 +311,13 @@ export default function CoachCommissionPage() {
     const totalIncome = ptRevenue + signupRevenue
     const gymShare = totalIncome - totalCommission
 
+    // حساب النسبة المتوسطة بناءً على إجمالي إيرادات PT
+    const averagePercentage = ptRevenue > 0 ? calculatePercentage(ptRevenue) : 0
+
     setResult({
       coachName: selectedCoach,
       monthlyIncome: totalIncome,
-      percentage: 0, // لم يعد له معنى لأن كل دفعة لها نسبتها
+      percentage: averagePercentage,
       commission: totalCommission,
       gymShare: gymShare,
     })
