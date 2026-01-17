@@ -314,6 +314,14 @@ export default function CoachCommissionPage() {
     // حساب النسبة المتوسطة بناءً على إجمالي إيرادات PT
     const averagePercentage = ptRevenue > 0 ? calculatePercentage(ptRevenue) : 0
 
+    console.log('💰 نتيجة الحساب:', {
+      coachName: selectedCoach,
+      monthlyIncome: totalIncome,
+      percentage: averagePercentage,
+      commission: totalCommission,
+      gymShare: gymShare,
+    })
+
     setResult({
       coachName: selectedCoach,
       monthlyIncome: totalIncome,
@@ -779,15 +787,17 @@ export default function CoachCommissionPage() {
               <div className="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-xl p-6 shadow-xl border-4 border-white">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-4xl">💰</div>
-                  <div>
+                  <div className="w-full">
                     <p className="text-white/90 text-sm">{t('pt.commission.coachDue')}</p>
-                    <p className="text-4xl font-black">
-                      {result.commission.toLocaleString('ar-EG', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{' '}
-                      <span className="text-2xl">{t('pt.commission.egp')}</span>
-                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-3xl font-bold font-mono">
+                        {result.commission.toLocaleString('ar-EG', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                      <span className="text-xl font-semibold">{t('pt.commission.egp')}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t-2 border-white/30">
