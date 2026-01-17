@@ -309,24 +309,28 @@ export default function CoachCommissionPage() {
     const ptRevenue = coachPTReceipts.reduce((sum, receipt) => sum + receipt.amount, 0)
 
     const totalIncome = ptRevenue + signupRevenue
-    const gymShare = totalIncome - totalCommission
 
     // حساب النسبة المتوسطة بناءً على إجمالي الدخل (PT + عمولات الاشتراكات)
     const averagePercentage = totalIncome > 0 ? calculatePercentage(totalIncome) : 0
+
+    // إعادة حساب العمولة بناءً على النسبة الجديدة
+    const recalculatedCommission = (totalIncome * averagePercentage) / 100
+    const gymShare = totalIncome - recalculatedCommission
 
     console.log('💰 نتيجة الحساب:', {
       coachName: selectedCoach,
       monthlyIncome: totalIncome,
       percentage: averagePercentage,
-      commission: totalCommission,
+      commission: recalculatedCommission,
       gymShare: gymShare,
+      oldCommission: totalCommission,
     })
 
     setResult({
       coachName: selectedCoach,
       monthlyIncome: totalIncome,
       percentage: averagePercentage,
-      commission: totalCommission,
+      commission: recalculatedCommission,
       gymShare: gymShare,
     })
   }
