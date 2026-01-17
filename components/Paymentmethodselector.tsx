@@ -203,14 +203,16 @@ export default function PaymentMethodSelector({
                 <button
                   type="button"
                   onClick={() => handleQuickSelect(method.key)}
-                  className={`absolute top-2 left-2 z-10 px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                  className={`absolute top-2 right-2 z-10 px-3 py-1 rounded-md text-xs font-bold transition-all ${
                     amounts[method.key] === totalAmount && paidTotal === totalAmount
                       ? 'bg-green-600 text-white shadow-lg'
                       : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
                   }`}
-                  title={`دفع المبلغ الكلي (${totalAmount} جنيه) بـ ${t(`members.paymentMethods.${method.value}`)}`}
+                  title={`${t('multiPayment.payFullAmount') || 'دفع المبلغ الكلي'} (${totalAmount} ${t('members.egp')}) ${t('multiPayment.using') || 'بـ'} ${t(`members.paymentMethods.${method.value}`)}`}
                 >
-                  {amounts[method.key] === totalAmount && paidTotal === totalAmount ? '✓ الكل' : 'الكل'}
+                  {amounts[method.key] === totalAmount && paidTotal === totalAmount
+                    ? `✓ ${t('multiPayment.all') || 'الكل'}`
+                    : t('multiPayment.all') || 'الكل'}
                 </button>
 
                 <div

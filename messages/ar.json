@@ -2234,7 +2234,11 @@
     "confirm": "تأكيد الدفع",
     "cancel": "إلغاء",
     "progress": "التقدم",
-    "complete": "مكتمل"
+    "complete": "مكتمل",
+    "all": "الكل",
+    "payFullAmount": "دفع المبلغ الكلي",
+    "using": "بـ",
+    "enterAmountFirst": "يرجى إدخال المبلغ أولاً لعرض خيارات الدفع"
   },
   "receipt": {
     "created": "تم إنشاء الإيصال رقم #{number}"

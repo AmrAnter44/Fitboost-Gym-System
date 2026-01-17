@@ -2241,6 +2241,10 @@
     "confirm": "Confirm Payment",
     "cancel": "Cancel",
     "progress": "Progress",
-    "complete": "Complete"
+    "complete": "Complete",
+    "all": "All",
+    "payFullAmount": "Pay Full Amount",
+    "using": "using",
+    "enterAmountFirst": "Please enter the amount first to view payment options"
   }
 }
