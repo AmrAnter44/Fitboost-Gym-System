@@ -35,7 +35,6 @@ export default function Navbar() {
     { href: '/expenses', label: t('nav.expenses'), icon: '💸', permission: 'canViewExpenses' as keyof Permissions, roleRequired: null },
     { href: '/visitors', label: t('nav.visitors'), icon: '🚶', permission: 'canViewVisitors' as keyof Permissions, roleRequired: null },
     { href: '/followups', label: t('nav.followups'), icon: '📝', permission: 'canViewFollowUps' as keyof Permissions, roleRequired: null },
-    { href: '/search', label: t('nav.search'), icon: '🔍', permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
     { href: '/closing', label: t('nav.closing'), icon: '💰', permission: 'canAccessClosing' as keyof Permissions, roleRequired: null },
     { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: null, roleRequired: null },
   ]
