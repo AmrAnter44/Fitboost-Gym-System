@@ -51,7 +51,7 @@ export default function PaymentMethodSelector({
   const remaining = totalAmount ? totalAmount - paidTotal : 0
   const isValid = totalAmount ? Math.abs(remaining) < 0.01 && paidTotal > 0 : false
 
-  // تحديث الأخطاء
+  // تحديث الأخطاء وتطبيق الدفع تلقائياً
   useEffect(() => {
     if (!allowMultiple || !totalAmount) return
 
@@ -62,6 +62,8 @@ export default function PaymentMethodSelector({
         setErrorMessage(`المبلغ المدفوع ${paidTotal} أكبر من المطلوب ${totalAmount}`)
       } else {
         setErrorMessage('')
+        // تطبيق الدفع تلقائياً عندما يكون المبلغ مطابق
+        handleMultiPaymentApply()
       }
     } else {
       setErrorMessage('')
@@ -251,23 +253,9 @@ export default function PaymentMethodSelector({
           {/* رسالة النجاح */}
           {isValid && !errorMessage && (
             <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-green-700 text-center font-semibold text-sm">
-              ✅ المبلغ مطابق! يمكنك التأكيد الآن
+              ✅ المبلغ مطابق! يمكنك المتابعة الآن
             </div>
           )}
-
-          {/* زر التطبيق */}
-          <button
-            type="button"
-            onClick={handleMultiPaymentApply}
-            disabled={!isValid}
-            className={`w-full py-3 rounded-lg font-semibold transition ${
-              isValid
-                ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-lg'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {t('multiPayment.confirm')}
-          </button>
         </div>
       ) : !allowMultiple ? (
         /* أزرار اختيار وسيلة واحدة فقط - تظهر فقط إذا allowMultiple غير مفعّل */
