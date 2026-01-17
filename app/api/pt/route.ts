@@ -75,18 +75,6 @@ export async function POST(request: Request) {
     console.log('📝 إضافة جلسة PT جديدة:', { ptNumber, clientName, sessionsPurchased, totalPrice, pricePerSession })
 
     // ✅ التحقق من الحقول المطلوبة
-    // إذا لم يتم إدخال رقم PT، نولد واحد تلقائياً
-    let finalPtNumber = ptNumber
-    if (!finalPtNumber) {
-      // البحث عن أكبر رقم PT موجود وإضافة 1
-      const maxPT = await prisma.pT.findFirst({
-        orderBy: { ptNumber: 'desc' },
-        select: { ptNumber: true }
-      })
-      finalPtNumber = maxPT ? maxPT.ptNumber + 1 : 1
-      console.log(`🔢 تم توليد رقم PT تلقائياً: ${finalPtNumber}`)
-    }
-
     if (!clientName || clientName.trim() === '') {
       return NextResponse.json(
         { error: 'اسم العميل مطلوب' },
@@ -122,17 +110,19 @@ export async function POST(request: Request) {
       )
     }
 
-    // التحقق من أن رقم PT غير مستخدم
-    const existingPT = await prisma.pT.findUnique({
-      where: { ptNumber: parseInt(finalPtNumber) }
-    })
+    // التحقق من أن رقم PT غير مستخدم (فقط إذا تم إدخاله يدوياً)
+    if (ptNumber) {
+      const existingPT = await prisma.pT.findUnique({
+        where: { ptNumber: parseInt(ptNumber) }
+      })
 
-    if (existingPT) {
-      console.error('❌ رقم PT مستخدم:', finalPtNumber)
-      return NextResponse.json(
-        { error: `رقم PT ${finalPtNumber} مستخدم بالفعل` },
-        { status: 400 }
-      )
+      if (existingPT) {
+        console.error('❌ رقم PT مستخدم:', ptNumber)
+        return NextResponse.json(
+          { error: `رقم PT ${ptNumber} مستخدم بالفعل` },
+          { status: 400 }
+        )
+      }
     }
 
     // التحقق من التواريخ
@@ -200,22 +190,28 @@ export async function POST(request: Request) {
     }
 
     // إنشاء جلسة PT
+    const ptData: any = {
+      clientName,
+      phone,
+      sessionsPurchased,
+      sessionsRemaining: sessionsPurchased,
+      coachName,
+      coachUserId,  // ✅ ربط الكوتش بـ userId
+      pricePerSession,
+      remainingAmount: remainingAmount || 0,  // ✅ الباقي من الفلوس
+      startDate: startDate ? new Date(startDate) : null,
+      expiryDate: expiryDate ? new Date(expiryDate) : null,
+      qrCode: barcodeText,
+      qrCodeImage: qrCodeImage
+    }
+
+    // إضافة ptNumber فقط إذا تم إدخاله يدوياً
+    if (ptNumber) {
+      ptData.ptNumber = parseInt(ptNumber)
+    }
+
     const pt = await prisma.pT.create({
-      data: {
-        ptNumber: parseInt(finalPtNumber),
-        clientName,
-        phone,
-        sessionsPurchased,
-        sessionsRemaining: sessionsPurchased,
-        coachName,
-        coachUserId,  // ✅ ربط الكوتش بـ userId
-        pricePerSession,
-        remainingAmount: remainingAmount || 0,  // ✅ الباقي من الفلوس
-        startDate: startDate ? new Date(startDate) : null,
-        expiryDate: expiryDate ? new Date(expiryDate) : null,
-        qrCode: barcodeText,
-        qrCodeImage: qrCodeImage
-      },
+      data: ptData,
     })
 
     console.log('✅ تم إنشاء جلسة PT:', pt.ptNumber)
