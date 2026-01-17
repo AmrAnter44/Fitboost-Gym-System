@@ -67,6 +67,8 @@ export default function PTPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [filterSessions, setFilterSessions] = useState<'all' | 'low' | 'zero'>('all')
 
+  const [isDayUse, setIsDayUse] = useState(false)
+
   const [formData, setFormData] = useState<{
     ptNumber: string
     clientName: string
@@ -516,24 +518,56 @@ export default function PTPage() {
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('pt.sessionsCount')} <span className="text-red-600">*</span>
+              {/* Day Use Checkbox */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isDayUse}
+                    onChange={(e) => {
+                      setIsDayUse(e.target.checked)
+                      // إذا تم تفعيل Day Use، اضبط عدد الجلسات على 1 والمبلغ المتبقي على 0
+                      if (e.target.checked) {
+                        setFormData(prev => ({
+                          ...prev,
+                          sessionsPurchased: 1,
+                          remainingAmount: 0
+                        }))
+                      }
+                    }}
+                    className="w-5 h-5"
+                  />
+                  <div>
+                    <span className="text-sm font-bold text-blue-800">
+                      🏃 Day Use (استخدام يومي)
+                    </span>
+                    <p className="text-xs text-blue-600 mt-1">
+                      تسجيل مبسط - اسم ورقم وسعر الجلسة فقط
+                    </p>
+                  </div>
                 </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={formData.sessionsPurchased}
-                  onChange={(e) => setFormData({ ...formData, sessionsPurchased: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder={t('pt.sessionsPlaceholder')}
-                />
               </div>
+
+              {!isDayUse && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    {t('pt.sessionsCount')} <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={formData.sessionsPurchased}
+                    onChange={(e) => setFormData({ ...formData, sessionsPurchased: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder={t('pt.sessionsPlaceholder')}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  {t('pt.totalPrice')} <span className="text-red-600">*</span>
+                  {isDayUse ? 'سعر الجلسة 💰' : t('pt.totalPrice')} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="number"
@@ -543,72 +577,80 @@ export default function PTPage() {
                   value={formData.totalPrice}
                   onChange={(e) => setFormData({ ...formData, totalPrice: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border rounded-lg bg-yellow-50 border-yellow-300"
-                  placeholder={t('pt.totalPricePlaceholder')}
+                  placeholder={isDayUse ? 'أدخل سعر الجلسة' : t('pt.totalPricePlaceholder')}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('pt.remainingAmount')}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.remainingAmount}
-                  onChange={(e) => setFormData({ ...formData, remainingAmount: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border rounded-lg bg-orange-50 border-orange-300"
-                  placeholder={t('pt.remainingAmountPlaceholder')}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {t('pt.remainingAmountNote')}
-                </p>
-              </div>
+              {!isDayUse && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    {t('pt.remainingAmount')}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.remainingAmount}
+                    onChange={(e) => setFormData({ ...formData, remainingAmount: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border rounded-lg bg-orange-50 border-orange-300"
+                    placeholder={t('pt.remainingAmountPlaceholder')}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t('pt.remainingAmountNote')}
+                  </p>
+                </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('pt.startDate')} <span className="text-xs text-gray-500">{t('pt.startDateFormat')}</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg font-mono"
-                  placeholder={t('pt.startDatePlaceholder')}
-                  pattern="\d{4}-\d{2}-\d{2}"
-                />
-              </div>
+              {!isDayUse && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    {t('pt.startDate')} <span className="text-xs text-gray-500">{t('pt.startDateFormat')}</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg font-mono"
+                    placeholder={t('pt.startDatePlaceholder')}
+                    pattern="\d{4}-\d{2}-\d{2}"
+                  />
+                </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('pt.expiryDate')} <span className="text-xs text-gray-500">{t('pt.startDateFormat')}</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.expiryDate}
-                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg font-mono"
-                  placeholder={t('pt.expiryDatePlaceholder')}
-                  pattern="\d{4}-\d{2}-\d{2}"
-                />
-              </div>
+              {!isDayUse && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    {t('pt.expiryDate')} <span className="text-xs text-gray-500">{t('pt.startDateFormat')}</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.expiryDate}
+                    onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg font-mono"
+                    placeholder={t('pt.expiryDatePlaceholder')}
+                    pattern="\d{4}-\d{2}-\d{2}"
+                  />
+                </div>
+              )}
             </div>
 
-            <div>
-              <p className="text-sm font-medium mb-2">{t('pt.quickAdd')}</p>
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3, 6, 9, 12].map(months => (
-                  <button
-                    key={months}
-                    type="button"
-                    onClick={() => calculateExpiryFromMonths(months)}
-                    className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg text-sm transition font-medium"
-                  >
-                    + {months} {months === 1 ? t('pt.month') : t('pt.months')}
-                  </button>
-                ))}
+            {!isDayUse && (
+              <div>
+                <p className="text-sm font-medium mb-2">{t('pt.quickAdd')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2, 3, 6, 9, 12].map(months => (
+                    <button
+                      key={months}
+                      type="button"
+                      onClick={() => calculateExpiryFromMonths(months)}
+                      className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg text-sm transition font-medium"
+                    >
+                      + {months} {months === 1 ? t('pt.month') : t('pt.months')}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <PaymentMethodSelector
