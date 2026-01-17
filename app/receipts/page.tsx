@@ -258,6 +258,13 @@ export default function ReceiptsPage() {
     // ✅ معالجة الدفع المتعدد
     if (isMultiPayment(method)) {
       const normalized = normalizePaymentMethod(method, amount || 0)
+
+      // لو في طريقة دفع واحدة بس، نعرضها عادي بدون "دفع متعدد"
+      if (normalized.methods.length === 1) {
+        return getPaymentLabel(normalized.methods[0].method, 'ar')
+      }
+
+      // لو أكتر من طريقة دفع، نعرض "دفع متعدد"
       return (
         <div className="flex flex-col gap-1">
           <span className="text-xs text-purple-600 font-bold">🔀 دفع متعدد</span>
