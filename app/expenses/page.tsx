@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import PermissionDenied from '../../components/PermissionDenied'
 import { useAdminDate } from '../../contexts/AdminDateContext'
 import { useToast } from '../../contexts/ToastContext'
+import { fetchExpenses } from '../../lib/api/expenses'
+import { fetchStaff } from '../../lib/api/staff'
 
 interface Staff {
   id: string
@@ -31,10 +34,31 @@ export default function ExpensesPage() {
   const { customCreatedAt } = useAdminDate()
   const toast = useToast()
 
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [staffList, setStaffList] = useState<Staff[]>([])
+  const {
+    data: expenses = [],
+    isLoading: loading,
+    error: expensesError,
+    refetch: refetchExpenses
+  } = useQuery({
+    queryKey: ['expenses'],
+    queryFn: fetchExpenses,
+    enabled: !permissionsLoading && hasPermission('canViewFinancials'),
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const {
+    data: staffList = [],
+  } = useQuery({
+    queryKey: ['staff'],
+    queryFn: fetchStaff,
+    enabled: !permissionsLoading,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+  })
+
   const [showForm, setShowForm] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [filterType, setFilterType] = useState<'all' | 'gym_expense' | 'staff_loan'>('all')
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; expenseId: string | null; expenseName: string }>({
     show: false,
@@ -55,32 +79,20 @@ export default function ExpensesPage() {
     createdAt: '',
   })
 
-  const fetchExpenses = async () => {
-    try {
-      const response = await fetch('/api/expenses')
-      const data = await response.json()
-      setExpenses(data)
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchStaff = async () => {
-    try {
-      const response = await fetch('/api/staff')
-      const data = await response.json()
-      setStaffList(data)
-    } catch (error) {
-      console.error('Error:', error)
-    }
-  }
-
+  // Error handling for expenses query
   useEffect(() => {
-    fetchExpenses()
-    fetchStaff()
-  }, [])
+    if (expensesError) {
+      const errorMessage = (expensesError as Error).message
+      if (errorMessage === 'UNAUTHORIZED') {
+        toast.error('يجب تسجيل الدخول أولاً')
+        setTimeout(() => router.push('/login'), 2000)
+      } else if (errorMessage === 'FORBIDDEN') {
+        toast.error('ليس لديك صلاحية عرض المصروفات')
+      } else {
+        toast.error(errorMessage || 'حدث خطأ أثناء جلب المصروفات')
+      }
+    }
+  }, [expensesError, toast, router])
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense)
@@ -97,7 +109,7 @@ export default function ExpensesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setSubmitting(true)
 
     try {
       // إذا كان تعديل، استخدم handleUpdate
@@ -137,7 +149,7 @@ export default function ExpensesPage() {
         })
 
         toast.success(t('expenses.messages.addSuccess'))
-        fetchExpenses()
+        refetchExpenses()
         setShowForm(false)
       } else {
         toast.error(t('expenses.messages.addError'))
@@ -146,7 +158,7 @@ export default function ExpensesPage() {
       console.error(error)
       toast.error(t('expenses.messages.error'))
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -177,7 +189,7 @@ export default function ExpensesPage() {
         })
         setEditingExpense(null)
         toast.success(t('expenses.messages.updateSuccess'))
-        fetchExpenses()
+        refetchExpenses()
         setShowForm(false)
       } else {
         toast.error(t('expenses.messages.updateError'))
@@ -186,7 +198,7 @@ export default function ExpensesPage() {
       console.error(error)
       toast.error(t('expenses.messages.error'))
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -203,7 +215,7 @@ export default function ExpensesPage() {
 
     try {
       await fetch(`/api/expenses?id=${deleteConfirm.expenseId}`, { method: 'DELETE' })
-      fetchExpenses()
+      refetchExpenses()
       toast.success(t('expenses.messages.deleteSuccess'))
     } catch (error) {
       console.error('Error:', error)
@@ -224,7 +236,7 @@ export default function ExpensesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: expense.id, isPaid: !expense.isPaid }),
       })
-      fetchExpenses()
+      refetchExpenses()
     } catch (error) {
       console.error('Error:', error)
     }
@@ -492,10 +504,10 @@ export default function ExpensesPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 disabled:bg-gray-400"
             >
-              {loading
+              {submitting
                 ? t('expenses.form.saving')
                 : editingExpense
                   ? '💾 حفظ التعديل'

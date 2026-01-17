@@ -3,12 +3,14 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
 import StaffBarcodeWhatsApp from '../../components/StaffBarcodeWhatsApp'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
+import { fetchStaff } from '../../lib/api/staff'
 
 interface Staff {
   id: string
@@ -72,11 +74,23 @@ export default function StaffPage() {
   }
   const { hasPermission, loading: permissionsLoading } = usePermissions()
 
-  const [staff, setStaff] = useState<Staff[]>([])
+  const {
+    data: staff = [],
+    isLoading: loading,
+    error: staffError,
+    refetch: refetchStaff
+  } = useQuery({
+    queryKey: ['staff'],
+    queryFn: fetchStaff,
+    enabled: !permissionsLoading && hasPermission('canViewStaff'),
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
   const [todayAttendance, setTodayAttendance] = useState<Attendance[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [showOtherPosition, setShowOtherPosition] = useState(false)
 
   // Delete confirmation modal
@@ -114,25 +128,20 @@ export default function StaffPage() {
     }
   }, [showForm, editingStaff])
 
-  const fetchStaff = async () => {
-    try {
-      const response = await fetch('/api/staff')
-      const data = await response.json()
-
-      // ✅ التحقق من أن البيانات array
-      if (response.ok && Array.isArray(data)) {
-        setStaff(data)
+  // Error handling for staff query
+  useEffect(() => {
+    if (staffError) {
+      const errorMessage = (staffError as Error).message
+      if (errorMessage === 'UNAUTHORIZED') {
+        toast.error('يجب تسجيل الدخول أولاً')
+        setTimeout(() => router.push('/login'), 2000)
+      } else if (errorMessage === 'FORBIDDEN') {
+        toast.error('ليس لديك صلاحية عرض الموظفين')
       } else {
-        console.error('Invalid staff data:', data)
-        setStaff([])
+        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات الموظفين')
       }
-    } catch (error) {
-      console.error('Error:', error)
-      setStaff([])
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [staffError, toast, router])
 
   const fetchTodayAttendance = async () => {
     try {
@@ -146,9 +155,8 @@ export default function StaffPage() {
   }
 
   useEffect(() => {
-    fetchStaff()
     fetchTodayAttendance()
-    
+
     const interval = setInterval(fetchTodayAttendance, 60000)
     return () => clearInterval(interval)
   }, [])
@@ -331,20 +339,20 @@ const handleScan = async (staffCode: string) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setSubmitting(true)
 
     const finalPosition =
       formData.position === 'other' ? formData.customPosition : formData.position
 
     if (!finalPosition) {
       toast.warning(t('staff.messages.selectPosition'))
-      setLoading(false)
+      setSubmitting(false)
       return
     }
 
     if (!formData.staffCode) {
       toast.warning(t('staff.messages.enterNumber'))
-      setLoading(false)
+      setSubmitting(false)
       return
     }
 
@@ -352,7 +360,7 @@ const handleScan = async (staffCode: string) => {
     const numericCode = formData.staffCode.replace(/[sS]/g, '')
     if (!/^\d{9}$/.test(numericCode)) {
       toast.warning(t('staff.messages.invalidNumber'))
-      setLoading(false)
+      setSubmitting(false)
       return
     }
 
@@ -379,7 +387,7 @@ const handleScan = async (staffCode: string) => {
 
       if (response.ok) {
         toast.success(editingStaff ? t('staff.messages.updated') : t('staff.messages.added'))
-        fetchStaff()
+        refetchStaff()
         resetForm()
       } else {
         toast.error(data.error || t('staff.messages.failed'))
@@ -388,7 +396,7 @@ const handleScan = async (staffCode: string) => {
       console.error(error)
       toast.error(t('staff.messages.error'))
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -404,7 +412,7 @@ const handleScan = async (staffCode: string) => {
           isActive: !staffMember.isActive,
         }),
       })
-      fetchStaff()
+      refetchStaff()
     } catch (error) {
       console.error('Error:', error)
     }
@@ -428,7 +436,7 @@ const handleScan = async (staffCode: string) => {
 
       if (response.ok) {
         toast.success(t('staff.messages.deleted'))
-        fetchStaff()
+        refetchStaff()
         setShowDeleteModal(false)
         setStaffToDelete(null)
       } else {
@@ -869,10 +877,10 @@ const handleScan = async (staffCode: string) => {
             <div className="flex gap-4">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={submitting}
                 className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 font-bold text-lg shadow-lg transform transition hover:scale-105 active:scale-95"
               >
-                {loading ? `⏳ ${t('staff.form.saving')}` : editingStaff ? `✅ ${t('staff.form.update')}` : `➕ ${t('staff.form.addStaff')}`}
+                {submitting ? `⏳ ${t('staff.form.saving')}` : editingStaff ? `✅ ${t('staff.form.update')}` : `➕ ${t('staff.form.addStaff')}`}
               </button>
               {editingStaff && (
                 <button
