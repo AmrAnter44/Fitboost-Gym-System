@@ -197,7 +197,7 @@ export default function CoachCommissionPage() {
     // حساب الإيرادات من إيصالات PT (برايفت جديد + تجديد برايفت + دفع باقي برايفت + new pt + برايفت جديد)
     const ptReceipts = receipts.filter((receipt) => {
       // فلترة إيصالات PT فقط (الداتا الجديدة والقديمة)
-      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'برايفت جديد']
+      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
       if (!validTypes.includes(receipt.type)) return false
 
       // التحقق من التاريخ
@@ -297,7 +297,7 @@ export default function CoachCommissionPage() {
     end.setHours(23, 59, 59, 999)
 
     const coachPTReceipts = receipts.filter((receipt) => {
-      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'برايفت جديد']
+      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
       if (!validTypes.includes(receipt.type)) return false
       const receiptDate = new Date(receipt.createdAt)
       if (receiptDate < start || receiptDate > end) return false
@@ -574,8 +574,8 @@ export default function CoachCommissionPage() {
                 end.setHours(23, 59, 59, 999)
 
                 const coachPTReceipts = receipts.filter((receipt) => {
-                  // فلترة "new pt" و "برايفت جديد" فقط للعرض (عقود PT جديدة فقط)
-                  const validTypes = ['new pt', 'برايفت جديد']
+                  // فلترة "new pt" و "برايفت جديد" و "اشتراك برايفت" فقط للعرض (عقود PT جديدة فقط)
+                  const validTypes = ['new pt', 'برايفت جديد', 'اشتراك برايفت']
                   if (!validTypes.includes(receipt.type)) return false
                   const receiptDate = new Date(receipt.createdAt)
                   if (receiptDate < start || receiptDate > end) return false
@@ -828,7 +828,7 @@ export default function CoachCommissionPage() {
                     end.setHours(23, 59, 59, 999)
 
                     const coachPTReceipts = receipts.filter((receipt) => {
-                      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'برايفت جديد']
+                      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
                       if (!validTypes.includes(receipt.type)) return false
                       const receiptDate = new Date(receipt.createdAt)
                       if (receiptDate < start || receiptDate > end) return false
