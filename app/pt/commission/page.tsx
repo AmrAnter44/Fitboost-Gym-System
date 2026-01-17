@@ -89,6 +89,9 @@ export default function CoachCommissionPage() {
   const [memberSignupCommissions, setMemberSignupCommissions] = useState<MemberSignupCommission[]>([])
   const [ptCommissions, setPtCommissions] = useState<PTCommission[]>([])
 
+  // أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة)
+  const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
+
   // تحديد الفترة الزمنية (أول يوم في الشهر الحالي إلى آخر يوم)
   const today = new Date()
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -194,11 +197,10 @@ export default function CoachCommissionPage() {
     const end = new Date(endDate)
     end.setHours(23, 59, 59, 999)
 
-    // حساب الإيرادات من إيصالات PT (برايفت جديد + تجديد برايفت + دفع باقي برايفت + new pt + برايفت جديد)
+    // حساب الإيرادات من إيصالات PT (جميع الأنواع)
     const ptReceipts = receipts.filter((receipt) => {
-      // فلترة إيصالات PT فقط (الداتا الجديدة والقديمة)
-      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
-      if (!validTypes.includes(receipt.type)) return false
+      // فلترة إيصالات PT فقط
+      if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
 
       // التحقق من التاريخ
       const receiptDate = new Date(receipt.createdAt)
@@ -297,8 +299,7 @@ export default function CoachCommissionPage() {
     end.setHours(23, 59, 59, 999)
 
     const coachPTReceipts = receipts.filter((receipt) => {
-      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
-      if (!validTypes.includes(receipt.type)) return false
+      if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
       const receiptDate = new Date(receipt.createdAt)
       if (receiptDate < start || receiptDate > end) return false
       try {
@@ -575,8 +576,7 @@ export default function CoachCommissionPage() {
 
                 const coachPTReceipts = receipts.filter((receipt) => {
                   // فلترة كل أنواع إيصالات PT للعرض
-                  const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
-                  if (!validTypes.includes(receipt.type)) return false
+                  if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
                   const receiptDate = new Date(receipt.createdAt)
                   if (receiptDate < start || receiptDate > end) return false
                   try {
@@ -828,8 +828,7 @@ export default function CoachCommissionPage() {
                     end.setHours(23, 59, 59, 999)
 
                     const coachPTReceipts = receipts.filter((receipt) => {
-                      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
-                      if (!validTypes.includes(receipt.type)) return false
+                      if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
                       const receiptDate = new Date(receipt.createdAt)
                       if (receiptDate < start || receiptDate > end) return false
                       try {
