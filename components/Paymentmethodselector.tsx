@@ -111,6 +111,27 @@ export default function PaymentMethodSelector({
     setErrorMessage('')
   }
 
+  // دالة لتحديد المبلغ الكلي لطريقة دفع واحدة مباشرة
+  const handleQuickSelect = (method: keyof PaymentAmounts) => {
+    if (!totalAmount) return
+
+    // إعادة تعيين كل المبالغ إلى 0
+    const newAmounts: PaymentAmounts = {
+      cash: 0,
+      visa: 0,
+      instapay: 0,
+      wallet: 0,
+      [method]: totalAmount
+    }
+
+    setAmounts(newAmounts)
+
+    // تطبيق الاختيار مباشرة
+    const methods: PaymentMethod[] = [{ method, amount: totalAmount }]
+    onChange(methods)
+    setErrorMessage('')
+  }
+
   const handleSingleMethodClick = (method: string) => {
     // تحديد طريقة دفع واحدة
     onChange(method)
@@ -176,24 +197,42 @@ export default function PaymentMethodSelector({
             {paymentMethods.map(method => (
               <div
                 key={method.value}
-                className={`bg-gradient-to-br ${method.gradientColor} border-2 rounded-lg p-3 transition-all hover:shadow-md`}
+                className="relative"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">{method.icon}</span>
-                  <span className="font-semibold text-gray-700 text-sm">
-                    {t(`members.paymentMethods.${method.value}`)}
-                  </span>
-                </div>
+                {/* زر الاختيار السريع */}
+                <button
+                  type="button"
+                  onClick={() => handleQuickSelect(method.key)}
+                  className={`absolute top-2 left-2 z-10 px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                    amounts[method.key] === totalAmount && paidTotal === totalAmount
+                      ? 'bg-green-600 text-white shadow-lg'
+                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                  }`}
+                  title={`دفع المبلغ الكلي (${totalAmount} جنيه) بـ ${t(`members.paymentMethods.${method.value}`)}`}
+                >
+                  {amounts[method.key] === totalAmount && paidTotal === totalAmount ? '✓ الكل' : 'الكل'}
+                </button>
 
-                <input
-                  type="number"
-                  value={amounts[method.key] || ''}
-                  onChange={(e) => handleAmountChange(method.key, e.target.value)}
-                  placeholder="0"
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-base font-bold focus:border-purple-500 focus:outline-none transition"
-                />
+                <div
+                  className={`bg-gradient-to-br ${method.gradientColor} border-2 rounded-lg p-3 transition-all hover:shadow-md`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">{method.icon}</span>
+                    <span className="font-semibold text-gray-700 text-sm">
+                      {t(`members.paymentMethods.${method.value}`)}
+                    </span>
+                  </div>
+
+                  <input
+                    type="number"
+                    value={amounts[method.key] || ''}
+                    onChange={(e) => handleAmountChange(method.key, e.target.value)}
+                    placeholder="0"
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-base font-bold focus:border-purple-500 focus:outline-none transition"
+                  />
+                </div>
               </div>
             ))}
           </div>
