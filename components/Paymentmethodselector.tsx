@@ -204,7 +204,7 @@ export default function PaymentMethodSelector({
                   type="button"
                   onClick={() => handleQuickSelect(method.key)}
                   className={`absolute top-2 z-10 px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                    direction === 'rtl' ? 'right-2' : 'left-2'
+                    direction === 'rtl' ? 'left-2' : 'right-2'
                   } ${
                     amounts[method.key] === totalAmount && paidTotal === totalAmount
                       ? 'bg-green-600 text-white shadow-lg'
