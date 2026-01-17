@@ -574,8 +574,8 @@ export default function CoachCommissionPage() {
                 end.setHours(23, 59, 59, 999)
 
                 const coachPTReceipts = receipts.filter((receipt) => {
-                  // فلترة "new pt" و "برايفت جديد" و "اشتراك برايفت" فقط للعرض (عقود PT جديدة فقط)
-                  const validTypes = ['new pt', 'برايفت جديد', 'اشتراك برايفت']
+                  // فلترة كل أنواع إيصالات PT للعرض
+                  const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
                   if (!validTypes.includes(receipt.type)) return false
                   const receiptDate = new Date(receipt.createdAt)
                   if (receiptDate < start || receiptDate > end) return false
