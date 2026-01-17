@@ -434,21 +434,23 @@ export default function PTPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('pt.ptId')} <span className="text-xs text-gray-500">(اختياري)</span>
-                </label>
-                <input
-                  type="number"
-                  disabled={!!editingSession}
-                  value={formData.ptNumber}
-                  onChange={(e) => setFormData({ ...formData, ptNumber: e.target.value })}
-                  onKeyPress={handleIdKeyPress}
-                  className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
-                  placeholder="اختياري - يمكن تركه فارغ"
-                />
-                <p className="text-xs text-gray-500 mt-1">💡 اضغط Enter لتحميل بيانات العضو تلقائياً</p>
-              </div>
+              {!isDayUse && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    {t('pt.ptId')} <span className="text-xs text-gray-500">(اختياري)</span>
+                  </label>
+                  <input
+                    type="number"
+                    disabled={!!editingSession}
+                    value={formData.ptNumber}
+                    onChange={(e) => setFormData({ ...formData, ptNumber: e.target.value })}
+                    onKeyPress={handleIdKeyPress}
+                    className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
+                    placeholder="اختياري - يمكن تركه فارغ"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">💡 اضغط Enter لتحميل بيانات العضو تلقائياً</p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -525,12 +527,19 @@ export default function PTPage() {
                     checked={isDayUse}
                     onChange={(e) => {
                       setIsDayUse(e.target.checked)
-                      // إذا تم تفعيل Day Use، اضبط عدد الجلسات على 1 والمبلغ المتبقي على 0
+                      // إذا تم تفعيل Day Use، اضبط عدد الجلسات على 1 والمبلغ المتبقي على 0 ورقم PT سالب
                       if (e.target.checked) {
                         setFormData(prev => ({
                           ...prev,
+                          ptNumber: '-1',
                           sessionsPurchased: 1,
                           remainingAmount: 0
+                        }))
+                      } else {
+                        // إذا تم إلغاء Day Use، امسح رقم PT
+                        setFormData(prev => ({
+                          ...prev,
+                          ptNumber: ''
                         }))
                       }
                     }}

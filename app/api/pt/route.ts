@@ -110,8 +110,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // التحقق من أن رقم PT غير مستخدم (فقط إذا تم إدخاله يدوياً)
-    if (ptNumber) {
+    // التحقق من أن رقم PT غير مستخدم (فقط إذا تم إدخاله يدوياً وليس سالب)
+    // الأرقام السالبة تُستخدم للـ Day Use ولا تُعتبر أرقام PT حقيقية
+    if (ptNumber && parseInt(ptNumber) > 0) {
       const existingPT = await prisma.pT.findUnique({
         where: { ptNumber: parseInt(ptNumber) }
       })
