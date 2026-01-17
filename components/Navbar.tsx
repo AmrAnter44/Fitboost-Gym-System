@@ -29,7 +29,6 @@ export default function Navbar() {
     { href: '/coach/dashboard', label: t('nav.coach'), icon: '🏋️', permission: 'canRegisterPTAttendance' as keyof Permissions, roleRequired: 'COACH' },
     { href: '/coach/rotations', label: t('nav.rotations'), icon: '🔄', permission: 'canRegisterPTAttendance' as keyof Permissions, roleRequired: 'COACH' },
     { href: '/dayuse', label: t('nav.dayUse'), icon: '📊', permission: 'canViewDayUse' as keyof Permissions, roleRequired: null },
-    { href: '/invitations', label: t('nav.invitations'), icon: '🎟️', permission: 'canViewVisitors' as keyof Permissions, roleRequired: null },
     { href: '/staff', label: t('nav.staff'), icon: '👷', permission: 'canViewStaff' as keyof Permissions, roleRequired: null },
     { href: '/receipts', label: t('nav.receipts'), icon: '🧾', permission: 'canViewReceipts' as keyof Permissions, roleRequired: null },
     { href: '/expenses', label: t('nav.expenses'), icon: '💸', permission: 'canViewExpenses' as keyof Permissions, roleRequired: null },
