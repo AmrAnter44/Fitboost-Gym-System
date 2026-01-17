@@ -27,7 +27,6 @@ export default function PaymentMethodSelector({
   required = false
 }: PaymentMethodSelectorProps) {
   const { t } = useLanguage()
-  const [showMultiPayment, setShowMultiPayment] = useState(false)
   const [amounts, setAmounts] = useState<PaymentAmounts>({
     cash: 0,
     visa: 0,
@@ -54,7 +53,7 @@ export default function PaymentMethodSelector({
 
   // تحديث الأخطاء
   useEffect(() => {
-    if (!showMultiPayment || !totalAmount) return
+    if (!allowMultiple || !totalAmount) return
 
     if (paidTotal > 0) {
       if (remaining > 0.01) {
@@ -67,7 +66,7 @@ export default function PaymentMethodSelector({
     } else {
       setErrorMessage('')
     }
-  }, [paidTotal, remaining, totalAmount, t, showMultiPayment])
+  }, [paidTotal, remaining, totalAmount, t, allowMultiple])
 
   // تحميل المبالغ الحالية إذا كانت دفع متعدد
   useEffect(() => {
@@ -79,7 +78,6 @@ export default function PaymentMethodSelector({
         wallet: value.find(m => m.method === 'wallet')?.amount || 0,
       }
       setAmounts(newAmounts)
-      setShowMultiPayment(true)
     }
   }, [value])
 
@@ -114,21 +112,8 @@ export default function PaymentMethodSelector({
   }
 
   const handleSingleMethodClick = (method: string) => {
-    // إعادة إلى الوضع الفردي
+    // تحديد طريقة دفع واحدة
     onChange(method)
-    setShowMultiPayment(false)
-    setAmounts({ cash: 0, visa: 0, instapay: 0, wallet: 0 })
-    setErrorMessage('')
-  }
-
-  const handleToggleMultiPayment = () => {
-    if (showMultiPayment) {
-      // الرجوع للوضع الفردي
-      onChange('cash')
-      setAmounts({ cash: 0, visa: 0, instapay: 0, wallet: 0 })
-      setErrorMessage('')
-    }
-    setShowMultiPayment(!showMultiPayment)
   }
 
   return (
@@ -137,49 +122,8 @@ export default function PaymentMethodSelector({
         {t('members.paymentMethods.label')} {required && <span className="text-red-600">*</span>}
       </label>
 
-      {/* أزرار التبديل بين الوضع الفردي والمتعدد */}
-      {allowMultiple && totalAmount && totalAmount > 0 && (
-        <div className="mb-4 flex gap-2">
-          <button
-            type="button"
-            onClick={() => handleToggleMultiPayment()}
-            className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
-              showMultiPayment
-                ? 'border-purple-500 bg-gradient-to-r from-purple-50 to-pink-50 shadow-md'
-                : 'border-gray-300 bg-white hover:border-gray-400'
-            }`}
-          >
-            <span className="text-2xl">🔀</span>
-            <span className={`font-semibold text-sm ${showMultiPayment ? 'text-purple-900' : 'text-gray-700'}`}>
-              {t('members.paymentMethods.multiplePayments')}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (showMultiPayment) {
-                onChange('cash')
-                setShowMultiPayment(false)
-                setAmounts({ cash: 0, visa: 0, instapay: 0, wallet: 0 })
-                setErrorMessage('')
-              }
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
-              !showMultiPayment
-                ? 'border-blue-500 bg-blue-50 shadow-md'
-                : 'border-gray-300 bg-white hover:border-gray-400'
-            }`}
-          >
-            <span className="text-2xl">💳</span>
-            <span className={`font-semibold text-sm ${!showMultiPayment ? 'text-blue-900' : 'text-gray-700'}`}>
-              دفع واحد
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* واجهة الدفع المتعدد (مضمنة) */}
-      {showMultiPayment && allowMultiple && totalAmount && totalAmount > 0 ? (
+      {/* واجهة الدفع المتعدد (دائماً ظاهرة إذا allowMultiple) */}
+      {allowMultiple && totalAmount && totalAmount > 0 ? (
         <div className="space-y-4">
           {/* المبلغ الكلي */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-4">
@@ -274,74 +218,28 @@ export default function PaymentMethodSelector({
           </button>
         </div>
       ) : (
-        <>
-          {/* عرض الوسائل المتعددة المختارة */}
-          {isMultiPayment && value.length > 0 && (
-            <div className="mb-3 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-purple-900">
-                  🔀 {t('members.paymentMethods.multiplePayments')}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {value.map((pm) => {
-                  const methodInfo = paymentMethods.find(m => m.value === pm.method)
-                  return (
-                    <div
-                      key={pm.method}
-                      className={`${methodInfo?.color} border-2 rounded-lg p-2 text-center`}
-                    >
-                      <div className="flex items-center justify-center gap-1">
-                        <span className="text-xl">{methodInfo?.icon}</span>
-                        <span className="text-xs font-semibold">
-                          {t(`members.paymentMethods.${pm.method}`)}
-                        </span>
-                      </div>
-                      <div className="text-lg font-bold text-gray-800 mt-1">
-                        {pm.amount.toFixed(2)} {t('members.egp')}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* أزرار اختيار وسيلة واحدة */}
-          <div className="grid grid-cols-2 gap-3">
-            {paymentMethods.map((method) => (
-              <button
-                key={method.value}
-                type="button"
-                onClick={() => handleSingleMethodClick(method.value)}
-                className={`
-                  flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all
-                  ${selectedSingleMethod === method.value
-                    ? `${method.color} border-2 shadow-md scale-105`
-                    : 'bg-white border-gray-300 hover:border-gray-400'
-                  }
-                `}
-              >
-                <span className="text-3xl">{method.icon}</span>
-                <span className="font-medium text-sm">
-                  {t(`members.paymentMethods.${method.value}`)}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* عرض الطريقة المختارة (للدفع الفردي فقط) */}
-          {selectedSingleMethod && !isMultiPayment && (
-            <div className="mt-3 text-center">
-              <p className="text-sm text-gray-600">
-                {t('members.paymentMethods.selectedMethod')}
-                <span className="font-bold text-blue-600 mr-1">
-                  {t(`members.paymentMethods.${selectedSingleMethod}`)} {paymentMethods.find(m => m.value === selectedSingleMethod)?.icon}
-                </span>
-              </p>
-            </div>
-          )}
-        </>
+        /* أزرار اختيار وسيلة واحدة فقط */
+        <div className="grid grid-cols-2 gap-3">
+          {paymentMethods.map((method) => (
+            <button
+              key={method.value}
+              type="button"
+              onClick={() => handleSingleMethodClick(method.value)}
+              className={`
+                flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all
+                ${selectedSingleMethod === method.value
+                  ? `${method.color} border-2 shadow-md scale-105`
+                  : 'bg-white border-gray-300 hover:border-gray-400'
+                }
+              `}
+            >
+              <span className="text-3xl">{method.icon}</span>
+              <span className="font-medium text-sm">
+                {t(`members.paymentMethods.${method.value}`)}
+              </span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   )
