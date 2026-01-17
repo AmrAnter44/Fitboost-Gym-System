@@ -122,7 +122,16 @@ export default function PaymentMethodSelector({
         {t('members.paymentMethods.label')} {required && <span className="text-red-600">*</span>}
       </label>
 
-      {/* واجهة الدفع المتعدد (دائماً ظاهرة إذا allowMultiple) */}
+      {/* رسالة تحذيرية إذا كان allowMultiple مفعّل لكن المبلغ غير محدد */}
+      {allowMultiple && (!totalAmount || totalAmount <= 0) && (
+        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 mb-3 text-center">
+          <p className="text-sm text-yellow-800 font-semibold">
+            ⚠️ {t('multiPayment.enterAmountFirst') || 'يرجى إدخال المبلغ أولاً لعرض خيارات الدفع'}
+          </p>
+        </div>
+      )}
+
+      {/* واجهة الدفع المتعدد (دائماً ظاهرة إذا allowMultiple والمبلغ محدد) */}
       {allowMultiple && totalAmount && totalAmount > 0 ? (
         <div className="space-y-4">
           {/* المبلغ الكلي */}
