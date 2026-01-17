@@ -194,10 +194,11 @@ export default function CoachCommissionPage() {
     const end = new Date(endDate)
     end.setHours(23, 59, 59, 999)
 
-    // حساب الإيرادات من إيصالات PT (برايفت جديد + تجديد برايفت + دفع باقي برايفت + new pt)
+    // حساب الإيرادات من إيصالات PT (برايفت جديد + تجديد برايفت + دفع باقي برايفت + new pt + برايفت جديد)
     const ptReceipts = receipts.filter((receipt) => {
       // فلترة إيصالات PT فقط (الداتا الجديدة والقديمة)
-      if (receipt.type !== 'برايفت جديد' && receipt.type !== 'تجديد برايفت' && receipt.type !== 'دفع باقي برايفت' && receipt.type !== 'new pt') return false
+      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'برايفت جديد']
+      if (!validTypes.includes(receipt.type)) return false
 
       // التحقق من التاريخ
       const receiptDate = new Date(receipt.createdAt)
@@ -296,7 +297,8 @@ export default function CoachCommissionPage() {
     end.setHours(23, 59, 59, 999)
 
     const coachPTReceipts = receipts.filter((receipt) => {
-      if (receipt.type !== 'برايفت جديد' && receipt.type !== 'تجديد برايفت' && receipt.type !== 'دفع باقي برايفت' && receipt.type !== 'new pt') return false
+      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'برايفت جديد']
+      if (!validTypes.includes(receipt.type)) return false
       const receiptDate = new Date(receipt.createdAt)
       if (receiptDate < start || receiptDate > end) return false
       try {
@@ -572,8 +574,9 @@ export default function CoachCommissionPage() {
                 end.setHours(23, 59, 59, 999)
 
                 const coachPTReceipts = receipts.filter((receipt) => {
-                  // فلترة "برايفت جديد" و "new pt" (الداتا القديمة) للعرض
-                  if (receipt.type !== 'برايفت جديد' && receipt.type !== 'new pt') return false
+                  // فلترة "برايفت جديد" و "new pt" و "برايفت جديد" (الداتا القديمة) للعرض
+                  const validTypes = ['برايفت جديد', 'new pt', 'برايفت جديد']
+                  if (!validTypes.includes(receipt.type)) return false
                   const receiptDate = new Date(receipt.createdAt)
                   if (receiptDate < start || receiptDate > end) return false
                   try {
@@ -825,7 +828,8 @@ export default function CoachCommissionPage() {
                     end.setHours(23, 59, 59, 999)
 
                     const coachPTReceipts = receipts.filter((receipt) => {
-                      if (receipt.type !== 'برايفت جديد' && receipt.type !== 'تجديد برايفت' && receipt.type !== 'دفع باقي برايفت' && receipt.type !== 'new pt') return false
+                      const validTypes = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'برايفت جديد']
+                      if (!validTypes.includes(receipt.type)) return false
                       const receiptDate = new Date(receipt.createdAt)
                       if (receiptDate < start || receiptDate > end) return false
                       try {
