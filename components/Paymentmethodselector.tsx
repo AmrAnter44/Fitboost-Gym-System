@@ -226,8 +226,8 @@ export default function PaymentMethodSelector({
             {t('multiPayment.confirm')}
           </button>
         </div>
-      ) : (
-        /* أزرار اختيار وسيلة واحدة فقط */
+      ) : !allowMultiple ? (
+        /* أزرار اختيار وسيلة واحدة فقط - تظهر فقط إذا allowMultiple غير مفعّل */
         <div className="grid grid-cols-2 gap-3">
           {paymentMethods.map((method) => (
             <button
@@ -249,7 +249,7 @@ export default function PaymentMethodSelector({
             </button>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

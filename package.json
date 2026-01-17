@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
