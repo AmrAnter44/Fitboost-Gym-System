@@ -26,7 +26,7 @@ export default function PaymentMethodSelector({
   allowMultiple = false,
   required = false
 }: PaymentMethodSelectorProps) {
-  const { t } = useLanguage()
+  const { t, direction } = useLanguage()
   const [amounts, setAmounts] = useState<PaymentAmounts>({
     cash: 0,
     visa: 0,
@@ -203,7 +203,9 @@ export default function PaymentMethodSelector({
                 <button
                   type="button"
                   onClick={() => handleQuickSelect(method.key)}
-                  className={`absolute top-2 right-2 z-10 px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                  className={`absolute top-2 z-10 px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                    direction === 'rtl' ? 'right-2' : 'left-2'
+                  } ${
                     amounts[method.key] === totalAmount && paidTotal === totalAmount
                       ? 'bg-green-600 text-white shadow-lg'
                       : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
