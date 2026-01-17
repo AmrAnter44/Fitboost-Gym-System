@@ -311,8 +311,8 @@ export default function CoachCommissionPage() {
     const totalIncome = ptRevenue + signupRevenue
     const gymShare = totalIncome - totalCommission
 
-    // حساب النسبة المتوسطة بناءً على إجمالي إيرادات PT
-    const averagePercentage = ptRevenue > 0 ? calculatePercentage(ptRevenue) : 0
+    // حساب النسبة المتوسطة بناءً على إجمالي الدخل (PT + عمولات الاشتراكات)
+    const averagePercentage = totalIncome > 0 ? calculatePercentage(totalIncome) : 0
 
     console.log('💰 نتيجة الحساب:', {
       coachName: selectedCoach,
@@ -801,22 +801,12 @@ export default function CoachCommissionPage() {
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t-2 border-white/30">
-                  {!useCustomIncome && (() => {
-                    const coachSignupData = memberSignupCommissions.find(c => c.coachName === result.coachName)
-                    const signupRevenue = coachSignupData?.totalAmount || 0
-                    if (signupRevenue > 0) {
-                      return (
-                        <p className="text-white/90 text-xs text-center">
-                          💡 العمولة = (PT × {result.percentage}%) + عمولات الاشتراكات ({signupRevenue} جنيه)
-                        </p>
-                      )
-                    }
-                    return (
-                      <p className="text-white/80 text-sm text-center">
-                        ✨ {t('pt.commission.percentageNote', { percentage: result.percentage.toString() })}
-                      </p>
-                    )
-                  })()}
+                  <p className="text-white/90 text-sm text-center font-semibold">
+                    📊 النسبة {result.percentage}% من إجمالي الدخل الشهري
+                  </p>
+                  <p className="text-white/70 text-xs text-center mt-1">
+                    (PT + عمولات الاشتراكات = {result.monthlyIncome.toLocaleString('ar-EG')} ج.م)
+                  </p>
                 </div>
               </div>
 
