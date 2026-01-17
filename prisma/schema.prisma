@@ -49,7 +49,8 @@ model MemberCheckIn {
 }
 
 model PT {
-  ptNumber          Int         @id @default(autoincrement())
+  id                String      @id @default(cuid())
+  ptNumber          Int?        @unique
   clientName        String
   phone             String
   sessionsPurchased Int
@@ -69,11 +70,13 @@ model PT {
 
   @@index([coachUserId])
   @@index([qrCode])
+  @@index([ptNumber])
 }
 
 model PTSession {
   id          String    @id @default(cuid())
-  ptNumber    Int
+  ptId        String
+  ptNumber    Int?
   clientName  String
   coachName   String
   sessionDate DateTime
@@ -82,8 +85,9 @@ model PTSession {
   attended    Boolean   @default(false)
   attendedAt  DateTime?
   attendedBy  String?
-  pt          PT        @relation(fields: [ptNumber], references: [ptNumber], onDelete: Cascade)
+  pt          PT        @relation(fields: [ptId], references: [id], onDelete: Cascade)
 
+  @@index([ptId])
   @@index([ptNumber])
   @@index([sessionDate])
   @@index([attended])
@@ -144,6 +148,7 @@ model Receipt {
   createdAt     DateTime      @default(now())
   staffName     String?
   memberId      String?
+  ptId          String?
   ptNumber      Int?
   dayUseId      String?
   isCancelled   Boolean       @default(false)
@@ -151,7 +156,7 @@ model Receipt {
   cancelledBy   String?
   cancelReason  String?
   dayUse        DayUseInBody? @relation(fields: [dayUseId], references: [id])
-  pt            PT?           @relation(fields: [ptNumber], references: [ptNumber])
+  pt            PT?           @relation(fields: [ptId], references: [id])
   member        Member?       @relation(fields: [memberId], references: [id])
 }
 
