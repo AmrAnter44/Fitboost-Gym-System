@@ -576,8 +576,6 @@ export default function ReceiptsPage() {
               <option value="عضوية">{t('receipts.types.membership')}</option>
               <option value="تجديد عضويه">{t('receipts.types.membershipRenewal')}</option>
               <option value="PT">💪 PT (جميع الأنواع)</option>
-              <option value="اشتراك برايفت">{t('receipts.types.newPT')}</option>
-              <option value="تجديد برايفت">{t('receipts.types.ptRenewal')}</option>
               <option value="يوم استخدام">{t('receipts.types.dayUse')}</option>
               <option value="تأجير لوجر">{t('receipts.types.lockerRental')}</option>
               <option value="InBody">{t('receipts.types.InBody')}</option>
