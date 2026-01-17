@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ReceiptToPrint } from '../../components/ReceiptToPrint'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
+import { fetchDayUseRecords } from '../../lib/api/dayuse'
 
 interface DayUseEntry {
   id: string
@@ -22,9 +24,20 @@ export default function DayUsePage() {
   const { t, direction } = useLanguage()
   const { user } = usePermissions()
   const toast = useToast()
-  const [entries, setEntries] = useState<DayUseEntry[]>([])
+
+  const {
+    data: entries = [],
+    isLoading: loading,
+    refetch: refetchEntries
+  } = useQuery({
+    queryKey: ['dayuse'],
+    queryFn: fetchDayUseRecords,
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
   const [showForm, setShowForm] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -41,22 +54,6 @@ export default function DayUsePage() {
   const [isRenewing, setIsRenewing] = useState(false)
   const [renewingEntryId, setRenewingEntryId] = useState<string | null>(null)
 
-  const fetchEntries = async () => {
-    try {
-      const response = await fetch('/api/dayuse')
-      const data = await response.json()
-      setEntries(data)
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchEntries()
-  }, [])
-
   useEffect(() => {
     if (user && !formData.staffName) {
       setFormData(prev => ({ ...prev, staffName: user.name }))
@@ -65,7 +62,7 @@ export default function DayUsePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setSubmitting(true)
 
     try {
       // If renewing, use renew endpoint, otherwise use create endpoint
@@ -128,7 +125,7 @@ export default function DayUsePage() {
         })
 
         toast.success(t('dayUse.messages.success'))
-        fetchEntries()
+        refetchEntries()
         setShowForm(false)
         setIsRenewing(false)
         setRenewingEntryId(null)
@@ -139,7 +136,7 @@ export default function DayUsePage() {
       console.error(error)
       toast.error(t('dayUse.messages.error'))
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -175,7 +172,7 @@ export default function DayUsePage() {
 
       if (response.ok) {
         toast.success(t('dayUse.messages.deleteSuccess'))
-        fetchEntries()
+        refetchEntries()
         setShowDeletePopup(false)
         setEntryToDelete(null)
       } else {
@@ -300,10 +297,10 @@ export default function DayUsePage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {loading ? t('dayUse.saving') : t('dayUse.add')}
+              {submitting ? t('dayUse.saving') : t('dayUse.add')}
             </button>
           </form>
         </div>

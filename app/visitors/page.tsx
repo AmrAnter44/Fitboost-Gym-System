@@ -2,9 +2,12 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
+import { fetchVisitors, fetchFollowUps } from '../../lib/api/visitors'
+import { fetchMembers } from '../../lib/api/members'
 
 interface Visitor {
   id: string
@@ -37,11 +40,48 @@ export default function VisitorsPage() {
   const router = useRouter()
   const { t, direction } = useLanguage()
   const toast = useToast()
-  const [visitors, setVisitors] = useState<Visitor[]>([])
-  const [stats, setStats] = useState<Stats[]>([])
-  const [followUps, setFollowUps] = useState<FollowUp[]>([])
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState('all')
+  const [monthFilter, setMonthFilter] = useState('all')
+
+  // Fetch visitors with filters
+  const {
+    data: visitorsData,
+    isLoading: loading,
+    error: visitorsError,
+    refetch: refetchVisitors
+  } = useQuery({
+    queryKey: ['visitors', searchTerm, statusFilter, sourceFilter],
+    queryFn: () => fetchVisitors({ searchTerm, statusFilter, sourceFilter }),
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // Fetch members for filtering
+  const {
+    data: membersData = [],
+  } = useQuery({
+    queryKey: ['members'],
+    queryFn: fetchMembers,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Fetch follow-ups
+  const {
+    data: followUps = [],
+  } = useQuery({
+    queryKey: ['followups'],
+    queryFn: fetchFollowUps,
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
   const [showForm, setShowForm] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedVisitorForHistory, setSelectedVisitorForHistory] = useState<Visitor | null>(null)
 
@@ -49,12 +89,6 @@ export default function VisitorsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [visitorToDelete, setVisitorToDelete] = useState<Visitor | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
-
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [sourceFilter, setSourceFilter] = useState('all')
-  const [monthFilter, setMonthFilter] = useState('all') // فلتر الشهر
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -68,61 +102,53 @@ export default function VisitorsPage() {
     interestedIn: '',
   })
 
-  const fetchVisitors = async () => {
-    try {
-      const params = new URLSearchParams()
-      if (searchTerm) params.append('search', searchTerm)
-      if (statusFilter !== 'all') params.append('status', statusFilter)
-      if (sourceFilter !== 'all') params.append('source', sourceFilter)
-
-      // ✅ جلب الزوار والأعضاء في نفس الوقت
-      const [visitorsResponse, membersResponse] = await Promise.all([
-        fetch(`/api/visitors?${params}`),
-        fetch('/api/members')
-      ])
-
-      const visitorsData = await visitorsResponse.json()
-      const membersData = await membersResponse.json()
-
-      // ✅ فلترة الدعوات - الدعوات تظهر في صفحة /invitations فقط
-      const nonInvitationVisitors = (visitorsData.visitors || []).filter(
-        (v: Visitor) => v.source !== 'invitation' && v.source !== 'member-invitation'
-      )
-
-      // ✅ جمع كل أرقام الأعضاء (normalize)
-      const memberPhones = new Set(
-        (Array.isArray(membersData) ? membersData : []).map((m: any) => normalizePhone(m.phone))
-      )
-
-      // ✅ فلترة الزوار - استبعاد اللي أرقامهم موجودة في الأعضاء
-      const filteredVisitors = nonInvitationVisitors.filter((v: Visitor) => {
-        const visitorPhone = normalizePhone(v.phone)
-        return !memberPhones.has(visitorPhone)
-      })
-
-      setVisitors(filteredVisitors)
-      setStats(visitorsData.stats || [])
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
+  // Helper function to normalize phone numbers
+  const normalizePhone = (phone: string) => {
+    if (!phone) return ''
+    let normalized = phone.replace(/[\s\-\(\)\+]/g, '').trim()
+    if (normalized.startsWith('2')) normalized = normalized.substring(1)
+    if (normalized.startsWith('0')) normalized = normalized.substring(1)
+    return normalized
   }
 
-  const fetchFollowUps = async () => {
-    try {
-      const response = await fetch('/api/visitors/followups')
-      const data = await response.json()
-      setFollowUps(data || [])
-    } catch (error) {
-      console.error('Error fetching follow-ups:', error)
-    }
-  }
+  // Process visitors data: filter out invitations and members
+  const visitors = useMemo(() => {
+    if (!visitorsData) return []
 
+    // Filter out invitations
+    const nonInvitationVisitors = (visitorsData.visitors || []).filter(
+      (v: Visitor) => v.source !== 'invitation' && v.source !== 'member-invitation'
+    )
+
+    // Get member phone numbers
+    const memberPhones = new Set(
+      (Array.isArray(membersData) ? membersData : []).map((m: any) => normalizePhone(m.phone))
+    )
+
+    // Filter out visitors who are already members
+    return nonInvitationVisitors.filter((v: Visitor) => {
+      const visitorPhone = normalizePhone(v.phone)
+      return !memberPhones.has(visitorPhone)
+    })
+  }, [visitorsData, membersData])
+
+  const stats = visitorsData?.stats || []
+
+  // Error handling
   useEffect(() => {
-    fetchVisitors()
-    fetchFollowUps()
-  }, [searchTerm, statusFilter, sourceFilter])
+    if (visitorsError) {
+      const errorMessage = (visitorsError as Error).message
+      if (errorMessage === 'UNAUTHORIZED') {
+        toast.error('يجب تسجيل الدخول أولاً')
+        setTimeout(() => router.push('/login'), 2000)
+      } else if (errorMessage === 'FORBIDDEN') {
+        toast.error('ليس لديك صلاحية عرض الزوار')
+      } else {
+        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات الزوار')
+      }
+    }
+  }, [visitorsError, toast, router])
+
 
   // قائمة الأشهر المتاحة من بيانات الزوار
   const availableMonths = useMemo(() => {
@@ -153,7 +179,7 @@ export default function VisitorsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setSubmitting(true)
 
     try {
       const response = await fetch('/api/visitors', {
@@ -167,7 +193,7 @@ export default function VisitorsPage() {
       if (response.ok) {
         setFormData({ name: '', phone: '', notes: '', source: 'walk-in', interestedIn: '' })
         toast.success(t('visitors.messages.addSuccess'))
-        fetchVisitors()
+        refetchVisitors()
         setShowForm(false)
       } else {
         toast.error(data.error || t('visitors.messages.addError'))
@@ -176,7 +202,7 @@ export default function VisitorsPage() {
       console.error(error)
       toast.error(t('visitors.messages.error'))
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -187,7 +213,7 @@ export default function VisitorsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status: newStatus }),
       })
-      fetchVisitors()
+      refetchVisitors()
       toast.success(t('visitors.messages.statusUpdateSuccess'))
     } catch (error) {
       console.error('Error updating status:', error)
@@ -206,7 +232,7 @@ export default function VisitorsPage() {
     setDeleteLoading(true)
     try {
       await fetch(`/api/visitors?id=${visitorToDelete.id}`, { method: 'DELETE' })
-      fetchVisitors()
+      refetchVisitors()
       toast.success(t('visitors.messages.deleteSuccess'))
       setShowDeleteModal(false)
       setVisitorToDelete(null)
@@ -216,15 +242,6 @@ export default function VisitorsPage() {
     } finally {
       setDeleteLoading(false)
     }
-  }
-
-  // تنظيف رقم التليفون
-  const normalizePhone = (phone: string) => {
-    if (!phone) return ''
-    let normalized = phone.replace(/[\s\-\(\)\+]/g, '').trim()
-    if (normalized.startsWith('2')) normalized = normalized.substring(1)
-    if (normalized.startsWith('0')) normalized = normalized.substring(1)
-    return normalized
   }
 
   const openHistoryModal = (visitor: Visitor) => {
@@ -432,10 +449,10 @@ export default function VisitorsPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {loading ? t('visitors.form.saving') : t('visitors.form.submit')}
+              {submitting ? t('visitors.form.saving') : t('visitors.form.submit')}
             </button>
           </form>
         </div>
