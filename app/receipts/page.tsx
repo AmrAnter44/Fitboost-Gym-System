@@ -38,6 +38,9 @@ export default function ReceiptsPage() {
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const toast = useToast()
 
+  // أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة)
+  const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت']
+
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(true)
@@ -97,7 +100,12 @@ export default function ReceiptsPage() {
 
     // فلتر النوع
     if (filterType !== 'all') {
-      filtered = filtered.filter(r => r.type === filterType)
+      if (filterType === 'PT') {
+        // فلتر PT: يعرض كل أنواع إيصالات PT
+        filtered = filtered.filter(r => PT_RECEIPT_TYPES.includes(r.type))
+      } else {
+        filtered = filtered.filter(r => r.type === filterType)
+      }
     }
 
     // فلتر طريقة الدفع
@@ -567,6 +575,7 @@ export default function ReceiptsPage() {
               <option value="Member">{t('receipts.types.Member')}</option>
               <option value="عضوية">{t('receipts.types.membership')}</option>
               <option value="تجديد عضويه">{t('receipts.types.membershipRenewal')}</option>
+              <option value="PT">💪 PT (جميع الأنواع)</option>
               <option value="اشتراك برايفت">{t('receipts.types.newPT')}</option>
               <option value="تجديد برايفت">{t('receipts.types.ptRenewal')}</option>
               <option value="يوم استخدام">{t('receipts.types.dayUse')}</option>
