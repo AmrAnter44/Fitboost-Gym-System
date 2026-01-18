@@ -22,30 +22,15 @@ export async function generateArabicPDF(
   options?: PDFOptions
 ): Promise<{ blob: Blob | null; url: string | null }> {
   try {
-    // 1. إنشاء overlay للتحميل
-    const overlay = document.createElement('div')
-    overlay.style.position = 'fixed'
-    overlay.style.inset = '0'
-    overlay.style.backgroundColor = 'rgba(0,0,0,0.8)'
-    overlay.style.zIndex = '999998'
-    overlay.style.display = 'flex'
-    overlay.style.alignItems = 'center'
-    overlay.style.justifyContent = 'center'
-    overlay.innerHTML = '<div style="color: white; font-size: 20px; font-family: Tahoma;">جاري تحويل الإيصال لـ PDF...</div>'
-    document.body.appendChild(overlay)
-
-    // 2. إنشاء عنصر مؤقت (مرئي لضمان الرندر الصحيح)
+    // ✅ إنشاء عنصر مخفي تماماً (بدون preview لتجنب الـ glitch)
     const container = document.createElement('div')
     container.style.position = 'fixed'
-    container.style.left = '50%'
-    container.style.top = '50%'
-    container.style.transform = 'translate(-50%, -50%)'
+    container.style.left = '-9999px'  // ✅ خارج الشاشة تماماً
+    container.style.top = '0'
     container.style.width = '302px' // 80mm
     container.style.backgroundColor = 'white'
-    container.style.zIndex = '999999'
-    container.style.padding = '10px'
-    container.style.boxShadow = '0 0 50px rgba(0,0,0,0.5)'
-    container.style.borderRadius = '8px'
+    container.style.visibility = 'hidden'  // ✅ مخفي
+    container.style.opacity = '0'  // ✅ شفاف
     container.innerHTML = htmlContent
     document.body.appendChild(container)
 
@@ -85,9 +70,8 @@ export async function generateArabicPDF(
       }
     })
 
-    // 4. إزالة العنصر المؤقت والـ overlay
+    // 4. إزالة العنصر المؤقت
     document.body.removeChild(container)
-    document.body.removeChild(overlay)
 
     // 5. حساب الأبعاد
     const imgWidth = 80 // 80mm
