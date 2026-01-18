@@ -1,9 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { formatDateYMD } from '../../lib/dateFormatter'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useToast } from '../../contexts/ToastContext'
+import { useRouter } from 'next/navigation'
+import { fetchInvitations } from '@/lib/api/invitations'
 
 interface Invitation {
   id: string
@@ -20,8 +24,9 @@ interface Invitation {
 
 export default function InvitationsPage() {
   const { t, direction } = useLanguage()
-  const [invitations, setInvitations] = useState<Invitation[]>([])
-  const [loading, setLoading] = useState(true)
+  const toast = useToast()
+  const router = useRouter()
+
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -32,21 +37,33 @@ export default function InvitationsPage() {
   const [invitationToDelete, setInvitationToDelete] = useState<Invitation | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
-  const fetchInvitations = async () => {
-    try {
-      const response = await fetch('/api/invitations')
-      const data = await response.json()
-      setInvitations(data)
-    } catch (error) {
-      console.error('Error fetching invitations:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Fetch invitations using TanStack Query
+  const {
+    data: invitations = [],
+    isLoading: loading,
+    error: invitationsError,
+    refetch: refetchInvitations
+  } = useQuery({
+    queryKey: ['invitations'],
+    queryFn: fetchInvitations,
+    retry: 1,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  })
 
+  // Error handling
   useEffect(() => {
-    fetchInvitations()
-  }, [])
+    if (invitationsError) {
+      const errorMessage = (invitationsError as Error).message
+      if (errorMessage === 'UNAUTHORIZED') {
+        toast.error('يجب تسجيل الدخول أولاً')
+        setTimeout(() => router.push('/login'), 2000)
+      } else if (errorMessage === 'FORBIDDEN') {
+        toast.error('ليس لديك صلاحية عرض الدعوات')
+      } else {
+        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات الدعوات')
+      }
+    }
+  }, [invitationsError, toast, router])
 
   // إعادة تعيين الصفحة عند تغيير الفلاتر
   useEffect(() => {
@@ -64,7 +81,7 @@ export default function InvitationsPage() {
     setDeleteLoading(true)
     try {
       await fetch(`/api/invitations?id=${invitationToDelete.id}`, { method: 'DELETE' })
-      fetchInvitations()
+      refetchInvitations()
       setShowDeleteModal(false)
       setInvitationToDelete(null)
     } catch (error) {

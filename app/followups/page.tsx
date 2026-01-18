@@ -1,12 +1,21 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
 import FollowUpForm from './FollowUpForm'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
+import { useRouter } from 'next/navigation'
+import {
+  fetchFollowUpsData,
+  fetchVisitorsData,
+  fetchMembersData,
+  fetchDayUseData,
+  fetchInvitationsData
+} from '@/lib/api/followups'
 
 interface Visitor {
   id: string
@@ -39,18 +48,94 @@ export default function FollowUpsPage() {
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const { t, direction } = useLanguage()
   const toast = useToast()
+  const router = useRouter()
 
-  const [followUps, setFollowUps] = useState<FollowUp[]>([])
-  const [visitors, setVisitors] = useState<Visitor[]>([])
-  const [members, setMembers] = useState<Member[]>([])
-  const [allMembers, setAllMembers] = useState<Member[]>([]) // كل الأعضاء (نشطين ومنتهيين)
-  const [dayUseRecords, setDayUseRecords] = useState<any[]>([])
-  const [invitations, setInvitations] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedVisitorForHistory, setSelectedVisitorForHistory] = useState<Visitor | null>(null)
   const [selectedVisitorId, setSelectedVisitorId] = useState<string>('')
+  const [submitting, setSubmitting] = useState(false)
+
+  // Fetch all data using TanStack Query
+  const {
+    data: followUps = [],
+    isLoading: loadingFollowUps,
+    error: followUpsError,
+    refetch: refetchFollowUps
+  } = useQuery({
+    queryKey: ['followups'],
+    queryFn: fetchFollowUpsData,
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const {
+    data: visitorsData = [],
+    error: visitorsError
+  } = useQuery({
+    queryKey: ['visitors-followups'],
+    queryFn: fetchVisitorsData,
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const {
+    data: allMembersData = [],
+    error: membersError
+  } = useQuery({
+    queryKey: ['members-followups'],
+    queryFn: fetchMembersData,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const {
+    data: dayUseRecords = [],
+    error: dayUseError
+  } = useQuery({
+    queryKey: ['dayuse-followups'],
+    queryFn: fetchDayUseData,
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const {
+    data: invitations = [],
+    error: invitationsError
+  } = useQuery({
+    queryKey: ['invitations-followups'],
+    queryFn: fetchInvitationsData,
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // Extract visitors and members from queries
+  const visitors = visitorsData
+  const allMembers = allMembersData
+  const members = useMemo(() =>
+    (allMembersData || []).filter((m: Member) => m.isActive === true),
+    [allMembersData]
+  )
+
+  const loading = loadingFollowUps
+
+  // Error handling for all queries
+  useEffect(() => {
+    const errors = [followUpsError, visitorsError, membersError, dayUseError, invitationsError]
+    const firstError = errors.find(e => e !== null)
+
+    if (firstError) {
+      const errorMessage = (firstError as Error).message
+      if (errorMessage === 'UNAUTHORIZED') {
+        toast.error('يجب تسجيل الدخول أولاً')
+        setTimeout(() => router.push('/login'), 2000)
+      } else if (errorMessage === 'FORBIDDEN') {
+        toast.error('ليس لديك صلاحية عرض المتابعات')
+      } else {
+        toast.error(errorMessage || 'حدث خطأ أثناء جلب البيانات')
+      }
+    }
+  }, [followUpsError, visitorsError, membersError, dayUseError, invitationsError, toast, router])
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -174,92 +259,6 @@ export default function FollowUpsPage() {
     return [...followUps, ...expiredFollowUps, ...expiringFollowUps, ...dayUseFollowUps, ...invitationFollowUps]
   }, [followUps, expiredMembers, expiringMembers, dayUseRecords, invitations])
 
-  const fetchFollowUps = async () => {
-    try {
-      const response = await fetch('/api/visitors/followups')
-      const data = await response.json()
-      setFollowUps(data || [])
-      console.log('📝 عدد المتابعات:', (data || []).length)
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchVisitors = async () => {
-    try {
-      const response = await fetch('/api/visitors')
-      const data = await response.json()
-      setVisitors(data.visitors || [])
-    } catch (error) {
-      console.error('Error:', error)
-    }
-  }
-
-  const fetchMembers = async () => {
-    try {
-      const response = await fetch('/api/members')
-      const data = await response.json()
-
-      // حفظ كل الأعضاء
-      setAllMembers(data || [])
-
-      // حفظ الأعضاء النشطين فقط (isActive = true)
-      const activeMembers = (data || []).filter((m: Member) => m.isActive === true)
-      setMembers(activeMembers)
-
-      // حساب الأعضاء المنتهيين
-      const today = new Date()
-      const expired = (data || []).filter((m: Member) => {
-        if (!m.expiryDate) return false
-        const expiryDate = new Date(m.expiryDate)
-        return expiryDate < today && m.isActive === false
-      })
-
-      console.log('📊 إجمالي الأعضاء:', data?.length || 0)
-      console.log('✅ عدد الأعضاء النشطين:', activeMembers.length)
-      console.log('❌ عدد الأعضاء المنتهيين:', expired.length)
-    } catch (error) {
-      console.error('Error fetching members:', error)
-    }
-  }
-
-  const fetchDayUse = async () => {
-    try {
-      const response = await fetch('/api/dayuse')
-      const data = await response.json()
-      setDayUseRecords(data || [])
-      console.log('🎯 عدد استخدامات InBody:', (data || []).length)
-    } catch (error) {
-      console.error('Error fetching day use:', error)
-    }
-  }
-
-  const fetchInvitations = async () => {
-    try {
-      const response = await fetch('/api/invitations')
-      const data = await response.json()
-      setInvitations(data || [])
-      console.log('🎁 عدد الدعوات:', (data || []).length)
-    } catch (error) {
-      console.error('Error fetching invitations:', error)
-    }
-  }
-
-  useEffect(() => {
-    const loadData = async () => {
-      await Promise.all([
-        fetchFollowUps(),
-        fetchVisitors(),
-        fetchMembers(),
-        fetchDayUse(),
-        fetchInvitations()
-      ])
-    }
-    loadData()
-  }, [])
-
   const handleSubmit = async (formData: {
     visitorId: string
     salesName: string
@@ -268,6 +267,7 @@ export default function FollowUpsPage() {
     nextFollowUpDate: string
     contacted: boolean
   }) => {
+    setSubmitting(true)
     try {
       // ✅ البحث عن بيانات الزائر/العضو للإرسال إلى الـ API
       let visitorData = null
@@ -312,7 +312,7 @@ export default function FollowUpsPage() {
 
       if (response.ok) {
         toast.success('تم إضافة المتابعة بنجاح!')
-        await fetchFollowUps()
+        await refetchFollowUps()
         setShowForm(false)
         setSelectedVisitorId('')
       } else {
@@ -322,6 +322,8 @@ export default function FollowUpsPage() {
     } catch (error) {
       console.error(error)
       toast.error('حدث خطأ')
+    } finally {
+      setSubmitting(false)
     }
   }
 

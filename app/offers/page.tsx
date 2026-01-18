@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { useConfirm } from '../../hooks/useConfirm'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useToast } from '@/contexts/ToastContext'
+import { useRouter } from 'next/navigation'
+import { fetchOffers } from '@/lib/api/offers'
 
 interface Offer {
   id: string
@@ -23,14 +27,44 @@ interface Offer {
 
 export default function OffersPage() {
   const { t, direction } = useLanguage()
-  const [offers, setOffers] = useState<Offer[]>([])
-  const [loading, setLoading] = useState(true)
+  const toast = useToast()
+  const router = useRouter()
+
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
+
+  // Fetch offers using TanStack Query
+  const {
+    data: offers = [],
+    isLoading: loading,
+    error: offersError,
+    refetch: refetchOffers
+  } = useQuery({
+    queryKey: ['offers'],
+    queryFn: fetchOffers,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  // Error handling
+  useEffect(() => {
+    if (offersError) {
+      const errorMessage = (offersError as Error).message
+      if (errorMessage === 'UNAUTHORIZED') {
+        toast.error('يجب تسجيل الدخول أولاً')
+        setTimeout(() => router.push('/login'), 2000)
+      } else if (errorMessage === 'FORBIDDEN') {
+        toast.error('ليس لديك صلاحية عرض العروض')
+      } else {
+        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات العروض')
+      }
+    }
+  }, [offersError, toast, router])
 
   const [formData, setFormData] = useState({
     name: '',
@@ -44,36 +78,11 @@ export default function OffersPage() {
     upgradeEligibilityDays: '7'
   })
 
-  useEffect(() => {
-    fetchOffers()
-  }, [])
-
-  const fetchOffers = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/offers')
-      const data = await response.json()
-      // التأكد من أن البيانات array
-      if (Array.isArray(data)) {
-        setOffers(data)
-      } else {
-        console.warn('⚠️ البيانات المستلمة ليست array:', data)
-        setOffers([])
-        setError(t('offers.messages.dataError'))
-      }
-    } catch (error) {
-      console.error('Error fetching offers:', error)
-      setOffers([])
-      setError(t('offers.messages.fetchError'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setSuccess('')
+    setSubmitting(true)
 
     try {
       const url = '/api/offers'
@@ -95,9 +104,11 @@ export default function OffersPage() {
 
       setSuccess(editingOffer ? `✅ ${t('offers.messages.updateSuccess')}` : `✅ ${t('offers.messages.addSuccess')}`)
       resetForm()
-      fetchOffers()
+      refetchOffers()
     } catch (error: any) {
       setError(error.message || t('offers.messages.saveErrorGeneral'))
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -128,6 +139,7 @@ export default function OffersPage() {
 
     if (!confirmed) return
 
+    setSubmitting(true)
     try {
       const response = await fetch(`/api/offers?id=${offer.id}`, {
         method: 'DELETE'
@@ -139,13 +151,16 @@ export default function OffersPage() {
       }
 
       setSuccess(`✅ ${t('offers.messages.deleteSuccess')}`)
-      fetchOffers()
+      refetchOffers()
     } catch (error: any) {
       setError(error.message || t('offers.messages.deleteErrorGeneral'))
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const toggleActive = async (offer: Offer) => {
+    setSubmitting(true)
     try {
       const response = await fetch('/api/offers', {
         method: 'PUT',
@@ -161,9 +176,11 @@ export default function OffersPage() {
       }
 
       setSuccess(`✅ ${t('offers.messages.toggleSuccess')}`)
-      fetchOffers()
+      refetchOffers()
     } catch (error: any) {
       setError(error.message || t('offers.messages.toggleErrorGeneral'))
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -341,9 +358,10 @@ export default function OffersPage() {
                 <div className="md:col-span-2 flex gap-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-bold hover:scale-105 transition-transform"
+                    disabled={submitting}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-bold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {editingOffer ? `💾 ${t('offers.saveChanges')}` : `➕ ${t('offers.addOffer')}`}
+                    {submitting ? '⏳ جاري الحفظ...' : editingOffer ? `💾 ${t('offers.saveChanges')}` : `➕ ${t('offers.addOffer')}`}
                   </button>
                   <button
                     type="button"
