@@ -22,40 +22,72 @@ export async function generateArabicPDF(
   options?: PDFOptions
 ): Promise<{ blob: Blob | null; url: string | null }> {
   try {
-    // 1. إنشاء عنصر مؤقت
+    // 1. إنشاء overlay للتحميل
+    const overlay = document.createElement('div')
+    overlay.style.position = 'fixed'
+    overlay.style.inset = '0'
+    overlay.style.backgroundColor = 'rgba(0,0,0,0.8)'
+    overlay.style.zIndex = '999998'
+    overlay.style.display = 'flex'
+    overlay.style.alignItems = 'center'
+    overlay.style.justifyContent = 'center'
+    overlay.innerHTML = '<div style="color: white; font-size: 20px; font-family: Tahoma;">جاري تحويل الإيصال لـ PDF...</div>'
+    document.body.appendChild(overlay)
+
+    // 2. إنشاء عنصر مؤقت (مرئي لضمان الرندر الصحيح)
     const container = document.createElement('div')
     container.style.position = 'fixed'
-    container.style.left = '-9999px'
-    container.style.top = '0'
+    container.style.left = '50%'
+    container.style.top = '50%'
+    container.style.transform = 'translate(-50%, -50%)'
     container.style.width = '302px' // 80mm
     container.style.backgroundColor = 'white'
+    container.style.zIndex = '999999'
+    container.style.padding = '10px'
+    container.style.boxShadow = '0 0 50px rgba(0,0,0,0.5)'
+    container.style.borderRadius = '8px'
     container.innerHTML = htmlContent
     document.body.appendChild(container)
 
     // 2. انتظار تحميل الخطوط والصور
     await waitForFontsAndImages(container)
 
+    // ✅ انتظار إضافي لضمان الرندر الكامل للحروف العربية
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
     // 3. تحويل إلى Canvas بجودة عالية
     const canvas = await html2canvas(container, {
-      scale: 4, // ✅ دقة عالية جداً للعربي
+      scale: 5, // ✅ دقة أعلى للحروف العربية المتصلة
       useCORS: true,
       allowTaint: true,
-      logging: false,
+      logging: true, // ✅ تفعيل الـ logging للتشخيص
       windowWidth: 302,
       windowHeight: container.scrollHeight,
       backgroundColor: '#ffffff',
-      imageTimeout: 0,
+      imageTimeout: 5000,
+      letterRendering: true, // ✅ مهم للعربي
       // ✅ ضبط إضافي للخطوط
       onclone: (clonedDoc) => {
         const body = clonedDoc.body
-        body.style.fontFamily = "'Segoe UI', 'Tahoma', 'Arial', 'DejaVu Sans', sans-serif"
+        // استخدام خط نظام واضح
+        body.style.fontFamily = "Tahoma, 'Segoe UI', Arial, sans-serif"
+        body.style.fontSize = '15px' // حجم أكبر قليلاً
         body.style.webkitFontSmoothing = 'antialiased'
         body.style.mozOsxFontSmoothing = 'grayscale'
+        body.style.textRendering = 'optimizeLegibility'
+
+        // التأكد من RTL
+        const allDivs = body.querySelectorAll('div, p, span')
+        allDivs.forEach(el => {
+          (el as HTMLElement).style.direction = 'rtl'
+          (el as HTMLElement).style.unicodeBidi = 'embed'
+        })
       }
     })
 
-    // 4. إزالة العنصر المؤقت
+    // 4. إزالة العنصر المؤقت والـ overlay
     document.body.removeChild(container)
+    document.body.removeChild(overlay)
 
     // 5. حساب الأبعاد
     const imgWidth = 80 // 80mm
@@ -69,9 +101,9 @@ export async function generateArabicPDF(
       compress: true
     })
 
-    // 7. إضافة الصورة
-    const imgData = canvas.toDataURL('image/jpeg', 0.95) // JPEG بجودة 95%
-    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
+    // 7. إضافة الصورة (PNG أفضل للنصوص)
+    const imgData = canvas.toDataURL('image/png') // ✅ PNG أفضل للنصوص العربية
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST')
 
     // 8. اسم الملف
     const fileName = options?.fileName || `receipt_${receiptNumber}_${Date.now()}.pdf`

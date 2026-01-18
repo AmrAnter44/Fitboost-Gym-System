@@ -96,13 +96,15 @@ function generateReceiptHTML(data: ReceiptData): string {
     }
     
     body {
-      font-family: 'Segoe UI', 'Tahoma', 'Arial', 'DejaVu Sans', sans-serif;
+      font-family: Tahoma, 'Segoe UI', Arial, sans-serif;
       width: 80mm;
       padding: 8mm;
       background: white;
       color: #000;
-      font-size: 14px;
-      line-height: 1.5;
+      font-size: 15px;
+      line-height: 1.6;
+      direction: rtl;
+      unicode-bidi: embed;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
