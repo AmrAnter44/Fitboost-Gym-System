@@ -1,6 +1,6 @@
 // نظام طباعة موحد - مع إضافة اسم الموظف + تحويل PDF
 import { normalizePaymentMethod, isMultiPayment } from './paymentHelpers'
-import { printAndSavePDF } from './pdfSystem'
+import { printAndSaveArabicPDF } from './pdfSystemArabic'
 
 interface ReceiptData {
   receiptNumber: number
@@ -96,13 +96,16 @@ function generateReceiptHTML(data: ReceiptData): string {
     }
     
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', 'Tahoma', 'Arial', 'DejaVu Sans', sans-serif;
       width: 80mm;
       padding: 8mm;
       background: white;
       color: #000;
-      font-size: 13px;
-      line-height: 1.4;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
     
     .header {
@@ -438,8 +441,8 @@ export async function printReceipt(data: ReceiptData, options?: { pdfOnly?: bool
   const receiptHTML = generateReceiptHTML(data)
 
   try {
-    // ✅ طباعة + تحويل PDF
-    const result = await printAndSavePDF(receiptHTML, data.receiptNumber, {
+    // ✅ طباعة + تحويل PDF مع دعم العربي
+    const result = await printAndSaveArabicPDF(receiptHTML, data.receiptNumber, {
       skipPrint: options?.pdfOnly || false,
       autoDownload: true
     })

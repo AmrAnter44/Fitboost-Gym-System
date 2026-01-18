@@ -31,13 +31,27 @@ export async function generateReceiptPDF(
     container.innerHTML = htmlContent
     document.body.appendChild(container)
 
-    // تحويل HTML إلى Canvas
+    // ✅ إضافة تأخير لضمان تحميل الخطوط
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    // تحويل HTML إلى Canvas مع دعم العربي
     const canvas = await html2canvas(container, {
-      scale: 2, // جودة عالية
+      scale: 3, // جودة أعلى للعربي
       useCORS: true,
+      allowTaint: true,
       logging: false,
       windowWidth: 302,
       windowHeight: container.scrollHeight,
+      imageTimeout: 0,
+      // ✅ ضبط الخطوط
+      onclone: (clonedDoc) => {
+        const clonedContainer = clonedDoc.querySelector('body > div')
+        if (clonedContainer) {
+          // التأكد من تطبيق الخطوط العربية
+          (clonedContainer as HTMLElement).style.fontFamily = "'Segoe UI', Tahoma, Arial, sans-serif"
+          (clonedContainer as HTMLElement).style.direction = 'rtl'
+        }
+      }
     })
 
     // إزالة العنصر المؤقت
