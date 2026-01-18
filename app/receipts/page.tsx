@@ -415,6 +415,46 @@ export default function ReceiptsPage() {
     }
   }
 
+  // ✅ دالة جديدة: تحميل PDF وفتح واتساب
+  const handleDownloadAndWhatsApp = async (receipt: Receipt) => {
+    try {
+      const details = JSON.parse(receipt.itemDetails)
+
+      // استخراج رقم الهاتف
+      const phoneNumber = details.phone || details.memberPhone || ''
+
+      if (!phoneNumber) {
+        toast.error('رقم الهاتف غير موجود في الإيصال')
+        return
+      }
+
+      // تحميل PDF
+      await printReceiptFromData(
+        receipt.receiptNumber,
+        receipt.type,
+        receipt.amount,
+        details,
+        receipt.createdAt,
+        receipt.paymentMethod,
+        { pdfOnly: true }  // ✅ تحميل PDF فقط
+      )
+
+      // انتظار ثانية لضمان اكتمال التحميل
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // فتح واتساب
+      const message = encodeURIComponent(
+        `إيصال رقم ${receipt.receiptNumber}\nالمبلغ: ${receipt.amount} جنيه\n\nتم إرفاق الإيصال كملف PDF 📄`
+      )
+      window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank')
+
+      toast.success('تم تحميل PDF وفتح واتساب ✅')
+    } catch (error) {
+      console.error('Error in download and WhatsApp:', error)
+      toast.error('حدث خطأ أثناء العملية')
+    }
+  }
+
   const handleUpdateNextReceiptNumber = async () => {
     if (nextReceiptNumber < 1) {
       alert(t('receipts.nextReceiptNumber.invalidNumber'))
@@ -861,11 +901,11 @@ export default function ReceiptsPage() {
                   </button>
 
                   <button
-                    onClick={() => handlePrint(receipt, { pdfOnly: true })}
+                    onClick={() => handleDownloadAndWhatsApp(receipt)}
                     className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm transition shadow-md font-semibold"
-                    title="تحميل PDF"
+                    title="تحميل PDF وإرسال واتساب"
                   >
-                    📥 PDF
+                    📥💬 واتساب
                   </button>
 
                   {canEdit && (
@@ -1078,11 +1118,11 @@ export default function ReceiptsPage() {
                         </button>
 
                         <button
-                          onClick={() => handlePrint(receipt, { pdfOnly: true })}
+                          onClick={() => handleDownloadAndWhatsApp(receipt)}
                           className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm transition shadow-md hover:shadow-lg"
-                          title="تحميل PDF"
+                          title="تحميل PDF وإرسال واتساب"
                         >
-                          📥
+                          💬
                         </button>
 
                         {canEdit && !receipt.isCancelled && (
