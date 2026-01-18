@@ -44,6 +44,10 @@ export async function verifyAuth(request: Request): Promise<UserPayload | null> 
     return decoded
   } catch (error) {
     console.error('❌ Auth verification error:', error)
+    // Mark this as an invalid token error so we can clear cookies
+    if (error instanceof jwt.JsonWebTokenError) {
+      (error as any).clearCookies = true
+    }
     return null
   }
 }

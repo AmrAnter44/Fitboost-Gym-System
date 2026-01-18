@@ -8,10 +8,21 @@ export async function GET(request: Request) {
     const user = await verifyAuth(request)
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'غير مصرح' },
+      // Clear invalid cookies by setting expired cookie
+      const response = NextResponse.json(
+        { error: 'غير مصرح', clearCookies: true },
         { status: 401 }
       )
+
+      response.cookies.set('auth-token', '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0, // Expire immediately
+        path: '/'
+      })
+
+      return response
     }
 
     // ✅ إذا كان المستخدم موظف، جلب الاسم من جدول Staff

@@ -1,7 +1,14 @@
+import { handleAuthError } from '../authErrorHandler'
+
 export async function fetchOffers() {
   const response = await fetch('/api/offers')
 
-  if (response.status === 401) throw new Error('UNAUTHORIZED')
+  // Auto-clear cookies on 401
+  if (response.status === 401) {
+    await handleAuthError(response.clone())
+    throw new Error('UNAUTHORIZED')
+  }
+
   if (response.status === 403) throw new Error('FORBIDDEN')
 
   if (!response.ok) {
