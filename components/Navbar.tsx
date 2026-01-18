@@ -18,11 +18,6 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
 
-  // Don't show navbar if no user is logged in
-  if (!loading && !user) {
-    return null
-  }
-
   const allLinks = [
     { href: '/members', label: t('nav.members'), icon: '👥', permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
     { href: '/pt', label: t('nav.pt'), icon: '💪', permission: 'canViewPT' as keyof Permissions, roleRequired: null },
@@ -74,6 +69,11 @@ export default function Navbar() {
   const getRoleLabel = (role: string) => {
     const roleKey = role.toLowerCase()
     return t(`roles.${roleKey}` as any) || role
+  }
+
+  // Don't show navbar if no user is logged in
+  if (!loading && !user) {
+    return null
   }
 
   return (

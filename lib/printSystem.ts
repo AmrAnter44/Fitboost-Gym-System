@@ -1,5 +1,6 @@
-// نظام طباعة موحد - مع إضافة اسم الموظف
+// نظام طباعة موحد - مع إضافة اسم الموظف + تحويل PDF
 import { normalizePaymentMethod, isMultiPayment } from './paymentHelpers'
+import { printAndSavePDF } from './pdfSystem'
 
 interface ReceiptData {
   receiptNumber: number
@@ -432,30 +433,51 @@ function generateReceiptHTML(data: ReceiptData): string {
   `
 }
 
-// الدالة الرئيسية للطباعة
-export function printReceipt(data: ReceiptData): void {
+// الدالة الرئيسية للطباعة (مع PDF)
+export async function printReceipt(data: ReceiptData, options?: { pdfOnly?: boolean }): Promise<void> {
   const receiptHTML = generateReceiptHTML(data)
-  
+
+  try {
+    // ✅ طباعة + تحويل PDF
+    const result = await printAndSavePDF(receiptHTML, data.receiptNumber, {
+      skipPrint: options?.pdfOnly || false,
+      autoDownload: true
+    })
+
+    if (!result.success) {
+      console.warn('⚠️ فشل تحويل الإيصال إلى PDF، استخدام الطباعة التقليدية...')
+      // Fallback للطباعة التقليدية
+      printReceiptTraditional(receiptHTML)
+    }
+  } catch (error) {
+    console.error('❌ خطأ في طباعة الإيصال:', error)
+    // Fallback للطباعة التقليدية
+    printReceiptTraditional(receiptHTML)
+  }
+}
+
+// الطباعة التقليدية (كـ fallback)
+function printReceiptTraditional(receiptHTML: string): void {
   const printWindow = window.open('', '_blank', 'width=302,height=600,scrollbars=no')
-  
+
   if (!printWindow) {
     alert('يرجى السماح بالنوافذ المنبثقة لطباعة الإيصال')
     return
   }
-  
+
   printWindow.document.open()
   printWindow.document.write(receiptHTML)
   printWindow.document.close()
-  
+
   printWindow.onload = function() {
     setTimeout(() => {
       printWindow.focus()
       printWindow.print()
-      
+
       printWindow.onafterprint = function() {
         printWindow.close()
       }
-      
+
       setTimeout(() => {
         if (!printWindow.closed) {
           printWindow.close()
@@ -466,22 +488,46 @@ export function printReceipt(data: ReceiptData): void {
 }
 
 // دالة مساعدة للطباعة المباشرة
-export function printReceiptFromData(
+export async function printReceiptFromData(
+  receiptNumber: number,
+  type: string,
+  amount: number,
+  details: any,
+  date: Date | string,
+  paymentMethod?: string,
+  options?: { pdfOnly?: boolean }
+): Promise<void> {
+  const dateObj = date instanceof Date ? date : new Date(date)
+
+  // إضافة paymentMethod إلى details إذا تم تمريره
+  const enrichedDetails = paymentMethod
+    ? { ...details, paymentMethod }
+    : details
+
+  await printReceipt({
+    receiptNumber,
+    type,
+    amount,
+    details: enrichedDetails,
+    date: dateObj
+  }, options)
+}
+
+// ✅ دالة جديدة: تصدير HTML الإيصال (للاستخدام في مكان آخر)
+export function generateReceiptHTMLExport(
   receiptNumber: number,
   type: string,
   amount: number,
   details: any,
   date: Date | string,
   paymentMethod?: string
-): void {
+): string {
   const dateObj = date instanceof Date ? date : new Date(date)
-  
-  // إضافة paymentMethod إلى details إذا تم تمريره
-  const enrichedDetails = paymentMethod 
+  const enrichedDetails = paymentMethod
     ? { ...details, paymentMethod }
     : details
-  
-  printReceipt({
+
+  return generateReceiptHTML({
     receiptNumber,
     type,
     amount,
