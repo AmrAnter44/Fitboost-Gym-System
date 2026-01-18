@@ -395,18 +395,19 @@ export default function ReceiptsPage() {
     }
   }
 
-  const handlePrint = (receipt: Receipt) => {
+  const handlePrint = (receipt: Receipt, options?: { printOnly?: boolean; pdfOnly?: boolean }) => {
     try {
       const details = JSON.parse(receipt.itemDetails)
 
-      // استخدام نظام الطباعة القديم من printSystem.ts
+      // استخدام نظام الطباعة مع الخيارات
       printReceiptFromData(
         receipt.receiptNumber,
         receipt.type,
         receipt.amount,
         details,
         receipt.createdAt,
-        receipt.paymentMethod
+        receipt.paymentMethod,
+        options  // ✅ تمرير الخيارات (printOnly أو pdfOnly)
       )
     } catch (error) {
       console.error('Error printing receipt:', error)
@@ -852,11 +853,19 @@ export default function ReceiptsPage() {
                   />
 
                   <button
-                    onClick={() => handlePrint(receipt)}
+                    onClick={() => handlePrint(receipt, { printOnly: true })}
                     className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm transition shadow-md font-semibold"
-                    title={t('receipts.actions.print')}
+                    title="طباعة فقط"
                   >
                     🖨️ {t('receipts.actions.print')}
+                  </button>
+
+                  <button
+                    onClick={() => handlePrint(receipt, { pdfOnly: true })}
+                    className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm transition shadow-md font-semibold"
+                    title="تحميل PDF"
+                  >
+                    📥 PDF
                   </button>
 
                   {canEdit && (
@@ -1061,11 +1070,19 @@ export default function ReceiptsPage() {
                         />
                         
                         <button
-                          onClick={() => handlePrint(receipt)}
+                          onClick={() => handlePrint(receipt, { printOnly: true })}
                           className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm transition shadow-md hover:shadow-lg"
-                          title={t('receipts.actions.print')}
+                          title="طباعة فقط"
                         >
                           🖨️
+                        </button>
+
+                        <button
+                          onClick={() => handlePrint(receipt, { pdfOnly: true })}
+                          className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm transition shadow-md hover:shadow-lg"
+                          title="تحميل PDF"
+                        >
+                          📥
                         </button>
 
                         {canEdit && !receipt.isCancelled && (
