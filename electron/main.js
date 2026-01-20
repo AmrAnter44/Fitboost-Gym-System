@@ -826,6 +826,177 @@ ipcMain.handle('install-update', () => {
   autoUpdater.quitAndInstall(false, true);
 });
 
+// فتح WhatsApp مع PDF جاهز للمشاركة
+ipcMain.handle('open-whatsapp-with-pdf', async (event, { message, pdfPath, phoneNumber }) => {
+  try {
+    console.log('📱 Opening WhatsApp with PDF attachment');
+    console.log('📄 PDF path:', pdfPath);
+    console.log('📞 Phone number:', phoneNumber);
+    console.log('💬 Message:', message);
+
+    const { shell } = require('electron');
+
+    // ✅ التحقق من وجود الملف
+    if (!fs.existsSync(pdfPath)) {
+      console.error('❌ PDF file not found:', pdfPath);
+      return { success: false, error: 'PDF file not found' };
+    }
+
+    // ✅ محاولة فتح WhatsApp Desktop أولاً
+    const whatsappPaths = [
+      path.join(process.env.LOCALAPPDATA || '', 'WhatsApp', 'WhatsApp.exe'),
+      path.join(process.env.PROGRAMFILES || '', 'WhatsApp', 'WhatsApp.exe'),
+      path.join(process.env['PROGRAMFILES(X86)'] || '', 'WhatsApp', 'WhatsApp.exe')
+    ];
+
+    let whatsappInstalled = false;
+    for (const whatsappPath of whatsappPaths) {
+      if (fs.existsSync(whatsappPath)) {
+        console.log('✅ WhatsApp Desktop found at:', whatsappPath);
+        whatsappInstalled = true;
+
+        // فتح WhatsApp Desktop
+        try {
+          const whatsappProtocol = phoneNumber
+            ? `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`
+            : `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+          await shell.openExternal(whatsappProtocol);
+          console.log('✅ WhatsApp Desktop opened with protocol:', whatsappProtocol);
+        } catch (err) {
+          console.error('❌ Error opening WhatsApp protocol:', err);
+        }
+        break;
+      }
+    }
+
+    // ✅ فتح مجلد الـ PDF في File Explorer
+    shell.showItemInFolder(pdfPath);
+    console.log('✅ PDF folder opened');
+
+    // ✅ إذا WhatsApp Desktop مش مثبت، افتح WhatsApp Web
+    if (!whatsappInstalled) {
+      console.log('⚠️ WhatsApp Desktop not found, opening WhatsApp Web instead');
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const whatsappUrl = phoneNumber
+        ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+      await shell.openExternal(whatsappUrl);
+      console.log('✅ WhatsApp Web opened');
+    }
+
+    console.log('ℹ️ User can drag PDF file from folder to WhatsApp');
+    return { success: true, pdfPath };
+  } catch (error) {
+    console.error('❌ Error opening WhatsApp with PDF:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// حفظ PDF في مجلد Documents
+ipcMain.handle('save-pdf-to-documents', async (event, { fileName, pdfData }) => {
+  try {
+    console.log('📥 [MAIN] Received PDF save request');
+    console.log('📄 [MAIN] File name:', fileName);
+    console.log('📊 [MAIN] pdfData type:', typeof pdfData, Array.isArray(pdfData) ? '(Array)' : '');
+    console.log('📏 [MAIN] pdfData length:', pdfData?.length || 0);
+
+    if (Array.isArray(pdfData) && pdfData.length > 0) {
+      console.log('🔍 [MAIN] First 10 bytes:', pdfData.slice(0, 10));
+      console.log('🔍 [MAIN] Last 10 bytes:', pdfData.slice(-10));
+    }
+
+    const documentsPath = app.getPath('documents');
+    const receiptsFolder = path.join(documentsPath, 'Gym Receipts');
+
+    // إنشاء المجلد إذا لم يكن موجود
+    if (!fs.existsSync(receiptsFolder)) {
+      fs.mkdirSync(receiptsFolder, { recursive: true });
+    }
+
+    const filePath = path.join(receiptsFolder, fileName);
+    console.log('📄 [MAIN] Full file path:', filePath);
+
+    let buffer;
+
+    // ✅ التعامل مع Array من الـ bytes
+    if (Array.isArray(pdfData) && pdfData.length > 0) {
+      console.log('✅ [MAIN] Converting byte array to Buffer...');
+      // استخدام Uint8Array للتأكد من التحويل الصحيح
+      const uint8Array = new Uint8Array(pdfData);
+      buffer = Buffer.from(uint8Array);
+      console.log('💾 [MAIN] Buffer created, size:', buffer.length, 'bytes');
+      console.log('🔍 [MAIN] Buffer first 20 bytes hex:', buffer.slice(0, 20).toString('hex'));
+    }
+    // ✅ التعامل مع base64 string
+    else if (typeof pdfData === 'string' && pdfData.length > 0) {
+      console.log('📝 [MAIN] Processing as base64 string...');
+      let base64Data = pdfData;
+
+      if (base64Data.includes(',')) {
+        base64Data = base64Data.split(',')[1];
+      }
+
+      base64Data = base64Data.replace(/\s/g, '');
+      buffer = Buffer.from(base64Data, 'base64');
+    } else {
+      console.error('❌ [MAIN] Invalid pdfData:', typeof pdfData, pdfData?.length);
+      throw new Error('Invalid pdfData: type=' + typeof pdfData + ', length=' + (pdfData?.length || 0));
+    }
+
+    console.log('💾 [MAIN] Final buffer size:', buffer.length, 'bytes');
+
+    if (!buffer || buffer.length === 0) {
+      throw new Error('Buffer is empty after conversion');
+    }
+
+    // تحقق من PDF signature
+    const pdfSignature = buffer.toString('ascii', 0, 8);
+    console.log('📄 [MAIN] PDF signature:', JSON.stringify(pdfSignature));
+
+    if (!pdfSignature.startsWith('%PDF')) {
+      console.error('⚠️ [MAIN] WARNING: Not a valid PDF! First bytes:', buffer.slice(0, 20).toString('hex'));
+    }
+
+    // حذف الملف القديم إذا موجود
+    if (fs.existsSync(filePath)) {
+      console.log('🗑️ [MAIN] Deleting existing file...');
+      fs.unlinkSync(filePath);
+    }
+
+    // حفظ الملف
+    console.log('💾 [MAIN] Writing file...');
+    fs.writeFileSync(filePath, buffer, { encoding: null, flag: 'w' });
+    console.log('✅ [MAIN] File written');
+
+    // التحقق من الملف
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      console.log(`✅ [MAIN] PDF saved successfully!`);
+      console.log(`   Path: ${filePath}`);
+      console.log(`   Size: ${stats.size} bytes (${(stats.size / 1024).toFixed(2)} KB)`);
+
+      // قراءة أول 20 bytes للتحقق
+      const fd = fs.openSync(filePath, 'r');
+      const verifyBuffer = Buffer.alloc(20);
+      fs.readSync(fd, verifyBuffer, 0, 20, 0);
+      fs.closeSync(fd);
+      console.log(`   First 20 bytes: ${verifyBuffer.toString('hex')}`);
+      console.log(`   As ASCII: ${verifyBuffer.toString('ascii')}`);
+
+      return { success: true, filePath, size: stats.size };
+    } else {
+      throw new Error('File was not created');
+    }
+  } catch (error) {
+    console.error('❌ [MAIN] Error saving PDF:', error);
+    console.error('Stack:', error.stack);
+    return { success: false, error: error.message };
+  }
+});
+
 // ------------------ أحداث التطبيق ------------------
 
 app.whenReady().then(async () => {

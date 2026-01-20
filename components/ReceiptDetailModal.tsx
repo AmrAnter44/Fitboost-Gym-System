@@ -2,12 +2,14 @@
 
 import { printReceiptFromData } from '../lib/printSystem'
 import { useLanguage } from '../contexts/LanguageContext'
+import { normalizePaymentMethod, getPaymentMethodLabel } from '../lib/paymentHelpers'
 
 interface ReceiptDetailModalProps {
   receipt: {
     receiptNumber: number
     type: string
     amount: number
+    paymentMethod: string
     itemDetails: string
     createdAt: string
   }
@@ -15,8 +17,12 @@ interface ReceiptDetailModalProps {
 }
 
 export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps) {
-  const { direction, t } = useLanguage()
+  const { direction, t, language } = useLanguage()
   const details = JSON.parse(receipt.itemDetails)
+
+  // ✅ معالجة طرق الدفع (واحدة أو متعددة)
+  const paymentData = normalizePaymentMethod(receipt.paymentMethod, receipt.amount)
+  const isMultiPayment = paymentData.methods.length > 1
   
   const getTypeLabel = (type: string) => {
     const typeKey = type.toLowerCase()
@@ -175,6 +181,30 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                     <span className="font-bold text-red-600">{details.remainingAmount} {t('common.currency')}</span>
                   </div>
                 )}
+
+                {/* ✅ طريقة الدفع - دعم الدفع المتعدد */}
+                <div className="py-1 border-b text-sm">
+                  <span className="text-gray-600 block mb-1">
+                    {isMultiPayment ? t('receipts.detail.paymentMethods') : t('receipts.detail.paymentMethod')}
+                  </span>
+                  {isMultiPayment ? (
+                    <div className="flex flex-wrap gap-1">
+                      {paymentData.methods.map((pm, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-bold"
+                        >
+                          <span>{getPaymentMethodLabel(pm.method, language)}</span>
+                          <span className="text-blue-600">({pm.amount} {t('common.currency')})</span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
+                      {getPaymentMethodLabel(paymentData.methods[0].method, language)}
+                    </span>
+                  )}
+                </div>
 
                 <div className="flex justify-between py-2 bg-green-50 px-2 rounded-lg mt-2">
                   <span className="font-bold text-gray-800 text-sm">{t('receipts.detail.total')}</span>

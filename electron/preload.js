@@ -113,5 +113,23 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.removeAllListeners('update-downloaded');
     ipcRenderer.removeAllListeners('download-progress');
     ipcRenderer.removeAllListeners('update-error');
+  },
+
+  // PDF: Save PDF to Documents folder
+  savePDFToDocuments: (fileName, pdfData) => {
+    console.log('📤 preload: savePDFToDocuments called');
+    console.log('📄 preload: fileName:', fileName);
+    console.log('📊 preload: pdfData type:', typeof pdfData);
+    console.log('📏 preload: pdfData length:', pdfData?.length || 0);
+    return ipcRenderer.invoke('save-pdf-to-documents', { fileName, pdfData });
+  },
+
+  // WhatsApp: Open WhatsApp with PDF ready to share
+  openWhatsAppWithPDF: (message, pdfPath, phoneNumber) => {
+    console.log('📤 preload: openWhatsAppWithPDF called');
+    console.log('💬 Message:', message);
+    console.log('📄 PDF path:', pdfPath);
+    console.log('📞 Phone:', phoneNumber);
+    return ipcRenderer.invoke('open-whatsapp-with-pdf', { message, pdfPath, phoneNumber });
   }
 });

@@ -46,10 +46,13 @@ function getPaymentMethodLabel(method: string): string {
 function generateReceiptHTML(data: ReceiptData): string {
   const { receiptNumber, type, amount, details, date } = data
   
-  const formattedDate = date.toLocaleDateString('ar-EG', {
+  const formattedDateOnly = date.toLocaleDateString('ar-EG', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric',
+    day: 'numeric'
+  })
+
+  const formattedTimeOnly = date.toLocaleTimeString('ar-EG', {
     hour: '2-digit',
     minute: '2-digit'
   })
@@ -82,6 +85,7 @@ function generateReceiptHTML(data: ReceiptData): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=80mm">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <title>إيصال ${receiptNumber}</title>
   <style>
     * {
@@ -89,32 +93,34 @@ function generateReceiptHTML(data: ReceiptData): string {
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     @page {
       size: 80mm auto;
       margin: 0;
     }
-    
+
     body {
-      font-family: Tahoma, 'Segoe UI', Arial, sans-serif;
+      font-family: 'Cairo', Tahoma, 'Segoe UI', Arial, sans-serif;
       width: 80mm;
-      padding: 8mm;
-      background: white;
+      padding: 5mm;
+      background: #ffffff;
       color: #000;
       font-size: 15px;
       line-height: 1.6;
       direction: rtl;
-      unicode-bidi: embed;
+      unicode-bidi: bidi-override;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
+      text-rendering: geometricPrecision;
+      margin: 0;
+      box-sizing: border-box;
     }
     
     .header {
       text-align: center;
       border-bottom: 2px dashed #000;
-      padding-bottom: 12px;
-      margin-bottom: 15px;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
     }
     
     .header h1 {
@@ -130,140 +136,167 @@ function generateReceiptHTML(data: ReceiptData): string {
     }
     
     .type-badge {
-      padding: 6px 12px;
+      padding: 8px 14px;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: bold;
       display: inline-block;
-      margin: 8px 0;
+      margin: 10px 0;
       color: white;
     }
-    
+
     .type-badge.renewal {
       background: #10b981;
     }
-    
+
     .type-badge.new {
       background: #3b82f6;
     }
-    
+
     .payment-method-badge {
       background: #6366f1;
       color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: bold;
-      display: inline-block;
-      margin: 8px 0;
-    }
-    
-    .staff-badge {
-      background: #f59e0b;
-      color: white;
-      padding: 6px 12px;
+      padding: 8px 12px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: bold;
-      display: inline-block;
-      margin: 8px 0;
+      display: block;
+      margin: 8px auto;
+      max-width: 90%;
+      word-wrap: break-word;
+      line-height: 1.4;
+    }
+
+    .staff-info {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin: 10px 0;
+      text-align: center;
+      color: #374151;
+    }
+
+    .staff-info strong {
+      color: #1f2937;
+      font-weight: 700;
     }
     
     .info-row {
       display: flex;
       justify-content: space-between;
-      margin: 6px 0;
-      font-size: 13px;
+      align-items: center;
+      margin: 15px 0;
+      padding: 10px 0;
+      font-size: 12px;
+      background: #ffffff;
+      white-space: nowrap;
     }
-    
+
     .info-row strong {
       font-weight: 600;
+      flex-shrink: 0;
+      margin-left: 5px;
+      font-size: 12px;
     }
-    
+
+    .info-row span {
+      text-align: left;
+      white-space: nowrap;
+      font-size: 11px;
+      flex: 1;
+      min-width: 0;
+    }
+
     .details {
       border-top: 2px solid #000;
       border-bottom: 2px solid #000;
-      padding: 12px 0;
-      margin: 12px 0;
+      padding: 20px 0;
+      margin-top: 25px;
+      margin-bottom: 20px;
     }
-    
+
     .details h3 {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: bold;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
-    
+
     .detail-item {
-      margin: 6px 0;
-      font-size: 13px;
+      margin: 10px 0;
+      font-size: 14px;
+      line-height: 1.8;
     }
-    
+
     .detail-item strong {
       font-weight: 600;
-      margin-left: 5px;
+      margin-left: 8px;
     }
     
     .member-number {
-      font-size: 19px;
+      font-size: 20px;
       font-weight: bold;
       color: #2563eb;
       text-align: center;
-      margin: 12px 0;
-      padding: 10px;
-      background: #eff6ff;
+      margin: 15px 0;
+      padding: 12px;
+      background: #ffffff;
       border-radius: 6px;
       border: 2px solid #2563eb;
     }
-    
+
     .date-box {
-      background: #f0f9ff;
+      background: #ffffff;
       border: 2px solid #3b82f6;
       border-radius: 8px;
-      padding: 10px;
-      margin: 10px 0;
+      padding: 14px;
+      margin: 14px 0;
       font-family: 'Courier New', monospace;
     }
-    
+
     .date-box p {
-      margin: 4px 0;
-      font-size: 12px;
+      margin: 6px 0;
+      font-size: 13px;
+      line-height: 1.6;
     }
-    
+
     .date-value {
       font-weight: bold;
       color: #1e40af;
     }
-    
+
     .renewal-info {
-      background: #d1fae5;
+      background: #ffffff;
       border: 2px solid #10b981;
       border-radius: 8px;
-      padding: 10px;
-      margin: 10px 0;
+      padding: 14px;
+      margin: 14px 0;
     }
-    
+
     .renewal-info p {
-      margin: 4px 0;
-      font-size: 12px;
+      margin: 6px 0;
+      font-size: 13px;
+      line-height: 1.6;
     }
     
     .total {
       display: flex;
       justify-content: space-between;
-      font-size: 17px;
+      font-size: 18px;
       font-weight: bold;
-      margin: 15px 0;
-      padding: 12px 0;
+      margin: 20px 0;
+      padding: 15px 0;
       border-top: 3px solid #000;
     }
-    
+
     .footer {
       text-align: center;
-      margin-top: 15px;
-      font-size: 12px;
+      margin-top: 20px;
+      font-size: 13px;
       color: #555;
       border-top: 2px dashed #000;
-      padding-top: 12px;
+      padding-top: 15px;
     }
     
     .footer p {
@@ -298,10 +331,10 @@ function generateReceiptHTML(data: ReceiptData): string {
       : '<div class="type-badge new">✨ اشتراك جديد</div>'
     }
 
-    <div class="payment-method-badge ${isMulti ? 'multi-payment' : ''}">${paymentMethodDisplay}</div>
-
-    ${staffName ? `<div class="staff-badge">👷 ${staffName}</div>` : ''}
+    <div class="payment-method-badge">${paymentMethodDisplay}</div>
   </div>
+
+  ${staffName ? `<div class="staff-info">👷 <strong>الموظف:</strong> ${staffName}</div>` : ''}
 
   <div class="info-row">
     <strong>رقم الإيصال:</strong>
@@ -309,7 +342,11 @@ function generateReceiptHTML(data: ReceiptData): string {
   </div>
   <div class="info-row">
     <strong>التاريخ:</strong>
-    <span>${formattedDate}</span>
+    <span>${formattedDateOnly}</span>
+  </div>
+  <div class="info-row">
+    <strong>الوقت:</strong>
+    <span>${formattedTimeOnly}</span>
   </div>
 
   <div class="details">
@@ -438,25 +475,62 @@ function generateReceiptHTML(data: ReceiptData): string {
   `
 }
 
-// الدالة الرئيسية للطباعة (مع PDF)
-export async function printReceipt(data: ReceiptData, options?: { pdfOnly?: boolean }): Promise<void> {
+// الدالة الرئيسية للطباعة
+export async function printReceipt(
+  data: ReceiptData,
+  options?: {
+    printOnly?: boolean  // ✅ طباعة فقط (بدون PDF)
+    pdfOnly?: boolean    // ✅ PDF فقط (بدون طباعة)
+    skipBoth?: boolean   // تخطي الطباعة والـ PDF (للاستخدام الداخلي)
+  }
+): Promise<{ filePath?: string } | void> {
   const receiptHTML = generateReceiptHTML(data)
 
+  // ✅ حالة 1: طباعة فقط (بدون PDF)
+  if (options?.printOnly) {
+    console.log('📄 طباعة فقط (بدون PDF)')
+    printReceiptTraditional(receiptHTML)
+    return
+  }
+
+  // ✅ حالة 2: PDF فقط (بدون طباعة)
+  if (options?.pdfOnly) {
+    console.log('💾 PDF فقط (بدون طباعة)')
+    try {
+      const result = await printAndSaveArabicPDF(receiptHTML, data.receiptNumber, {
+        skipPrint: true,
+        autoDownload: true
+      })
+      // ✅ إرجاع مسار الملف الحقيقي (filePath) وليس blob URL
+      return { filePath: result.filePath || undefined }
+    } catch (error) {
+      console.error('❌ خطأ في تحويل PDF:', error)
+      alert('فشل تحويل الإيصال إلى PDF')
+      return
+    }
+  }
+
+  // ✅ حالة 3: تخطي الاثنين (للاستخدام الداخلي)
+  if (options?.skipBoth) {
+    console.log('⏭️ تخطي الطباعة والـ PDF')
+    return
+  }
+
+  // ✅ حالة 4 (الافتراضي): طباعة + PDF معاً
+  console.log('📄💾 طباعة + PDF')
   try {
-    // ✅ طباعة + تحويل PDF مع دعم العربي
     const result = await printAndSaveArabicPDF(receiptHTML, data.receiptNumber, {
-      skipPrint: options?.pdfOnly || false,
-      autoDownload: true
+      skipPrint: false,  // طباعة
+      autoDownload: true // + PDF
     })
 
     if (!result.success) {
-      console.warn('⚠️ فشل تحويل الإيصال إلى PDF، استخدام الطباعة التقليدية...')
-      // Fallback للطباعة التقليدية
+      console.warn('⚠️ فشل تحويل الإيصال إلى PDF، الطباعة فقط...')
       printReceiptTraditional(receiptHTML)
     }
   } catch (error) {
-    console.error('❌ خطأ في طباعة الإيصال:', error)
-    // Fallback للطباعة التقليدية
+    console.error('❌ خطأ في طباعة/PDF:', error)
+    // Fallback للطباعة فقط
     printReceiptTraditional(receiptHTML)
   }
 }
@@ -500,8 +574,12 @@ export async function printReceiptFromData(
   details: any,
   date: Date | string,
   paymentMethod?: string,
-  options?: { pdfOnly?: boolean }
-): Promise<void> {
+  options?: {
+    printOnly?: boolean  // ✅ طباعة فقط
+    pdfOnly?: boolean    // ✅ PDF فقط
+    skipBoth?: boolean   // تخطي الاثنين
+  }
+): Promise<{ filePath?: string } | void> {
   const dateObj = date instanceof Date ? date : new Date(date)
 
   // إضافة paymentMethod إلى details إذا تم تمريره
@@ -509,7 +587,7 @@ export async function printReceiptFromData(
     ? { ...details, paymentMethod }
     : details
 
-  await printReceipt({
+  return await printReceipt({
     receiptNumber,
     type,
     amount,

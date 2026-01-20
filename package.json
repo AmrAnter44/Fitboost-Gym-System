@@ -29,6 +29,7 @@
     "bwip-js": "^4.8.0",
     "client-only": "^0.0.1",
     "csv-parse": "^6.1.0",
+    "dom-to-image-more": "^3.7.2",
     "electron-is-dev": "^2.0.0",
     "electron-updater": "^6.7.3",
     "exceljs": "^4.4.0",

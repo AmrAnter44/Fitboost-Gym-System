@@ -88,9 +88,23 @@ export default function LinkModal({ onClose }: LinkModalProps) {
     }
   }
 
-  const shareOnWhatsApp = () => {
+  const shareOnWhatsApp = async () => {
     const message = encodeURIComponent(`🏋️ رابط نظام إدارة الصالة الرياضية:\n\n${url}\n\nافتح الرابط من أي جهاز على نفس الشبكة للدخول للنظام`)
-    window.open(`https://wa.me/?text=${message}`, '_blank')
+    const whatsappUrl = `https://wa.me/?text=${message}`
+
+    // ✅ في Electron، استخدم نافذة منفصلة تغلق تلقائياً بعد 10 ثواني
+    if (typeof window !== 'undefined' && (window as any).electron?.openWhatsAppWindow) {
+      try {
+        await (window as any).electron.openWhatsAppWindow(whatsappUrl)
+      } catch (error) {
+        console.error('Failed to open WhatsApp window:', error)
+        // Fallback للمتصفح العادي
+        window.open(whatsappUrl, '_blank')
+      }
+    } else {
+      // في المتصفح العادي، افتح في تاب جديد
+      window.open(whatsappUrl, '_blank')
+    }
   }
 
   return (

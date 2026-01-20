@@ -1386,6 +1386,8 @@
       "paymentDetails": "Payment Details",
       "paidAmount": "Paid Amount",
       "remainingAmount": "Remaining Amount",
+      "paymentMethod": "Payment Method",
+      "paymentMethods": "Payment Methods",
       "total": "Total",
       "issueDate": "Issue Date",
       "printReceipt": "Print Receipt",

@@ -33,15 +33,15 @@ interface Receipt {
   cancelReason?: string
 }
 
+// أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة) - خارج الـ component لتجنب re-creation
+const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت', 'PT Day Use']
+
 export default function ReceiptsPage() {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
   const { t, direction } = useLanguage()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const toast = useToast()
-
-  // أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة)
-  const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت', 'PT Day Use']
 
   // ✅ استخدام useQuery لجلب الإيصالات
   const {
@@ -116,8 +116,19 @@ export default function ReceiptsPage() {
     }
   }, [receiptsError, toast, router])
 
-  // ✅ تعريف الدوال قبل استخدامها في useEffect
-  const applyFilters = () => {
+  // حساب الصفحات
+  const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentReceipts = filteredReceipts.slice(startIndex, endIndex)
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // ✅ تطبيق الفلاتر عند تغيير البيانات أو الفلاتر
+  useEffect(() => {
     if (!Array.isArray(receipts)) {
       setFilteredReceipts([])
       return
@@ -162,23 +173,7 @@ export default function ReceiptsPage() {
     }
 
     setFilteredReceipts(filtered)
-    setCurrentPage(1) // إعادة تعيين الصفحة للأولى عند الفلترة
-  }
-
-  // حساب الصفحات
-  const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentReceipts = filteredReceipts.slice(startIndex, endIndex)
-
-  const goToPage = (page: number) => {
-    setCurrentPage(page)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  // ✅ تطبيق الفلاتر عند تغيير البيانات أو الفلاتر
-  useEffect(() => {
-    applyFilters()
+    setCurrentPage(1)
   }, [receipts, searchTerm, filterType, filterPayment])
 
   // ✅ التحقق من الصلاحيات بعد كل الـ hooks
@@ -247,14 +242,20 @@ export default function ReceiptsPage() {
         return getPaymentLabel(normalized.methods[0].method, 'ar')
       }
 
-      // لو أكتر من طريقة دفع، نعرض "دفع متعدد"
+      // لو أكتر من طريقة دفع، نعرض الإيموجي مع المبلغ تحت بعض
+      const emojis: Record<string, string> = {
+        'cash': '💵',
+        'visa': '💳',
+        'wallet': '👛',
+        'instapay': '💸'
+      }
+
       return (
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-purple-600 font-bold">🔀 دفع متعدد</span>
+        <div className="flex flex-col gap-0.5 text-xs">
           {normalized.methods.map((m, idx) => (
-            <span key={idx} className="text-xs">
-              {getPaymentLabel(m.method, 'ar')}: {m.amount.toFixed(2)} ج.م
-            </span>
+            <div key={idx}>
+              {emojis[m.method] || '💰'} {Math.round(m.amount)}
+            </div>
           ))}
         </div>
       )
@@ -429,7 +430,7 @@ export default function ReceiptsPage() {
       }
 
       // تحميل PDF
-      await printReceiptFromData(
+      const pdfResult = await printReceiptFromData(
         receipt.receiptNumber,
         receipt.type,
         receipt.amount,
@@ -443,12 +444,34 @@ export default function ReceiptsPage() {
       await new Promise(resolve => setTimeout(resolve, 1500))
 
       // فتح واتساب
-      const message = encodeURIComponent(
-        `إيصال رقم ${receipt.receiptNumber}\nالمبلغ: ${receipt.amount} جنيه\n\nتم إرفاق الإيصال كملف PDF 📄`
-      )
-      window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank')
+      const message = `إيصال رقم ${receipt.receiptNumber}\nالمبلغ: ${receipt.amount} جنيه\n\nتم إرفاق الإيصال كملف PDF 📄`
 
-      toast.success('تم تحميل PDF وفتح واتساب ✅')
+      // ✅ إضافة +20 إذا لم يكن الرقم يبدأ بـ + أو 00
+      let formattedPhone = phoneNumber
+      if (!phoneNumber.startsWith('+') && !phoneNumber.startsWith('00')) {
+        // إزالة الصفر الأول إذا كان موجود (مثل 01234567890 → 1234567890)
+        const cleanPhone = phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber
+        formattedPhone = `20${cleanPhone}`  // إضافة 20 (كود مصر)
+      }
+
+      // ✅ في Electron، استخدم API خاص لفتح واتساب مع الملف
+      if (typeof window !== 'undefined' && (window as any).electron?.openWhatsAppWithPDF) {
+        const pdfPath = pdfResult?.filePath
+        if (pdfPath) {
+          console.log('📱 Opening WhatsApp with PDF from Electron:', pdfPath)
+          console.log('📞 Phone number:', formattedPhone)
+          await (window as any).electron.openWhatsAppWithPDF(message, pdfPath, formattedPhone)
+          toast.success('تم فتح واتساب - اسحب ملف PDF من المجلد المفتوح إلى واتساب ✅')
+        } else {
+          // Fallback: فتح واتساب عادي
+          window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank')
+          toast.success('تم تحميل PDF وفتح واتساب ✅')
+        }
+      } else {
+        // في المتصفح العادي
+        window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank')
+        toast.success('تم تحميل PDF وفتح واتساب ✅')
+      }
     } catch (error) {
       console.error('Error in download and WhatsApp:', error)
       toast.error('حدث خطأ أثناء العملية')
@@ -885,8 +908,9 @@ export default function ReceiptsPage() {
                   </div>
                 </div>
 
-                {/* Action Buttons at Bottom */}
-                <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200">
+                {/* Action Buttons - Grid Layout */}
+                <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-200">
+                  {/* الصف الأول - 3 أزرار */}
                   <ReceiptWhatsApp
                     receipt={receipt}
                     onDetailsClick={() => setSelectedReceipt(receipt)}
@@ -894,7 +918,7 @@ export default function ReceiptsPage() {
 
                   <button
                     onClick={() => handlePrint(receipt, { printOnly: true })}
-                    className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm transition shadow-md font-semibold"
+                    className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm transition shadow-md font-semibold"
                     title="طباعة فقط"
                   >
                     🖨️ {t('receipts.actions.print')}
@@ -902,26 +926,27 @@ export default function ReceiptsPage() {
 
                   <button
                     onClick={() => handleDownloadAndWhatsApp(receipt)}
-                    className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm transition shadow-md font-semibold"
+                    className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 text-sm transition shadow-md font-semibold"
                     title="تحميل PDF وإرسال واتساب"
                   >
-                    📥💬 واتساب
+                    PDF
                   </button>
 
+                  {/* الصف الثاني - زر التعديل بمساحة 2، والحذف بمساحة 1 */}
                   {canEdit && (
                     <button
                       onClick={() => handleOpenEdit(receipt)}
-                      className="bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 text-sm transition shadow-md"
+                      className="col-span-2 bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 text-sm transition shadow-md font-semibold"
                       title={t('receipts.actions.edit')}
                     >
-                      ✏️
+                      ✏️ {t('receipts.actions.edit')}
                     </button>
                   )}
 
                   {canDelete && (
                     <button
                       onClick={() => handleDelete(receipt.id)}
-                      className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm transition shadow-md"
+                      className={`bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm transition shadow-md ${!canEdit ? 'col-span-3' : ''}`}
                       title={t('receipts.actions.delete')}
                     >
                       🗑️
@@ -1119,10 +1144,10 @@ export default function ReceiptsPage() {
 
                         <button
                           onClick={() => handleDownloadAndWhatsApp(receipt)}
-                          className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm transition shadow-md hover:shadow-lg"
+                          className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 text-sm transition shadow-md hover:shadow-lg font-semibold"
                           title="تحميل PDF وإرسال واتساب"
                         >
-                          💬
+                          PDF
                         </button>
 
                         {canEdit && !receipt.isCancelled && (

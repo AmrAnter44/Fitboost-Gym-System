@@ -1392,6 +1392,8 @@
       "paymentDetails": "تفاصيل الدفع",
       "paidAmount": "المبلغ المدفوع",
       "remainingAmount": "المبلغ المتبقي",
+      "paymentMethod": "طريقة الدفع",
+      "paymentMethods": "طرق الدفع",
       "total": "الإجمالي",
       "issueDate": "تاريخ الإصدار",
       "printReceipt": "طباعة الإيصال",
