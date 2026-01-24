@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -76,7 +76,6 @@ export default function ReceiptsPage() {
     setNextReceiptNumber(fetchedNextReceiptNumber)
   }, [fetchedNextReceiptNumber])
 
-  const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterPayment, setFilterPayment] = useState('all')
@@ -99,6 +98,7 @@ export default function ReceiptsPage() {
   // ✅ جميع الـ hooks يجب أن تكون قبل أي return
   const canEdit = hasPermission('canEditReceipts')
   const canDelete = hasPermission('canDeleteReceipts')
+  const canCancel = hasPermission('canCancelReceipts')
 
   // ✅ معالجة أخطاء الإيصالات
   useEffect(() => {
@@ -116,22 +116,10 @@ export default function ReceiptsPage() {
     }
   }, [receiptsError, toast, router])
 
-  // حساب الصفحات
-  const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentReceipts = filteredReceipts.slice(startIndex, endIndex)
-
-  const goToPage = (page: number) => {
-    setCurrentPage(page)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  // ✅ تطبيق الفلاتر عند تغيير البيانات أو الفلاتر
-  useEffect(() => {
+  // ✅ استخدام useMemo بدل useState + useEffect لتجنب infinite loop
+  const filteredReceipts = useMemo(() => {
     if (!Array.isArray(receipts)) {
-      setFilteredReceipts([])
-      return
+      return []
     }
 
     let filtered = [...receipts]
@@ -172,9 +160,24 @@ export default function ReceiptsPage() {
       filtered = filtered.filter(r => r.paymentMethod === filterPayment)
     }
 
-    setFilteredReceipts(filtered)
-    setCurrentPage(1)
+    return filtered
   }, [receipts, searchTerm, filterType, filterPayment])
+
+  // ✅ useEffect منفصل لإعادة ضبط الصفحة عند تغيير الفلاتر
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterType, filterPayment])
+
+  // حساب الصفحات
+  const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentReceipts = filteredReceipts.slice(startIndex, endIndex)
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // ✅ التحقق من الصلاحيات بعد كل الـ hooks
   if (permissionsLoading) {
@@ -272,7 +275,7 @@ export default function ReceiptsPage() {
   }
 
   const handleCancelReceipt = async (receiptId: string) => {
-    if (!canEdit) {
+    if (!canCancel) {
       toast.error('ليس لديك صلاحية إلغاء الإيصالات')
       return
     }
@@ -933,7 +936,7 @@ export default function ReceiptsPage() {
                   </button>
 
                   {/* الصف الثاني - زر التعديل بمساحة 2، والحذف بمساحة 1 */}
-                  {canEdit && (
+                  {canEdit && !receipt.isCancelled && (
                     <button
                       onClick={() => handleOpenEdit(receipt)}
                       className="col-span-2 bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 text-sm transition shadow-md font-semibold"
@@ -943,10 +946,20 @@ export default function ReceiptsPage() {
                     </button>
                   )}
 
+                  {canCancel && !receipt.isCancelled && (
+                    <button
+                      onClick={() => handleCancelReceipt(receipt.id)}
+                      className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 text-sm transition shadow-md font-semibold"
+                      title="إلغاء الإيصال"
+                    >
+                      🚫
+                    </button>
+                  )}
+
                   {canDelete && (
                     <button
                       onClick={() => handleDelete(receipt.id)}
-                      className={`bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm transition shadow-md ${!canEdit ? 'col-span-3' : ''}`}
+                      className={`bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm transition shadow-md ${(!canEdit && !canCancel) || receipt.isCancelled ? 'col-span-3' : ''}`}
                       title={t('receipts.actions.delete')}
                     >
                       🗑️
@@ -1160,7 +1173,7 @@ export default function ReceiptsPage() {
                           </button>
                         )}
 
-                        {canEdit && !receipt.isCancelled && (
+                        {canCancel && !receipt.isCancelled && (
                           <button
                             onClick={() => handleCancelReceipt(receipt.id)}
                             className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 text-sm transition shadow-md hover:shadow-lg"

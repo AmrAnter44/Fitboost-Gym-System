@@ -16,6 +16,7 @@ import ToastContainer from './ToastContainer'
 import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
 import UpdateNotification from './UpdateNotification'
+import PWAInstaller from './PWAInstaller'
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
@@ -31,10 +32,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                     <PreventInputScroll />
                     <BarcodeInputDetector />
                     <UpdateNotification />
+                    <PWAInstaller />
                     <Navbar />
                     <ToastContainer />
                     <SearchModal />
-                    <main>{children}</main>
+                    <main className="overflow-x-hidden w-full max-w-full">{children}</main>
                   </AdminDateProvider>
                 </UpdateProvider>
               </ToastProvider>

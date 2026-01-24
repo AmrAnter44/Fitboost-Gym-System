@@ -95,3 +95,23 @@ export async function fetchInvitationsData() {
   const data = await response.json()
   return Array.isArray(data) ? data : []
 }
+
+export async function deleteFollowUp(id: string) {
+  const response = await fetch(`/api/visitors/followups?id=${id}`, {
+    method: 'DELETE',
+  })
+
+  if (response.status === 401) {
+    await handleAuthError(response.clone())
+    throw new Error('UNAUTHORIZED')
+  }
+
+  if (response.status === 403) throw new Error('FORBIDDEN')
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'فشل حذف المتابعة')
+  }
+
+  return response.json()
+}

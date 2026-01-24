@@ -216,7 +216,7 @@ export default function HomePage() {
       {/* Logo في الخلفية بشفافية 50% */}
       <div className="fixed left-0 top-1/2 -translate-y-1/2 pointer-events-none z-0" style={{ left: '-10%' }}>
         <img
-          src="/assets/icon.png"
+          src="/icon.png"
           alt="Background Logo"
           className="w-96 h-96 md:w-[600px] md:h-[600px] opacity-50 select-none"
           style={{ opacity: 0.5 }}

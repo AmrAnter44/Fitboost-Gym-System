@@ -81,9 +81,9 @@ export default function SetupPage() {
                       </code>
                     </div>
                     <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
-                      <span className="text-gray-600 text-sm">كلمة المرور:</span>
+                      <span className="text-gray-600 text-sm">كلمة المرور الافتراضية:</span>
                       <code className="font-mono font-bold text-blue-600 text-sm">
-                        {result.credentials.password}
+                        admin123456
                       </code>
                     </div>
                   </div>

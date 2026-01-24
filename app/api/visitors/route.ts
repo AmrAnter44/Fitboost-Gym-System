@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
+import { verifyAuth, requirePermission } from '../../../lib/auth'
 
 // GET - جلب جميع الزوار مع فلترة وبحث
 export async function GET(request: Request) {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
     const status = searchParams.get('status') // 'pending', 'contacted', 'subscribed', 'rejected'
@@ -69,6 +79,15 @@ export async function GET(request: Request) {
 // POST - إضافة زائر جديد
 export async function POST(request: Request) {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { name, phone, notes, source, interestedIn } = body
 
@@ -139,6 +158,15 @@ export async function POST(request: Request) {
 // PUT - تحديث بيانات زائر
 export async function PUT(request: Request) {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { id, name, phone, notes, status, interestedIn, source } = body
 
@@ -200,6 +228,15 @@ export async function PUT(request: Request) {
 // DELETE - حذف زائر
 export async function DELETE(request: Request) {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 

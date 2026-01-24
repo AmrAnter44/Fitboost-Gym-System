@@ -188,8 +188,8 @@ export default function DayUsePage() {
 
   return (
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{t('dayUse.title')}</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">{t('dayUse.title')}</h1>
         <button
           onClick={() => {
             setShowForm(!showForm)
@@ -207,7 +207,7 @@ export default function DayUsePage() {
               setRenewingEntryId(null)
             }
           }}
-          className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
+          className="w-full sm:w-auto bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
         >
           {showForm ? t('dayUse.hideForm') : t('dayUse.addNewOperation')}
         </button>
@@ -220,7 +220,7 @@ export default function DayUsePage() {
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">{t('dayUse.name')}</label>
                 <input
@@ -271,7 +271,7 @@ export default function DayUsePage() {
                 />
               </div>
 
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">{t('dayUse.staffName')}</label>
                 <input
                   type="text"
@@ -311,14 +311,14 @@ export default function DayUsePage() {
       ) : (
         <>
           {/* Mobile Cards View */}
-          <div className="md:hidden space-y-4">
+          <div className="lg:hidden space-y-4">
             {entries.map((entry) => (
               <div
                 key={entry.id}
                 className="bg-white border-r-4 border-purple-500 rounded-lg shadow-md p-4"
               >
                 {/* Action Buttons at Top */}
-                <div className="flex justify-end gap-2 mb-3">
+                <div className="flex flex-col sm:flex-row justify-end gap-2 mb-3">
                   <button
                     onClick={() => handleRenewClick(entry)}
                     className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition text-sm font-medium shadow-sm"
@@ -395,7 +395,7 @@ export default function DayUsePage() {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-100">
                 <tr>
@@ -464,7 +464,7 @@ export default function DayUsePage() {
         <div className="mt-6">
           <button
             onClick={() => setShowReceipt(true)}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+            className="w-full sm:w-auto bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
           >
             🖨️ {t('dayUse.printLastReceipt')}
           </button>
@@ -530,7 +530,7 @@ export default function DayUsePage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleDeleteConfirm}
                   disabled={deleting}

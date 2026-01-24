@@ -338,39 +338,39 @@ export default function VisitorsPage() {
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       {/* Header with Stats */}
       <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
-            <h1 className="text-3xl font-bold">{t('visitors.title')}</h1>
-            <p className="text-gray-600 mt-2">{t('visitors.subtitle')}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">{t('visitors.title')}</h1>
+            <p className="text-gray-600 mt-2 text-sm sm:text-base">{t('visitors.subtitle')}</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700"
+            className="w-full sm:w-auto bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700"
           >
             {showForm ? t('visitors.hideForm') : `➕ ${t('visitors.addVisitor')}`}
           </button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-5 shadow-lg">
-            <div className="text-sm opacity-90 mb-1">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-4 sm:p-5 shadow-lg">
+            <div className="text-xs sm:text-sm opacity-90 mb-1">
               {monthFilter !== 'all' ? `${t('visitors.stats.visitorsOf')} ${getMonthLabel(monthFilter)}` : t('visitors.status.totalVisitors')}
             </div>
-            <div className="text-4xl font-bold">{filteredVisitors.length}</div>
+            <div className="text-2xl sm:text-4xl font-bold">{filteredVisitors.length}</div>
             {monthFilter !== 'all' && (
               <div className="text-xs opacity-75 mt-1">{t('visitors.stats.outOf', { total: visitors.length.toString() })}</div>
             )}
           </div>
           {stats.map((stat) => (
-            <div key={stat.status} className="bg-white p-5 rounded-xl shadow-lg border-2">
-              <div className="text-gray-500 text-sm font-medium mb-1">
+            <div key={stat.status} className="bg-white p-4 sm:p-5 rounded-xl shadow-lg border-2">
+              <div className="text-gray-500 text-xs sm:text-sm font-medium mb-1">
                 {stat.status === 'pending' && `⏳ ${t('visitors.status.pending')}`}
                 {stat.status === 'contacted' && `📞 ${t('visitors.status.contacted')}`}
                 {stat.status === 'subscribed' && `✅ ${t('visitors.status.subscribed')}`}
                 {stat.status === 'rejected' && `❌ ${t('visitors.status.rejected')}`}
               </div>
-              <div className="text-3xl font-bold">{stat._count}</div>
+              <div className="text-2xl sm:text-3xl font-bold">{stat._count}</div>
             </div>
           ))}
         </div>
@@ -382,7 +382,7 @@ export default function VisitorsPage() {
           <h2 className="text-xl font-semibold mb-4">{t('visitors.form.title')}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">{t('visitors.form.name')} *</label>
                 <input
@@ -460,7 +460,7 @@ export default function VisitorsPage() {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">🔍 {t('visitors.filters.search')}</label>
             <input
@@ -537,7 +537,7 @@ export default function VisitorsPage() {
       ) : (
         <>
           {/* Cards للموبايل */}
-          <div className="md:hidden space-y-4">
+          <div className="lg:hidden space-y-4">
             {currentVisitors.map((visitor) => (
               <div
                 key={visitor.id}
@@ -577,7 +577,7 @@ export default function VisitorsPage() {
                 <div className="p-4 space-y-3">
                   {/* الاسم */}
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800">{visitor.name}</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800">{visitor.name}</h3>
                   </div>
 
                   {/* رقم الهاتف */}
@@ -587,7 +587,7 @@ export default function VisitorsPage() {
                       href={`https://wa.me/2${visitor.phone}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg font-medium text-sm bg-green-500 hover:bg-green-600 text-white transition-colors"
+                      className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg font-medium text-xs sm:text-sm bg-green-500 hover:bg-green-600 text-white transition-colors"
                     >
                       <span>💬</span>
                       <span className="font-mono">{visitor.phone}</span>
@@ -597,14 +597,14 @@ export default function VisitorsPage() {
                   {/* المصدر */}
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500 text-sm">📂</span>
-                    <span className="text-gray-700">{getSourceLabel(visitor.source)}</span>
+                    <span className="text-gray-700 text-sm">{getSourceLabel(visitor.source)}</span>
                   </div>
 
                   {/* مهتم بـ */}
                   {visitor.interestedIn && (
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500 text-sm">💡</span>
-                      <span className="text-gray-700">{visitor.interestedIn}</span>
+                      <span className="text-gray-700 text-sm">{visitor.interestedIn}</span>
                     </div>
                   )}
 
@@ -626,7 +626,7 @@ export default function VisitorsPage() {
                   {/* تاريخ الزيارة */}
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500 text-sm">📅</span>
-                    <span className="text-gray-700">
+                    <span className="text-gray-700 text-sm">
                       {new Date(visitor.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                     </span>
                   </div>
@@ -716,7 +716,7 @@ export default function VisitorsPage() {
           </div>
 
           {/* الجدول للشاشات الكبيرة */}
-          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-100">
                 <tr>

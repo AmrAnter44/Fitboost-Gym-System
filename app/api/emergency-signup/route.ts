@@ -3,8 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import bcrypt from 'bcryptjs'
 
-// 🔒 غير هذا المفتاح السري (يجب أن يطابق المفتاح في الصفحة)
-const SECRET_KEY = 'GYM_EMERGENCY_2024'
+// 🔒 المفتاح السري من environment variables
+const SECRET_KEY = process.env.EMERGENCY_SIGNUP_SECRET
+
+if (!SECRET_KEY) {
+  throw new Error('EMERGENCY_SIGNUP_SECRET must be set in environment variables')
+}
 
 export async function POST(request: NextRequest) {
   try {

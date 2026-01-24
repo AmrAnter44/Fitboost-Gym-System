@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -17,8 +17,6 @@ interface DailyData {
   cash: number
   wallet: number
   remainingAmount: number  // 💰 الفلوس الباقية
-  remainingCash: number     // 💰 الفلوس الباقية - كاش
-  remainingVisa: number     // 💰 الفلوس الباقية - فيزا
   remainingInstapay: number // 💰 الفلوس الباقية - إنستاباي
   remainingWallet: number   // 💰 الفلوس الباقية - محفظة
   staffLoans: { [key: string]: number }
@@ -59,8 +57,6 @@ export default function ClosingPage() {
     cash: 0,
     wallet: 0,
     remainingAmount: 0,      // 💰 الفلوس الباقية
-    remainingCash: 0,        // 💰 الفلوس الباقية - كاش
-    remainingVisa: 0,        // 💰 الفلوس الباقية - فيزا
     remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
     remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
     totalPayments: 0,
@@ -128,8 +124,6 @@ export default function ClosingPage() {
             cash: 0,
             wallet: 0,
             remainingAmount: 0,      // 💰 الفلوس الباقية
-            remainingCash: 0,        // 💰 الفلوس الباقية - كاش
-            remainingVisa: 0,        // 💰 الفلوس الباقية - فيزا
             remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
             remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
             staffLoans: {},
@@ -167,26 +161,18 @@ export default function ClosingPage() {
                 const ratio = pm.amount / receipt.amount
                 const remainingForThisMethod = remainingAmountInReceipt * ratio
 
-                if (pm.method === 'visa') {
-                  dailyMap[date].remainingVisa += remainingForThisMethod
-                } else if (pm.method === 'instapay') {
+                if (pm.method === 'instapay') {
                   dailyMap[date].remainingInstapay += remainingForThisMethod
                 } else if (pm.method === 'wallet') {
                   dailyMap[date].remainingWallet += remainingForThisMethod
-                } else {
-                  dailyMap[date].remainingCash += remainingForThisMethod
                 }
               })
             } else {
               // دفع واحد
-              if (paymentMethodRaw === 'visa') {
-                dailyMap[date].remainingVisa += remainingAmountInReceipt
-              } else if (paymentMethodRaw === 'instapay') {
+              if (paymentMethodRaw === 'instapay') {
                 dailyMap[date].remainingInstapay += remainingAmountInReceipt
               } else if (paymentMethodRaw === 'wallet') {
                 dailyMap[date].remainingWallet += remainingAmountInReceipt
-              } else {
-                dailyMap[date].remainingCash += remainingAmountInReceipt
               }
             }
           }
@@ -245,8 +231,6 @@ export default function ClosingPage() {
             cash: 0,
             wallet: 0,
             remainingAmount: 0,      // 💰 الفلوس الباقية
-            remainingCash: 0,        // 💰 الفلوس الباقية - كاش
-            remainingVisa: 0,        // 💰 الفلوس الباقية - فيزا
             remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
             remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
             staffLoans: {},
@@ -287,8 +271,6 @@ export default function ClosingPage() {
         acc.cash += day.cash
         acc.wallet += day.wallet
         acc.remainingAmount += day.remainingAmount        // 💰 الفلوس الباقية
-        acc.remainingCash += day.remainingCash            // 💰 الفلوس الباقية - كاش
-        acc.remainingVisa += day.remainingVisa            // 💰 الفلوس الباقية - فيزا
         acc.remainingInstapay += day.remainingInstapay    // 💰 الفلوس الباقية - إنستاباي
         acc.remainingWallet += day.remainingWallet        // 💰 الفلوس الباقية - محفظة
         return acc
@@ -301,8 +283,6 @@ export default function ClosingPage() {
         cash: 0,
         wallet: 0,
         remainingAmount: 0,      // 💰 الفلوس الباقية
-        remainingCash: 0,        // 💰 الفلوس الباقية - كاش
-        remainingVisa: 0,        // 💰 الفلوس الباقية - فيزا
         remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
         remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
         totalPayments: 0,
@@ -427,8 +407,6 @@ export default function ClosingPage() {
         t('closing.table.date'),
         t('closing.table.floor'),
         direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining',
-        direction === 'rtl' ? 'باقي كاش' : 'Rem. Cash',
-        direction === 'rtl' ? 'باقي فيزا' : 'Rem. Visa',
         direction === 'rtl' ? 'باقي إنستا' : 'Rem. Insta',
         direction === 'rtl' ? 'باقي محفظة' : 'Rem. Wallet',
         t('closing.table.pt'),
@@ -465,8 +443,6 @@ export default function ClosingPage() {
           new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US'),
           day.floor > 0 ? day.floor : 0,
           day.remainingAmount > 0 ? day.remainingAmount : 0,
-          day.remainingCash > 0 ? day.remainingCash : 0,
-          day.remainingVisa > 0 ? day.remainingVisa : 0,
           day.remainingInstapay > 0 ? day.remainingInstapay : 0,
           day.remainingWallet > 0 ? day.remainingWallet : 0,
           day.pt > 0 ? day.pt : 0,
@@ -509,8 +485,6 @@ export default function ClosingPage() {
         t('closing.table.totalLabel'),
         totals.floor,
         totals.remainingAmount,
-        totals.remainingCash,
-        totals.remainingVisa,
         totals.remainingInstapay,
         totals.remainingWallet,
         totals.pt,
@@ -773,16 +747,16 @@ export default function ClosingPage() {
   }
 
   return (
-    <div className="container mx-auto p-6" dir={direction}>
-      <div className="mb-6 no-print">
-        <h1 className="text-3xl font-bold mb-2">💰 {t('closing.title')}</h1>
-        <p className="text-gray-600">{t('closing.subtitle')}</p>
+    <div className="container mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
+      <div className="mb-4 sm:mb-6 no-print">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">💰 {t('closing.title')}</h1>
+        <p className="text-gray-600 text-sm sm:text-base">{t('closing.subtitle')}</p>
 
         {/* View Mode Tabs */}
-        <div className="mt-4 flex gap-2">
+        <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
           <button
             onClick={() => setViewMode('daily')}
-            className={`px-6 py-3 rounded-lg font-bold transition ${
+            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'daily'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -792,7 +766,7 @@ export default function ClosingPage() {
           </button>
           <button
             onClick={() => setViewMode('monthly')}
-            className={`px-6 py-3 rounded-lg font-bold transition ${
+            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'monthly'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -802,7 +776,7 @@ export default function ClosingPage() {
           </button>
           <button
             onClick={() => setViewMode('yearly')}
-            className={`px-6 py-3 rounded-lg font-bold transition ${
+            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'yearly'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -812,7 +786,7 @@ export default function ClosingPage() {
           </button>
           <button
             onClick={() => setViewMode('comparison')}
-            className={`px-6 py-3 rounded-lg font-bold transition ${
+            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'comparison'
                 ? 'bg-purple-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -824,19 +798,19 @@ export default function ClosingPage() {
       </div>
 
       {/* Controls */}
-      <div className="mb-6 bg-white p-6 rounded-lg shadow-md no-print">
-        <div className="space-y-4">
+      <div className="mb-4 sm:mb-6 bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md no-print">
+        <div className="space-y-3 sm:space-y-4">
           {viewMode === 'daily' ? (
             /* اختيار اليوم للعرض اليومي */
             <div>
-              <label className="block text-sm font-medium mb-2">📅 {t('closing.controls.selectDay')}</label>
+              <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.controls.selectDay')}</label>
               <input
                 type="date"
                 value={selectedDay}
                 onChange={(e) => setSelectedDay(e.target.value)}
-                className="px-4 py-2 border-2 rounded-lg font-mono text-lg"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
               />
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600 mt-2">
                 {t('closing.controls.viewDayDetails', {
                   date: new Date(selectedDay).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
                     weekday: 'long',
@@ -850,14 +824,14 @@ export default function ClosingPage() {
           ) : viewMode === 'monthly' ? (
             /* اختيار الشهر للعرض الشهري */
             <div>
-              <label className="block text-sm font-medium mb-2">📅 {t('closing.controls.selectMonth')}</label>
+              <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.controls.selectMonth')}</label>
               <input
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-4 py-2 border-2 rounded-lg font-mono text-lg"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
               />
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600 mt-2">
                 {t('closing.controls.viewMonthDetails', {
                   month: new Date(selectedMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })
                 })}
@@ -866,43 +840,43 @@ export default function ClosingPage() {
           ) : viewMode === 'yearly' ? (
             /* اختيار السنة للعرض السنوي */
             <div>
-              <label className="block text-sm font-medium mb-2">📅 {t('closing.controls.selectYear')}</label>
+              <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.controls.selectYear')}</label>
               <input
                 type="number"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 min="2020"
                 max="2030"
-                className="px-4 py-2 border-2 rounded-lg font-mono text-lg"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
               />
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600 mt-2">
                 {t('closing.controls.viewYearDetails', { year: selectedYear })}
               </p>
             </div>
           ) : (
             /* اختيار فترة المقارنة */
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">📅 {t('closing.comparison.startMonth')}</label>
+                  <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.comparison.startMonth')}</label>
                   <input
                     type="month"
                     value={comparisonStartMonth}
                     onChange={(e) => setComparisonStartMonth(e.target.value)}
-                    className="w-full px-4 py-2 border-2 rounded-lg font-mono text-lg"
+                    className="w-full px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">📅 {t('closing.comparison.endMonth')}</label>
+                  <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.comparison.endMonth')}</label>
                   <input
                     type="month"
                     value={comparisonEndMonth}
                     onChange={(e) => setComparisonEndMonth(e.target.value)}
-                    className="w-full px-4 py-2 border-2 rounded-lg font-mono text-lg"
+                    className="w-full px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
                   />
                 </div>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 {t('closing.comparison.periodInfo', {
                   start: new Date(comparisonStartMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
                   end: new Date(comparisonEndMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
@@ -912,24 +886,24 @@ export default function ClosingPage() {
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             <button
               onClick={handlePrint}
-              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+              className="bg-green-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
             >
-              🖨️ {t('closing.buttons.print')}
+              🖨️ <span className="hidden sm:inline">{t('closing.buttons.print')}</span>
             </button>
             <button
               onClick={handleExportExcel}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+              className="bg-blue-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
             >
-              📊 {t('closing.buttons.export')}
+              📊 <span className="hidden sm:inline">{t('closing.buttons.export')}</span>
             </button>
             <button
               onClick={fetchData}
-              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+              className="bg-purple-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
             >
-              🔄 {t('closing.buttons.refresh')}
+              🔄 <span className="hidden sm:inline">{t('closing.buttons.refresh')}</span>
             </button>
           </div>
         </div>
@@ -959,49 +933,49 @@ export default function ClosingPage() {
               {/* Summary Cards for Comparison */}
               {monthlyComparison.length > 0 && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
-                      <p className="text-sm opacity-90">{t('closing.comparison.totalRevenue')}</p>
-                      <p className="text-3xl font-bold">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
+                      <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalRevenue')}</p>
+                      <p className="text-2xl sm:text-3xl font-bold">
                         {monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0).toFixed(0)}
                       </p>
-                      <p className="text-xs opacity-75 mt-2">
+                      <p className="text-[10px] sm:text-xs opacity-75 mt-2">
                         {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0) / monthlyComparison.length).toFixed(0)}
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-lg shadow-lg">
-                      <p className="text-sm opacity-90">{t('closing.comparison.totalExpenses')}</p>
-                      <p className="text-3xl font-bold">
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
+                      <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalExpenses')}</p>
+                      <p className="text-2xl sm:text-3xl font-bold">
                         {monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0).toFixed(0)}
                       </p>
-                      <p className="text-xs opacity-75 mt-2">
+                      <p className="text-[10px] sm:text-xs opacity-75 mt-2">
                         {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0) / monthlyComparison.length).toFixed(0)}
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
-                      <p className="text-sm opacity-90">{t('closing.comparison.totalNetProfit')}</p>
-                      <p className="text-3xl font-bold">
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
+                      <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalNetProfit')}</p>
+                      <p className="text-2xl sm:text-3xl font-bold">
                         {monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0).toFixed(0)}
                       </p>
-                      <p className="text-xs opacity-75 mt-2">
+                      <p className="text-[10px] sm:text-xs opacity-75 mt-2">
                         {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0) / monthlyComparison.length).toFixed(0)}
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
-                      <p className="text-sm opacity-90">{t('closing.comparison.totalSubscriptions')}</p>
-                      <p className="text-3xl font-bold">
+                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
+                      <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalSubscriptions')}</p>
+                      <p className="text-2xl sm:text-3xl font-bold">
                         {monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0)}
                       </p>
-                      <p className="text-xs opacity-75 mt-2">
+                      <p className="text-[10px] sm:text-xs opacity-75 mt-2">
                         {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0) / monthlyComparison.length).toFixed(0)}
                       </p>
                     </div>
                   </div>
 
                   {/* Revenue & Expenses Trend Chart */}
-                  <div className="bg-white p-6 rounded-lg shadow-lg">
-                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.revenueExpensesTrend')}</h3>
-                    <ResponsiveContainer width="100%" height={400}>
+                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-lg">
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4">{t('closing.comparison.revenueExpensesTrend')}</h3>
+                    <ResponsiveContainer width="100%" height={300} className="sm:!h-[350px] md:!h-[400px]">
                       <LineChart data={monthlyComparison}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
@@ -1040,9 +1014,9 @@ export default function ClosingPage() {
                   </div>
 
                   {/* Revenue Breakdown Chart */}
-                  <div className="bg-white p-6 rounded-lg shadow-lg">
-                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.revenueBreakdown')}</h3>
-                    <ResponsiveContainer width="100%" height={400}>
+                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-lg">
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4">{t('closing.comparison.revenueBreakdown')}</h3>
+                    <ResponsiveContainer width="100%" height={300} className="sm:!h-[350px] md:!h-[400px]">
                       <BarChart data={monthlyComparison}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
@@ -1221,71 +1195,71 @@ export default function ClosingPage() {
           ) : (
             <>
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6 no-print">
-            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 rounded-lg shadow-lg">
-              <p className="text-sm opacity-90">{t('closing.stats.totalRevenue')}</p>
-              <p className="text-3xl font-bold">{totals.totalRevenue.toFixed(0)}</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
+            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
+              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalRevenue')}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.totalRevenue.toFixed(0)}</p>
             </div>
-            <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-4 rounded-lg shadow-lg">
-              <p className="text-sm opacity-90">{t('closing.stats.totalExpenses')}</p>
-              <p className="text-3xl font-bold">{totals.expenses.toFixed(0)}</p>
+            <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
+              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalExpenses')}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.expenses.toFixed(0)}</p>
             </div>
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
-              <p className="text-sm opacity-90">{t('closing.stats.netProfit')}</p>
-              <p className="text-3xl font-bold">{totals.netProfit.toFixed(0)}</p>
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
+              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.netProfit')}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.netProfit.toFixed(0)}</p>
             </div>
-            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-4 rounded-lg shadow-lg">
-              <p className="text-sm opacity-90">{t('closing.stats.totalPayments')}</p>
-              <p className="text-3xl font-bold">{totals.totalPayments.toFixed(0)}</p>
+            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
+              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalPayments')}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.totalPayments.toFixed(0)}</p>
             </div>
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-4 rounded-lg shadow-lg">
-              <p className="text-sm opacity-90">{t('closing.stats.numberOfDays')}</p>
-              <p className="text-3xl font-bold">{dailyData.length}</p>
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
+              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.numberOfDays')}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{dailyData.length}</p>
             </div>
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-4 rounded-lg shadow-lg">
-              <p className="text-sm opacity-90">{t('closing.stats.dailyAverage')}</p>
-              <p className="text-3xl font-bold">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
+              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.dailyAverage')}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold">
                 {dailyData.length > 0 ? (totals.totalRevenue / dailyData.length).toFixed(0) : 0}
               </p>
             </div>
           </div>
 
           {/* Payment Methods Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 no-print">
-            <div className="bg-white border-2 border-green-300 p-4 rounded-lg shadow-md">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
+            <div className="bg-white border-2 border-green-300 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">{t('closing.paymentMethods.cash')} 💵</p>
-                  <p className="text-2xl font-bold text-green-600">{totals.cash.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.cash')} 💵</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">{totals.cash.toFixed(0)}</p>
                 </div>
-                <span className="text-4xl">💵</span>
+                <span className="text-2xl sm:text-3xl md:text-4xl">💵</span>
               </div>
             </div>
-            <div className="bg-white border-2 border-blue-300 p-4 rounded-lg shadow-md">
+            <div className="bg-white border-2 border-blue-300 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">{t('closing.paymentMethods.visa')} 💳</p>
-                  <p className="text-2xl font-bold text-blue-600">{totals.visa.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.visa')} 💳</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">{totals.visa.toFixed(0)}</p>
                 </div>
-                <span className="text-4xl">💳</span>
+                <span className="text-2xl sm:text-3xl md:text-4xl">💳</span>
               </div>
             </div>
-            <div className="bg-white border-2 border-purple-300 p-4 rounded-lg shadow-md">
+            <div className="bg-white border-2 border-purple-300 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">{t('closing.paymentMethods.instapay')} 📱</p>
-                  <p className="text-2xl font-bold text-purple-600">{totals.instapay.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.instapay')} 📱</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600">{totals.instapay.toFixed(0)}</p>
                 </div>
-                <span className="text-4xl">📱</span>
+                <span className="text-2xl sm:text-3xl md:text-4xl">📱</span>
               </div>
             </div>
-            <div className="bg-white border-2 border-orange-300 p-4 rounded-lg shadow-md">
+            <div className="bg-white border-2 border-orange-300 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">{t('closing.paymentMethods.wallet')} 💰</p>
-                  <p className="text-2xl font-bold text-orange-600">{totals.wallet.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.wallet')} 💰</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600">{totals.wallet.toFixed(0)}</p>
                 </div>
-                <span className="text-4xl">💰</span>
+                <span className="text-2xl sm:text-3xl md:text-4xl">💰</span>
               </div>
             </div>
           </div>
@@ -1294,7 +1268,14 @@ export default function ClosingPage() {
 
           {/* Excel-like Table */}
           {viewMode !== 'comparison' && (
-            <div className="bg-white rounded-lg shadow-lg overflow-x-auto mb-6">
+            <>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 lg:hidden">
+                <p className="text-xs sm:text-sm text-blue-800 flex items-center gap-2">
+                  <span>👉</span>
+                  <span>اسحب الجدول يميناً ويساراً لرؤية جميع البيانات</span>
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow-lg overflow-x-auto mb-4 sm:mb-6">
               {viewMode === 'daily' ? (
               /* عرض تفاصيل اليوم المحدد مباشرة */
               dailyData.length > 0 ? (
@@ -1520,8 +1501,6 @@ export default function ClosingPage() {
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold">{t('closing.table.date')}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-blue-100">{t('closing.table.floor')}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-100">💰 {direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining'}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">💵 {direction === 'rtl' ? 'باقي كاش' : 'Rem. Cash'}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">💳 {direction === 'rtl' ? 'باقي فيزا' : 'Rem. Visa'}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">📱 {direction === 'rtl' ? 'باقي إنستا' : 'Rem. Insta'}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">💰 {direction === 'rtl' ? 'باقي محفظة' : 'Rem. Wallet'}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-green-100">{t('closing.table.pt')}</th>
@@ -1543,9 +1522,8 @@ export default function ClosingPage() {
               </thead>
               <tbody>
                 {dailyData.map((day, index) => (
-                  <>
+                  <React.Fragment key={day.date}>
                     <tr
-                      key={day.date}
                       className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} cursor-pointer hover:bg-blue-50`}
                       onClick={() => toggleDayDetails(day.date)}
                     >
@@ -1557,12 +1535,6 @@ export default function ClosingPage() {
                       </td>
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600`}>
                         {day.remainingAmount > 0 ? day.remainingAmount.toFixed(0) : '-'}
-                      </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-500`}>
-                        {day.remainingCash > 0 ? day.remainingCash.toFixed(0) : '-'}
-                      </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-500`}>
-                        {day.remainingVisa > 0 ? day.remainingVisa.toFixed(0) : '-'}
                       </td>
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-500`}>
                         {day.remainingInstapay > 0 ? day.remainingInstapay.toFixed(0) : '-'}
@@ -1741,7 +1713,7 @@ export default function ClosingPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
 
                 {/* Totals Row */}
@@ -1752,12 +1724,6 @@ export default function ClosingPage() {
                   </td>
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 text-lg`}>
                     {totals.remainingAmount.toFixed(0)}
-                  </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 text-lg`}>
-                    {totals.remainingCash.toFixed(0)}
-                  </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 text-lg`}>
-                    {totals.remainingVisa.toFixed(0)}
                   </td>
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 text-lg`}>
                     {totals.remainingInstapay.toFixed(0)}
@@ -1818,6 +1784,7 @@ export default function ClosingPage() {
             </table>
               )}
             </div>
+            </>
           )}
         </>
       )}

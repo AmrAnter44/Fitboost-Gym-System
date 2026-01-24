@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import { getGitHubApiUrl } from '../../../lib/config'
 
-const GITHUB_API = 'https://api.github.com/repos/AmrAnter44/sys-Xgym/releases/latest'
+// Get GitHub API URL from centralized config
+const GITHUB_API = getGitHubApiUrl()
 
 export async function GET() {
   try {

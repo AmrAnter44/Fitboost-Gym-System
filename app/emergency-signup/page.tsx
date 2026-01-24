@@ -18,17 +18,8 @@ export default function EmergencySignupPage() {
   })
   const [loading, setLoading] = useState(false)
 
-  // 🔒 غير هذا المفتاح السري لحماية الصفحة
-  const SECRET_KEY = 'GYM_EMERGENCY_2024'
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    // التحقق من المفتاح السري
-    if (formData.secretKey !== SECRET_KEY) {
-      toast.error('المفتاح السري غير صحيح')
-      return
-    }
 
     // التحقق من تطابق كلمة المرور
     if (formData.password !== formData.confirmPassword) {
@@ -99,7 +90,7 @@ export default function EmergencySignupPage() {
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              المفتاح موجود في كود الصفحة
+              المفتاح موجود في ملف .env تحت اسم EMERGENCY_SIGNUP_SECRET
             </p>
           </div>
 

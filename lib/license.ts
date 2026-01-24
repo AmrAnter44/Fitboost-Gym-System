@@ -1,10 +1,11 @@
 import { prisma } from './prisma'
+import { EXTERNAL_LINKS } from './config'
 
 // Expected signature from GitHub
 const EXPECTED_SIGNATURE = 'c78d317d35241b1dae62099a4f69b046d6x5435b'
 
-// GitHub raw URL for license file
-const LICENSE_URL = 'https://raw.githubusercontent.com/AmrAnter44/systems-lock/main/xgym.json'
+// GitHub raw URL for license file (from centralized config)
+const LICENSE_URL = EXTERNAL_LINKS.github.license
 
 interface LicenseFile {
   enabled: boolean

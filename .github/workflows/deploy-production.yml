@@ -1,0 +1,68 @@
+name: Deploy to Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Generate Prisma Client
+      run: npx prisma generate
+
+    - name: Build application
+      run: npm run build
+      env:
+        NODE_ENV: production
+        NEXT_TELEMETRY_DISABLED: 1
+
+    - name: Create deployment info
+      run: |
+        echo "## Deployment Information" > DEPLOYMENT_INFO.md
+        echo "" >> DEPLOYMENT_INFO.md
+        echo "- **Version:** $(node -p "require('./package.json').version")" >> DEPLOYMENT_INFO.md
+        echo "- **Commit:** ${{ github.sha }}" >> DEPLOYMENT_INFO.md
+        echo "- **Date:** $(date)" >> DEPLOYMENT_INFO.md
+        echo "- **Environment:** ${{ github.event.inputs.environment || 'production' }}" >> DEPLOYMENT_INFO.md
+        echo "" >> DEPLOYMENT_INFO.md
+        echo "✅ Build completed successfully!" >> DEPLOYMENT_INFO.md
+
+    - name: Upload deployment info
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-info
+        path: DEPLOYMENT_INFO.md
+
+    # يمكن إضافة خطوات deployment إضافية هنا
+    # مثل: rsync, scp, SSH commands, إلخ
+
+    - name: Deployment completed
+      run: |
+        echo "🚀 Deployment completed successfully!"
+        echo "Environment: ${{ github.event.inputs.environment || 'production' }}"

@@ -61,8 +61,8 @@ export async function POST(request: Request) {
       success: true,
       message: 'تم إنشاء حساب الأدمن بنجاح',
       credentials: {
-        email: adminData.email,
-        password: adminData.password
+        email: adminData.email
+        // Password not included for security - shown on setup page
       }
     })
 

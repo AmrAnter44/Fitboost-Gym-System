@@ -499,42 +499,42 @@ const handleScan = async (staffCode: string) => {
   return (
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       {/* ✅ قسم Scanner للحضور والانصراف */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-2xl p-8 mb-8 text-white">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-2xl p-4 sm:p-8 mb-8 text-white">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">
-              <span className="text-5xl">🔢</span>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
+              <span className="text-4xl sm:text-5xl">🔢</span>
               <span>{t('staff.scanner.title')}</span>
             </h2>
-            <p className="text-blue-100">{t('staff.scanner.subtitle')}</p>
+            <p className="text-blue-100 text-sm sm:text-base">{t('staff.scanner.subtitle')}</p>
           </div>
           {lastScanTime && (
-            <div className="bg-white/20 backdrop-blur px-6 py-3 rounded-xl">
-              <p className="text-sm">{t('staff.scanner.lastScan')}</p>
-              <p className="text-xl font-bold">{lastScanTime.toLocaleTimeString('ar-EG')}</p>
+            <div className="bg-white/20 backdrop-blur px-4 sm:px-6 py-2 sm:py-3 rounded-xl w-full sm:w-auto">
+              <p className="text-xs sm:text-sm">{t('staff.scanner.lastScan')}</p>
+              <p className="text-lg sm:text-xl font-bold">{lastScanTime.toLocaleTimeString('ar-EG')}</p>
             </div>
           )}
         </div>
 
-        <div className="bg-white rounded-xl p-6">
+        <div className="bg-white rounded-xl p-4 sm:p-6">
           <input
             ref={scannerRef}
             type="text"
             value={scannerInput}
             onChange={(e) => setScannerInput(e.target.value)}
             onKeyPress={handleScannerInput}
-            className="w-full px-6 py-6 border-4 border-blue-400 rounded-xl text-4xl font-bold text-center focus:border-blue-600 focus:ring-4 focus:ring-blue-200 transition text-gray-800"
+            className="w-full px-4 sm:px-6 py-4 sm:py-6 border-4 border-blue-400 rounded-xl text-2xl sm:text-4xl font-bold text-center focus:border-blue-600 focus:ring-4 focus:ring-blue-200 transition text-gray-800"
             placeholder={t('staff.scanner.placeholder')}
             autoFocus
           />
-          <p className="text-center text-gray-600 mt-3 text-sm">
+          <p className="text-center text-gray-600 mt-3 text-xs sm:text-sm">
             {t('staff.scanner.hint')}
           </p>
         </div>
 
         {scanMessage && (
           <div
-            className={`mt-4 p-6 rounded-xl text-center font-bold text-2xl animate-pulse ${
+            className={`mt-4 p-4 sm:p-6 rounded-xl text-center font-bold text-lg sm:text-2xl animate-pulse ${
               scanMessage.includes('✅')
                 ? 'bg-green-500'
                 : 'bg-red-500'
@@ -546,29 +546,29 @@ const handleScan = async (staffCode: string) => {
       </div>
 
       {/* ✅ قسم حضور اليوم */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-4 border-green-200">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <h3 className="text-2xl font-bold flex items-center gap-2">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-4 border-green-200">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+            <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
               <span>📊</span>
               <span>{t('staff.attendance.title')}</span>
             </h3>
             <Link
               href="/attendance-report"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition transform hover:scale-105 shadow-lg flex items-center gap-2 text-sm font-bold"
+              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm font-bold"
             >
               <span>📋</span>
               <span>{t('nav.staffAttendance')}</span>
             </Link>
           </div>
-          <div className="flex gap-4">
-            <div className="bg-green-100 px-6 py-3 rounded-xl text-center">
-              <p className="text-sm text-green-700">{t('staff.attendance.presentNow')}</p>
-              <p className="text-3xl font-bold text-green-800">{presentStaff}</p>
+          <div className="flex gap-2 sm:gap-4 w-full lg:w-auto">
+            <div className="flex-1 lg:flex-none bg-green-100 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center">
+              <p className="text-xs sm:text-sm text-green-700">{t('staff.attendance.presentNow')}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-800">{presentStaff}</p>
             </div>
-            <div className="bg-blue-100 px-6 py-3 rounded-xl text-center">
-              <p className="text-sm text-blue-700">{t('staff.attendance.totalPresent')}</p>
-              <p className="text-3xl font-bold text-blue-800">{totalCheckedIn}</p>
+            <div className="flex-1 lg:flex-none bg-blue-100 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center">
+              <p className="text-xs sm:text-sm text-blue-700">{t('staff.attendance.totalPresent')}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-blue-800">{totalCheckedIn}</p>
             </div>
           </div>
         </div>
@@ -717,9 +717,9 @@ const handleScan = async (staffCode: string) => {
       </div>
 
       {/* باقي الصفحة - إدارة الموظفين */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">👥 {t('staff.title')}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">👥 {t('staff.title')}</h1>
 
         </div>
         <button
@@ -727,7 +727,7 @@ const handleScan = async (staffCode: string) => {
             resetForm()
             setShowForm(!showForm)
           }}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition transform hover:scale-105"
+          className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition transform hover:scale-105"
         >
           {showForm ? t('staff.hideForm') : `➕ ${t('staff.addNewStaff')}`}
         </button>
@@ -897,59 +897,59 @@ const handleScan = async (staffCode: string) => {
       )}
 
       {/* الإحصائيات */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-6 shadow-lg">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm mb-1">{t('staff.stats.totalStaff')}</p>
-              <p className="text-4xl font-bold">{staff.length}</p>
+              <p className="text-blue-100 text-xs sm:text-sm mb-1">{t('staff.stats.totalStaff')}</p>
+              <p className="text-2xl sm:text-4xl font-bold">{staff.length}</p>
             </div>
-            <div className="text-5xl opacity-20">👥</div>
+            <div className="text-3xl sm:text-5xl opacity-20">👥</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm mb-1">{t('staff.stats.activeStaff')}</p>
-              <p className="text-4xl font-bold">{staff.filter((s) => s.isActive).length}</p>
+              <p className="text-green-100 text-xs sm:text-sm mb-1">{t('staff.stats.activeStaff')}</p>
+              <p className="text-2xl sm:text-4xl font-bold">{staff.filter((s) => s.isActive).length}</p>
             </div>
-            <div className="text-5xl opacity-20">✅</div>
+            <div className="text-3xl sm:text-5xl opacity-20">✅</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm mb-1">{t('staff.stats.totalSalaries')}</p>
-              <p className="text-3xl font-bold">
+              <p className="text-purple-100 text-xs sm:text-sm mb-1">{t('staff.stats.totalSalaries')}</p>
+              <p className="text-xl sm:text-3xl font-bold">
                 {staff.reduce((sum, s) => sum + (s.salary || 0), 0).toFixed(0)} ج.م
               </p>
             </div>
-            <div className="text-5xl opacity-20">💰</div>
+            <div className="text-3xl sm:text-5xl opacity-20">💰</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-sm mb-1">{t('staff.stats.coaches')}</p>
-              <p className="text-4xl font-bold">{staffByPosition['مدرب'] || 0}</p>
+              <p className="text-orange-100 text-xs sm:text-sm mb-1">{t('staff.stats.coaches')}</p>
+              <p className="text-2xl sm:text-4xl font-bold">{staffByPosition['مدرب'] || 0}</p>
             </div>
-            <div className="text-5xl opacity-20">💪</div>
+            <div className="text-3xl sm:text-5xl opacity-20">💪</div>
           </div>
         </div>
 
         <Link
           href="/expenses"
-          className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg p-6 shadow-lg hover:shadow-2xl transition-all hover:scale-105 active:scale-95"
+          className="col-span-2 sm:col-span-3 lg:col-span-1 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg p-4 sm:p-6 shadow-lg hover:shadow-2xl transition-all hover:scale-105 active:scale-95"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-red-100 text-sm mb-1">{t('staff.loans.title')}</p>
-              <p className="text-xl font-bold">{t('staff.loans.viewInExpenses')}</p>
+              <p className="text-red-100 text-xs sm:text-sm mb-1">{t('staff.loans.title')}</p>
+              <p className="text-lg sm:text-xl font-bold">{t('staff.loans.viewInExpenses')}</p>
             </div>
-            <div className="text-5xl opacity-20">💸</div>
+            <div className="text-3xl sm:text-5xl opacity-20">💸</div>
           </div>
         </Link>
       </div>
@@ -960,7 +960,7 @@ const handleScan = async (staffCode: string) => {
       ) : (
         <>
           {/* Cards للموبايل */}
-          <div className="md:hidden space-y-4">
+          <div className="lg:hidden space-y-4">
             {staff.map((staffMember) => (
               <div
                 key={staffMember.id}
@@ -1071,7 +1071,7 @@ const handleScan = async (staffCode: string) => {
           </div>
 
           {/* الجدول للشاشات الكبيرة */}
-          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gradient-to-r from-gray-100 to-gray-200">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {prisma} from "../../../lib/prisma";
 import { requireValidLicense } from "../../../lib/license";
+import { verifyAuth } from "../../../lib/auth";
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -8,8 +9,17 @@ import {
 } from "../../../lib/paymentHelpers";
 
 // ✅ GET كل العمليات
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
     const dayUses = await prisma.dayUseInBody.findMany({
       orderBy: { id: "desc" },
     });
@@ -23,6 +33,15 @@ export async function GET() {
 // ✅ POST لإضافة يوم استخدام أو InBody + إنشاء إيصال
 export async function POST(request: Request) {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json();
     const { name, phone, serviceType, price, staffName, paymentMethod } = body;
 
@@ -190,6 +209,15 @@ export async function POST(request: Request) {
 // ✅ DELETE حذف إدخال حسب الـ ID
 export async function DELETE(request: Request) {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

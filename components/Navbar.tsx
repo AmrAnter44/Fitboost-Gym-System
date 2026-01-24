@@ -29,6 +29,7 @@ export default function Navbar() {
     { href: '/expenses', label: t('nav.expenses'), icon: '💸', permission: 'canViewExpenses' as keyof Permissions, roleRequired: null },
     { href: '/visitors', label: t('nav.visitors'), icon: '🚶', permission: 'canViewVisitors' as keyof Permissions, roleRequired: null },
     { href: '/followups', label: t('nav.followups'), icon: '📝', permission: 'canViewFollowUps' as keyof Permissions, roleRequired: null },
+    { href: '/spa-bookings', label: t('nav.spaBookings'), icon: '💆', permission: 'canViewSpaBookings' as keyof Permissions, roleRequired: null },
     { href: '/closing', label: t('nav.closing'), icon: '💰', permission: 'canAccessClosing' as keyof Permissions, roleRequired: null },
     { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: null, roleRequired: null },
   ]
@@ -79,7 +80,7 @@ export default function Navbar() {
   return (
     <>
       {/* ✅ Navbar أفقية مع أيقونات عمودية على اليمين */}
-      <nav className="bg-blue-600 text-white shadow-xl sticky top-0 z-40 border-b border-blue-700">
+      <nav className="bg-gray-700 text-white shadow-xl sticky top-0 z-40 border-b border-gray-800">
         <div className="w-full px-2 sm:px-4 relative z-10">
           <div className="flex items-center justify-between gap-2">
             {/* Logo + Hamburger Menu - على اليسار */}
@@ -91,7 +92,7 @@ export default function Navbar() {
                 title={t('nav.home')}
               >
                 <img
-                  src="/assets/icon.png"
+                  src="/icon.png"
                   alt="Home"
                   className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-2xl"
                 />
@@ -123,7 +124,7 @@ export default function Navbar() {
                   <span className="text-sm xl:text-base font-bold whitespace-nowrap">{link.label}</span>
                   {/* Update badge for Settings */}
                   {link.href === '/settings' && updateAvailable && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-blue-600 animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-gray-700 animate-pulse"></span>
                   )}
                 </Link>
               ))}
@@ -156,11 +157,11 @@ export default function Navbar() {
                       {/* Menu */}
                       <div
                         dir={locale === 'ar' ? 'rtl' : 'ltr'}
-                        className={`absolute mt-2 w-64 bg-white/95 backdrop-blur-lg rounded-xl shadow-2xl overflow-hidden z-40 border-2 border-blue-500/50 ${
+                        className={`absolute mt-2 w-64 bg-white/95 backdrop-blur-lg rounded-xl shadow-2xl overflow-hidden z-40 border-2 border-gray-500/50 ${
                           locale === 'ar' ? 'left-0' : 'right-0'
                         }`}>
                         {/* User Info */}
-                        <div className="bg-blue-600 text-white p-4">
+                        <div className="bg-gray-700 text-white p-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center font-bold text-lg">
                               {user.name.charAt(0).toUpperCase()}
@@ -179,7 +180,7 @@ export default function Navbar() {
                             <Link
                               href="/admin/users"
                               onClick={() => setShowUserMenu(false)}
-                              className={`px-4 py-3 text-gray-700 hover:bg-blue-50/80 transition-all flex items-center gap-2 ${
+                              className={`px-4 py-3 text-gray-700 hover:bg-gray-100/80 transition-all flex items-center gap-2 ${
                                 locale === 'ar' ? 'hover:translate-x-1' : 'hover:-translate-x-1'
                               }`}
                             >
@@ -187,6 +188,9 @@ export default function Navbar() {
                               <span>{t('auth.manageUsers')}</span>
                             </Link>
                           )}
+
+                          {/* Separator before logout */}
+                          <div className="border-t border-gray-200 my-1" />
 
                           <button
                             onClick={handleLogout}
@@ -227,15 +231,14 @@ export default function Navbar() {
           />
 
           {/* Drawer */}
-          <div className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto border-blue-500 ${
+          <div className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto border-gray-500 ${
             locale === 'ar'
               ? 'right-0 animate-slideRight border-l-4'
               : 'left-0 animate-slideLeft border-r-4'
           }`}>
             {/* Header */}
-            <div className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0">
+            <div className="bg-gray-700 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
               <div className="flex items-center gap-3">
-                <img src='/icon.png' alt="logo" className='w-8 h-8'/>
                 <span className="font-bold text-xl">{t('nav.menu')}</span>
               </div>
               <button
@@ -257,7 +260,7 @@ export default function Navbar() {
                   onClick={() => setShowDrawer(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:translate-x-2 relative ${
                     pathname === link.href
-                      ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 font-bold shadow-md border-r-4 border-blue-500'
+                      ? 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 font-bold shadow-md border-r-4 border-gray-500'
                       : 'text-gray-700 hover:bg-gray-100/80'
                   }`}
                 >
@@ -276,7 +279,7 @@ export default function Navbar() {
               <div className="p-4 border-t mt-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                    <div className="w-12 h-12 bg-gray-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div>

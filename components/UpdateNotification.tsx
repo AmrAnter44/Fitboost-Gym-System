@@ -204,11 +204,6 @@ export default function UpdateNotification() {
               <p className="font-bold mb-1 text-xl">
                 {direction === 'rtl' ? 'أنت تستخدم أحدث إصدار! 🎉' : 'You\'re up to date! 🎉'}
               </p>
-              <p className="text-sm opacity-90">
-                {direction === 'rtl'
-                  ? `النسخة ${currentVersion} هي أحدث إصدار متاح`
-                  : `Version ${currentVersion} is the latest available`}
-              </p>
             </div>
             <button
               onClick={() => setIsUpToDate(false)}
@@ -235,22 +230,6 @@ export default function UpdateNotification() {
               <p className="font-bold mb-1 text-xl">
                 {direction === 'rtl' ? 'تحديث جديد متاح!' : 'New Update Available!'}
               </p>
-
-              {/* Current vs Latest */}
-              <div className="bg-white/20 rounded-lg p-3 mb-3 backdrop-blur-sm">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs opacity-90">
-                    {direction === 'rtl' ? 'الإصدار الحالي:' : 'Current:'}
-                  </span>
-                  <span className="font-bold">{currentVersion}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs opacity-90">
-                    {direction === 'rtl' ? 'الإصدار الجديد:' : 'Latest:'}
-                  </span>
-                  <span className="font-bold text-yellow-200">{updateInfo.version}</span>
-                </div>
-              </div>
 
               {/* Release Date */}
               {updateInfo.releaseDate && (

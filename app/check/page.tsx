@@ -160,7 +160,7 @@ export default function CheckMembershipPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <img src='/icon.png' alt="logo" className='w-12 h-12 sm:w-16 sm:h-16'/>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-600">X GYM</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-600">Gym System</h1>
           </div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2">
             🔍 {t('attendance.verifyMembership')}

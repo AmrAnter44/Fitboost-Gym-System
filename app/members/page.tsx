@@ -1,7 +1,7 @@
 // app/members/page.tsx - إصلاح الأرقام العشرية
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
@@ -92,7 +92,6 @@ export default function MembersPage() {
     staleTime: 2 * 60 * 1000, // البيانات تعتبر fresh لمدة دقيقتين
   })
 
-  const [filteredMembers, setFilteredMembers] = useState<Member[]>([])
   const [showForm, setShowForm] = useState(false)
 
   // سجل الحضور
@@ -101,7 +100,7 @@ export default function MembersPage() {
   const [attendanceSummary, setAttendanceSummary] = useState<any[]>([])
   const [attendanceStartDate, setAttendanceStartDate] = useState(() => {
     const date = new Date()
-    date.setDate(date.getDate() - 30) // آخر 30 يوم
+    date.setDate(date.getDate() - 30)
     return date.toISOString().split('T')[0]
   })
   const [attendanceEndDate, setAttendanceEndDate] = useState(() => {
@@ -127,6 +126,85 @@ export default function MembersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
 
+  // استخدام useMemo بدل useState للـ filteredMembers لتجنب infinite loop
+  const filteredMembers = useMemo(() => {
+    let filtered = membersData
+
+    if (searchId || searchName || searchPhone) {
+      filtered = filtered.filter((member) => {
+        const idMatch = searchId
+          ? member.memberNumber === parseInt(searchId) || member.memberNumber.toString() === searchId
+          : true
+
+        const nameMatch = searchName
+          ? member.name.toLowerCase().includes(searchName.toLowerCase())
+          : true
+
+        const phoneMatch = searchPhone
+          ? member.phone.includes(searchPhone)
+          : true
+
+        return idMatch && nameMatch && phoneMatch
+      })
+    }
+
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter((member) => {
+        const isExpired = member.expiryDate ? new Date(member.expiryDate) < new Date() : false
+        const daysRemaining = calculateRemainingDays(member.expiryDate)
+        const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
+
+        if (filterStatus === 'expired') {
+          return isExpired
+        } else if (filterStatus === 'expiring-soon') {
+          return isExpiringSoon
+        } else if (filterStatus === 'active') {
+          return member.isActive && !isExpired
+        } else if (filterStatus === 'has-remaining') {
+          return member.remainingAmount > 0
+        }
+        return true
+      })
+    }
+
+    if (filterPackage !== 'all') {
+      filtered = filtered.filter((member) => {
+        if (!member.startDate || !member.expiryDate) return false
+
+        const start = new Date(member.startDate)
+        const expiry = new Date(member.expiryDate)
+        const diffDays = Math.round((expiry.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+
+        if (filterPackage === 'month') {
+          return diffDays >= 25 && diffDays <= 35
+        } else if (filterPackage === '3-months') {
+          return diffDays >= 85 && diffDays <= 95
+        } else if (filterPackage === '6-months') {
+          return diffDays >= 165 && diffDays <= 195
+        } else if (filterPackage === 'year') {
+          return diffDays >= 330 && diffDays <= 395
+        }
+        return true
+      })
+    }
+
+    if (specificDate) {
+      filtered = filtered.filter((member) => {
+        if (!member.expiryDate) return false
+        const expiryDate = new Date(member.expiryDate)
+        const selectedDate = new Date(specificDate)
+
+        return (
+          expiryDate.getFullYear() === selectedDate.getFullYear() &&
+          expiryDate.getMonth() === selectedDate.getMonth() &&
+          expiryDate.getDate() === selectedDate.getDate()
+        )
+      })
+    }
+
+    return filtered
+  }, [searchId, searchName, searchPhone, filterStatus, filterPackage, specificDate, membersData])
+
   // ✅ معالجة أخطاء الأعضاء
   useEffect(() => {
     if (membersError) {
@@ -142,11 +220,6 @@ export default function MembersPage() {
       }
     }
   }, [membersError, toast, router])
-
-  // ✅ تحديث filtered members عند تغيير البيانات
-  useEffect(() => {
-    setFilteredMembers(membersData)
-  }, [membersData])
 
   const fetchAttendanceSummary = async () => {
     setAttendanceLoading(true)
@@ -234,85 +307,10 @@ export default function MembersPage() {
     fetchLastReceipts()
   }, [])
 
+  // إعادة تعيين الصفحة عند تغيير الفلاتر (مش البيانات)
   useEffect(() => {
-    let filtered = membersData
-
-    if (searchId || searchName || searchPhone) {
-      filtered = filtered.filter((member) => {
-        // ✅ بحث دقيق برقم العضوية (exact match)
-        const idMatch = searchId
-          ? member.memberNumber === parseInt(searchId) || member.memberNumber.toString() === searchId
-          : true
-
-        const nameMatch = searchName
-          ? member.name.toLowerCase().includes(searchName.toLowerCase())
-          : true
-
-        const phoneMatch = searchPhone
-          ? member.phone.includes(searchPhone)
-          : true
-
-        return idMatch && nameMatch && phoneMatch
-      })
-    }
-
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter((member) => {
-        const isExpired = member.expiryDate ? new Date(member.expiryDate) < new Date() : false
-        const daysRemaining = calculateRemainingDays(member.expiryDate)
-        const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
-
-        if (filterStatus === 'expired') {
-          return isExpired
-        } else if (filterStatus === 'expiring-soon') {
-          return isExpiringSoon
-        } else if (filterStatus === 'active') {
-          return member.isActive && !isExpired
-        } else if (filterStatus === 'has-remaining') {
-          return member.remainingAmount > 0
-        }
-        return true
-      })
-    }
-
-    if (filterPackage !== 'all') {
-      filtered = filtered.filter((member) => {
-        if (!member.startDate || !member.expiryDate) return false
-
-        const start = new Date(member.startDate)
-        const expiry = new Date(member.expiryDate)
-        const diffDays = Math.round((expiry.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-
-        if (filterPackage === 'month') {
-          return diffDays >= 25 && diffDays <= 35
-        } else if (filterPackage === '3-months') {
-          return diffDays >= 85 && diffDays <= 95
-        } else if (filterPackage === '6-months') {
-          return diffDays >= 165 && diffDays <= 195
-        } else if (filterPackage === 'year') {
-          return diffDays >= 330 && diffDays <= 395
-        }
-        return true
-      })
-    }
-
-    if (specificDate) {
-      filtered = filtered.filter((member) => {
-        if (!member.expiryDate) return false
-        const expiryDate = new Date(member.expiryDate)
-        const selectedDate = new Date(specificDate)
-
-        return (
-          expiryDate.getFullYear() === selectedDate.getFullYear() &&
-          expiryDate.getMonth() === selectedDate.getMonth() &&
-          expiryDate.getDate() === selectedDate.getDate()
-        )
-      })
-    }
-
-    setFilteredMembers(filtered)
-    setCurrentPage(1) // إعادة تعيين الصفحة للأولى عند الفلترة
-  }, [searchId, searchName, searchPhone, filterStatus, filterPackage, specificDate, membersData])
+    setCurrentPage(1)
+  }, [searchId, searchName, searchPhone, filterStatus, filterPackage, specificDate])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
@@ -414,11 +412,11 @@ export default function MembersPage() {
   return (
     <div className="container mx-auto p-6" dir={direction}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-3xl font-bold">{t('members.managementTitle')}</h1>
-        <div className="flex gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold">{t('members.managementTitle')}</h1>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <Link
             href="/member-attendance"
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition transform hover:scale-105 shadow-lg flex items-center gap-2 text-sm font-bold"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
           >
             <span>🏋️</span>
             <span>{t('nav.memberAttendance')}</span>
@@ -428,14 +426,14 @@ export default function MembersPage() {
               setShowAttendanceModal(true)
               fetchAttendanceSummary()
             }}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+            className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
           >
             <span>📊</span>
             <span>{t('members.attendanceLog')}</span>
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-bold"
           >
             {showForm ? t('members.hideForm') : t('members.addMember')}
           </button>

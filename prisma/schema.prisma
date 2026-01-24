@@ -31,6 +31,7 @@ model Member {
   checkIns             MemberCheckIn[]
   fitnessTest          FitnessTest?
   fitnessTestRequests  FitnessTestRequest[]
+  spaBookings          SpaBooking[]
   coach                Staff?       @relation("CoachMembers", fields: [coachId], references: [id], onDelete: SetNull)
 
   @@index([coachId])
@@ -127,11 +128,27 @@ model FollowUp {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   salesName        String?
+
+  // New fields for enhanced tracking
+  assignedTo       String?      // Staff ID assigned to this followup
+  priority         String?      // 'high', 'medium', 'low'
+  stage            String       @default("new") // Pipeline stage
+  lastContactedAt  DateTime?    // Last contact timestamp
+  contactCount     Int          @default(0)   // Number of contact attempts
+  archived         Boolean      @default(false) // Soft delete for converted
+  archivedAt       DateTime?    // When archived
+  archivedReason   String?      // Why archived ('converted', 'renewed', 'manual')
+
   visitor          Visitor   @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  assignedStaff    Staff?    @relation("FollowUpAssignments", fields: [assignedTo], references: [id], onDelete: SetNull)
+  activities       FollowUpActivity[]
 
   @@index([visitorId])
   @@index([nextFollowUpDate])
   @@index([contacted])
+  @@index([assignedTo])
+  @@index([stage])
+  @@index([archived])
 }
 
 model Receipt {
@@ -200,6 +217,8 @@ model Staff {
   rotations           Rotation[]
   commissions         Commission[]
   members             Member[]       @relation("CoachMembers")
+  followUpAssignments FollowUp[]     @relation("FollowUpAssignments")
+  followUpActivities  FollowUpActivity[]
 
   @@index([staffCode])
 }
@@ -271,6 +290,7 @@ model User {
   staffId      String?       @unique
   activityLogs ActivityLog[]
   permissions  Permission?
+  spaBookings  SpaBooking[]
   staff        Staff?        @relation(fields: [staffId], references: [id])
 }
 
@@ -317,6 +337,11 @@ model Permission {
   canAccessAdmin          Boolean @default(false)
   canCreateFitnessTest    Boolean @default(false)
   canViewFitnessTests     Boolean @default(false)
+  canViewSpaBookings      Boolean @default(false)
+  canCreateSpaBooking     Boolean @default(false)
+  canEditSpaBooking       Boolean @default(false)
+  canCancelSpaBooking     Boolean @default(false)
+  canViewSpaReports       Boolean @default(false)
   user                    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -402,10 +427,107 @@ model Rotation {
   @@index([dayOfWeek])
 }
 
+model FollowUpActivity {
+  id           String    @id @default(cuid())
+  followUpId   String
+  activityType String    // 'call', 'whatsapp', 'visit', 'note', 'stage_change', 'assignment'
+  notes        String?
+  createdBy    String
+  createdAt    DateTime  @default(now())
+
+  followUp     FollowUp  @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  staff        Staff     @relation(fields: [createdBy], references: [id])
+
+  @@index([followUpId])
+  @@index([createdAt])
+}
+
 model LicenseValidation {
   id            String   @id @default("singleton")
   isValid       Boolean  @default(true)
   lastCheckedAt DateTime @default(now())
   errorMessage  String?
   signature     String?
+}
+
+// 🔒 Audit Logging System
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  userEmail    String?
+  userName     String?
+  userRole     String?
+  action       String   // LOGIN, LOGOUT, CREATE, UPDATE, DELETE, ACCESS_DENIED, etc.
+  resource     String   // Member, Staff, Receipt, User, etc.
+  resourceId   String?
+  details      String?  // JSON string with additional details
+  ipAddress    String?
+  userAgent    String?
+  status       String   @default("success") // success, failure, warning
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// 🟢 Active Sessions Tracking
+model ActiveSession {
+  id            String   @id @default(cuid())
+  userId        String
+  userEmail     String
+  userName      String
+  userRole      String
+  loginAt       DateTime @default(now())
+  lastActivityAt DateTime @default(now())
+  ipAddress     String?
+  userAgent     String?
+  isActive      Boolean  @default(true)
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([loginAt])
+  @@index([lastActivityAt])
+}
+
+// 💆 SPA Booking System
+model SpaBooking {
+  id              String    @id @default(cuid())
+
+  // معلومات العضو
+  memberId        String
+  memberName      String
+  memberPhone     String?
+
+  // معلومات الحجز
+  serviceType     String    // 'massage', 'sauna', 'jacuzzi'
+  bookingDate     DateTime  // تاريخ الحجز
+  bookingTime     String    // وقت البدء "10:00"
+  duration        Int       // المدة بالدقائق (30, 60, 90)
+
+  // الحالة
+  status          String    @default("pending")  // pending, confirmed, completed, cancelled
+
+  // ملاحظات
+  notes           String?
+
+  // من قام بالحجز
+  createdBy       String    // اسم الموظف/المدير
+  createdByUserId String?   // ID المستخدم (اختياري)
+
+  // التواريخ
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // العلاقات
+  member          Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  user            User?     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([memberId])
+  @@index([bookingDate])
+  @@index([status])
+  @@index([serviceType])
 }

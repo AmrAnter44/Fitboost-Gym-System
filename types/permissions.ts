@@ -30,8 +30,10 @@ export interface Permissions {
 
   // صلاحيات الإيصالات
   canViewReceipts: boolean
+  canCreateReceipts: boolean
   canEditReceipts: boolean
   canDeleteReceipts: boolean
+  canCancelReceipts: boolean
 
   // صلاحيات المصروفات
   canViewExpenses: boolean
@@ -70,6 +72,13 @@ export interface Permissions {
   // صلاحيات اختبار اللياقة
   canCreateFitnessTest: boolean
   canViewFitnessTests: boolean
+
+  // صلاحيات SPA
+  canViewSpaBookings: boolean
+  canCreateSpaBooking: boolean
+  canEditSpaBooking: boolean
+  canCancelSpaBooking: boolean
+  canViewSpaReports: boolean
 }
 
 /**
@@ -145,8 +154,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditStaff: true,
     canDeleteStaff: true,
     canViewReceipts: true,
+    canCreateReceipts: true,
     canEditReceipts: true,
     canDeleteReceipts: true,
+    canCancelReceipts: true,
     canViewExpenses: true,
     canCreateExpense: true,
     canEditExpense: true,
@@ -171,6 +182,11 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessAdmin: true,
     canCreateFitnessTest: true,
     canViewFitnessTests: true,
+    canViewSpaBookings: true,
+    canCreateSpaBooking: true,
+    canEditSpaBooking: true,
+    canCancelSpaBooking: true,
+    canViewSpaReports: true,
   },
   MANAGER: {
     canViewMembers: true,
@@ -187,8 +203,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditStaff: false,
     canDeleteStaff: false,
     canViewReceipts: true,
+    canCreateReceipts: true,
     canEditReceipts: true,
     canDeleteReceipts: false,
+    canCancelReceipts: true,
     canViewExpenses: true,
     canCreateExpense: true,
     canEditExpense: true,
@@ -213,6 +231,11 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessAdmin: false,
     canCreateFitnessTest: false,
     canViewFitnessTests: true,
+    canViewSpaBookings: true,
+    canCreateSpaBooking: true,
+    canEditSpaBooking: true,
+    canCancelSpaBooking: true,
+    canViewSpaReports: true,
   },
   STAFF: {
     canViewMembers: true,
@@ -229,8 +252,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditStaff: false,
     canDeleteStaff: false,
     canViewReceipts: true,
+    canCreateReceipts: false,
     canEditReceipts: false,
     canDeleteReceipts: false,
+    canCancelReceipts: false,
     canViewExpenses: false,
     canCreateExpense: false,
     canEditExpense: false,
@@ -255,6 +280,11 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessAdmin: false,
     canCreateFitnessTest: false,
     canViewFitnessTests: false,
+    canViewSpaBookings: true,
+    canCreateSpaBooking: true,
+    canEditSpaBooking: false,
+    canCancelSpaBooking: false,
+    canViewSpaReports: false,
   },
   COACH: {
     // الكوتش يرى فقط حصصه الخاصة
@@ -272,8 +302,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditStaff: false,
     canDeleteStaff: false,
     canViewReceipts: false,
+    canCreateReceipts: false,
     canEditReceipts: false,
     canDeleteReceipts: false,
+    canCancelReceipts: false,
     canViewExpenses: false,
     canCreateExpense: false,
     canEditExpense: false,
@@ -298,6 +330,11 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessAdmin: false,
     canCreateFitnessTest: true,
     canViewFitnessTests: true,
+    canViewSpaBookings: false,
+    canCreateSpaBooking: false,
+    canEditSpaBooking: false,
+    canCancelSpaBooking: false,
+    canViewSpaReports: false,
   },
 }
 
@@ -319,8 +356,10 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditStaff: 'تعديل موظف',
   canDeleteStaff: 'حذف موظف',
   canViewReceipts: 'عرض الإيصالات',
+  canCreateReceipts: 'إضافة إيصال',
   canEditReceipts: 'تعديل إيصال',
   canDeleteReceipts: 'حذف إيصال',
+  canCancelReceipts: 'إلغاء إيصال',
   canViewExpenses: 'عرض المصروفات',
   canCreateExpense: 'إضافة مصروف',
   canEditExpense: 'تعديل مصروف',
@@ -345,6 +384,11 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canAccessAdmin: 'الوصول للوحة الإدارة',
   canCreateFitnessTest: 'إنشاء اختبار لياقة',
   canViewFitnessTests: 'عرض اختبارات اللياقة',
+  canViewSpaBookings: 'عرض حجوزات SPA',
+  canCreateSpaBooking: 'إنشاء حجز SPA',
+  canEditSpaBooking: 'تعديل حجز SPA',
+  canCancelSpaBooking: 'إلغاء حجز SPA',
+  canViewSpaReports: 'عرض تقارير SPA',
 }
 
 /**
@@ -383,8 +427,10 @@ export const PERMISSION_GROUPS = {
     label: '🧾 الإيصالات',
     permissions: [
       'canViewReceipts',
+      'canCreateReceipts',
       'canEditReceipts',
       'canDeleteReceipts',
+      'canCancelReceipts',
     ] as Array<keyof Permissions>,
   },
   expenses: {
@@ -446,6 +492,16 @@ export const PERMISSION_GROUPS = {
       'canViewFitnessTests',
     ] as Array<keyof Permissions>,
   },
+  spa: {
+    label: '💆 SPA Bookings',
+    permissions: [
+      'canViewSpaBookings',
+      'canCreateSpaBooking',
+      'canEditSpaBooking',
+      'canCancelSpaBooking',
+      'canViewSpaReports',
+    ] as Array<keyof Permissions>,
+  },
 }
 
 /**
@@ -466,8 +522,10 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canEditStaff: '✏️',
   canDeleteStaff: '🗑️',
   canViewReceipts: '👁️',
+  canCreateReceipts: '➕',
   canEditReceipts: '✏️',
   canDeleteReceipts: '🗑️',
+  canCancelReceipts: '❌',
   canViewExpenses: '👁️',
   canCreateExpense: '➕',
   canEditExpense: '✏️',
@@ -492,6 +550,11 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canAccessAdmin: '👨‍💼',
   canCreateFitnessTest: '➕',
   canViewFitnessTests: '👁️',
+  canViewSpaBookings: '👁️',
+  canCreateSpaBooking: '➕',
+  canEditSpaBooking: '✏️',
+  canCancelSpaBooking: '❌',
+  canViewSpaReports: '📊',
 }
 
 /**

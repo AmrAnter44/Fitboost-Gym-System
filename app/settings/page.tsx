@@ -7,6 +7,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { useDeviceSettings } from '../../contexts/DeviceSettingsContext'
 import LinkModal from '../../components/LinkModal'
 import { Html5Qrcode } from 'html5-qrcode'
+import { EXTERNAL_LINKS } from '../../lib/config'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -21,12 +22,17 @@ export default function SettingsPage() {
   const [updateError, setUpdateError] = useState<string | null>(null)
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false)
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [isElectron, setIsElectron] = useState(false)
 
   // Auto-detection states
   const [isDetecting, setIsDetecting] = useState(false)
   const [detectionInput, setDetectionInput] = useState('')
 
   useEffect(() => {
+    // Check if running in Electron
+    if (typeof window !== 'undefined') {
+      setIsElectron(!!(window as any).electron?.isElectron)
+    }
     checkAuth()
   }, [])
 
@@ -363,38 +369,38 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6" dir={direction}>
-      <div className="bg-white rounded-2xl shadow-lg p-8">
+    <div className="max-w-4xl mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8">
         {/* العنوان */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2 sm:gap-3">
             <span>⚙️</span>
             <span>{t('settings.title')}</span>
           </h1>
-          <p className="text-gray-600 mt-2">{t('settings.systemSettings')}</p>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">{t('settings.systemSettings')}</p>
         </div>
 
         {/* قسم إدارة المستخدمين */}
         {user?.role === 'ADMIN' && (
-          <div className="border-t pt-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+          <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
               <span>👑</span>
               <span>{t('settings.adminSettings')}</span>
             </h2>
 
-            <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-6 border-2 border-red-200 mb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">
+            <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-4 sm:p-6 border-2 border-red-200 mb-3 sm:mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                <div className="flex-1">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">
                     {t('dashboard.manageUsers')}
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {t('settings.manageUsersDescription')}
                   </p>
                 </div>
                 <Link
                   href="/admin/users"
-                  className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-bold flex items-center gap-2 transition-colors"
+                  className="bg-red-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-red-700 font-bold flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
                 >
                   <span>👥</span>
                   <span>{t('settings.goToUsers')}</span>
@@ -402,13 +408,13 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-6 border-2 border-orange-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">
+            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 sm:p-6 border-2 border-orange-200 mb-3 sm:mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                <div className="flex-1">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">
                     {t('nav.offers')}
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {t('settings.offersDescription')}
                   </p>
                 </div>
@@ -421,39 +427,59 @@ export default function SettingsPage() {
                 </Link>
               </div>
             </div>
+
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border-2 border-blue-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                <div className="flex-1">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">
+                    {t('settings.auditLogsTitle')}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    {t('settings.auditLogsDescription')}
+                  </p>
+                </div>
+                <Link
+                  href="/admin/audit"
+                  className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 font-bold flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
+                >
+                  <span>🔒</span>
+                  <span>{t('settings.viewAuditLogs')}</span>
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 
         {/* قسم اللغة */}
-        <div className="border-t pt-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+        <div className="border-t pt-4 sm:pt-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
             <span>🌐</span>
             <span>{t('settings.languageSettings')}</span>
           </h2>
 
-          <div className="bg-gray-50 rounded-xl p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+          <div className="bg-gray-50 rounded-xl p-4 sm:p-6">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-3">
               {t('settings.currentLanguage')}
             </label>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {/* زر العربية */}
               <button
                 onClick={() => handleLanguageChange('ar')}
-                className={`p-4 rounded-xl border-2 transition-all ${
+                className={`p-3 sm:p-4 rounded-xl border-2 transition-all ${
                   locale === 'ar'
                     ? 'border-blue-500 bg-blue-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">🇸🇦</span>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="text-2xl sm:text-3xl">🇸🇦</span>
                   <div className="text-right flex-1">
-                    <div className="font-bold text-lg">العربية</div>
-                    <div className="text-sm text-gray-600">Arabic</div>
+                    <div className="font-bold text-base sm:text-lg">العربية</div>
+                    <div className="text-xs sm:text-sm text-gray-600">Arabic</div>
                   </div>
                   {locale === 'ar' && (
-                    <span className="text-blue-500 text-xl">✓</span>
+                    <span className="text-blue-500 text-lg sm:text-xl">✓</span>
                   )}
                 </div>
               </button>
@@ -461,48 +487,49 @@ export default function SettingsPage() {
               {/* زر الإنجليزية */}
               <button
                 onClick={() => handleLanguageChange('en')}
-                className={`p-4 rounded-xl border-2 transition-all ${
+                className={`p-3 sm:p-4 rounded-xl border-2 transition-all ${
                   locale === 'en'
                     ? 'border-blue-500 bg-blue-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">🇬🇧</span>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="text-2xl sm:text-3xl">🇬🇧</span>
                   <div className="text-left flex-1">
-                    <div className="font-bold text-lg">English</div>
-                    <div className="text-sm text-gray-600">الإنجليزية</div>
+                    <div className="font-bold text-base sm:text-lg">English</div>
+                    <div className="text-xs sm:text-sm text-gray-600">الإنجليزية</div>
                   </div>
                   {locale === 'en' && (
-                    <span className="text-blue-500 text-xl">✓</span>
+                    <span className="text-blue-500 text-lg sm:text-xl">✓</span>
                   )}
                 </div>
               </button>
             </div>
 
             {/* رسالة معلومات */}
-            <div className="mt-4 p-3 bg-blue-100 border border-blue-300 rounded-lg text-blue-800 text-sm">
+            <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-blue-100 border border-blue-300 rounded-lg text-blue-800 text-xs sm:text-sm">
               ℹ️ {t('settings.languageChangedSuccessfully')}
             </div>
           </div>
         </div>
 
-        {/* قسم إعدادات الباركود سكانر */}
-        <div className="border-t pt-6 mt-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+        {/* قسم إعدادات الباركود سكانر - Electron only */}
+        {isElectron && (
+        <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
             <span>📷</span>
             <span>{t('settings.barcodeScanner')}</span>
           </h2>
 
-          <div className="bg-gray-50 rounded-xl p-6">
+          <div className="bg-gray-50 rounded-xl p-4 sm:p-6">
             {/* Auto-Scan Toggle */}
-            <div className="mb-4 p-4 bg-white rounded-lg border-2 border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-1">
+            <div className="mb-4 p-3 sm:p-4 bg-white rounded-lg border-2 border-gray-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-800 mb-1 text-sm sm:text-base">
                     {t('settings.autoScanEnabled')}
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {locale === 'ar'
                       ? 'تفعيل المسح التلقائي للباركود عند الإدخال'
                       : 'Enable automatic barcode scanning on input'
@@ -511,15 +538,14 @@ export default function SettingsPage() {
                 </div>
                 <button
                   onClick={() => setAutoScanEnabled(!autoScanEnabled)}
-                  className={`relative w-16 h-8 rounded-full transition-colors ${
+                  className={`relative w-14 sm:w-16 h-7 sm:h-8 rounded-full transition-colors flex-shrink-0 ${
                     autoScanEnabled ? 'bg-green-500' : 'bg-gray-300'
                   }`}
+                  style={{ direction: 'ltr' }}
                 >
                   <div
-                    className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
-                      autoScanEnabled
-                        ? (locale === 'ar' ? 'translate-x-1' : 'translate-x-8')
-                        : (locale === 'ar' ? 'translate-x-8' : 'translate-x-1')
+                    className={`absolute top-0.5 sm:top-1 w-6 h-6 sm:h-6 bg-white rounded-full shadow-md transition-all duration-200 ${
+                      autoScanEnabled ? 'left-7 sm:left-8' : 'left-0.5 sm:left-1'
                     }`}
                   />
                 </button>
@@ -528,14 +554,14 @@ export default function SettingsPage() {
 
             {/* Strict Mode Toggle */}
             {selectedScanner && (
-              <div className="mb-6 p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border-2 border-amber-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border-2 border-amber-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2 text-sm sm:text-base">
                       <span>🔒</span>
                       <span>{locale === 'ar' ? 'وضع العزل الكامل' : 'Strict Isolation Mode'}</span>
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       {locale === 'ar'
                         ? 'عزل الجهاز تماماً - كل الكتابة منه تروح للبحث فقط'
                         : 'Complete device isolation - all input goes to search only'
@@ -544,15 +570,14 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={() => setStrictMode(!strictMode)}
-                    className={`relative w-16 h-8 rounded-full transition-colors ${
+                    className={`relative w-14 sm:w-16 h-7 sm:h-8 rounded-full transition-colors flex-shrink-0 ${
                       strictMode ? 'bg-amber-500' : 'bg-gray-300'
                     }`}
+                    style={{ direction: 'ltr' }}
                   >
                     <div
-                      className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
-                        strictMode
-                          ? (locale === 'ar' ? 'translate-x-1' : 'translate-x-8')
-                          : (locale === 'ar' ? 'translate-x-8' : 'translate-x-1')
+                      className={`absolute top-0.5 sm:top-1 w-6 h-6 sm:h-6 bg-white rounded-full shadow-md transition-all duration-200 ${
+                        strictMode ? 'left-7 sm:left-8' : 'left-0.5 sm:left-1'
                       }`}
                     />
                   </button>
@@ -562,24 +587,24 @@ export default function SettingsPage() {
 
 
             {/* Device Selector */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+            <div className="mb-3 sm:mb-4">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
                 {t('settings.selectDevice')}
               </label>
 
               {loadingDevices && (
-                <div className="p-4 bg-blue-50 rounded-xl text-blue-700 text-center">
+                <div className="p-3 sm:p-4 bg-blue-50 rounded-xl text-blue-700 text-center text-sm">
                   <span className="animate-spin inline-block">⏳</span> {locale === 'ar' ? 'جاري الكشف عن الأجهزة...' : 'Detecting devices...'}
                 </div>
               )}
 
               {!loadingDevices && (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   <select
                     key={`scanner-select-${selectedScanner || 'none'}`}
                     value={selectedScanner || 'none'}
                     onChange={(e) => handleDeviceChange(e.target.value)}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                    className="w-full p-2.5 sm:p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-sm sm:text-base"
                   >
                     <option value="none">{t('settings.defaultDevice')}</option>
                     {devices.map((device) => (
@@ -591,22 +616,23 @@ export default function SettingsPage() {
 
                   <button
                     onClick={detectDevices}
-                    className="text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold flex items-center gap-2 px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                    className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
                   >
                     <span>🔍</span>
-                    <span>{locale === 'ar' ? 'اكتشف جميع الأجهزة (USB, كاميرات, وغيرها)' : 'Detect All Devices (USB, Cameras, etc.)'}</span>
+                    <span className="hidden sm:inline">{locale === 'ar' ? 'اكتشف جميع الأجهزة (USB, كاميرات, وغيرها)' : 'Detect All Devices (USB, Cameras, etc.)'}</span>
+                    <span className="sm:hidden">{locale === 'ar' ? 'اكتشف الأجهزة' : 'Detect Devices'}</span>
                   </button>
                 </div>
               )}
             </div>
 
             {/* Info Message */}
-            <div className="mt-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl text-blue-800 text-sm">
-              <div className="font-bold mb-3 flex items-center gap-2 text-base">
+            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl text-blue-800 text-xs sm:text-sm">
+              <div className="font-bold mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
                 <span>💡</span>
                 <span>{locale === 'ar' ? 'كيفية إعداد الباركود سكانر:' : 'How to Setup Barcode Scanner:'}</span>
               </div>
-              <ol className={`space-y-2 ${locale === 'ar' ? 'pr-6' : 'pl-6'} list-decimal`}>
+              <ol className={`space-y-1.5 sm:space-y-2 ${locale === 'ar' ? 'pr-5 sm:pr-6' : 'pl-5 sm:pl-6'} list-decimal`}>
                 <li className="font-semibold">
                   {locale === 'ar'
                     ? '🔍 اضغط زر "اكتشف جميع الأجهزة" أعلاه'
@@ -638,8 +664,8 @@ export default function SettingsPage() {
                   }
                 </li>
               </ol>
-              <div className="mt-3 pt-3 border-t border-blue-300">
-                <p className="text-xs">
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-blue-300">
+                <p className="text-[10px] sm:text-xs">
                   {locale === 'ar'
                     ? '💡 نصيحة: إذا لم يظهر جهازك في القائمة، اختر "قارئ باركود (Keyboard Wedge)" - يعمل مع 99% من الأجهزة بدون إعدادات'
                     : '💡 Tip: If your device doesn\'t appear, select "Barcode Scanner (Keyboard Wedge)" - works with 99% of devices without configuration'
@@ -650,14 +676,14 @@ export default function SettingsPage() {
 
             {/* Status Indicator */}
             {autoScanEnabled && (
-              <div className="mt-4 p-4 bg-green-50 border-2 border-green-300 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">✅</span>
+              <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 border-2 border-green-300 rounded-lg">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="text-xl sm:text-2xl">✅</span>
                   <div>
-                    <p className="font-semibold text-green-800">
+                    <p className="font-semibold text-green-800 text-sm sm:text-base">
                       {t('settings.autoScanEnabled')}
                     </p>
-                    <p className="text-sm text-green-700">
+                    <p className="text-xs sm:text-sm text-green-700">
                       {locale === 'ar'
                         ? 'سيتم فتح نافذة البحث تلقائياً عند مسح الباركود'
                         : 'Search window will open automatically on barcode scan'
@@ -669,27 +695,28 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+        )}
 
         {/* قسم مشاركة اللينك */}
-        <div className="border-t pt-6 mt-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+        <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
             <span>🔗</span>
             <span>{t('settings.networkAccess')}</span>
           </h2>
 
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border-2 border-purple-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 sm:p-6 border-2 border-purple-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+              <div className="flex-1">
+                <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">
                   {t('settings.shareLink')}
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   {t('settings.shareLinkDescription')}
                 </p>
               </div>
               <button
                 onClick={() => setShowLinkModal(true)}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-lg"
+                className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-lg text-sm sm:text-base"
               >
                 <span>🔗</span>
                 <span>{t('settings.showLink')}</span>
@@ -698,25 +725,26 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* قسم التحديثات */}
-        <div className="border-t pt-6 mt-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+        {/* قسم التحديثات - Electron only */}
+        {isElectron && (
+        <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
             <span>🔄</span>
             <span>{locale === 'ar' ? 'التحديثات' : 'Updates'}</span>
           </h2>
 
           {/* Error notification */}
           {updateError && (
-            <div className="mb-4 bg-gradient-to-br from-red-500 to-red-600 text-white p-4 rounded-xl shadow-lg animate-slideDown border border-red-400">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">❌</span>
+            <div className="mb-3 sm:mb-4 bg-gradient-to-br from-red-500 to-red-600 text-white p-3 sm:p-4 rounded-xl shadow-lg animate-slideDown border border-red-400">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="text-xl sm:text-2xl">❌</span>
                 <div className="flex-1">
-                  <p className="font-bold">{locale === 'ar' ? 'خطأ في التحديث' : 'Update Error'}</p>
-                  <p className="text-sm opacity-90">{updateError}</p>
+                  <p className="font-bold text-sm sm:text-base">{locale === 'ar' ? 'خطأ في التحديث' : 'Update Error'}</p>
+                  <p className="text-xs sm:text-sm opacity-90">{updateError}</p>
                 </div>
                 <button
                   onClick={() => setUpdateError(null)}
-                  className="text-white/70 hover:text-white transition-colors text-xl"
+                  className="text-white/70 hover:text-white transition-colors text-lg sm:text-xl"
                 >
                   ✕
                 </button>
@@ -726,22 +754,17 @@ export default function SettingsPage() {
 
           {/* Success notification - up to date */}
           {showUpdateSuccess && (
-            <div className="mb-4 bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-4 rounded-xl shadow-lg animate-slideDown border border-emerald-400">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">✨</span>
+            <div className="mb-3 sm:mb-4 bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-3 sm:p-4 rounded-xl shadow-lg animate-slideDown border border-emerald-400">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="text-2xl sm:text-3xl">✨</span>
                 <div className="flex-1">
-                  <p className="font-bold text-lg">
+                  <p className="font-bold text-base sm:text-lg">
                     {locale === 'ar' ? 'أنت تستخدم أحدث إصدار! 🎉' : 'You\'re up to date! 🎉'}
-                  </p>
-                  <p className="text-sm opacity-90">
-                    {locale === 'ar'
-                      ? 'النسخة 1.0.13 هي أحدث إصدار متاح'
-                      : 'Version 1.0.13 is the latest available'}
                   </p>
                 </div>
                 <button
                   onClick={() => setShowUpdateSuccess(false)}
-                  className="text-white/70 hover:text-white transition-colors text-xl"
+                  className="text-white/70 hover:text-white transition-colors text-lg sm:text-xl"
                 >
                   ✕
                 </button>
@@ -752,29 +775,23 @@ export default function SettingsPage() {
           {/* Update notifications removed - now shown only in toast via UpdateNotification component */}
 
           {/* Main update check card */}
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border-2 border-blue-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 sm:p-6 border-2 border-blue-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+              <div className="flex-1">
+                <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
                   <span>⬇️</span>
                   <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
                 </h3>
-                <p className="text-sm text-gray-600 mb-2">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">
                   {locale === 'ar'
                     ? 'تحقق من وجود تحديثات جديدة للتطبيق'
                     : 'Check if new updates are available'}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {locale === 'ar'
-                    ? 'النسخة الحالية: 1.0.13'
-                    : 'Current version: 1.0.13'
-                  }
                 </p>
               </div>
               <button
                 onClick={handleCheckForUpdates}
                 disabled={isCheckingUpdates}
-                className={`bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg ${
+                className={`w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-sm sm:text-base ${
                   isCheckingUpdates
                     ? 'opacity-70 cursor-not-allowed'
                     : 'hover:from-blue-700 hover:to-cyan-700 hover:scale-105 active:scale-95'
@@ -783,48 +800,51 @@ export default function SettingsPage() {
                 {isCheckingUpdates ? (
                   <>
                     <span className="inline-block animate-spin">⏳</span>
-                    <span>{locale === 'ar' ? 'جاري التحقق...' : 'Checking...'}</span>
+                    <span className="hidden sm:inline">{locale === 'ar' ? 'جاري التحقق...' : 'Checking...'}</span>
+                    <span className="sm:hidden">{locale === 'ar' ? 'جاري...' : 'Checking...'}</span>
                   </>
                 ) : (
                   <>
                     <span>🔍</span>
-                    <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
+                    <span className="hidden sm:inline">{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
+                    <span className="sm:hidden">{locale === 'ar' ? 'تحقق' : 'Check'}</span>
                   </>
                 )}
               </button>
             </div>
           </div>
         </div>
+        )}
 
         {/* قسم الدعم الفني */}
-        <div className="border-t pt-6 mt-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+        <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
             <span>📞</span>
             <span>{t('settings.technicalSupport')}</span>
           </h2>
 
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border-2 border-green-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+              <div className="flex-1">
+                <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
                   <span>💬</span>
                   <span>{t('settings.technicalSupport')}</span>
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
                   {t('settings.supportDescription')}
                 </p>
-                <p className="text-sm font-semibold text-green-700 flex items-center gap-2">
+                <p className="text-xs sm:text-sm font-semibold text-green-700 flex items-center gap-2">
                   <span>📱</span>
                   <span>01028518754</span>
                 </p>
               </div>
               <a
-                href="https://wa.me/201028518754"
+                href={EXTERNAL_LINKS.support.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-bold flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg"
+                className="w-full sm:w-auto bg-green-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg text-sm sm:text-base"
               >
-                <span className="text-xl">💬</span>
+                <span className="text-lg sm:text-xl">💬</span>
                 <span>{t('settings.contactSupport')}</span>
               </a>
             </div>
@@ -832,16 +852,16 @@ export default function SettingsPage() {
         </div>
 
         {/* Powered by FitBoost */}
-        <div className="border-t pt-6 mt-6">
+        <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
           <div className="text-center">
             <a
-              href="https://fitboost.website"
+              href={EXTERNAL_LINKS.support.website}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <span className="text-sm text-gray-500">{t('settings.poweredBy')}</span>
-              <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              <span className="text-xs sm:text-sm text-gray-500">{t('settings.poweredBy')}</span>
+              <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                 FitBoost
               </span>
             </a>

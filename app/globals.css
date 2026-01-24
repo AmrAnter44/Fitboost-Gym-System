@@ -19,13 +19,28 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  width: 100%;
+}
+
+body {
+  position: relative;
+}
+
+main {
+  max-width: 100vw;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.container {
+  max-width: 100%;
 }
 
 /* RTL/LTR Support */
 [dir="rtl"] {
   text-align: right;
-  font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 600;
+  font-family: 'Almarai', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
   letter-spacing: 0.01em;
 }
 
@@ -40,34 +55,34 @@ body {
 [dir="rtl"] h4,
 [dir="rtl"] h5,
 [dir="rtl"] h6 {
-  font-family: 'Cairo', sans-serif;
-  font-weight: 700;
+  font-family: 'Almarai', sans-serif;
+  font-weight: 800;
   letter-spacing: 0.02em;
 }
 
 [dir="rtl"] button,
 [dir="rtl"] .font-bold {
-  font-family: 'Cairo', sans-serif;
+  font-family: 'Almarai', sans-serif;
   font-weight: 700;
 }
 
 [dir="rtl"] .font-semibold {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 [dir="rtl"] strong,
 [dir="rtl"] b {
-  font-weight: 700;
+  font-weight: 800;
 }
 
 /* RTL Table Support */
 [dir="rtl"] table {
   direction: rtl;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 [dir="rtl"] table thead th {
-  font-weight: 700;
+  font-weight: 800;
 }
 
 [dir="ltr"] table {
@@ -76,25 +91,25 @@ body {
 
 /* تحسين الخط في الـ inputs والـ labels */
 [dir="rtl"] label {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 [dir="rtl"] input,
 [dir="rtl"] select,
 [dir="rtl"] textarea {
-  font-family: 'Cairo', sans-serif;
-  font-weight: 500;
+  font-family: 'Almarai', sans-serif;
+  font-weight: 400;
 }
 
 /* تحسين الخط في الكروت والبطاقات */
 [dir="rtl"] .bg-white,
 [dir="rtl"] .card {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* تحسين الخط في الروابط */
 [dir="rtl"] a {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* RTL Flexbox Support */
@@ -115,7 +130,7 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
-  font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Almarai', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -180,9 +195,21 @@ button:disabled {
   table {
     font-size: 0.875rem;
   }
-  
+
   th, td {
     padding: 0.5rem !important;
+  }
+
+  /* منع horizontal scroll على الموبايل */
+  body, html, main {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
 }
 
@@ -307,4 +334,58 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* PWA Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.4s ease-out;
+}
+
+/* PWA Enhancements - iOS Safe Area */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+/* تحسين المظهر للـ Standalone Mode */
+@media (display-mode: standalone) {
+  body {
+    background: #f9fafb;
+  }
+
+  /* إخفاء شريط العنوان في وضع التطبيق */
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+}
+
+/* منع التكبير على iOS */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }

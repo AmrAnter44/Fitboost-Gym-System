@@ -1,29 +1,19 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
 const { spawn, exec } = require('child_process');
-const isDev = require('electron-is-dev');
 const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const HID = require('node-hid');
-const { autoUpdater } = require('electron-updater');
 
-// Load uiohook-napi from unpacked location in production
-let uIOhook;
-try {
-  if (!isDev && process.resourcesPath) {
-    // في Production - من app.asar.unpacked
-    const unpackedPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'uiohook-napi');
-    uIOhook = require(unpackedPath);
-  } else {
-    // في Development
-    uIOhook = require('uiohook-napi');
-  }
-  console.log('✅ uiohook-napi loaded successfully');
-} catch (error) {
-  console.error('❌ Failed to load uiohook-napi:', error.message);
-  uIOhook = null;
-}
+// Fix electron-is-dev issue - check manually (use process.env or defaultAppPaths)
+const isDev = process.env.NODE_ENV === 'development' || process.defaultApp || /[\\/]electron-prebuilt[\\/]/.test(process.execPath) || /[\\/]electron[\\/]/.test(process.execPath);
+
+// Load autoUpdater - will be initialized after app is ready
+let autoUpdater = null;
+
+// uiohook-napi disabled
+let uIOhook = null;
 
 let mainWindow;
 let serverProcess;
@@ -35,71 +25,8 @@ let keystrokeTimer = null;
 let barcodeEnabled = false;
 
 function setupBarcodeScanner() {
-  console.log('🔍 Setting up barcode scanner with uiohook-napi...');
-
-  if (!uIOhook) {
-    console.error('❌ uiohook-napi not available - barcode scanner disabled');
-    return;
-  }
-
-  uIOhook.on('keydown', (e) => {
-    if (!barcodeEnabled || !mainWindow) return;
-
-    const now = Date.now();
-
-    // Enter key (keycode 28)
-    if (e.keycode === 28) {
-      if (keystrokeBuffer.length >= 6) {
-        // Check timing - all keys should be within 150ms of each other
-        let isRapid = true;
-        for (let i = 1; i < keystrokeBuffer.length; i++) {
-          const timeDiff = keystrokeBuffer[i].timestamp - keystrokeBuffer[i - 1].timestamp;
-          if (timeDiff > 150) {
-            isRapid = false;
-            break;
-          }
-        }
-
-        const totalTime = keystrokeBuffer[keystrokeBuffer.length - 1].timestamp - keystrokeBuffer[0].timestamp;
-        const isWithinTimeLimit = totalTime < 800;
-
-        if (isRapid && isWithinTimeLimit) {
-          const barcode = keystrokeBuffer.map(k => k.key).join('');
-
-          console.log('🔍 Barcode detected:', barcode);
-          console.log('⏱️ Timing:', {
-            totalTime,
-            charCount: keystrokeBuffer.length,
-            avgTimeBetween: keystrokeBuffer.length > 1 ? totalTime / (keystrokeBuffer.length - 1) : 0
-          });
-
-          // Send to renderer
-          mainWindow.webContents.send('barcode-detected', barcode);
-        }
-      }
-
-      keystrokeBuffer = [];
-      return;
-    }
-
-    // Normal keys - collect them
-    if (e.keychar && e.keychar.length === 1) {
-      keystrokeBuffer.push({
-        key: e.keychar,
-        timestamp: now
-      });
-
-      // Clear buffer after 500ms of inactivity
-      clearTimeout(keystrokeTimer);
-      keystrokeTimer = setTimeout(() => {
-        keystrokeBuffer = [];
-      }, 500);
-    }
-  });
-
-  // Start listening
-  uIOhook.start();
-  console.log('✅ Barcode scanner listening...');
+  console.log('⚠️ Barcode scanner disabled');
+  // Barcode scanner functionality has been disabled
 }
 
 // ------------------ وظائف مساعدة ------------------
@@ -412,7 +339,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false,
+      webSecurity: false, // Disabled for localhost development
       partition: 'persist:gym', // حفظ الـ cookies والـ session
       enableRemoteModule: false,
       preload: path.join(__dirname, 'preload.js'),
@@ -426,8 +353,18 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    mainWindow.focus(); // Explicitly focus window
-    console.log('✅ Electron window shown and focused');
+    mainWindow.focus();
+    console.log('✅ Electron window shown and focused (ready-to-show)');
+  });
+
+  // Also listen for did-finish-load as backup
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('✅ Page finished loading');
+    if (!mainWindow.isVisible()) {
+      mainWindow.show();
+      mainWindow.focus();
+      console.log('✅ Window shown after did-finish-load');
+    }
   });
 
   // Add keyboard event logging for barcode scanner debugging
@@ -448,17 +385,8 @@ function createWindow() {
   let isSearchModalActive = false;
 
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    // Log all keyboard events for debugging
+    // Handle barcode scanner input only
     if (input.type === 'keyDown') {
-      console.log('🔍 Electron keyboard event:', {
-        key: input.key,
-        code: input.code,
-        type: input.type,
-        timestamp: Date.now(),
-        device: currentDeviceName,
-        strictMode: strictModeEnabled
-      });
-
       // ✅ إذا كان الوضع الصارم مفعّل وكان الجهاز HID محدد (ماعدا لو في SearchModal)
       if (strictModeEnabled && currentDeviceName !== 'Unknown Device' && currentDeviceName !== 'keyboard-wedge-scanner' && !isSearchModalActive) {
         const now = Date.now();
@@ -585,12 +513,35 @@ function createWindow() {
   });
 
   const startUrl = 'http://localhost:4001';
-  let attempts = 0, maxAttempts = 30;
+  let attempts = 0, maxAttempts = 60;
 
   const loadApp = () => {
     attempts++;
-    http.get(startUrl, () => mainWindow.loadURL(startUrl))
-      .on('error', () => {
+    console.log(`🔄 Attempting to connect to server (${attempts}/${maxAttempts})...`);
+    http.get(startUrl, (res) => {
+      console.log('✅ Server is ready, loading app...');
+
+      // Load URL with options to prevent errors
+      mainWindow.loadURL(startUrl, {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }).then(() => {
+        console.log('✅ URL loaded successfully');
+      }).catch((err) => {
+        // Log error but don't fail - page might still load
+        console.log('⚠️ Load error (may be safe to ignore):', err.errno);
+      });
+
+      // Show window after a delay
+      setTimeout(() => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+          console.log('✅ Window shown and focused');
+        }
+      }, 1500);
+    })
+      .on('error', (err) => {
+        console.log(`⏳ Server not ready yet (${err.code}), retrying...`);
         if (attempts < maxAttempts) setTimeout(loadApp, 1000);
         else {
           dialog.showErrorBox('خطأ في التشغيل', 'فشل في بدء خادم التطبيق. يرجى إعادة تشغيل البرنامج.');
@@ -598,7 +549,7 @@ function createWindow() {
         }
       });
   };
-  setTimeout(loadApp, isDev ? 100 : 3000);
+  setTimeout(loadApp, isDev ? 3000 : 3000);
 
   if (isDev) mainWindow.webContents.openDevTools();
   else {
@@ -606,7 +557,16 @@ function createWindow() {
     Menu.setApplicationMenu(null);
   }
 
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('❌ Page failed to load:', errorCode, errorDescription);
+  });
+
+  mainWindow.webContents.on('dom-ready', () => {
+    console.log('✅ DOM is ready');
+  });
+
   mainWindow.on('closed', () => {
+    console.log('⚠️ Window closed by user');
     mainWindow = null;
     if (serverProcess) serverProcess.kill();
   });
@@ -712,6 +672,16 @@ function setupAutoUpdater() {
   }
 
   console.log('🔄 Setting up auto-updater...');
+
+  // Load autoUpdater module
+  if (!autoUpdater) {
+    try {
+      autoUpdater = require('electron-updater').autoUpdater;
+    } catch (error) {
+      console.error('❌ Failed to load autoUpdater:', error.message);
+      return;
+    }
+  }
 
   // Configure autoUpdater
   autoUpdater.autoDownload = false; // لا تحمل تلقائياً، نخلي المستخدم يوافق الأول
@@ -1021,14 +991,7 @@ process.on('uncaughtException', error => {
 });
 
 app.on('before-quit', async () => {
-  // Stop barcode scanner
-  try {
-    uIOhook.stop();
-    console.log('✅ Barcode scanner stopped');
-  } catch (error) {
-    console.error('Error stopping barcode scanner:', error);
-  }
-
+  // Clean up on quit
   if (serverProcess) serverProcess.kill();
   await killProcessOnPort(4001);
 });

@@ -3,7 +3,11 @@ import jwt from 'jsonwebtoken'
 import { Permissions } from '../types/permissions'
 import { logError } from './errorLogger'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET!
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set in environment variables')
+}
 
 export interface UserPayload {
   userId: string

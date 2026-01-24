@@ -1,0 +1,104 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+
+export default function PWAInstaller() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false)
+
+  useEffect(() => {
+    // next-pwa handles service worker registration automatically
+    // نحن فقط نتعامل مع install prompt
+
+    // معالجة حدث التثبيت
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+
+      // التحقق من أن التطبيق غير مثبت بالفعل
+      if (!window.matchMedia('(display-mode: standalone)').matches) {
+        setShowInstallPrompt(true)
+      }
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+
+    // التحقق من التثبيت الناجح
+    window.addEventListener('appinstalled', () => {
+      console.log('✅ PWA installed successfully')
+      setShowInstallPrompt(false)
+      setDeferredPrompt(null)
+    })
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    }
+  }, [])
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return
+
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+
+    console.log(`User response to the install prompt: ${outcome}`)
+    setDeferredPrompt(null)
+    setShowInstallPrompt(false)
+  }
+
+  const handleDismiss = () => {
+    setShowInstallPrompt(false)
+    // إخفاء لمدة أسبوع
+    localStorage.setItem('pwa-install-dismissed', Date.now().toString())
+  }
+
+  // عدم إظهار الرسالة إذا تم رفضها مؤخراً
+  useEffect(() => {
+    const dismissed = localStorage.getItem('pwa-install-dismissed')
+    if (dismissed) {
+      const dismissedTime = parseInt(dismissed)
+      const weekInMs = 7 * 24 * 60 * 60 * 1000
+      if (Date.now() - dismissedTime < weekInMs) {
+        setShowInstallPrompt(false)
+      }
+    }
+  }, [])
+
+  if (!showInstallPrompt) return null
+
+  return (
+    <div className="fixed bottom-4 left-4 right-4 z-50 animate-slideUp">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-2xl p-4 text-white max-w-md mx-auto">
+        <div className="flex items-start gap-3">
+          <div className="text-3xl">📱</div>
+          <div className="flex-1">
+            <h3 className="font-bold text-lg mb-1">ثبت التطبيق</h3>
+            <p className="text-sm text-blue-100 mb-3">
+              احصل على تجربة أفضل مع تطبيق الموبايل - عمل بدون إنترنت، وصول أسرع!
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleInstallClick}
+                className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors"
+              >
+                تثبيت الآن
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors"
+              >
+                لاحقاً
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={handleDismiss}
+            className="text-white hover:text-blue-200 text-xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

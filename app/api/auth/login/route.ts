@@ -4,11 +4,42 @@ import { prisma } from '../../../../lib/prisma'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { logError } from '../../../../lib/errorLogger'
+import { checkRateLimit, getClientIdentifier } from '../../../../lib/rateLimit'
+import { logLogin, logLoginFailure, logRateLimitHit, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET!
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set in environment variables')
+}
 
 export async function POST(request: Request) {
   try {
+    // 🔒 Rate Limiting: 5 محاولات كل 15 دقيقة
+    const clientId = getClientIdentifier(request)
+    const rateLimit = checkRateLimit(clientId, {
+      id: 'login',
+      limit: 5,
+      windowMs: 15 * 60 * 1000 // 15 minutes
+    })
+
+    if (!rateLimit.success) {
+      // 📝 Audit: Rate limit hit
+      await logRateLimitHit({
+        ipAddress: getIpAddress(request),
+        userAgent: getUserAgent(request),
+        endpoint: '/api/auth/login'
+      })
+
+      return NextResponse.json(
+        {
+          error: rateLimit.error || 'محاولات تسجيل دخول كثيرة. حاول مرة أخرى لاحقاً',
+          resetAt: rateLimit.resetAt
+        },
+        { status: 429 }
+      )
+    }
+
     const { email, password } = await request.json()
 
     // البحث عن المستخدم بالإيميل أو الاسم
@@ -26,24 +57,48 @@ export async function POST(request: Request) {
     })
 
     if (!user) {
+      // 📝 Audit: Login failed - user not found
+      await logLoginFailure({
+        email,
+        reason: 'User not found',
+        ipAddress: getIpAddress(request),
+        userAgent: getUserAgent(request)
+      })
+
       return NextResponse.json(
         { error: 'الاسم أو البريد الإلكتروني أو كلمة المرور غير صحيحة' },
         { status: 401 }
       )
     }
-    
+
     // التحقق من كلمة المرور
     const isValidPassword = await bcrypt.compare(password, user.password)
 
     if (!isValidPassword) {
+      // 📝 Audit: Login failed - invalid password
+      await logLoginFailure({
+        email: user.email,
+        reason: 'Invalid password',
+        ipAddress: getIpAddress(request),
+        userAgent: getUserAgent(request)
+      })
+
       return NextResponse.json(
         { error: 'الاسم أو البريد الإلكتروني أو كلمة المرور غير صحيحة' },
         { status: 401 }
       )
     }
-    
+
     // التحقق من أن الحساب نشط
     if (!user.isActive) {
+      // 📝 Audit: Login failed - account inactive
+      await logLoginFailure({
+        email: user.email,
+        reason: 'Account inactive',
+        ipAddress: getIpAddress(request),
+        userAgent: getUserAgent(request)
+      })
+
       return NextResponse.json(
         { error: 'حسابك موقوف. تواصل مع المدير' },
         { status: 403 }
@@ -87,15 +142,25 @@ export async function POST(request: Request) {
       }
     })
     
-    // حفظ التوكن في الكوكيز (متوافق مع port forwarding)
+    // حفظ التوكن في الكوكيز
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: false, // ✅ false عشان HTTP يشتغل (مش HTTPS فقط)
-      sameSite: 'lax', // ✅ lax يسمح بالإرسال في نفس الـ site
-      path: '/', // ✅ متاح في كل الـ paths
+      secure: process.env.NODE_ENV === 'production', // ✅ Secure in production, allows HTTP in development
+      sameSite: 'lax',
+      path: '/',
       maxAge: 60 * 60 * 24 * 7 // 7 days
     })
-    
+
+    // 📝 Audit: Successful login
+    await logLogin({
+      userId: user.id,
+      userEmail: user.email,
+      userName: displayName,
+      userRole: user.role,
+      ipAddress: getIpAddress(request),
+      userAgent: getUserAgent(request)
+    })
+
     return response
     
   } catch (error) {

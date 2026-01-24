@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface FollowUpFormProps {
   visitors: any[]
@@ -32,15 +33,23 @@ export default function FollowUpForm({
   onClose
 }: FollowUpFormProps) {
   const { t, direction } = useLanguage()
+  const { user } = usePermissions()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     visitorId: initialVisitorId,
-    salesName: '',
+    salesName: user?.name || '',
     notes: '',
     result: '',
     nextFollowUpDate: '',
     contacted: false
   })
+
+  // ✅ تعبئة اسم السيلز تلقائياً من المستخدم المسجل
+  useEffect(() => {
+    if (user?.name) {
+      setFormData(prev => ({ ...prev, salesName: user.name }))
+    }
+  }, [user])
 
   // تحديث visitorId لما يتغير من الخارج
   useEffect(() => {
@@ -91,10 +100,10 @@ export default function FollowUpForm({
     setLoading(true)
     try {
       await onSubmit(formData)
-      // Reset form
+      // Reset form (مع الحفاظ على اسم السيلز)
       setFormData({
         visitorId: '',
-        salesName: '',
+        salesName: user?.name || '',
         notes: '',
         result: '',
         nextFollowUpDate: '',
@@ -156,19 +165,15 @@ export default function FollowUpForm({
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              {t('followups.form.salesName')} {t('followups.form.required')}
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.salesName}
-              onChange={(e) => setFormData({ ...formData, salesName: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              placeholder={t('followups.form.salesNamePlaceholder')}
-            />
-          </div>
+          {/* ✅ اسم السيلز يتم تعبئته تلقائياً من المستخدم المسجل */}
+          {user?.name && (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-green-700 font-bold text-sm">👤 {t('followups.form.salesName')}:</span>
+                <span className="text-green-900 font-bold">{user.name}</span>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-1">

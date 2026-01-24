@@ -1,7 +1,7 @@
 // API functions for day use
 
 export async function fetchDayUseRecords() {
-  const response = await fetch('/api/day-use-inbody')
+  const response = await fetch('/api/dayuse')
 
   if (response.status === 401) {
     throw new Error('UNAUTHORIZED')

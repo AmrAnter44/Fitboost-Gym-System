@@ -57,7 +57,6 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const { user } = usePermissions()
   const { t, direction } = useLanguage()
   const [subscriptionPrice, setSubscriptionPrice] = useState('')
-  const [remainingAmount, setRemainingAmount] = useState('0')
   const [freePTSessions, setFreePTSessions] = useState('0')
   const [inBodyScans, setInBodyScans] = useState('0')
   const [invitations, setInvitations] = useState('0')
@@ -105,18 +104,12 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
   const calculateExpiryFromMonths = (months: number) => {
     if (!startDate) return
-    
+
     const start = new Date(startDate)
     const expiry = new Date(start)
     expiry.setMonth(expiry.getMonth() + months)
-    
-    setExpiryDate(formatDateYMD(expiry))
-  }
 
-  const calculatePaidAmount = () => {
-    const price = parseInt(subscriptionPrice) || 0
-    const remaining = parseInt(remainingAmount) || 0
-    return price - remaining
+    setExpiryDate(formatDateYMD(expiry))
   }
 
   const applyOffer = (offer: any) => {
@@ -164,7 +157,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
         body: JSON.stringify({
           memberId: member.id,
           subscriptionPrice: parseInt(subscriptionPrice),
-          remainingAmount: parseInt(remainingAmount) || 0,
+          remainingAmount: 0,
           freePTSessions: parseInt(freePTSessions) || 0,
           inBodyScans: parseInt(inBodyScans) || 0,
           invitations: parseInt(invitations) || 0,
@@ -342,20 +335,6 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
               <div>
                 <label className="block text-xs font-medium mb-1">
-                  {t('renewal.remainingAmount')}
-                </label>
-                <input
-                  type="number"
-                  value={remainingAmount}
-                  onChange={(e) => setRemainingAmount(e.target.value)}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium mb-1">
                   {t('renewal.staffName')} <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -368,14 +347,6 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                 />
               </div>
             </div>
-
-            {subscriptionPrice && (
-              <div className="mt-2 bg-green-50 border-2 border-green-300 rounded-lg p-2">
-                <p className="text-xs text-green-800">
-                  💵 <strong>{t('renewal.paidAmount')}:</strong> {calculatePaidAmount()} {t('renewal.currency')}
-                </p>
-              </div>
-            )}
           </div>
 
           <div className="bg-gray-50 p-3 rounded-lg">
@@ -541,7 +512,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               value={paymentMethod}
               onChange={setPaymentMethod}
               allowMultiple={true}
-              totalAmount={calculatePaidAmount()}
+              totalAmount={parseInt(subscriptionPrice) || 0}
             />
           </div>
 
@@ -579,8 +550,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                 <p className="font-bold text-lg text-orange-600">{totalSessions}</p>
               </div>
               <div className="text-center bg-green-100 rounded-lg p-2">
-                <p className="text-xs text-gray-600 mb-1">{t('renewal.paidAmount')}</p>
-                <p className="font-bold text-lg text-green-600">{calculatePaidAmount()} {t('renewal.currency')}</p>
+                <p className="text-xs text-gray-600 mb-1">💰 {t('renewal.subscriptionPrice')}</p>
+                <p className="font-bold text-lg text-green-600">{subscriptionPrice || 0} {t('renewal.currency')}</p>
               </div>
             </div>
           </div>
