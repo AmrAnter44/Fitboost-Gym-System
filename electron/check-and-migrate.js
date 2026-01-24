@@ -42,6 +42,25 @@ function migrateDatabase(dbPath) {
       console.log('✅ PT.remainingAmount already exists');
     }
 
+    // ✅ فحص وجود SPA Booking permissions في جدول Permission
+    const spaPermissions = [
+      'canViewSpaBookings',
+      'canCreateSpaBooking',
+      'canEditSpaBooking',
+      'canCancelSpaBooking',
+      'canViewSpaReports'
+    ];
+
+    for (const permission of spaPermissions) {
+      if (!columnExists(db, 'Permission', permission)) {
+        console.log(`📝 Adding ${permission} column to Permission table...`);
+        db.prepare(`ALTER TABLE Permission ADD COLUMN ${permission} INTEGER NOT NULL DEFAULT 0`).run();
+        console.log(`✅ Migration completed: ${permission} added to Permission table`);
+      } else {
+        console.log(`✅ Permission.${permission} already exists`);
+      }
+    }
+
     db.close();
     console.log('✅ Database schema check completed');
   } catch (error) {
