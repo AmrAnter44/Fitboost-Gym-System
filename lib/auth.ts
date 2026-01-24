@@ -3,10 +3,19 @@ import jwt from 'jsonwebtoken'
 import { Permissions } from '../types/permissions'
 import { logError } from './errorLogger'
 
-const JWT_SECRET = process.env.JWT_SECRET!
+// ✅ Use fallback for build time, but validate at runtime
+const JWT_SECRET = process.env.JWT_SECRET || 'build-time-placeholder'
 
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET must be set in environment variables')
+function getJWTSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret && process.env.NODE_ENV !== 'production') {
+    console.warn('⚠️ JWT_SECRET not set, using development fallback')
+    return 'development-secret-key'
+  }
+  if (!secret) {
+    throw new Error('JWT_SECRET must be set in environment variables')
+  }
+  return secret
 }
 
 export interface UserPayload {
@@ -43,7 +52,7 @@ export async function verifyAuth(request: Request): Promise<UserPayload | null> 
       return null
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as UserPayload
+    const decoded = jwt.verify(token, getJWTSecret()) as UserPayload
     console.log('✅ Auth verified for user:', decoded.email)
     return decoded
   } catch (error) {

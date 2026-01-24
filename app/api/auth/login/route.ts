@@ -7,10 +7,19 @@ import { logError } from '../../../../lib/errorLogger'
 import { checkRateLimit, getClientIdentifier } from '../../../../lib/rateLimit'
 import { logLogin, logLoginFailure, logRateLimitHit, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
-const JWT_SECRET = process.env.JWT_SECRET!
+// ✅ Use fallback for build time, but validate at runtime
+const JWT_SECRET = process.env.JWT_SECRET || 'build-time-placeholder'
 
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET must be set in environment variables')
+function getJWTSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret && process.env.NODE_ENV !== 'production') {
+    console.warn('⚠️ JWT_SECRET not set, using development fallback')
+    return 'development-secret-key'
+  }
+  if (!secret) {
+    throw new Error('JWT_SECRET must be set in environment variables')
+  }
+  return secret
 }
 
 export async function POST(request: Request) {
@@ -126,7 +135,7 @@ export async function POST(request: Request) {
         staffId: user.staffId,
         permissions: user.permissions
       },
-      JWT_SECRET,
+      getJWTSecret(),
       { expiresIn: '7d' }
     )
 
