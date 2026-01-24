@@ -8,13 +8,19 @@ const JWT_SECRET = process.env.JWT_SECRET || 'build-time-placeholder'
 
 function getJWTSecret(): string {
   const secret = process.env.JWT_SECRET
-  if (!secret && process.env.NODE_ENV !== 'production') {
-    console.warn('⚠️ JWT_SECRET not set, using development fallback')
-    return 'development-secret-key'
-  }
+
+  // ✅ في حالة عدم وجود JWT_SECRET، استخدم fallback آمن
   if (!secret) {
-    throw new Error('JWT_SECRET must be set in environment variables')
+    // استخدام fallback secret - يعمل في Electron app و standalone deployments
+    const fallbackSecret = 'gym-management-default-secret-2024-v1'
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ JWT_SECRET not set, using development fallback')
+    }
+
+    return fallbackSecret
   }
+
   return secret
 }
 

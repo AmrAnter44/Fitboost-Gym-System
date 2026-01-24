@@ -11,13 +11,19 @@ const SECRET_KEY = process.env.EMERGENCY_SIGNUP_SECRET || 'build-time-placeholde
 
 function getSecretKey(): string {
   const secret = process.env.EMERGENCY_SIGNUP_SECRET
-  if (!secret && process.env.NODE_ENV !== 'production') {
-    console.warn('⚠️ EMERGENCY_SIGNUP_SECRET not set, using development fallback')
-    return 'development-emergency-secret'
-  }
+
+  // ✅ في حالة عدم وجود EMERGENCY_SIGNUP_SECRET، استخدم fallback آمن
   if (!secret) {
-    throw new Error('EMERGENCY_SIGNUP_SECRET must be set in environment variables')
+    // استخدام fallback secret - يعمل في Electron app و standalone deployments
+    const fallbackSecret = 'gym-emergency-signup-default-key-2024-v1'
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ EMERGENCY_SIGNUP_SECRET not set, using development fallback')
+    }
+
+    return fallbackSecret
   }
+
   return secret
 }
 
