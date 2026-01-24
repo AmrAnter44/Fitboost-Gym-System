@@ -3,13 +3,12 @@ import {prisma} from "../../../lib/prisma";
 import { requireValidLicense } from "../../../lib/license";
 import { verifyAuth } from "../../../lib/auth";
 import {
-
-export const dynamic = 'force-dynamic'
-
   type PaymentMethod,
   validatePaymentDistribution,
   serializePaymentMethods
 } from "../../../lib/paymentHelpers";
+
+export const dynamic = 'force-dynamic'
 
 // ✅ GET كل العمليات
 export async function GET(request: Request) {

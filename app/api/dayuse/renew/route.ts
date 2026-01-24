@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireValidLicense } from "../../../../lib/license";
 import {
-
-export const dynamic = 'force-dynamic'
-
   type PaymentMethod,
   validatePaymentDistribution,
   serializePaymentMethods
 } from "../../../../lib/paymentHelpers";
+
+export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/dayuse/renew
