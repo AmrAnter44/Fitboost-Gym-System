@@ -24,9 +24,15 @@ export default function SpaBookingsPage() {
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedService, setSelectedService] = useState<SpaServiceType | ''>('')
   const [showTimeSlots, setShowTimeSlots] = useState(false)
-  const [filters, setFilters] = useState({
-    status: '' as SpaBookingStatus | '',
-    serviceType: '' as SpaServiceType | '',
+  const [filters, setFilters] = useState<{
+    status?: SpaBookingStatus | ''
+    serviceType?: SpaServiceType | ''
+    search?: string
+    startDate?: string
+    endDate?: string
+  }>({
+    status: '',
+    serviceType: '',
     search: ''
   })
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)

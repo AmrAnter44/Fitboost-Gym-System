@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'use'
+import { useState, useEffect } from 'react'
 import { useToast } from '../../contexts/ToastContext'
 
 interface ScriptExecution {

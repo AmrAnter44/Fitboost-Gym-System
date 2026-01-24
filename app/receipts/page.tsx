@@ -459,7 +459,7 @@ export default function ReceiptsPage() {
 
       // ✅ في Electron، استخدم API خاص لفتح واتساب مع الملف
       if (typeof window !== 'undefined' && (window as any).electron?.openWhatsAppWithPDF) {
-        const pdfPath = pdfResult?.filePath
+        const pdfPath = pdfResult && typeof pdfResult === 'object' ? pdfResult.filePath : undefined
         if (pdfPath) {
           console.log('📱 Opening WhatsApp with PDF from Electron:', pdfPath)
           console.log('📞 Phone number:', formattedPhone)

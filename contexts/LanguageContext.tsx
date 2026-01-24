@@ -7,6 +7,7 @@ type Direction = 'rtl' | 'ltr'
 
 interface LanguageContextType {
   locale: Language
+  language: Language  // alias for locale
   direction: Direction
   setLanguage: (lang: Language) => void
   t: (key: string, params?: Record<string, string>) => string
@@ -72,7 +73,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const direction: Direction = locale === 'ar' ? 'rtl' : 'ltr'
 
   return (
-    <LanguageContext.Provider value={{ locale, direction, setLanguage, t }}>
+    <LanguageContext.Provider value={{ locale, language: locale, direction, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   )
