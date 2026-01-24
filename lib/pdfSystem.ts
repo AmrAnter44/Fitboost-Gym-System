@@ -1,6 +1,7 @@
 // نظام تحويل الإيصالات إلى PDF
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
+// ⚠️ استخدام dynamic imports لتجنب مشاكل SSR
+// import jsPDF from 'jspdf'
+// import html2canvas from 'html2canvas'
 
 interface ReceiptData {
   receiptNumber: number
@@ -23,6 +24,12 @@ export async function generateReceiptPDF(
   }
 ): Promise<{ blob: Blob | null; url: string | null }> {
   try {
+    // ✅ Dynamic imports للمكتبات اللي بتستخدم DOM APIs
+    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+      import('jspdf'),
+      import('html2canvas')
+    ])
+
     // إنشاء عنصر مؤقت للـ HTML
     const container = document.createElement('div')
     container.style.position = 'absolute'

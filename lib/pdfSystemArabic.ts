@@ -1,6 +1,7 @@
 // نظام PDF محسّن للعربي - استخدام dom-to-image-more
-import jsPDF from 'jspdf'
-import domtoimage from 'dom-to-image-more'
+// ⚠️ استخدام dynamic imports لتجنب مشاكل SSR
+// import jsPDF from 'jspdf'
+// import domtoimage from 'dom-to-image-more'
 
 /**
  * ✅ الحل الأمثل: استخدام html2canvas + دقة عالية
@@ -23,6 +24,12 @@ export async function generateArabicPDF(
 ): Promise<{ blob: Blob | null; url: string | null; filePath: string | null }> {
   console.log('🚀 generateArabicPDF started - NEW VERSION')
   try {
+    // ✅ Dynamic imports للمكتبات اللي بتستخدم DOM APIs
+    const [{ default: jsPDF }, { default: domtoimage }] = await Promise.all([
+      import('jspdf'),
+      import('dom-to-image-more')
+    ])
+
     // ✅ إخفاء overflow على الـ body مؤقتاً
     const originalOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
