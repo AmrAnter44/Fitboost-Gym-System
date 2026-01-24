@@ -33,6 +33,8 @@ jobs:
       env:
         NODE_ENV: production
         NEXT_TELEMETRY_DISABLED: 1
+        JWT_SECRET: temp-build-secret-not-for-production
+        DATABASE_URL: file:./prisma/gym.db
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
