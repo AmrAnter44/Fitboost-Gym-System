@@ -44,12 +44,12 @@ export async function generateReceiptPDF(
       windowHeight: container.scrollHeight,
       imageTimeout: 0,
       // ✅ ضبط الخطوط
-      onclone: (clonedDoc) => {
-        const clonedContainer = clonedDoc.querySelector('body > div')
+      onclone: (clonedDoc: Document) => {
+        const clonedContainer = clonedDoc.querySelector('body > div') as HTMLElement | null
         if (clonedContainer) {
           // التأكد من تطبيق الخطوط العربية
-          (clonedContainer as HTMLElement).style.fontFamily = "'Segoe UI', Tahoma, Arial, sans-serif"
-          (clonedContainer as HTMLElement).style.direction = 'rtl'
+          clonedContainer.style.fontFamily = "'Segoe UI', Tahoma, Arial, sans-serif"
+          clonedContainer.style.direction = 'rtl'
         }
       }
     })

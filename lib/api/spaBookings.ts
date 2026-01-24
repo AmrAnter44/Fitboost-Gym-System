@@ -2,8 +2,8 @@
 import { SpaBooking, SpaServiceType, SpaBookingStatus } from '../../types/spa'
 
 interface FetchSpaBookingsFilters {
-  status?: SpaBookingStatus
-  serviceType?: SpaServiceType
+  status?: SpaBookingStatus | ''
+  serviceType?: SpaServiceType | ''
   startDate?: string
   endDate?: string
   search?: string

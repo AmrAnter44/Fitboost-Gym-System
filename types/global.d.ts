@@ -3,7 +3,8 @@
 interface Window {
   electron?: {
     isElectron?: boolean
-    savePDF?: (buffer: ArrayBuffer, fileName: string) => Promise<{ filePath?: string }>
+    savePDF?: (buffer: ArrayBuffer | Buffer, fileName: string, folderPath?: string) => Promise<{ filePath?: string }>
     shareWhatsApp?: (phoneNumber: string, buffer: Buffer, fileName: string) => Promise<void>
+    openWhatsAppWithPDF?: (message: string, pdfPath: string, phoneNumber: string) => Promise<void>
   }
 }
