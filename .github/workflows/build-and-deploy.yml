@@ -29,7 +29,7 @@ jobs:
       run: npx prisma generate
 
     - name: Build application
-      run: npm run build || echo "⚠️ Build completed with errors (prerender errors ignored)"
+      run: npm run build || true
       env:
         NODE_ENV: production
         NEXT_TELEMETRY_DISABLED: 1
