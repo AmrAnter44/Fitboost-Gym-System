@@ -4,10 +4,18 @@ import { prisma } from '../../../lib/prisma'
 import bcrypt from 'bcryptjs'
 
 // 🔒 المفتاح السري من environment variables
-const SECRET_KEY = process.env.EMERGENCY_SIGNUP_SECRET
+const SECRET_KEY = process.env.EMERGENCY_SIGNUP_SECRET || 'build-time-placeholder'
 
-if (!SECRET_KEY) {
-  throw new Error('EMERGENCY_SIGNUP_SECRET must be set in environment variables')
+function getSecretKey(): string {
+  const secret = process.env.EMERGENCY_SIGNUP_SECRET
+  if (!secret && process.env.NODE_ENV !== 'production') {
+    console.warn('⚠️ EMERGENCY_SIGNUP_SECRET not set, using development fallback')
+    return 'development-emergency-secret'
+  }
+  if (!secret) {
+    throw new Error('EMERGENCY_SIGNUP_SECRET must be set in environment variables')
+  }
+  return secret
 }
 
 export async function POST(request: NextRequest) {
@@ -16,7 +24,7 @@ export async function POST(request: NextRequest) {
     const { email, name, password, secretKey } = body
 
     // التحقق من المفتاح السري
-    if (secretKey !== SECRET_KEY) {
+    if (secretKey !== getSecretKey()) {
       return NextResponse.json(
         { error: 'المفتاح السري غير صحيح' },
         { status: 403 }

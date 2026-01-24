@@ -34,6 +34,7 @@ jobs:
         NODE_ENV: production
         NEXT_TELEMETRY_DISABLED: 1
         JWT_SECRET: temp-build-secret-not-for-production
+        EMERGENCY_SIGNUP_SECRET: temp-emergency-secret-not-for-production
         DATABASE_URL: file:./prisma/gym.db
 
     - name: Upload build artifacts
@@ -81,47 +82,6 @@ jobs:
         cp start-production.bat gym-system-release/
         cp backup-database.bat gym-system-release/
         cp ecosystem.config.js gym-system-release/
-
-        # Create installation script
-        cat > gym-system-release/INSTALL.md << 'EOF'
-# تثبيت النظام - دليل سريع
-
-## الخطوات:
-
-1. **استخراج الملفات**
-   ```bash
-   # فك ضغط الملف في المكان المطلوب
-   ```
-
-2. **تثبيت Dependencies**
-   ```bash
-   npm install --production
-   ```
-
-3. **إعداد البيئة**
-   ```bash
-   # افتح ملف .env وغيّر:
-   # - JWT_SECRET
-   # - NEXT_PUBLIC_APP_URL
-   ```
-
-4. **إعداد قاعدة البيانات**
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
-
-5. **التشغيل**
-   ```bash
-   # Windows:
-   start-production.bat
-
-   # Linux/Mac:
-   npm start
-   ```
-
-لمزيد من التفاصيل، راجع PRODUCTION_SETUP.md و GODADDY_SETUP.md
-EOF
 
         # Create zip file
         cd gym-system-release
