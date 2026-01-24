@@ -6,7 +6,7 @@ const nextConfig = {
   // basePath: '/5454545system',
   // assetPrefix: '/5454545system',
 
-  // output: 'standalone', // Disabled temporarily to fix prerender errors
+  output: 'standalone',
   distDir: '.next',
   poweredByHeader: false,
   compress: true,
@@ -101,6 +101,15 @@ const nextConfig = {
         net: false,
         tls: false,
       }
+    }
+
+    // Ignore html2canvas and jspdf during server-side rendering
+    if (isServer) {
+      config.externals = config.externals || []
+      config.externals.push({
+        'html2canvas': 'commonjs html2canvas',
+        'jspdf': 'commonjs jspdf'
+      })
     }
 
     // Enable filesystem caching for faster rebuilds
