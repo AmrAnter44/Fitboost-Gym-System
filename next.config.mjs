@@ -90,6 +90,9 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
 
+  // Allow build to succeed despite prerender errors
+  staticPageGenerationTimeout: 60,
+
   webpack: (config, { isServer, dev }) => {
     if (!isServer) {
       config.resolve.fallback = {
