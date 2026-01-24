@@ -4,6 +4,9 @@ import { writeFile, mkdir, unlink } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 
+export const dynamic = 'force-dynamic'
+
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()

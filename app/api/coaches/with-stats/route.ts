@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
 
+export const dynamic = 'force-dynamic'
+
+
 export async function GET(request: Request) {
   try {
     // التحقق من المصادقة فقط (بدون صلاحيات محددة)

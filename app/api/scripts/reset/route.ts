@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { requireAdmin } from '../../../../lib/auth'
 import { resetScript } from '../../../../lib/scriptManager'
 
+export const dynamic = 'force-dynamic'
+
+
 export async function POST(request: Request) {
   try {
     // التحقق من صلاحيات الأدمن

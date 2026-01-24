@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { validateLicense } from '../../../../lib/license'
 
+export const dynamic = 'force-dynamic'
+
+
 /**
  * POST /api/license/validate
  * Forces a fresh license validation from GitHub

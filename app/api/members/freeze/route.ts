@@ -4,6 +4,9 @@ import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 
 // POST - تجميد اشتراك عضو (استخدام الفريز)
+
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   try {
     // التحقق من صلاحية تعديل الأعضاء

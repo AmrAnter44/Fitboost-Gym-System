@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 // @ts-ignore
 import bwipjs from "bwip-js";
 
+export const dynamic = 'force-dynamic'
+
+
 export async function POST(req: Request) {
   try {
     const { text } = await req.json();

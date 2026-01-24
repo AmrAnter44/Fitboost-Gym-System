@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { verifyAuth } from '../../../../lib/auth'
 import { logLogout, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
+export const dynamic = 'force-dynamic'
+
+
 export async function POST(request: Request) {
   try {
     // التحقق من المستخدم الحالي

@@ -5,6 +5,9 @@ import { requireAdmin } from '../../../../lib/auth'
 import bcrypt from 'bcryptjs'
 
 // GET - جلب جميع المستخدمين
+
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     // التحقق من أن المستخدم Admin

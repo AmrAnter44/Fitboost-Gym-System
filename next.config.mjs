@@ -124,7 +124,7 @@ const nextConfig = {
 
   experimental: {
     serverMinification: true,
-    optimizeCss: true, // Optimize CSS for better performance
+    // optimizeCss: true, // Disabled - requires critters package
     gzipSize: true, // Show gzip size in build output
     swcTraceProfiling: false, // Disable for better performance
 

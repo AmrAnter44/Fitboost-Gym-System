@@ -3,6 +3,9 @@ import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
 
 // GET - جلب بيانات مدرب واحد
+
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }

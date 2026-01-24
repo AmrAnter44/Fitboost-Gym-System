@@ -3,6 +3,9 @@ import { prisma } from '../../../lib/prisma'
 import { verifyAuth, requirePermission } from '../../../lib/auth'
 
 // GET - جلب جميع الزوار مع فلترة وبحث
+
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     // ✅ التحقق من تسجيل الدخول

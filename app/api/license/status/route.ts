@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getCachedLicenseStatus } from '../../../../lib/license'
 
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/license/status
  * Returns the current cached license status without triggering GitHub fetch

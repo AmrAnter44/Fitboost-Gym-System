@@ -4,6 +4,9 @@ import { prisma } from '../../../lib/prisma'
 import bcrypt from 'bcryptjs'
 
 // 🔒 المفتاح السري من environment variables
+
+export const dynamic = 'force-dynamic'
+
 const SECRET_KEY = process.env.EMERGENCY_SIGNUP_SECRET || 'build-time-placeholder'
 
 function getSecretKey(): string {

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 
 // POST: تسجيل دخول عضو
+
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   try {
     const { memberId, method = 'scan' } = await request.json()

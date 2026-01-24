@@ -3,6 +3,9 @@ import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 
 // تحديث إيصال موجود
+
+export const dynamic = 'force-dynamic'
+
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية تعديل الإيصالات

@@ -5,6 +5,9 @@ import { requirePermission } from '../../../../lib/auth'
 import { logError } from '../../../../lib/errorLogger'
 
 // GET - جلب حجز واحد
+
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }

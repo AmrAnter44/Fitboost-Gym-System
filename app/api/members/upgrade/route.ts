@@ -5,6 +5,9 @@ import { requirePermission } from '../../../../lib/auth'
 import { formatDateYMD } from '../../../../lib/dateFormatter'
 import { requireValidLicense } from '../../../../lib/license'
 import {
+
+export const dynamic = 'force-dynamic'
+
   type PaymentMethod,
   validatePaymentDistribution,
   serializePaymentMethods

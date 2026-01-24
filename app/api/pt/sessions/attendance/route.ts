@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
 import { requirePermission } from '../../../../../lib/auth'
 
+export const dynamic = 'force-dynamic'
+
+
 /**
  * POST - تسجيل حضور حصة PT باستخدام Barcode/رقم PT
  *

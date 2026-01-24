@@ -3,6 +3,9 @@ import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
 
 // PATCH - تحديث حالة طلب اختبار اللياقة
+
+export const dynamic = 'force-dynamic'
+
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }

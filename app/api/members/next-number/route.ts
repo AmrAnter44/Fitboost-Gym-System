@@ -3,6 +3,9 @@ import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 
 // ✅ GET: بس يقرأ الرقم المتاح (بدون تحديث!)
+
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     // ✅ التحقق من صلاحية عرض الأعضاء (لأن هذا جزء من إضافة عضو)

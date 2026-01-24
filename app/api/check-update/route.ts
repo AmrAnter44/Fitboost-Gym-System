@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { getGitHubApiUrl } from '../../../lib/config'
 
 // Get GitHub API URL from centralized config
+
+export const dynamic = 'force-dynamic'
+
 const GITHUB_API = getGitHubApiUrl()
 
 export async function GET() {

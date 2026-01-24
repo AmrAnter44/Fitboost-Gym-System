@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireValidLicense } from "../../../../lib/license";
 
+export const dynamic = 'force-dynamic'
+
+
 export async function POST(req: Request) {
   try {
     const data = await req.json();

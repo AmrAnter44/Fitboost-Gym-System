@@ -3,6 +3,9 @@ import { prisma } from '../../../lib/prisma'
 import { verifyAuth } from '../../../lib/auth'
 
 // POST - إنشاء طلب اختبار لياقة جديد
+
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   try {
     const user = await verifyAuth(request)

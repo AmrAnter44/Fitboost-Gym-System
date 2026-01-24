@@ -4,6 +4,9 @@ import { prisma } from '../../../../../../lib/prisma'
 import { requireAdmin } from '../../../../../../lib/auth'
 
 // PUT - تحديث صلاحيات مستخدم
+
+export const dynamic = 'force-dynamic'
+
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }

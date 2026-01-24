@@ -3,6 +3,9 @@ import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
 
 // GET - جلب جميع الأعضاء للمدرب (مع حالة اختبار اللياقة)
+
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     // التحقق من أن المستخدم مدرب

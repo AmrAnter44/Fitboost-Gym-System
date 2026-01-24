@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import os from 'os'
 
 // الحصول على IP Address المحلي
+
+export const dynamic = 'force-dynamic'
+
 function getLocalIPAddress(): string {
   const interfaces = os.networkInterfaces()
 

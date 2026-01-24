@@ -5,6 +5,9 @@ import { requirePermission } from '../../../lib/auth'
 import { logError } from '../../../lib/errorLogger'
 
 // GET - جلب جميع الحجوزات مع Filters
+
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     // التحقق من صلاحية عرض حجوزات SPA

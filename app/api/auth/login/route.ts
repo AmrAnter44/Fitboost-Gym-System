@@ -8,6 +8,9 @@ import { checkRateLimit, getClientIdentifier } from '../../../../lib/rateLimit'
 import { logLogin, logLoginFailure, logRateLimitHit, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 // ✅ Use fallback for build time, but validate at runtime
+
+export const dynamic = 'force-dynamic'
+
 const JWT_SECRET = process.env.JWT_SECRET || 'build-time-placeholder'
 
 function getJWTSecret(): string {

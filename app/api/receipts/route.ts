@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
 
+export const dynamic = 'force-dynamic'
+
+
 export async function GET(request: Request) {
   try {
     // ✅ محاولة التحقق من صلاحية عرض الإيصالات

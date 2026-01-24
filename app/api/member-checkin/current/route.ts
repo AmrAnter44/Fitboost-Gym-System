@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 
 // GET: الحصول على تسجيلات دخول اليوم
+
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     // ✅ الحصول على تسجيلات دخول اليوم

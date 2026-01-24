@@ -3,6 +3,9 @@ import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { requireValidLicense } from '../../../../lib/license'
 import {
+
+export const dynamic = 'force-dynamic'
+
   type PaymentMethod,
   validatePaymentDistribution,
   serializePaymentMethods

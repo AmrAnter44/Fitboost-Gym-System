@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 
 // POST: حذف التسجيلات القديمة (أكثر من ساعتين)
+
+export const dynamic = 'force-dynamic'
+
 export async function POST() {
   try {
     const now = new Date()

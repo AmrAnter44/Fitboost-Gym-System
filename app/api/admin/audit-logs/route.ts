@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { requireAdmin } from '../../../../lib/auth'
 import { getAuditLogs } from '../../../../lib/auditLog'
 
+export const dynamic = 'force-dynamic'
+
+
 export async function GET(request: Request) {
   try {
     // ✅ التحقق من صلاحية Admin
