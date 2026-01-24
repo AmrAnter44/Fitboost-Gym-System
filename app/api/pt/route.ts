@@ -3,15 +3,14 @@ import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
 import { requireValidLicense } from '../../../lib/license'
 import {
-
-export const dynamic = 'force-dynamic'
-
   type PaymentMethod,
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../lib/paymentHelpers'
 // @ts-ignore
 import bwipjs from 'bwip-js'
+
+export const dynamic = 'force-dynamic'
 
 // GET - جلب كل جلسات PT
 export async function GET(request: Request) {
