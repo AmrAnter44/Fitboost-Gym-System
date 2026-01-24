@@ -6,7 +6,7 @@ const nextConfig = {
   // basePath: '/5454545system',
   // assetPrefix: '/5454545system',
 
-  output: 'standalone',
+  // output: 'standalone', // Disabled temporarily to fix prerender errors
   distDir: '.next',
   poweredByHeader: false,
   compress: true,
@@ -130,6 +130,10 @@ const nextConfig = {
 
     // Preload critical resources
     optimizePackageImports: ['recharts', '@tanstack/react-query'],
+
+    // Disable static optimization for problematic pages
+    workerThreads: false,
+    isrFlushToDisk: false,
   },
 }
 
