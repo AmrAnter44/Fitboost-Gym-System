@@ -5,13 +5,12 @@ import { requirePermission } from '../../../../lib/auth'
 import { formatDateYMD } from '../../../../lib/dateFormatter'
 import { requireValidLicense } from '../../../../lib/license'
 import {
-
-export const dynamic = 'force-dynamic'
-
   type PaymentMethod,
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
+
+export const dynamic = 'force-dynamic'
 
 // دالة حساب الأيام بين تاريخين
 function calculateDaysBetween(date1Str: string | Date, date2Str: string | Date): number {

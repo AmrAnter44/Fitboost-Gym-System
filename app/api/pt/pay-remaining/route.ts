@@ -3,13 +3,12 @@ import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { requireValidLicense } from '../../../../lib/license'
 import {
-
-export const dynamic = 'force-dynamic'
-
   type PaymentMethod,
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
+
+export const dynamic = 'force-dynamic'
 
 // POST - دفع المبلغ المتبقي
 export async function POST(request: Request) {
