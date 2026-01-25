@@ -144,7 +144,7 @@ export async function POST(request: Request) {
     // حفظ التوكن في الكوكيز
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // ✅ Secure in production, allows HTTP in development
+      secure: process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://') ?? false, // ✅ Only secure on HTTPS sites
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 7 // 7 days

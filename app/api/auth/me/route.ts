@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
       response.cookies.set('auth-token', '', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://') ?? false, // ✅ Only secure on HTTPS sites
         sameSite: 'lax',
         maxAge: 0, // Expire immediately
         path: '/'
