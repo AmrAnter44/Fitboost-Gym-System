@@ -248,7 +248,20 @@ export default function MembersPage() {
   const fetchLastReceipts = async () => {
     try {
       const response = await fetch('/api/receipts')
+
+      // تحقق من نجاح الطلب
+      if (!response.ok) {
+        console.error('Failed to fetch receipts:', response.status)
+        return
+      }
+
       const receipts = await response.json()
+
+      // تحقق من أن receipts هو array
+      if (!Array.isArray(receipts)) {
+        console.error('Receipts is not an array:', receipts)
+        return
+      }
 
       const lastReceiptsMap: { [memberId: string]: any } = {}
 
