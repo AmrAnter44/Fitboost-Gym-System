@@ -23,6 +23,26 @@ if not exist .next (
     )
 )
 
+REM Copy .env file to standalone folder (CRITICAL for JWT_SECRET)
+if exist .next\standalone (
+    echo [INFO] Copying .env to standalone folder...
+    copy /Y .env .next\standalone\.env >nul 2>&1
+    if errorlevel 1 (
+        echo [WARN] Could not copy .env file
+    ) else (
+        echo [OK] .env copied to standalone folder
+    )
+)
+
+REM Copy database to standalone folder if needed
+if exist prisma\prisma\gym.db (
+    if not exist .next\standalone\prisma\prisma (
+        mkdir .next\standalone\prisma\prisma
+    )
+    echo [INFO] Copying database to standalone folder...
+    copy /Y prisma\prisma\gym.db .next\standalone\prisma\prisma\gym.db >nul 2>&1
+)
+
 REM Start the application
 echo [INFO] Starting Gym System in production mode...
 echo.
