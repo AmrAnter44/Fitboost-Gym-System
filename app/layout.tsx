@@ -66,8 +66,8 @@ export default function RootLayout({
         <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#1e40af" media="(prefers-color-scheme: dark)" />
 
-        {/* Local Almarai Font */}
-        <link rel="stylesheet" href="/fonts/almarai.css" />
+        {/* Local Cairo Font */}
+        <link rel="stylesheet" href="/fonts/cairo.css" />
       </head>
       <body className="bg-gray-50 min-h-screen">
         <ClientLayout>{children}</ClientLayout>
