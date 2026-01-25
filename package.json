@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
@@ -10,7 +10,7 @@
     "dev:turbo": "node --max-old-space-size=4096 node_modules/next/dist/bin/next dev --turbo -p 4001 -H 0.0.0.0",
     "dev:default": "next dev -p 4001 -H 0.0.0.0",
     "build": "prisma generate && next build && npm run postbuild",
-    "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const staticSrc = path.join('.next', 'static'); const staticDest = path.join('.next', 'standalone', '.next', 'static'); const publicSrc = 'public'; const publicDest = path.join('.next', 'standalone', 'public'); if (fs.existsSync(staticSrc) && fs.existsSync('.next/standalone')) { fs.cpSync(staticSrc, staticDest, { recursive: true }); console.log('✅ Static files copied to standalone'); } if (fs.existsSync(publicSrc) && fs.existsSync('.next/standalone')) { fs.cpSync(publicSrc, publicDest, { recursive: true }); console.log('✅ Public files copied to standalone'); } if (fs.existsSync('.env')) { fs.copyFileSync('.env', path.join('.next', 'standalone', '.env')); console.log('✅ .env file copied to standalone'); } const dbSrc = path.join('prisma', 'prisma', 'gym.db'); const dbDest = path.join('.next', 'standalone', 'prisma', 'prisma'); if (fs.existsSync(dbSrc)) { fs.mkdirSync(dbDest, { recursive: true }); fs.copyFileSync(dbSrc, path.join(dbDest, 'gym.db')); console.log('✅ Database copied to standalone'); } if (fs.existsSync('standalone-server.js')) { fs.copyFileSync('standalone-server.js', path.join('.next', 'standalone', 'standalone-server.js')); console.log('✅ standalone-server.js copied to standalone'); }\"",
+    "postbuild": "node postbuild.js",
     "start": "next start -p 4001 -H 0.0.0.0",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",

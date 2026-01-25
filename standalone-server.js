@@ -69,8 +69,25 @@ console.log('  → NODE_ENV:', process.env.NODE_ENV || 'development');
 console.log('  → PORT:', process.env.PORT || '3000');
 console.log('  → NEXT_PUBLIC_DOMAIN:', process.env.NEXT_PUBLIC_DOMAIN || 'Not set');
 
+// Run database migrations
+console.log('\n📊 Running database migrations...\n');
+
+const migrationPath = path.join(__dirname, 'migrate-followup-schema.js');
+if (fs.existsSync(migrationPath)) {
+  try {
+    console.log('  → Running FollowUp schema migration...');
+    require(migrationPath);
+    console.log('  ✅ Migration completed\n');
+  } catch (migrationError) {
+    console.error('  ⚠️ Migration warning:', migrationError.message);
+    console.log('  → Continuing anyway...\n');
+  }
+} else {
+  console.log('  ℹ️ No migration script found, skipping...\n');
+}
+
 // Start Next.js server
-console.log('\n🚀 Starting Next.js standalone server...\n');
+console.log('🚀 Starting Next.js standalone server...\n');
 
 const serverPath = path.join(__dirname, 'server.js');
 
