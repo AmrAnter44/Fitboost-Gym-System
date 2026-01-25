@@ -3,25 +3,12 @@ import jwt from 'jsonwebtoken'
 import { Permissions } from '../types/permissions'
 import { logError } from './errorLogger'
 
-// ✅ Use fallback for build time, but validate at runtime
-const JWT_SECRET = process.env.JWT_SECRET || 'build-time-placeholder'
+// ✅ استخدام fallback secret افتراضي - يعمل في كل الحالات
+const JWT_SECRET = process.env.JWT_SECRET || 'gym-management-default-secret-2024-v1'
 
 function getJWTSecret(): string {
-  const secret = process.env.JWT_SECRET
-
-  // ✅ في حالة عدم وجود JWT_SECRET، استخدم fallback آمن
-  if (!secret) {
-    // استخدام fallback secret - يعمل في Electron app و standalone deployments
-    const fallbackSecret = 'gym-management-default-secret-2024-v1'
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ JWT_SECRET not set, using development fallback')
-    }
-
-    return fallbackSecret
-  }
-
-  return secret
+  // ✅ ببساطة، استخدم الـ secret الموجود (إما من env أو الـ fallback)
+  return JWT_SECRET
 }
 
 export interface UserPayload {

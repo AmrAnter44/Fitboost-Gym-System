@@ -7,24 +7,12 @@ import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
 
-const SECRET_KEY = process.env.EMERGENCY_SIGNUP_SECRET || 'build-time-placeholder'
+// ✅ استخدام fallback secret افتراضي
+const SECRET_KEY = process.env.EMERGENCY_SIGNUP_SECRET || 'gym-emergency-signup-default-key-2024-v1'
 
 function getSecretKey(): string {
-  const secret = process.env.EMERGENCY_SIGNUP_SECRET
-
-  // ✅ في حالة عدم وجود EMERGENCY_SIGNUP_SECRET، استخدم fallback آمن
-  if (!secret) {
-    // استخدام fallback secret - يعمل في Electron app و standalone deployments
-    const fallbackSecret = 'gym-emergency-signup-default-key-2024-v1'
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ EMERGENCY_SIGNUP_SECRET not set, using development fallback')
-    }
-
-    return fallbackSecret
-  }
-
-  return secret
+  // ✅ ببساطة، استخدم الـ secret الموجود
+  return SECRET_KEY
 }
 
 export async function POST(request: NextRequest) {

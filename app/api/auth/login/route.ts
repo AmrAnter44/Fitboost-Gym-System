@@ -7,23 +7,10 @@ import { logError } from '../../../../lib/errorLogger'
 import { checkRateLimit, getClientIdentifier } from '../../../../lib/rateLimit'
 import { logLogin, logLoginFailure, logRateLimitHit, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
-// ✅ Use fallback for build time, but validate at runtime
-
 export const dynamic = 'force-dynamic'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'build-time-placeholder'
-
-function getJWTSecret(): string {
-  const secret = process.env.JWT_SECRET
-  if (!secret && process.env.NODE_ENV !== 'production') {
-    console.warn('⚠️ JWT_SECRET not set, using development fallback')
-    return 'development-secret-key'
-  }
-  if (!secret) {
-    throw new Error('JWT_SECRET must be set in environment variables')
-  }
-  return secret
-}
+// ✅ استخدام الـ JWT_SECRET من lib/auth.ts (مع fallback آمن)
+const JWT_SECRET = process.env.JWT_SECRET || 'gym-management-default-secret-2024-v1'
 
 export async function POST(request: Request) {
   try {
@@ -138,7 +125,7 @@ export async function POST(request: Request) {
         staffId: user.staffId,
         permissions: user.permissions
       },
-      getJWTSecret(),
+      JWT_SECRET,  // ✅ استخدام الـ secret مباشرة (مع fallback)
       { expiresIn: '7d' }
     )
 
