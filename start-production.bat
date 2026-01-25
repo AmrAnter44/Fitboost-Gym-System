@@ -47,15 +47,22 @@ REM Start the application
 echo [INFO] Starting Gym System in production mode...
 echo.
 
-REM If PM2 is installed, use it
-where pm2 >nul 2>nul
-if %errorlevel% equ 0 (
-    echo [INFO] Starting with PM2...
-    pm2 start ecosystem.config.js
-    pm2 logs gym-system
+REM Check if standalone-server.js exists in standalone folder
+if exist .next\standalone\standalone-server.js (
+    echo [INFO] Using standalone-server.js wrapper to load .env...
+    cd .next\standalone
+    node standalone-server.js
 ) else (
-    echo [INFO] PM2 not found. Starting with npm...
-    echo [TIP] Install PM2 for better process management: npm install -g pm2
-    echo.
-    call npm start
+    REM If PM2 is installed, use it
+    where pm2 >nul 2>nul
+    if %errorlevel% equ 0 (
+        echo [INFO] Starting with PM2...
+        pm2 start ecosystem.config.js
+        pm2 logs gym-system
+    ) else (
+        echo [INFO] PM2 not found. Starting with npm...
+        echo [TIP] Install PM2 for better process management: npm install -g pm2
+        echo.
+        call npm start
+    )
 )
