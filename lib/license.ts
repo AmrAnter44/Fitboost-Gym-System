@@ -19,6 +19,35 @@ interface LicenseFile {
  */
 export async function validateLicense(): Promise<{ isValid: boolean; errorMessage?: string }> {
   try {
+    // Skip GitHub validation for production domain (always valid)
+    const isProductionDomain = process.env.NEXT_PUBLIC_DOMAIN === 'system.xgym.website' ||
+                               process.env.NEXT_PUBLIC_APP_URL?.includes('system.xgym.website')
+
+    if (isProductionDomain) {
+      console.log('✅ Running on production domain - license is valid')
+
+      // Still update cache
+      const now = new Date()
+      await prisma.licenseValidation.upsert({
+        where: { id: 'singleton' },
+        update: {
+          isValid: true,
+          lastCheckedAt: now,
+          errorMessage: null,
+          signature: EXPECTED_SIGNATURE
+        },
+        create: {
+          id: 'singleton',
+          isValid: true,
+          lastCheckedAt: now,
+          errorMessage: null,
+          signature: EXPECTED_SIGNATURE
+        }
+      })
+
+      return { isValid: true }
+    }
+
     // Always try to fetch fresh license data from GitHub first
     console.log('🌐 Fetching license from GitHub:', LICENSE_URL)
     const response = await fetch(LICENSE_URL, {

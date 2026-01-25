@@ -1,0 +1,76 @@
+# Caddy Configuration for Gym Management System
+# Domain: system.xgym.website
+
+system.xgym.website {
+    # Reverse proxy to Next.js server
+    reverse_proxy localhost:4001 {
+        # Health check
+        health_uri /api/health
+        health_interval 30s
+        health_timeout 5s
+
+        # Headers to pass
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Automatic HTTPS with Let's Encrypt
+    tls {
+        # Replace with your email
+        email amranter44@gmail.com
+
+        # Production mode (comment out for testing)
+        # protocols tls1.2 tls1.3
+    }
+
+    # Security headers
+    header {
+        # HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+
+        # XSS Protection
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+
+        # Referrer Policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Permissions Policy
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    }
+
+    # Logging
+    log {
+        output file logs/access.log {
+            roll_size 10MB
+            roll_keep 5
+        }
+        format console
+    }
+
+    # Rate limiting (optional)
+    # rate_limit {
+    #     zone dynamic {
+    #         key {remote_host}
+    #         events 100
+    #         window 1m
+    #     }
+    # }
+
+    # Error handling
+    handle_errors {
+        respond "Service temporarily unavailable" 503
+    }
+}
+
+# Optional: Redirect www to non-www
+www.system.xgym.website {
+    redir https://system.xgym.website{uri} permanent
+}
+
+# Optional: HTTP to HTTPS redirect (automatic with Caddy)
