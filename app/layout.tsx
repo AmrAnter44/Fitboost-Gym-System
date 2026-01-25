@@ -66,9 +66,8 @@ export default function RootLayout({
         <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#1e40af" media="(prefers-color-scheme: dark)" />
 
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet" />
+        {/* Local Almarai Font */}
+        <link rel="stylesheet" href="/fonts/almarai.css" />
       </head>
       <body className="bg-gray-50 min-h-screen">
         <ClientLayout>{children}</ClientLayout>

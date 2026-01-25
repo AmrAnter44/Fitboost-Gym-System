@@ -85,7 +85,7 @@ function generateReceiptHTML(data: ReceiptData): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=80mm">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="/fonts/almarai.css" rel="stylesheet">
   <title>إيصال ${receiptNumber}</title>
   <style>
     * {
@@ -100,7 +100,7 @@ function generateReceiptHTML(data: ReceiptData): string {
     }
 
     body {
-      font-family: 'Cairo', Tahoma, 'Segoe UI', Arial, sans-serif;
+      font-family: 'Almarai', Tahoma, 'Segoe UI', Arial, sans-serif;
       width: 80mm;
       padding: 5mm;
       background: #ffffff;
