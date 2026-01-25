@@ -195,6 +195,17 @@ export async function POST(request: Request) {
       )
     }
 
+    // التحقق من وجود المستخدم الحالي في قاعدة البيانات
+    let validUserId: string | null = null
+    if (currentUser.userId) {
+      const userExists = await prisma.user.findUnique({
+        where: { id: currentUser.userId }
+      })
+      if (userExists) {
+        validUserId = currentUser.userId
+      }
+    }
+
     // إنشاء الحجز
     const booking = await prisma.spaBooking.create({
       data: {
@@ -208,7 +219,7 @@ export async function POST(request: Request) {
         notes: notes || null,
         status: 'pending',
         createdBy: currentUser.name,
-        createdByUserId: currentUser.userId
+        createdByUserId: validUserId
       },
       include: {
         member: {
