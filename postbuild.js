@@ -44,9 +44,9 @@ if (fs.existsSync('standalone-server.js') && fs.existsSync('.next/standalone')) 
 }
 
 // Copy migration script
-if (fs.existsSync('migrate-followup-schema.js') && fs.existsSync('.next/standalone')) {
-  fs.copyFileSync('migrate-followup-schema.js', path.join('.next', 'standalone', 'migrate-followup-schema.js'));
-  console.log('✅ migrate-followup-schema.js copied to standalone');
+if (fs.existsSync('migrate-database-complete.js') && fs.existsSync('.next/standalone')) {
+  fs.copyFileSync('migrate-database-complete.js', path.join('.next', 'standalone', 'migrate-database-complete.js'));
+  console.log('✅ migrate-database-complete.js copied to standalone');
 }
 
 console.log('\n========================================');

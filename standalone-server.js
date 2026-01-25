@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 console.log('\n========================================');
-console.log('  Standalone Server Wrapper v1.1.4');
+console.log('  Standalone Server Wrapper v1.1.5');
 console.log('========================================\n');
 console.log('📁 Current directory:', __dirname);
 
@@ -72,11 +72,12 @@ console.log('  → NEXT_PUBLIC_DOMAIN:', process.env.NEXT_PUBLIC_DOMAIN || 'Not 
 // Run database migrations
 console.log('\n📊 Running database migrations...\n');
 
-const migrationPath = path.join(__dirname, 'migrate-followup-schema.js');
+const migrationPath = path.join(__dirname, 'migrate-database-complete.js');
 if (fs.existsSync(migrationPath)) {
   try {
-    console.log('  → Running FollowUp schema migration...');
-    require(migrationPath);
+    console.log('  → Running comprehensive database migration...');
+    const { execSync } = require('child_process');
+    execSync(`node "${migrationPath}"`, { stdio: 'inherit', cwd: __dirname });
     console.log('  ✅ Migration completed\n');
   } catch (migrationError) {
     console.error('  ⚠️ Migration warning:', migrationError.message);
