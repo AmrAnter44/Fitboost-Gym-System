@@ -17,6 +17,7 @@ export async function GET(request: Request) {
     const limit = searchParams.get('limit')
     const offset = searchParams.get('offset')
     const userId = searchParams.get('userId')
+    const userSearch = searchParams.get('user')  // User search by name or email
     const action = searchParams.get('action')
     const resource = searchParams.get('resource')
     const status = searchParams.get('status')
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
       limit: limit ? parseInt(limit) : 100,
       offset: offset ? parseInt(offset) : 0,
       userId: userId || undefined,
+      userSearch: userSearch || undefined,
       action: action as any,
       resource: resource as any,
       status: status as any,

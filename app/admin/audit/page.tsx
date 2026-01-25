@@ -46,6 +46,8 @@ export default function AuditPage() {
   // Filters
   const [actionFilter, setActionFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [resourceFilter, setResourceFilter] = useState('')
+  const [userSearch, setUserSearch] = useState('')
 
   // Fetch audit logs
   const fetchLogs = async () => {
@@ -54,6 +56,8 @@ export default function AuditPage() {
       const params = new URLSearchParams()
       if (actionFilter) params.append('action', actionFilter)
       if (statusFilter) params.append('status', statusFilter)
+      if (resourceFilter) params.append('resource', resourceFilter)
+      if (userSearch) params.append('user', userSearch)
 
       const response = await fetch(`/api/admin/audit-logs?${params}`)
       if (!response.ok) {
@@ -103,9 +107,9 @@ export default function AuditPage() {
     } else {
       fetchSessions()
     }
-  }, [activeTab, actionFilter, statusFilter])
+  }, [activeTab, actionFilter, statusFilter, resourceFilter, userSearch])
 
-  // Action translations
+  // Action translations and icons
   const actionTranslations: Record<string, string> = {
     LOGIN: 'تسجيل دخول',
     LOGOUT: 'تسجيل خروج',
@@ -117,6 +121,93 @@ export default function AuditPage() {
     ACCESS_DENIED: 'رفض الوصول',
     PERMISSION_CHANGE: 'تغيير صلاحيات',
     RATE_LIMIT_HIT: 'تجاوز الحد المسموح'
+  }
+
+  const actionIcons: Record<string, string> = {
+    LOGIN: '🔐',
+    LOGOUT: '👋',
+    LOGIN_FAILED: '❌',
+    CREATE: '➕',
+    UPDATE: '✏️',
+    DELETE: '🗑️',
+    VIEW: '👁️',
+    ACCESS_DENIED: '🚫',
+    PERMISSION_CHANGE: '🔑',
+    RATE_LIMIT_HIT: '⚠️'
+  }
+
+  const resourceTranslations: Record<string, string> = {
+    Member: 'عضو',
+    Receipt: 'إيصال',
+    User: 'مستخدم',
+    Staff: 'موظف',
+    PT: 'جلسة PT',
+    Visitor: 'زائر',
+    FollowUp: 'متابعة',
+    Expense: 'مصروف',
+    DayUse: 'استخدام يومي',
+    SpaBooking: 'حجز SPA',
+    Offer: 'عرض',
+    Permission: 'صلاحية'
+  }
+
+  // Parse details to extract meaningful information
+  const parseDetails = (log: AuditLog) => {
+    if (!log.details) return null
+
+    try {
+      const details = JSON.parse(log.details)
+
+      // For CREATE actions
+      if (log.action === 'CREATE') {
+        if (log.resource === 'Member') {
+          return `أضاف عضو جديد: ${details.name || 'غير محدد'}`
+        }
+        if (log.resource === 'Receipt') {
+          return `أنشأ إيصال رقم: ${details.receiptNumber || log.resourceId || 'غير محدد'} - المبلغ: ${details.amount || '0'} جنيه`
+        }
+        if (log.resource === 'User') {
+          return `أضاف مستخدم جديد: ${details.email || details.name || 'غير محدد'}`
+        }
+        if (log.resource === 'Staff') {
+          return `أضاف موظف جديد: ${details.name || 'غير محدد'}`
+        }
+        if (log.resource === 'SpaBooking') {
+          return `أنشأ حجز SPA لـ: ${details.memberName || 'غير محدد'} - ${details.serviceType || 'خدمة'}`
+        }
+      }
+
+      // For DELETE actions
+      if (log.action === 'DELETE') {
+        if (log.resource === 'Receipt') {
+          return `حذف إيصال رقم: ${details.receiptNumber || log.resourceId || 'غير محدد'}`
+        }
+        if (log.resource === 'Member') {
+          return `حذف عضو: ${details.name || log.resourceId || 'غير محدد'}`
+        }
+        if (log.resource === 'User') {
+          return `حذف مستخدم: ${details.email || details.name || log.resourceId || 'غير محدد'}`
+        }
+      }
+
+      // For UPDATE actions
+      if (log.action === 'UPDATE') {
+        if (log.resource === 'Member') {
+          return `عدّل بيانات عضو: ${details.name || log.resourceId || 'غير محدد'}`
+        }
+        if (log.resource === 'Receipt') {
+          return `عدّل إيصال رقم: ${details.receiptNumber || log.resourceId || 'غير محدد'}`
+        }
+        if (log.resource === 'Permission') {
+          return `غيّر صلاحيات: ${details.userEmail || details.userName || 'مستخدم'}`
+        }
+      }
+
+      // Generic fallback
+      return `${actionTranslations[log.action] || log.action} ${resourceTranslations[log.resource] || log.resource}${log.resourceId ? ` #${log.resourceId}` : ''}`
+    } catch (e) {
+      return null
+    }
   }
 
   // Status translations and colors
@@ -198,37 +289,97 @@ export default function AuditPage() {
       {activeTab === 'logs' && (
         <div className="space-y-6">
           {/* Filters */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              🔍 فلاتر البحث
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* User Search */}
+              <div>
+                <label className="block text-sm font-medium mb-2">البحث عن مستخدم</label>
+                <input
+                  type="text"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="اسم أو بريد إلكتروني..."
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Action Filter */}
               <div>
                 <label className="block text-sm font-medium mb-2">نوع العملية</label>
                 <select
                   value={actionFilter}
                   onChange={(e) => setActionFilter(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">الكل</option>
-                  <option value="LOGIN">تسجيل دخول</option>
-                  <option value="LOGOUT">تسجيل خروج</option>
-                  <option value="LOGIN_FAILED">فشل تسجيل دخول</option>
-                  <option value="DELETE">حذف</option>
-                  <option value="ACCESS_DENIED">رفض وصول</option>
+                  <option value="LOGIN">🔐 تسجيل دخول</option>
+                  <option value="LOGOUT">👋 تسجيل خروج</option>
+                  <option value="LOGIN_FAILED">❌ فشل تسجيل دخول</option>
+                  <option value="CREATE">➕ إنشاء</option>
+                  <option value="UPDATE">✏️ تعديل</option>
+                  <option value="DELETE">🗑️ حذف</option>
+                  <option value="VIEW">👁️ عرض</option>
+                  <option value="ACCESS_DENIED">🚫 رفض وصول</option>
+                  <option value="PERMISSION_CHANGE">🔑 تغيير صلاحيات</option>
                 </select>
               </div>
+
+              {/* Resource Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2">نوع المورد</label>
+                <select
+                  value={resourceFilter}
+                  onChange={(e) => setResourceFilter(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">الكل</option>
+                  <option value="Member">👤 أعضاء</option>
+                  <option value="Receipt">🧾 إيصالات</option>
+                  <option value="User">👨‍💼 مستخدمين</option>
+                  <option value="Staff">👨‍💻 موظفين</option>
+                  <option value="PT">🏋️ جلسات PT</option>
+                  <option value="Visitor">👋 زوار</option>
+                  <option value="FollowUp">📞 متابعات</option>
+                  <option value="SpaBooking">💆 حجوزات SPA</option>
+                  <option value="Expense">💸 مصروفات</option>
+                </select>
+              </div>
+
+              {/* Status Filter */}
               <div>
                 <label className="block text-sm font-medium mb-2">الحالة</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">الكل</option>
-                  <option value="success">نجح</option>
-                  <option value="failure">فشل</option>
-                  <option value="warning">تحذير</option>
+                  <option value="success">✓ نجح</option>
+                  <option value="failure">✗ فشل</option>
+                  <option value="warning">⚠ تحذير</option>
                 </select>
               </div>
             </div>
+
+            {/* Clear Filters Button */}
+            {(actionFilter || statusFilter || resourceFilter || userSearch) && (
+              <div className="mt-4 pt-4 border-t">
+                <button
+                  onClick={() => {
+                    setActionFilter('')
+                    setStatusFilter('')
+                    setResourceFilter('')
+                    setUserSearch('')
+                  }}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition"
+                >
+                  ✖️ مسح الفلاتر
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Logs List */}
@@ -246,42 +397,99 @@ export default function AuditPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {logs.map((log) => (
-                <div key={log.id} className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(log.status)}`}>
-                          {actionTranslations[log.action] || log.action}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          {log.resource}
-                        </span>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          log.status === 'success' ? 'bg-green-100 text-green-800' :
-                          log.status === 'failure' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {statusTranslations[log.status] || log.status}
-                        </span>
+              {logs.map((log) => {
+                const detailsText = parseDetails(log)
+                const actionIcon = actionIcons[log.action] || '📝'
+                const resourceName = resourceTranslations[log.resource] || log.resource
+
+                return (
+                  <div key={log.id} className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition border border-gray-100">
+                    <div className="flex items-start gap-4">
+                      {/* Action Icon */}
+                      <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
+                        log.status === 'success' ? 'bg-green-100' :
+                        log.status === 'failure' ? 'bg-red-100' :
+                        'bg-yellow-100'
+                      }`}>
+                        {actionIcon}
                       </div>
-                      <div className="text-sm text-gray-700 mb-2">
-                        <span className="font-medium">{log.userName || log.userEmail || 'مستخدم غير معروف'}</span>
-                        {log.userRole && <span className="text-gray-500"> • {log.userRole}</span>}
-                      </div>
-                      {log.errorMessage && (
-                        <div className="text-sm text-red-600 mb-2">
-                          ⚠️ {log.errorMessage}
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        {/* Header: User + Action */}
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="font-bold text-gray-900">
+                            {log.userName || log.userEmail || 'مستخدم غير معروف'}
+                          </span>
+                          <span className="text-gray-500">•</span>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                            log.userRole === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
+                            log.userRole === 'MANAGER' ? 'bg-blue-100 text-blue-800' :
+                            log.userRole === 'STAFF' ? 'bg-gray-100 text-gray-800' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                            {log.userRole || 'مستخدم'}
+                          </span>
                         </div>
-                      )}
-                      <div className="text-xs text-gray-500 flex items-center gap-4">
-                        <span>🕐 {formatDate(log.createdAt)}</span>
-                        {log.ipAddress && <span>🌐 {log.ipAddress}</span>}
+
+                        {/* Main Action Description */}
+                        <div className="mb-3">
+                          {detailsText ? (
+                            <p className="text-base text-gray-800 font-medium">
+                              {detailsText}
+                            </p>
+                          ) : (
+                            <p className="text-base text-gray-800">
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(log.status)}`}>
+                                {actionTranslations[log.action] || log.action}
+                              </span>
+                              <span className="mx-2">←</span>
+                              <span className="font-medium">{resourceName}</span>
+                              {log.resourceId && <span className="text-gray-500"> #{log.resourceId}</span>}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium ${
+                            log.status === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                            log.status === 'failure' ? 'bg-red-50 text-red-700 border border-red-200' :
+                            'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                          }`}>
+                            {log.status === 'success' && '✓'}
+                            {log.status === 'failure' && '✗'}
+                            {log.status === 'warning' && '⚠'}
+                            <span>{statusTranslations[log.status] || log.status}</span>
+                          </span>
+                        </div>
+
+                        {/* Error Message (if any) */}
+                        {log.errorMessage && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                            <div className="flex items-start gap-2">
+                              <span className="text-red-600 text-sm">⚠️</span>
+                              <p className="text-sm text-red-700 font-medium">{log.errorMessage}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Footer: Metadata */}
+                        <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t border-gray-100">
+                          <span className="flex items-center gap-1">
+                            🕐 {formatDate(log.createdAt)}
+                          </span>
+                          {log.ipAddress && (
+                            <span className="flex items-center gap-1">
+                              🌐 <code className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">{log.ipAddress}</code>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

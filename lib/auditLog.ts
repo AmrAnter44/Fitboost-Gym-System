@@ -396,6 +396,7 @@ export async function getAuditLogs(options: {
   limit?: number
   offset?: number
   userId?: string
+  userSearch?: string  // Search by name or email
   action?: AuditAction
   resource?: AuditResource
   status?: AuditStatus
@@ -405,6 +406,15 @@ export async function getAuditLogs(options: {
   const where: any = {}
 
   if (options.userId) where.userId = options.userId
+
+  // User search by name or email
+  if (options.userSearch) {
+    where.OR = [
+      { userName: { contains: options.userSearch, mode: 'insensitive' } },
+      { userEmail: { contains: options.userSearch, mode: 'insensitive' } }
+    ]
+  }
+
   if (options.action) where.action = options.action
   if (options.resource) where.resource = options.resource
   if (options.status) where.status = options.status
