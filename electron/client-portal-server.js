@@ -1,157 +1,79 @@
-/**
- * Custom standalone server for Client Portal
- * Similar to standalone-server.js for main system
- */
-
-// Load default server.js from standalone
-const NextServer = require('next/dist/server/next-server').default;
-const http = require('http');
+// Custom server wrapper for Client Portal standalone with public folder support
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 
-const hostname = process.env.HOSTNAME || '0.0.0.0';
-const port = parseInt(process.env.PORT || '3002', 10);
+// Get the standalone directory (passed as argument or current directory)
+const standaloneDir = process.argv[2] || process.cwd();
+const publicDir = path.join(standaloneDir, 'public');
 
 console.log('🌐 Starting Client Portal custom standalone server');
-
-// In production standalone, __dirname = client-portal/.next/standalone/
-const standaloneDir = __dirname;
-
-// Parent directory for .next/static lookup
-const clientPortalRoot = path.join(standaloneDir, '..', '..');
-
 console.log('📂 Standalone dir:', standaloneDir);
-console.log('📂 Client Portal root:', clientPortalRoot);
+console.log('📂 Public dir:', publicDir);
 
-// Check paths
-const staticPath = path.join(clientPortalRoot, '.next', 'static');
-const publicPath = path.join(standaloneDir, 'public');
+// MIME types for static files
+const mimeTypes = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.eot': 'application/vnd.ms-fontobject'
+};
 
-if (fs.existsSync(staticPath)) {
-  console.log('✓ .next/static found at:', staticPath);
-} else {
-  console.warn('⚠️ .next/static NOT found at:', staticPath);
-}
+// Intercept http.createServer to add static file serving
+const originalCreateServer = http.createServer;
+http.createServer = function(requestListener) {
+  // Wrap the original request listener
+  const wrappedListener = (req, res) => {
+    const urlPath = req.url.split('?')[0];
 
-if (fs.existsSync(publicPath)) {
-  console.log('✓ Public folder found at:', publicPath);
-} else {
-  console.warn('⚠️ Public folder NOT found at:', publicPath);
-}
+    console.log('Client Portal: 📥 Request:', urlPath);
 
-// Start server
-process.chdir(standaloneDir);
+    // Check if request is for a public file
+    if (!urlPath.startsWith('/api') && !urlPath.startsWith('/_next') && urlPath !== '/') {
+      const filePath = path.join(publicDir, urlPath);
 
-const nextServer = new NextServer({
-  hostname,
-  port,
-  dir: standaloneDir,
-  dev: false,
-  conf: {
-    env: {},
-    webpack: null,
-    webpackDevMiddleware: null,
-    eslint: { ignoreDuringBuilds: true },
-    typescript: { ignoreBuildErrors: false, tsconfigPath: 'tsconfig.json' },
-    distDir: '.next',
-    cleanDistDir: true,
-    assetPrefix: '',
-    configOrigin: 'next.config.js',
-    useFileSystemPublicRoutes: true,
-    generateEtags: true,
-    pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
-    poweredByHeader: false,
-    compress: true,
-    images: {
-      deviceSizes: [640, 750, 828, 1080, 1200],
-      imageSizes: [16, 32, 48, 64, 96, 128, 256],
-      path: '/_next/image',
-      loader: 'default',
-      loaderFile: '',
-      domains: [],
-      disableStaticImages: false,
-      minimumCacheTTL: 60,
-      formats: ['image/webp'],
-      dangerouslyAllowSVG: false,
-      contentSecurityPolicy: "script-src 'none'; frame-src 'none'; sandbox;",
-      contentDispositionType: 'inline',
-      remotePatterns: [],
-      unoptimized: false
-    },
-    devIndicators: { buildActivity: true, buildActivityPosition: 'bottom-right' },
-    onDemandEntries: { maxInactiveAge: 60000, pagesBufferLength: 5 },
-    amp: { canonicalBase: '' },
-    basePath: '',
-    sassOptions: {},
-    trailingSlash: false,
-    i18n: null,
-    productionBrowserSourceMaps: false,
-    optimizeFonts: true,
-    excludeDefaultMomentLocales: true,
-    serverRuntimeConfig: {},
-    publicRuntimeConfig: {},
-    reactProductionProfiling: false,
-    reactStrictMode: true,
-    httpAgentOptions: { keepAlive: true },
-    outputFileTracing: true,
-    staticPageGenerationTimeout: 120,
-    swcMinify: true,
-    output: 'standalone',
-    modularizeImports: undefined,
-    experimental: {
-      serverComponentsExternalPackages: [],
-      outputFileTracingRoot: '',
-      swcTraceProfiling: false,
-      forceSwcTransforms: false,
-      swcPlugins: undefined,
-      largePageDataBytes: 128 * 1000,
-      disablePostcssPresetEnv: undefined,
-      amp: undefined,
-      disableOptimizedLoading: undefined,
-      gzipSize: true,
-      craCompat: false,
-      esmExternals: true,
-      appDir: true,
-      isrFlushToDisk: true,
-      workerThreads: false,
-      proxyTimeout: undefined,
-      optimizeCss: false,
-      nextScriptWorkers: false,
-      scrollRestoration: false,
-      externalDir: false,
-      reactRoot: true,
-      disableISSG: undefined,
-      clientRouterFilter: true,
-      clientRouterFilterRedirects: false,
-      fetchCacheKeyPrefix: '',
-      middlewarePrefetch: 'flexible',
-      optimisticClientCache: true,
-      manualClientBasePath: false,
-      cpus: undefined,
-      memoryBasedWorkersCount: false,
-      isrMemoryCacheSize: 52428800,
-      incrementalCacheHandlerPath: undefined,
-      fullySpecified: undefined,
-      urlImports: undefined,
-      outputFileTracingIgnores: [],
-      outputFileTracingIncludes: undefined
+      if (filePath.startsWith(publicDir) && fs.existsSync(filePath)) {
+        try {
+          const stats = fs.statSync(filePath);
+          if (stats.isFile()) {
+            const ext = path.extname(filePath).toLowerCase();
+            const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+            console.log('Client Portal: ✅ Serving:', urlPath);
+
+            const data = fs.readFileSync(filePath);
+            res.writeHead(200, {
+              'Content-Type': contentType,
+              'Content-Length': data.length,
+              'Cache-Control': 'public, max-age=31536000'
+            });
+            res.end(data);
+            return;
+          }
+        } catch (err) {
+          console.error('Client Portal: ❌ Error:', err.message);
+        }
+      }
     }
-  }
-});
 
-const requestHandler = nextServer.getRequestHandler();
+    // Forward to Next.js
+    return requestListener(req, res);
+  };
 
-http.createServer(async (req, res) => {
-  try {
-    await requestHandler(req, res);
-  } catch (err) {
-    console.error('Error handling request:', err);
-    res.statusCode = 500;
-    res.end('Internal Server Error');
-  }
-}).listen(port, hostname, (err) => {
-  if (err) {
-    throw err;
-  }
-  console.log(`✅ Client Portal ready on http://${hostname}:${port}`);
-});
+  return originalCreateServer.call(this, wrappedListener);
+};
+
+// Now require the Next.js server which will use our wrapped createServer
+console.log('Client Portal: ✅ Loading Next.js server...');
+require(path.join(standaloneDir, 'server.js'));
