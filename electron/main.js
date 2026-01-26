@@ -291,8 +291,8 @@ async function startClientPortalServer() {
         stdio: 'pipe'
       });
     } else {
-      // تشغيل standalone server.js
-      console.log('Starting client portal standalone server');
+      // تشغيل standalone server.js with custom server wrapper
+      console.log('Starting client portal standalone server with custom public folder support');
 
       // التحقق من وجود مجلد public
       const publicPath = path.join(appPath, 'public');
@@ -304,7 +304,33 @@ async function startClientPortalServer() {
 
       console.log('Client portal app path:', appPath);
 
-      clientPortalProcess = spawn('node', [serverFile], {
+      // استخدام custom server wrapper
+      let customServerPath = path.join(__dirname, 'client-portal-server.js');
+
+      // في production، دايماً استخدم unpacked version
+      if (!isDev) {
+        const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
+        customServerPath = path.join(unpackedPath, 'client-portal-server.js');
+        console.log('Looking for custom client portal server in unpacked:', customServerPath);
+
+        if (fs.existsSync(customServerPath)) {
+          console.log('✓ Using custom client portal server with public folder support');
+        } else {
+          console.warn('⚠️ Custom client portal server not found, using default');
+          customServerPath = serverFile; // fallback to default server.js
+        }
+      } else {
+        if (fs.existsSync(customServerPath)) {
+          console.log('✓ Using custom client portal server with public folder support');
+        } else {
+          console.warn('⚠️ Custom client portal server not found, using default');
+          customServerPath = serverFile;
+        }
+      }
+
+      console.log('Custom client portal server path:', customServerPath);
+
+      clientPortalProcess = spawn('node', [customServerPath], {
         cwd: appPath,
         env: {
           ...process.env,
