@@ -239,47 +239,83 @@ async function startClientPortalServer() {
       await killProcessOnPort(3002);
     }
 
-    // البحث عن مسار client-portal
+    // البحث عن مسار client-portal standalone
     const possiblePaths = [
       // في حالة Production - داخل app.asar.unpacked
-      path.join(process.resourcesPath, 'app.asar.unpacked', 'client-portal'),
+      path.join(process.resourcesPath, 'app.asar.unpacked', 'client-portal', '.next', 'standalone'),
       // في حالة Production - داخل app.asar (fallback)
-      path.join(app.getAppPath(), 'client-portal'),
+      path.join(app.getAppPath(), 'client-portal', '.next', 'standalone'),
       // في حالة development
-      path.join(process.cwd(), 'client-portal'),
+      path.join(process.cwd(), 'client-portal', '.next', 'standalone'),
     ];
 
-    let clientPortalPath = null;
+    let appPath = null;
+    let serverFile = null;
 
-    // البحث عن client-portal folder
+    // البحث عن server.js في standalone build
     for (const testPath of possiblePaths) {
-      console.log('Checking client-portal path:', testPath);
-      if (fs.existsSync(testPath) && fs.existsSync(path.join(testPath, 'package.json'))) {
-        clientPortalPath = testPath;
-        console.log('✓ Found client-portal at:', clientPortalPath);
+      const serverPath = path.join(testPath, 'server.js');
+      console.log('Checking client-portal server path:', serverPath);
+      if (fs.existsSync(serverPath)) {
+        appPath = testPath;
+        serverFile = serverPath;
+        console.log('✓ Found client-portal server at:', serverPath);
         break;
       }
     }
 
-    if (!clientPortalPath) {
-      console.error('❌ Client Portal not found!');
-      return;
+    // إذا مش لاقيين standalone، نستخدم npx next start
+    if (!serverFile) {
+      console.log('Client portal standalone not found, using npx next start');
+      const clientPortalPath = possiblePaths.find(p => {
+        const parentPath = path.dirname(path.dirname(path.dirname(p)));
+        return fs.existsSync(path.join(parentPath, 'package.json'));
+      });
+
+      if (!clientPortalPath) {
+        console.error('❌ Client Portal not found!');
+        return;
+      }
+
+      const clientPortalRoot = path.dirname(path.dirname(path.dirname(clientPortalPath)));
+
+      clientPortalProcess = spawn('npx', ['next', 'start', '-p', '3002', '-H', '0.0.0.0'], {
+        cwd: clientPortalRoot,
+        env: {
+          ...process.env,
+          NODE_ENV: 'production',
+          PORT: '3002',
+          HOSTNAME: '0.0.0.0',
+        },
+        shell: true,
+        stdio: 'pipe'
+      });
+    } else {
+      // تشغيل standalone server.js
+      console.log('Starting client portal standalone server');
+
+      // التحقق من وجود مجلد public
+      const publicPath = path.join(appPath, 'public');
+      if (fs.existsSync(publicPath)) {
+        console.log('✓ Client portal public folder found at:', publicPath);
+      } else {
+        console.warn('⚠️ Client portal public folder NOT found at:', publicPath);
+      }
+
+      console.log('Client portal app path:', appPath);
+
+      clientPortalProcess = spawn('node', [serverFile], {
+        cwd: appPath,
+        env: {
+          ...process.env,
+          NODE_ENV: 'production',
+          PORT: '3002',
+          HOSTNAME: '0.0.0.0',
+        },
+        shell: false,
+        stdio: 'pipe'
+      });
     }
-
-    // تشغيل client portal على port 3002
-    console.log('Starting client portal on port 3002...');
-
-    clientPortalProcess = spawn('npx', ['next', 'start', '-p', '3002', '-H', '0.0.0.0'], {
-      cwd: clientPortalPath,
-      env: {
-        ...process.env,
-        NODE_ENV: 'production',
-        PORT: '3002',
-        HOSTNAME: '0.0.0.0',
-      },
-      shell: true,
-      stdio: 'pipe'
-    });
 
     clientPortalProcess.stdout.on('data', data => console.log(`Client Portal: ${data}`));
     clientPortalProcess.stderr.on('data', data => console.error(`Client Portal ERR: ${data}`));
