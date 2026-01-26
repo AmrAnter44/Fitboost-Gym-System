@@ -330,7 +330,8 @@ async function startClientPortalServer() {
 
       console.log('Custom client portal server path:', customServerPath);
 
-      clientPortalProcess = spawn('node', [customServerPath], {
+      // Pass standalone directory as argument to custom server
+      clientPortalProcess = spawn('node', [customServerPath, appPath], {
         cwd: appPath,
         env: {
           ...process.env,
