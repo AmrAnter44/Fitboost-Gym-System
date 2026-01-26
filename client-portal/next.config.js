@@ -168,8 +168,11 @@ const nextConfig = {
 
   // Enable experimental features for better PWA
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Disabled - requires critters package
   },
+
+  // Increase static generation timeout
+  staticPageGenerationTimeout: 120,
 };
 
 module.exports = withPWA(nextConfig);

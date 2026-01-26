@@ -42,7 +42,10 @@ async function generatePWAIcons() {
       const padding = Math.floor((size - logoSize) / 2);
 
       // قراءة وتعديل اللوجو
+      // تحويل من indexed color إلى RGBA أولاً لتجنب أخطاء sharp
       const logoBuffer = await sharp(logoPath)
+        .toColorspace('srgb') // تحويل colorspace
+        .ensureAlpha() // التأكد من وجود alpha channel
         .resize(logoSize, logoSize, {
           fit: 'contain',
           background: { r: 0, g: 0, b: 0, alpha: 0 } // شفاف
