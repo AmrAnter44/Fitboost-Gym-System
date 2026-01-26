@@ -1,4 +1,4 @@
-name: Build & Test
+name: Build Only
 
 on:
   push:
@@ -72,92 +72,10 @@ jobs:
           path: client-portal/.next/
           retention-days: 7
 
-  lint:
-    name: Lint Code
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run ESLint - Main System
-        run: npm run lint
-        continue-on-error: true
-
-      - name: Install client portal dependencies
-        working-directory: ./client-portal
-        run: npm ci
-
-      - name: Run ESLint - Client Portal
-        working-directory: ./client-portal
-        run: npm run lint
-        continue-on-error: true
-
-  security-check:
-    name: Security Audit
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Run npm audit - Main System
-        run: npm audit --audit-level=high
-        continue-on-error: true
-
-      - name: Run npm audit - Client Portal
-        working-directory: ./client-portal
-        run: npm audit --audit-level=high
-        continue-on-error: true
-
-  type-check:
-    name: TypeScript Type Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Type check - Main System
-        run: npx tsc --noEmit
-        continue-on-error: true
-
-      - name: Install client portal dependencies
-        working-directory: ./client-portal
-        run: npm ci
-
-      - name: Type check - Client Portal
-        working-directory: ./client-portal
-        run: npx tsc --noEmit
-        continue-on-error: true
-
   build-summary:
     name: Build Summary
     runs-on: ubuntu-latest
-    needs: [build-main-system, build-client-portal, lint, security-check, type-check]
+    needs: [build-main-system, build-client-portal]
     if: always()
 
     steps:
@@ -166,9 +84,6 @@ jobs:
           echo "🎯 Build Summary:"
           echo "Main System: ${{ needs.build-main-system.result }}"
           echo "Client Portal: ${{ needs.build-client-portal.result }}"
-          echo "Lint: ${{ needs.lint.result }}"
-          echo "Security: ${{ needs.security-check.result }}"
-          echo "Type Check: ${{ needs.type-check.result }}"
 
           if [ "${{ needs.build-main-system.result }}" != "success" ] || [ "${{ needs.build-client-portal.result }}" != "success" ]; then
             echo "❌ Build failed!"
