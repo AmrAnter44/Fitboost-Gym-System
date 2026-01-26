@@ -160,7 +160,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     message += `٤- الاداره غير مسئوله عن المتعلقات الشخصيه\n\n`
 
     message += `🌐 *الموقع الإلكتروني:*\n`
-    message += `https://www.xgym.website/`
+    message += `${process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://www.xgym.website'}`
 
     return message
   }
