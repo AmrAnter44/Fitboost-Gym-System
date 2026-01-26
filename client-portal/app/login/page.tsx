@@ -16,23 +16,31 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      console.log('🔵 Login attempt:', { memberNumber, phoneNumber });
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ memberNumber, phoneNumber }),
       });
 
+      console.log('🔵 Response status:', res.status);
+
       const data = await res.json();
+      console.log('🔵 Response data:', data);
 
       if (!res.ok) {
+        console.error('❌ Login failed:', data.error);
         setError(data.error || 'فشل تسجيل الدخول');
         return;
       }
 
+      console.log('✅ Login successful, redirecting to dashboard...');
       // Redirect to dashboard
       router.push('/dashboard');
       router.refresh();
     } catch (err) {
+      console.error('❌ Login error:', err);
       setError('حدث خطأ. حاول مرة أخرى');
     } finally {
       setLoading(false);

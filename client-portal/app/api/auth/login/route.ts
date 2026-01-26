@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await checkRateLimit(clientIp, 5, 15 * 60);
 
     if (!rateLimitResult.success) {
+      console.log('⚠️ Rate limit exceeded for IP:', clientIp);
       return NextResponse.json(
         {
           error: 'محاولات كثيرة. حاول مرة أخرى بعد قليل',
@@ -23,8 +24,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { memberNumber, phoneNumber } = body;
 
+    console.log('🔵 Client Portal Login API called:', { memberNumber, phoneNumber });
+
     // Validate input
     if (!memberNumber || !phoneNumber) {
+      console.log('❌ Missing credentials');
       return NextResponse.json(
         { error: 'رقم العضوية ورقم الهاتف مطلوبان' },
         { status: 400 }
@@ -33,14 +37,19 @@ export async function POST(request: NextRequest) {
 
     // Sanitize phone number
     const cleanPhone = sanitizePhone(phoneNumber);
+    console.log('🔵 Clean phone:', cleanPhone);
 
     // Verify credentials via main system API
+    console.log('🔵 Calling main system API to verify credentials...');
     const result = await verifyMemberCredentials(
       parseInt(memberNumber),
       cleanPhone
     );
 
+    console.log('🔵 Main system API response:', result);
+
     if (!result.success || !result.member) {
+      console.log('❌ Verification failed:', result.error);
       return NextResponse.json(
         { error: result.error || 'البيانات غير صحيحة' },
         { status: 401 }
