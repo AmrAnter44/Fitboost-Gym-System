@@ -33,8 +33,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: main-system-build
-          path: .next/
+          path: |
+            .next/standalone/
+            .next/static/
+            public/
           retention-days: 7
+        if: always()
 
   build-client-portal:
     name: Build Client Portal
@@ -69,8 +73,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: client-portal-build
-          path: client-portal/.next/
+          path: |
+            client-portal/.next/standalone/
+            client-portal/.next/static/
+            client-portal/public/
           retention-days: 7
+        if: always()
 
   build-summary:
     name: Build Summary
