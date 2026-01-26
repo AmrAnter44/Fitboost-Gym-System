@@ -319,7 +319,7 @@ function generateReceiptHTML(data: ReceiptData): string {
 <body>
   <div class="header">
     <div>
-      <img src='/icon.png' alt="logo" style="width: 24px; height: 24px; display: inline-block;"/>
+      <img src='/assets/icon.png' alt="logo" style="width: 24px; height: 24px; display: inline-block;"/>
        <img src='/assets/qr.png' alt="logo" style="width: 24px; height: 24px; display: inline-block;"/>
       <h1>Gym System</h1>
     </div>

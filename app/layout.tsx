@@ -93,7 +93,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <head>
-        <link rel="icon" href="/icon.png" />
+        <link rel="icon" href="/assets/icon.png" />
 
         {/* PWA Icons - iOS */}
         <link rel="apple-touch-icon" href="/icon-192x192.png" />

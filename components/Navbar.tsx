@@ -92,7 +92,7 @@ export default function Navbar() {
                 title={t('nav.home')}
               >
                 <img
-                  src="/icon.png"
+                  src="/assets/icon.png"
                   alt="Home"
                   className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-2xl"
                 />
