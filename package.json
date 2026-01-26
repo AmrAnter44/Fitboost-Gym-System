@@ -103,7 +103,8 @@
       "node_modules/uiohook-napi/**/*",
       "node_modules/better-sqlite3/**/*",
       "node_modules/node-hid/**/*",
-      "electron/standalone-server.js"
+      "electron/standalone-server.js",
+      "electron/client-portal-server.js"
     ],
     "extraResources": [
       {
