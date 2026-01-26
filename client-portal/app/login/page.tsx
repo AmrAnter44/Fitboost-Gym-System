@@ -36,9 +36,9 @@ export default function LoginPage() {
       }
 
       console.log('✅ Login successful, redirecting to dashboard...');
-      // Redirect to dashboard
-      router.push('/dashboard');
-      router.refresh();
+
+      // Use window.location for full page reload to ensure cookie is sent
+      window.location.href = '/dashboard';
     } catch (err) {
       console.error('❌ Login error:', err);
       setError('حدث خطأ. حاول مرة أخرى');
