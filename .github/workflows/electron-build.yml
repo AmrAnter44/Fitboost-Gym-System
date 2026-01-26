@@ -1,0 +1,78 @@
+name: Electron Build
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-electron:
+    name: Build Electron App
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install main system dependencies
+        run: npm ci
+
+      - name: Install client portal dependencies
+        working-directory: ./client-portal
+        run: npm ci
+
+      - name: Generate PWA assets for client portal
+        working-directory: ./client-portal
+        run: npm run generate-pwa-assets
+
+      - name: Build main system
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Build client portal
+        working-directory: ./client-portal
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Copy static files for main system
+        run: |
+          xcopy /E /I /Y "public" ".next\standalone\public"
+          xcopy /E /I /Y ".next\static" ".next\standalone\.next\static"
+
+      - name: Copy static files for client portal
+        run: |
+          xcopy /E /I /Y "client-portal\public" "client-portal\.next\standalone\public"
+          xcopy /E /I /Y "client-portal\.next\static" "client-portal\.next\standalone\.next\static"
+
+      - name: Package Electron app
+        run: npm run electron:build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Electron installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-installer
+          path: dist/*.exe
+          retention-days: 30
+        if: always()
+
+      - name: Create Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
