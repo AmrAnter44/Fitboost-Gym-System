@@ -17,6 +17,7 @@ let uIOhook = null;
 
 let mainWindow;
 let serverProcess;
+let clientPortalProcess; // بوابة العملاء
 
 // ------------------ Barcode Scanner Setup ------------------
 
@@ -174,6 +175,123 @@ function getDatabasePath() {
   }
 
   return dbPath;
+}
+
+// ------------------ تشغيل بوابة العملاء (Development) ------------------
+
+async function startClientPortalDevServer() {
+  try {
+    console.log('🌐 Starting Client Portal Dev Server...');
+
+    // kill port إذا مش فاضي
+    const portAvailable = await checkPort(3002);
+    if (!portAvailable) {
+      console.log('Port 3002 in use, killing...');
+      await killProcessOnPort(3002);
+    }
+
+    // البحث عن مسار client-portal
+    const clientPortalPath = path.join(process.cwd(), 'client-portal');
+
+    if (!fs.existsSync(clientPortalPath)) {
+      console.error('❌ Client Portal not found at:', clientPortalPath);
+      return;
+    }
+
+    console.log('✓ Found client-portal at:', clientPortalPath);
+    console.log('Starting client portal on port 3002 (dev mode)...');
+
+    // تشغيل client portal في dev mode
+    clientPortalProcess = spawn('npm', ['run', 'dev'], {
+      cwd: clientPortalPath,
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        PORT: '3002',
+      },
+      shell: true,
+      stdio: 'pipe'
+    });
+
+    clientPortalProcess.stdout.on('data', data => console.log(`Client Portal: ${data}`));
+    clientPortalProcess.stderr.on('data', data => console.error(`Client Portal ERR: ${data}`));
+    clientPortalProcess.on('error', err => console.error('Client Portal failed:', err));
+    clientPortalProcess.on('exit', code => {
+      if (code !== 0) console.error('Client Portal exited code:', code);
+    });
+
+    console.log('✅ Client Portal dev server started');
+  } catch (error) {
+    console.error('❌ Error starting client portal dev server:', error);
+  }
+}
+
+// ------------------ تشغيل بوابة العملاء (Production) ------------------
+
+async function startClientPortalServer() {
+  try {
+    console.log('🌐 Starting Client Portal Server...');
+
+    // kill port إذا مش فاضي
+    const portAvailable = await checkPort(3002);
+    if (!portAvailable) {
+      console.log('Port 3002 in use, killing...');
+      await killProcessOnPort(3002);
+    }
+
+    // البحث عن مسار client-portal
+    const possiblePaths = [
+      // في حالة Production - داخل app.asar.unpacked
+      path.join(process.resourcesPath, 'app.asar.unpacked', 'client-portal'),
+      // في حالة Production - داخل app.asar (fallback)
+      path.join(app.getAppPath(), 'client-portal'),
+      // في حالة development
+      path.join(process.cwd(), 'client-portal'),
+    ];
+
+    let clientPortalPath = null;
+
+    // البحث عن client-portal folder
+    for (const testPath of possiblePaths) {
+      console.log('Checking client-portal path:', testPath);
+      if (fs.existsSync(testPath) && fs.existsSync(path.join(testPath, 'package.json'))) {
+        clientPortalPath = testPath;
+        console.log('✓ Found client-portal at:', clientPortalPath);
+        break;
+      }
+    }
+
+    if (!clientPortalPath) {
+      console.error('❌ Client Portal not found!');
+      return;
+    }
+
+    // تشغيل client portal على port 3002
+    console.log('Starting client portal on port 3002...');
+
+    clientPortalProcess = spawn('npx', ['next', 'start', '-p', '3002', '-H', '0.0.0.0'], {
+      cwd: clientPortalPath,
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        PORT: '3002',
+        HOSTNAME: '0.0.0.0',
+      },
+      shell: true,
+      stdio: 'pipe'
+    });
+
+    clientPortalProcess.stdout.on('data', data => console.log(`Client Portal: ${data}`));
+    clientPortalProcess.stderr.on('data', data => console.error(`Client Portal ERR: ${data}`));
+    clientPortalProcess.on('error', err => console.error('Client Portal failed:', err));
+    clientPortalProcess.on('exit', code => {
+      if (code !== 0) console.error('Client Portal exited code:', code);
+    });
+
+    console.log('✅ Client Portal server started');
+  } catch (error) {
+    console.error('❌ Error starting client portal:', error);
+  }
 }
 
 // ------------------ تشغيل Next Production ------------------
@@ -569,6 +687,7 @@ function createWindow() {
     console.log('⚠️ Window closed by user');
     mainWindow = null;
     if (serverProcess) serverProcess.kill();
+    if (clientPortalProcess) clientPortalProcess.kill();
   });
 }
 
@@ -970,7 +1089,17 @@ ipcMain.handle('save-pdf-to-documents', async (event, { fileName, pdfData }) => 
 // ------------------ أحداث التطبيق ------------------
 
 app.whenReady().then(async () => {
-  if (!isDev) await startProductionServer();
+  if (!isDev) {
+    // Production mode: شغل الاتنين
+    await startProductionServer(); // النظام الرئيسي - port 4001
+    await startClientPortalServer(); // بوابة العملاء - port 3002
+  } else {
+    // Development mode: شغل client-portal تلقائياً
+    console.log('🔧 Development mode: Starting client portal automatically...');
+    await startClientPortalDevServer(); // بوابة العملاء في dev mode
+    console.log('✅ Client portal started on port 3002');
+    console.log('💡 Main system should be running on port 4001 (npm run dev)');
+  }
   createWindow();
   setupBarcodeScanner();
   setupAutoUpdater(); // إعداد نظام التحديثات
@@ -978,6 +1107,7 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (serverProcess) serverProcess.kill();
+  if (clientPortalProcess) clientPortalProcess.kill();
   if (process.platform !== 'darwin') app.quit();
 });
 
@@ -993,5 +1123,7 @@ process.on('uncaughtException', error => {
 app.on('before-quit', async () => {
   // Clean up on quit
   if (serverProcess) serverProcess.kill();
+  if (clientPortalProcess) clientPortalProcess.kill();
   await killProcessOnPort(4001);
+  await killProcessOnPort(3002);
 });

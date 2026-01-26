@@ -32,6 +32,7 @@ model Member {
   fitnessTest          FitnessTest?
   fitnessTestRequests  FitnessTestRequest[]
   spaBookings          SpaBooking[]
+  freezeRequests       FreezeRequest[]
   coach                Staff?       @relation("CoachMembers", fields: [coachId], references: [id], onDelete: SetNull)
 
   @@index([coachId])
@@ -530,4 +531,35 @@ model SpaBooking {
   @@index([bookingDate])
   @@index([status])
   @@index([serviceType])
+}
+
+model FreezeRequest {
+  id          String    @id @default(cuid())
+  memberId    String
+
+  // تفاصيل التجميد
+  startDate   DateTime  // تاريخ بداية التجميد
+  endDate     DateTime  // تاريخ نهاية التجميد
+  days        Int       // عدد أيام التجميد
+
+  // السبب
+  reason      String?
+
+  // الحالة
+  status      String    @default("pending")  // pending, approved, rejected
+
+  // من وافق/رفض
+  approvedBy  String?   // اسم الموظف/المدير
+  approvedAt  DateTime?
+
+  // التواريخ
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // العلاقات
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([status])
+  @@index([startDate])
 }

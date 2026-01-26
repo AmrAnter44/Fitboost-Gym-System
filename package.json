@@ -81,6 +81,9 @@
       ".next/standalone/**/*",
       "!.next/standalone/node_modules",
       ".next/static/**/*",
+      "client-portal/**/*",
+      "!client-portal/node_modules",
+      "!client-portal/.next/cache",
       "build/**/*",
       "prisma/**/*",
       "package.json"
@@ -88,6 +91,8 @@
     "asarUnpack": [
       ".next/standalone/**/*",
       "!.next/standalone/node_modules",
+      "client-portal/**/*",
+      "!client-portal/node_modules",
       "node_modules/uiohook-napi/**/*",
       "node_modules/better-sqlite3/**/*",
       "node_modules/node-hid/**/*",

@@ -16,7 +16,7 @@ import ToastContainer from './ToastContainer'
 import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
 import UpdateNotification from './UpdateNotification'
-import PWAInstaller from './PWAInstaller'
+import InstallPrompt from './InstallPrompt'
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
@@ -32,7 +32,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                     <PreventInputScroll />
                     <BarcodeInputDetector />
                     <UpdateNotification />
-                    <PWAInstaller />
+                    <InstallPrompt />
                     <Navbar />
                     <ToastContainer />
                     <SearchModal />

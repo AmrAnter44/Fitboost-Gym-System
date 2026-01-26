@@ -40,6 +40,8 @@ export async function fetchCoaches() {
     return []
   }
 
-  // فلترة المدربين فقط
-  return data.filter((staff: any) => staff.position === 'trainer' && staff.isActive)
+  // فلترة المدربين فقط (دعم العربي والإنجليزي)
+  return data.filter((staff: any) =>
+    (staff.position === 'مدرب' || staff.position === 'trainer') && staff.isActive
+  )
 }
