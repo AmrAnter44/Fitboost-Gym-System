@@ -52,7 +52,7 @@ jobs:
       - name: Copy static files for client portal
         run: |
           xcopy /E /I /Y "client-portal\public" "client-portal\.next\standalone\public"
-          echo Client portal static files will be used from client-portal/.next/static
+          xcopy /E /I /Y "client-portal\.next\static" "client-portal\.next\standalone\.next\static"
 
       - name: Package Electron app
         run: npm run electron:build:win
