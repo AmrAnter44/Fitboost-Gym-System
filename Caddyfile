@@ -1,76 +1,44 @@
-# Caddy Configuration for Gym Management System
-# Domain: system.xgym.website
+# Caddy Configuration for X Gym System
 
+# النظام الرئيسي (Main System)
 system.xgym.website {
-    # Reverse proxy to Next.js server
-    reverse_proxy localhost:4001 {
-        # Health check
-        health_uri /api/health
-        health_interval 30s
-        health_timeout 5s
+    reverse_proxy localhost:4001
 
-        # Headers to pass
-        header_up Host {host}
-        header_up X-Real-IP {remote}
-        header_up X-Forwarded-For {remote}
-        header_up X-Forwarded-Proto {scheme}
-    }
+    encode gzip
 
-    # Automatic HTTPS with Let's Encrypt
-    tls {
-        # Replace with your email
-        email amranter44@gmail.com
-
-        # Production mode (comment out for testing)
-        # protocols tls1.2 tls1.3
-    }
-
-    # Security headers
     header {
-        # HSTS
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-
-        # Prevent clickjacking
+        -Server
         X-Frame-Options "SAMEORIGIN"
-
-        # XSS Protection
         X-Content-Type-Options "nosniff"
         X-XSS-Protection "1; mode=block"
-
-        # Referrer Policy
         Referrer-Policy "strict-origin-when-cross-origin"
-
-        # Permissions Policy
-        Permissions-Policy "geolocation=(), microphone=(), camera=()"
     }
 
-    # Logging
     log {
-        output file logs/access.log {
-            roll_size 10MB
-            roll_keep 5
-        }
-        format console
-    }
-
-    # Rate limiting (optional)
-    # rate_limit {
-    #     zone dynamic {
-    #         key {remote_host}
-    #         events 100
-    #         window 1m
-    #     }
-    # }
-
-    # Error handling
-    handle_errors {
-        respond "Service temporarily unavailable" 503
+        output file logs\system-access.log
+        format json
     }
 }
 
-# Optional: Redirect www to non-www
-www.system.xgym.website {
-    redir https://system.xgym.website{uri} permanent
-}
+# بوابة العملاء (Client Portal)
+client.xgym.website {
+    reverse_proxy localhost:3002
 
-# Optional: HTTP to HTTPS redirect (automatic with Caddy)
+    encode gzip
+
+    header {
+        -Server
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    header /icons/* Cache-Control "public, max-age=31536000, immutable"
+    header /splash/* Cache-Control "public, max-age=31536000, immutable"
+
+    log {
+        output file logs\client-access.log
+        format json
+    }
+}
