@@ -39,6 +39,7 @@
     "exceljs": "^4.4.0",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
+    "http-proxy": "^1.18.1",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",

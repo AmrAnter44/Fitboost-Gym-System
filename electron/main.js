@@ -5,6 +5,7 @@ const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const HID = require('node-hid');
+const { startReverseProxy, stopReverseProxy } = require('./reverse-proxy');
 
 // Fix electron-is-dev issue - check manually (use process.env or defaultAppPaths)
 const isDev = process.env.NODE_ENV === 'development' || process.defaultApp || /[\\/]electron-prebuilt[\\/]/.test(process.execPath) || /[\\/]electron[\\/]/.test(process.execPath);
@@ -1154,11 +1155,30 @@ ipcMain.handle('save-pdf-to-documents', async (event, { fileName, pdfData }) => 
 app.whenReady().then(async () => {
   if (!isDev) {
     // Production mode: شغل الاتنين
+    // Start reverse proxy FIRST (before Next.js servers)
+    try {
+      const proxyPort = await startReverseProxy();
+      console.log(`✅ Reverse proxy started on port ${proxyPort}`);
+    } catch (error) {
+      console.error('❌ Failed to start reverse proxy:', error.message);
+      console.log('⚠️  Continuing without reverse proxy...');
+    }
+
     await startProductionServer(); // النظام الرئيسي - port 4001
     await startClientPortalServer(); // بوابة العملاء - port 3002
   } else {
     // Development mode: شغل client-portal تلقائياً
     console.log('🔧 Development mode: Starting client portal automatically...');
+
+    // Optionally start proxy on dev port (8080)
+    // Uncomment if you want to test proxy in development
+    // try {
+    //   await startReverseProxy(8080);
+    //   console.log('✅ Reverse proxy started on port 8080 (dev mode)');
+    // } catch (error) {
+    //   console.log('⚠️  Reverse proxy not started in dev mode');
+    // }
+
     await startClientPortalDevServer(); // بوابة العملاء في dev mode
     console.log('✅ Client portal started on port 3002');
     console.log('💡 Main system should be running on port 4001 (npm run dev)');
@@ -1185,8 +1205,16 @@ process.on('uncaughtException', error => {
 
 app.on('before-quit', async () => {
   // Clean up on quit
+  console.log('🛑 Shutting down X Gym...');
+
+  // Stop reverse proxy
+  await stopReverseProxy();
+
+  // Stop Next.js servers
   if (serverProcess) serverProcess.kill();
   if (clientPortalProcess) clientPortalProcess.kill();
   await killProcessOnPort(4001);
   await killProcessOnPort(3002);
+
+  console.log('✅ All services stopped');
 });
