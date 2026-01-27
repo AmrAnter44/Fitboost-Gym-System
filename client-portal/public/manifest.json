@@ -110,22 +110,6 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshots/login.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "شاشة تسجيل الدخول"
-    },
-    {
-      "src": "/screenshots/dashboard.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "لوحة التحكم"
-    }
-  ],
   "categories": ["health", "fitness", "lifestyle"],
   "shortcuts": [
     {
