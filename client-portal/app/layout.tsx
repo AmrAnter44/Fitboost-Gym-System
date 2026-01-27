@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import InstallPrompt from '../components/InstallPrompt'
+import NotificationPrompt from '../components/NotificationPrompt'
 
 export const metadata: Metadata = {
   title: "X Gym",
@@ -148,6 +149,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased min-h-screen safe-area-inset">
         <InstallPrompt />
+        <NotificationPrompt />
         {children}
       </body>
     </html>

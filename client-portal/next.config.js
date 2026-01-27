@@ -173,6 +173,27 @@ const nextConfig = {
 
   // Increase static generation timeout
   staticPageGenerationTimeout: 120,
+
+  // Compiler optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+
+  // Bundle analyzer (enable with ANALYZE=true npm run build)
+  ...(process.env.ANALYZE === 'true' && {
+    webpack: (config) => {
+      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+      config.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          openAnalyzer: false,
+        })
+      );
+      return config;
+    },
+  }),
 };
 
 module.exports = withPWA(nextConfig);
