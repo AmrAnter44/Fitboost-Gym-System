@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageToggle from '@/components/LanguageToggle';
 
@@ -109,11 +110,16 @@ export default function DashboardPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <img
-                src="/logo.png"
-                alt="X Gym"
-                className="w-12 h-12 object-contain"
-              />
+              <div className="relative w-12 h-12 bg-white rounded-lg p-1">
+                <Image
+                  src="/logo.png"
+                  alt="X Gym"
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                  priority
+                />
+              </div>
               <div>
                 <h1 className="text-2xl font-bold">{member.name}</h1>
                 <p className="text-blue-200">{t('memberNumber')}: {member.memberNumber}</p>
