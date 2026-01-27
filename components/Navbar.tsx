@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { usePermissions } from '../hooks/usePermissions'
@@ -92,14 +91,11 @@ export default function Navbar() {
                 className="logo-breathing"
                 title={t('nav.home')}
               >
-                <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-lg p-1">
-                  <Image
+                <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-lg p-1 flex items-center justify-center">
+                  <img
                     src="/assets/icon.png"
                     alt="Home"
-                    width={56}
-                    height={56}
-                    className="object-contain"
-                    priority
+                    className="w-full h-full object-contain"
                   />
                 </div>
               </Link>
