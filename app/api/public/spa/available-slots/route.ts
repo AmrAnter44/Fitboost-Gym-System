@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // Working hours: 9:00 AM - 10:00 PM
     const startHour = 9;
     const endHour = 22;
-    const slotInterval = 30; // minutes
+    const slotInterval = 60; // minutes - full hours only
 
     // Generate all possible time slots
     const allSlots: { time: string; available: boolean }[] = [];
