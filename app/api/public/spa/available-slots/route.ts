@@ -61,9 +61,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Working hours: 9:00 AM - 10:00 PM
+    // Working hours: 9:00 AM - 12:00 AM (midnight)
     const startHour = 9;
-    const endHour = 22;
+    const endHour = 24;
     const slotInterval = 60; // minutes - full hours only
 
     // Generate all possible time slots
