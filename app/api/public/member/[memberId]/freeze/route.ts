@@ -6,10 +6,10 @@ import { prisma } from '@/lib/prisma';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { memberId: string } }
+  { params }: { params: Promise<{ memberId: string }> }
 ) {
   try {
-    const { memberId } = params;
+    const { memberId } = await params;
 
     const requests = await prisma.freezeRequest.findMany({
       where: { memberId },
@@ -42,10 +42,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { memberId: string } }
+  { params }: { params: Promise<{ memberId: string }> }
 ) {
   try {
-    const { memberId } = params;
+    const { memberId } = await params;
     const body = await request.json();
     const { startDate, days, reason } = body;
 
