@@ -88,16 +88,14 @@ export default function Navbar() {
               {/* Logo Button - للصفحة الرئيسية */}
               <Link
                 href="/"
-                className="logo-breathing"
+                className="logo-breathing block"
                 title={t('nav.home')}
               >
-                <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-lg p-1 flex items-center justify-center">
-                  <img
-                    src="/assets/icon.png"
-                    alt="Home"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
+                <img
+                  src="/assets/icon.png"
+                  alt="Home"
+                  className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-2xl object-cover rounded-lg"
+                />
               </Link>
 
               {/* Hamburger Menu - على الموبايل فقط */}

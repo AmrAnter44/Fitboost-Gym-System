@@ -218,7 +218,7 @@ export default function HomePage() {
         <img
           src="/assets/icon.png"
           alt="Background Logo"
-          className="w-96 h-96 md:w-[600px] md:h-[600px] opacity-50 select-none"
+          className="w-96 h-96 md:w-[600px] md:h-[600px] opacity-50 select-none object-contain"
           style={{ opacity: 0.5 }}
         />
       </div>
