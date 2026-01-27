@@ -144,3 +144,39 @@ export async function createFreezeRequest(
     body: JSON.stringify(data),
   });
 }
+
+/**
+ * Get available SPA time slots
+ */
+export async function getAvailableSpaSlots(
+  serviceType: string,
+  date: string,
+  duration: number
+): Promise<ApiResponse> {
+  const query = new URLSearchParams({
+    serviceType,
+    date,
+    duration: duration.toString(),
+  });
+
+  return apiRequest(`/api/public/spa/available-slots?${query.toString()}`);
+}
+
+/**
+ * Create new SPA booking
+ */
+export async function createSpaBooking(
+  memberId: string,
+  data: {
+    serviceType: string;
+    bookingDate: string;
+    bookingTime: string;
+    duration: number;
+    notes?: string;
+  }
+): Promise<ApiResponse> {
+  return apiRequest(`/api/public/member/${memberId}/spa`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}

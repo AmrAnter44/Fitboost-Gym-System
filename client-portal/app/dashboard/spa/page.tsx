@@ -270,10 +270,18 @@ export default function SpaPage() {
           )}
         </div>
 
+        {/* Booking Button */}
+        <Link
+          href="/dashboard/spa/book"
+          className="block w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-center py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition transform hover:scale-105"
+        >
+          🎉 احجز موعد جديد
+        </Link>
+
         {/* Info Card */}
         <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-sm text-purple-800">
-          <p className="font-medium mb-1">💆‍♂️ للحجز</p>
-          <p>تواصل مع الإدارة لحجز موعد جلسة السبا</p>
+          <p className="font-medium mb-1">💆‍♂️ معلومة</p>
+          <p>يمكنك حجز موعد مباشرة من خلال الموقع، وسيتم مراجعة الحجز وتأكيده من قبل الإدارة</p>
         </div>
       </div>
     </div>
