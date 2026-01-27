@@ -61,8 +61,8 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Working hours: 9:00 AM - 12:00 AM (midnight)
-    const startHour = 9;
+    // Working hours: 24/7 - Full day coverage
+    const startHour = 0;
     const endHour = 24;
     const slotInterval = 60; // minutes - full hours only
 
