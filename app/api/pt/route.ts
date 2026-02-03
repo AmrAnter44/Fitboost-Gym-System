@@ -472,7 +472,7 @@ export async function POST(request: Request) {
             // لا نفشل العملية إذا فشلت المكافأة
           }
         } else {
-          console.log(`⚠️ PT: لم يتم إضافة نقاط: actualAmountPaid=${actualAmountPaid}, memberNumber=${memberNumber}, phone=${phone}`)
+          console.log(`⚠️ PT: لم يتم إضافة نقاط: actualAmountPaid=${actualAmountPaid}, phone=${phone}`)
         }
 
         // ✅ إرجاع الـ pt من الـ Transaction
