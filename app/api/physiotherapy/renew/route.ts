@@ -233,25 +233,25 @@ export async function POST(request: Request) {
           }
         }
 
-        // ✅ البحث عن coachUserId من أخصائي العلاج الطبيعي
-        let coachUserId = null
+        // ✅ البحث عن therapistUserId من أخصائي العلاج الطبيعي
+        let therapistUserId = null
         if (therapistName || existingPhysiotherapy.therapistName) {
           const therapistStaff = await tx.staff.findFirst({
             where: { name: therapistName || existingPhysiotherapy.therapistName },
             include: { user: true }
           })
           if (therapistStaff?.user) {
-            coachUserId = therapistStaff.user.id
+            therapistUserId = therapistStaff.user.id
           }
         }
 
         // ✅ إنشاء سجل عمولة لأخصائي العلاج الطبيعي
-        if (coachUserId && totalAmount > 0) {
+        if (therapistUserId && totalAmount > 0) {
           try {
             const { createPTCommission } = await import('../../../../lib/commissionHelpers')
             await createPTCommission(
               tx,
-              coachUserId,
+              therapistUserId,
               totalAmount,
               `عمولة تجديد علاج طبيعي - ${existingPhysiotherapy.clientName} (#${updatedPhysiotherapy.physioNumber})`,
               updatedPhysiotherapy.physioNumber

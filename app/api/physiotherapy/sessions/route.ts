@@ -21,7 +21,7 @@ export async function GET(request: Request) {
           where: { physioNumber: parseInt(physioNumber) }
         })
 
-        if (physiotherapy && physiotherapy.coachUserId !== user.userId) {
+        if (physiotherapy && physiotherapy.therapistUserId !== user.userId) {
           return NextResponse.json(
             { error: 'ليس لديك صلاحية عرض سجلات هذا العميل' },
             { status: 403 }
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       const whereClause = user.role === 'COACH'
         ? {
             physiotherapy: {
-              coachUserId: user.userId  // أخصائي العلاج الطبيعي يرى سجلات عملائه فقط
+              therapistUserId: user.userId  // أخصائي العلاج الطبيعي يرى سجلات عملائه فقط
             }
           }
         : {}  // الأدمن يرى الكل
