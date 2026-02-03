@@ -29,6 +29,20 @@ export interface Permissions {
   canDeleteGroupClass: boolean
   canRegisterGroupClassAttendance: boolean
 
+  // صلاحيات التغذية
+  canViewNutrition: boolean
+  canCreateNutrition: boolean
+  canEditNutrition: boolean
+  canDeleteNutrition: boolean
+  canRegisterNutritionAttendance: boolean
+
+  // صلاحيات العلاج الطبيعي
+  canViewPhysiotherapy: boolean
+  canCreatePhysiotherapy: boolean
+  canEditPhysiotherapy: boolean
+  canDeletePhysiotherapy: boolean
+  canRegisterPhysiotherapyAttendance: boolean
+
   // صلاحيات الموظفين
   canViewStaff: boolean
   canCreateStaff: boolean
@@ -161,6 +175,16 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditGroupClass: true,
     canDeleteGroupClass: true,
     canRegisterGroupClassAttendance: true,
+    canViewNutrition: true,
+    canCreateNutrition: true,
+    canEditNutrition: true,
+    canDeleteNutrition: true,
+    canRegisterNutritionAttendance: true,
+    canViewPhysiotherapy: true,
+    canCreatePhysiotherapy: true,
+    canEditPhysiotherapy: true,
+    canDeletePhysiotherapy: true,
+    canRegisterPhysiotherapyAttendance: true,
     canViewStaff: true,
     canCreateStaff: true,
     canEditStaff: true,
@@ -215,6 +239,16 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditGroupClass: true,
     canDeleteGroupClass: false,
     canRegisterGroupClassAttendance: true,
+    canViewNutrition: true,
+    canCreateNutrition: true,
+    canEditNutrition: true,
+    canDeleteNutrition: false,
+    canRegisterNutritionAttendance: true,
+    canViewPhysiotherapy: true,
+    canCreatePhysiotherapy: true,
+    canEditPhysiotherapy: true,
+    canDeletePhysiotherapy: false,
+    canRegisterPhysiotherapyAttendance: true,
     canViewStaff: true,
     canCreateStaff: false,
     canEditStaff: false,
@@ -269,6 +303,16 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditGroupClass: false,
     canDeleteGroupClass: false,
     canRegisterGroupClassAttendance: true,
+    canViewNutrition: true,
+    canCreateNutrition: false,
+    canEditNutrition: false,
+    canDeleteNutrition: false,
+    canRegisterNutritionAttendance: true,
+    canViewPhysiotherapy: true,
+    canCreatePhysiotherapy: false,
+    canEditPhysiotherapy: false,
+    canDeletePhysiotherapy: false,
+    canRegisterPhysiotherapyAttendance: true,
     canViewStaff: false,
     canCreateStaff: false,
     canEditStaff: false,
@@ -324,6 +368,16 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditGroupClass: false,
     canDeleteGroupClass: false,
     canRegisterGroupClassAttendance: true, // يسجل حضور كلاساته
+    canViewNutrition: true, // يرى عملاءه فقط
+    canCreateNutrition: false,
+    canEditNutrition: false,
+    canDeleteNutrition: false,
+    canRegisterNutritionAttendance: true,
+    canViewPhysiotherapy: true, // يرى عملاءه فقط
+    canCreatePhysiotherapy: false,
+    canEditPhysiotherapy: false,
+    canDeletePhysiotherapy: false,
+    canRegisterPhysiotherapyAttendance: true,
     canViewStaff: false,
     canCreateStaff: false,
     canEditStaff: false,
@@ -383,6 +437,16 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditGroupClass: 'تعديل كلاس جماعي',
   canDeleteGroupClass: 'حذف كلاس جماعي',
   canRegisterGroupClassAttendance: 'تسجيل حضور كلاس جماعي',
+  canViewNutrition: 'عرض التغذية',
+  canCreateNutrition: 'إنشاء جلسة تغذية',
+  canEditNutrition: 'تعديل جلسة تغذية',
+  canDeleteNutrition: 'حذف جلسة تغذية',
+  canRegisterNutritionAttendance: 'تسجيل حضور تغذية',
+  canViewPhysiotherapy: 'عرض العلاج الطبيعي',
+  canCreatePhysiotherapy: 'إنشاء جلسة علاج طبيعي',
+  canEditPhysiotherapy: 'تعديل جلسة علاج طبيعي',
+  canDeletePhysiotherapy: 'حذف جلسة علاج طبيعي',
+  canRegisterPhysiotherapyAttendance: 'تسجيل حضور علاج طبيعي',
   canViewStaff: 'عرض الموظفين',
   canCreateStaff: 'إضافة موظف',
   canEditStaff: 'تعديل موظف',
@@ -454,6 +518,26 @@ export const PERMISSION_GROUPS = {
       'canEditGroupClass',
       'canDeleteGroupClass',
       'canRegisterGroupClassAttendance',
+    ] as Array<keyof Permissions>,
+  },
+  nutrition: {
+    label: '🥗 التغذية',
+    permissions: [
+      'canViewNutrition',
+      'canCreateNutrition',
+      'canEditNutrition',
+      'canDeleteNutrition',
+      'canRegisterNutritionAttendance',
+    ] as Array<keyof Permissions>,
+  },
+  physiotherapy: {
+    label: '🏥 العلاج الطبيعي',
+    permissions: [
+      'canViewPhysiotherapy',
+      'canCreatePhysiotherapy',
+      'canEditPhysiotherapy',
+      'canDeletePhysiotherapy',
+      'canRegisterPhysiotherapyAttendance',
     ] as Array<keyof Permissions>,
   },
   staff: {
@@ -564,6 +648,16 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canEditGroupClass: '✏️',
   canDeleteGroupClass: '🗑️',
   canRegisterGroupClassAttendance: '✅',
+  canViewNutrition: '👁️',
+  canCreateNutrition: '➕',
+  canEditNutrition: '✏️',
+  canDeleteNutrition: '🗑️',
+  canRegisterNutritionAttendance: '✅',
+  canViewPhysiotherapy: '👁️',
+  canCreatePhysiotherapy: '➕',
+  canEditPhysiotherapy: '✏️',
+  canDeletePhysiotherapy: '🗑️',
+  canRegisterPhysiotherapyAttendance: '✅',
   canViewStaff: '👁️',
   canCreateStaff: '➕',
   canEditStaff: '✏️',
