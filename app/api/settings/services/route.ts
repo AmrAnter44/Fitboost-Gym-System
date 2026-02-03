@@ -29,7 +29,7 @@ export async function GET(request: Request) {
           pointsValueInEGP: 0.1,
           pointsPerEGPSpent: 0.1,
           websiteUrl: 'https://www.xgym.website',
-          showWebsiteOnReceipts: true
+          showWebsiteOnReceipts: false
         }
       })
     }

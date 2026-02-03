@@ -125,20 +125,20 @@ export async function POST(request: Request) {
 
       // ✅ إنشاء سجل عمولة لالمدرب
       try {
-        // البحث عن coachUserId من اسم المدرب
-        const groupClassistStaff = await prisma.staff.findFirst({
-          where: { name: groupClass.groupClassistName },
+        // البحث عن instructorUserId من اسم المدرب
+        const instructorStaff = await prisma.staff.findFirst({
+          where: { name: groupClass.instructorName },
           include: { user: true }
         })
 
-        if (groupClassistStaff?.user) {
+        if (instructorStaff?.user) {
           const { createPTCommission } = await import('../../../../lib/commissionHelpers')
           await createPTCommission(
             prisma,
-            groupClassistStaff.user.id,
+            instructorStaff.user.id,
             paymentAmount,
-            `عمولة دفع باقي جروب كلاسيس - ${groupClass.clientName} (#${groupClass.groupClassNumber})`,
-            groupClass.groupClassNumber
+            `عمولة دفع باقي جروب كلاسيس - ${groupClass.clientName} (#${groupClass.classNumber})`,
+            groupClass.classNumber
           )
         }
       } catch (commissionError) {

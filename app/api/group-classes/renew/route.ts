@@ -233,25 +233,25 @@ export async function POST(request: Request) {
           }
         }
 
-        // ✅ البحث عن coachUserId من المدرب
-        let coachUserId = null
+        // ✅ البحث عن instructorUserId من المدرب
+        let instructorUserId = null
         if (instructorName || existingGroupClass.instructorName) {
           const instructorStaff = await tx.staff.findFirst({
             where: { name: instructorName || existingGroupClass.instructorName },
             include: { user: true }
           })
           if (instructorStaff?.user) {
-            coachUserId = instructorStaff.user.id
+            instructorUserId = instructorStaff.user.id
           }
         }
 
         // ✅ إنشاء سجل عمولة لالمدرب
-        if (coachUserId && totalAmount > 0) {
+        if (instructorUserId && totalAmount > 0) {
           try {
             const { createPTCommission } = await import('../../../../lib/commissionHelpers')
             await createPTCommission(
               tx,
-              coachUserId,
+              instructorUserId,
               totalAmount,
               `عمولة تجديد جروب كلاسيس - ${existingGroupClass.clientName} (#${updatedGroupClass.classNumber})`,
               updatedGroupClass.classNumber

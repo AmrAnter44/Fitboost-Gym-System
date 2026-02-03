@@ -15,7 +15,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
   const [websiteUrl, setWebsiteUrl] = useState('https://www.xgym.website')
-  const [showWebsite, setShowWebsite] = useState(true)
+  const [showWebsite, setShowWebsite] = useState(false) // ✅ البداية false عشان ميظهرش لحد ما نجيب الإعدادات
 
   // جلب إعدادات الموقع
   useEffect(() => {
@@ -33,6 +33,8 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
         }
       } catch (error) {
         console.error('Error fetching website settings:', error)
+        // في حالة الخطأ، نتأكد إنه ميظهرش
+        setShowWebsite(false)
       }
     }
     fetchWebsiteSettings()

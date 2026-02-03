@@ -14,7 +14,7 @@ model Member {
   id                String       @id @default(cuid())
   memberNumber      Int?         @unique
   name              String
-  phone             String
+  phone             String       // سيتم التحقق من التكرار في الـ API للأعضاء الجُدد
   backupPhone       String?
   nationalId        String?
   birthDate         DateTime?
@@ -628,6 +628,7 @@ model Nutrition {
   nutritionNumber   Int         @id @default(autoincrement())
   clientName        String
   phone             String
+  memberNumber      Int?        // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
   sessionsPurchased Int
   sessionsRemaining Int
   nutritionistName  String
@@ -645,6 +646,7 @@ model Nutrition {
 
   @@index([coachUserId])
   @@index([qrCode])
+  @@index([memberNumber])
 }
 
 model NutritionSession {
@@ -670,6 +672,7 @@ model Physiotherapy {
   physioNumber      Int         @id @default(autoincrement())
   clientName        String
   phone             String
+  memberNumber      Int?        // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
   sessionsPurchased Int
   sessionsRemaining Int
   therapistName     String
@@ -687,6 +690,7 @@ model Physiotherapy {
 
   @@index([therapistUserId])
   @@index([qrCode])
+  @@index([memberNumber])
 }
 
 model PhysiotherapySession {
@@ -712,6 +716,7 @@ model GroupClass {
   classNumber       Int         @id @default(autoincrement())
   clientName        String
   phone             String
+  memberNumber      Int?        // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
   sessionsPurchased Int
   sessionsRemaining Int
   instructorName    String
@@ -729,6 +734,7 @@ model GroupClass {
 
   @@index([instructorUserId])
   @@index([qrCode])
+  @@index([memberNumber])
 }
 
 model GroupClassSession {
@@ -763,7 +769,7 @@ model SystemSettings {
   pointsPerEGPSpent     Float    @default(0.1)  // نقاط لكل جنيه يتم دفعه
   pointsValueInEGP      Float    @default(0.1)
   websiteUrl            String?  @default("https://www.xgym.website")  // رابط الموقع الإلكتروني
-  showWebsiteOnReceipts Boolean  @default(true)  // عرض رابط الموقع في الإيصالات
+  showWebsiteOnReceipts Boolean  @default(false)  // عرض رابط الموقع في الإيصالات
   updatedAt             DateTime @updatedAt
   updatedBy             String?
 }

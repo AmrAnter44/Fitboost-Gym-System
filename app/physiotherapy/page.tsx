@@ -160,20 +160,33 @@ export default function PhysiotherapyPage() {
 
   useEffect(() => {
     const fetchMemberPoints = async () => {
-      if (!formData.phone) {
+      // ✅ الأولوية لرقم العضوية، ثم الهاتف كـ fallback
+      if (!formData.memberNumber && !formData.phone) {
         setMemberPoints(0)
         setMemberNumber(null)
         return
       }
 
       try {
-        const response = await fetch(`/api/members?phone=${encodeURIComponent(formData.phone)}`)
-        if (response.ok) {
+        let response
+        // البحث برقم العضوية أولاً (الأدق)
+        if (formData.memberNumber) {
+          console.log('🔍 البحث عن نقاط العضو برقم العضوية:', formData.memberNumber)
+          response = await fetch(`/api/members?memberNumber=${formData.memberNumber}`)
+        }
+        // البحث بالهاتف كـ fallback (قد يكون غير دقيق)
+        else if (formData.phone) {
+          console.log('⚠️ البحث عن نقاط العضو بالهاتف (قد يكون غير دقيق):', formData.phone)
+          response = await fetch(`/api/members?phone=${encodeURIComponent(formData.phone)}`)
+        }
+
+        if (response && response.ok) {
           const members = await response.json()
           if (members.length > 0) {
             setMemberPoints(members[0].points || 0)
             setMemberNumber(members[0].memberNumber || null)
             setFormData(prev => ({ ...prev, memberNumber: members[0].memberNumber || null }))
+            console.log('✅ نقاط العضو:', members[0].points)
           } else {
             setMemberPoints(0)
             setMemberNumber(null)
@@ -188,7 +201,7 @@ export default function PhysiotherapyPage() {
     }
 
     fetchMemberPoints()
-  }, [formData.phone])
+  }, [formData.memberNumber, formData.phone]) // ✅ الاعتماد على memberNumber أولاً
 
   // جلب الباقات عند فتح النموذج
   useEffect(() => {

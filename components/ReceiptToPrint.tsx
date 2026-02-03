@@ -23,7 +23,8 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
   const [sending, setSending] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
   const [websiteUrl, setWebsiteUrl] = useState('https://www.xgym.website')
-  const [showWebsite, setShowWebsite] = useState(true)
+  const [showWebsite, setShowWebsite] = useState(false) // ✅ البداية false عشان ميظهرش لحد ما نجيب الإعدادات
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
 
   // جلب إعدادات الموقع
   useEffect(() => {
@@ -41,6 +42,10 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
         }
       } catch (error) {
         console.error('Error fetching website settings:', error)
+        // في حالة الخطأ، نستخدم القيم الافتراضية
+        setShowWebsite(false)
+      } finally {
+        setSettingsLoaded(true)
       }
     }
     fetchWebsiteSettings()

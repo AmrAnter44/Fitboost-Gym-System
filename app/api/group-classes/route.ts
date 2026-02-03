@@ -22,11 +22,11 @@ export async function GET(request: Request) {
     // ✅ التحقق من صلاحية عرض GroupClass
     const user = await requirePermission(request, 'canViewGroupClass')
 
-    // جلب coachUserId من query parameters
+    // جلب instructorUserId من query parameters
     const { searchParams } = new URL(request.url)
-    const coachUserIdParam = searchParams.get('coachUserId')
+    const instructorUserIdParam = searchParams.get('instructorUserId')
 
-    console.log('🔍 GroupClass API GET - User:', user.userId, 'Role:', user.role, 'Query coachUserId:', coachUserIdParam)
+    console.log('🔍 GroupClass API GET - User:', user.userId, 'Role:', user.role, 'Query instructorUserId:', instructorUserIdParam)
 
     // فلترة البيانات حسب الدور
     let whereClause: any = {}
@@ -43,22 +43,22 @@ export async function GET(request: Request) {
       })
 
       if (instructorStaff) {
-        // البحث بناءً على coachUserId أو instructorName كـ fallback
+        // البحث بناءً على instructorUserId أو instructorName كـ fallback
         whereClause = {
           OR: [
-            { coachUserId: user.userId },
+            { instructorUserId: user.userId },
             { instructorName: instructorStaff.name }
           ]
         }
         console.log('👤 Coach accessing own GroupClasses - userId:', user.userId, 'name:', instructorStaff.name)
       } else {
-        whereClause = { coachUserId: user.userId }
+        whereClause = { instructorUserId: user.userId }
         console.log('👤 Coach accessing own GroupClasses - userId only:', user.userId)
       }
-    } else if (coachUserIdParam) {
-      // إذا تم تمرير coachUserId في الـ query، فلتر بناءً عليه
-      whereClause = { coachUserId: coachUserIdParam }
-      console.log('🔎 Filtering by coachUserId from query:', coachUserIdParam)
+    } else if (instructorUserIdParam) {
+      // إذا تم تمرير instructorUserId في الـ query، فلتر بناءً عليه
+      whereClause = { instructorUserId: instructorUserIdParam }
+      console.log('🔎 Filtering by instructorUserId from query:', instructorUserIdParam)
     }
 
     console.log('📋 Where clause:', JSON.stringify(whereClause))
@@ -190,8 +190,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // البحث عن المدرب بالاسم لربط coachUserId
-    let coachUserId = null
+    // البحث عن المدرب بالاسم لربط instructorUserId
+    let instructorUserId = null
     if (instructorName) {
       const instructorStaff = await prisma.staff.findFirst({
         where: { name: instructorName },
@@ -199,8 +199,8 @@ export async function POST(request: Request) {
       })
 
       if (instructorStaff && instructorStaff.user) {
-        coachUserId = instructorStaff.user.id
-        console.log(`✅ تم ربط المدرب ${instructorName} بـ userId: ${coachUserId}`)
+        instructorUserId = instructorStaff.user.id
+        console.log(`✅ تم ربط المدرب ${instructorName} بـ userId: ${instructorUserId}`)
       } else {
         console.warn(`⚠️ لم يتم العثور على حساب مستخدم للمدرب: ${instructorName}`)
       }
@@ -248,7 +248,7 @@ export async function POST(request: Request) {
       sessionsPurchased,
       sessionsRemaining: sessionsPurchased,
       instructorName,
-      coachUserId,  // ✅ ربط المدرب بـ userId
+      instructorUserId,  // ✅ ربط المدرب بـ userId
       pricePerSession,
       remainingAmount: remainingAmount || 0,  // ✅ الباقي من الفلوس
       startDate: startDate ? new Date(startDate) : null,
@@ -473,12 +473,12 @@ export async function POST(request: Request) {
         }
 
         // ✅ إنشاء سجل عمولة للمدرب (إذا كان لديه حساب)
-        if (coachUserId && paidAmount > 0) {
+        if (instructorUserId && paidAmount > 0) {
           try {
             const { createPTCommission } = await import('../../../lib/commissionHelpers')
             await createPTCommission(
               tx, // استخدام tx بدلاً من prisma داخل transaction
-              coachUserId,
+              instructorUserId,
               Number(paidAmount),
               `عمولة جروب كلاسيس جديد - ${clientName} (#${groupClass.classNumber})`,
               groupClass.classNumber

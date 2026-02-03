@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     // التحقق من أن المدرب هو المسؤول عن هذا الاشتراك
     if (user.role === 'COACH') {
-      if (groupClass.coachUserId !== user.userId) {
+      if (groupClass.instructorUserId !== user.userId) {
         return NextResponse.json(
           { error: 'ليس لديك صلاحية تسجيل حضور لهذا العميل. هذا العميل مع أخصائي جروب كلاسيس آخر.' },
           { status: 403 }

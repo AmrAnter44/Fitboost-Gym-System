@@ -37,26 +37,59 @@ async function getNextAvailableReceiptNumber(startingNumber: number): Promise<nu
   throw new Error(`فشل إيجاد رقم إيصال متاح بعد ${MAX_ATTEMPTS} محاولة`)
 }
 
-// GET - جلب كل الأعضاء
+// GET - جلب كل الأعضاء أو البحث عن عضو معين
 export async function GET(request: Request) {
   try {
     // ✅ التحقق من صلاحية عرض الأعضاء
     await requirePermission(request, 'canViewMembers')
-    
-    console.log('🔍 بدء جلب الأعضاء...')
-    
+
+    const { searchParams } = new URL(request.url)
+    const memberNumber = searchParams.get('memberNumber')
+    const phone = searchParams.get('phone')
+
+    // ✅ البحث برقم العضوية (الأولوية الأولى)
+    if (memberNumber) {
+      console.log('🔍 البحث عن عضو برقم العضوية:', memberNumber)
+      const member = await prisma.member.findUnique({
+        where: { memberNumber: parseInt(memberNumber) },
+        include: { receipts: true }
+      })
+
+      if (member) {
+        console.log('✅ تم العثور على العضو:', member.name)
+        return NextResponse.json([member], { status: 200 })
+      } else {
+        console.log('❌ لم يتم العثور على عضو برقم:', memberNumber)
+        return NextResponse.json([], { status: 200 })
+      }
+    }
+
+    // ⚠️ البحث بالهاتف (غير موصى به - قد يكون هناك عضوين بنفس الرقم)
+    if (phone) {
+      console.log('🔍 البحث عن أعضاء بالهاتف:', phone)
+      const members = await prisma.member.findMany({
+        where: { phone },
+        include: { receipts: true },
+        orderBy: { memberNumber: 'desc' }
+      })
+      console.log('✅ تم العثور على', members.length, 'عضو بنفس الهاتف')
+      return NextResponse.json(members, { status: 200 })
+    }
+
+    // جلب كل الأعضاء
+    console.log('🔍 بدء جلب كل الأعضاء...')
     const members = await prisma.member.findMany({
       orderBy: { memberNumber: 'desc' },
       include: { receipts: true }
     })
-    
+
     console.log('✅ تم جلب', members.length, 'عضو')
-    
+
     if (!Array.isArray(members)) {
       console.error('❌ Prisma لم يرجع array:', typeof members)
       return NextResponse.json([], { status: 200 })
     }
-    
+
     return NextResponse.json(members, { status: 200 })
   } catch (error: any) {
     console.error('❌ Error fetching members:', error)
@@ -152,6 +185,19 @@ export async function POST(request: Request) {
     if (!phone || phone.trim() === '') {
       return NextResponse.json(
         { error: 'رقم الهاتف مطلوب' },
+        { status: 400 }
+      )
+    }
+
+    // ✅ التحقق من عدم تكرار رقم الهاتف (للأعضاء الجُدد فقط)
+    const existingMember = await prisma.member.findFirst({
+      where: { phone: phone.trim() },
+      select: { id: true, name: true, memberNumber: true }
+    })
+
+    if (existingMember) {
+      return NextResponse.json(
+        { error: `رقم الهاتف ${phone} مستخدم بالفعل للعضو ${existingMember.name} (#${existingMember.memberNumber || 'Other'})` },
         { status: 400 }
       )
     }

@@ -12,9 +12,9 @@ interface ProcessPaymentResult {
 
 /**
  * معالجة الدفع وخصم النقاط إذا تم استخدامها
- * @param memberId - معرف العضو
- * @param memberPhone - رقم هاتف العضو (للبحث عن العضو)
- * @param memberNumber - رقم العضوية (للبحث عن العضو)
+ * @param memberId - معرف العضو (الأولوية الأولى)
+ * @param memberPhone - رقم هاتف العضو (غير مستخدم - تم إزالته لتجنب الخطأ في حالة وجود عضوين بنفس الرقم)
+ * @param memberNumber - رقم العضوية (الأولوية الثانية - المستخدم للبحث)
  * @param paymentMethod - وسيلة/وسائل الدفع (string أو JSON)
  * @param description - وصف عملية الدفع
  * @param prisma - Prisma client instance
@@ -47,11 +47,11 @@ export async function processPaymentWithPoints(
       return { success: true } // لا توجد نقاط للخصم
     }
 
-    // إذا لم يكن لدينا memberId، نحاول البحث بـ memberNumber أولاً، ثم بالهاتف
+    // ✅ الاعتماد على memberNumber فقط (تم إزالة البحث بالهاتف لتجنب الخطأ في حالة وجود عضوين بنفس الرقم)
     let finalMemberId = memberId
 
     if (!finalMemberId) {
-      // البحث برقم العضوية أولاً
+      // البحث برقم العضوية فقط
       if (memberNumber) {
         console.log(`🔍 PaymentProcessor: البحث عن عضو برقم العضوية: ${memberNumber}`)
         const member = await prisma.member.findUnique({
@@ -62,21 +62,11 @@ export async function processPaymentWithPoints(
         if (member) {
           console.log(`✅ PaymentProcessor: تم العثور على العضو برقم العضوية: ${member.name} (نقاط: ${member.points})`)
           finalMemberId = member.id
+        } else {
+          console.log(`❌ PaymentProcessor: لم يتم العثور على عضو برقم العضوية: ${memberNumber}`)
         }
-      }
-
-      // إذا لم يُعثر عليه، البحث بالهاتف
-      if (!finalMemberId && memberPhone) {
-        console.log(`🔍 PaymentProcessor: البحث عن عضو بالهاتف: ${memberPhone}`)
-        const member = await prisma.member.findFirst({
-          where: { phone: memberPhone },
-          select: { id: true, name: true, points: true }
-        })
-
-        if (member) {
-          console.log(`✅ PaymentProcessor: تم العثور على العضو بالهاتف: ${member.name} (نقاط: ${member.points})`)
-          finalMemberId = member.id
-        }
+      } else {
+        console.log(`⚠️ PaymentProcessor: لا يوجد memberNumber أو memberId للبحث`)
       }
     }
 

@@ -233,62 +233,6 @@ export default function HomePage() {
           <p className="text-gray-600">{t('dashboard.welcomeMessage')}</p>
         </div>
 
-        {/* Quick Action Buttons for Services */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">{t('dashboard.quickActions')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* PT Button - Always visible */}
-            <Link href="/pt">
-              <div className="bg-gradient-to-br from-purple-50 to-indigo-100 hover:from-purple-100 hover:to-indigo-200 p-6 rounded-xl shadow-lg border-2 border-purple-300 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                <div className="flex flex-col items-center text-center">
-                  <div className="text-5xl mb-3">💪</div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-1">{t('nav.pt')}</h3>
-                  <p className="text-sm text-gray-600">{t('dashboard.managePTPackages')}</p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Nutrition Button - Conditional */}
-            {settings.nutritionEnabled && (
-              <Link href="/nutrition">
-                <div className="bg-gradient-to-br from-lime-50 to-green-100 hover:from-lime-100 hover:to-green-200 p-6 rounded-xl shadow-lg border-2 border-lime-400 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="text-5xl mb-3">🥗</div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">{t('nav.nutrition')}</h3>
-                    <p className="text-sm text-gray-600">{t('dashboard.manageNutritionPackages')}</p>
-                  </div>
-                </div>
-              </Link>
-            )}
-
-            {/* Physiotherapy Button - Conditional */}
-            {settings.physiotherapyEnabled && (
-              <Link href="/physiotherapy">
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-100 hover:from-blue-100 hover:to-cyan-200 p-6 rounded-xl shadow-lg border-2 border-blue-400 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="text-5xl mb-3">🏥</div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">{t('nav.physiotherapy')}</h3>
-                    <p className="text-sm text-gray-600">{t('dashboard.managePhysioPackages')}</p>
-                  </div>
-                </div>
-              </Link>
-            )}
-
-            {/* Group Classes Button - Conditional */}
-            {settings.groupClassEnabled && (
-              <Link href="/group-classes">
-                <div className="bg-gradient-to-br from-fuchsia-50 to-pink-100 hover:from-fuchsia-100 hover:to-pink-200 p-6 rounded-xl shadow-lg border-2 border-fuchsia-400 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="text-5xl mb-3">👥</div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">{t('nav.groupClasses')}</h3>
-                    <p className="text-sm text-gray-600">{t('dashboard.manageGroupClassPackages')}</p>
-                  </div>
-                </div>
-              </Link>
-            )}
-          </div>
-        </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex items-center justify-between">

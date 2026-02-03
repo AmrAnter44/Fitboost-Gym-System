@@ -157,6 +157,14 @@ export default function MemberDetailPage() {
   const [physioSubscriptions, setPhysioSubscriptions] = useState<any[]>([])
   const [groupClassSubscriptions, setGroupClassSubscriptions] = useState<any[]>([])
 
+  // إجمالي الجلسات المدفوعة
+  const [paidSessionCounts, setPaidSessionCounts] = useState({
+    pt: 0,
+    nutrition: 0,
+    physio: 0,
+    groupClass: 0
+  })
+
   // سجل الإيصالات
   const [showReceiptsModal, setShowReceiptsModal] = useState(false)
   const [memberReceipts, setMemberReceipts] = useState<any[]>([])
@@ -471,11 +479,24 @@ export default function MemberDetailPage() {
     if (!member) return
 
     try {
+      // جلب اشتراكات PT
+      const ptRes = await fetch('/api/pt')
+      let memberPTs: any[] = []
+      if (ptRes.ok) {
+        const allPTs = await ptRes.json()
+        memberPTs = allPTs.filter((pt: any) =>
+          pt.phone === member.phone &&
+          pt.sessionsRemaining > 0 &&
+          (!pt.expiryDate || new Date(pt.expiryDate) > new Date())
+        )
+      }
+
       // جلب اشتراكات التغذية
       const nutritionRes = await fetch('/api/nutrition')
+      let memberNutrition: any[] = []
       if (nutritionRes.ok) {
         const allNutrition = await nutritionRes.json()
-        const memberNutrition = allNutrition.filter((n: any) =>
+        memberNutrition = allNutrition.filter((n: any) =>
           n.phone === member.phone &&
           n.sessionsRemaining > 0 &&
           (!n.expiryDate || new Date(n.expiryDate) > new Date())
@@ -485,9 +506,10 @@ export default function MemberDetailPage() {
 
       // جلب اشتراكات العلاج الطبيعي
       const physioRes = await fetch('/api/physiotherapy')
+      let memberPhysio: any[] = []
       if (physioRes.ok) {
         const allPhysio = await physioRes.json()
-        const memberPhysio = allPhysio.filter((p: any) =>
+        memberPhysio = allPhysio.filter((p: any) =>
           p.phone === member.phone &&
           p.sessionsRemaining > 0 &&
           (!p.expiryDate || new Date(p.expiryDate) > new Date())
@@ -497,15 +519,36 @@ export default function MemberDetailPage() {
 
       // جلب اشتراكات جروب كلاسيس
       const classRes = await fetch('/api/group-classes')
+      let memberClasses: any[] = []
       if (classRes.ok) {
         const allClasses = await classRes.json()
-        const memberClasses = allClasses.filter((c: any) =>
+        memberClasses = allClasses.filter((c: any) =>
           c.phone === member.phone &&
           c.sessionsRemaining > 0 &&
           (!c.expiryDate || new Date(c.expiryDate) > new Date())
         )
         setGroupClassSubscriptions(memberClasses)
       }
+
+      // حساب إجمالي الجلسات المدفوعة لكل خدمة
+      const totalPTSessions = memberPTs.reduce((sum, pt) => sum + (pt.sessionsRemaining || 0), 0)
+      const totalNutritionSessions = memberNutrition.reduce((sum, n) => sum + (n.sessionsRemaining || 0), 0)
+      const totalPhysioSessions = memberPhysio.reduce((sum, p) => sum + (p.sessionsRemaining || 0), 0)
+      const totalGroupClassSessions = memberClasses.reduce((sum, c) => sum + (c.sessionsRemaining || 0), 0)
+
+      console.log('📊 Paid sessions totals:', {
+        pt: totalPTSessions,
+        nutrition: totalNutritionSessions,
+        physio: totalPhysioSessions,
+        groupClass: totalGroupClassSessions
+      })
+
+      setPaidSessionCounts({
+        pt: totalPTSessions,
+        nutrition: totalNutritionSessions,
+        physio: totalPhysioSessions,
+        groupClass: totalGroupClassSessions
+      })
     } catch (error) {
       console.error('Error fetching service subscriptions:', error)
     }
@@ -821,6 +864,169 @@ export default function MemberDetailPage() {
           }
         } catch (error) {
           toast.error(t('memberDetails.error'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
+  // ===== Handler Functions للجلسات المدفوعة =====
+
+  const handleUsePaidPT = async () => {
+    if (!member || paidSessionCounts.pt <= 0) {
+      toast.warning(t('memberDetails.noPaidPTRemaining'))
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: t('memberDetails.usePaidPT'),
+      message: t('memberDetails.confirmUsePaidPT'),
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members/deduct-paid-service', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              memberId: member.id,
+              serviceType: 'paidPT'
+            })
+          })
+
+          const result = await response.json()
+
+          if (response.ok) {
+            toast.success(t('memberDetails.paidPTUsed', { remaining: result.remainingSessions }))
+            fetchPTSubscription()
+            fetchServiceSubscriptions()
+          } else {
+            toast.error(result.error || t('memberDetails.paidSessionDeductionFailed'))
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.connectionError'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
+  const handleUsePaidNutrition = async () => {
+    if (!member || paidSessionCounts.nutrition <= 0) {
+      toast.warning(t('memberDetails.noPaidNutritionRemaining'))
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: t('memberDetails.usePaidNutrition'),
+      message: t('memberDetails.confirmUsePaidNutrition'),
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members/deduct-paid-service', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              memberId: member.id,
+              serviceType: 'paidNutrition'
+            })
+          })
+
+          const result = await response.json()
+
+          if (response.ok) {
+            toast.success(t('memberDetails.paidNutritionUsed', { remaining: result.remainingSessions }))
+            fetchServiceSubscriptions()
+          } else {
+            toast.error(result.error || t('memberDetails.paidSessionDeductionFailed'))
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.connectionError'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
+  const handleUsePaidPhysio = async () => {
+    if (!member || paidSessionCounts.physio <= 0) {
+      toast.warning(t('memberDetails.noPaidPhysioRemaining'))
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: t('memberDetails.usePaidPhysio'),
+      message: t('memberDetails.confirmUsePaidPhysio'),
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members/deduct-paid-service', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              memberId: member.id,
+              serviceType: 'paidPhysio'
+            })
+          })
+
+          const result = await response.json()
+
+          if (response.ok) {
+            toast.success(t('memberDetails.paidPhysioUsed', { remaining: result.remainingSessions }))
+            fetchServiceSubscriptions()
+          } else {
+            toast.error(result.error || t('memberDetails.paidSessionDeductionFailed'))
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.connectionError'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
+  const handleUsePaidGroupClass = async () => {
+    if (!member || paidSessionCounts.groupClass <= 0) {
+      toast.warning(t('memberDetails.noPaidGroupClassRemaining'))
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: t('memberDetails.usePaidGroupClass'),
+      message: t('memberDetails.confirmUsePaidGroupClass'),
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members/deduct-paid-service', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              memberId: member.id,
+              serviceType: 'paidGroupClass'
+            })
+          })
+
+          const result = await response.json()
+
+          if (response.ok) {
+            toast.success(t('memberDetails.paidGroupClassUsed', { remaining: result.remainingSessions }))
+            fetchServiceSubscriptions()
+          } else {
+            toast.error(result.error || t('memberDetails.paidSessionDeductionFailed'))
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.connectionError'))
         } finally {
           setLoading(false)
         }
@@ -1395,13 +1601,35 @@ export default function MemberDetailPage() {
             </div>
             <div className="text-5xl">💪</div>
           </div>
-          <button
-            onClick={handleUseFreePT}
-            disabled={(member.freePTSessions ?? 0) <= 0 || loading}
-            className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {t('memberDetails.useSession')}
-          </button>
+
+          {/* عرض الجلسات المدفوعة */}
+          {paidSessionCounts.pt > 0 && (
+            <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-3 mb-3">
+              <p className="text-sm text-gray-600">{t('memberDetails.paidPTSessions')}</p>
+              <p className="text-2xl font-bold text-orange-600">{paidSessionCounts.pt}</p>
+            </div>
+          )}
+
+          {/* أزرار الخصم */}
+          <div className="space-y-2">
+            <button
+              onClick={handleUseFreePT}
+              disabled={(member.freePTSessions ?? 0) <= 0 || loading}
+              className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {t('memberDetails.useSession')}
+            </button>
+
+            {paidSessionCounts.pt > 0 && (
+              <button
+                onClick={handleUsePaidPT}
+                disabled={loading}
+                className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600"
+              >
+                {t('memberDetails.usePaidSession')}
+              </button>
+            )}
+          </div>
         </div>
 
         {settings.nutritionEnabled && (
@@ -1413,13 +1641,35 @@ export default function MemberDetailPage() {
               </div>
               <div className="text-5xl">🥗</div>
             </div>
-            <button
-              onClick={handleUseFreeNutrition}
-              disabled={(member.freeNutritionSessions ?? 0) <= 0 || loading}
-              className="w-full bg-lime-600 text-white py-2 rounded-lg hover:bg-lime-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {t('memberDetails.useNutrition')}
-            </button>
+
+            {/* عرض الجلسات المدفوعة */}
+            {paidSessionCounts.nutrition > 0 && (
+              <div className="bg-lime-50 border-2 border-lime-200 rounded-lg p-3 mb-3">
+                <p className="text-sm text-gray-600">{t('memberDetails.paidNutritionSessions')}</p>
+                <p className="text-2xl font-bold text-lime-600">{paidSessionCounts.nutrition}</p>
+              </div>
+            )}
+
+            {/* أزرار الخصم */}
+            <div className="space-y-2">
+              <button
+                onClick={handleUseFreeNutrition}
+                disabled={(member.freeNutritionSessions ?? 0) <= 0 || loading}
+                className="w-full bg-lime-600 text-white py-2 rounded-lg hover:bg-lime-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {t('memberDetails.useNutrition')}
+              </button>
+
+              {paidSessionCounts.nutrition > 0 && (
+                <button
+                  onClick={handleUsePaidNutrition}
+                  disabled={loading}
+                  className="w-full bg-lime-500 text-white py-2 rounded-lg hover:bg-lime-600"
+                >
+                  {t('memberDetails.usePaidSession')}
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -1432,13 +1682,35 @@ export default function MemberDetailPage() {
               </div>
               <div className="text-5xl">🏥</div>
             </div>
-            <button
-              onClick={handleUseFreePhysio}
-              disabled={(member.freePhysioSessions ?? 0) <= 0 || loading}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {t('memberDetails.usePhysio')}
-            </button>
+
+            {/* عرض الجلسات المدفوعة */}
+            {paidSessionCounts.physio > 0 && (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 mb-3">
+                <p className="text-sm text-gray-600">{t('memberDetails.paidPhysioSessions')}</p>
+                <p className="text-2xl font-bold text-blue-600">{paidSessionCounts.physio}</p>
+              </div>
+            )}
+
+            {/* أزرار الخصم */}
+            <div className="space-y-2">
+              <button
+                onClick={handleUseFreePhysio}
+                disabled={(member.freePhysioSessions ?? 0) <= 0 || loading}
+                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {t('memberDetails.usePhysio')}
+              </button>
+
+              {paidSessionCounts.physio > 0 && (
+                <button
+                  onClick={handleUsePaidPhysio}
+                  disabled={loading}
+                  className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
+                >
+                  {t('memberDetails.usePaidSession')}
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -1451,13 +1723,35 @@ export default function MemberDetailPage() {
               </div>
               <div className="text-5xl">👥</div>
             </div>
-            <button
-              onClick={handleUseFreeGroupClass}
-              disabled={(member.freeGroupClassSessions ?? 0) <= 0 || loading}
-              className="w-full bg-fuchsia-600 text-white py-2 rounded-lg hover:bg-fuchsia-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {t('memberDetails.useGroupClass')}
-            </button>
+
+            {/* عرض الجلسات المدفوعة */}
+            {paidSessionCounts.groupClass > 0 && (
+              <div className="bg-fuchsia-50 border-2 border-fuchsia-200 rounded-lg p-3 mb-3">
+                <p className="text-sm text-gray-600">{t('memberDetails.paidGroupClassSessions')}</p>
+                <p className="text-2xl font-bold text-fuchsia-600">{paidSessionCounts.groupClass}</p>
+              </div>
+            )}
+
+            {/* أزرار الخصم */}
+            <div className="space-y-2">
+              <button
+                onClick={handleUseFreeGroupClass}
+                disabled={(member.freeGroupClassSessions ?? 0) <= 0 || loading}
+                className="w-full bg-fuchsia-600 text-white py-2 rounded-lg hover:bg-fuchsia-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {t('memberDetails.useGroupClass')}
+              </button>
+
+              {paidSessionCounts.groupClass > 0 && (
+                <button
+                  onClick={handleUsePaidGroupClass}
+                  disabled={loading}
+                  className="w-full bg-fuchsia-500 text-white py-2 rounded-lg hover:bg-fuchsia-600"
+                >
+                  {t('memberDetails.usePaidSession')}
+                </button>
+              )}
+            </div>
           </div>
         )}
 
