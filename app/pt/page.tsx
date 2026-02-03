@@ -894,7 +894,7 @@ export default function PTPage() {
               className="w-full px-3 py-2 border-2 rounded-lg"
             >
               <option value="">{t('pt.allCoaches')}</option>
-              {Array.from(new Set(sessions.map(s => s.coachName))).sort().map(coach => (
+              {Array.from(new Set(sessions.map(s => s.coachName).filter((name): name is string => !!name))).sort().map(coach => (
                 <option key={coach} value={coach}>{coach}</option>
               ))}
             </select>
