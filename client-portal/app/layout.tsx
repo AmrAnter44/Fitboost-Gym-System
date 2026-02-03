@@ -108,6 +108,9 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+// Force dynamic rendering to avoid static generation issues with client contexts
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{

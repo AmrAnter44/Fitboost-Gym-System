@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAvailableSpaSlots } from '@/lib/api-client';
 
+// Force dynamic rendering since this route uses request.url
+export const dynamic = 'force-dynamic';
+
 /**
  * Get available SPA time slots (public endpoint)
  */
