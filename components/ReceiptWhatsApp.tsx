@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Toast from './Toast';
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel } from '../lib/paymentHelpers';
 
@@ -26,8 +26,32 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
   const [phone, setPhone] = useState('');
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
+  const [websiteUrl, setWebsiteUrl] = useState('https://www.xgym.website');
+  const [showWebsite, setShowWebsite] = useState(false); // ✅ البداية false
 
   const details = JSON.parse(receipt.itemDetails);
+
+  // جلب إعدادات الموقع
+  useEffect(() => {
+    const fetchWebsiteSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/services');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.websiteUrl) {
+            setWebsiteUrl(data.websiteUrl);
+          }
+          if (typeof data.showWebsiteOnReceipts === 'boolean') {
+            setShowWebsite(data.showWebsiteOnReceipts);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching website settings:', error);
+        setShowWebsite(false);
+      }
+    };
+    fetchWebsiteSettings();
+  }, []);
 
   const prepareReceiptMessage = (data: any) => {
     const details = data.details;
@@ -156,9 +180,11 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
     message += `٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n`;
     message += `٤- الاداره غير مسئوله عن المتعلقات الشخصيه\n\n`;
 
-    // رابط الموقع
-    message += `🌐 *الموقع الإلكتروني:*\n`;
-    message += `https://www.xgym.website/`;
+    // عرض الموقع الإلكتروني فقط إذا كان مفعلاً
+    if (showWebsite && websiteUrl) {
+      message += `🌐 *الموقع الإلكتروني:*\n`;
+      message += `${websiteUrl}\n`;
+    }
 
     return message;
   };

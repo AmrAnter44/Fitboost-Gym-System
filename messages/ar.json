@@ -502,6 +502,28 @@
     "useNutrition": "استخدام حصة",
     "usePhysio": "استخدام حصة",
     "useGroupClass": "استخدام حصة",
+    "paidPTSessions": "جلسات PT المدفوعة",
+    "paidNutritionSessions": "جلسات التغذية المدفوعة",
+    "paidPhysioSessions": "جلسات العلاج الطبيعي المدفوعة",
+    "paidGroupClassSessions": "جلسات جروب كلاسيس المدفوعة",
+    "usePaidSession": "استخدام جلسة مدفوعة",
+    "usePaidPT": "استخدام جلسة PT مدفوعة",
+    "usePaidNutrition": "استخدام جلسة تغذية مدفوعة",
+    "usePaidPhysio": "استخدام جلسة علاج طبيعي مدفوعة",
+    "usePaidGroupClass": "استخدام جلسة جروب كلاسيس مدفوعة",
+    "confirmUsePaidPT": "هل أنت متأكد من خصم جلسة PT مدفوعة؟",
+    "confirmUsePaidNutrition": "هل أنت متأكد من خصم جلسة تغذية مدفوعة؟",
+    "confirmUsePaidPhysio": "هل أنت متأكد من خصم جلسة علاج طبيعي مدفوعة؟",
+    "confirmUsePaidGroupClass": "هل أنت متأكد من خصم جلسة جروب كلاسيس مدفوعة؟",
+    "paidPTUsed": "تم خصم جلسة PT مدفوعة. المتبقي: {remaining}",
+    "paidNutritionUsed": "تم خصم جلسة تغذية مدفوعة. المتبقي: {remaining}",
+    "paidPhysioUsed": "تم خصم جلسة علاج طبيعي مدفوعة. المتبقي: {remaining}",
+    "paidGroupClassUsed": "تم خصم جلسة جروب كلاسيس مدفوعة. المتبقي: {remaining}",
+    "noPaidPTRemaining": "لا توجد جلسات PT مدفوعة متبقية",
+    "noPaidNutritionRemaining": "لا توجد جلسات تغذية مدفوعة متبقية",
+    "noPaidPhysioRemaining": "لا توجد جلسات علاج طبيعي مدفوعة متبقية",
+    "noPaidGroupClassRemaining": "لا توجد جلسات جروب كلاسيس مدفوعة متبقية",
+    "paidSessionDeductionFailed": "فشل خصم الجلسة",
     "points": "النقاط",
     "viewPointsHistory": "عرض سجل النقاط",
     "pointsHistory": "سجل النقاط",
@@ -827,7 +849,7 @@
     "member": "العضو",
     "errorGenerating": "حدث خطأ أثناء توليد الباركود",
     "mustGenerateFirst": "يجب توليد الباركود أولاً",
-    "whatsappMessage": "Barcode العضوية #{memberNumber} للعضو {memberName}\n\n🌐 *الموقع الإلكتروني:*\nhttps://www.xgym.website/",
+    "whatsappMessage": "Barcode العضوية #{memberNumber} للعضو {memberName}",
     "downloadedOpenWhatsApp": "✅ تم تحميل صورة الباركود!\n📱 سيتم فتح واتساب الآن، قم بإرفاق الصورة المحملة مع الرسالة."
   },
   "attendance": {
@@ -1101,8 +1123,8 @@
     "remainingAmountLabel": "المبلغ المتبقي",
     "period": "الفترة",
     "session": "حصة",
-    "whatsappWithBarcode": "مرحباً {clientName}! 👋\n\nBarcode الخاص باشتراك PT:\n{qrCode}\n\n✅ لتسجيل حضورك:\n{checkInUrl}\n\nالصق الكود لتسجيل الحضور تلقائياً!\n\nالحصص المتبقية: {sessionsRemaining} من {sessionsPurchased}\nالكوتش: {coachName}\n\nبالتوفيق! 🏋️\n\n🌐 *الموقع الإلكتروني:*\nhttps://www.xgym.website/",
-    "whatsappWithLink": "مرحباً {clientName}! 👋\n\n✅ لتسجيل حضور PT:\n{checkInUrl}\n\nالحصص المتبقية: {sessionsRemaining} من {sessionsPurchased}\nالكوتش: {coachName}\n\nبالتوفيق! 🏋️\n\n🌐 *الموقع الإلكتروني:*\nhttps://www.xgym.website/",
+    "whatsappWithBarcode": "مرحباً {clientName}! 👋\n\nBarcode الخاص باشتراك PT:\n{qrCode}\n\n✅ لتسجيل حضورك:\n{checkInUrl}\n\nالصق الكود لتسجيل الحضور تلقائياً!\n\nالحصص المتبقية: {sessionsRemaining} من {sessionsPurchased}\nالكوتش: {coachName}\n\nبالتوفيق! 🏋️",
+    "whatsappWithLink": "مرحباً {clientName}! 👋\n\n✅ لتسجيل حضور PT:\n{checkInUrl}\n\nالحصص المتبقية: {sessionsRemaining} من {sessionsPurchased}\nالكوتش: {coachName}\n\nبالتوفيق! 🏋️",
     "whatsappShareText": "Barcode لـ {clientName}\nالحصص المتبقية: {sessionsRemaining}/{sessionsPurchased}\nالكوتش: {coachName}",
     "barcodeModal": {
       "title": "📱 Barcode",

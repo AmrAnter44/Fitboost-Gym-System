@@ -21,7 +21,7 @@ export async function GET(request: Request) {
           where: { groupClassNumber: parseInt(groupClassNumber) }
         })
 
-        if (groupClass && groupClass.coachUserId !== user.userId) {
+        if (groupClass && groupClass.instructorUserId !== user.userId) {
           return NextResponse.json(
             { error: 'ليس لديك صلاحية عرض سجلات هذا العميل' },
             { status: 403 }
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       const whereClause = user.role === 'COACH'
         ? {
             groupClass: {
-              coachUserId: user.userId  // المدرب يرى سجلات عملائه فقط
+              instructorUserId: user.userId  // المدرب يرى سجلات عملائه فقط
             }
           }
         : {}  // الأدمن يرى الكل
