@@ -125,7 +125,7 @@ export async function POST(request: Request) {
 
       // ✅ إنشاء سجل عمولة لأخصائي العلاج الطبيعي
       try {
-        // البحث عن coachUserId من اسم أخصائي العلاج الطبيعي
+        // البحث عن therapistUserId من اسم أخصائي العلاج الطبيعي
         const therapistStaff = await prisma.staff.findFirst({
           where: { name: physiotherapy.therapistName },
           include: { user: true }

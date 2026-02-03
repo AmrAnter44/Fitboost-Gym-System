@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     // التحقق من أن أخصائي العلاج الطبيعي هو المسؤول عن هذا الاشتراك
     if (user.role === 'COACH') {
-      if (physiotherapy.coachUserId !== user.userId) {
+      if (physiotherapy.therapistUserId !== user.userId) {
         return NextResponse.json(
           { error: 'ليس لديك صلاحية تسجيل حضور لهذا العميل. هذا العميل مع أخصائي علاج طبيعي آخر.' },
           { status: 403 }
