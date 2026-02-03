@@ -2,7 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   Theme Colors - CSS Variables
+   نظام الألوان المركزي
+   ======================================== */
 :root {
+  /* Primary Colors - الألوان الأساسية */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+
+  /* RGB Values for transparency */
+  --color-primary-rgb: 59, 130, 246;
+  --color-primary-50-rgb: 239, 246, 255;
+  --color-primary-100-rgb: 219, 234, 254;
+  --color-primary-200-rgb: 191, 219, 254;
+  --color-primary-300-rgb: 147, 197, 253;
+  --color-primary-400-rgb: 96, 165, 250;
+  --color-primary-600-rgb: 37, 99, 235;
+  --color-primary-700-rgb: 29, 78, 216;
+  --color-primary-800-rgb: 30, 64, 175;
+  --color-primary-900-rgb: 30, 58, 138;
+
+  /* Other colors */
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 249, 250, 251;
   --background-end-rgb: 249, 250, 251;
@@ -180,7 +210,7 @@ table {
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--color-primary-500);
   outline-offset: 2px;
 }
 

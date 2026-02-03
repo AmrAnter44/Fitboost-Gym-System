@@ -278,7 +278,7 @@ export default function UpdateNotification() {
       {/* Downloading progress notification */}
       {isDownloading && (
         <div
-          className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-blue-500 to-blue-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-blue-400"
+          className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-primary-500 to-primary-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-primary-400"
           style={{ minWidth: '400px', maxWidth: '450px' }}
           dir={direction}
         >

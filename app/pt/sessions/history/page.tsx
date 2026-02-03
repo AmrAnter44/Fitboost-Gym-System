@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../../../contexts/LanguageContext'
 import { useConfirm } from '../../../../hooks/useConfirm'
 import { useSuccess } from '../../../../hooks/useSuccess'
+import { usePermissions } from '../../../../hooks/usePermissions'
 import ConfirmDialog from '../../../../components/ConfirmDialog'
 import SuccessDialog from '../../../../components/SuccessDialog'
 
@@ -28,12 +29,15 @@ export default function PTSessionHistoryPage() {
   const { t } = useLanguage()
   const { confirm, isOpen: isConfirmOpen, options: confirmOptions, handleConfirm, handleCancel } = useConfirm()
   const { show: showSuccess, isOpen: isSuccessOpen, options: successOptions, handleClose: handleSuccessClose } = useSuccess()
+  const { user } = usePermissions()
   const [sessions, setSessions] = useState<PTSessionRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPTNumber, setFilterPTNumber] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+
+  const isCoach = user?.role === 'COACH'
 
   useEffect(() => {
     fetchSessions()
@@ -122,20 +126,22 @@ export default function PTSessionHistoryPage() {
           <h1 className="text-3xl font-bold mb-2">📊 {t('pt.sessionHistory.title')}</h1>
           <p className="text-gray-600">{t('pt.sessionHistory.subtitle')}</p>
         </div>
-        <button
-          onClick={() => router.push('/pt/sessions/register')}
-          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
-        >
-          ➕ {t('pt.sessionHistory.registerNew')}
-        </button>
+        {!isCoach && (
+          <button
+            onClick={() => router.push('/pt/sessions/register')}
+            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+          >
+            ➕ {t('pt.sessionHistory.registerNew')}
+          </button>
+        )}
       </div>
 
       {/* الإحصائيات */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm mb-1">{t('pt.sessionHistory.totalSessions')}</p>
+              <p className="text-primary-100 text-sm mb-1">{t('pt.sessionHistory.totalSessions')}</p>
               <p className="text-4xl font-bold">{totalSessions}</p>
             </div>
             <div className="text-5xl opacity-20">📊</div>
@@ -219,7 +225,7 @@ export default function PTSessionHistoryPage() {
               setDateFrom('')
               setDateTo('')
             }}
-            className="mt-4 text-sm text-blue-600 hover:text-blue-700"
+            className="mt-4 text-sm text-primary-600 hover:text-primary-700"
           >
             ❌ {t('pt.sessionHistory.clearFilters')}
           </button>
@@ -261,7 +267,7 @@ export default function PTSessionHistoryPage() {
                     >
                       <td className="px-4 py-3">
                         {session.ptNumber < 0 ? (
-                          <span className="font-bold text-blue-600">🏃 Day Use</span>
+                          <span className="font-bold text-primary-600">🏃 Day Use</span>
                         ) : (
                           <span className="font-bold text-green-600">#{session.ptNumber}</span>
                         )}
@@ -283,7 +289,7 @@ export default function PTSessionHistoryPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono font-bold text-blue-600">
+                        <span className="font-mono font-bold text-primary-600">
                           {sessionDate.toLocaleTimeString('ar-EG', {
                             hour: '2-digit',
                             minute: '2-digit'
@@ -321,7 +327,7 @@ export default function PTSessionHistoryPage() {
 
       {/* ملخص بالأسفل */}
       {filteredSessions.length > 0 && (
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="mt-4 bg-primary-50 border border-primary-200 rounded-lg p-4">
           <p className="text-sm text-gray-700">
             {t('pt.sessionHistory.showing', { count: filteredSessions.length.toString(), total: sessions.length.toString() })}
           </p>

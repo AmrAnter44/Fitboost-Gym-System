@@ -3,25 +3,35 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-const DAYS_OF_WEEK = [
-  { key: 'Monday', label: 'الإثنين', order: 1 },
-  { key: 'Tuesday', label: 'الثلاثاء', order: 2 },
-  { key: 'Wednesday', label: 'الأربعاء', order: 3 },
-  { key: 'Thursday', label: 'الخميس', order: 4 },
-  { key: 'Friday', label: 'الجمعة', order: 5 },
-  { key: 'Saturday', label: 'السبت', order: 6 },
-  { key: 'Sunday', label: 'الأحد', order: 7 },
-]
+interface PTData {
+  ptNumber: number
+  clientName: string
+  phone: string
+  sessionsPurchased: number
+  sessionsRemaining: number
+  coachName: string
+  pricePerSession: number
+  startDate: string | null
+  expiryDate: string | null
+  remainingAmount: number | null
+  sessions: PTSessionData[]
+}
+
+interface PTSessionData {
+  id: string
+  sessionDate: string
+  attended: boolean
+  attendedAt: string | null
+  notes: string | null
+}
 
 export default function CoachDashboard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [pendingRequests, setPendingRequests] = useState<any[]>([])
-  const [completedRequests, setCompletedRequests] = useState<any[]>([])
+  const [myPTs, setMyPTs] = useState<PTData[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [user, setUser] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending')
-  const [rotations, setRotations] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'active' | 'expired'>('active')
 
   useEffect(() => {
     checkAuth()
@@ -48,85 +58,65 @@ export default function CoachDashboard() {
         router.push('/')
         return
       }
+
+      // Fetch coach's PT subscriptions
+      if (data.user.id) {
+        fetchMyPTs(data.user.id)
+      }
     } catch (error) {
       console.error('Error checking authentication:', error)
       router.push('/login')
     }
   }
 
-  useEffect(() => {
-    if (user?.staffId) {
-      fetchRequests()
-    }
-  }, [user])
-
-  const fetchRequests = async () => {
-    if (!user?.staffId) return
-
+  const fetchMyPTs = async (userId: string) => {
     try {
       setLoading(true)
 
-      // Fetch pending requests
-      const pendingRes = await fetch(`/api/fitness-test-requests?coachId=${user.staffId}&status=pending`)
-      if (pendingRes.ok) {
-        const pendingData = await pendingRes.json()
-        setPendingRequests(pendingData)
-      }
+      console.log('🔍 Fetching PTs for coach userId:', userId)
 
-      // Fetch completed requests
-      const completedRes = await fetch(`/api/fitness-test-requests?coachId=${user.staffId}&status=completed`)
-      if (completedRes.ok) {
-        const completedData = await completedRes.json()
-        setCompletedRequests(completedData)
-      }
-
-      // Fetch rotations
-      const rotationsRes = await fetch('/api/rotations')
-      if (rotationsRes.ok) {
-        const rotationsData = await rotationsRes.json()
-        setRotations(rotationsData)
+      // Fetch PTs for this coach - API will automatically filter by user.userId from token
+      const response = await fetch('/api/pt')
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ PTs fetched:', data.length, 'records')
+        console.log('PTs data:', data)
+        setMyPTs(data)
+      } else {
+        console.error('❌ Failed to fetch PTs:', response.status)
       }
     } catch (error) {
-      console.error('Error fetching requests:', error)
+      console.error('Error fetching PTs:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const currentRequests = activeTab === 'pending' ? pendingRequests : completedRequests
+  // Filter PTs based on active/expired status
+  const activePTs = myPTs.filter(pt => {
+    if (!pt.expiryDate) return true
+    return new Date(pt.expiryDate) >= new Date()
+  })
 
-  const filteredRequests = currentRequests.filter((req) => {
+  const expiredPTs = myPTs.filter(pt => {
+    if (!pt.expiryDate) return false
+    return new Date(pt.expiryDate) < new Date()
+  })
+
+  const currentPTs = activeTab === 'active' ? activePTs : expiredPTs
+
+  const filteredPTs = currentPTs.filter((pt) => {
     const searchLower = searchTerm.toLowerCase()
     return (
-      req.member.name.toLowerCase().includes(searchLower) ||
-      req.member.phone?.toLowerCase().includes(searchLower) ||
-      req.member.memberNumber?.toString().includes(searchLower)
+      pt.clientName.toLowerCase().includes(searchLower) ||
+      pt.phone?.toLowerCase().includes(searchLower) ||
+      pt.ptNumber?.toString().includes(searchLower)
     )
   })
 
-  const handleFillTest = (requestId: string, memberId: string, coachId: string) => {
-    router.push(`/fitness-tests/new?requestId=${requestId}&memberId=${memberId}&coachId=${coachId}`)
-  }
-
-  const calculateDuration = (startTime: string, endTime: string): number => {
-    const [startHour, startMin] = startTime.split(':').map(Number)
-    const [endHour, endMin] = endTime.split(':').map(Number)
-    const startMinutes = startHour * 60 + startMin
-    const endMinutes = endHour * 60 + endMin
-    return Math.round((endMinutes - startMinutes) / 60 * 10) / 10
-  }
-
-  const groupedRotations = DAYS_OF_WEEK.reduce((acc, day) => {
-    acc[day.key] = rotations.filter((r) => r.dayOfWeek === day.key)
-    return acc
-  }, {} as Record<string, any[]>)
-
-  const calculateTotalWeeklyHours = (): number => {
-    const total = rotations.reduce((sum, rotation) => {
-      return sum + calculateDuration(rotation.startTime, rotation.endTime)
-    }, 0)
-    return Math.round(total * 10) / 10
-  }
+  // Calculate total stats
+  const totalActiveSessions = activePTs.reduce((sum, pt) => sum + pt.sessionsRemaining, 0)
+  const totalCompletedSessions = activePTs.reduce((sum, pt) => sum + (pt.sessionsPurchased - pt.sessionsRemaining), 0)
 
   if (loading) {
     return (
@@ -141,130 +131,29 @@ export default function CoachDashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">👋 مرحباً {user?.name}</h1>
-              <p className="text-gray-600 mt-2">لوحة تحكم المدرب - اختبارات اللياقة</p>
-            </div>
-            <button
-              onClick={() => router.push('/')}
-              className="px-6 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 font-bold"
-            >
-              ← الرئيسية
-            </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">👋 مرحباً {user?.name}</h1>
+            <p className="text-gray-600 mt-2">لوحة تحكم المدرب - حصص PT</p>
           </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="🔍 ابحث عن عضو (الاسم، الهاتف، رقم العضوية)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-6 py-4 border-2 border-gray-300 rounded-xl text-lg focus:border-teal-500 focus:outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
-          <div className="flex gap-4">
-            <button
-              onClick={() => setActiveTab('pending')}
-              className={`flex-1 py-3 rounded-lg font-bold text-lg ${
-                activeTab === 'pending'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              ⏳ طلبات معلقة ({pendingRequests.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('completed')}
-              className={`flex-1 py-3 rounded-lg font-bold text-lg ${
-                activeTab === 'completed'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              ✅ مكتمل ({completedRequests.length})
-            </button>
-          </div>
-        </div>
-
-        {/* Requests List */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6">
-          <h2 className="text-2xl font-bold mb-6">
-            {activeTab === 'pending' ? '📋 طلبات معلقة' : '✅ طلبات مكتملة'} ({filteredRequests.length})
-          </h2>
-
-          {filteredRequests.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-xl text-gray-500">
-                {activeTab === 'pending' ? 'لا توجد طلبات معلقة' : 'لا توجد طلبات مكتملة'}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="border-2 border-gray-200 rounded-xl p-4 hover:border-teal-500 hover:shadow-lg transition-all"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-800">{request.member.name}</h3>
-                      <p className="text-gray-600 text-sm">رقم العضوية: #{request.member.memberNumber}</p>
-                      {request.member.phone && (
-                        <p className="text-gray-600 text-sm">📱 {request.member.phone}</p>
-                      )}
-                      <p className="text-gray-500 text-xs mt-2">
-                        📅 {new Date(request.requestedAt).toLocaleDateString('ar-EG')}
-                      </p>
-                    </div>
-                    {activeTab === 'pending' ? (
-                      <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
-                        ⏳ معلق
-                      </span>
-                    ) : (
-                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
-                        ✅ مكتمل
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="border-t pt-3 mt-3">
-                    {activeTab === 'pending' ? (
-                      <button
-                        onClick={() => handleFillTest(request.id, request.memberId, request.coachId)}
-                        className="w-full bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 font-bold"
-                      >
-                        📝 ملء الاختبار
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => router.push(`/members/${request.memberId}`)}
-                        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-bold"
-                      >
-                        👁️ عرض الاختبار
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">طلبات معلقة</p>
-                <p className="text-3xl font-bold text-orange-600">{pendingRequests.length}</p>
+                <p className="text-gray-600 text-sm">اشتراكات نشطة</p>
+                <p className="text-3xl font-bold text-green-600">{activePTs.length}</p>
+              </div>
+              <div className="text-5xl">✅</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm">حصص متبقية</p>
+                <p className="text-3xl font-bold text-orange-600">{totalActiveSessions}</p>
               </div>
               <div className="text-5xl">⏳</div>
             </div>
@@ -273,86 +162,174 @@ export default function CoachDashboard() {
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">طلبات مكتملة</p>
-                <p className="text-3xl font-bold text-green-600">{completedRequests.length}</p>
+                <p className="text-gray-600 text-sm">حصص مكتملة</p>
+                <p className="text-3xl font-bold text-purple-600">{totalCompletedSessions}</p>
               </div>
-              <div className="text-5xl">✅</div>
+              <div className="text-5xl">💪</div>
             </div>
           </div>
         </div>
 
-        {/* Weekly Rotations Schedule */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mt-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">📅 جدول المناوبات الأسبوعي</h2>
-            {rotations.length > 0 && (
-              <div className="flex gap-4">
-                <div className="text-center">
-                  <p className="text-gray-600 text-xs">أيام العمل</p>
-                  <p className="text-xl font-bold text-blue-600">
-                    {Object.keys(groupedRotations).filter((day) => groupedRotations[day].length > 0).length}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-gray-600 text-xs">ساعات أسبوعية</p>
-                  <p className="text-xl font-bold text-purple-600">{calculateTotalWeeklyHours()}</p>
-                </div>
-              </div>
-            )}
+        {/* Search Bar */}
+        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="🔍 ابحث عن عضو (الاسم، الهاتف، رقم PT)..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-6 py-4 border-2 border-gray-300 rounded-xl text-lg focus:border-purple-500 focus:outline-none"
+            />
           </div>
+        </div>
 
-          {rotations.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-xl">
-              <div className="text-6xl mb-4">📋</div>
-              <p className="text-xl text-gray-500 font-bold">لا توجد مناوبات مسجلة</p>
-              <p className="text-gray-400 mt-2">تواصل مع الإدارة لإضافة جدولك</p>
+        {/* Tabs */}
+        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setActiveTab('active')}
+              className={`flex-1 py-3 rounded-lg font-bold text-lg ${
+                activeTab === 'active'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              ✅ نشط ({activePTs.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('expired')}
+              className={`flex-1 py-3 rounded-lg font-bold text-lg ${
+                activeTab === 'expired'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              ⏰ منتهي ({expiredPTs.length})
+            </button>
+          </div>
+        </div>
+
+        {/* PTs List */}
+        <div className="bg-white rounded-2xl shadow-2xl p-6">
+          <h2 className="text-2xl font-bold mb-6">
+            {activeTab === 'active' ? '✅ اشتراكات نشطة' : '⏰ اشتراكات منتهية'} ({filteredPTs.length})
+          </h2>
+
+          {filteredPTs.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-xl text-gray-500">
+                {activeTab === 'active' ? 'لا توجد اشتراكات نشطة' : 'لا توجد اشتراكات منتهية'}
+              </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {DAYS_OF_WEEK.map((day) => (
-                <div
-                  key={day.key}
-                  className={`border-2 rounded-xl p-4 transition-all ${
-                    groupedRotations[day.key]?.length > 0
-                      ? 'border-blue-300 bg-blue-50'
-                      : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-gray-800">{day.label}</h3>
-                    {groupedRotations[day.key]?.length > 0 ? (
-                      <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                        ✅ مجدول
-                      </span>
-                    ) : (
-                      <span className="bg-gray-300 text-gray-600 px-3 py-1 rounded-full text-sm font-bold">
-                        راحة
-                      </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredPTs.map((pt) => {
+                const usedSessions = pt.sessionsPurchased - pt.sessionsRemaining
+                const progressPercentage = (usedSessions / pt.sessionsPurchased) * 100
+                const isExpired = pt.expiryDate && new Date(pt.expiryDate) < new Date()
+
+                return (
+                  <div
+                    key={pt.ptNumber}
+                    className={`border-2 rounded-xl p-4 hover:shadow-lg transition-all ${
+                      isExpired ? 'border-red-300 bg-red-50' : 'border-purple-300 bg-purple-50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-gray-800">{pt.clientName}</h3>
+                        <p className="text-gray-600 text-sm">رقم PT: #{pt.ptNumber}</p>
+                        {pt.phone && (
+                          <p className="text-gray-600 text-sm">📱 {pt.phone}</p>
+                        )}
+                      </div>
+                      {isExpired ? (
+                        <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold whitespace-nowrap">
+                          ⏰ منتهي
+                        </span>
+                      ) : (
+                        <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold whitespace-nowrap">
+                          ✅ نشط
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs text-gray-600 mb-1">
+                        <span>الحصص المستخدمة: {usedSessions} / {pt.sessionsPurchased}</span>
+                        <span>{Math.round(progressPercentage)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${
+                            progressPercentage >= 80 ? 'bg-red-500' :
+                            progressPercentage >= 50 ? 'bg-orange-500' :
+                            'bg-green-500'
+                          }`}
+                          style={{ width: `${progressPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Info Grid */}
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                      <div className="bg-white rounded p-2">
+                        <p className="text-gray-600">متبقي</p>
+                        <p className="font-bold text-orange-600">{pt.sessionsRemaining} حصة</p>
+                      </div>
+                      <div className="bg-white rounded p-2">
+                        <p className="text-gray-600">السعر/حصة</p>
+                        <p className="font-bold text-green-600">{pt.pricePerSession} ج.م</p>
+                      </div>
+                      {pt.startDate && (
+                        <div className="bg-white rounded p-2">
+                          <p className="text-gray-600">البداية</p>
+                          <p className="font-bold">{new Date(pt.startDate).toLocaleDateString('ar-EG')}</p>
+                        </div>
+                      )}
+                      {pt.expiryDate && (
+                        <div className="bg-white rounded p-2">
+                          <p className="text-gray-600">الانتهاء</p>
+                          <p className={`font-bold ${isExpired ? 'text-red-600' : ''}`}>
+                            {new Date(pt.expiryDate).toLocaleDateString('ar-EG')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Remaining Amount */}
+                    {pt.remainingAmount !== null && pt.remainingAmount > 0 && (
+                      <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-2 mb-3">
+                        <p className="text-xs text-yellow-800 font-bold">
+                          💰 المبلغ المتبقي: {pt.remainingAmount} ج.م
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Sessions History */}
+                    {pt.sessions && pt.sessions.length > 0 && (
+                      <div className="border-t pt-3 mt-3">
+                        <p className="text-xs text-gray-600 font-bold mb-2">
+                          📅 آخر الحصص ({pt.sessions.length})
+                        </p>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {pt.sessions.slice(0, 3).map((session) => (
+                            <div key={session.id} className="bg-white rounded p-2 text-xs flex justify-between items-center">
+                              <span>{new Date(session.sessionDate).toLocaleDateString('ar-EG')}</span>
+                              {session.attended ? (
+                                <span className="text-green-600 font-bold">✅ حضر</span>
+                              ) : (
+                                <span className="text-orange-600 font-bold">⏳ مسجل</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
-
-                  {groupedRotations[day.key]?.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {groupedRotations[day.key].map((rotation) => (
-                        <div
-                          key={rotation.id}
-                          className="bg-white border-2 border-blue-400 p-3 rounded-lg flex items-center gap-3 shadow-sm"
-                        >
-                          <div className="text-2xl">🕒</div>
-                          <div>
-                            <p className="font-bold text-base text-blue-700">
-                              {rotation.startTime} - {rotation.endTime}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              {calculateDuration(rotation.startTime, rotation.endTime)} ساعات
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

@@ -54,11 +54,11 @@ export default function ConfirmDialog({
       confirmBtn: 'bg-yellow-600 hover:bg-yellow-700'
     },
     info: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
+      bg: 'bg-primary-50',
+      border: 'border-primary-200',
       icon: 'ℹ️',
-      iconBg: 'bg-blue-100',
-      confirmBtn: 'bg-blue-600 hover:bg-blue-700'
+      iconBg: 'bg-primary-100',
+      confirmBtn: 'bg-primary-600 hover:bg-primary-700'
     }
   }
 

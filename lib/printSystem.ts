@@ -1,6 +1,7 @@
 // نظام طباعة موحد - مع إضافة اسم الموظف + تحويل PDF
 import { normalizePaymentMethod, isMultiPayment } from './paymentHelpers'
 import { printAndSaveArabicPDF } from './pdfSystemArabic'
+import { THEME_COLORS } from './theme'
 
 interface ReceiptData {
   receiptNumber: number
@@ -150,7 +151,7 @@ function generateReceiptHTML(data: ReceiptData): string {
     }
 
     .type-badge.new {
-      background: #3b82f6;
+      background: ${THEME_COLORS.primary[500]};
     }
 
     .payment-method-badge {
@@ -237,18 +238,18 @@ function generateReceiptHTML(data: ReceiptData): string {
     .member-number {
       font-size: 20px;
       font-weight: bold;
-      color: #2563eb;
+      color: ${THEME_COLORS.primary[600]};
       text-align: center;
       margin: 15px 0;
       padding: 12px;
       background: #ffffff;
       border-radius: 6px;
-      border: 2px solid #2563eb;
+      border: 2px solid ${THEME_COLORS.primary[600]};
     }
 
     .date-box {
       background: #ffffff;
-      border: 2px solid #3b82f6;
+      border: 2px solid ${THEME_COLORS.primary[500]};
       border-radius: 8px;
       padding: 14px;
       margin: 14px 0;
@@ -462,9 +463,9 @@ function generateReceiptHTML(data: ReceiptData): string {
   </div>
 
   <div class="footer">
-    ${isRenewal 
-      ? '<p style="color: #10b981; font-weight: bold;">تم تجديد اشتراكك بنجاح 🎉</p>' 
-      : '<p style="color: #3b82f6; font-weight: bold;">مرحباً بك معنا 🎉</p>'
+    ${isRenewal
+      ? '<p style="color: #10b981; font-weight: bold;">تم تجديد اشتراكك بنجاح 🎉</p>'
+      : `<p style="color: ${THEME_COLORS.primary[500]}; font-weight: bold;">مرحباً بك معنا 🎉</p>`
     }
     <p style="font-size: 10px; margin-top: 8px;">
       مدة استرداد الأشتراك 24 ساعه

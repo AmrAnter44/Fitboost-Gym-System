@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '../../../../contexts/ToastContext'
+import { usePermissions } from '../../../../hooks/usePermissions'
+import PermissionDenied from '../../../../components/PermissionDenied'
 
 interface PTSession {
   ptNumber: number
@@ -15,6 +17,7 @@ interface PTSession {
 export default function RegisterPTSessionPage() {
   const router = useRouter()
   const toast = useToast()
+  const { user, loading: permissionsLoading } = usePermissions()
   const [sessions, setSessions] = useState<PTSession[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -22,6 +25,11 @@ export default function RegisterPTSessionPage() {
   const [generatedQRCode, setGeneratedQRCode] = useState<string | null>(null)
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
   const [showQRModal, setShowQRModal] = useState(false)
+
+  // منع الكوتش من الوصول لهذه الصفحة
+  if (!permissionsLoading && user?.role === 'COACH') {
+    return <PermissionDenied message="ليس لديك صلاحية تسجيل حصص PT. هذه الصفحة للموظفين فقط." />
+  }
 
   const [formData, setFormData] = useState({
     ptNumber: '',
@@ -133,7 +141,7 @@ export default function RegisterPTSessionPage() {
         </div>
         <button
           onClick={() => router.push('/pt/sessions/history')}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
         >
           📊 سجل الحضور
         </button>
@@ -198,7 +206,7 @@ export default function RegisterPTSessionPage() {
           <h2 className="text-xl font-bold mb-4">بيانات الحضور</h2>
 
           {selectedPT && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
+            <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 mb-6">
               <h3 className="font-bold text-lg mb-2">الجلسة المحددة:</h3>
               <div className="space-y-1">
                 <p><span className="font-semibold">رقم PT:</span> {selectedPT.ptNumber < 0 ? '🏃 Day Use' : `#${selectedPT.ptNumber}`}</p>
@@ -324,7 +332,7 @@ export default function RegisterPTSessionPage() {
               </div>
 
               {/* QR Code Display */}
-              <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 rounded-xl p-6 mb-4">
+              <div className="bg-gradient-to-br from-purple-50 to-primary-50 border-2 border-purple-300 rounded-xl p-6 mb-4">
                 {/* QR Code Image */}
                 {qrCodeImage && (
                   <div className="bg-white rounded-xl p-4 mb-4 flex justify-center">
@@ -354,7 +362,7 @@ export default function RegisterPTSessionPage() {
                 </div>
                 <div className="bg-white rounded-lg p-3">
                   <p className="text-xs text-gray-500 mb-1">تنسيق سهل القراءة:</p>
-                  <p className="font-mono text-sm font-medium text-blue-600 select-all">
+                  <p className="font-mono text-sm font-medium text-primary-600 select-all">
                     {generatedQRCode.match(/.{1,4}/g)?.join('-')}
                   </p>
                 </div>

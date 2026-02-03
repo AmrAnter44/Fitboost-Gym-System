@@ -209,7 +209,7 @@ function NewFitnessTestContent() {
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-2xl p-6">
           {/* Section 1: Auto-filled Member Info */}
-          <div className="bg-blue-50 p-6 rounded-lg mb-6">
+          <div className="bg-primary-50 p-6 rounded-lg mb-6">
             <h2 className="font-bold mb-4 text-xl">معلومات العضو</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>

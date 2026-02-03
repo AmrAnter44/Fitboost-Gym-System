@@ -103,7 +103,7 @@ export default function SpaPage() {
     const colors: { [key: string]: string } = {
       pending: 'bg-yellow-100 text-yellow-800',
       confirmed: 'bg-green-100 text-green-800',
-      completed: 'bg-blue-100 text-blue-800',
+      completed: 'bg-primary-100 text-primary-800',
       cancelled: 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
@@ -123,7 +123,7 @@ export default function SpaPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="inline-block w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-gray-600">جاري التحميل...</p>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function SpaPage() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold">حجوزات السبا</h1>
-              <p className="text-blue-200">جلسات الاسترخاء</p>
+              <p className="text-primary-200">جلسات الاسترخاء</p>
             </div>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function SpaPage() {
           </div>
           <div className="bg-white rounded-xl shadow p-6 text-center">
             <p className="text-sm text-gray-600 mb-2">الإجمالي</p>
-            <p className="text-4xl font-bold text-blue-600">{stats.total}</p>
+            <p className="text-4xl font-bold text-primary-600">{stats.total}</p>
           </div>
         </div>
 
@@ -171,7 +171,7 @@ export default function SpaPage() {
             onClick={() => setFilter('all')}
             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
               filter === 'all'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary-600 text-white'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -181,7 +181,7 @@ export default function SpaPage() {
             onClick={() => setFilter('confirmed')}
             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
               filter === 'confirmed'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary-600 text-white'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -191,7 +191,7 @@ export default function SpaPage() {
             onClick={() => setFilter('pending')}
             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
               filter === 'pending'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary-600 text-white'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -262,7 +262,7 @@ export default function SpaPage() {
             <div className="p-4 bg-gray-50 border-t">
               <button
                 onClick={loadMore}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
               >
                 تحميل المزيد
               </button>

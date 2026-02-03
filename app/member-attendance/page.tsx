@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
 
 export default function MemberAttendancePage() {
   const { t } = useLanguage()
@@ -59,7 +60,7 @@ export default function MemberAttendancePage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-lg">
+          <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-3 rounded-lg">
             <span className="text-3xl">📊</span>
           </div>
           <div>
@@ -70,7 +71,7 @@ export default function MemberAttendancePage() {
       </div>
 
       {/* Date Range Filter */}
-      <div className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-xl shadow-lg mb-6 border-2 border-blue-100">
+      <div className="bg-gradient-to-br from-white to-primary-50 p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-100">
         <h3 className="text-lg font-bold text-gray-800 mb-4">🔍 {t('memberAttendance.selectTimePeriod')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
@@ -79,7 +80,7 @@ export default function MemberAttendancePage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
             />
           </div>
           <div>
@@ -88,14 +89,14 @@ export default function MemberAttendancePage() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
             />
           </div>
           <div>
             <button
               onClick={handleApplyFilter}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:bg-gray-400 font-semibold shadow-md transition-all transform hover:scale-105"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:bg-gray-400 font-semibold shadow-md transition-all transform hover:scale-105"
             >
               {loading ? `⏳ ${t('memberAttendance.loading')}` : `✓ ${t('memberAttendance.applyFilter')}`}
             </button>
@@ -105,11 +106,11 @@ export default function MemberAttendancePage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-lg shadow-md border-2 border-blue-400">
+        <div className="bg-gradient-to-br from-primary-50 to-cyan-50 p-6 rounded-lg shadow-md border-2 border-primary-400">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-700 text-sm font-semibold mb-1">{t('memberAttendance.totalAttendance')}</p>
-              <p className="text-3xl font-bold text-blue-800">{totalCheckIns}</p>
+              <p className="text-primary-700 text-sm font-semibold mb-1">{t('memberAttendance.totalAttendance')}</p>
+              <p className="text-3xl font-bold text-primary-800">{totalCheckIns}</p>
             </div>
             <div className="text-4xl opacity-70">📊</div>
           </div>
@@ -163,7 +164,7 @@ export default function MemberAttendancePage() {
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#f9fafb',
-                    border: '2px solid #3b82f6',
+                    border: `2px solid ${PRIMARY_COLOR}`,
                     borderRadius: '8px'
                   }}
                 />
@@ -172,7 +173,7 @@ export default function MemberAttendancePage() {
                 />
                 <Bar
                   dataKey="count"
-                  fill="#3b82f6"
+                  fill={PRIMARY_COLOR}
                   name={t('memberAttendance.attendanceCount')}
                   radius={[8, 8, 0, 0]}
                 />
@@ -214,7 +215,7 @@ export default function MemberAttendancePage() {
                       {index > 2 && <span className="text-gray-600 font-bold text-base">#{index + 1}</span>}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm">
+                      <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-lg font-bold text-sm">
                         {item.member?.memberNumber || '-'}
                       </span>
                     </td>
@@ -271,7 +272,7 @@ export default function MemberAttendancePage() {
                         {index + 1}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm">
+                        <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-lg font-bold text-sm">
                           {checkIn.member?.memberNumber || '-'}
                         </span>
                       </td>

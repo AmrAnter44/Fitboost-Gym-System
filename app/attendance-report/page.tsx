@@ -261,14 +261,14 @@ export default function AttendanceReportPage() {
         </div>
         <button
           onClick={() => router.push('/staff')}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition"
         >
           {direction === 'rtl' ? '←' : '→'} {t('attendanceReport.backToStaff')}
         </button>
       </div>
 
       {/* اختيار الشهر والسنة */}
-      <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-blue-200">
+      <div className="bg-gradient-to-br from-primary-50 to-purple-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-primary-200">
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
           <span>📅</span>
           <span>{direction === 'rtl' ? 'اختر الشهر' : 'Select Month'}</span>
@@ -282,7 +282,7 @@ export default function AttendanceReportPage() {
             <select
               value={selectedMonth}
               onChange={(e) => handleMonthChange(Number(e.target.value))}
-              className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:border-blue-500 transition font-bold text-lg bg-white"
+              className="w-full px-4 py-3 border-2 border-primary-300 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white"
             >
               {months.map((month, index) => (
                 <option key={index} value={index}>
@@ -299,7 +299,7 @@ export default function AttendanceReportPage() {
             <select
               value={selectedYear}
               onChange={(e) => handleYearChange(Number(e.target.value))}
-              className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:border-blue-500 transition font-bold text-lg bg-white"
+              className="w-full px-4 py-3 border-2 border-primary-300 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white"
             >
               {years.map((year) => (
                 <option key={year} value={year}>
@@ -311,8 +311,8 @@ export default function AttendanceReportPage() {
         </div>
 
         {/* عرض الفترة المختارة */}
-        <div className="mt-4 p-3 bg-blue-100 rounded-lg border-2 border-blue-300">
-          <p className="text-sm text-blue-800 text-center">
+        <div className="mt-4 p-3 bg-primary-100 rounded-lg border-2 border-primary-300">
+          <p className="text-sm text-primary-800 text-center">
             <span className="font-bold">{direction === 'rtl' ? 'الفترة المختارة:' : 'Selected Period:'}</span>
             {' '}
             {dateFrom} {direction === 'rtl' ? 'إلى' : 'to'} {dateTo}
@@ -331,7 +331,7 @@ export default function AttendanceReportPage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 transition"
             />
           </div>
 
@@ -341,7 +341,7 @@ export default function AttendanceReportPage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 transition"
             />
           </div>
 
@@ -350,7 +350,7 @@ export default function AttendanceReportPage() {
             <select
               value={selectedStaff}
               onChange={(e) => setSelectedStaff(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 transition"
             >
               <option value="">{t('attendanceReport.all')}</option>
               {staff.map((s) => (
@@ -365,10 +365,10 @@ export default function AttendanceReportPage() {
 
       {/* الإحصائيات */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm mb-1">{t('attendanceReport.totalAttendanceDays')}</p>
+              <p className="text-primary-100 text-sm mb-1">{t('attendanceReport.totalAttendanceDays')}</p>
               <p className="text-4xl font-bold">{totalDays}</p>
             </div>
             <div className="text-5xl opacity-20">📊</div>
@@ -428,9 +428,9 @@ export default function AttendanceReportPage() {
                     </div>
                   </div>
                   <div className="mt-3">
-                    <div className="bg-blue-100 rounded-lg p-2 text-center">
-                      <p className="text-xs text-blue-600 mb-1">{t('attendanceReport.attendanceDays')}</p>
-                      <p className="text-2xl font-bold text-blue-600">{stats.totalDays}</p>
+                    <div className="bg-primary-100 rounded-lg p-2 text-center">
+                      <p className="text-xs text-primary-600 mb-1">{t('attendanceReport.attendanceDays')}</p>
+                      <p className="text-2xl font-bold text-primary-600">{stats.totalDays}</p>
                     </div>
                   </div>
                 </div>
@@ -441,7 +441,7 @@ export default function AttendanceReportPage() {
 
       {/* سجلات الحضور بتصميم Cards */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600">
+        <div className="px-6 py-4 bg-gradient-to-r from-primary-500 to-primary-600">
           <h3 className="text-xl font-bold text-white">📋 {t('attendanceReport.attendanceRecords')}</h3>
         </div>
 
@@ -488,7 +488,7 @@ export default function AttendanceReportPage() {
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-lg">
+                        <span className="bg-primary-500 text-white px-4 py-2 rounded-lg font-bold text-lg">
                           #{att.staff.staffCode}
                         </span>
                         <div>
@@ -519,19 +519,19 @@ export default function AttendanceReportPage() {
                   {/* الأوقات والساعات */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* وقت الدخول */}
-                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                    <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-2xl">🕐</span>
-                        <p className="text-xs font-bold text-blue-700">{t('attendanceReport.checkInTime')}</p>
+                        <p className="text-xs font-bold text-primary-700">{t('attendanceReport.checkInTime')}</p>
                       </div>
-                      <p className="text-2xl font-bold text-blue-800">
+                      <p className="text-2xl font-bold text-primary-800">
                         {checkInTime.toLocaleTimeString('en-US', {
                           hour: '2-digit',
                           minute: '2-digit',
                           hour12: true,
                         })}
                       </p>
-                      <p className="text-xs text-blue-600 mt-1">
+                      <p className="text-xs text-primary-600 mt-1">
                         {checkInTime.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'short' })}
                       </p>
                     </div>
@@ -595,9 +595,9 @@ export default function AttendanceReportPage() {
                             </div>
                           )}
                           {minutes > 0 && (
-                            <div className="bg-white border-2 border-blue-300 rounded-lg px-3 py-2 flex-1 text-center">
-                              <div className="text-2xl font-bold text-blue-800">{minutes}</div>
-                              <div className="text-xs text-blue-600">دقيقة</div>
+                            <div className="bg-white border-2 border-primary-300 rounded-lg px-3 py-2 flex-1 text-center">
+                              <div className="text-2xl font-bold text-primary-800">{minutes}</div>
+                              <div className="text-xs text-primary-600">دقيقة</div>
                             </div>
                           )}
                         </div>

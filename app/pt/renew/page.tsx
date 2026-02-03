@@ -67,7 +67,7 @@ function PTRenewContent() {
           <p className="text-gray-600 mb-4">يرجى تحديد رقم PT للتجديد</p>
           <button
             onClick={() => router.push('/pt')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
           >
             العودة لصفحة PT
           </button>
@@ -93,7 +93,7 @@ function PTRenewContent() {
           <h2 className="text-2xl font-bold mb-2">{error || 'جلسة PT غير موجودة'}</h2>
           <button
             onClick={() => router.push('/pt')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
           >
             العودة لصفحة PT
           </button>

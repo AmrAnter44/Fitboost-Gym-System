@@ -8,6 +8,9 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
+import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
+import { addPointsForPayment } from '../../../../lib/points'
+import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
 
 export const dynamic = 'force-dynamic'
 
@@ -170,7 +173,7 @@ export async function POST(request: Request) {
       const receipt = await prisma.receipt.create({
         data: {
           receiptNumber: availableReceiptNumber,
-          type: 'تجديد عضويه',
+          type: RECEIPT_TYPES.MEMBERSHIP_RENEWAL,
           amount: paidAmount,
           paymentMethod: finalPaymentMethod,
           staffName: staffName.trim(),
@@ -211,6 +214,23 @@ export async function POST(request: Request) {
 
       console.log('✅ تم إنشاء إيصال التجديد:', receipt.receiptNumber)
 
+      // خصم النقاط إذا تم استخدامها في الدفع
+      const pointsResult = await processPaymentWithPoints(
+        member.id,
+        member.phone,
+        member.memberNumber,  // ✅ تمرير رقم العضوية
+        finalPaymentMethod,
+        `دفع تجديد عضوية - ${member.name}`,
+        prisma
+      )
+
+      if (!pointsResult.success) {
+        return NextResponse.json(
+          { error: pointsResult.message || 'فشل خصم النقاط' },
+          { status: 400 }
+        )
+      }
+
       // ✅ تحديث العداد للرقم بعد الرقم المستخدم
       const newCounterValue = availableReceiptNumber + 1
       await prisma.receiptCounter.update({
@@ -219,6 +239,22 @@ export async function POST(request: Request) {
       })
 
       console.log('🔄 تم تحديث عداد الإيصالات إلى:', newCounterValue)
+
+      // إضافة نقاط مكافأة على الدفع
+      try {
+        const pointsResult = await addPointsForPayment(
+          member.id,
+          paidAmount,
+          `مكافأة تجديد اشتراك - ${member.name}`
+        )
+
+        if (pointsResult.pointsEarned && pointsResult.pointsEarned > 0) {
+          console.log(`✅ تمت إضافة ${pointsResult.pointsEarned} نقطة مكافأة للعضو`)
+        }
+      } catch (pointsError) {
+        console.error('Error adding reward points:', pointsError)
+        // لا نوقف العملية إذا فشلت إضافة النقاط
+      }
 
       return NextResponse.json({
         member: updatedMember,

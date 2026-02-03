@@ -9,6 +9,7 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
+import { addPointsForPayment } from '../../../../lib/points'
 
 export const dynamic = 'force-dynamic'
 
@@ -252,6 +253,22 @@ export async function POST(request: Request) {
       where: { id: counter.id },
       data: { current: receiptNumber + 1 }
     })
+
+    // إضافة نقاط مكافأة على الدفع
+    try {
+      const pointsResult = await addPointsForPayment(
+        member.id,
+        upgradeAmount,
+        `مكافأة ترقية باقة - ${member.name}`
+      )
+
+      if (pointsResult.pointsEarned && pointsResult.pointsEarned > 0) {
+        console.log(`✅ تمت إضافة ${pointsResult.pointsEarned} نقطة مكافأة للعضو`)
+      }
+    } catch (pointsError) {
+      console.error('Error adding reward points:', pointsError)
+      // لا نوقف العملية إذا فشلت إضافة النقاط
+    }
 
     // 16. إرجاع النتيجة
     return NextResponse.json({

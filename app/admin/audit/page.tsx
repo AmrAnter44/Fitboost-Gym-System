@@ -266,7 +266,7 @@ export default function AuditPage() {
             onClick={() => setActiveTab('logs')}
             className={`px-6 py-4 font-medium transition ${
               activeTab === 'logs'
-                ? 'border-b-2 border-blue-600 text-blue-600'
+                ? 'border-b-2 border-primary-600 text-primary-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -276,7 +276,7 @@ export default function AuditPage() {
             onClick={() => setActiveTab('sessions')}
             className={`px-6 py-4 font-medium transition ${
               activeTab === 'sessions'
-                ? 'border-b-2 border-blue-600 text-blue-600'
+                ? 'border-b-2 border-primary-600 text-primary-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -302,7 +302,7 @@ export default function AuditPage() {
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   placeholder="اسم أو بريد إلكتروني..."
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
 
@@ -312,7 +312,7 @@ export default function AuditPage() {
                 <select
                   value={actionFilter}
                   onChange={(e) => setActionFilter(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">الكل</option>
                   <option value="LOGIN">🔐 تسجيل دخول</option>
@@ -333,7 +333,7 @@ export default function AuditPage() {
                 <select
                   value={resourceFilter}
                   onChange={(e) => setResourceFilter(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">الكل</option>
                   <option value="Member">👤 أعضاء</option>
@@ -354,7 +354,7 @@ export default function AuditPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">الكل</option>
                   <option value="success">✓ نجح</option>
@@ -385,7 +385,7 @@ export default function AuditPage() {
           {/* Logs List */}
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
             </div>
           ) : error ? (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
@@ -424,7 +424,7 @@ export default function AuditPage() {
                           <span className="text-gray-500">•</span>
                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                             log.userRole === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
-                            log.userRole === 'MANAGER' ? 'bg-blue-100 text-blue-800' :
+                            log.userRole === 'MANAGER' ? 'bg-primary-100 text-primary-800' :
                             log.userRole === 'STAFF' ? 'bg-gray-100 text-gray-800' :
                             'bg-gray-100 text-gray-600'
                           }`}>
@@ -500,7 +500,7 @@ export default function AuditPage() {
         <div className="space-y-6">
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
             </div>
           ) : error ? (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
@@ -527,7 +527,7 @@ export default function AuditPage() {
                         <h3 className="font-bold text-lg text-gray-900">{session.userName}</h3>
                         <p className="text-sm text-gray-600">{session.userEmail}</p>
                       </div>
-                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      <span className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-xs font-medium">
                         {session.userRole}
                       </span>
                     </div>

@@ -9,6 +9,7 @@ import {
   serializePaymentMethods
 } from '../../../lib/paymentHelpers'
 import { logError } from '../../../lib/errorLogger'
+import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,7 +108,13 @@ export async function POST(request: Request) {
       memberNumber,
       name,
       phone,
+      backupPhone,
+      nationalId,
+      birthDate,
+      source,
       profileImage,
+      idCardFront,
+      idCardBack,
       inBodyScans,
       invitations,
       freePTSessions,
@@ -213,7 +220,13 @@ export async function POST(request: Request) {
       memberNumber: cleanMemberNumber,
       name,
       phone,
+      backupPhone: backupPhone || null,
+      nationalId: nationalId || null,
+      birthDate: birthDate ? new Date(birthDate) : null,
+      source: source || null,
       profileImage,
+      idCardFront: idCardFront || null,
+      idCardBack: idCardBack || null,
       inBodyScans: cleanInBodyScans,
       invitations: cleanInvitations,
       freePTSessions: cleanFreePTSessions,
@@ -399,6 +412,23 @@ export async function POST(request: Request) {
 
       console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber)
 
+      // خصم النقاط إذا تم استخدامها في الدفع
+      const pointsResult = await processPaymentWithPoints(
+        member.id,
+        phone,
+        member.memberNumber,  // ✅ تمرير رقم العضوية
+        finalPaymentMethod,
+        `دفع اشتراك عضوية - ${name}`,
+        prisma
+      )
+
+      if (!pointsResult.success) {
+        return NextResponse.json(
+          { error: pointsResult.message || 'فشل خصم النقاط' },
+          { status: 400 }
+        )
+      }
+
       const newCounterValue = availableReceiptNumber + 1
       await prisma.receiptCounter.update({
         where: { id: 1 },
@@ -486,7 +516,7 @@ export async function PUT(request: Request) {
     await requirePermission(request, 'canEditMembers')
     
     const body = await request.json()
-    const { id, profileImage, ...data } = body
+    const { id, profileImage, idCardFront, idCardBack, ...data } = body
 
     const updateData: any = {}
     
@@ -516,11 +546,25 @@ export async function PUT(request: Request) {
     if (profileImage !== undefined) {
       updateData.profileImage = profileImage
     }
-    
+
+    if (idCardFront !== undefined) {
+      updateData.idCardFront = idCardFront || null
+    }
+
+    if (idCardBack !== undefined) {
+      updateData.idCardBack = idCardBack || null
+    }
+
     if (data.name) updateData.name = data.name
     if (data.phone) updateData.phone = data.phone
+    if (data.backupPhone !== undefined) updateData.backupPhone = data.backupPhone || null
+    if (data.nationalId !== undefined) updateData.nationalId = data.nationalId || null
+    if (data.birthDate !== undefined) {
+      updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null
+    }
+    if (data.source !== undefined) updateData.source = data.source || null
     if (data.notes !== undefined) updateData.notes = data.notes
-    
+
     if (data.startDate) {
       updateData.startDate = new Date(data.startDate)
     }

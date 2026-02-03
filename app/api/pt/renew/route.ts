@@ -6,6 +6,8 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
+import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
+import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
 
 export const dynamic = 'force-dynamic'
 
@@ -158,7 +160,7 @@ export async function POST(request: Request) {
         const receipt = await tx.receipt.create({
           data: {
             receiptNumber: receiptNumber,
-            type: 'تجديد برايفت',
+            type: RECEIPT_TYPES.PT_RENEWAL,
             amount: totalAmount,
             paymentMethod: finalPaymentMethod,
             staffName: staffName || '',
@@ -181,6 +183,20 @@ export async function POST(request: Request) {
             ptNumber: updatedPT.ptNumber,
           },
         })
+
+        // خصم النقاط إذا تم استخدامها في الدفع
+        const pointsResult = await processPaymentWithPoints(
+          null,  // لا يوجد memberId لـ PT
+          phone || existingPT.phone,
+          memberNumber,  // ✅ تمرير رقم العضوية للبحث عن العضو
+          finalPaymentMethod,
+          `دفع تجديد برايفت - ${existingPT.clientName}`,
+          tx
+        )
+
+        if (!pointsResult.success) {
+          throw new Error(pointsResult.message || 'فشل خصم النقاط')
+        }
 
         // ✅ البحث عن coachUserId من الكوتش
         let coachUserId = null

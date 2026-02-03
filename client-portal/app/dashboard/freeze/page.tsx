@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors';
 
 interface MemberData {
   id: string;
@@ -158,7 +159,7 @@ export default function FreezePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="inline-block w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-gray-600">جاري التحميل...</p>
         </div>
       </div>
@@ -170,7 +171,7 @@ export default function FreezePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-[#1e3a8a] text-white p-6 shadow-lg">
+      <div className="text-white p-6 shadow-lg" style={{ backgroundColor: THEME_COLORS.primary[900] }}>
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-4 mb-4">
             <Link
@@ -183,7 +184,7 @@ export default function FreezePage() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold">تجميد الاشتراك</h1>
-              <p className="text-blue-200">طلب تجميد مؤقت</p>
+              <p className="text-primary-200">طلب تجميد مؤقت</p>
             </div>
           </div>
         </div>
@@ -195,8 +196,8 @@ export default function FreezePage() {
           <h2 className="text-xl font-bold text-gray-800 mb-4">الحالة الحالية</h2>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-              <p className="text-5xl font-bold text-blue-600 mb-2">
+            <div className="text-center p-6 bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl">
+              <p className="text-5xl font-bold text-primary-600 mb-2">
                 {member.remainingFreezeDays}
               </p>
               <p className="text-sm text-gray-600">يوم متاح للتجميد</p>
@@ -218,14 +219,17 @@ export default function FreezePage() {
           {member.remainingFreezeDays > 0 && !member.isFrozen && !showRequestForm && (
             <button
               onClick={() => setShowRequestForm(true)}
-              className="w-full mt-6 py-4 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
+              className="w-full mt-6 py-4 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
+              style={{ backgroundColor: THEME_COLORS.primary[900] }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = THEME_COLORS.primary[800]}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = THEME_COLORS.primary[900]}
             >
               ❄️ طلب تجميد جديد
             </button>
           )}
 
           {member.isFrozen && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
+            <div className="mt-4 p-4 bg-primary-50 border border-primary-200 rounded-lg text-primary-800">
               <p className="font-medium">❄️ اشتراكك مجمد حالياً</p>
               <p className="text-sm mt-1">تم تمديد تاريخ انتهاء الاشتراك. للإلغاء، تواصل مع الإدارة</p>
             </div>
@@ -268,7 +272,7 @@ export default function FreezePage() {
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   min={getMinDate()}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -283,7 +287,7 @@ export default function FreezePage() {
                   onChange={(e) => setDays(e.target.value)}
                   min="1"
                   max={member.remainingFreezeDays}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder={`الحد الأقصى: ${member.remainingFreezeDays}`}
                   required
                 />
@@ -296,7 +300,7 @@ export default function FreezePage() {
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                   rows={3}
                   placeholder="اكتب سبب التجميد (اختياري)"
                 />
@@ -317,7 +321,7 @@ export default function FreezePage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+                className="w-full py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
               >
                 {submitting ? 'جاري الإرسال...' : 'إرسال الطلب'}
               </button>
@@ -376,7 +380,7 @@ export default function FreezePage() {
 
         {/* Info Cards */}
         <div className="space-y-3">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+          <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 text-sm text-primary-800">
             <p className="font-medium mb-1">ℹ️ كيف يعمل التجميد؟</p>
             <ul className="list-disc list-inside space-y-1">
               <li>يتم إيقاف الاشتراك مؤقتاً لعدد الأيام المحددة</li>

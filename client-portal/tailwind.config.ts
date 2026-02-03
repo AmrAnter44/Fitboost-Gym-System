@@ -1,5 +1,8 @@
 import type { Config } from "tailwindcss";
 
+// ✅ استيراد الألوان من النظام الأساسي
+import { THEME_COLORS } from "../lib/theme/colors";
+
 const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,18 +12,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-        },
+        // ✅ استخدام نفس الألوان من النظام المركزي
+        primary: THEME_COLORS.primary,
+        secondary: THEME_COLORS.secondary,
+        accent: THEME_COLORS.accent,
+        danger: THEME_COLORS.danger,
       },
     },
   },

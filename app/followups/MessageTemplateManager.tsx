@@ -215,14 +215,14 @@ export default function MessageTemplateManager({
           {!showForm ? (
             <>
               {/* متغيرات متاحة */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-sm font-bold text-blue-900 mb-2">📝 {t('followups.templates.variables.title')}:</p>
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mb-4">
+                <p className="text-sm font-bold text-primary-900 mb-2">📝 {t('followups.templates.variables.title')}:</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                  <code className="bg-white px-2 py-1 rounded border border-blue-200" dir="ltr">{'{name}'} → {visitorName}</code>
-                  <code className="bg-white px-2 py-1 rounded border border-blue-200" dir="ltr">{'{salesName}'} → {salesName || t('followups.templates.variables.salesName')}</code>
-                  <code className="bg-white px-2 py-1 rounded border border-blue-200" dir="ltr">{'{phone}'} → {visitorPhone}</code>
-                  <code className="bg-white px-2 py-1 rounded border border-blue-200" dir="ltr">{'{date}'} → {new Date().toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</code>
-                  <code className="bg-white px-2 py-1 rounded border border-blue-200" dir="ltr">{'{time}'} → {new Date().toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</code>
+                  <code className="bg-white px-2 py-1 rounded border border-primary-200" dir="ltr">{'{name}'} → {visitorName}</code>
+                  <code className="bg-white px-2 py-1 rounded border border-primary-200" dir="ltr">{'{salesName}'} → {salesName || t('followups.templates.variables.salesName')}</code>
+                  <code className="bg-white px-2 py-1 rounded border border-primary-200" dir="ltr">{'{phone}'} → {visitorPhone}</code>
+                  <code className="bg-white px-2 py-1 rounded border border-primary-200" dir="ltr">{'{date}'} → {new Date().toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</code>
+                  <code className="bg-white px-2 py-1 rounded border border-primary-200" dir="ltr">{'{time}'} → {new Date().toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</code>
                 </div>
               </div>
 
@@ -248,7 +248,7 @@ export default function MessageTemplateManager({
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEdit(template)}
-                          className="text-blue-600 hover:bg-blue-100 px-3 py-2 rounded-lg text-sm font-bold transition-colors"
+                          className="text-primary-600 hover:bg-primary-100 px-3 py-2 rounded-lg text-sm font-bold transition-colors"
                           title={t('followups.templates.editTemplate')}
                         >
                           ✏️ {t('common.edit')}

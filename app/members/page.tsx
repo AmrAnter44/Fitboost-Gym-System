@@ -448,7 +448,7 @@ export default function MembersPage() {
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-bold"
+            className="bg-primary-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-primary-700 text-xs sm:text-sm font-bold"
           >
             {showForm ? t('members.hideForm') : t('members.addMember')}
           </button>
@@ -469,7 +469,7 @@ export default function MembersPage() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6" dir={direction}>
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-xl shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-4 rounded-xl shadow-lg">
           <div className="text-3xl font-bold">{stats.total}</div>
           <div className="text-sm opacity-90">{t('members.totalMembers')}</div>
         </div>
@@ -520,7 +520,7 @@ export default function MembersPage() {
             onClick={() => setFilterStatus('all')}
             className={`px-4 py-3 rounded-lg font-medium transition ${
               filterStatus === 'all'
-                ? 'bg-blue-600 text-white shadow-lg'
+                ? 'bg-primary-600 text-white shadow-lg'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -664,7 +664,7 @@ export default function MembersPage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-blue-200" dir={direction}>
+      <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-200" dir={direction}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold flex items-center gap-2">
             <span>🔍</span>
@@ -687,7 +687,7 @@ export default function MembersPage() {
               type="text"
               value={searchId}
               onChange={(e) => setSearchId(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none transition"
               placeholder={t('members.searchByMembershipNumber')}
               dir={direction}
             />
@@ -699,7 +699,7 @@ export default function MembersPage() {
               type="text"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none transition"
               placeholder={t('members.searchByName')}
               dir={direction}
             />
@@ -711,7 +711,7 @@ export default function MembersPage() {
               type="text"
               value={searchPhone}
               onChange={(e) => setSearchPhone(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none transition"
               placeholder={t('members.searchByPhone')}
               dir={direction}
             />
@@ -720,7 +720,7 @@ export default function MembersPage() {
 
         {(searchId || searchName || searchPhone) && (
           <div className="mt-4 text-center">
-            <span className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm font-medium">
+            <span className="bg-primary-100 text-primary-800 px-4 py-2 rounded-lg text-sm font-medium">
               📊 {t('members.showing', { count: filteredMembers.length.toString(), total: membersData.length.toString() })}
             </span>
           </div>
@@ -793,7 +793,7 @@ export default function MembersPage() {
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 font-bold text-blue-600">#{member.memberNumber}</td>
+                        <td className="px-4 py-3 font-bold text-primary-600">#{member.memberNumber}</td>
                         <td className="px-4 py-3">{member.name}</td>
                         <td className="px-4 py-3">
                           <a
@@ -814,7 +814,7 @@ export default function MembersPage() {
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded text-sm ${
                             member.isFrozen
-                              ? 'bg-blue-100 text-blue-800'
+                              ? 'bg-primary-100 text-primary-800'
                               : member.isActive && !isExpired
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-red-100 text-red-800'
@@ -854,7 +854,7 @@ export default function MembersPage() {
                         <td className="px-4 py-3">
                           <button
                             onClick={() => handleViewDetails(member.id)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition shadow-md hover:shadow-lg font-medium"
+                            className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-700 transition shadow-md hover:shadow-lg font-medium"
                           >
                             👁️ {t('members.viewDetails')}
                           </button>
@@ -877,7 +877,7 @@ export default function MembersPage() {
               return (
                 <div key={member.id} className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-gray-200 hover:shadow-lg transition" dir={direction}>
                   {/* Header with Image and Member Number */}
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-2.5">
+                  <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-2.5">
                     <div className="flex items-center gap-2.5">
                       <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-white shadow-lg bg-gray-100 flex-shrink-0">
                         {member.profileImage ? (
@@ -898,7 +898,7 @@ export default function MembersPage() {
                         <div className="text-xl font-bold text-white mb-1">#{member.memberNumber}</div>
                         <div className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           member.isFrozen
-                            ? 'bg-blue-400 text-white'
+                            ? 'bg-primary-400 text-white'
                             : member.isActive && !isExpired
                               ? 'bg-green-500 text-white'
                               : 'bg-red-500 text-white'
@@ -962,10 +962,10 @@ export default function MembersPage() {
 
                     {/* Dates */}
                     <div className="space-y-1.5 pt-1">
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-2.5">
+                      <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-2.5">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm">📅</span>
-                          <span className="text-xs text-blue-700 font-semibold">{t('members.startDate')}</span>
+                          <span className="text-xs text-primary-700 font-semibold">{t('members.startDate')}</span>
                         </div>
                         <div className="text-sm font-mono text-gray-700">{formatDateYMD(member.startDate)}</div>
                       </div>
@@ -1019,7 +1019,7 @@ export default function MembersPage() {
                             day: 'numeric'
                           })}
                         </div>
-                        <div className="text-xs text-blue-600 mt-1 font-semibold">
+                        <div className="text-xs text-primary-600 mt-1 font-semibold">
                           {locale === 'ar' ? '⬅️ اضغط لعرض السجل' : 'Click to view history ➡️'}
                         </div>
                       </div>
@@ -1028,7 +1028,7 @@ export default function MembersPage() {
                     {/* Action Button */}
                     <button
                       onClick={() => handleViewDetails(member.id)}
-                      className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm hover:bg-blue-700 transition shadow-md hover:shadow-lg font-bold mt-1.5"
+                      className="w-full bg-primary-600 text-white py-2.5 rounded-lg text-sm hover:bg-primary-700 transition shadow-md hover:shadow-lg font-bold mt-1.5"
                     >
                       👁️ {t('members.viewDetails')}
                     </button>
@@ -1062,7 +1062,7 @@ export default function MembersPage() {
                       setItemsPerPage(Number(e.target.value))
                       setCurrentPage(1)
                     }}
-                    className="px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                    className="px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -1109,7 +1109,7 @@ export default function MembersPage() {
                             onClick={() => goToPage(pageNum)}
                             className={`px-3 py-2 rounded-lg font-medium ${
                               currentPage === pageNum
-                                ? 'bg-blue-600 text-white'
+                                ? 'bg-primary-600 text-white'
                                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                           >
@@ -1152,7 +1152,7 @@ export default function MembersPage() {
               <p className="text-xl">{t('members.noMatchingResults')}</p>
               <button
                 onClick={clearAllFilters}
-                className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
               >
                 {t('members.clearAllFilters')}
               </button>
@@ -1233,10 +1233,10 @@ export default function MembersPage() {
                 </div>
               ) : (
                 <>
-                  <div className="mb-4 flex items-center justify-between bg-blue-50 p-4 rounded-lg">
+                  <div className="mb-4 flex items-center justify-between bg-primary-50 p-4 rounded-lg">
                     <div>
                       <p className="text-sm text-gray-600">{t('members.membersWhoAttended')}</p>
-                      <p className="text-3xl font-bold text-blue-600">{attendanceSummary.length}</p>
+                      <p className="text-3xl font-bold text-primary-600">{attendanceSummary.length}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">{t('members.totalAttendance')}</p>
@@ -1268,7 +1268,7 @@ export default function MembersPage() {
                                 {index > 2 && `#${index + 1}`}
                               </span>
                             </td>
-                            <td className="px-4 py-3 font-mono text-blue-600 font-bold">
+                            <td className="px-4 py-3 font-mono text-primary-600 font-bold">
                               #{item.member?.memberNumber || '-'}
                             </td>
                             <td className="px-4 py-3 font-semibold">{item.member?.name || t('members.unknown')}</td>

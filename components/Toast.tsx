@@ -49,9 +49,9 @@ export default function Toast({ message, type = 'info', onClose, duration = 4000
       progress: 'bg-orange-300'
     },
     info: {
-      bg: 'bg-gradient-to-r from-blue-500 to-blue-600',
-      border: 'border-blue-400',
-      progress: 'bg-blue-300'
+      bg: 'bg-gradient-to-r from-primary-500 to-primary-600',
+      border: 'border-primary-400',
+      progress: 'bg-primary-300'
     }
   }
 

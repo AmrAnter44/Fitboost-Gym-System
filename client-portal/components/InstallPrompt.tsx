@@ -93,7 +93,7 @@ export default function InstallPrompt() {
     <>
       {/* Android Install Prompt */}
       {deferredPrompt && !isIOS && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-2xl animate-slide-up">
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-2xl animate-slide-up">
           <div className="max-w-md mx-auto">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-12 h-12 bg-white rounded-xl p-2 shadow-lg">
@@ -101,19 +101,19 @@ export default function InstallPrompt() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold mb-1">ثبت X Gym</h3>
-                <p className="text-sm text-blue-100 mb-3">
+                <p className="text-sm text-primary-100 mb-3">
                   ثبت التطبيق للوصول السريع من الشاشة الرئيسية
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={handleInstallClick}
-                    className="flex-1 bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 transition"
+                    className="flex-1 bg-white text-primary-600 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition"
                   >
                     تثبيت 📲
                   </button>
                   <button
                     onClick={handleDismiss}
-                    className="px-4 py-2 text-white hover:bg-blue-800 rounded-lg transition"
+                    className="px-4 py-2 text-white hover:bg-primary-800 rounded-lg transition"
                   >
                     لاحقاً
                   </button>
@@ -126,7 +126,7 @@ export default function InstallPrompt() {
 
       {/* iOS Install Instructions */}
       {isIOS && !deferredPrompt && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-2xl animate-slide-up">
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-2xl animate-slide-up">
           <div className="max-w-md mx-auto">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-12 h-12 bg-white rounded-xl p-2 shadow-lg">
@@ -134,7 +134,7 @@ export default function InstallPrompt() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold mb-1">ثبت X Gym</h3>
-                <div className="text-sm text-blue-100 space-y-2 mb-3">
+                <div className="text-sm text-primary-100 space-y-2 mb-3">
                   <p>لتثبيت التطبيق على iPhone:</p>
                   <ol className="list-decimal list-inside space-y-1 mr-2">
                     <li>اضغط على <span className="inline-flex items-center px-1.5 py-0.5 bg-white/20 rounded">
@@ -148,7 +148,7 @@ export default function InstallPrompt() {
                 </div>
                 <button
                   onClick={handleDismiss}
-                  className="w-full bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 transition"
+                  className="w-full bg-white text-primary-600 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition"
                 >
                   فهمت ✓
                 </button>

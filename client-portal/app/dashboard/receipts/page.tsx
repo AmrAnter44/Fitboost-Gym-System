@@ -99,7 +99,7 @@ export default function ReceiptsPage() {
 
   const getTypeColor = (type: string) => {
     const colors: { [key: string]: string } = {
-      subscription: 'bg-blue-100 text-blue-800',
+      subscription: 'bg-primary-100 text-primary-800',
       freeze: 'bg-purple-100 text-purple-800',
       pt_session: 'bg-green-100 text-green-800',
       product: 'bg-orange-100 text-orange-800',
@@ -179,7 +179,7 @@ export default function ReceiptsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="inline-block w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-gray-600">جاري التحميل...</p>
         </div>
       </div>
@@ -202,7 +202,7 @@ export default function ReceiptsPage() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold">الإيصالات</h1>
-              <p className="text-blue-200">سجل المدفوعات</p>
+              <p className="text-primary-200">سجل المدفوعات</p>
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function ReceiptsPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white rounded-xl shadow p-6 text-center">
             <p className="text-sm text-gray-600 mb-2">عدد الإيصالات</p>
-            <p className="text-4xl font-bold text-blue-600">{stats.total}</p>
+            <p className="text-4xl font-bold text-primary-600">{stats.total}</p>
           </div>
           <div className="bg-white rounded-xl shadow p-6 text-center">
             <p className="text-sm text-gray-600 mb-2">إجمالي المدفوعات</p>
@@ -306,7 +306,7 @@ export default function ReceiptsPage() {
             <div className="p-4 bg-gray-50 border-t">
               <button
                 onClick={loadMore}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
               >
                 تحميل المزيد
               </button>
@@ -315,7 +315,7 @@ export default function ReceiptsPage() {
         </div>
 
         {/* Info Card */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+        <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 text-sm text-primary-800">
           <p className="font-medium mb-1">📋 ملاحظة</p>
           <p>يمكنك طلب نسخة مطبوعة من أي إيصال من الإدارة</p>
         </div>

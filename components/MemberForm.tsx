@@ -3,11 +3,13 @@
 import { useState, useRef, useEffect } from 'react'
 import PaymentMethodSelector from '../components/Paymentmethodselector'
 import CoachSelector from './CoachSelector'
+import ImageUpload from './ImageUpload'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 import { printReceiptFromData } from '../lib/printSystem'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
+import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import type { PaymentMethod } from '../lib/paymentHelpers'
 import { serializePaymentMethods } from '../lib/paymentHelpers'
 
@@ -20,10 +22,13 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
   const { user } = usePermissions()
   const { t, direction } = useLanguage()
   const toast = useToast()
+  const { settings } = useServiceSettings()
   const [loading, setLoading] = useState(false)
   const [nextMemberNumber, setNextMemberNumber] = useState<number | null>(null)
   const [nextReceiptNumber, setNextReceiptNumber] = useState<number | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
+  const [idCardFrontPreview, setIdCardFrontPreview] = useState<string>('')
+  const [idCardBackPreview, setIdCardBackPreview] = useState<string>('')
   const [offers, setOffers] = useState<any[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -31,7 +36,13 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
     memberNumber: '',
     name: '',
     phone: '',
+    backupPhone: '',
+    nationalId: '',
+    birthDate: '',
+    source: '',
     profileImage: '',
+    idCardFront: '',
+    idCardBack: '',
     inBodyScans: 0,
     invitations: 0,
     freePTSessions: 0,
@@ -367,7 +378,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
   return (
     <form onSubmit={handleSubmit} className="space-y-3" dir={direction}>
       {/* قسم العروض */}
-      <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-4">
+      <div className="bg-gradient-to-br from-purple-50 to-primary-50 border-2 border-purple-200 rounded-xl p-4">
         <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-purple-800">
           <span>🎁</span>
           <span>{t('members.form.availableOffers')}</span>
@@ -401,8 +412,8 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
           </div>
         )}
 
-        <div className="mt-3 bg-blue-100 border-r-4 border-blue-500 p-2 rounded">
-          <p className="text-xs text-blue-800">
+        <div className="mt-3 bg-primary-100 border-r-4 border-primary-500 p-2 rounded">
+          <p className="text-xs text-primary-800">
             <strong>💡 {t('members.notes')}:</strong> {t('members.form.noteCanEditAfterOffer')}
           </p>
         </div>
@@ -492,6 +503,57 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
           </div>
 
           <div>
+            <label className="block text-xs font-medium mb-1">{t('members.form.backupPhoneOptional')}</label>
+            <input
+              type="tel"
+              value={formData.backupPhone}
+              onChange={(e) => setFormData({ ...formData, backupPhone: e.target.value })}
+              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              placeholder="01234567890"
+              dir="ltr"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-1">{t('members.form.nationalIdOptional')}</label>
+            <input
+              type="text"
+              value={formData.nationalId}
+              onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
+              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              placeholder="29512345678901"
+              dir="ltr"
+              maxLength={14}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-1">{t('members.form.birthDateOptional')}</label>
+            <input
+              type="date"
+              value={formData.birthDate}
+              onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-1">{t('members.form.sourceOptional')}</label>
+            <select
+              value={formData.source}
+              onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+            >
+              <option value="">{t('members.form.selectSource')}</option>
+              <option value="facebook">{t('members.form.sourceFacebook')}</option>
+              <option value="instagram">{t('members.form.sourceInstagram')}</option>
+              <option value="tiktok">{t('members.form.sourceTiktok')}</option>
+              <option value="google_maps">{t('members.form.sourceGoogleMaps')}</option>
+              <option value="friend_referral">{t('members.form.sourceFriendReferral')}</option>
+            </select>
+          </div>
+
+          <div>
             <label className="block text-xs font-medium mb-1">{t('members.form.staffNameRequired')}</label>
             <input
               type="text"
@@ -513,59 +575,80 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       />
 
       <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-3">
+        <ImageUpload
+          currentImage={imagePreview || null}
+          onImageChange={(imageUrl) => {
+            if (imageUrl) {
+              setImagePreview(imageUrl)
+              setFormData(prev => ({ ...prev, profileImage: imageUrl }))
+            } else {
+              setImagePreview('')
+              setFormData(prev => ({ ...prev, profileImage: '' }))
+            }
+          }}
+        />
+      </div>
+
+      {/* صور البطاقة الشخصية / الباسبور */}
+      <div className="bg-secondary-50 border-2 border-secondary-300 rounded-lg p-4">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-          <span>📷</span>
-          <span>{t('members.form.profilePicture')}</span>
+          <span>🪪</span>
+          <span>{t('members.form.idCardImagesOptional')}</span>
         </h3>
 
-        <div className="flex flex-col items-center gap-4">
-          {imagePreview ? (
-            <div className="relative">
-              <img
-                src={imagePreview}
-                alt="Preview"
-                className="w-32 h-32 rounded-full object-cover border-4 border-purple-400"
-              />
-              <button
-                type="button"
-                onClick={removeImage}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition"
-              >
-                ✕
-              </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* الوجه الأمامي */}
+          <div className="bg-white border-2 border-secondary-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-2xl">🆔</span>
+              <span className="font-bold text-sm text-secondary-800">{t('members.form.idCardFront')}</span>
             </div>
-          ) : (
-            <div className="w-32 h-32 rounded-full border-4 border-dashed border-purple-300 flex items-center justify-center bg-purple-100">
-              <span className="text-4xl text-purple-400">👤</span>
+            <ImageUpload
+              currentImage={idCardFrontPreview || null}
+              onImageChange={(imageUrl) => {
+                if (imageUrl) {
+                  setIdCardFrontPreview(imageUrl)
+                  setFormData(prev => ({ ...prev, idCardFront: imageUrl }))
+                } else {
+                  setIdCardFrontPreview('')
+                  setFormData(prev => ({ ...prev, idCardFront: '' }))
+                }
+              }}
+              variant="idCard"
+            />
+          </div>
+
+          {/* الوجه الخلفي */}
+          <div className="bg-white border-2 border-secondary-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-2xl">🔄</span>
+              <span className="font-bold text-sm text-secondary-800">{t('members.form.idCardBack')}</span>
             </div>
-          )}
+            <ImageUpload
+              currentImage={idCardBackPreview || null}
+              onImageChange={(imageUrl) => {
+                if (imageUrl) {
+                  setIdCardBackPreview(imageUrl)
+                  setFormData(prev => ({ ...prev, idCardBack: imageUrl }))
+                } else {
+                  setIdCardBackPreview('')
+                  setFormData(prev => ({ ...prev, idCardBack: '' }))
+                }
+              }}
+              variant="idCard"
+            />
+          </div>
+        </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="hidden"
-            id="profileImage"
-          />
-          
-          <label
-            htmlFor="profileImage"
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer transition"
-          >
-            {imagePreview ? `📷 ${t('members.form.changeImage')}` : `📷 ${t('members.form.uploadImage')}`}
-          </label>
-
-          <p className="text-xs text-gray-500 text-center">
-            {t('members.form.imageSizeRecommendation')}<br/>
-            {t('members.form.maxImageSize')}
-          </p>
+        {/* ملاحظة */}
+        <div className="mt-3 bg-secondary-100 border-l-4 border-secondary-500 p-2 rounded">
+          <p className="text-xs text-secondary-900">{t('members.form.idCardNote')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
+      <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-3">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
           <span>📅</span>
           <span>{t('members.form.subscriptionPeriod')}</span>
@@ -609,7 +692,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
                 key={months}
                 type="button"
                 onClick={() => calculateExpiryFromMonths(months)}
-                className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg text-xs transition"
+                className="px-2 py-1 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg text-xs transition"
               >
                 + {months} {months === 1 ? t('members.form.month') : t('members.form.months')}
               </button>
@@ -618,10 +701,10 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         </div>
 
         {duration !== null && (
-          <div className="bg-white border-2 border-blue-300 rounded-lg p-2">
+          <div className="bg-white border-2 border-primary-300 rounded-lg p-2">
             <p className="text-xs">
               <span className="font-medium">📊 {t('members.form.subscriptionDuration')}: </span>
-              <span className="font-bold text-blue-600">
+              <span className="font-bold text-primary-600">
                 {duration} {t('members.form.daysSingle')}
                 {duration >= 30 && ` (${Math.floor(duration / 30)} ${Math.floor(duration / 30) === 1 ? t('members.form.month') : t('members.form.months')})`}
               </span>
@@ -722,6 +805,9 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
             })}
             allowMultiple={true}
             totalAmount={paidAmount}
+            memberPoints={0}
+            pointsValueInEGP={settings.pointsValueInEGP}
+            pointsEnabled={settings.pointsEnabled}
           />
         </div>
 
@@ -762,8 +848,8 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         </button>
       </div>
 
-      <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-3 text-center">
-        <p className="text-xs text-blue-800">
+      <div className="bg-primary-50 border-2 border-primary-300 rounded-lg p-3 text-center">
+        <p className="text-xs text-primary-800">
           🖨️ <strong>{t('members.notes')}:</strong> {t('members.form.receiptWillPrintAutomatically')}
         </p>
       </div>

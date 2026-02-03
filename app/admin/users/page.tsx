@@ -239,7 +239,7 @@ export default function AdminUsersPage() {
   const getRoleBadge = (role: string) => {
     const badges = {
       'ADMIN': 'bg-red-100 text-red-800 border-red-300',
-      'MANAGER': 'bg-blue-100 text-blue-800 border-blue-300',
+      'MANAGER': 'bg-primary-100 text-primary-800 border-primary-300',
       'STAFF': 'bg-green-100 text-green-800 border-green-300',
       'COACH': 'bg-purple-100 text-purple-800 border-purple-300'
     }
@@ -283,7 +283,7 @@ export default function AdminUsersPage() {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-bold flex items-center gap-2"
+          className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center gap-2"
         >
           <span>➕</span>
           <span>إضافة مستخدم</span>
@@ -292,7 +292,7 @@ export default function AdminUsersPage() {
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-5 rounded-xl shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-5 rounded-xl shadow-lg">
           <div className="text-3xl font-bold">{stats.total}</div>
           <div className="text-sm opacity-90">إجمالي المستخدمين</div>
         </div>
@@ -307,7 +307,7 @@ export default function AdminUsersPage() {
           <div className="text-sm opacity-90">مدراء</div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-5 rounded-xl shadow-lg">
+        <div className="bg-gradient-to-br from-primary-400 to-primary-500 text-white p-5 rounded-xl shadow-lg">
           <div className="text-3xl font-bold">{stats.managers}</div>
           <div className="text-sm opacity-90">مشرفين</div>
         </div>
@@ -340,10 +340,10 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.id} className="border-t hover:bg-blue-50 transition">
+                <tr key={user.id} className="border-t hover:bg-primary-50 transition">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       <span className="font-semibold">{user.name}</span>
@@ -383,7 +383,7 @@ export default function AdminUsersPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleOpenPermissions(user)}
-                        className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
+                        className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 text-sm font-medium"
                         title="الصلاحيات"
                       >
                         🔒
@@ -430,7 +430,7 @@ export default function AdminUsersPage() {
             <p className="text-xl font-medium">لا يوجد مستخدمين</p>
             <button
               onClick={() => setShowAddModal(true)}
-              className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
             >
               إضافة أول مستخدم
             </button>
@@ -461,7 +461,7 @@ export default function AdminUsersPage() {
                   type="text"
                   value={newUserData.name}
                   onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="أحمد محمد"
                 />
               </div>
@@ -474,7 +474,7 @@ export default function AdminUsersPage() {
                   type="email"
                   value={newUserData.email}
                   onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="user@example.com"
                   dir="ltr"
                 />
@@ -488,7 +488,7 @@ export default function AdminUsersPage() {
                   type="password"
                   value={newUserData.password}
                   onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="••••••••"
                 />
                 <p className="text-xs text-gray-500 mt-1">يجب أن تكون 6 أحرف على الأقل</p>
@@ -501,7 +501,7 @@ export default function AdminUsersPage() {
                 <select
                   value={newUserData.role}
                   onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value as any, staffId: '' })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="STAFF">👷 موظف</option>
                   <option value="MANAGER">📊 مشرف</option>
@@ -526,11 +526,12 @@ export default function AdminUsersPage() {
                         email: selectedStaff ? `coach${selectedStaff.staffCode}@gym.com` : ''
                       })
                     }}
-                    className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
                     <option value="">اختر موظف...</option>
                     {staff
                       .filter(s => !users.find(u => u.staff?.id === s.id))
+                      .filter(s => s.position === 'مدرب')
                       .map(s => (
                         <option key={s.id} value={s.id}>
                           {s.name} - #{s.staffCode} {s.position ? `(${s.position})` : ''}
@@ -543,8 +544,8 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
-              <div className="md:col-span-2 bg-blue-50 border-r-4 border-blue-500 p-4 rounded">
-                <p className="text-sm text-blue-800">
+              <div className="md:col-span-2 bg-primary-50 border-r-4 border-primary-500 p-4 rounded">
+                <p className="text-sm text-primary-800">
                   <strong>📌 ملاحظة:</strong> بعد إنشاء المستخدم، يمكنك تعديل صلاحياته التفصيلية من قائمة المستخدمين.
                 </p>
               </div>
@@ -553,7 +554,7 @@ export default function AdminUsersPage() {
                 <button
                   onClick={handleAddUser}
                   disabled={loading}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-bold"
+                  className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
                 >
                   {loading ? 'جاري الإضافة...' : '✅ إضافة'}
                 </button>
@@ -597,7 +598,7 @@ export default function AdminUsersPage() {
             <div className="space-y-4">
               {Object.entries(PERMISSION_GROUPS).map(([groupKey, group], index) => {
                 const colors = [
-                  'border-blue-200 bg-blue-50 text-blue-800',
+                  'border-primary-200 bg-primary-50 text-primary-800',
                   'border-green-200 bg-green-50 text-green-800',
                   'border-purple-200 bg-purple-50 text-purple-800',
                   'border-orange-200 bg-orange-50 text-orange-800',
@@ -639,7 +640,7 @@ export default function AdminUsersPage() {
               <button
                 onClick={handleSavePermissions}
                 disabled={loading || editingUser.role === 'ADMIN'}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-bold"
+                className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
               >
                 {loading ? 'جاري الحفظ...' : '✅ حفظ الصلاحيات'}
               </button>
@@ -667,7 +668,7 @@ export default function AdminUsersPage() {
             <div className="flex gap-3">
               <button
                 onClick={confirmAction.onConfirm}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold"
+                className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold"
               >
                 ✅ تأكيد
               </button>

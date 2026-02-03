@@ -13,6 +13,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
 import { fetchPTSessions, fetchCoaches } from '../../lib/api/pt'
+import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 
 interface Staff {
   id: string
@@ -44,6 +45,7 @@ export default function PTPage() {
   const { t, direction } = useLanguage()
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
+  const { settings } = useServiceSettings()
 
   // ✅ استخدام useQuery لجلب جلسات PT
   const {
@@ -93,6 +95,9 @@ export default function PTPage() {
   const [filterType, setFilterType] = useState<'all' | 'regular' | 'dayuse'>('all')
 
   const [isDayUse, setIsDayUse] = useState(false)
+  const [packages, setPackages] = useState<any[]>([])
+  const [loadingPackages, setLoadingPackages] = useState(false)
+  const [memberPoints, setMemberPoints] = useState(0)
 
   const [formData, setFormData] = useState<{
     ptNumber: string
@@ -142,6 +147,64 @@ export default function PTPage() {
       setFormData(prev => ({ ...prev, staffName: user.name }))
     }
   }, [user])
+
+  useEffect(() => {
+    const fetchMemberPoints = async () => {
+      if (!formData.phone) {
+        setMemberPoints(0)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/members?phone=${encodeURIComponent(formData.phone)}`)
+        if (response.ok) {
+          const members = await response.json()
+          if (members.length > 0) {
+            setMemberPoints(members[0].points || 0)
+          } else {
+            setMemberPoints(0)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching member points:', error)
+        setMemberPoints(0)
+      }
+    }
+
+    fetchMemberPoints()
+  }, [formData.phone])
+
+  // جلب الباقات عند فتح النموذج
+  useEffect(() => {
+    if (showForm && !editingSession) {
+      fetchPackages()
+    }
+  }, [showForm, editingSession])
+
+  const fetchPackages = async () => {
+    setLoadingPackages(true)
+    try {
+      const response = await fetch('/api/packages?serviceType=PT')
+      if (response.ok) {
+        const data = await response.json()
+        setPackages(data)
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error)
+    } finally {
+      setLoadingPackages(false)
+    }
+  }
+
+  const applyPackage = (pkg: any) => {
+    setFormData(prev => ({
+      ...prev,
+      sessionsPurchased: pkg.sessions,
+      sessionsRemaining: pkg.sessions,
+      totalPrice: pkg.price
+    }))
+    toast.success(`تم تطبيق باقة: ${pkg.name}`)
+  }
 
   // دالة جلب بيانات العضو بناءً على رقم العضوية وملء الحقول تلقائياً
   const fetchMemberByNumber = async (memberNumber: string) => {
@@ -302,12 +365,29 @@ export default function PTPage() {
     router.push(`/pt/sessions/register?ptNumber=${session.ptNumber}`)
   }
 
-  const handleOpenPaymentModal = (session: PTSession) => {
+  const handleOpenPaymentModal = async (session: PTSession) => {
     setPaymentSession(session)
     setPaymentFormData({
       paymentAmount: session.remainingAmount || 0,
       paymentMethod: 'cash'
     })
+
+    // جلب نقاط العضو
+    try {
+      const response = await fetch(`/api/members?phone=${encodeURIComponent(session.phone)}`)
+      if (response.ok) {
+        const members = await response.json()
+        if (members.length > 0) {
+          setMemberPoints(members[0].points || 0)
+        } else {
+          setMemberPoints(0)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching member points:', error)
+      setMemberPoints(0)
+    }
+
     setShowPaymentModal(true)
   }
 
@@ -428,7 +508,7 @@ export default function PTPage() {
                 resetForm()
                 setShowForm(!showForm)
               }}
-              className="w-full sm:w-auto bg-blue-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+              className="w-full sm:w-auto bg-primary-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-primary-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               {showForm ? t('pt.hideForm') : `➕ ${t('pt.addNewSession')}`}
             </button>
@@ -437,13 +517,13 @@ export default function PTPage() {
       </div>
 
       {!isCoach && showForm && (
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-blue-100" dir={direction}>
+        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-100" dir={direction}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
               {editingSession ? t('pt.editSession') : t('pt.addSession')}
             </h2>
             {editingSession && isDayUse && (
-              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+              <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-bold">
                 🏃 Day Use
               </span>
             )}
@@ -538,7 +618,7 @@ export default function PTPage() {
 
               {/* Day Use Checkbox - مخفي في وضع التعديل */}
               {!editingSession && (
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
+                <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-3">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -564,15 +644,48 @@ export default function PTPage() {
                     className="w-5 h-5"
                   />
                   <div>
-                    <span className="text-sm font-bold text-blue-800">
+                    <span className="text-sm font-bold text-primary-800">
                       🏃 Day Use (استخدام يومي)
                     </span>
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-primary-600 mt-1">
                       تسجيل مبسط - اسم ورقم وسعر الجلسة فقط
                     </p>
                   </div>
                 </label>
               </div>
+              )}
+
+              {/* اختيار باقة جاهزة */}
+              {!isDayUse && !editingSession && packages.length > 0 && (
+                <div className="col-span-full">
+                  <label className="block text-sm font-medium mb-2">
+                    ⚡ {t('packages.selectPackage')}
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {packages.map((pkg) => (
+                      <button
+                        key={pkg.id}
+                        type="button"
+                        onClick={() => applyPackage(pkg)}
+                        className="bg-gradient-to-br from-purple-50 to-indigo-100 hover:from-purple-100 hover:to-indigo-200 border-2 border-purple-300 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg"
+                      >
+                        <div className="text-center">
+                          <div className="text-2xl mb-1">💪</div>
+                          <div className="font-bold text-gray-800 text-sm">{pkg.name}</div>
+                          <div className="text-xs text-gray-600 mt-1">
+                            {pkg.sessions} {t('packages.sessions')}
+                          </div>
+                          <div className="text-lg font-bold text-purple-600 mt-1">
+                            {pkg.price} {t('pt.egp')}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 {t('packages.customPackage')}: يمكنك تعديل القيم بعد اختيار الباقة
+                  </p>
+                </div>
               )}
 
               {!isDayUse && (
@@ -603,7 +716,7 @@ export default function PTPage() {
                     min="0"
                     value={formData.sessionsRemaining}
                     onChange={(e) => setFormData({ ...formData, sessionsRemaining: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border rounded-lg bg-blue-50 border-blue-300"
+                    className="w-full px-3 py-2 border rounded-lg bg-primary-50 border-primary-300"
                     placeholder="عدد الجلسات المتبقية"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -690,7 +803,7 @@ export default function PTPage() {
                       key={months}
                       type="button"
                       onClick={() => calculateExpiryFromMonths(months)}
-                      className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg text-sm transition font-medium"
+                      className="px-3 py-2 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg text-sm transition font-medium"
                     >
                       + {months} {months === 1 ? t('pt.month') : t('pt.months')}
                     </button>
@@ -706,6 +819,9 @@ export default function PTPage() {
                 allowMultiple={true}
                 totalAmount={formData.totalPrice - formData.remainingAmount}
                 required={false}
+                memberPoints={memberPoints}
+                pointsValueInEGP={settings.pointsValueInEGP}
+                pointsEnabled={settings.pointsEnabled}
               />
             </div>
 
@@ -718,8 +834,8 @@ export default function PTPage() {
                   </span>
                 </div>
                 <div className="flex justify-between items-center mt-2 text-sm border-t pt-2">
-                  <span className="font-semibold text-blue-700">{t('pt.paidAmount')}</span>
-                  <span className="font-bold text-blue-600">
+                  <span className="font-semibold text-primary-700">{t('pt.paidAmount')}</span>
+                  <span className="font-bold text-primary-600">
                     {(formData.totalPrice - formData.remainingAmount).toFixed(2)} {t('pt.egp')}
                   </span>
                 </div>
@@ -738,7 +854,7 @@ export default function PTPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400"
               >
                 {loading ? t('pt.saving') : editingSession ? t('pt.updateButton') : t('pt.addSessionButton')}
               </button>
@@ -882,9 +998,9 @@ export default function PTPage() {
                       >
                         <td className="px-4 py-3">
                           {session.ptNumber < 0 ? (
-                            <span className="font-bold text-blue-600">🏃 Day Use</span>
+                            <span className="font-bold text-primary-600">🏃 Day Use</span>
                           ) : (
-                            <span className="font-bold text-blue-600">#{session.ptNumber}</span>
+                            <span className="font-bold text-primary-600">#{session.ptNumber}</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -971,7 +1087,7 @@ export default function PTPage() {
                               )}
                               <button
                                 onClick={() => handleEdit(session)}
-                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 flex items-center gap-1"
+                                className="bg-primary-600 text-white px-3 py-1 rounded text-sm hover:bg-primary-700 flex items-center gap-1"
                               >
                                 ✏️ {t('pt.edit')}
                               </button>
@@ -1128,7 +1244,7 @@ export default function PTPage() {
                         )}
                         <button
                           onClick={() => handleEdit(session)}
-                          className="bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700 font-bold flex items-center justify-center gap-1"
+                          className="bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700 font-bold flex items-center justify-center gap-1"
                         >
                           <span>✏️</span>
                           <span>{t('pt.edit')}</span>
@@ -1176,7 +1292,7 @@ export default function PTPage() {
 
             <div className="space-y-4">
               {/* معلومات الاشتراك */}
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-purple-50 to-primary-50 border-2 border-purple-200 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-600">{t('pt.ptNumber')}:</span>
@@ -1235,7 +1351,7 @@ export default function PTPage() {
                       navigator.clipboard.writeText(selectedSession.qrCode || '')
                       toast.success(t('pt.barcodeModal.codeCopied'))
                     }}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium"
+                    className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 text-sm font-medium"
                   >
                     {t('pt.barcodeModal.copyCode')}
                   </button>
@@ -1259,7 +1375,7 @@ export default function PTPage() {
 
                     toast.success(t('pt.barcodeModal.barcodeDownloaded'))
                   }}
-                  className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold flex items-center justify-center gap-2"
+                  className="bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center justify-center gap-2"
                 >
                   {t('pt.barcodeModal.downloadQR')}
                 </button>
@@ -1327,8 +1443,8 @@ export default function PTPage() {
                 </button>
               </div>
 
-              <div className="bg-blue-50 border-r-4 border-blue-500 p-3 rounded">
-                <p className="text-xs text-blue-800">
+              <div className="bg-primary-50 border-r-4 border-primary-500 p-3 rounded">
+                <p className="text-xs text-primary-800">
                   {t('pt.barcodeModal.note')}
                 </p>
               </div>
@@ -1340,8 +1456,8 @@ export default function PTPage() {
       {/* Payment Modal */}
       {showPaymentModal && paymentSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6" dir={direction}>
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">{t('pt.paymentModal.title')}</h2>
               <button
                 onClick={() => {
@@ -1354,129 +1470,131 @@ export default function PTPage() {
               </button>
             </div>
 
-            <div className="space-y-4">
-              {/* معلومات الاشتراك */}
-              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t('pt.ptNumber')}:</span>
-                    <span className="font-bold">#{paymentSession.ptNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t('pt.client')}:</span>
-                    <span className="font-bold">{paymentSession.clientName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t('pt.coach')}:</span>
-                    <span className="font-bold">{paymentSession.coachName}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="text-orange-700 font-semibold">{t('pt.paymentModal.remainingAmount')}</span>
-                    <span className="font-bold text-orange-600 text-lg">
-                      {(paymentSession.remainingAmount || 0).toFixed(0)} {t('pt.egp')}
-                    </span>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* العمود الأيسر - معلومات الاشتراك */}
+              <div className="space-y-3">
+                {/* معلومات الاشتراك */}
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-3">
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t('pt.ptNumber')}:</span>
+                      <span className="font-bold">#{paymentSession.ptNumber}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t('pt.client')}:</span>
+                      <span className="font-bold">{paymentSession.clientName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t('pt.coach')}:</span>
+                      <span className="font-bold">{paymentSession.coachName}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-1.5">
+                      <span className="text-orange-700 font-semibold">{t('pt.paymentModal.remainingAmount')}</span>
+                      <span className="font-bold text-orange-600 text-lg">
+                        {(paymentSession.remainingAmount || 0).toFixed(0)} {t('pt.egp')}
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {/* المبلغ المتبقي بعد الدفع */}
+                {paymentFormData.paymentAmount > 0 && (
+                  <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-primary-700 font-semibold">
+                        {t('pt.paymentModal.remainingAfterPayment')}
+                      </span>
+                      <span className="text-lg font-bold text-primary-600">
+                        {((paymentSession.remainingAmount || 0) - paymentFormData.paymentAmount).toFixed(0)} {t('pt.egp')}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* مبلغ الدفع */}
-              <div>
-                <label className="block text-sm font-bold mb-2">
-                  {t('pt.paymentModal.paymentAmountRequired')}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max={paymentSession.remainingAmount || 0}
-                  step="0.01"
-                  value={paymentFormData.paymentAmount}
-                  onChange={(e) =>
-                    setPaymentFormData({
-                      ...paymentFormData,
-                      paymentAmount: parseFloat(e.target.value) || 0
-                    })
-                  }
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold"
-                />
-                <div className="flex gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() =>
+              {/* العمود الأيمن - الدفع */}
+              <div className="space-y-3">
+                {/* مبلغ الدفع */}
+                <div>
+                  <label className="block text-sm font-bold mb-1.5">
+                    {t('pt.paymentModal.paymentAmountRequired')}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={paymentSession.remainingAmount || 0}
+                    step="0.01"
+                    value={paymentFormData.paymentAmount}
+                    onChange={(e) =>
                       setPaymentFormData({
                         ...paymentFormData,
-                        paymentAmount: paymentSession.remainingAmount || 0
+                        paymentAmount: parseFloat(e.target.value) || 0
                       })
                     }
-                    className="flex-1 px-3 py-1 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded text-sm font-medium"
-                  >
-                    {t('pt.paymentModal.payAll')} ({(paymentSession.remainingAmount || 0).toFixed(0)})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPaymentFormData({
-                        ...paymentFormData,
-                        paymentAmount: (paymentSession.remainingAmount || 0) / 2
-                      })
-                    }
-                    className="flex-1 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-sm font-medium"
-                  >
-                    {t('pt.paymentModal.payHalf')} ({((paymentSession.remainingAmount || 0) / 2).toFixed(0)})
-                  </button>
-                </div>
-              </div>
-
-              {/* طريقة الدفع */}
-              <div>
-                <PaymentMethodSelector
-                  value={paymentFormData.paymentMethod}
-                  onChange={(method) => setPaymentFormData({ ...paymentFormData, paymentMethod: method })}
-                  allowMultiple={true}
-                  totalAmount={paymentFormData.paymentAmount}
-                  required={true}
-                />
-              </div>
-
-              {/* المبلغ المتبقي بعد الدفع */}
-              {paymentFormData.paymentAmount > 0 && (
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-blue-700 font-semibold">
-                      {t('pt.paymentModal.remainingAfterPayment')}
-                    </span>
-                    <span className="text-lg font-bold text-blue-600">
-                      {((paymentSession.remainingAmount || 0) - paymentFormData.paymentAmount).toFixed(0)} {t('pt.egp')}
-                    </span>
+                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPaymentFormData({
+                          ...paymentFormData,
+                          paymentAmount: paymentSession.remainingAmount || 0
+                        })
+                      }
+                      className="flex-1 px-3 py-1.5 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded text-sm font-medium"
+                    >
+                      {t('pt.paymentModal.payAll')} ({(paymentSession.remainingAmount || 0).toFixed(0)})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPaymentFormData({
+                          ...paymentFormData,
+                          paymentAmount: (paymentSession.remainingAmount || 0) / 2
+                        })
+                      }
+                      className="flex-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded text-sm font-medium"
+                    >
+                      {t('pt.paymentModal.payHalf')} ({((paymentSession.remainingAmount || 0) / 2).toFixed(0)})
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {/* أزرار الإجراءات */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    setShowPaymentModal(false)
-                    setPaymentSession(null)
-                  }}
-                  className="bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold"
-                >
-                  {t('pt.deleteConfirm.cancel')}
-                </button>
-                <button
-                  onClick={handlePayRemaining}
-                  disabled={loading || paymentFormData.paymentAmount <= 0 || paymentFormData.paymentAmount > (paymentSession.remainingAmount || 0)}
-                  className="bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 font-bold disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {loading ? t('pt.paymentModal.paying') : t('pt.paymentModal.confirmPayment')}
-                </button>
+                {/* طريقة الدفع */}
+                <div>
+                  <PaymentMethodSelector
+                    value={paymentFormData.paymentMethod}
+                    onChange={(method) => setPaymentFormData({ ...paymentFormData, paymentMethod: method })}
+                    allowMultiple={true}
+                    totalAmount={paymentFormData.paymentAmount}
+                    required={true}
+                    memberPoints={memberPoints}
+                    pointsValueInEGP={settings.pointsValueInEGP}
+                    pointsEnabled={settings.pointsEnabled}
+                  />
+                </div>
               </div>
+            </div>
 
-              {/* ملاحظة */}
-              <div className="bg-orange-50 border-r-4 border-orange-500 p-3 rounded">
-                <p className="text-xs text-orange-800">
-                  {t('pt.paymentModal.note')}
-                </p>
-              </div>
+            {/* أزرار الإجراءات */}
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false)
+                  setPaymentSession(null)
+                }}
+                className="bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 font-bold"
+              >
+                {t('pt.deleteConfirm.cancel')}
+              </button>
+              <button
+                onClick={handlePayRemaining}
+                disabled={loading || paymentFormData.paymentAmount <= 0 || paymentFormData.paymentAmount > (paymentSession.remainingAmount || 0)}
+                className="bg-orange-600 text-white py-2.5 rounded-lg hover:bg-orange-700 font-bold disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {loading ? t('pt.paymentModal.paying') : t('pt.paymentModal.confirmPayment')}
+              </button>
             </div>
           </div>
         </div>

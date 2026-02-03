@@ -140,7 +140,7 @@ export default function LinkModal({ onClose }: LinkModalProps) {
             {/* QR Code - عمود واحد */}
             {qrCodeDataUrl && (
               <div className="flex justify-center items-start">
-                <div className="bg-white p-2 rounded-xl border-2 border-blue-200 shadow-lg">
+                <div className="bg-white p-2 rounded-xl border-2 border-primary-200 shadow-lg">
                   <img src={qrCodeDataUrl} alt="QR Code" className="w-36 h-36" />
                 </div>
               </div>
@@ -151,9 +151,9 @@ export default function LinkModal({ onClose }: LinkModalProps) {
               {/* IP Address و URL في صف واحد */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {/* IP Address */}
-                <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-2">
-                  <p className="text-xs font-bold text-blue-800 mb-1">📡 IP Address:</p>
-                  <p className="text-lg font-mono font-bold text-blue-600 text-center">
+                <div className="bg-primary-50 border-2 border-primary-300 rounded-lg p-2">
+                  <p className="text-xs font-bold text-primary-800 mb-1">📡 IP Address:</p>
+                  <p className="text-lg font-mono font-bold text-primary-600 text-center">
                     {ip}
                   </p>
                 </div>

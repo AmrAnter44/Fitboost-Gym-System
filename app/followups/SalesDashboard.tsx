@@ -46,7 +46,7 @@ export default function SalesDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-gray-600 text-sm font-medium">{t('followups.analytics.quickStats.totalFollowups')}</div>
-          <div className="text-3xl font-bold text-blue-600 mt-2">{analytics.total}</div>
+          <div className="text-3xl font-bold text-primary-600 mt-2">{analytics.total}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-gray-600 text-sm font-medium">{t('followups.analytics.quickStats.converted')}</div>
@@ -66,7 +66,7 @@ export default function SalesDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-gray-600 text-xs">{t('followups.analytics.quickStats.contacted')}</div>
-          <div className="text-2xl font-bold text-blue-600">{analytics.contacted}</div>
+          <div className="text-2xl font-bold text-primary-600">{analytics.contacted}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-gray-600 text-xs">{t('followups.analytics.quickStats.notContacted')}</div>
@@ -151,14 +151,14 @@ export default function SalesDashboard() {
 
       {/* معلومات إضافية */}
       {analytics.averageResponseHours !== undefined && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
           <div className="flex items-center gap-2">
             <span className="text-2xl">⏱️</span>
             <div>
-              <div className="font-bold text-blue-900">
+              <div className="font-bold text-primary-900">
                 {direction === 'rtl' ? 'متوسط وقت الاستجابة' : 'Average Response Time'}
               </div>
-              <div className="text-blue-700">
+              <div className="text-primary-700">
                 {analytics.averageResponseHours} {direction === 'rtl' ? 'ساعة من إنشاء المتابعة حتى أول تواصل' : 'hours from follow-up creation to first contact'}
               </div>
             </div>

@@ -208,7 +208,7 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
         {onDetailsClick && (
           <button
             onClick={onDetailsClick}
-            className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700 flex items-center gap-1"
+            className="bg-primary-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-primary-700 flex items-center gap-1"
           >
             👁️
           </button>

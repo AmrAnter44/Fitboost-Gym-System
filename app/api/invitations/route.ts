@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
+import { addPoints } from '../../../lib/points'
 
 // GET: جلب جميع الدعوات أو دعوات عضو معين
 
@@ -123,6 +124,25 @@ export async function POST(request: Request) {
     } catch (visitorError) {
       // في حالة فشل إنشاء الزائر، نستمر (لأن Invitation تم إنشاؤه بنجاح)
       console.error("⚠️ تحذير: فشل إنشاء الزائر من الدعوة:", visitorError)
+    }
+
+    // إضافة نقاط عند استخدام دعوة (إذا كان نظام النقاط مفعل)
+    try {
+      const settings = await prisma.systemSettings.findUnique({
+        where: { id: 'singleton' }
+      })
+
+      if (settings && settings.pointsEnabled && settings.pointsPerInvitation > 0) {
+        await addPoints(
+          memberId,
+          settings.pointsPerInvitation,
+          'invitation',
+          `استخدام دعوة لـ ${guestName}`
+        )
+      }
+    } catch (pointsError) {
+      console.error('Error adding invitation points:', pointsError)
+      // لا نوقف العملية إذا فشلت إضافة النقاط
     }
 
     return NextResponse.json({ invitation, updatedMember })

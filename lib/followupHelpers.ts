@@ -222,7 +222,7 @@ export function getStageColor(stage: string): string {
     case 'new':
       return 'bg-gray-100 text-gray-800'
     case 'contacted':
-      return 'bg-blue-100 text-blue-800'
+      return 'bg-primary-100 text-primary-800'
     case 'interested':
       return 'bg-green-100 text-green-800'
     case 'negotiating':

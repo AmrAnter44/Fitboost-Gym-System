@@ -10,6 +10,7 @@ import BarcodeWhatsApp from '../components/BarcodeWhatsApp'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 import type { PaymentMethod } from '../lib/paymentHelpers'
+import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 
 interface Member {
   id: string
@@ -36,6 +37,7 @@ export default function MemberDetailPage() {
   const memberId = params.id as string
   const { t } = useLanguage()
   const toast = useToast()
+  const { settings } = useServiceSettings()
 
   const [member, setMember] = useState<Member | null>(null)
   const [loading, setLoading] = useState(true)
@@ -348,7 +350,7 @@ export default function MemberDetailPage() {
         <p className="text-xl mb-4">{t('memberDetails.memberNotFound')}</p>
         <button
           onClick={() => router.push('/members')}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
         >
           {t('memberDetails.backToMembers')}
         </button>
@@ -374,7 +376,7 @@ export default function MemberDetailPage() {
         </button>
       </div>
 
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-6">
+      <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-6">
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mb-6 pb-6 border-b border-white border-opacity-20">
           <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white bg-opacity-20 flex-shrink-0">
             {member.profileImage ? (
@@ -403,6 +405,55 @@ export default function MemberDetailPage() {
             <p className="text-xs sm:text-sm opacity-90 mb-1 sm:mb-2">{t('memberDetails.phoneNumber')}</p>
             <p className="text-lg sm:text-xl md:text-2xl font-mono">{member.phone}</p>
           </div>
+
+          {(member as any).backupPhone && (
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm opacity-90 mb-1 sm:mb-2">{t('memberDetails.backupPhone')}</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-mono">{(member as any).backupPhone}</p>
+            </div>
+          )}
+
+          {(member as any).nationalId && (
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm opacity-90 mb-1 sm:mb-2">{t('memberDetails.nationalId')}</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-mono">{(member as any).nationalId}</p>
+            </div>
+          )}
+
+          {(member as any).birthDate && (
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm opacity-90 mb-1 sm:mb-2">{t('memberDetails.birthDate')}</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-mono">
+                {new Date((member as any).birthDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+              </p>
+            </div>
+          )}
+
+          {(member as any).source && (
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm opacity-90 mb-1 sm:mb-2">{t('memberDetails.memberSource')}</p>
+              <p className="text-lg sm:text-xl md:text-2xl">
+                {(() => {
+                  const sourcesAr: { [key: string]: string } = {
+                    'facebook': 'فيسبوك',
+                    'instagram': 'انستجرام',
+                    'tiktok': 'تيك توك',
+                    'google_maps': 'خرائط جوجل',
+                    'friend_referral': 'إحالة من صديق'
+                  }
+                  const sourcesEn: { [key: string]: string } = {
+                    'facebook': 'Facebook',
+                    'instagram': 'Instagram',
+                    'tiktok': 'TikTok',
+                    'google_maps': 'Google Maps',
+                    'friend_referral': 'Friend Referral'
+                  }
+                  const sources = locale === 'ar' ? sourcesAr : sourcesEn
+                  return sources[(member as any).source] || (member as any).source
+                })()}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
@@ -467,7 +518,7 @@ export default function MemberDetailPage() {
 
         <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
           <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-            <div className="bg-blue-100 p-2 sm:p-3 rounded-full">
+            <div className="bg-primary-100 p-2 sm:p-3 rounded-full">
               <span className="text-2xl sm:text-3xl">✏️</span>
             </div>
             <div>
@@ -492,7 +543,7 @@ export default function MemberDetailPage() {
               setActiveModal('edit')
             }}
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-sm sm:text-base"
+            className="w-full bg-primary-600 text-white py-2.5 sm:py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-sm sm:text-base"
           >
             ✏️ تعديل البيانات
           </button>
@@ -678,13 +729,16 @@ export default function MemberDetailPage() {
                 />
               </div>
 
-              <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-5">
+              <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-5">
                 <PaymentMethodSelector
                   value={paymentData.paymentMethod}
                   onChange={(method) => setPaymentData({ ...paymentData, paymentMethod: method })}
                   allowMultiple={true}
                   totalAmount={paymentData.amount}
                   required
+                  memberPoints={member.points || 0}
+                  pointsValueInEGP={settings.pointsValueInEGP}
+                  pointsEnabled={settings.pointsEnabled}
                 />
               </div>
 
@@ -748,12 +802,12 @@ export default function MemberDetailPage() {
               <p className="text-xs text-cyan-600">يمكنك استخدام أيام الفريز على دفعات</p>
             </div>
 
-            <div className="bg-blue-50 border-r-4 border-blue-500 p-4 rounded-lg mb-6">
-              <p className="text-sm text-blue-800 mb-2">
+            <div className="bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg mb-6">
+              <p className="text-sm text-primary-800 mb-2">
                 تاريخ الانتهاء الحالي: <strong>{formatDateYMD(member.expiryDate)}</strong>
               </p>
               {daysRemaining !== null && (
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-primary-800">
                   الأيام المتبقية: <strong>{daysRemaining > 0 ? daysRemaining : 0} يوم</strong>
                 </p>
               )}
@@ -801,7 +855,7 @@ export default function MemberDetailPage() {
                 <button
                   onClick={handleFreeze}
                   disabled={loading || freezeData.days <= 0 || freezeData.days > member.remainingFreezeDays}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-bold"
+                  className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
                 >
                   {loading ? 'جاري المعالجة...' : '✅ تأكيد التجميد'}
                 </button>
@@ -889,7 +943,7 @@ export default function MemberDetailPage() {
 
             <div className="flex gap-1 mt-1 pt-1 border-t bg-white">
               <button onClick={handleEdit} disabled={loading || !editData.name || !editData.phone}
-                className="flex-1 bg-blue-600 text-white py-1 rounded hover:bg-blue-700 disabled:bg-gray-400 font-bold text-[10px]">
+                className="flex-1 bg-primary-600 text-white py-1 rounded hover:bg-primary-700 disabled:bg-gray-400 font-bold text-[10px]">
                 {loading ? 'حفظ...' : '✅ حفظ'}
               </button>
               <button onClick={() => setActiveModal(null)} className="px-2 bg-gray-200 text-gray-700 py-1 rounded hover:bg-gray-300 text-[10px]">

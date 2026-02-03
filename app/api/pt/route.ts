@@ -7,6 +7,9 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../lib/paymentHelpers'
+import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
+import { addPointsForPayment } from '../../../lib/points'
+import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 // @ts-ignore
 import bwipjs from 'bwip-js'
 
@@ -18,16 +21,60 @@ export async function GET(request: Request) {
     // ✅ التحقق من صلاحية عرض PT
     const user = await requirePermission(request, 'canViewPT')
 
+    // جلب coachUserId من query parameters
+    const { searchParams } = new URL(request.url)
+    const coachUserIdParam = searchParams.get('coachUserId')
+
+    console.log('🔍 PT API GET - User:', user.userId, 'Role:', user.role, 'Query coachUserId:', coachUserIdParam)
+
     // فلترة البيانات حسب الدور
-    const whereClause = user.role === 'COACH'
-      ? { coachUserId: user.userId }  // الكوتش يرى عملائه فقط
-      : {}  // الأدمن يرى الكل
+    let whereClause: any = {}
+
+    if (user.role === 'COACH') {
+      // الكوتش يرى عملائه فقط
+      // جلب اسم الكوتش من جدول Staff
+      const coachStaff = await prisma.staff.findFirst({
+        where: {
+          user: {
+            id: user.userId
+          }
+        }
+      })
+
+      if (coachStaff) {
+        // البحث بناءً على coachUserId أو coachName كـ fallback
+        whereClause = {
+          OR: [
+            { coachUserId: user.userId },
+            { coachName: coachStaff.name }
+          ]
+        }
+        console.log('👤 Coach accessing own PTs - userId:', user.userId, 'name:', coachStaff.name)
+      } else {
+        whereClause = { coachUserId: user.userId }
+        console.log('👤 Coach accessing own PTs - userId only:', user.userId)
+      }
+    } else if (coachUserIdParam) {
+      // إذا تم تمرير coachUserId في الـ query، فلتر بناءً عليه
+      whereClause = { coachUserId: coachUserIdParam }
+      console.log('🔎 Filtering by coachUserId from query:', coachUserIdParam)
+    }
+
+    console.log('📋 Where clause:', JSON.stringify(whereClause))
 
     const ptSessions = await prisma.pT.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: { receipts: true }
+      include: {
+        receipts: true,
+        sessions: {
+          orderBy: { sessionDate: 'desc' },
+          take: 5
+        }
+      }
     })
+
+    console.log('✅ Found', ptSessions.length, 'PT records')
     return NextResponse.json(ptSessions)
   } catch (error: any) {
     console.error('Error fetching PT sessions:', error)
@@ -237,12 +284,6 @@ export async function POST(request: Request) {
       }
     }
 
-    const pt = await prisma.pT.create({
-      data: ptData,
-    })
-
-    console.log('✅ تم إنشاء جلسة PT:', pt.ptNumber)
-
     // إنشاء إيصال باستخدام Transaction
     try {
       // 🔒 License validation check
@@ -259,7 +300,15 @@ export async function POST(request: Request) {
       }
 
       // استخدام Transaction مع البحث عن أول رقم متاح
-      await prisma.$transaction(async (tx) => {
+      // ⏱️ زيادة timeout إلى 10 ثوانٍ بسبب العمليات الكثيرة (نقاط، عمولات، إلخ)
+      const pt = await prisma.$transaction(async (tx) => {
+        // ✅ إنشاء جلسة PT داخل الـ Transaction لضمان Atomicity
+        const pt = await tx.pT.create({
+          data: ptData,
+        })
+
+        console.log('✅ تم إنشاء جلسة PT:', pt.ptNumber)
+
         // جلب العداد الحالي
         let counter = await tx.receiptCounter.findUnique({
           where: { id: 1 }
@@ -320,7 +369,7 @@ export async function POST(request: Request) {
 
         // إنشاء الإيصال
         // تحديد نوع الإيصال بناءً على إذا كان Day Use أم لا
-        const receiptType = pt.ptNumber < 0 ? 'PT Day Use' : 'برايفت جديد'
+        const receiptType = pt.ptNumber < 0 ? RECEIPT_TYPES.PT_DAY_USE : RECEIPT_TYPES.NEW_PT
 
         const receipt = await tx.receipt.create({
           data: {
@@ -349,6 +398,20 @@ export async function POST(request: Request) {
 
         console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber)
 
+        // خصم النقاط إذا تم استخدامها في الدفع
+        const pointsResult = await processPaymentWithPoints(
+          null,  // لا يوجد memberId لـ PT
+          phone,
+          memberNumber,  // ✅ تمرير رقم العضوية للبحث عن العضو
+          finalPaymentMethod,
+          `دفع برايفت - ${clientName}`,
+          tx
+        )
+
+        if (!pointsResult.success) {
+          throw new Error(pointsResult.message || 'فشل خصم النقاط')
+        }
+
         // ✅ إنشاء سجل عمولة للكوتش (إذا كان لديه حساب)
         if (coachUserId && paidAmount > 0) {
           try {
@@ -365,18 +428,87 @@ export async function POST(request: Request) {
             // لا نفشل العملية إذا فشلت العمولة
           }
         }
+
+        // ✅ إضافة نقاط مكافأة للعضو بناءً على المبلغ المدفوع
+        // حساب المبلغ الفعلي المدفوع (بدون النقاط المستخدمة)
+        const actualAmountPaid = getActualAmountPaid(finalPaymentMethod, paidAmount)
+
+        console.log('🎁 PT Points reward check:', {
+          actualAmountPaid,
+          paidAmount,
+          memberNumber,
+          phone,
+          finalPaymentMethod: typeof finalPaymentMethod === 'string' ? finalPaymentMethod : 'array'
+        })
+
+        if (actualAmountPaid > 0 && (memberNumber || phone)) {
+          try {
+            // البحث عن العضو برقم العضوية أولاً، ثم بالهاتف
+            let member = null
+            if (memberNumber) {
+              console.log(`🔍 PT: البحث عن عضو برقم العضوية: ${memberNumber}`)
+              member = await tx.member.findUnique({
+                where: { memberNumber: parseInt(memberNumber) },
+                select: { id: true, name: true }
+              })
+            }
+
+            // إذا لم يُعثر على العضو برقم العضوية، نبحث بالهاتف
+            if (!member && phone) {
+              console.log(`🔍 PT: البحث عن عضو بالهاتف: ${phone}`)
+              member = await tx.member.findFirst({
+                where: { phone: phone },
+                select: { id: true, name: true }
+              })
+            }
+
+            if (member) {
+              console.log(`👤 PT: تم العثور على العضو: ${member.name} (${member.id})`)
+              const rewardResult = await addPointsForPayment(
+                member.id,
+                Number(actualAmountPaid),
+                `مكافأة اشتراك PT - ${clientName}`,
+                tx  // ✅ تمرير tx parameter
+              )
+
+              if (rewardResult.success && rewardResult.pointsEarned && rewardResult.pointsEarned > 0) {
+                console.log(`✅ PT: تمت إضافة ${rewardResult.pointsEarned} نقطة مكافأة للعضو ${member.name}`)
+              } else {
+                console.log(`⚠️ PT: لم تُضف نقاط:`, rewardResult)
+              }
+            } else {
+              console.log(`⚠️ PT: لم يُعثر على عضو برقم ${memberNumber} أو هاتف ${phone}`)
+            }
+          } catch (rewardError) {
+            console.error('⚠️ PT: فشل إضافة نقاط المكافأة (غير حرج):', rewardError)
+            // لا نفشل العملية إذا فشلت المكافأة
+          }
+        } else {
+          console.log(`⚠️ PT: لم يتم إضافة نقاط: actualAmountPaid=${actualAmountPaid}, memberNumber=${memberNumber}, phone=${phone}`)
+        }
+
+        // ✅ إرجاع الـ pt من الـ Transaction
+        return pt
+      }, {
+        timeout: 15000, // ⏱️ 15 seconds timeout (increased for SQLite performance)
       })
 
+      return NextResponse.json(pt, { status: 201 })
+
     } catch (receiptError: any) {
-      console.error('❌ خطأ في إنشاء الإيصال:', receiptError)
+      console.error('❌ خطأ في إنشاء الاشتراك والإيصال:', receiptError)
       console.error('❌ تفاصيل الخطأ:', {
         message: receiptError.message,
         code: receiptError.code,
         meta: receiptError.meta
       })
-    }
 
-    return NextResponse.json(pt, { status: 201 })
+      // ✅ في حالة فشل الـ Transaction، لن يتم إنشاء أي شيء (atomicity)
+      return NextResponse.json(
+        { error: 'فشل إنشاء الاشتراك: ' + receiptError.message },
+        { status: 500 }
+      )
+    }
   } catch (error: any) {
     console.error('❌ خطأ في إضافة جلسة PT:', error)
     

@@ -7,6 +7,7 @@ import { ReceiptToPrint } from '../../../components/ReceiptToPrint'
 import PaymentMethodSelector from '../../../components/Paymentmethodselector'
 import RenewalForm from '../../../components/RenewalForm'
 import UpgradeForm from '../../../components/UpgradeForm'
+import ImageUpload from '../../../components/ImageUpload'
 import { formatDateYMD, calculateRemainingDays } from '../../../lib/dateFormatter'
 import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
@@ -14,15 +15,23 @@ import type { PaymentMethod } from '../../../lib/paymentHelpers'
 import { FlexibilityAssessment, ExerciseTestData, MedicalQuestions, FitnessTestData } from '../../../types/fitness-test'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
+import { useServiceSettings } from '../../../contexts/ServiceSettingsContext'
 
 interface Member {
   id: string
   memberNumber: number
   name: string
   phone: string
+  backupPhone?: string
+  nationalId?: string
+  birthDate?: string
+  source?: string
   inBodyScans: number
   invitations: number
   freePTSessions: number
+  freeNutritionSessions: number
+  freePhysioSessions: number
+  freeGroupClassSessions: number
   remainingFreezeDays: number
   subscriptionPrice: number
   remainingAmount: number
@@ -30,6 +39,8 @@ interface Member {
   isActive: boolean
   isFrozen: boolean
   profileImage?: string
+  idCardFront?: string
+  idCardBack?: string
   startDate?: string
   expiryDate?: string
   createdAt: string
@@ -131,6 +142,7 @@ export default function MemberDetailPage() {
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
+  const { settings } = useServiceSettings()
 
   const [member, setMember] = useState<Member | null>(null)
   const [loading, setLoading] = useState(true)
@@ -140,12 +152,21 @@ export default function MemberDetailPage() {
   const [showUpgradeForm, setShowUpgradeForm] = useState(false)
   const [lastReceiptNumber, setLastReceiptNumber] = useState<number | null>(null)
   const [ptSubscription, setPtSubscription] = useState<any>(null)
+  const [showIdCardModal, setShowIdCardModal] = useState(false)
+  const [nutritionSubscriptions, setNutritionSubscriptions] = useState<any[]>([])
+  const [physioSubscriptions, setPhysioSubscriptions] = useState<any[]>([])
+  const [groupClassSubscriptions, setGroupClassSubscriptions] = useState<any[]>([])
 
   // سجل الإيصالات
   const [showReceiptsModal, setShowReceiptsModal] = useState(false)
   const [memberReceipts, setMemberReceipts] = useState<any[]>([])
   const [receiptsLoading, setReceiptsLoading] = useState(false)
   const [lastReceipt, setLastReceipt] = useState<any>(null)
+
+  // النقاط
+  const [showPointsHistory, setShowPointsHistory] = useState(false)
+  const [pointsHistory, setPointsHistory] = useState<any[]>([])
+  const [pointsLoading, setPointsLoading] = useState(false)
 
   const [confirmModal, setConfirmModal] = useState<{
     show: boolean
@@ -178,6 +199,7 @@ export default function MemberDetailPage() {
   const [editBasicInfoData, setEditBasicInfoData] = useState({
     name: '',
     phone: '',
+    profileImage: null as string | null,
     subscriptionPrice: 0,
     inBodyScans: 0,
     invitations: 0,
@@ -368,6 +390,27 @@ export default function MemberDetailPage() {
     setShowReceiptsModal(true)
   }
 
+  const fetchPointsHistory = async () => {
+    setPointsLoading(true)
+    try {
+      const response = await fetch(`/api/members/${memberId}/points-history`)
+      if (response.ok) {
+        const data = await response.json()
+        setPointsHistory(data)
+      }
+    } catch (error) {
+      console.error('Error fetching points history:', error)
+      setPointsHistory([])
+    } finally {
+      setPointsLoading(false)
+    }
+  }
+
+  const handleShowPointsHistory = () => {
+    fetchPointsHistory()
+    setShowPointsHistory(true)
+  }
+
   const fetchFitnessTest = async () => {
     try {
       const response = await fetch(`/api/members/${memberId}/fitness-test`)
@@ -424,6 +467,50 @@ export default function MemberDetailPage() {
     }
   }
 
+  const fetchServiceSubscriptions = async () => {
+    if (!member) return
+
+    try {
+      // جلب اشتراكات التغذية
+      const nutritionRes = await fetch('/api/nutrition')
+      if (nutritionRes.ok) {
+        const allNutrition = await nutritionRes.json()
+        const memberNutrition = allNutrition.filter((n: any) =>
+          n.phone === member.phone &&
+          n.sessionsRemaining > 0 &&
+          (!n.expiryDate || new Date(n.expiryDate) > new Date())
+        )
+        setNutritionSubscriptions(memberNutrition)
+      }
+
+      // جلب اشتراكات العلاج الطبيعي
+      const physioRes = await fetch('/api/physiotherapy')
+      if (physioRes.ok) {
+        const allPhysio = await physioRes.json()
+        const memberPhysio = allPhysio.filter((p: any) =>
+          p.phone === member.phone &&
+          p.sessionsRemaining > 0 &&
+          (!p.expiryDate || new Date(p.expiryDate) > new Date())
+        )
+        setPhysioSubscriptions(memberPhysio)
+      }
+
+      // جلب اشتراكات جروب كلاسيس
+      const classRes = await fetch('/api/group-classes')
+      if (classRes.ok) {
+        const allClasses = await classRes.json()
+        const memberClasses = allClasses.filter((c: any) =>
+          c.phone === member.phone &&
+          c.sessionsRemaining > 0 &&
+          (!c.expiryDate || new Date(c.expiryDate) > new Date())
+        )
+        setGroupClassSubscriptions(memberClasses)
+      }
+    } catch (error) {
+      console.error('Error fetching service subscriptions:', error)
+    }
+  }
+
   useEffect(() => {
     fetchMember()
     fetchAttendanceHistory()
@@ -433,6 +520,7 @@ export default function MemberDetailPage() {
   useEffect(() => {
     if (member) {
       fetchPTSubscription()
+      fetchServiceSubscriptions()
     }
   }, [member])
 
@@ -632,6 +720,114 @@ export default function MemberDetailPage() {
     })
   }
 
+  const handleUseFreeNutrition = async () => {
+    if (!member || (member.freeNutritionSessions ?? 0) <= 0) {
+      toast.warning('لا توجد جلسات تغذية متبقية')
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: `🥗 استخدام جلسة تغذية`,
+      message: 'هل أنت متأكد من استخدام جلسة تغذية مجانية؟',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: member.id,
+              freeNutritionSessions: (member.freeNutritionSessions ?? 0) - 1
+            })
+          })
+
+          if (response.ok) {
+            toast.success('تم استخدام جلسة تغذية بنجاح')
+            fetchMember()
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.error'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
+  const handleUseFreePhysio = async () => {
+    if (!member || (member.freePhysioSessions ?? 0) <= 0) {
+      toast.warning('لا توجد جلسات علاج طبيعي متبقية')
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: `🏥 استخدام جلسة علاج`,
+      message: 'هل أنت متأكد من استخدام جلسة علاج طبيعي مجانية؟',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: member.id,
+              freePhysioSessions: (member.freePhysioSessions ?? 0) - 1
+            })
+          })
+
+          if (response.ok) {
+            toast.success('تم استخدام جلسة علاج طبيعي بنجاح')
+            fetchMember()
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.error'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
+  const handleUseFreeGroupClass = async () => {
+    if (!member || (member.freeGroupClassSessions ?? 0) <= 0) {
+      toast.warning('لا توجد جلسات جروب كلاسيس متبقية')
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: `👥 استخدام جلسة جروب كلاسيس`,
+      message: 'هل أنت متأكد من استخدام جلسة جروب كلاسيس مجانية؟',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: member.id,
+              freeGroupClassSessions: (member.freeGroupClassSessions ?? 0) - 1
+            })
+          })
+
+          if (response.ok) {
+            toast.success('تم استخدام جلسة جروب كلاسيس بنجاح')
+            fetchMember()
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.error'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
   const handleEditBasicInfo = async () => {
     if (!member || !editBasicInfoData.name.trim() || !editBasicInfoData.phone.trim()) {
       toast.warning(t('memberDetails.editModal.enterNameAndPhone'))
@@ -648,6 +844,7 @@ export default function MemberDetailPage() {
           id: member.id,
           name: editBasicInfoData.name.trim(),
           phone: editBasicInfoData.phone.trim(),
+          profileImage: editBasicInfoData.profileImage,
           subscriptionPrice: parseInt(editBasicInfoData.subscriptionPrice.toString()),
           inBodyScans: parseInt(editBasicInfoData.inBodyScans.toString()),
           invitations: parseInt(editBasicInfoData.invitations.toString()),
@@ -665,6 +862,7 @@ export default function MemberDetailPage() {
         setEditBasicInfoData({
           name: '',
           phone: '',
+          profileImage: null,
           subscriptionPrice: 0,
           inBodyScans: 0,
           invitations: 0,
@@ -881,7 +1079,7 @@ export default function MemberDetailPage() {
         <p className="text-xl mb-4">{t('memberDetails.memberNotFound')}</p>
         <button
           onClick={() => router.push('/members')}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
         >
           {t('memberDetails.back')}
         </button>
@@ -908,7 +1106,7 @@ export default function MemberDetailPage() {
       </div>
 
 
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-2xl p-8 mb-6">
+      <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-2xl shadow-2xl p-8 mb-6">
         <div className={member.coach ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "grid grid-cols-1 md:grid-cols-3 gap-6"}>
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -958,6 +1156,7 @@ export default function MemberDetailPage() {
                     setEditBasicInfoData({
                       name: member.name,
                       phone: member.phone,
+                      profileImage: member.profileImage || null,
                       subscriptionPrice: member.subscriptionPrice,
                       inBodyScans: member.inBodyScans ?? 0,
                       invitations: member.invitations ?? 0,
@@ -970,11 +1169,22 @@ export default function MemberDetailPage() {
                     setActiveModal('edit-basic-info')
                   }}
                   disabled={loading}
-                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1.5 transition-all hover:scale-110 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="bg-primary-500 hover:bg-primary-600 text-white rounded-full p-1.5 transition-all hover:scale-110 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   title={t('memberDetails.editModal.title')}
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                  </svg>
+                </button>
+              )}
+              {(member.idCardFront || member.idCardBack) && (
+                <button
+                  onClick={() => setShowIdCardModal(true)}
+                  className="bg-secondary-500 hover:bg-secondary-600 text-white rounded-full p-1.5 transition-all hover:scale-110"
+                  title={t('memberDetails.viewIdCardImages')}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                   </svg>
                 </button>
               )}
@@ -989,6 +1199,55 @@ export default function MemberDetailPage() {
             <p className="text-sm opacity-90 mb-2">{t('memberDetails.phoneNumber')}</p>
             <p className="text-2xl font-mono">{member.phone}</p>
           </div>
+          {member.backupPhone && (
+            <div>
+              <p className="text-sm opacity-90 mb-2">{t('memberDetails.backupPhone')}</p>
+              <p className="text-2xl font-mono">{member.backupPhone}</p>
+            </div>
+          )}
+          {member.nationalId && (
+            <div>
+              <p className="text-sm opacity-90 mb-2">{t('memberDetails.nationalId')}</p>
+              <p className="text-2xl font-mono">{member.nationalId}</p>
+            </div>
+          )}
+          {member.birthDate && (
+            <div>
+              <p className="text-sm opacity-90 mb-2">{t('memberDetails.birthDate')}</p>
+              <p className="text-2xl font-mono">
+                {new Date(member.birthDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+            </div>
+          )}
+          {member.source && (
+            <div>
+              <p className="text-sm opacity-90 mb-2">{t('memberDetails.memberSource')}</p>
+              <p className="text-2xl">
+                {(() => {
+                  const sourcesAr: { [key: string]: string } = {
+                    'facebook': 'فيسبوك',
+                    'instagram': 'انستجرام',
+                    'tiktok': 'تيك توك',
+                    'google_maps': 'خرائط جوجل',
+                    'friend_referral': 'إحالة من صديق'
+                  }
+                  const sourcesEn: { [key: string]: string } = {
+                    'facebook': 'Facebook',
+                    'instagram': 'Instagram',
+                    'tiktok': 'TikTok',
+                    'google_maps': 'Google Maps',
+                    'friend_referral': 'Friend Referral'
+                  }
+                  const sources = locale === 'ar' ? sourcesAr : sourcesEn
+                  return sources[member.source!] || member.source
+                })()}
+              </p>
+            </div>
+          )}
           {member.coach && (
             <div>
               <p className="text-sm opacity-90 mb-2">👨‍🏫 المدرب</p>
@@ -1073,23 +1332,24 @@ export default function MemberDetailPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-green-500">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-gray-600 text-sm">{t('memberDetails.inBody')}</p>
-              <p className="text-4xl font-bold text-green-600">{member.inBodyScans ?? 0}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+        {settings.pointsEnabled && (
+          <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-primary-500">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-gray-600 text-sm">{t('memberDetails.points')}</p>
+                <p className="text-4xl font-bold text-primary-600">{member.points ?? 0}</p>
+              </div>
+              <div className="text-5xl">🏆</div>
             </div>
-            <div className="text-5xl">⚖️</div>
+            <button
+              onClick={handleShowPointsHistory}
+              className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700"
+            >
+              {t('memberDetails.viewPointsHistory')}
+            </button>
           </div>
-          <button
-            onClick={handleUseInBody}
-            disabled={(member.inBodyScans ?? 0) <= 0 || loading}
-            className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {t('memberDetails.useSession')}
-          </button>
-        </div>
+        )}
 
         <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-purple-500">
           <div className="flex items-center justify-between mb-4">
@@ -1108,6 +1368,25 @@ export default function MemberDetailPage() {
           </button>
         </div>
 
+        {settings.inBodyEnabled && (
+          <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-green-500">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-gray-600 text-sm">{t('memberDetails.inBody')}</p>
+                <p className="text-4xl font-bold text-green-600">{member.inBodyScans ?? 0}</p>
+              </div>
+              <div className="text-5xl">⚖️</div>
+            </div>
+            <button
+              onClick={handleUseInBody}
+              disabled={(member.inBodyScans ?? 0) <= 0 || loading}
+              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {t('memberDetails.useSession')}
+            </button>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-orange-500">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -1124,6 +1403,63 @@ export default function MemberDetailPage() {
             {t('memberDetails.useSession')}
           </button>
         </div>
+
+        {settings.nutritionEnabled && (
+          <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-lime-500">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-gray-600 text-sm">{t('memberDetails.nutritionSessions')}</p>
+                <p className="text-4xl font-bold text-lime-600">{member.freeNutritionSessions ?? 0}</p>
+              </div>
+              <div className="text-5xl">🥗</div>
+            </div>
+            <button
+              onClick={handleUseFreeNutrition}
+              disabled={(member.freeNutritionSessions ?? 0) <= 0 || loading}
+              className="w-full bg-lime-600 text-white py-2 rounded-lg hover:bg-lime-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {t('memberDetails.useNutrition')}
+            </button>
+          </div>
+        )}
+
+        {settings.physiotherapyEnabled && (
+          <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-blue-500">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-gray-600 text-sm">{t('memberDetails.physioSessions')}</p>
+                <p className="text-4xl font-bold text-blue-600">{member.freePhysioSessions ?? 0}</p>
+              </div>
+              <div className="text-5xl">🏥</div>
+            </div>
+            <button
+              onClick={handleUseFreePhysio}
+              disabled={(member.freePhysioSessions ?? 0) <= 0 || loading}
+              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {t('memberDetails.usePhysio')}
+            </button>
+          </div>
+        )}
+
+        {settings.groupClassEnabled && (
+          <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-fuchsia-500">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-gray-600 text-sm">{t('memberDetails.groupClassSessions')}</p>
+                <p className="text-4xl font-bold text-fuchsia-600">{member.freeGroupClassSessions ?? 0}</p>
+              </div>
+              <div className="text-5xl">👥</div>
+            </div>
+            <button
+              onClick={handleUseFreeGroupClass}
+              disabled={(member.freeGroupClassSessions ?? 0) <= 0 || loading}
+              className="w-full bg-fuchsia-600 text-white py-2 rounded-lg hover:bg-fuchsia-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {t('memberDetails.useGroupClass')}
+            </button>
+          </div>
+        )}
 
         <div className="bg-white rounded-xl shadow-lg p-6 border-r-4 border-cyan-500">
           <div className="flex items-center justify-between mb-4">
@@ -1204,6 +1540,7 @@ export default function MemberDetailPage() {
           </button>
         </div>
       )}
+
 
       {/* Payment & Edit Section */}
       <div className={`grid grid-cols-1 ${member.remainingAmount > 0 ? 'md:grid-cols-2' : ''} gap-6 mb-6`}>
@@ -1310,7 +1647,7 @@ export default function MemberDetailPage() {
                 onClick={() => {
                   confirmModal.onConfirm()
                 }}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold"
+                className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold"
               >
                 ✅ {t('memberDetails.confirmModal.yes')}
               </button>
@@ -1363,17 +1700,20 @@ export default function MemberDetailPage() {
                   value={paymentData.amount || ''}
                   onChange={(e) => setPaymentData({ ...paymentData, amount: parseInt(e.target.value) || 0 })}
                   max={member.remainingAmount}
-                  className="w-full px-4 py-3 border-2 rounded-lg text-xl focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-3 border-2 rounded-lg text-xl focus:outline-none focus:border-primary-500"
                   placeholder="0"
                   autoFocus
                 />
               </div>
 
-              <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-5">
+              <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-5">
                 <PaymentMethodSelector
                   value={paymentData.paymentMethod}
                   onChange={(method) => setPaymentData({ ...paymentData, paymentMethod: method })}
                   required
+                  memberPoints={member.points || 0}
+                  pointsValueInEGP={settings.pointsValueInEGP}
+                  pointsEnabled={settings.pointsEnabled}
                 />
               </div>
 
@@ -1382,7 +1722,7 @@ export default function MemberDetailPage() {
                 <textarea
                   value={paymentData.notes}
                   onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-primary-500"
                   rows={3}
                   placeholder={t('memberDetails.paymentModal.notesPlaceholder')}
                 />
@@ -1438,6 +1778,15 @@ export default function MemberDetailPage() {
               >
                 ×
               </button>
+            </div>
+
+            {/* تعديل الصورة */}
+            <div className="mb-4">
+              <ImageUpload
+                currentImage={editBasicInfoData.profileImage}
+                onImageChange={(imageUrl) => setEditBasicInfoData({ ...editBasicInfoData, profileImage: imageUrl })}
+                disabled={loading}
+              />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -1506,61 +1855,66 @@ export default function MemberDetailPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium mb-1">
-                  ⚖️ {t('memberDetails.editModal.fields.inBodyScans')}
-                </label>
-                <input
-                  type="number"
-                  value={editBasicInfoData.inBodyScans || ''}
-                  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, inBodyScans: parseInt(e.target.value) || 0 })}
-                  className="w-full px-2 py-1.5 border rounded text-sm"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
+              {/* Hidden: Additional Services Section */}
+              {false && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">
+                      ⚖️ {t('memberDetails.editModal.fields.inBodyScans')}
+                    </label>
+                    <input
+                      type="number"
+                      value={editBasicInfoData.inBodyScans || ''}
+                      onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, inBodyScans: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-medium mb-1">
-                  🎟️ {t('memberDetails.editModal.fields.invitations')}
-                </label>
-                <input
-                  type="number"
-                  value={editBasicInfoData.invitations || ''}
-                  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, invitations: parseInt(e.target.value) || 0 })}
-                  className="w-full px-2 py-1.5 border rounded text-sm"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">
+                      🎟️ {t('memberDetails.editModal.fields.invitations')}
+                    </label>
+                    <input
+                      type="number"
+                      value={editBasicInfoData.invitations || ''}
+                      onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, invitations: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-medium mb-1">
-                  💪 {t('memberDetails.editModal.fields.freePTSessions')}
-                </label>
-                <input
-                  type="number"
-                  value={editBasicInfoData.freePTSessions || ''}
-                  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freePTSessions: parseInt(e.target.value) || 0 })}
-                  className="w-full px-2 py-1.5 border rounded text-sm"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">
+                      💪 {t('memberDetails.editModal.fields.freePTSessions')}
+                    </label>
+                    <input
+                      type="number"
+                      value={editBasicInfoData.freePTSessions || ''}
+                      onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freePTSessions: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-medium mb-1">
-                  ❄️ أيام الفريز
-                </label>
-                <input
-                  type="number"
-                  value={editBasicInfoData.remainingFreezeDays || ''}
-                  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, remainingFreezeDays: parseInt(e.target.value) || 0 })}
-                  className="w-full px-2 py-1.5 border rounded text-sm"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">
+                      ❄️ أيام الفريز
+                    </label>
+                    <input
+                      type="number"
+                      value={editBasicInfoData.remainingFreezeDays || ''}
+                      onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, remainingFreezeDays: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="col-span-2 md:col-span-3">
                 <label className="block text-xs font-medium mb-1">
@@ -1581,7 +1935,7 @@ export default function MemberDetailPage() {
                 type="button"
                 onClick={handleEditBasicInfo}
                 disabled={loading || !editBasicInfoData.name.trim() || !editBasicInfoData.phone.trim()}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-bold text-sm"
+                className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold text-sm"
               >
                 {loading ? t('memberDetails.editModal.buttons.saving') : `✅ ${t('memberDetails.editModal.buttons.save')}`}
               </button>
@@ -1734,12 +2088,12 @@ export default function MemberDetailPage() {
               <p className="text-xs text-cyan-600">{t('memberDetails.freezeModal.canUseInBatches')}</p>
             </div>
 
-            <div className="bg-blue-50 border-r-4 border-blue-500 p-4 rounded-lg mb-6">
-              <p className="text-sm text-blue-800 mb-2">
+            <div className="bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg mb-6">
+              <p className="text-sm text-primary-800 mb-2">
                 {t('memberDetails.freezeModal.currentExpiryDate')}: <strong>{formatDateYMD(member.expiryDate)}</strong>
               </p>
               {daysRemaining !== null && (
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-primary-800">
                   {t('memberDetails.freezeModal.remainingDays')}: <strong>{daysRemaining > 0 ? daysRemaining : 0} {t('common.day')}</strong>
                 </p>
               )}
@@ -1787,7 +2141,7 @@ export default function MemberDetailPage() {
                 <button
                   onClick={handleFreeze}
                   disabled={loading || freezeData.days <= 0 || freezeData.days > member.remainingFreezeDays}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-bold"
+                  className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
                 >
                   {loading ? t('common.processing') : `✅ ${t('memberDetails.freezeModal.confirmFreeze')}`}
                 </button>
@@ -1872,7 +2226,7 @@ export default function MemberDetailPage() {
               <h3 className="text-2xl font-bold text-center">📋 نموذج تقييم اللياقة</h3>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg mb-6">
+            <div className="bg-primary-50 p-4 rounded-lg mb-6">
               <h4 className="font-bold mb-3 text-lg">معلومات العضو</h4>
               <div className="grid grid-cols-3 gap-4">
                 <div>
@@ -2054,7 +2408,7 @@ export default function MemberDetailPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-primary-50 p-4 rounded-lg">
                 <h4 className="font-bold mb-3">معلومات العضو</h4>
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
@@ -2129,10 +2483,10 @@ export default function MemberDetailPage() {
       )}
 
       {/* سجل الحضور */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-blue-100" dir={direction}>
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-primary-100" dir={direction}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-lg">
+            <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-3 rounded-lg">
               <span className="text-3xl">📊</span>
             </div>
             <div>
@@ -2143,7 +2497,7 @@ export default function MemberDetailPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-gradient-to-br from-gray-50 to-blue-50 p-5 rounded-xl mb-6 border border-blue-200">
+        <div className="bg-gradient-to-br from-gray-50 to-primary-50 p-5 rounded-xl mb-6 border border-primary-200">
           <h3 className="text-sm font-bold text-gray-700 mb-3">🔍 {t('memberDetails.attendanceLog.filterByPeriod')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -2152,7 +2506,7 @@ export default function MemberDetailPage() {
                 type="date"
                 value={attendanceStartDate}
                 onChange={(e) => setAttendanceStartDate(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition"
               />
             </div>
             <div>
@@ -2161,14 +2515,14 @@ export default function MemberDetailPage() {
                 type="date"
                 value={attendanceEndDate}
                 onChange={(e) => setAttendanceEndDate(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition"
               />
             </div>
             <div className="flex items-end">
               <button
                 onClick={fetchAttendanceHistory}
                 disabled={attendanceLoading}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:bg-gray-400 font-semibold shadow-md transition-all transform hover:scale-105"
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:bg-gray-400 font-semibold shadow-md transition-all transform hover:scale-105"
               >
                 {attendanceLoading ? `⏳ ${t('memberDetails.attendanceLog.loading')}` : `✓ ${t('memberDetails.attendanceLog.applyFilter')}`}
               </button>
@@ -2191,11 +2545,11 @@ export default function MemberDetailPage() {
           <>
             {/* إحصائيات سريعة */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border-2 border-blue-200">
+              <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-4 rounded-lg border-2 border-primary-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-600 text-sm font-semibold mb-1">{t('memberDetails.attendanceLog.totalVisits')}</p>
-                    <p className="text-3xl font-bold text-blue-700">{attendanceHistory.length}</p>
+                    <p className="text-primary-600 text-sm font-semibold mb-1">{t('memberDetails.attendanceLog.totalVisits')}</p>
+                    <p className="text-3xl font-bold text-primary-700">{attendanceHistory.length}</p>
                   </div>
                   <div className="text-4xl opacity-50">📊</div>
                 </div>
@@ -2219,7 +2573,7 @@ export default function MemberDetailPage() {
 
             <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-blue-500 to-blue-600">
+              <thead className="bg-gradient-to-r from-primary-500 to-primary-600">
                 <tr>
                   <th className={`px-6 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} text-white font-bold`}>#</th>
                   <th className={`px-6 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} text-white font-bold`}>{t('memberDetails.attendanceLog.date')}</th>
@@ -2231,7 +2585,7 @@ export default function MemberDetailPage() {
                   const checkInTime = new Date(checkIn.checkInTime)
 
                   return (
-                    <tr key={checkIn.id} className="border-t hover:bg-blue-50 transition-colors">
+                    <tr key={checkIn.id} className="border-t hover:bg-primary-50 transition-colors">
                       <td className="px-6 py-4 font-bold text-gray-700">
                         {index + 1}
                       </td>
@@ -2245,7 +2599,7 @@ export default function MemberDetailPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm">
+                        <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-lg font-bold text-sm">
                           {checkInTime.toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
                             hour: '2-digit',
                             minute: '2-digit'
@@ -2436,6 +2790,202 @@ export default function MemberDetailPage() {
                 className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
               >
                 {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Points History Modal */}
+      {showPointsHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-t-lg">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <span>🏆</span>
+                <span>{t('memberDetails.pointsHistory')}</span>
+              </h2>
+              <p className="text-yellow-100 mt-1">{member?.name} - #{member?.memberNumber}</p>
+              <p className="text-yellow-100 text-sm mt-1">
+                {t('memberDetails.totalPoints')}: <span className="font-bold text-white">{member?.points ?? 0}</span>
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {pointsLoading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin text-6xl mb-4">⏳</div>
+                  <p className="text-xl text-gray-600">{t('common.loading')}</p>
+                </div>
+              ) : pointsHistory.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🏆</div>
+                  <p className="text-gray-500 text-xl">{t('memberDetails.noPointsHistory')}</p>
+                  <p className="text-gray-400 text-sm mt-2">{t('memberDetails.pointsWillAppear')}</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pointsHistory.map((entry: any) => (
+                    <div
+                      key={entry.id}
+                      className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-lg p-4 hover:shadow-md transition"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-2xl">
+                              {entry.action === 'check-in' ? '✅' : '🎁'}
+                            </span>
+                            <span className="font-bold text-gray-800">
+                              {entry.action === 'check-in'
+                                ? t('memberDetails.checkInPoints')
+                                : t('memberDetails.invitationPoints')}
+                            </span>
+                          </div>
+                          {entry.description && (
+                            <p className="text-sm text-gray-600 mb-2">{entry.description}</p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            {new Date(entry.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className={`${entry.points >= 0 ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-2 rounded-lg`}>
+                            <p className="text-2xl font-bold">{entry.points >= 0 ? '+' : ''}{entry.points}</p>
+                            <p className="text-xs opacity-90">{t('memberDetails.points')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowPointsHistory(false)
+                  setPointsHistory([])
+                }}
+                className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 font-bold"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal عرض صور البطاقة الشخصية */}
+      {showIdCardModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-primary-500 to-primary-600 text-white p-6 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold flex items-center gap-3">
+                  <span className="text-3xl">🪪</span>
+                  <span>{t('memberDetails.idCardModal.title')}</span>
+                </h2>
+                <button
+                  onClick={() => setShowIdCardModal(false)}
+                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {!member?.idCardFront && !member?.idCardBack ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📭</div>
+                  <p className="text-xl text-gray-600">{t('memberDetails.idCardModal.noImages')}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* الوجه الأمامي */}
+                  <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-300 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-3xl">🆔</span>
+                      <h3 className="text-xl font-bold text-primary-900">{t('memberDetails.idCardModal.frontSide')}</h3>
+                    </div>
+
+                    {member?.idCardFront ? (
+                      <div className="bg-white rounded-lg overflow-hidden border-2 border-primary-200 shadow-lg">
+                        <img
+                          src={member.idCardFront}
+                          alt="Front Side"
+                          className="w-full h-auto object-contain cursor-pointer hover:opacity-90 transition"
+                          onClick={() => window.open(member.idCardFront, '_blank')}
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-lg p-12 border-2 border-dashed border-primary-300 text-center">
+                        <svg className="w-20 h-20 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                        </svg>
+                        <p className="text-gray-500">{t('memberDetails.idCardModal.noFrontImage')}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* الوجه الخلفي */}
+                  <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-300 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-3xl">🔄</span>
+                      <h3 className="text-xl font-bold text-primary-900">{t('memberDetails.idCardModal.backSide')}</h3>
+                    </div>
+
+                    {member?.idCardBack ? (
+                      <div className="bg-white rounded-lg overflow-hidden border-2 border-primary-200 shadow-lg">
+                        <img
+                          src={member.idCardBack}
+                          alt="Back Side"
+                          className="w-full h-auto object-contain cursor-pointer hover:opacity-90 transition"
+                          onClick={() => window.open(member.idCardBack, '_blank')}
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-lg p-12 border-2 border-dashed border-primary-300 text-center">
+                        <svg className="w-20 h-20 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                        </svg>
+                        <p className="text-gray-500">{t('memberDetails.idCardModal.noBackImage')}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Note */}
+              <div className="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <p className="text-sm text-blue-900">
+                  💡 {t('memberDetails.idCardModal.clickToOpen')}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gray-50 border-t flex justify-end rounded-b-2xl">
+              <button
+                onClick={() => setShowIdCardModal(false)}
+                className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition"
+              >
+                {t('memberDetails.idCardModal.close')}
               </button>
             </div>
           </div>

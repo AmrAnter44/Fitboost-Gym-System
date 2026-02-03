@@ -22,6 +22,29 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
   const [phone, setPhone] = useState('')
   const [sending, setSending] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
+  const [websiteUrl, setWebsiteUrl] = useState('https://www.xgym.website')
+  const [showWebsite, setShowWebsite] = useState(true)
+
+  // جلب إعدادات الموقع
+  useEffect(() => {
+    const fetchWebsiteSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/services')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.websiteUrl) {
+            setWebsiteUrl(data.websiteUrl)
+          }
+          if (typeof data.showWebsiteOnReceipts === 'boolean') {
+            setShowWebsite(data.showWebsiteOnReceipts)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching website settings:', error)
+      }
+    }
+    fetchWebsiteSettings()
+  }, [])
 
   // عرض Toast عند إنشاء الإيصال
   useEffect(() => {
@@ -159,8 +182,11 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     message += `٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n`
     message += `٤- الاداره غير مسئوله عن المتعلقات الشخصيه\n\n`
 
-    message += `🌐 *الموقع الإلكتروني:*\n`
-    message += `${process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://www.xgym.website'}`
+    // عرض الموقع الإلكتروني فقط إذا كان مفعلاً
+    if (showWebsite && websiteUrl) {
+      message += `🌐 *الموقع الإلكتروني:*\n`
+      message += `${websiteUrl}\n\n`
+    }
 
     return message
   }
@@ -209,7 +235,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <div className="text-center text-gray-600">
               <div className="text-5xl mb-3">📄</div>
-              <p className="font-medium">إيصال رقم <span className="text-blue-600">#{receiptNumber}</span></p>
+              <p className="font-medium">إيصال رقم <span className="text-primary-600">#{receiptNumber}</span></p>
             </div>
           </div>
 

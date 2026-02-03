@@ -266,7 +266,7 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingImage}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-16 rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="w-full bg-gradient-to-r from-purple-600 to-primary-600 text-white py-16 rounded-lg hover:from-purple-700 hover:to-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {uploadingImage ? (
                 <div className="flex flex-col items-center gap-3">
@@ -285,18 +285,18 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
         )}
 
         {/* Instructions */}
-        <div className="bg-blue-50 border-r-4 border-blue-500 p-4 rounded-lg mb-4">
-          <p className="text-sm text-blue-800">
+        <div className="bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg mb-4">
+          <p className="text-sm text-primary-800">
             <strong>📱 تعليمات:</strong>
           </p>
           {scanMode === 'camera' ? (
-            <ul className="text-xs text-blue-700 mt-2 mr-4 list-disc space-y-1">
+            <ul className="text-xs text-primary-700 mt-2 mr-4 list-disc space-y-1">
               <li>وجه الكاميرا نحو QR Code الخاص بالعميل</li>
               <li>تأكد من وضوح الصورة والإضاءة الجيدة</li>
               <li>انتظر حتى يتم المسح تلقائياً</li>
             </ul>
           ) : (
-            <ul className="text-xs text-blue-700 mt-2 mr-4 list-disc space-y-1">
+            <ul className="text-xs text-primary-700 mt-2 mr-4 list-disc space-y-1">
               <li>اضغط على الزر لفتح كاميرا هاتفك</li>
               <li>صور QR Code الخاص بالعميل</li>
               <li>أو اختر صورة موجودة من معرض الصور</li>

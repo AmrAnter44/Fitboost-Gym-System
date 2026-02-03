@@ -68,24 +68,24 @@ export default function PWAInstaller() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 animate-slideUp">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-2xl p-4 text-white max-w-md mx-auto">
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl shadow-2xl p-4 text-white max-w-md mx-auto">
         <div className="flex items-start gap-3">
           <div className="text-3xl">📱</div>
           <div className="flex-1">
             <h3 className="font-bold text-lg mb-1">ثبت التطبيق</h3>
-            <p className="text-sm text-blue-100 mb-3">
+            <p className="text-sm text-primary-100 mb-3">
               احصل على تجربة أفضل مع تطبيق الموبايل - عمل بدون إنترنت، وصول أسرع!
             </p>
             <div className="flex gap-2">
               <button
                 onClick={handleInstallClick}
-                className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors"
+                className="bg-white text-primary-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-primary-50 transition-colors"
               >
                 تثبيت الآن
               </button>
               <button
                 onClick={handleDismiss}
-                className="text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                className="text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-600 transition-colors"
               >
                 لاحقاً
               </button>
@@ -93,7 +93,7 @@ export default function PWAInstaller() {
           </div>
           <button
             onClick={handleDismiss}
-            className="text-white hover:text-blue-200 text-xl leading-none"
+            className="text-white hover:text-primary-200 text-xl leading-none"
           >
             ×
           </button>

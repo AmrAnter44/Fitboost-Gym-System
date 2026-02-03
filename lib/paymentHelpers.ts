@@ -2,8 +2,9 @@
 // دوال مساعدة للتعامل مع نظام الدفع المتعدد (Multi-Payment Methods)
 
 export interface PaymentMethod {
-  method: 'cash' | 'visa' | 'instapay' | 'wallet'
+  method: 'cash' | 'visa' | 'instapay' | 'wallet' | 'points'
   amount: number
+  pointsUsed?: number  // عدد النقاط المستخدمة (فقط عند method = 'points')
 }
 
 export interface PaymentData {
@@ -157,16 +158,78 @@ export function getPaymentMethodLabel(method: string, locale: string = 'ar'): st
     'cash': 'كاش 💵',
     'visa': 'فيزا 💳',
     'instapay': 'إنستاباي 📱',
-    'wallet': 'محفظة 💰'
+    'wallet': 'محفظة 💰',
+    'points': 'نقاط 🏆'
   }
 
   const labelsEn: Record<string, string> = {
     'cash': 'Cash 💵',
     'visa': 'Visa 💳',
     'instapay': 'InstaPay 📱',
-    'wallet': 'Wallet 💰'
+    'wallet': 'Wallet 💰',
+    'points': 'Points 🏆'
   }
 
   const labels = locale === 'ar' ? labelsAr : labelsEn
   return labels[method] || method
+}
+
+/**
+ * حساب عدد النقاط المطلوبة للدفع بمبلغ معين
+ * @param amount - المبلغ المراد دفعه بالنقاط
+ * @param pointsValueInEGP - قيمة النقطة الواحدة بالجنيه المصري
+ * @returns عدد النقاط المطلوبة
+ */
+export function calculatePointsRequired(amount: number, pointsValueInEGP: number): number {
+  if (pointsValueInEGP <= 0) return 0
+  return Math.ceil(amount / pointsValueInEGP)
+}
+
+/**
+ * حساب قيمة النقاط بالجنيه المصري
+ * @param points - عدد النقاط
+ * @param pointsValueInEGP - قيمة النقطة الواحدة بالجنيه المصري
+ * @returns القيمة بالجنيه
+ */
+export function calculatePointsValue(points: number, pointsValueInEGP: number): number {
+  return points * pointsValueInEGP
+}
+
+/**
+ * استخراج عدد النقاط المستخدمة من وسائل الدفع
+ * @param methods - وسائل الدفع
+ * @returns عدد النقاط المستخدمة (0 إذا لم تُستخدم النقاط)
+ */
+export function getPointsUsedFromPayment(methods: PaymentMethod[]): number {
+  const pointsMethod = methods.find(m => m.method === 'points')
+  return pointsMethod?.pointsUsed || 0
+}
+
+/**
+ * حساب المبلغ الفعلي المدفوع (بدون قيمة النقاط المستخدمة)
+ * يُستخدم لحساب نقاط المكافأة - حيث لا نعطي نقاط على النقاط المستخدمة
+ * @param paymentMethod - وسيلة الدفع (string أو array)
+ * @param totalAmount - المبلغ الإجمالي
+ * @returns المبلغ الفعلي المدفوع (نقدي/فيزا/إلخ - بدون النقاط)
+ */
+export function getActualAmountPaid(
+  paymentMethod: string | PaymentMethod[],
+  totalAmount: number
+): number {
+  let methods: PaymentMethod[] = []
+
+  if (typeof paymentMethod === 'string') {
+    methods = deserializePaymentMethods(paymentMethod)
+  } else if (Array.isArray(paymentMethod)) {
+    methods = paymentMethod
+  } else {
+    return totalAmount // لا توجد نقاط، المبلغ كامل
+  }
+
+  // حساب قيمة النقاط المستخدمة (المبلغ المدفوع بالنقاط)
+  const pointsMethod = methods.find(m => m.method === 'points')
+  const pointsAmount = pointsMethod?.amount || 0
+
+  // المبلغ الفعلي = المبلغ الكلي - قيمة النقاط المستخدمة
+  return totalAmount - pointsAmount
 }

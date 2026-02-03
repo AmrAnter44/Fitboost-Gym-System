@@ -9,7 +9,7 @@ export default function LanguageSwitch() {
     <div className="flex items-center gap-2">
       <button
         onClick={() => setLanguage(locale === 'ar' ? 'en' : 'ar')}
-        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition flex items-center gap-2"
+        className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition flex items-center gap-2"
         title={t('settings.changeLanguage')}
       >
         <span className="text-lg">🌐</span>

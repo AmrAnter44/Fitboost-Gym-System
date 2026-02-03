@@ -8,6 +8,7 @@ import type { Permissions } from '../types/permissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useSearch } from '../contexts/SearchContext'
 import { useUpdate } from '../contexts/UpdateContext'
+import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -15,27 +16,32 @@ export default function Navbar() {
   const { hasPermission, user, loading } = usePermissions()
   const { t, locale } = useLanguage()
   const { updateAvailable } = useUpdate()
+  const { settings, loading: settingsLoading } = useServiceSettings()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
 
   const allLinks = [
     { href: '/members', label: t('nav.members'), icon: '👥', permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
     { href: '/pt', label: t('nav.pt'), icon: '💪', permission: 'canViewPT' as keyof Permissions, roleRequired: null },
-    { href: '/coach/dashboard', label: t('nav.coach'), icon: '🏋️', permission: 'canRegisterPTAttendance' as keyof Permissions, roleRequired: 'COACH' },
-    { href: '/coach/rotations', label: t('nav.rotations'), icon: '🔄', permission: 'canRegisterPTAttendance' as keyof Permissions, roleRequired: 'COACH' },
+    { href: '/nutrition', label: t('nav.nutrition'), icon: '🥗', permission: 'canViewNutrition' as keyof Permissions, roleRequired: null, enabled: settings.nutritionEnabled },
+    { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: '🏥', permission: 'canViewPhysiotherapy' as keyof Permissions, roleRequired: null, enabled: settings.physiotherapyEnabled },
+    { href: '/group-classes', label: t('nav.groupClasses'), icon: '👥', permission: 'canViewGroupClass' as keyof Permissions, roleRequired: null, enabled: settings.groupClassEnabled },
     { href: '/dayuse', label: t('nav.dayUse'), icon: '📊', permission: 'canViewDayUse' as keyof Permissions, roleRequired: null },
     { href: '/staff', label: t('nav.staff'), icon: '👷', permission: 'canViewStaff' as keyof Permissions, roleRequired: null },
     { href: '/receipts', label: t('nav.receipts'), icon: '🧾', permission: 'canViewReceipts' as keyof Permissions, roleRequired: null },
     { href: '/expenses', label: t('nav.expenses'), icon: '💸', permission: 'canViewExpenses' as keyof Permissions, roleRequired: null },
     { href: '/visitors', label: t('nav.visitors'), icon: '🚶', permission: 'canViewVisitors' as keyof Permissions, roleRequired: null },
     { href: '/followups', label: t('nav.followups'), icon: '📝', permission: 'canViewFollowUps' as keyof Permissions, roleRequired: null },
-    { href: '/spa-bookings', label: t('nav.spaBookings'), icon: '💆', permission: 'canViewSpaBookings' as keyof Permissions, roleRequired: null },
+    { href: '/spa-bookings', label: t('nav.spaBookings'), icon: '💆', permission: 'canViewSpaBookings' as keyof Permissions, roleRequired: null, enabled: settings.spaEnabled },
     { href: '/closing', label: t('nav.closing'), icon: '💰', permission: 'canAccessClosing' as keyof Permissions, roleRequired: null },
     { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: null, roleRequired: null },
   ]
 
-  // Filter links based on permissions and role
+  // Filter links based on permissions, role, and enabled status
   const links = allLinks.filter(link => {
+    // Check if service is enabled (for new services only)
+    if ('enabled' in link && !link.enabled) return false
+
     // Check permission
     if (link.permission && !hasPermission(link.permission)) return false
 
@@ -80,23 +86,25 @@ export default function Navbar() {
   return (
     <>
       {/* ✅ Navbar أفقية مع أيقونات عمودية على اليمين */}
-      <nav className="bg-gray-700 text-white shadow-xl sticky top-0 z-40 border-b border-gray-800">
+      <nav className="bg-primary-700 text-white shadow-xl sticky top-0 z-40 border-b border-primary-800">
         <div className="w-full px-2 sm:px-4 relative z-10">
           <div className="flex items-center justify-between gap-2">
             {/* Logo + Hamburger Menu - على اليسار */}
             <div className="flex items-center gap-2 flex-shrink-0 py-1.5">
-              {/* Logo Button - للصفحة الرئيسية */}
-              <Link
-                href="/"
-                className="logo-breathing block"
-                title={t('nav.home')}
-              >
-                <img
-                  src="/assets/icon.png"
-                  alt="Home"
-                  className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-2xl object-cover rounded-lg"
-                />
-              </Link>
+              {/* Logo Button - للصفحة الرئيسية (مخفي عن الكوتش) */}
+              {user?.role !== 'COACH' && (
+                <Link
+                  href="/"
+                  className="logo-breathing block"
+                  title={t('nav.home')}
+                >
+                  <img
+                    src="/assets/icon.png"
+                    alt="Home"
+                    className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-2xl object-cover rounded-lg"
+                  />
+                </Link>
+              )}
 
               {/* Hamburger Menu - على الموبايل فقط */}
               <button
@@ -124,7 +132,7 @@ export default function Navbar() {
                   <span className="text-sm xl:text-base font-bold whitespace-nowrap">{link.label}</span>
                   {/* Update badge for Settings */}
                   {link.href === '/settings' && updateAvailable && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-gray-700 animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-primary-700 animate-pulse"></span>
                   )}
                 </Link>
               ))}
@@ -161,7 +169,7 @@ export default function Navbar() {
                           locale === 'ar' ? 'left-0' : 'right-0'
                         }`}>
                         {/* User Info */}
-                        <div className="bg-gray-700 text-white p-4">
+                        <div className="bg-primary-700 text-white p-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center font-bold text-lg">
                               {user.name.charAt(0).toUpperCase()}
@@ -237,7 +245,7 @@ export default function Navbar() {
               : 'left-0 animate-slideLeft border-r-4'
           }`}>
             {/* Header */}
-            <div className="bg-gray-700 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
+            <div className="bg-primary-700 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
               <div className="flex items-center gap-3">
                 <span className="font-bold text-xl">{t('nav.menu')}</span>
               </div>
@@ -335,11 +343,11 @@ export default function Navbar() {
         @keyframes logoBreathing {
           0%, 100% {
             transform: scale(1);
-            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+            filter: drop-shadow(0 0 8px rgba(var(--color-primary-rgb), 0.3));
           }
           50% {
             transform: scale(1.1);
-            filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.6));
+            filter: drop-shadow(0 0 20px rgba(var(--color-primary-rgb), 0.6));
           }
         }
 
@@ -352,7 +360,7 @@ export default function Navbar() {
         .logo-breathing:hover {
           animation: none;
           transform: scale(1.15) rotate(5deg);
-          filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.8));
+          filter: drop-shadow(0 0 25px rgba(var(--color-primary-rgb), 0.8));
         }
 
         .logo-breathing:active {

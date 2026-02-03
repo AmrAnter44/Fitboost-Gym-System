@@ -6,10 +6,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useServiceSettings } from '../contexts/ServiceSettingsContext'
+import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
 
 export default function HomePage() {
   const router = useRouter()
   const { t, locale } = useLanguage()
+  const { settings } = useServiceSettings()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   
@@ -44,9 +47,9 @@ export default function HomePage() {
         const data = await response.json()
         setUser(data.user)
 
-        // إذا كان المستخدم مدرب، يوجه لصفحته الخاصة
+        // إذا كان المستخدم مدرب، يوجه لصفحة PT Commission
         if (data.user.role === 'COACH') {
-          router.push('/coach')
+          router.push('/pt/commission')
           return
         }
 
@@ -164,12 +167,12 @@ export default function HomePage() {
   const CustomRevenueTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 rounded-lg shadow-xl border-2 border-blue-500">
+        <div className="bg-white p-4 rounded-lg shadow-xl border-2 border-primary-500">
           <p className="font-bold text-gray-800 mb-2">{payload[0].payload.fullDate}</p>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
             <p className="text-sm text-gray-600">
-              {t('dashboard.revenue')}: <span className="font-bold text-blue-600">{payload[0].value.toLocaleString()}</span> {t('members.egp')}
+              {t('dashboard.revenue')}: <span className="font-bold text-primary-600">{payload[0].value.toLocaleString()}</span> {t('members.egp')}
             </p>
           </div>
           <p className="text-xs text-gray-500 mt-1">
@@ -230,6 +233,62 @@ export default function HomePage() {
           <p className="text-gray-600">{t('dashboard.welcomeMessage')}</p>
         </div>
 
+        {/* Quick Action Buttons for Services */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">{t('dashboard.quickActions')}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* PT Button - Always visible */}
+            <Link href="/pt">
+              <div className="bg-gradient-to-br from-purple-50 to-indigo-100 hover:from-purple-100 hover:to-indigo-200 p-6 rounded-xl shadow-lg border-2 border-purple-300 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="flex flex-col items-center text-center">
+                  <div className="text-5xl mb-3">💪</div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-1">{t('nav.pt')}</h3>
+                  <p className="text-sm text-gray-600">{t('dashboard.managePTPackages')}</p>
+                </div>
+              </div>
+            </Link>
+
+            {/* Nutrition Button - Conditional */}
+            {settings.nutritionEnabled && (
+              <Link href="/nutrition">
+                <div className="bg-gradient-to-br from-lime-50 to-green-100 hover:from-lime-100 hover:to-green-200 p-6 rounded-xl shadow-lg border-2 border-lime-400 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="text-5xl mb-3">🥗</div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">{t('nav.nutrition')}</h3>
+                    <p className="text-sm text-gray-600">{t('dashboard.manageNutritionPackages')}</p>
+                  </div>
+                </div>
+              </Link>
+            )}
+
+            {/* Physiotherapy Button - Conditional */}
+            {settings.physiotherapyEnabled && (
+              <Link href="/physiotherapy">
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-100 hover:from-blue-100 hover:to-cyan-200 p-6 rounded-xl shadow-lg border-2 border-blue-400 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="text-5xl mb-3">🏥</div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">{t('nav.physiotherapy')}</h3>
+                    <p className="text-sm text-gray-600">{t('dashboard.managePhysioPackages')}</p>
+                  </div>
+                </div>
+              </Link>
+            )}
+
+            {/* Group Classes Button - Conditional */}
+            {settings.groupClassEnabled && (
+              <Link href="/group-classes">
+                <div className="bg-gradient-to-br from-fuchsia-50 to-pink-100 hover:from-fuchsia-100 hover:to-pink-200 p-6 rounded-xl shadow-lg border-2 border-fuchsia-400 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="text-5xl mb-3">👥</div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">{t('nav.groupClasses')}</h3>
+                    <p className="text-sm text-gray-600">{t('dashboard.manageGroupClassPackages')}</p>
+                  </div>
+                </div>
+              </Link>
+            )}
+          </div>
+        </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex items-center justify-between">
@@ -271,11 +330,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-lg shadow-md border-2 border-blue-400">
+        <div className="bg-gradient-to-br from-primary-50 to-cyan-50 p-6 rounded-lg shadow-md border-2 border-primary-400">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-700 text-sm font-semibold">{t('dashboard.todayAttendance')}</p>
-              <p className="text-3xl font-bold text-blue-800">{stats.todayCheckIns}</p>
+              <p className="text-primary-700 text-sm font-semibold">{t('dashboard.todayAttendance')}</p>
+              <p className="text-3xl font-bold text-primary-800">{stats.todayCheckIns}</p>
             </div>
             <div className="text-4xl">📊</div>
           </div>
@@ -285,7 +344,7 @@ export default function HomePage() {
       {/* 📊 الجرافات */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* جراف الإيرادات */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl shadow-xl border-2 border-blue-200 hover:shadow-2xl transition-shadow duration-300">
+        <div className="bg-gradient-to-br from-primary-50 to-indigo-50 p-6 rounded-2xl shadow-xl border-2 border-primary-200 hover:shadow-2xl transition-shadow duration-300">
           <div className="mb-4">
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <span className="text-3xl">💰</span>
@@ -298,8 +357,8 @@ export default function HomePage() {
               <LineChart data={revenueChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={PRIMARY_COLOR} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={PRIMARY_COLOR} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.5} />
@@ -318,9 +377,9 @@ export default function HomePage() {
                 <Line
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#3b82f6"
+                  stroke={PRIMARY_COLOR}
                   strokeWidth={4}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 6, stroke: '#fff' }}
+                  dot={{ fill: PRIMARY_COLOR, strokeWidth: 2, r: 6, stroke: '#fff' }}
                   activeDot={{ r: 8, stroke: '#fff', strokeWidth: 3 }}
                   fill="url(#revenueGradient)"
                 />

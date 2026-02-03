@@ -28,13 +28,112 @@ export default function SettingsPage() {
   const [isDetecting, setIsDetecting] = useState(false)
   const [detectionInput, setDetectionInput] = useState('')
 
+  // Service Settings State
+  const [serviceSettings, setServiceSettings] = useState({
+    nutritionEnabled: true,
+    physiotherapyEnabled: true,
+    groupClassEnabled: true,
+    spaEnabled: true,
+    inBodyEnabled: true,
+    websiteUrl: 'https://www.xgym.website',
+    showWebsiteOnReceipts: true
+  })
+  const [loadingServices, setLoadingServices] = useState(false)
+
   useEffect(() => {
     // Check if running in Electron
     if (typeof window !== 'undefined') {
       setIsElectron(!!(window as any).electron?.isElectron)
     }
     checkAuth()
+    fetchServiceSettings()
   }, [])
+
+  const fetchServiceSettings = async () => {
+    try {
+      const response = await fetch('/api/settings/services')
+      if (response.ok) {
+        const data = await response.json()
+        setServiceSettings(data)
+      }
+    } catch (error) {
+      console.error('Error fetching service settings:', error)
+    }
+  }
+
+  const toggleService = async (serviceName: 'nutrition' | 'physiotherapy' | 'groupClass' | 'spa' | 'inBody' | 'points') => {
+    setLoadingServices(true)
+    try {
+      const newSettings = {
+        ...serviceSettings,
+        [`${serviceName}Enabled`]: !serviceSettings[`${serviceName}Enabled` as keyof typeof serviceSettings]
+      }
+
+      const response = await fetch('/api/settings/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      })
+
+      if (response.ok) {
+        setServiceSettings(newSettings)
+        // toast.success(t('settings.servicesUpdatedSuccess') || 'تم تحديث الإعدادات بنجاح')
+      }
+    } catch (error) {
+      console.error('Error updating service settings:', error)
+      // toast.error(t('settings.servicesUpdateFailed') || 'فشل تحديث الإعدادات')
+    } finally {
+      setLoadingServices(false)
+    }
+  }
+
+  const updatePointsSettings = async (setting: 'pointsPerCheckIn' | 'pointsPerInvitation' | 'pointsPerEGPSpent' | 'pointsValueInEGP', value: number) => {
+    setLoadingServices(true)
+    try {
+      const newSettings = {
+        ...serviceSettings,
+        [setting]: value
+      }
+
+      const response = await fetch('/api/settings/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      })
+
+      if (response.ok) {
+        setServiceSettings(newSettings)
+      }
+    } catch (error) {
+      console.error('Error updating points settings:', error)
+    } finally {
+      setLoadingServices(false)
+    }
+  }
+
+  const updateWebsiteSettings = async (setting: 'websiteUrl' | 'showWebsiteOnReceipts', value: string | boolean) => {
+    setLoadingServices(true)
+    try {
+      const newSettings = {
+        ...serviceSettings,
+        [setting]: value
+      }
+
+      const response = await fetch('/api/settings/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      })
+
+      if (response.ok) {
+        setServiceSettings(newSettings)
+      }
+    } catch (error) {
+      console.error('Error updating website settings:', error)
+    } finally {
+      setLoadingServices(false)
+    }
+  }
 
   // ✅ Send device name to Electron when component mounts (restore from localStorage)
   useEffect(() => {
@@ -165,6 +264,14 @@ export default function SettingsPage() {
       const response = await fetch('/api/auth/me')
       if (response.ok) {
         const data = await response.json()
+
+        // التحقق من أن المستخدم Admin
+        if (data.user.role !== 'ADMIN') {
+          alert('هذه الصفحة مخصصة للمدراء فقط')
+          router.push('/')
+          return
+        }
+
         setUser(data.user)
       } else {
         router.push('/login')
@@ -428,7 +535,28 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border-2 border-blue-200">
+            {/* قسم إدارة الباقات */}
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 sm:p-6 border-2 border-purple-200 mb-3 sm:mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                <div className="flex-1">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
+                    <span>📦</span> {t('packages.management')}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    {t('packages.managementDesc')}
+                  </p>
+                </div>
+                <Link
+                  href="/settings/packages"
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-lg"
+                >
+                  <span>📦</span>
+                  <span>{t('packages.manage')}</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-primary-50 to-indigo-50 rounded-xl p-4 sm:p-6 border-2 border-primary-200">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex-1">
                   <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">
@@ -440,7 +568,7 @@ export default function SettingsPage() {
                 </div>
                 <Link
                   href="/admin/audit"
-                  className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 font-bold flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
+                  className="bg-primary-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
                 >
                   <span>🔒</span>
                   <span>{t('settings.viewAuditLogs')}</span>
@@ -468,7 +596,7 @@ export default function SettingsPage() {
                 onClick={() => handleLanguageChange('ar')}
                 className={`p-3 sm:p-4 rounded-xl border-2 transition-all ${
                   locale === 'ar'
-                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                    ? 'border-primary-500 bg-primary-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
@@ -479,7 +607,7 @@ export default function SettingsPage() {
                     <div className="text-xs sm:text-sm text-gray-600">Arabic</div>
                   </div>
                   {locale === 'ar' && (
-                    <span className="text-blue-500 text-lg sm:text-xl">✓</span>
+                    <span className="text-primary-500 text-lg sm:text-xl">✓</span>
                   )}
                 </div>
               </button>
@@ -489,7 +617,7 @@ export default function SettingsPage() {
                 onClick={() => handleLanguageChange('en')}
                 className={`p-3 sm:p-4 rounded-xl border-2 transition-all ${
                   locale === 'en'
-                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                    ? 'border-primary-500 bg-primary-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
@@ -500,14 +628,14 @@ export default function SettingsPage() {
                     <div className="text-xs sm:text-sm text-gray-600">الإنجليزية</div>
                   </div>
                   {locale === 'en' && (
-                    <span className="text-blue-500 text-lg sm:text-xl">✓</span>
+                    <span className="text-primary-500 text-lg sm:text-xl">✓</span>
                   )}
                 </div>
               </button>
             </div>
 
             {/* رسالة معلومات */}
-            <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-blue-100 border border-blue-300 rounded-lg text-blue-800 text-xs sm:text-sm">
+            <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-primary-100 border border-primary-300 rounded-lg text-primary-800 text-xs sm:text-sm">
               ℹ️ {t('settings.languageChangedSuccessfully')}
             </div>
           </div>
@@ -593,7 +721,7 @@ export default function SettingsPage() {
               </label>
 
               {loadingDevices && (
-                <div className="p-3 sm:p-4 bg-blue-50 rounded-xl text-blue-700 text-center text-sm">
+                <div className="p-3 sm:p-4 bg-primary-50 rounded-xl text-primary-700 text-center text-sm">
                   <span className="animate-spin inline-block">⏳</span> {locale === 'ar' ? 'جاري الكشف عن الأجهزة...' : 'Detecting devices...'}
                 </div>
               )}
@@ -604,7 +732,7 @@ export default function SettingsPage() {
                     key={`scanner-select-${selectedScanner || 'none'}`}
                     value={selectedScanner || 'none'}
                     onChange={(e) => handleDeviceChange(e.target.value)}
-                    className="w-full p-2.5 sm:p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-sm sm:text-base"
+                    className="w-full p-2.5 sm:p-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none text-sm sm:text-base"
                   >
                     <option value="none">{t('settings.defaultDevice')}</option>
                     {devices.map((device) => (
@@ -616,7 +744,7 @@ export default function SettingsPage() {
 
                   <button
                     onClick={detectDevices}
-                    className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                    className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-primary-600 to-indigo-600 text-white font-semibold flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg hover:from-primary-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
                   >
                     <span>🔍</span>
                     <span className="hidden sm:inline">{locale === 'ar' ? 'اكتشف جميع الأجهزة (USB, كاميرات, وغيرها)' : 'Detect All Devices (USB, Cameras, etc.)'}</span>
@@ -627,7 +755,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Info Message */}
-            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl text-blue-800 text-xs sm:text-sm">
+            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gradient-to-br from-primary-50 to-indigo-50 border-2 border-primary-300 rounded-xl text-primary-800 text-xs sm:text-sm">
               <div className="font-bold mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
                 <span>💡</span>
                 <span>{locale === 'ar' ? 'كيفية إعداد الباركود سكانر:' : 'How to Setup Barcode Scanner:'}</span>
@@ -664,7 +792,7 @@ export default function SettingsPage() {
                   }
                 </li>
               </ol>
-              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-blue-300">
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-primary-300">
                 <p className="text-[10px] sm:text-xs">
                   {locale === 'ar'
                     ? '💡 نصيحة: إذا لم يظهر جهازك في القائمة، اختر "قارئ باركود (Keyboard Wedge)" - يعمل مع 99% من الأجهزة بدون إعدادات'
@@ -775,7 +903,7 @@ export default function SettingsPage() {
           {/* Update notifications removed - now shown only in toast via UpdateNotification component */}
 
           {/* Main update check card */}
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 sm:p-6 border-2 border-blue-200">
+          <div className="bg-gradient-to-br from-primary-50 to-cyan-50 rounded-xl p-4 sm:p-6 border-2 border-primary-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div className="flex-1">
                 <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
@@ -791,10 +919,10 @@ export default function SettingsPage() {
               <button
                 onClick={handleCheckForUpdates}
                 disabled={isCheckingUpdates}
-                className={`w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-sm sm:text-base ${
+                className={`w-full sm:w-auto bg-gradient-to-r from-primary-600 to-cyan-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-sm sm:text-base ${
                   isCheckingUpdates
                     ? 'opacity-70 cursor-not-allowed'
-                    : 'hover:from-blue-700 hover:to-cyan-700 hover:scale-105 active:scale-95'
+                    : 'hover:from-primary-700 hover:to-cyan-700 hover:scale-105 active:scale-95'
                 }`}
               >
                 {isCheckingUpdates ? (
@@ -851,6 +979,334 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* قسم إدارة الخدمات */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">
+            🔧 {t('settings.servicesManagement')}
+          </h3>
+          <p className="text-gray-600 mb-6">
+            {t('settings.servicesManagementDesc')}
+          </p>
+
+          <div className="space-y-4">
+            {/* Nutrition Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🥗</span>
+                <div>
+                  <h4 className="font-bold text-gray-800">{t('services.nutrition')}</h4>
+                  <p className="text-sm text-gray-600">{t('services.nutritionDesc')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleService('nutrition')}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.nutritionEnabled ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.nutritionEnabled
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Physiotherapy Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🏥</span>
+                <div>
+                  <h4 className="font-bold text-gray-800">{t('services.physiotherapy')}</h4>
+                  <p className="text-sm text-gray-600">{t('services.physiotherapyDesc')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleService('physiotherapy')}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.physiotherapyEnabled ? 'bg-blue-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.physiotherapyEnabled
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Group Classes Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">👥</span>
+                <div>
+                  <h4 className="font-bold text-gray-800">{t('services.groupClasses')}</h4>
+                  <p className="text-sm text-gray-600">{t('services.groupClassesDesc')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleService('groupClass')}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.groupClassEnabled ? 'bg-purple-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.groupClassEnabled
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* SPA Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">💆</span>
+                <div>
+                  <h4 className="font-bold text-gray-800">{t('services.spa')}</h4>
+                  <p className="text-sm text-gray-600">{t('services.spaDesc')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleService('spa')}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.spaEnabled ? 'bg-pink-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.spaEnabled
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* InBody Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">⚖️</span>
+                <div>
+                  <h4 className="font-bold text-gray-800">{t('services.inBody')}</h4>
+                  <p className="text-sm text-gray-600">{t('services.inBodyDesc')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleService('inBody')}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.inBodyEnabled ? 'bg-cyan-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.inBodyEnabled
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Points System Management */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
+          <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl sm:text-4xl">🏆</span>
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold">{t('settings.pointsManagement')}</h3>
+                <p className="text-sm text-yellow-50">{t('settings.pointsManagementDesc')}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6 space-y-4">
+            {/* Points System Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🏆</span>
+                <div>
+                  <h4 className="font-bold text-gray-800">{t('settings.pointsEnabled')}</h4>
+                  <p className="text-sm text-gray-600">{t('settings.pointsEnabledDesc')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleService('points')}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.pointsEnabled ? 'bg-yellow-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.pointsEnabled
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Points Configuration */}
+            {serviceSettings.pointsEnabled && (
+              <div className="space-y-4 animate-slideDown">
+                {/* Points per Check-in */}
+                <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">✅</span>
+                      <h4 className="font-bold text-gray-800">{t('settings.pointsPerCheckIn')}</h4>
+                    </div>
+                    <span className="text-2xl font-bold text-green-600">{serviceSettings.pointsPerCheckIn}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={serviceSettings.pointsPerCheckIn}
+                    onChange={(e) => updatePointsSettings('pointsPerCheckIn', parseInt(e.target.value) || 0)}
+                    className="w-full p-2 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">{t('settings.pointsPerCheckInDesc')}</p>
+                </div>
+
+                {/* Points per Invitation */}
+                <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🎁</span>
+                      <h4 className="font-bold text-gray-800">{t('settings.pointsPerInvitation')}</h4>
+                    </div>
+                    <span className="text-2xl font-bold text-purple-600">{serviceSettings.pointsPerInvitation}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={serviceSettings.pointsPerInvitation}
+                    onChange={(e) => updatePointsSettings('pointsPerInvitation', parseInt(e.target.value) || 0)}
+                    className="w-full p-2 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">{t('settings.pointsPerInvitationDesc')}</p>
+                </div>
+
+                {/* Points per EGP Spent */}
+                <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">💰</span>
+                      <h4 className="font-bold text-gray-800">{t('settings.pointsPerEGPSpent')}</h4>
+                    </div>
+                    <span className="text-2xl font-bold text-blue-600">{serviceSettings.pointsPerEGPSpent}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    value={serviceSettings.pointsPerEGPSpent}
+                    onChange={(e) => updatePointsSettings('pointsPerEGPSpent', parseFloat(e.target.value) || 0)}
+                    className="w-full p-2 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">{t('settings.pointsPerEGPSpentDesc')}</p>
+                </div>
+
+                {/* Points Value in EGP */}
+                <div className="p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">💰</span>
+                      <h4 className="font-bold text-gray-800">{t('settings.pointsValueInEGP')}</h4>
+                    </div>
+                    <span className="text-2xl font-bold text-yellow-600">{serviceSettings.pointsValueInEGP}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={serviceSettings.pointsValueInEGP}
+                    onChange={(e) => updatePointsSettings('pointsValueInEGP', parseFloat(e.target.value) || 0)}
+                    className="w-full p-2 border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">{t('settings.pointsValueInEGPDesc')}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Website Settings */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
+          <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl sm:text-4xl">🌐</span>
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold">{t('settings.websiteSettings')}</h3>
+                <p className="text-sm text-cyan-50">{t('settings.websiteSettingsDesc')}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6 space-y-4">
+            {/* Website URL */}
+            <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🔗</span>
+                <h4 className="font-bold text-gray-800">{t('settings.websiteUrl')}</h4>
+              </div>
+              <input
+                type="url"
+                value={serviceSettings.websiteUrl}
+                onChange={(e) => updateWebsiteSettings('websiteUrl', e.target.value)}
+                placeholder="https://www.example.com"
+                className="w-full p-3 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                dir="ltr"
+              />
+              <p className="text-xs text-gray-600 mt-2">{t('settings.websiteUrlDesc')}</p>
+            </div>
+
+            {/* Show Website on Receipts Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">📄</span>
+                <div>
+                  <h4 className="font-bold text-gray-800">{t('settings.showWebsiteOnReceipts')}</h4>
+                  <p className="text-sm text-gray-600">{t('settings.showWebsiteOnReceiptsDesc')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => updateWebsiteSettings('showWebsiteOnReceipts', !serviceSettings.showWebsiteOnReceipts)}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.showWebsiteOnReceipts ? 'bg-cyan-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.showWebsiteOnReceipts
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Powered by FitBoost */}
         <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
           <div className="text-center">
@@ -861,7 +1317,7 @@ export default function SettingsPage() {
               className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <span className="text-xs sm:text-sm text-gray-500">{t('settings.poweredBy')}</span>
-              <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-primary-600 to-cyan-600 bg-clip-text text-transparent">
                 FitBoost
               </span>
             </a>

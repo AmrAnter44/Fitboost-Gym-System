@@ -252,7 +252,8 @@ export default function ReceiptsPage() {
         'cash': '💵',
         'visa': '💳',
         'wallet': '👛',
-        'instapay': '💸'
+        'instapay': '💸',
+        'points': '🏆'
       }
 
       return (
@@ -260,6 +261,9 @@ export default function ReceiptsPage() {
           {normalized.methods.map((m, idx) => (
             <div key={idx}>
               {emojis[m.method] || '💰'} {Math.round(m.amount)}
+              {m.method === 'points' && m.pointsUsed && (
+                <span className="text-yellow-600 font-bold"> ({m.pointsUsed} نقطة)</span>
+              )}
             </div>
           ))}
         </div>
@@ -271,7 +275,8 @@ export default function ReceiptsPage() {
       'cash': `💵 ${t('receipts.paymentMethods.cash')}`,
       'visa': `💳 ${t('receipts.paymentMethods.visa')}`,
       'wallet': `👛 ${t('receipts.paymentMethods.wallet')}`,
-      'instapay': `💸 ${t('receipts.paymentMethods.instapay')}`
+      'instapay': `💸 ${t('receipts.paymentMethods.instapay')}`,
+      'points': `🏆 ${t('receipts.paymentMethods.points') || 'نقاط'}`
     }
     return labels[method] || method
   }
@@ -534,7 +539,7 @@ export default function ReceiptsPage() {
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-3xl font-bold">{filteredReceipts.length}</div>
@@ -577,7 +582,7 @@ export default function ReceiptsPage() {
           </div>
           <button
             onClick={() => setShowReceiptNumberEdit(!showReceiptNumberEdit)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition"
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium transition"
           >
             {showReceiptNumberEdit ? `✕ ${t('receipts.nextReceiptNumber.cancel')}` : `✏️ ${t('receipts.nextReceiptNumber.edit')}`}
           </button>
@@ -593,7 +598,7 @@ export default function ReceiptsPage() {
                 type="number"
                 value={nextReceiptNumber}
                 onChange={(e) => setNextReceiptNumber(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border-2 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                 placeholder="1000"
               />
             </div>
@@ -618,7 +623,7 @@ export default function ReceiptsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('receipts.filters.searchPlaceholder')}
-              className="w-full px-3 py-2 md:px-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 md:px-4 border-2 rounded-lg focus:ring-2 focus:ring-primary-500"
               dir={direction}
             />
           </div>
@@ -628,7 +633,7 @@ export default function ReceiptsPage() {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 md:px-4 border-2 rounded-lg focus:ring-2 focus:ring-primary-500"
             >
               <option value="all">{t('receipts.filters.all')}</option>
               <option value="Member">{t('receipts.types.Member')}</option>
@@ -647,13 +652,14 @@ export default function ReceiptsPage() {
             <select
               value={filterPayment}
               onChange={(e) => setFilterPayment(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 md:px-4 border-2 rounded-lg focus:ring-2 focus:ring-primary-500"
             >
               <option value="all">{t('receipts.filters.all')}</option>
               <option value="cash">{t('receipts.paymentMethods.cash')}</option>
               <option value="visa">{t('receipts.paymentMethods.visa')}</option>
               <option value="wallet">{t('receipts.paymentMethods.wallet')}</option>
               <option value="instapay">{t('receipts.paymentMethods.instapay')}</option>
+              <option value="points">{t('receipts.paymentMethods.points') || 'نقاط'}</option>
             </select>
           </div>
         </div>
@@ -665,7 +671,7 @@ export default function ReceiptsPage() {
               setFilterType('all')
               setFilterPayment('all')
             }}
-            className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
+            className="mt-4 text-sm text-primary-600 hover:text-primary-700 font-medium"
           >
             ❌ {t('receipts.filters.clearFilters')}
           </button>
@@ -687,7 +693,7 @@ export default function ReceiptsPage() {
             return (
               <div
                 key={receipt.id}
-                className="bg-white border-r-4 border-blue-500 rounded-lg shadow-lg p-5"
+                className="bg-white border-r-4 border-primary-500 rounded-lg shadow-lg p-5"
               >
                 {/* Header Section */}
                 <div className="flex justify-between items-start mb-4 pb-3 border-b-2 border-gray-100">
@@ -695,7 +701,7 @@ export default function ReceiptsPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs text-gray-500">رقم الإيصال</span>
                     </div>
-                    <span className="font-bold text-blue-600 text-xl">#{receipt.receiptNumber}</span>
+                    <span className="font-bold text-primary-600 text-xl">#{receipt.receiptNumber}</span>
                   </div>
                   <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
                     {getTypeLabel(receipt.type)}
@@ -713,7 +719,7 @@ export default function ReceiptsPage() {
                       )}
                       <div className="flex gap-2 mt-2 flex-wrap">
                         {details.memberNumber && (
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">
+                          <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded-full font-semibold">
                             عضوية #{details.memberNumber}
                           </span>
                         )}
@@ -923,7 +929,7 @@ export default function ReceiptsPage() {
 
                   <button
                     onClick={() => handlePrint(receipt, { printOnly: true })}
-                    className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm transition shadow-md font-semibold"
+                    className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 text-sm transition shadow-md font-semibold"
                     title="طباعة فقط"
                   >
                     🖨️ {t('receipts.actions.print')}
@@ -987,7 +993,7 @@ export default function ReceiptsPage() {
                     setFilterType('all')
                     setFilterPayment('all')
                   }}
-                  className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                  className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
                 >
                   {t('receipts.empty.clearFilters')}
                 </button>
@@ -1028,13 +1034,13 @@ export default function ReceiptsPage() {
                     className={`border-t transition ${
                       receipt.isCancelled
                         ? 'bg-red-200 hover:bg-red-300 border-l-4 border-red-600'
-                        : 'hover:bg-blue-50'
+                        : 'hover:bg-primary-50'
                     }`}
                   >
                     <td className="px-4 py-4">
                       <div>
                         <span className={`font-bold text-lg ${
-                          receipt.isCancelled ? 'text-red-600' : 'text-blue-600'
+                          receipt.isCancelled ? 'text-red-600' : 'text-primary-600'
                         }`}>#{receipt.receiptNumber}</span>
                         {receipt.isCancelled && (
                           <div className="mt-1">
@@ -1058,7 +1064,7 @@ export default function ReceiptsPage() {
                         )}
                         <div className="flex gap-1 mt-1">
                           {details.memberNumber && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                            <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">
                               عضوية #{details.memberNumber}
                             </span>
                           )}
@@ -1151,7 +1157,7 @@ export default function ReceiptsPage() {
                         
                         <button
                           onClick={() => handlePrint(receipt, { printOnly: true })}
-                          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm transition shadow-md hover:shadow-lg"
+                          className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 text-sm transition shadow-md hover:shadow-lg"
                           title="طباعة فقط"
                         >
                           🖨️
@@ -1218,7 +1224,7 @@ export default function ReceiptsPage() {
                     setFilterType('all')
                     setFilterPayment('all')
                   }}
-                  className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                  className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
                 >
                   {t('receipts.empty.clearFilters')}
                 </button>
@@ -1279,7 +1285,7 @@ export default function ReceiptsPage() {
                       onClick={() => goToPage(pageNum)}
                       className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                         currentPage === pageNum
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-primary-600 text-white'
                           : 'hover:bg-gray-200'
                       }`}
                     >
@@ -1317,7 +1323,7 @@ export default function ReceiptsPage() {
                   setItemsPerPage(Number(e.target.value))
                   setCurrentPage(1)
                 }}
-                className="border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -1358,7 +1364,7 @@ export default function ReceiptsPage() {
             </div>
 
             {/* معلومات الإيصال الأساسية */}
-            <div className={`bg-blue-50 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-blue-500 rounded-lg p-3 mb-4`}>
+            <div className={`bg-primary-50 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500 rounded-lg p-3 mb-4`}>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <span className="text-gray-600">{t('receipts.edit.type')}:</span>
@@ -1385,7 +1391,7 @@ export default function ReceiptsPage() {
                     type="number"
                     value={editFormData.receiptNumber}
                     onChange={(e) => setEditFormData({ ...editFormData, receiptNumber: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="1000"
                   />
                   <p className="text-xs text-amber-600 mt-1">
@@ -1403,7 +1409,7 @@ export default function ReceiptsPage() {
                     step="0.01"
                     value={editFormData.amount}
                     onChange={(e) => setEditFormData({ ...editFormData, amount: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="0.00"
                   />
                 </div>
@@ -1419,12 +1425,13 @@ export default function ReceiptsPage() {
                   <select
                     value={editFormData.paymentMethod}
                     onChange={(e) => setEditFormData({ ...editFormData, paymentMethod: e.target.value })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
                     <option value="cash">💵 {t('receipts.paymentMethods.cash')}</option>
                     <option value="visa">💳 {t('receipts.paymentMethods.visa')}</option>
                     <option value="wallet">👛 {t('receipts.paymentMethods.wallet')}</option>
                     <option value="instapay">💸 {t('receipts.paymentMethods.instapay')}</option>
+                    <option value="points">🏆 {t('receipts.paymentMethods.points') || 'نقاط'}</option>
                   </select>
                 </div>
 
@@ -1437,7 +1444,7 @@ export default function ReceiptsPage() {
                     type="text"
                     value={editFormData.staffName}
                     onChange={(e) => setEditFormData({ ...editFormData, staffName: e.target.value })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder={t('receipts.edit.staffPlaceholder')}
                   />
                 </div>
@@ -1452,7 +1459,7 @@ export default function ReceiptsPage() {
                   type="datetime-local"
                   value={editFormData.createdAt}
                   onChange={(e) => setEditFormData({ ...editFormData, createdAt: e.target.value })}
-                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   ℹ️ {t('receipts.edit.dateNote')}
@@ -1477,7 +1484,7 @@ export default function ReceiptsPage() {
             <div className="flex gap-3 mt-4">
               <button
                 onClick={handleSaveEdit}
-                className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition font-bold shadow-lg hover:shadow-xl"
+                className="flex-1 bg-primary-600 text-white py-2.5 rounded-lg hover:bg-primary-700 transition font-bold shadow-lg hover:shadow-xl"
               >
                 ✅ {t('receipts.edit.save')}
               </button>

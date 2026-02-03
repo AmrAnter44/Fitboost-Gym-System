@@ -157,7 +157,7 @@ export default function InvitationsPage() {
           <p className="text-sm opacity-90 mb-1">{t('invitations.today')}</p>
           <p className="text-4xl font-bold">{stats.today}</p>
         </div>
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-5 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-5 shadow-lg">
           <p className="text-sm opacity-90 mb-1">{t('invitations.thisWeek')}</p>
           <p className="text-4xl font-bold">{stats.thisWeek}</p>
         </div>
@@ -253,7 +253,7 @@ export default function InvitationsPage() {
                         <p className="font-semibold">{invitation.member.name}</p>
                         <p className="text-xs text-gray-500">{invitation.member.phone}</p>
                       </div>
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold text-xs">
+                      <span className="bg-primary-100 text-primary-800 px-2 py-1 rounded font-bold text-xs">
                         #{invitation.member.memberNumber}
                       </span>
                     </div>
@@ -314,7 +314,7 @@ export default function InvitationsPage() {
                         <p className="text-xs text-gray-500">{invitation.member.phone}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold text-sm">
+                        <span className="inline-block bg-primary-100 text-primary-800 px-2 py-1 rounded font-bold text-sm">
                           #{invitation.member.memberNumber}
                         </span>
                       </td>
@@ -394,7 +394,7 @@ export default function InvitationsPage() {
                         onClick={() => goToPage(pageNum)}
                         className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                           currentPage === pageNum
-                            ? 'bg-blue-600 text-white'
+                            ? 'bg-primary-600 text-white'
                             : 'hover:bg-gray-200'
                         }`}
                       >
@@ -432,7 +432,7 @@ export default function InvitationsPage() {
                     setItemsPerPage(Number(e.target.value))
                     setCurrentPage(1)
                   }}
-                  className="border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -462,8 +462,8 @@ export default function InvitationsPage() {
       )}
 
       {/* Note */}
-      <div className="mt-6 bg-blue-50 border-r-4 border-blue-500 p-4 rounded-lg">
-        <p className="text-sm text-blue-800">
+      <div className="mt-6 bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg">
+        <p className="text-sm text-primary-800">
           <strong>{t('invitations.noteLabel')}</strong>
         </p>
       </div>

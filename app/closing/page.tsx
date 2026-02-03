@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from 'react'
 import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts'
 import { normalizePaymentMethod, isMultiPayment } from '../../lib/paymentHelpers'
+import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
+import { getReceiptTypeTranslationKey, isFloorReceipt, isPTReceipt } from '../../lib/translateReceiptType'
 
 interface DailyData {
   date: string
@@ -16,6 +18,7 @@ interface DailyData {
   instapay: number
   cash: number
   wallet: number
+  points: number  // 🏆 النقاط المستخدمة
   remainingAmount: number  // 💰 الفلوس الباقية
   remainingInstapay: number // 💰 الفلوس الباقية - إنستاباي
   remainingWallet: number   // 💰 الفلوس الباقية - محفظة
@@ -56,6 +59,7 @@ export default function ClosingPage() {
     instapay: 0,
     cash: 0,
     wallet: 0,
+    points: 0,               // 🏆 النقاط المستخدمة
     remainingAmount: 0,      // 💰 الفلوس الباقية
     remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
     remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
@@ -63,6 +67,8 @@ export default function ClosingPage() {
     totalRevenue: 0,
     netProfit: 0
   })
+
+  const [pointsValueInEGP, setPointsValueInEGP] = useState(0.1) // القيمة الافتراضية
 
   const { t, direction } = useLanguage()
 
@@ -79,6 +85,19 @@ export default function ClosingPage() {
 
       const expensesRes = await fetch('/api/expenses')
       const expenses = await expensesRes.json()
+
+      // جلب إعدادات النظام للحصول على قيمة النقطة بالجنيه
+      try {
+        const settingsRes = await fetch('/api/settings/services')
+        if (settingsRes.ok) {
+          const settings = await settingsRes.json()
+          if (settings.pointsValueInEGP) {
+            setPointsValueInEGP(settings.pointsValueInEGP)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error)
+      }
 
       const now = new Date()
       const filterDate = (dateString: string) => {
@@ -123,6 +142,7 @@ export default function ClosingPage() {
             instapay: 0,
             cash: 0,
             wallet: 0,
+            points: 0,               // 🏆 النقاط المستخدمة
             remainingAmount: 0,      // 💰 الفلوس الباقية
             remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
             remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
@@ -144,7 +164,7 @@ export default function ClosingPage() {
         }
 
         // تحديد نوع الإيصال
-        if (receipt.type === 'Member' || receipt.type === 'تجديد عضويه' || receipt.type === 'Payment') {
+        if (isFloorReceipt(receipt.type)) {
           // floor يشمل: اشتراكات جديدة، تجديدات، ودفع المتبقي من العضويات
           dailyMap[date].floor += receipt.amount
 
@@ -176,7 +196,7 @@ export default function ClosingPage() {
               }
             }
           }
-        } else if (receipt.type === 'PT' || receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت' || receipt.type === 'دفع باقي برايفت' || receipt.type === 'برايفت جديد') {
+        } else if (isPTReceipt(receipt.type)) {
           // PT يشمل: اشتراكات جديدة، تجديدات، ودفع الباقي
           dailyMap[date].pt += receipt.amount
         }
@@ -193,6 +213,8 @@ export default function ClosingPage() {
               dailyMap[date].instapay += pm.amount
             } else if (pm.method === 'wallet') {
               dailyMap[date].wallet += pm.amount
+            } else if (pm.method === 'points') {
+              dailyMap[date].points += pm.amount
             } else {
               dailyMap[date].cash += pm.amount
             }
@@ -205,6 +227,8 @@ export default function ClosingPage() {
             dailyMap[date].instapay += receipt.amount
           } else if (paymentMethodRaw === 'wallet') {
             dailyMap[date].wallet += receipt.amount
+          } else if (paymentMethodRaw === 'points') {
+            dailyMap[date].points += receipt.amount
           } else {
             dailyMap[date].cash += receipt.amount
           }
@@ -230,6 +254,7 @@ export default function ClosingPage() {
             instapay: 0,
             cash: 0,
             wallet: 0,
+            points: 0,               // 🏆 النقاط المستخدمة
             remainingAmount: 0,      // 💰 الفلوس الباقية
             remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
             remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
@@ -270,6 +295,7 @@ export default function ClosingPage() {
         acc.instapay += day.instapay
         acc.cash += day.cash
         acc.wallet += day.wallet
+        acc.points += day.points                          // 🏆 النقاط المستخدمة
         acc.remainingAmount += day.remainingAmount        // 💰 الفلوس الباقية
         acc.remainingInstapay += day.remainingInstapay    // 💰 الفلوس الباقية - إنستاباي
         acc.remainingWallet += day.remainingWallet        // 💰 الفلوس الباقية - محفظة
@@ -282,6 +308,7 @@ export default function ClosingPage() {
         instapay: 0,
         cash: 0,
         wallet: 0,
+        points: 0,               // 🏆 النقاط المستخدمة
         remainingAmount: 0,      // 💰 الفلوس الباقية
         remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
         remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
@@ -290,7 +317,7 @@ export default function ClosingPage() {
         netProfit: 0
       })
 
-      newTotals.totalPayments = newTotals.cash + newTotals.visa + newTotals.instapay + newTotals.wallet
+      newTotals.totalPayments = newTotals.cash + newTotals.visa + newTotals.instapay + newTotals.wallet + newTotals.points
       newTotals.totalRevenue = newTotals.floor + newTotals.pt
       newTotals.netProfit = newTotals.totalRevenue - newTotals.expenses
 
@@ -407,8 +434,6 @@ export default function ClosingPage() {
         t('closing.table.date'),
         t('closing.table.floor'),
         direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining',
-        direction === 'rtl' ? 'باقي إنستا' : 'Rem. Insta',
-        direction === 'rtl' ? 'باقي محفظة' : 'Rem. Wallet',
         t('closing.table.pt'),
         t('closing.table.cash'),
         t('closing.table.visa'),
@@ -438,18 +463,17 @@ export default function ClosingPage() {
 
       dailyData.forEach((day, index) => {
         const totalStaffLoans = Object.values(day.staffLoans).reduce((a, b) => a + b, 0)
-        const dayTotalPayments = day.cash + day.visa + day.instapay + day.wallet
+        const dayTotalPayments = day.cash + day.visa + day.instapay + day.wallet + day.points
         const row = mainSheet.addRow([
           new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US'),
           day.floor > 0 ? day.floor : 0,
           day.remainingAmount > 0 ? day.remainingAmount : 0,
-          day.remainingInstapay > 0 ? day.remainingInstapay : 0,
-          day.remainingWallet > 0 ? day.remainingWallet : 0,
           day.pt > 0 ? day.pt : 0,
           day.cash > 0 ? day.cash : 0,
           day.visa > 0 ? day.visa : 0,
           day.instapay > 0 ? day.instapay : 0,
           day.wallet > 0 ? day.wallet : 0,
+          day.points > 0 ? day.points : 0,
           dayTotalPayments,
           day.expenses > 0 ? day.expenses : 0,
           day.expenseDetails || '-',
@@ -485,13 +509,12 @@ export default function ClosingPage() {
         t('closing.table.totalLabel'),
         totals.floor,
         totals.remainingAmount,
-        totals.remainingInstapay,
-        totals.remainingWallet,
         totals.pt,
         totals.cash,
         totals.visa,
         totals.instapay,
         totals.wallet,
+        totals.points,
         totals.totalPayments,
         totals.expenses,
         '',
@@ -558,6 +581,7 @@ export default function ClosingPage() {
       mainSheet.addRow([t('closing.paymentMethods.visa'), totals.visa])
       mainSheet.addRow([t('closing.paymentMethods.instapay'), totals.instapay])
       mainSheet.addRow([t('closing.paymentMethods.wallet'), totals.wallet])
+      mainSheet.addRow([t('closing.paymentMethods.points'), totals.points])
       mainSheet.addRow([t('closing.stats.totalPayments'), totals.totalPayments])
 
       mainSheet.columns = [
@@ -600,9 +624,9 @@ export default function ClosingPage() {
               new Date(receipt.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US'),
               new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US'),
               receipt.receiptNumber,
-              receipt.type === 'Member' ? t('closing.receiptTypes.member') : receipt.type === 'PT' ? t('closing.receiptTypes.pt') : receipt.type,
+              t(getReceiptTypeTranslationKey(receipt.type) as any),
               receipt.amount,
-              receipt.paymentMethod === 'visa' ? t('closing.paymentMethods.visa') : receipt.paymentMethod === 'instapay' ? t('closing.paymentMethods.instapay') : receipt.paymentMethod === 'wallet' ? t('closing.paymentMethods.wallet') : t('closing.paymentMethods.cash'),
+              receipt.paymentMethod === 'visa' ? t('closing.paymentMethods.visa') : receipt.paymentMethod === 'instapay' ? t('closing.paymentMethods.instapay') : receipt.paymentMethod === 'wallet' ? t('closing.paymentMethods.wallet') : receipt.paymentMethod === 'points' ? t('closing.paymentMethods.points') : t('closing.paymentMethods.cash'),
               detailsText
             ])
             row.alignment = { horizontal: direction === 'rtl' ? 'right' : 'left', vertical: 'middle' }
@@ -695,13 +719,8 @@ export default function ClosingPage() {
   }
 
   const getTypeLabel = (type: string) => {
-    const types: { [key: string]: string } = {
-      'Member': t('closing.receiptTypes.member'),
-      'PT': t('closing.receiptTypes.pt'),
-      'DayUse': t('closing.receiptTypes.dayUse'),
-      'InBody': t('closing.receiptTypes.inBody')
-    }
-    return types[type] || type
+    const translationKey = getReceiptTypeTranslationKey(type)
+    return t(translationKey as any) || type
   }
 
   const getPaymentMethodLabel = (method: string, amount?: number) => {
@@ -713,6 +732,7 @@ export default function ClosingPage() {
         if (m.method === 'visa') return '💳'
         if (m.method === 'instapay') return '📱'
         if (m.method === 'wallet') return '💰'
+        if (m.method === 'points') return '🏆'
         return '💵'
       }).join('')
 
@@ -724,7 +744,8 @@ export default function ClosingPage() {
               'cash': t('closing.paymentMethods.cash'),
               'visa': t('closing.paymentMethods.visa'),
               'instapay': t('closing.paymentMethods.instapay'),
-              'wallet': t('closing.paymentMethods.wallet')
+              'wallet': t('closing.paymentMethods.wallet'),
+              'points': t('closing.paymentMethods.points')
             }
             return (
               <span key={idx} className="text-xs whitespace-nowrap">
@@ -741,7 +762,8 @@ export default function ClosingPage() {
       'cash': `${t('closing.paymentMethods.cash')} 💵`,
       'visa': `${t('closing.paymentMethods.visa')} 💳`,
       'instapay': `${t('closing.paymentMethods.instapay')} 📱`,
-      'wallet': `${t('closing.paymentMethods.wallet')} 💰`
+      'wallet': `${t('closing.paymentMethods.wallet')} 💰`,
+      'points': `${t('closing.paymentMethods.points')} 🏆`
     }
     return methods[method] || `${t('closing.paymentMethods.cash')} 💵`
   }
@@ -758,7 +780,7 @@ export default function ClosingPage() {
             onClick={() => setViewMode('daily')}
             className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'daily'
-                ? 'bg-blue-600 text-white shadow-lg'
+                ? 'bg-primary-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
@@ -768,7 +790,7 @@ export default function ClosingPage() {
             onClick={() => setViewMode('monthly')}
             className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'monthly'
-                ? 'bg-blue-600 text-white shadow-lg'
+                ? 'bg-primary-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
@@ -778,7 +800,7 @@ export default function ClosingPage() {
             onClick={() => setViewMode('yearly')}
             className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'yearly'
-                ? 'bg-blue-600 text-white shadow-lg'
+                ? 'bg-primary-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
@@ -895,7 +917,7 @@ export default function ClosingPage() {
             </button>
             <button
               onClick={handleExportExcel}
-              className="bg-blue-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
+              className="bg-primary-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
             >
               📊 <span className="hidden sm:inline">{t('closing.buttons.export')}</span>
             </button>
@@ -934,7 +956,7 @@ export default function ClosingPage() {
               {monthlyComparison.length > 0 && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
+                    <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
                       <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalRevenue')}</p>
                       <p className="text-2xl sm:text-3xl font-bold">
                         {monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0).toFixed(0)}
@@ -1005,7 +1027,7 @@ export default function ClosingPage() {
                         <Line
                           type="monotone"
                           dataKey="netProfit"
-                          stroke="#3b82f6"
+                          stroke={PRIMARY_COLOR}
                           strokeWidth={3}
                           name={t('closing.comparison.netProfit')}
                         />
@@ -1029,7 +1051,7 @@ export default function ClosingPage() {
                         <YAxis style={{ fontSize: '12px' }} />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="floorRevenue" fill="#60a5fa" name={t('closing.comparison.floorRevenue')} />
+                        <Bar dataKey="floorRevenue" fill={THEME_COLORS.primary[400]} name={t('closing.comparison.floorRevenue')} />
                         <Bar dataKey="ptRevenue" fill="#34d399" name={t('closing.comparison.ptRevenue')} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -1057,6 +1079,164 @@ export default function ClosingPage() {
                     </ResponsiveContainer>
                   </div>
 
+                  {/* Payment Methods Distribution (PieChart) */}
+                  <div className="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.paymentMethodsDistribution')}</h3>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <PieChart>
+                        <Pie
+                          data={(() => {
+                            const totalCash = monthlyComparison.reduce((sum, m) => sum + (m.cash || 0), 0)
+                            const totalVisa = monthlyComparison.reduce((sum, m) => sum + (m.visa || 0), 0)
+                            const totalInstapay = monthlyComparison.reduce((sum, m) => sum + (m.instapay || 0), 0)
+                            const totalWallet = monthlyComparison.reduce((sum, m) => sum + (m.wallet || 0), 0)
+                            const totalPoints = monthlyComparison.reduce((sum, m) => sum + (m.points || 0), 0)
+
+                            return [
+                              { name: t('closing.comparison.cash'), value: totalCash, color: THEME_COLORS.primary[500] },
+                              { name: t('closing.comparison.visa'), value: totalVisa, color: '#3b82f6' },
+                              { name: t('closing.comparison.instapay'), value: totalInstapay, color: '#f59e0b' },
+                              { name: t('closing.comparison.wallet'), value: totalWallet, color: '#10b981' },
+                              { name: t('closing.comparison.points'), value: totalPoints, color: '#eab308' }
+                            ].filter(item => item.value > 0)
+                          })()}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                          outerRadius={120}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {(() => {
+                            const totalCash = monthlyComparison.reduce((sum, m) => sum + (m.cash || 0), 0)
+                            const totalVisa = monthlyComparison.reduce((sum, m) => sum + (m.visa || 0), 0)
+                            const totalInstapay = monthlyComparison.reduce((sum, m) => sum + (m.instapay || 0), 0)
+                            const totalWallet = monthlyComparison.reduce((sum, m) => sum + (m.wallet || 0), 0)
+                            const totalPoints = monthlyComparison.reduce((sum, m) => sum + (m.points || 0), 0)
+
+                            const colors = [
+                              THEME_COLORS.primary[500],
+                              '#3b82f6',
+                              '#f59e0b',
+                              '#10b981',
+                              '#eab308'
+                            ]
+
+                            return colors.map((color, index) => <Cell key={`cell-${index}`} fill={color} />)
+                          })()}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Cumulative Growth (AreaChart) */}
+                  <div className="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.cumulativeGrowth')}</h3>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <AreaChart
+                        data={(() => {
+                          let cumulativeRevenue = 0
+                          let cumulativeExpenses = 0
+                          let cumulativeProfit = 0
+
+                          return monthlyComparison.map(month => {
+                            cumulativeRevenue += month.totalRevenue
+                            cumulativeExpenses += month.totalExpenses
+                            cumulativeProfit += month.netProfit
+
+                            return {
+                              ...month,
+                              cumulativeRevenue,
+                              cumulativeExpenses,
+                              cumulativeProfit
+                            }
+                          })
+                        })()}
+                      >
+                        <defs>
+                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+                          </linearGradient>
+                          <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
+                          </linearGradient>
+                          <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={THEME_COLORS.primary[500]} stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor={THEME_COLORS.primary[500]} stopOpacity={0.1}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="monthName"
+                          angle={-45}
+                          textAnchor="end"
+                          height={100}
+                          style={{ fontSize: '12px' }}
+                        />
+                        <YAxis style={{ fontSize: '12px' }} />
+                        <Tooltip />
+                        <Legend />
+                        <Area
+                          type="monotone"
+                          dataKey="cumulativeRevenue"
+                          stroke="#10b981"
+                          fillOpacity={1}
+                          fill="url(#colorRevenue)"
+                          name={t('closing.comparison.cumulativeRevenue')}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="cumulativeExpenses"
+                          stroke="#ef4444"
+                          fillOpacity={1}
+                          fill="url(#colorExpenses)"
+                          name={t('closing.comparison.cumulativeExpenses')}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="cumulativeProfit"
+                          stroke={THEME_COLORS.primary[500]}
+                          fillOpacity={1}
+                          fill="url(#colorProfit)"
+                          name={t('closing.comparison.cumulativeProfit')}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Performance Radar Chart */}
+                  <div className="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.performanceRadar')}</h3>
+                    <ResponsiveContainer width="100%" height={500}>
+                      <RadarChart data={monthlyComparison.slice(-6)}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="monthName" style={{ fontSize: '12px' }} />
+                        <PolarRadiusAxis style={{ fontSize: '10px' }} />
+                        <Radar
+                          name={t('closing.comparison.revenue')}
+                          dataKey="totalRevenue"
+                          stroke="#10b981"
+                          fill="#10b981"
+                          fillOpacity={0.6}
+                        />
+                        <Radar
+                          name={t('closing.comparison.subscriptions')}
+                          dataKey="totalSubscriptions"
+                          stroke={THEME_COLORS.primary[500]}
+                          fill={THEME_COLORS.primary[500]}
+                          fillOpacity={0.6}
+                        />
+                        <Legend />
+                        <Tooltip />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+
                   {/* Detailed Comparison Table */}
                   <div className="bg-white rounded-lg shadow-lg overflow-x-auto">
                     <h3 className="text-xl font-bold p-6 border-b">{t('closing.comparison.detailedTable')}</h3>
@@ -1064,7 +1244,7 @@ export default function ClosingPage() {
                       <thead>
                         <tr className="bg-gray-200">
                           <th className="border border-gray-400 px-4 py-3 text-center font-bold">{t('closing.comparison.month')}</th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-blue-100">{t('closing.comparison.floorRevenue')}</th>
+                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-primary-100">{t('closing.comparison.floorRevenue')}</th>
                           <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-green-100">{t('closing.comparison.ptRevenue')}</th>
                           <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-yellow-100">{t('closing.comparison.totalRevenue')}</th>
                           <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-red-100">{t('closing.comparison.expenses')}</th>
@@ -1081,7 +1261,7 @@ export default function ClosingPage() {
                           return (
                             <tr key={month.month} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                               <td className="border border-gray-300 px-4 py-3 font-medium">{month.monthName}</td>
-                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-blue-600`}>
+                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600`}>
                                 {month.floorRevenue.toFixed(0)}
                               </td>
                               <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600`}>
@@ -1118,7 +1298,7 @@ export default function ClosingPage() {
                       <tfoot>
                         <tr className="bg-yellow-100 font-bold">
                           <td className="border border-gray-400 px-4 py-3 text-center">{t('closing.comparison.total')}</td>
-                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-blue-700`}>
+                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.floorRevenue, 0).toFixed(0)}
                           </td>
                           <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700`}>
@@ -1204,7 +1384,7 @@ export default function ClosingPage() {
               <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalExpenses')}</p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.expenses.toFixed(0)}</p>
             </div>
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
+            <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
               <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.netProfit')}</p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.netProfit.toFixed(0)}</p>
             </div>
@@ -1225,7 +1405,7 @@ export default function ClosingPage() {
           </div>
 
           {/* Payment Methods Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
             <div className="bg-white border-2 border-green-300 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
@@ -1235,11 +1415,11 @@ export default function ClosingPage() {
                 <span className="text-2xl sm:text-3xl md:text-4xl">💵</span>
               </div>
             </div>
-            <div className="bg-white border-2 border-blue-300 p-3 sm:p-4 rounded-lg shadow-md">
+            <div className="bg-white border-2 border-primary-300 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.visa')} 💳</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">{totals.visa.toFixed(0)}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600">{totals.visa.toFixed(0)}</p>
                 </div>
                 <span className="text-2xl sm:text-3xl md:text-4xl">💳</span>
               </div>
@@ -1262,6 +1442,18 @@ export default function ClosingPage() {
                 <span className="text-2xl sm:text-3xl md:text-4xl">💰</span>
               </div>
             </div>
+            <div className="bg-white border-2 border-yellow-300 p-3 sm:p-4 rounded-lg shadow-md">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.points')} 🏆</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600">{totals.points.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500">
+                    {t('closing.pointsValueLabel')}: {(totals.points * pointsValueInEGP).toFixed(2)} {t('common.egp')}
+                  </p>
+                </div>
+                <span className="text-2xl sm:text-3xl md:text-4xl">🏆</span>
+              </div>
+            </div>
           </div>
             </>
           )}
@@ -1269,8 +1461,8 @@ export default function ClosingPage() {
           {/* Excel-like Table */}
           {viewMode !== 'comparison' && (
             <>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 lg:hidden">
-                <p className="text-xs sm:text-sm text-blue-800 flex items-center gap-2">
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 lg:hidden">
+                <p className="text-xs sm:text-sm text-primary-800 flex items-center gap-2">
                   <span>👉</span>
                   <span>اسحب الجدول يميناً ويساراً لرؤية جميع البيانات</span>
                 </p>
@@ -1283,7 +1475,7 @@ export default function ClosingPage() {
                   {dailyData.map((day) => (
                     <div key={day.date} className="space-y-4">
                       {/* معلومات اليوم */}
-                      <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
+                      <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-lg shadow-lg">
                         <h2 className="text-2xl font-bold mb-2">
                           📅 {new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
                             weekday: 'long',
@@ -1315,7 +1507,7 @@ export default function ClosingPage() {
                       {/* طرق الدفع */}
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <h3 className="font-bold text-lg mb-3">💳 {t('closing.paymentMethods.title')}</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                           <div className="bg-white p-3 rounded-lg border-2 border-green-200">
                             <p className="text-sm text-gray-600">{t('closing.paymentMethods.cash')} 💵</p>
                             <p className="text-lg font-bold text-green-600">{day.cash > 0 ? day.cash.toFixed(0) : '0'}</p>
@@ -1324,9 +1516,9 @@ export default function ClosingPage() {
                               <p className="text-sm font-bold text-orange-600">{(day.cash - day.expenses).toFixed(0)} {t('closing.currency')}</p>
                             </div>
                           </div>
-                          <div className="bg-white p-3 rounded-lg border-2 border-blue-200">
+                          <div className="bg-white p-3 rounded-lg border-2 border-primary-200">
                             <p className="text-sm text-gray-600">{t('closing.paymentMethods.visa')} 💳</p>
-                            <p className="text-lg font-bold text-blue-600">{day.visa > 0 ? day.visa.toFixed(0) : '0'}</p>
+                            <p className="text-lg font-bold text-primary-600">{day.visa > 0 ? day.visa.toFixed(0) : '0'}</p>
                           </div>
                           <div className="bg-white p-3 rounded-lg border-2 border-purple-200">
                             <p className="text-sm text-gray-600">{t('closing.paymentMethods.instapay')} 📱</p>
@@ -1335,6 +1527,13 @@ export default function ClosingPage() {
                           <div className="bg-white p-3 rounded-lg border-2 border-orange-200">
                             <p className="text-sm text-gray-600">{t('closing.paymentMethods.wallet')} 💰</p>
                             <p className="text-lg font-bold text-orange-600">{day.wallet > 0 ? day.wallet.toFixed(0) : '0'}</p>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border-2 border-yellow-200">
+                            <p className="text-sm text-gray-600">{t('closing.paymentMethods.points')} 🏆</p>
+                            <p className="text-lg font-bold text-yellow-600">{day.points > 0 ? day.points.toFixed(0) : '0'}</p>
+                            <p className="text-xs text-gray-500">
+                              {t('closing.pointsValueLabel')}: {(day.points * pointsValueInEGP).toFixed(2)} {t('common.egp')}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1361,9 +1560,9 @@ export default function ClosingPage() {
                             <span>🧾</span>
                             <span>{t('closing.receipts.count', { count: day.receipts.length.toString() })}</span>
                           </h4>
-                          <div className="bg-white rounded-lg overflow-hidden border-2 border-blue-200">
+                          <div className="bg-white rounded-lg overflow-hidden border-2 border-primary-200">
                             <table className="w-full text-sm">
-                              <thead className="bg-blue-100">
+                              <thead className="bg-primary-100">
                                 <tr>
                                   <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.time')}</th>
                                   <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.receiptNumber')}</th>
@@ -1377,7 +1576,7 @@ export default function ClosingPage() {
                                 {day.receipts.map((receipt: any) => {
                                   const details = JSON.parse(receipt.itemDetails)
                                   return (
-                                    <tr key={receipt.id} className="border-t hover:bg-blue-50">
+                                    <tr key={receipt.id} className="border-t hover:bg-primary-50">
                                       <td className="px-3 py-2 font-mono text-xs">
                                         {new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                       </td>
@@ -1385,7 +1584,7 @@ export default function ClosingPage() {
                                         #{receipt.receiptNumber}
                                       </td>
                                       <td className="px-3 py-2">
-                                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                                        <span className="px-2 py-1 bg-primary-100 text-primary-800 rounded text-xs">
                                           {getTypeLabel(receipt.type)}
                                         </span>
                                       </td>
@@ -1499,15 +1698,14 @@ export default function ClosingPage() {
               <thead>
                 <tr className="bg-gray-200 border-2 border-gray-400">
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold">{t('closing.table.date')}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-blue-100">{t('closing.table.floor')}</th>
+                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-primary-100">{t('closing.table.floor')}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-100">💰 {direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining'}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">📱 {direction === 'rtl' ? 'باقي إنستا' : 'Rem. Insta'}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50">💰 {direction === 'rtl' ? 'باقي محفظة' : 'Rem. Wallet'}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-green-100">{t('closing.table.pt')}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-green-50">{t('closing.table.cash')} 💵</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-blue-50">{t('closing.table.visa')} 💳</th>
+                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-primary-50">{t('closing.table.visa')} 💳</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-purple-50">{t('closing.table.instapay')} 📱</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-orange-50">{t('closing.table.wallet')} 💰</th>
+                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-yellow-50">{t('closing.table.points')} 🏆</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-yellow-100">{t('closing.table.total')} 💰</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-orange-100">{t('closing.table.expenses')}</th>
                   <th className="border border-gray-400 px-3 py-2 text-center font-bold min-w-[300px]">{t('closing.table.expenseDetails')}</th>
@@ -1524,23 +1722,17 @@ export default function ClosingPage() {
                 {dailyData.map((day, index) => (
                   <React.Fragment key={day.date}>
                     <tr
-                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} cursor-pointer hover:bg-blue-50`}
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} cursor-pointer hover:bg-primary-50`}
                       onClick={() => toggleDayDetails(day.date)}
                     >
                       <td className="border border-gray-300 px-3 py-2 text-center font-mono">
                         {new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-blue-600`}>
+                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600`}>
                         {day.floor > 0 ? day.floor.toFixed(0) : '-'}
                       </td>
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600`}>
                         {day.remainingAmount > 0 ? day.remainingAmount.toFixed(0) : '-'}
-                      </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-500`}>
-                        {day.remainingInstapay > 0 ? day.remainingInstapay.toFixed(0) : '-'}
-                      </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-500`}>
-                        {day.remainingWallet > 0 ? day.remainingWallet.toFixed(0) : '-'}
                       </td>
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600`}>
                         {day.pt > 0 ? day.pt.toFixed(0) : '-'}
@@ -1548,7 +1740,7 @@ export default function ClosingPage() {
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700`}>
                         {day.cash > 0 ? day.cash.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-blue-700`}>
+                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-700`}>
                         {day.visa > 0 ? day.visa.toFixed(0) : '-'}
                       </td>
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-purple-700`}>
@@ -1557,8 +1749,11 @@ export default function ClosingPage() {
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-orange-700`}>
                         {day.wallet > 0 ? day.wallet.toFixed(0) : '-'}
                       </td>
+                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600`}>
+                        {day.points > 0 ? day.points.toFixed(0) : '-'}
+                      </td>
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-700 bg-yellow-50`}>
-                        {(day.cash + day.visa + day.instapay + day.wallet).toFixed(0)}
+                        {(day.cash + day.visa + day.instapay + day.wallet + day.points).toFixed(0)}
                       </td>
                       <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600`}>
                         {day.expenses > 0 ? day.expenses.toFixed(0) : '-'}
@@ -1575,7 +1770,7 @@ export default function ClosingPage() {
                         </td>
                       ))}
                       <td className="border border-gray-300 px-3 py-2 text-center no-print">
-                        <button className="text-blue-600 hover:text-blue-800 font-bold">
+                        <button className="text-primary-600 hover:text-primary-800 font-bold">
                           {expandedDay === day.date ? `▼ ${t('closing.buttons.hide')}` : `▶ ${t('closing.buttons.show')}`}
                         </button>
                       </td>
@@ -1583,7 +1778,7 @@ export default function ClosingPage() {
 
                     {/* تفاصيل اليوم */}
                     {expandedDay === day.date && (
-                      <tr className="bg-blue-50 no-print">
+                      <tr className="bg-primary-50 no-print">
                         <td colSpan={(staffList?.length || 0) + 17} className="border border-gray-400 p-4">
                           <div className="space-y-4">
                             {/* الإيصالات */}
@@ -1593,9 +1788,9 @@ export default function ClosingPage() {
                                   <span>🧾</span>
                                   <span>{t('closing.receipts.count', { count: day.receipts.length.toString() })}</span>
                                 </h4>
-                                <div className="bg-white rounded-lg overflow-hidden border-2 border-blue-200">
+                                <div className="bg-white rounded-lg overflow-hidden border-2 border-primary-200">
                                   <table className="w-full text-sm">
-                                    <thead className="bg-blue-100">
+                                    <thead className="bg-primary-100">
                                       <tr>
                                         <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.time')}</th>
                                         <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.receiptNumber')}</th>
@@ -1609,7 +1804,7 @@ export default function ClosingPage() {
                                       {day.receipts.map((receipt: any) => {
                                         const details = JSON.parse(receipt.itemDetails)
                                         return (
-                                          <tr key={receipt.id} className="border-t hover:bg-blue-50">
+                                          <tr key={receipt.id} className="border-t hover:bg-primary-50">
                                             <td className="px-3 py-2 font-mono text-xs">
                                               {new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                             </td>
@@ -1617,7 +1812,7 @@ export default function ClosingPage() {
                                               #{receipt.receiptNumber}
                                             </td>
                                             <td className="px-3 py-2">
-                                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                                              <span className="px-2 py-1 bg-primary-100 text-primary-800 rounded text-xs">
                                                 {getTypeLabel(receipt.type)}
                                               </span>
                                             </td>
@@ -1719,17 +1914,11 @@ export default function ClosingPage() {
                 {/* Totals Row */}
                 <tr className="bg-yellow-100 border-t-4 border-yellow-600 font-bold">
                   <td className="border border-gray-400 px-3 py-3 text-center">{t('closing.table.totalLabel')}</td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-blue-700 text-lg`}>
+                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700 text-lg`}>
                     {totals.floor.toFixed(0)}
                   </td>
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 text-lg`}>
                     {totals.remainingAmount.toFixed(0)}
-                  </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 text-lg`}>
-                    {totals.remainingInstapay.toFixed(0)}
-                  </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 text-lg`}>
-                    {totals.remainingWallet.toFixed(0)}
                   </td>
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 text-lg`}>
                     {totals.pt.toFixed(0)}
@@ -1737,7 +1926,7 @@ export default function ClosingPage() {
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 text-lg`}>
                     {totals.cash.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-blue-800 text-lg`}>
+                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-800 text-lg`}>
                     {totals.visa.toFixed(0)}
                   </td>
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-purple-800 text-lg`}>
@@ -1745,6 +1934,9 @@ export default function ClosingPage() {
                   </td>
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-orange-800 text-lg`}>
                     {totals.wallet.toFixed(0)}
+                  </td>
+                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 text-lg`}>
+                    {totals.points.toFixed(0)}
                   </td>
                   <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-800 text-lg bg-yellow-200`}>
                     {totals.totalPayments.toFixed(0)}

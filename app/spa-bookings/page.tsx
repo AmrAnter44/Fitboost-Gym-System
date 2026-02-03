@@ -114,7 +114,7 @@ export default function SpaBookingsPage() {
   if (permissionsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
       </div>
     )
   }
@@ -134,7 +134,7 @@ export default function SpaBookingsPage() {
         {hasPermission('canCreateSpaBooking') && (
           <button
             onClick={() => setShowForm(true)}
-            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+            className="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
           >
             <span className="text-xl">+</span>
             {t('spa.newBooking')}
@@ -165,7 +165,7 @@ export default function SpaBookingsPage() {
               }}
               className={`p-3 rounded-lg text-center transition-all ${
                 selectedDate === day.date
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105'
+                  ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg scale-105'
                   : day.isToday
                   ? 'bg-green-100 border-2 border-green-500 text-green-800 hover:bg-green-200'
                   : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
@@ -194,8 +194,8 @@ export default function SpaBookingsPage() {
                 }}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                   selectedService === service
-                    ? 'bg-blue-500 text-white shadow-md scale-105'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                    ? 'bg-primary-500 text-white shadow-md scale-105'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-400 hover:bg-primary-50'
                 }`}
               >
                 <span className="text-2xl">{serviceIcons[service]}</span>
@@ -209,14 +209,14 @@ export default function SpaBookingsPage() {
       {/* Time Slots - يظهر بعد اختيار اليوم والخدمة */}
       {selectedDate && selectedService && showTimeSlots && hasPermission('canCreateSpaBooking') && (
         <div className="mb-6 animate-fadeIn">
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border-2 border-blue-200 mb-4">
+          <div className="bg-gradient-to-r from-green-50 to-primary-50 p-4 rounded-lg border-2 border-primary-200 mb-4">
             <p className="text-center text-gray-700 font-medium">
               ✨ {t('spa.selectTimeSlot')}
             </p>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
+            className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-4 rounded-lg font-bold hover:from-primary-600 hover:to-primary-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
           >
             <span className="text-2xl">📅</span>
             {t('spa.bookNow')}
@@ -239,7 +239,7 @@ export default function SpaBookingsPage() {
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value as SpaBookingStatus | '' })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="">{t('spa.allStatuses')}</option>
               <option value="pending">{t('spa.status.pending')}</option>
@@ -251,7 +251,7 @@ export default function SpaBookingsPage() {
             <select
               value={filters.serviceType}
               onChange={(e) => setFilters({ ...filters, serviceType: e.target.value as SpaServiceType | '' })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="">{t('spa.allServices')}</option>
               <option value="massage">{t('spa.services.massage')}</option>
@@ -264,7 +264,7 @@ export default function SpaBookingsPage() {
               placeholder={t('spa.searchPlaceholder')}
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function SpaBookingsPage() {
         {/* Loading State */}
         {isLoading && (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
           </div>
         )}
 
@@ -290,7 +290,7 @@ export default function SpaBookingsPage() {
           <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <thead className="bg-gradient-to-r from-primary-500 to-primary-600 text-white">
                   <tr>
                     <th className="px-4 py-3 text-right font-semibold">{t('spa.memberName')}</th>
                     <th className="px-4 py-3 text-right font-semibold">{t('spa.service')}</th>

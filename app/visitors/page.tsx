@@ -269,7 +269,7 @@ export default function VisitorsPage() {
       interested: 'bg-green-100 text-green-800',
       'not-interested': 'bg-red-100 text-red-800',
       postponed: 'bg-yellow-100 text-yellow-800',
-      subscribed: 'bg-blue-100 text-blue-800',
+      subscribed: 'bg-primary-100 text-primary-800',
     }
     const labels: Record<string, string> = {
       interested: t('visitors.results.interested'),
@@ -288,7 +288,7 @@ export default function VisitorsPage() {
   const getStatusBadge = (status: string) => {
     const badges = {
       pending: 'bg-yellow-100 text-yellow-800',
-      contacted: 'bg-blue-100 text-blue-800',
+      contacted: 'bg-primary-100 text-primary-800',
       subscribed: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
     }
@@ -553,7 +553,7 @@ export default function VisitorsPage() {
                     ) : (
                       <button
                         onClick={() => openQuickFollowUp(visitor)}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 rounded bg-blue-50"
+                        className="text-primary-600 hover:text-primary-800 text-xs font-medium px-2 py-1 rounded bg-primary-50"
                       >
                         ➕ {t('visitors.actions.followUp')}
                       </button>
@@ -663,7 +663,7 @@ export default function VisitorsPage() {
                     {t('visitors.pagination.previous')}
                   </button>
 
-                  <span className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium">
+                  <span className="px-3 py-1 bg-primary-600 text-white rounded-lg text-sm font-medium">
                     {currentPage} / {totalPages}
                   </span>
 
@@ -784,7 +784,7 @@ export default function VisitorsPage() {
                         ) : (
                           <button
                             onClick={() => openQuickFollowUp(visitor)}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 rounded bg-blue-50 hover:bg-blue-100"
+                            className="text-primary-600 hover:text-primary-800 text-sm font-medium px-3 py-1 rounded bg-primary-50 hover:bg-primary-100"
                             title={t('visitors.actions.followUpTitle')}
                           >
                             ➕ {t('visitors.actions.followUp')}
@@ -862,7 +862,7 @@ export default function VisitorsPage() {
                           onClick={() => goToPage(pageNum)}
                           className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                             currentPage === pageNum
-                              ? 'bg-blue-600 text-white'
+                              ? 'bg-primary-600 text-white'
                               : 'hover:bg-gray-200'
                           }`}
                         >
@@ -900,7 +900,7 @@ export default function VisitorsPage() {
                       setItemsPerPage(Number(e.target.value))
                       setCurrentPage(1)
                     }}
-                    className="border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -965,7 +965,7 @@ export default function VisitorsPage() {
                       setShowHistoryModal(false)
                       openQuickFollowUp(selectedVisitorForHistory)
                     }}
-                    className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                    className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
                   >
                     ➕ {t('visitors.historyModal.addFirst')}
                   </button>

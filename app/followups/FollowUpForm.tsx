@@ -124,7 +124,7 @@ export default function FollowUpForm({
         onClick={(e) => e.stopPropagation()}
         dir={direction}
       >
-        <div className="sticky top-0 bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+        <div className="sticky top-0 bg-primary-600 text-white p-4 rounded-t-lg flex justify-between items-center">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <span>📝</span>
             <span>{t('followups.form.title')}</span>
@@ -140,15 +140,15 @@ export default function FollowUpForm({
         <form onSubmit={handleSubmit} className="p-4 space-y-3">
           {/* عرض معلومات الزائر/العضو المختار */}
           {selectedInfo ? (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4">
+            <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border-2 border-primary-200 rounded-lg p-4">
               <div className="flex items-center gap-3">
-                <div className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold">
+                <div className="bg-primary-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold">
                   {selectedInfo.name.charAt(0)}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-lg text-gray-800">{selectedInfo.name}</h3>
-                    <span className="text-xs px-2 py-1 bg-blue-600 text-white rounded-full">
+                    <span className="text-xs px-2 py-1 bg-primary-600 text-white rounded-full">
                       {selectedInfo.type}
                     </span>
                   </div>
@@ -183,7 +183,7 @@ export default function FollowUpForm({
               required
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
               rows={3}
               placeholder={t('followups.form.notesPlaceholder')}
             />
@@ -195,7 +195,7 @@ export default function FollowUpForm({
               <select
                 value={formData.result}
                 onChange={(e) => setFormData({ ...formData, result: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
               >
                 <option value="">{t('followups.form.selectResult')}</option>
                 <option value="interested">{t('followups.form.interested')}</option>
@@ -211,7 +211,7 @@ export default function FollowUpForm({
                 type="date"
                 value={formData.nextFollowUpDate}
                 onChange={(e) => setFormData({ ...formData, nextFollowUpDate: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
               />
             </div>
           </div>
@@ -229,7 +229,7 @@ export default function FollowUpForm({
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-semibold"
+            className="w-full bg-primary-600 text-white py-2.5 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-semibold"
           >
             {loading ? t('followups.form.saving') : t('followups.form.save')}
           </button>
