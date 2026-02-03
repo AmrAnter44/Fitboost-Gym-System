@@ -76,7 +76,7 @@ export async function subscribeToPushNotifications(): Promise<PushSubscription |
     if (VAPID_PUBLIC_KEY) {
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
       });
 
       // Send subscription to server
