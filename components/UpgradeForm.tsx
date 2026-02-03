@@ -294,11 +294,11 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
 
         {/* جدول المقارنة */}
         {selectedOffer && (
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-6">
-            <h3 className="text-lg font-bold text-blue-800 mb-4">{t('upgrade.comparison')}</h3>
+          <div className="bg-primary-50 border-2 border-primary-200 rounded-xl p-6 mb-6">
+            <h3 className="text-lg font-bold text-primary-800 mb-4">{t('upgrade.comparison')}</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-blue-700 font-semibold mb-2">{t('upgrade.currentPackage')}</p>
+                <p className="text-primary-700 font-semibold mb-2">{t('upgrade.currentPackage')}</p>
                 <div className="space-y-1 text-gray-700">
                   <p>{t('offers.price')}: {member.subscriptionPrice} {t('members.egp')}</p>
                   <p>PT: {member.freePTSessions}</p>
@@ -322,9 +322,9 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                 </div>
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-blue-300">
+            <div className="mt-4 pt-4 border-t border-primary-300">
               <div className="flex justify-between items-center">
-                <span className="text-blue-800 font-bold">{t('upgrade.youWillPay')}:</span>
+                <span className="text-primary-800 font-bold">{t('upgrade.youWillPay')}:</span>
                 <span className="text-2xl font-bold text-green-600">
                   {calculateUpgradeAmount(selectedOffer.price)} {t('members.egp')}
                 </span>
@@ -362,11 +362,11 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
 
             {/* عرض اسم الموظف الحالي أو تحذير */}
             {currentUser ? (
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-700 mb-1">
+              <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4">
+                <p className="text-sm text-primary-700 mb-1">
                   👨‍💼 {t('members.staffName')}:
                 </p>
-                <p className="font-bold text-blue-900 text-lg">
+                <p className="font-bold text-primary-900 text-lg">
                   {currentUser.name}
                 </p>
               </div>

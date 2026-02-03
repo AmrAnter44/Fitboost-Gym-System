@@ -29,15 +29,24 @@ export async function GET(request: Request) {
     const end = new Date(endDate)
     end.setHours(23, 59, 59, 999)
 
+    // بناء الفلتر بناءً على دور المستخدم
+    const whereClause: any = {
+      type: 'member_signup',
+      createdAt: {
+        gte: start,
+        lte: end
+      }
+    }
+
+    // إذا كان المستخدم COACH، فلتر بناءً على staffId
+    if (user.role === 'COACH' && user.staffId) {
+      whereClause.staffId = user.staffId
+      console.log('🏋️ Filtering commissions for COACH staffId:', user.staffId)
+    }
+
     // جلب العمولات من نوع member_signup في الفترة المحددة
     const commissions = await prisma.commission.findMany({
-      where: {
-        type: 'member_signup',
-        createdAt: {
-          gte: start,
-          lte: end
-        }
-      },
+      where: whereClause,
       include: {
         staff: {
           select: {

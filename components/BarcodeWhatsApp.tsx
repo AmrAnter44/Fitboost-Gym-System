@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import Toast from './Toast'
 
@@ -16,6 +16,29 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
   const [barcodeImage, setBarcodeImage] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
+  const [websiteUrl, setWebsiteUrl] = useState('https://www.xgym.website')
+  const [showWebsite, setShowWebsite] = useState(true)
+
+  // جلب إعدادات الموقع
+  useEffect(() => {
+    const fetchWebsiteSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/services')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.websiteUrl) {
+            setWebsiteUrl(data.websiteUrl)
+          }
+          if (typeof data.showWebsiteOnReceipts === 'boolean') {
+            setShowWebsite(data.showWebsiteOnReceipts)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching website settings:', error)
+      }
+    }
+    fetchWebsiteSettings()
+  }, [])
 
   // توليد الباركود عن طريق API
   const handleGenerateBarcode = async () => {
@@ -64,7 +87,10 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
       // إضافة الشروط والأحكام
       const termsAndConditions = `\n\n━━━━━━━━━━━━━━━━━━━━\n*شروط وأحكام*\n━━━━━━━━━━━━━━━━━━━━\nالساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه`
 
-      const message = baseMessage + termsAndConditions
+      // إضافة رابط الموقع إذا كان مفعلاً
+      const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
+
+      const message = baseMessage + termsAndConditions + websiteSection
       const phone = memberPhone.replace(/\D/g, '') // تنظيف رقم الهاتف
       const url = `https://wa.me/2${phone}?text=${encodeURIComponent(message)}`
       window.open(url, '_blank')
@@ -78,9 +104,9 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* زر عرض/إرسال الباركود */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-blue-200" dir={direction}>
+      <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-primary-200" dir={direction}>
         <div className="flex items-center gap-3 mb-4">
-          <div className="bg-blue-100 p-3 rounded-full">
+          <div className="bg-primary-100 p-3 rounded-full">
             <span className="text-3xl">📱</span>
           </div>
           <div>
@@ -93,7 +119,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
           <button
             onClick={handleGenerateBarcode}
             disabled={loading}
-            className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
+            className="bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
           >
             <span>🔢</span>
             <span>{t('barcode.viewBarcode')}</span>
@@ -121,13 +147,13 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
               </button>
             </div>
 
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6 text-center">
-              <p className="text-sm text-blue-600 mb-2">{t('barcode.member')}</p>
-              <p className="text-xl font-bold text-blue-800">{memberName}</p>
-              <p className="text-3xl font-bold text-blue-600 mt-2">#{memberNumber}</p>
+            <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 mb-6 text-center">
+              <p className="text-sm text-primary-600 mb-2">{t('barcode.member')}</p>
+              <p className="text-xl font-bold text-primary-800">{memberName}</p>
+              <p className="text-3xl font-bold text-primary-600 mt-2">#{memberNumber}</p>
             </div>
 
-            <div className="bg-white border-2 border-blue-200 rounded-lg p-6 mb-6 flex justify-center">
+            <div className="bg-white border-2 border-primary-200 rounded-lg p-6 mb-6 flex justify-center">
               <div className="relative inline-block">
                 {/* Barcode */}
                 <img
@@ -139,7 +165,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
 
                 {/* Logo في نص الباركود */}
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-white rounded-lg shadow-lg p-3 border-2 border-blue-400">
+                  <div className="bg-white rounded-lg shadow-lg p-3 border-2 border-primary-400">
                     <img
                       src="/assets/icon.png"
                       alt="Gym Logo"

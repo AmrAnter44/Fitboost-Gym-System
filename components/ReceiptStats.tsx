@@ -71,12 +71,12 @@ export function ReceiptStats({ receipts }: StatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Total Receipts */}
-      <div className="bg-white p-4 rounded-lg shadow-md border-r-4 border-blue-500">
+      <div className="bg-white p-4 rounded-lg shadow-md border-r-4 border-primary-500">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-medium text-gray-600">إجمالي الإيصالات</h3>
           <span className="text-2xl">📊</span>
         </div>
-        <p className="text-3xl font-bold text-blue-600">{stats.total}</p>
+        <p className="text-3xl font-bold text-primary-600">{stats.total}</p>
         <p className="text-xs text-gray-500 mt-1">منذ البداية</p>
       </div>
 
@@ -111,7 +111,7 @@ export function ReceiptStats({ receipts }: StatsProps) {
       </div>
 
       {/* By Type - Members */}
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-md">
+      <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-4 rounded-lg shadow-md">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-medium">اشتراكات العضوية</h3>
           <span className="text-2xl">👥</span>

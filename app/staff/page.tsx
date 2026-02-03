@@ -10,6 +10,7 @@ import StaffBarcodeWhatsApp from '../../components/StaffBarcodeWhatsApp'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
+import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { fetchStaff } from '../../lib/api/staff'
 
 interface Staff {
@@ -46,6 +47,8 @@ const POSITION_MAP: { [key: string]: string } = {
   'محاسب': 'accountant',
   'صيانة': 'maintenance',
   'أمن': 'security',
+  'أخصائي تغذية': 'nutritionist',
+  'أخصائي علاج طبيعي': 'physiotherapist',
   'other': 'other',
 }
 
@@ -53,7 +56,9 @@ export default function StaffPage() {
   const router = useRouter()
   const { t, direction } = useLanguage()
   const toast = useToast()
+  const { settings } = useServiceSettings()
 
+  // Dynamic positions based on service settings
   const POSITIONS = [
     { value: 'مدرب', label: `💪 ${t('positions.trainer')}`, icon: '💪' },
     { value: 'ريسبشن', label: `👔 ${t('positions.receptionist')}`, icon: '👔' },
@@ -63,6 +68,8 @@ export default function StaffPage() {
     { value: 'محاسب', label: `💼 ${t('positions.accountant')}`, icon: '💼' },
     { value: 'صيانة', label: `🔧 ${t('positions.maintenance')}`, icon: '🔧' },
     { value: 'أمن', label: `🛡️ ${t('positions.security')}`, icon: '🛡️' },
+    ...(settings.nutritionEnabled ? [{ value: 'أخصائي تغذية', label: `🥗 ${t('positions.nutritionist')}`, icon: '🥗' }] : []),
+    ...(settings.physiotherapyEnabled ? [{ value: 'أخصائي علاج طبيعي', label: `🏥 ${t('positions.physiotherapist')}`, icon: '🏥' }] : []),
     { value: 'other', label: `📝 ${t('positions.other')}`, icon: '📝' },
   ]
 
@@ -458,13 +465,15 @@ const handleScan = async (staffCode: string) => {
   const getPositionColor = (position: string): string => {
     const colors: { [key: string]: string } = {
       مدرب: 'bg-green-100 text-green-800',
-      ريسبشن: 'bg-blue-100 text-blue-800',
+      ريسبشن: 'bg-primary-100 text-primary-800',
       بار: 'bg-orange-100 text-orange-800',
       HK: 'bg-purple-100 text-purple-800',
       مدير: 'bg-red-100 text-red-800',
       محاسب: 'bg-indigo-100 text-indigo-800',
       صيانة: 'bg-yellow-100 text-yellow-800',
       أمن: 'bg-gray-100 text-gray-800',
+      'أخصائي تغذية': 'bg-lime-100 text-lime-800',
+      'أخصائي علاج طبيعي': 'bg-blue-100 text-blue-800',
     }
     return colors[position] || 'bg-gray-100 text-gray-800'
   }
@@ -499,14 +508,14 @@ const handleScan = async (staffCode: string) => {
   return (
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       {/* ✅ قسم Scanner للحضور والانصراف */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-2xl p-4 sm:p-8 mb-8 text-white">
+      <div className="bg-gradient-to-r from-primary-600 to-purple-600 rounded-2xl shadow-2xl p-4 sm:p-8 mb-8 text-white">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
               <span className="text-4xl sm:text-5xl">🔢</span>
               <span>{t('staff.scanner.title')}</span>
             </h2>
-            <p className="text-blue-100 text-sm sm:text-base">{t('staff.scanner.subtitle')}</p>
+            <p className="text-primary-100 text-sm sm:text-base">{t('staff.scanner.subtitle')}</p>
           </div>
           {lastScanTime && (
             <div className="bg-white/20 backdrop-blur px-4 sm:px-6 py-2 sm:py-3 rounded-xl w-full sm:w-auto">
@@ -523,7 +532,7 @@ const handleScan = async (staffCode: string) => {
             value={scannerInput}
             onChange={(e) => setScannerInput(e.target.value)}
             onKeyPress={handleScannerInput}
-            className="w-full px-4 sm:px-6 py-4 sm:py-6 border-4 border-blue-400 rounded-xl text-2xl sm:text-4xl font-bold text-center focus:border-blue-600 focus:ring-4 focus:ring-blue-200 transition text-gray-800"
+            className="w-full px-4 sm:px-6 py-4 sm:py-6 border-4 border-primary-400 rounded-xl text-2xl sm:text-4xl font-bold text-center focus:border-primary-600 focus:ring-4 focus:ring-primary-200 transition text-gray-800"
             placeholder={t('staff.scanner.placeholder')}
             autoFocus
           />
@@ -555,7 +564,7 @@ const handleScan = async (staffCode: string) => {
             </h3>
             <Link
               href="/attendance-report"
-              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm font-bold"
+              className="w-full sm:w-auto bg-gradient-to-r from-primary-600 to-purple-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:from-primary-700 hover:to-purple-700 transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm font-bold"
             >
               <span>📋</span>
               <span>{t('nav.staffAttendance')}</span>
@@ -566,9 +575,9 @@ const handleScan = async (staffCode: string) => {
               <p className="text-xs sm:text-sm text-green-700">{t('staff.attendance.presentNow')}</p>
               <p className="text-2xl sm:text-3xl font-bold text-green-800">{presentStaff}</p>
             </div>
-            <div className="flex-1 lg:flex-none bg-blue-100 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center">
-              <p className="text-xs sm:text-sm text-blue-700">{t('staff.attendance.totalPresent')}</p>
-              <p className="text-2xl sm:text-3xl font-bold text-blue-800">{totalCheckedIn}</p>
+            <div className="flex-1 lg:flex-none bg-primary-100 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center">
+              <p className="text-xs sm:text-sm text-primary-700">{t('staff.attendance.totalPresent')}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary-800">{totalCheckedIn}</p>
             </div>
           </div>
         </div>
@@ -576,7 +585,7 @@ const handleScan = async (staffCode: string) => {
         {todayAttendance.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-blue-100 to-purple-100">
+              <thead className="bg-gradient-to-r from-primary-100 to-purple-100">
                 <tr>
                   <th className="px-4 py-3 text-right font-bold">{t('staff.attendance.number')}</th>
                   <th className="px-4 py-3 text-right font-bold">{t('staff.attendance.name')}</th>
@@ -621,7 +630,7 @@ const handleScan = async (staffCode: string) => {
                   return (
                     <tr key={att.id} className={`border-t hover:bg-gray-50 transition ${att.checkOut === null ? 'bg-green-50 border-r-4 border-green-500' : 'bg-white'}`}>
                       <td className="px-4 py-4">
-                        <span className="bg-blue-500 text-white px-3 py-1 rounded-lg font-bold text-sm">
+                        <span className="bg-primary-500 text-white px-3 py-1 rounded-lg font-bold text-sm">
                           #{att.staff.staffCode}
                         </span>
                       </td>
@@ -636,11 +645,11 @@ const handleScan = async (staffCode: string) => {
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <div className="bg-blue-50 px-4 py-2 rounded-lg inline-block border-2 border-blue-200">
-                          <div className="text-lg font-bold text-blue-800">
+                        <div className="bg-primary-50 px-4 py-2 rounded-lg inline-block border-2 border-primary-200">
+                          <div className="text-lg font-bold text-primary-800">
                             {checkInTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                           </div>
-                          <div className="text-xs text-blue-600">
+                          <div className="text-xs text-primary-600">
                             {checkInTime.toLocaleDateString('ar-EG', { weekday: 'short' })}
                           </div>
                         </div>
@@ -679,9 +688,9 @@ const handleScan = async (staffCode: string) => {
                                 </div>
                               )}
                               {minutes > 0 && (
-                                <div className="bg-white border-2 border-blue-300 rounded px-3 py-1">
-                                  <div className="text-xl font-bold text-blue-800">{minutes}</div>
-                                  <div className="text-xs text-blue-600">دقيقة</div>
+                                <div className="bg-white border-2 border-primary-300 rounded px-3 py-1">
+                                  <div className="text-xl font-bold text-primary-800">{minutes}</div>
+                                  <div className="text-xs text-primary-600">دقيقة</div>
                                 </div>
                               )}
                             </div>
@@ -727,7 +736,7 @@ const handleScan = async (staffCode: string) => {
             resetForm()
             setShowForm(!showForm)
           }}
-          className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition transform hover:scale-105"
+          className="w-full sm:w-auto bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition transform hover:scale-105"
         >
           {showForm ? t('staff.hideForm') : `➕ ${t('staff.addNewStaff')}`}
         </button>
@@ -735,7 +744,7 @@ const handleScan = async (staffCode: string) => {
 
       {/* نموذج الإضافة/التعديل */}
       {showForm && (
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-blue-100">
+        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-100">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             {editingStaff ? (
               <>
@@ -762,7 +771,7 @@ const handleScan = async (staffCode: string) => {
                   required
                   value={formData.staffCode}
                   onChange={(e) => setFormData({ ...formData, staffCode: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-2xl font-bold"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition text-2xl font-bold"
                   placeholder={randomStaffCode || "100000022"}
                   minLength={9}
                   maxLength={9}
@@ -786,7 +795,7 @@ const handleScan = async (staffCode: string) => {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
                   placeholder={t('staff.form.namePlaceholder')}
                 />
               </div>
@@ -798,7 +807,7 @@ const handleScan = async (staffCode: string) => {
                   type="text"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
                   placeholder={t('staff.form.phonePlaceholder')}
                 />
               </div>
@@ -812,7 +821,7 @@ const handleScan = async (staffCode: string) => {
                   required={!showOtherPosition}
                   value={formData.position}
                   onChange={(e) => handlePositionChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-lg"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition text-lg"
                 >
                   <option value="">{t('staff.form.selectPosition')}</option>
                   {POSITIONS.map((pos) => (
@@ -855,7 +864,7 @@ const handleScan = async (staffCode: string) => {
                   onChange={(e) =>
                     setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })
                   }
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
                   placeholder={t('staff.form.salaryPlaceholder')}
                 />
               </div>
@@ -867,7 +876,7 @@ const handleScan = async (staffCode: string) => {
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition resize-none"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition resize-none"
                 rows={3}
                 placeholder={t('staff.form.notesPlaceholder')}
               />
@@ -878,7 +887,7 @@ const handleScan = async (staffCode: string) => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 font-bold text-lg shadow-lg transform transition hover:scale-105 active:scale-95"
+                className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:from-gray-400 disabled:to-gray-500 font-bold text-lg shadow-lg transform transition hover:scale-105 active:scale-95"
               >
                 {submitting ? `⏳ ${t('staff.form.saving')}` : editingStaff ? `✅ ${t('staff.form.update')}` : `➕ ${t('staff.form.addStaff')}`}
               </button>
@@ -898,10 +907,10 @@ const handleScan = async (staffCode: string) => {
 
       {/* الإحصائيات */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-xs sm:text-sm mb-1">{t('staff.stats.totalStaff')}</p>
+              <p className="text-primary-100 text-xs sm:text-sm mb-1">{t('staff.stats.totalStaff')}</p>
               <p className="text-2xl sm:text-4xl font-bold">{staff.length}</p>
             </div>
             <div className="text-3xl sm:text-5xl opacity-20">👥</div>
@@ -973,7 +982,7 @@ const handleScan = async (staffCode: string) => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(staffMember)}
-                      className="w-8 h-8 flex items-center justify-center bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-all hover:scale-110 active:scale-95"
+                      className="w-8 h-8 flex items-center justify-center bg-primary-100 hover:bg-primary-200 text-primary-600 rounded-lg transition-all hover:scale-110 active:scale-95"
                       title={t('staff.table.edit')}
                     >
                       ✏️
@@ -1003,7 +1012,7 @@ const handleScan = async (staffCode: string) => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="bg-blue-500 text-white px-3 py-1 rounded-lg font-bold text-sm">
+                        <span className="bg-primary-500 text-white px-3 py-1 rounded-lg font-bold text-sm">
                           #{staffMember.staffCode}
                         </span>
                         {isStaffCurrentlyInside(staffMember.id) && (
@@ -1094,7 +1103,7 @@ const handleScan = async (staffCode: string) => {
                       } ${isStaffCurrentlyInside(staffMember.id) ? 'bg-green-50' : ''}`}
                     >
                       <td className="px-4 py-3">
-                        <span className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-xl">
+                        <span className="bg-primary-500 text-white px-4 py-2 rounded-lg font-bold text-xl">
                           #{staffMember.staffCode}
                         </span>
                       </td>
@@ -1138,7 +1147,7 @@ const handleScan = async (staffCode: string) => {
                         <div className="flex gap-2 items-center">
                           <button
                             onClick={() => handleEdit(staffMember)}
-                            className="w-9 h-9 flex items-center justify-center bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-all hover:scale-110 active:scale-95"
+                            className="w-9 h-9 flex items-center justify-center bg-primary-100 hover:bg-primary-200 text-primary-600 rounded-lg transition-all hover:scale-110 active:scale-95"
                             title={t('staff.table.edit')}
                           >
                             ✏️

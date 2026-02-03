@@ -576,7 +576,7 @@ export default function SearchModal() {
         <div className="min-h-screen p-1 sm:p-2">
           <div className="bg-white rounded-xl shadow-2xl max-w-3xl mx-auto my-2 animate-slideDown">
             {/* Header */}
-            <div className="bg-blue-600 text-white p-2 sm:p-3 rounded-t-xl flex items-center justify-between sticky top-0 z-10">
+            <div className="bg-primary-600 text-white p-2 sm:p-3 rounded-t-xl flex items-center justify-between sticky top-0 z-10">
               <h1 className="text-base sm:text-lg font-bold flex items-center gap-1">
                 <span className="text-sm">🔍</span>
                 <span>{t('search.title')}</span>
@@ -596,7 +596,7 @@ export default function SearchModal() {
             <div className="p-2 sm:p-3">
               {/* Search Mode Selector and Input */}
               {searchMode === 'id' && (
-                <div className="bg-gray-50 p-2 sm:p-3 rounded-lg mb-2 border border-blue-200">
+                <div className="bg-gray-50 p-2 sm:p-3 rounded-lg mb-2 border border-primary-200">
                   <div className="mb-2">
                     {attendanceMessage && (
                       <div className={`mb-2 p-2 sm:p-3 rounded-lg border-2 animate-slideDown ${
@@ -648,7 +648,7 @@ export default function SearchModal() {
                           }}
                           className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             searchMode === 'id'
-                              ? 'bg-blue-600 text-white shadow-lg'
+                              ? 'bg-primary-600 text-white shadow-lg'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                           title={t('search.searchByIdOrAttendance')}
@@ -721,7 +721,7 @@ export default function SearchModal() {
                           }}
                           className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             searchMode === 'id'
-                              ? 'bg-blue-600 text-white shadow-lg'
+                              ? 'bg-primary-600 text-white shadow-lg'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                           title={t('search.searchByIdOrAttendance')}
@@ -827,12 +827,12 @@ export default function SearchModal() {
 
                       <div className="space-y-2">
                         {results.map((result, index) => (
-                          <div key={index} className="border border-blue-200 rounded-lg p-2 sm:p-3 hover:bg-blue-50 transition">
+                          <div key={index} className="border border-primary-200 rounded-lg p-2 sm:p-3 hover:bg-primary-50 transition">
                             {result.type === 'member' && (
                               <div>
                                 <div className="flex flex-col sm:flex-row justify-between items-start gap-1.5 mb-2">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-blue-300 bg-gray-100 flex-shrink-0">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-primary-300 bg-gray-100 flex-shrink-0">
                                       {result.data.profileImage ? (
                                         <img
                                           src={result.data.profileImage}
@@ -849,14 +849,14 @@ export default function SearchModal() {
                                     </div>
 
                                     <div>
-                                      <span className="bg-blue-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold">
+                                      <span className="bg-primary-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold">
                                         👤 {t('search.member')}
                                       </span>
                                       <h3 className="text-sm sm:text-base md:text-lg font-bold mt-0.5 sm:mt-1">{result.data.name}</h3>
                                     </div>
                                   </div>
                                   {result.data.memberNumber !== null && (
-                                    <span className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
+                                    <span className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600">
                                       #{result.data.memberNumber}
                                     </span>
                                   )}
@@ -884,7 +884,7 @@ export default function SearchModal() {
                                     <p className="text-xs text-gray-600">{t('search.status')}</p>
                                     <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold ${
                                       result.data.isFrozen
-                                        ? 'bg-blue-500 text-white'
+                                        ? 'bg-primary-500 text-white'
                                         : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
                                         ? 'bg-green-500 text-white'
                                         : 'bg-red-500 text-white animate-pulse'
@@ -900,7 +900,7 @@ export default function SearchModal() {
                                 </div>
 
                                 {(result.data.startDate || result.data.expiryDate) && (
-                                  <div className="mb-2 sm:mb-3 bg-gradient-to-r from-blue-50 to-yellow-50 border-2 border-blue-300 rounded p-2 sm:p-3">
+                                  <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 border-2 border-primary-300 rounded p-2 sm:p-3">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       {result.data.startDate && (
                                         <div>
@@ -953,10 +953,10 @@ export default function SearchModal() {
                                 )}
 
                                 {result.data.notes && (
-                                  <div className="mb-2 sm:mb-3 bg-blue-50 border-2 border-blue-400 rounded p-2 sm:p-3">
+                                  <div className="mb-2 sm:mb-3 bg-primary-50 border-2 border-primary-400 rounded p-2 sm:p-3">
                                     <div className="flex items-start gap-1 mb-1">
                                       <span className="text-base sm:text-lg">📝</span>
-                                      <p className="text-xs font-bold text-blue-800">{t('search.notes')}</p>
+                                      <p className="text-xs font-bold text-primary-800">{t('search.notes')}</p>
                                     </div>
                                     <p className="text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
                                       {result.data.notes}
@@ -1012,18 +1012,18 @@ export default function SearchModal() {
                                       )}
 
                                       {result.data.inBodyScans > 0 && (
-                                        <div className="bg-white rounded-lg p-3 border-2 border-blue-200">
+                                        <div className="bg-white rounded-lg p-3 border-2 border-primary-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xl">⚖️</span>
                                               <div>
                                                 <p className="text-xs text-gray-600">InBody</p>
-                                                <p className="text-xl font-bold text-blue-600">{result.data.inBodyScans}</p>
+                                                <p className="text-xl font-bold text-primary-600">{result.data.inBodyScans}</p>
                                               </div>
                                             </div>
                                             <button
                                               onClick={() => setServiceModal({ isOpen: true, type: 'inBody', memberId: result.data.id, memberName: result.data.name })}
-                                              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 text-xs font-bold"
+                                              className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                             >
                                               {t('search.deduct')}
                                             </button>
@@ -1037,7 +1037,7 @@ export default function SearchModal() {
                                 <div className="grid grid-cols-1 gap-2">
                                   <button
                                     onClick={() => handleViewMemberDetails(result.data.id)}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-blue-700 hover:to-blue-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
+                                    className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-primary-700 hover:to-primary-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
                                   >
                                     <span>👁️</span>
                                     <span>{t('search.viewFullDetails')}</span>

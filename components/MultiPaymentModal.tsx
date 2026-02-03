@@ -97,7 +97,7 @@ export default function MultiPaymentModal({
 
   const paymentOptions = [
     { key: 'cash' as const, icon: '💵', label: t('members.paymentMethods.cash'), color: 'from-green-100 to-green-50 border-green-500' },
-    { key: 'visa' as const, icon: '💳', label: t('members.paymentMethods.visa'), color: 'from-blue-100 to-blue-50 border-blue-500' },
+    { key: 'visa' as const, icon: '💳', label: t('members.paymentMethods.visa'), color: 'from-primary-100 to-primary-50 border-primary-500' },
     { key: 'instapay' as const, icon: '📱', label: t('members.paymentMethods.instapay'), color: 'from-purple-100 to-purple-50 border-purple-500' },
     { key: 'wallet' as const, icon: '💰', label: t('members.paymentMethods.wallet'), color: 'from-orange-100 to-orange-50 border-orange-500' }
   ]
@@ -122,12 +122,12 @@ export default function MultiPaymentModal({
         {/* Body */}
         <div className="p-6 space-y-6">
           {/* المبلغ الكلي */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border-2 border-primary-300 rounded-lg p-4">
             <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-blue-900">
+              <span className="text-lg font-semibold text-primary-900">
                 {t('multiPayment.totalAmount')}:
               </span>
-              <span className="text-3xl font-bold text-blue-600">
+              <span className="text-3xl font-bold text-primary-600">
                 {totalAmount.toFixed(2)} {t('members.egp')}
               </span>
             </div>
@@ -151,7 +151,7 @@ export default function MultiPaymentModal({
                     ? 'bg-red-500'
                     : paidTotal === totalAmount
                     ? 'bg-green-500'
-                    : 'bg-blue-500'
+                    : 'bg-primary-500'
                 }`}
                 style={{ width: `${Math.min((paidTotal / totalAmount) * 100, 100)}%` }}
               />

@@ -154,13 +154,13 @@ export default function CheckMembershipPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <img src='/assets/icon.png' alt="logo" className='w-12 h-12 sm:w-16 sm:h-16'/>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-600">Gym System</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-600">Gym System</h1>
           </div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2">
             🔍 {t('attendance.verifyMembership')}
@@ -171,7 +171,7 @@ export default function CheckMembershipPage() {
         </div>
 
         {/* Search Box */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border-4 border-blue-500 mb-6">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border-4 border-primary-500 mb-6">
           <div className="mb-6">
             <label className="block text-lg sm:text-xl font-bold mb-4 text-gray-800 text-center">
               {t('attendance.membershipNumber')}
@@ -190,14 +190,14 @@ export default function CheckMembershipPage() {
                 value={memberNumber}
                 onChange={(e) => setMemberNumber(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className="flex-1 px-4 py-3 sm:px-6 sm:py-4 border-4 border-blue-300 rounded-xl text-2xl sm:text-3xl md:text-4xl font-bold text-center focus:border-blue-600 focus:ring-4 focus:ring-blue-200 transition text-gray-800"
+                className="flex-1 px-4 py-3 sm:px-6 sm:py-4 border-4 border-primary-300 rounded-xl text-2xl sm:text-3xl md:text-4xl font-bold text-center focus:border-primary-600 focus:ring-4 focus:ring-primary-200 transition text-gray-800"
                 placeholder="1001"
                 disabled={loading}
               />
               <button
                 onClick={handleCheck}
                 disabled={loading || !memberNumber.trim()}
-                className="px-6 py-3 sm:px-8 sm:py-4 bg-blue-600 text-white text-xl sm:text-2xl font-bold rounded-xl hover:bg-blue-700 disabled:bg-gray-400 transition shadow-lg"
+                className="px-6 py-3 sm:px-8 sm:py-4 bg-primary-600 text-white text-xl sm:text-2xl font-bold rounded-xl hover:bg-primary-700 disabled:bg-gray-400 transition shadow-lg"
               >
                 {loading ? '⏳' : '🔍'}
               </button>
@@ -228,7 +228,7 @@ export default function CheckMembershipPage() {
               </h3>
 
               <p className="text-lg sm:text-xl text-gray-600 mb-4">
-                {t('attendance.membershipNumber')}: <span className="font-bold text-blue-600">#{result.memberNumber}</span>
+                {t('attendance.membershipNumber')}: <span className="font-bold text-primary-600">#{result.memberNumber}</span>
               </p>
 
               <div className={`inline-block px-6 py-3 rounded-xl text-xl sm:text-2xl font-bold ${

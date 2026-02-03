@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     //   },
     // });
 
-    console.log('Push subscription removed for member:', memberData.id);
+    console.log('Push subscription removed for member:', (memberData as any).id);
 
     return NextResponse.json({
       success: true,

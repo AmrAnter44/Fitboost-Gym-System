@@ -9,6 +9,7 @@ import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
+import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
 import { fetchDayUseRecords } from '../../lib/api/dayuse'
 
@@ -26,6 +27,7 @@ export default function DayUsePage() {
   const { t, direction } = useLanguage()
   const { user } = usePermissions()
   const toast = useToast()
+  const { settings } = useServiceSettings()
 
   const {
     data: entries = [],
@@ -55,12 +57,39 @@ export default function DayUsePage() {
   const [deleting, setDeleting] = useState(false)
   const [isRenewing, setIsRenewing] = useState(false)
   const [renewingEntryId, setRenewingEntryId] = useState<string | null>(null)
+  const [memberPoints, setMemberPoints] = useState(0)
 
   useEffect(() => {
     if (user && !formData.staffName) {
       setFormData(prev => ({ ...prev, staffName: user.name }))
     }
   }, [user])
+
+  useEffect(() => {
+    const fetchMemberPoints = async () => {
+      if (!formData.phone) {
+        setMemberPoints(0)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/members?phone=${encodeURIComponent(formData.phone)}`)
+        if (response.ok) {
+          const members = await response.json()
+          if (members.length > 0) {
+            setMemberPoints(members[0].points || 0)
+          } else {
+            setMemberPoints(0)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching member points:', error)
+        setMemberPoints(0)
+      }
+    }
+
+    fetchMemberPoints()
+  }, [formData.phone])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -255,7 +284,7 @@ export default function DayUsePage() {
                   className="w-full px-3 py-2 border rounded-lg"
                 >
                   <option value="DayUse">{t('dayUse.dayUse')}</option>
-                  <option value="InBody">{t('dayUse.inBody')}</option>
+                  {settings.inBodyEnabled && <option value="InBody">{t('dayUse.inBody')}</option>}
                   <option value="LockerRental">{t('dayUse.lockerRental')}</option>
                 </select>
               </div>
@@ -287,13 +316,16 @@ export default function DayUsePage() {
             </div>
 
             {/* قسم طريقة الدفع */}
-            <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-5">
+            <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-5">
               <PaymentMethodSelector
                 value={formData.paymentMethod}
                 onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
                 allowMultiple={true}
                 totalAmount={formData.price}
                 required
+                memberPoints={memberPoints}
+                pointsValueInEGP={settings.pointsValueInEGP}
+                pointsEnabled={settings.pointsEnabled}
               />
             </div>
 
@@ -323,7 +355,7 @@ export default function DayUsePage() {
                 <div className="flex flex-col sm:flex-row justify-end gap-2 mb-3">
                   <button
                     onClick={() => handleRenewClick(entry)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition text-sm font-medium shadow-sm"
+                    className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition text-sm font-medium shadow-sm"
                   >
                     🔄 تجديد
                   </button>
@@ -358,7 +390,7 @@ export default function DayUsePage() {
                     <span className="text-gray-500 text-sm min-w-[80px]">🎯 {t('dayUse.serviceLabel')}</span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       entry.serviceType === 'DayUse'
-                        ? 'bg-blue-100 text-blue-800'
+                        ? 'bg-primary-100 text-primary-800'
                         : entry.serviceType === 'InBody'
                         ? 'bg-green-100 text-green-800'
                         : 'bg-orange-100 text-orange-800'
@@ -418,7 +450,7 @@ export default function DayUsePage() {
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-sm ${
                         entry.serviceType === 'DayUse'
-                          ? 'bg-blue-100 text-blue-800'
+                          ? 'bg-primary-100 text-primary-800'
                           : entry.serviceType === 'InBody'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-orange-100 text-orange-800'
@@ -436,7 +468,7 @@ export default function DayUsePage() {
                       <div className="flex gap-2 justify-center">
                         <button
                           onClick={() => handleRenewClick(entry)}
-                          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition text-sm"
+                          className="bg-primary-500 text-white px-3 py-1 rounded hover:bg-primary-600 transition text-sm"
                         >
                           🔄 تجديد
                         </button>

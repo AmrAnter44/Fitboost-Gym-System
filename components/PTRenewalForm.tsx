@@ -6,6 +6,7 @@ import PaymentMethodSelector from './Paymentmethodselector'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
+import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import type { PaymentMethod } from '../lib/paymentHelpers'
 
 interface Staff {
@@ -38,6 +39,8 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
   const { user } = usePermissions()
   const { t, direction } = useLanguage()
   const toast = useToast()
+  const { settings } = useServiceSettings()
+  const [memberPoints, setMemberPoints] = useState(0)
   const [coaches, setCoaches] = useState<Staff[]>([])
   const [coachesLoading, setCoachesLoading] = useState(true)
 
@@ -73,6 +76,26 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     staffName: user?.name || '',
   })
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const fetchMemberPoints = async () => {
+      try {
+        const response = await fetch(`/api/members?phone=${encodeURIComponent(session.phone)}`)
+        if (response.ok) {
+          const members = await response.json()
+          if (members.length > 0) {
+            setMemberPoints(members[0].points || 0)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching member points:', error)
+      }
+    }
+
+    if (session.phone) {
+      fetchMemberPoints()
+    }
+  }, [session.phone])
 
   useEffect(() => {
     fetchCoaches()
@@ -227,7 +250,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
+            <div className="bg-gradient-to-br from-primary-50 to-indigo-50 border-2 border-primary-200 rounded-xl p-4">
               <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                 <span>📋</span>
                 <span>{t('pt.renewal.renewalData')}</span>
@@ -398,12 +421,15 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
               </div>
 
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4">
+                <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-4">
                   <PaymentMethodSelector
                     value={formData.paymentMethod}
                     onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
                     allowMultiple={true}
                     totalAmount={formData.totalPrice}
+                    memberPoints={memberPoints}
+                    pointsValueInEGP={settings.pointsValueInEGP}
+                    pointsEnabled={settings.pointsEnabled}
                     required
                   />
                 </div>
@@ -415,8 +441,8 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                   </h3>
 
                   <div className="space-y-2">
-                    <div className="bg-blue-50 border-l-4 border-r-4 border-blue-400 p-2 rounded">
-                      <p className="text-xs text-blue-800">
+                    <div className="bg-primary-50 border-l-4 border-r-4 border-primary-400 p-2 rounded">
+                      <p className="text-xs text-primary-800">
                         ⚠️ {t('pt.renewal.replacementWarning', {
                           sessionsRemaining: session.sessionsRemaining.toString()
                         })}

@@ -525,7 +525,10 @@ function createWindow() {
       partition: 'persist:gym', // حفظ الـ cookies والـ session
       enableRemoteModule: false,
       preload: path.join(__dirname, 'preload.js'),
-      enableBlinkFeatures: 'WebHID,WebSerial' // تفعيل Web HID و Web Serial APIs
+      enableBlinkFeatures: 'WebHID,WebSerial', // تفعيل Web HID و Web Serial APIs
+      // ✅ السماح بالكاميرا والميكروفون
+      experimentalFeatures: true,
+      allowRunningInsecureContent: true
     },
     autoHideMenuBar: !isDev,
     title: 'نظام إدارة الصالة الرياضية',
@@ -693,6 +696,46 @@ function createWindow() {
     }
     return false;
   });
+
+  // Handle media (camera/microphone) permission requests
+  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    console.log('🔐 Permission request:', permission);
+
+    // السماح بالوصول للكاميرا والميكروفون
+    const allowedPermissions = ['media', 'mediaKeySystem', 'videoCapture', 'audioCapture'];
+    if (allowedPermissions.includes(permission)) {
+      console.log('✅ Permission granted:', permission);
+      callback(true);
+    } else {
+      console.log('⚠️ Permission denied:', permission);
+      callback(false);
+    }
+  });
+
+  // Handle permission check (for querying permissions)
+  mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    console.log('🔍 Permission check:', permission, 'from', requestingOrigin);
+
+    // السماح بكل الـ media permissions
+    if (permission === 'media' || permission === 'mediaKeySystem' ||
+        permission === 'videoCapture' || permission === 'audioCapture') {
+      console.log('✅ Permission check approved:', permission);
+      return true;
+    }
+
+    return true; // السماح بكل الصلاحيات في dev mode
+  });
+
+  // حقن Permissions-Policy header للسماح بالكاميرا والمايكروفون
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Permissions-Policy': ['camera=*, microphone=*, display-capture=*']
+      }
+    });
+  });
+  console.log('✅ Permissions-Policy headers injected');
 
   const startUrl = 'http://localhost:4001';
   let attempts = 0, maxAttempts = 60;

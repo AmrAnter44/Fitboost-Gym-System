@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireValidLicense } from "../../../../lib/license";
+import { processPaymentWithPoints } from "../../../../lib/paymentProcessor";
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +45,23 @@ export async function POST(req: Request) {
         dayUseId: newDayUse.id,
       },
     });
+
+    // خصم النقاط إذا تم استخدامها في الدفع
+    const pointsResult = await processPaymentWithPoints(
+      null,  // لا يوجد memberId
+      phone,
+      null,  // لا يوجد memberNumber لـ DayUse
+      paymentMethod,
+      `دفع يوم استخدام - ${name}`,
+      prisma
+    );
+
+    if (!pointsResult.success) {
+      return NextResponse.json(
+        { error: pointsResult.message || 'فشل خصم النقاط' },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({ success: true, newDayUse, receiptNumber });
   } catch (error) {

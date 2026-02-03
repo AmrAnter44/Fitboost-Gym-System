@@ -59,7 +59,7 @@ export default function PTCheckInPage() {
 
   if (showSuccess && sessionInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center p-4" dir="rtl">
+      <div className="min-h-screen bg-gradient-to-br from-green-400 via-primary-500 to-purple-600 flex items-center justify-center p-4" dir="rtl">
         <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center">
           {/* Success Animation */}
           <div className="mb-6">
@@ -75,28 +75,28 @@ export default function PTCheckInPage() {
           </div>
 
           {/* Session Details */}
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-300 rounded-2xl p-6 mb-6 text-right">
-            <h3 className="text-lg font-bold text-blue-800 mb-4 text-center">
+          <div className="bg-gradient-to-br from-primary-50 to-purple-50 border-2 border-primary-300 rounded-2xl p-6 mb-6 text-right">
+            <h3 className="text-lg font-bold text-primary-800 mb-4 text-center">
               تفاصيل الحصة
             </h3>
             <div className="space-y-3">
-              <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+              <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                 <span className="text-gray-600">الاسم:</span>
-                <span className="font-bold text-blue-900">{sessionInfo.clientName}</span>
+                <span className="font-bold text-primary-900">{sessionInfo.clientName}</span>
               </div>
-              <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+              <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                 <span className="text-gray-600">رقم PT:</span>
-                <span className="font-bold text-blue-900">
+                <span className="font-bold text-primary-900">
                   {sessionInfo.ptNumber < 0 ? '🏃 Day Use' : `#${sessionInfo.ptNumber}`}
                 </span>
               </div>
-              <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+              <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                 <span className="text-gray-600">الكوتش:</span>
-                <span className="font-bold text-blue-900">{sessionInfo.coachName}</span>
+                <span className="font-bold text-primary-900">{sessionInfo.coachName}</span>
               </div>
-              <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+              <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                 <span className="text-gray-600">التاريخ:</span>
-                <span className="font-bold text-blue-900">
+                <span className="font-bold text-primary-900">
                   {new Date(sessionInfo.sessionDate).toLocaleDateString('ar-EG', {
                     year: 'numeric',
                     month: 'long',
@@ -120,7 +120,7 @@ export default function PTCheckInPage() {
                 setShowSuccess(false)
                 setSessionInfo(null)
               }}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 font-bold text-lg shadow-lg"
+              className="w-full bg-gradient-to-r from-primary-600 to-purple-600 text-white py-4 rounded-xl hover:from-primary-700 hover:to-purple-700 font-bold text-lg shadow-lg"
             >
               تسجيل حصة أخرى
             </button>
@@ -144,11 +144,11 @@ export default function PTCheckInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-primary-600 to-cyan-500 flex items-center justify-center p-4" dir="rtl">
       <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-100 to-primary-100 rounded-full mb-4">
             <span className="text-5xl">🏋️</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -207,15 +207,15 @@ export default function PTCheckInPage() {
           <button
             type="submit"
             disabled={loading || qrCode.length !== 32}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition"
+            className="w-full bg-gradient-to-r from-purple-600 to-primary-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-primary-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition"
           >
             {loading ? '⏳ جاري التحقق...' : '✅ تسجيل الحضور'}
           </button>
         </form>
 
         {/* Security Notice */}
-        <div className="mt-6 bg-blue-50 border-r-4 border-blue-500 p-4 rounded-lg">
-          <p className="text-xs text-blue-800">
+        <div className="mt-6 bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg">
+          <p className="text-xs text-primary-800">
             <strong>🔒 ملاحظة أمنية:</strong> QR Code الخاص بك فريد وآمن.
             لا تشاركه مع أي شخص آخر. كل QR Code يستخدم مرة واحدة فقط.
           </p>

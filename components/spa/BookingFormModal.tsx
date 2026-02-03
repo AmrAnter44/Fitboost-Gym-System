@@ -127,7 +127,7 @@ export default function BookingFormModal({
     >
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-t-lg">
+        <div className="sticky top-0 bg-gradient-to-r from-primary-500 to-primary-600 text-white p-6 rounded-t-lg">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">{t('spa.newBooking')}</h2>
             <button
@@ -166,7 +166,7 @@ export default function BookingFormModal({
                   }
                 }}
                 onFocus={() => setShowMemberDropdown(true)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 disabled={loadingMembers}
               />
 
@@ -216,7 +216,7 @@ export default function BookingFormModal({
                   onClick={() => setFormData({ ...formData, serviceType: service })}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     formData.serviceType === service
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
+                      ? 'border-primary-500 bg-primary-50 shadow-md'
                       : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
                   }`}
                 >
@@ -241,7 +241,7 @@ export default function BookingFormModal({
                 setFormData({ ...formData, bookingDate: e.target.value, bookingTime: '' })
               }}
               min={minDate}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
             />
           </div>
@@ -274,7 +274,7 @@ export default function BookingFormModal({
                   onClick={() => setFormData({ ...formData, duration })}
                   className={`px-4 py-3 rounded-lg border-2 font-medium transition-all ${
                     formData.duration === duration
-                      ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-md'
                       : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
                   }`}
                 >
@@ -293,7 +293,7 @@ export default function BookingFormModal({
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder={t('spa.notesPlaceholder')}
             />
           </div>
@@ -303,7 +303,7 @@ export default function BookingFormModal({
             <button
               type="submit"
               disabled={submitting || !formData.memberId || !formData.bookingTime}
-              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+              className="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
             >
               {submitting ? t('common.saving') : t('spa.confirmBooking')}
             </button>

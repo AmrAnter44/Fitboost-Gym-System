@@ -31,8 +31,8 @@ export default function SetupPage() {
           <p className="text-gray-600 mt-2">إنشاء أول حساب Admin</p>
         </div>
 
-        <div className="bg-blue-50 border-r-4 border-blue-500 p-4 rounded-lg mb-6">
-          <p className="text-sm text-blue-800">
+        <div className="bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg mb-6">
+          <p className="text-sm text-primary-800">
             <strong>📌 ملاحظة:</strong> هذه الصفحة تستخدم مرة واحدة فقط لإنشاء حساب المدير الأول.
           </p>
         </div>
@@ -41,7 +41,7 @@ export default function SetupPage() {
           <button
             onClick={handleSetup}
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-4 rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 font-bold text-lg shadow-lg transition transform hover:scale-105"
+            className="w-full bg-gradient-to-r from-primary-500 to-purple-600 text-white py-4 rounded-xl hover:from-primary-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 font-bold text-lg shadow-lg transition transform hover:scale-105"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -76,13 +76,13 @@ export default function SetupPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
                       <span className="text-gray-600 text-sm">البريد الإلكتروني:</span>
-                      <code className="font-mono font-bold text-blue-600 text-sm" dir="ltr">
+                      <code className="font-mono font-bold text-primary-600 text-sm" dir="ltr">
                         {result.credentials.email}
                       </code>
                     </div>
                     <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
                       <span className="text-gray-600 text-sm">كلمة المرور الافتراضية:</span>
-                      <code className="font-mono font-bold text-blue-600 text-sm">
+                      <code className="font-mono font-bold text-primary-600 text-sm">
                         admin123456
                       </code>
                     </div>

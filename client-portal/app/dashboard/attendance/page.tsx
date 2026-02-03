@@ -97,7 +97,7 @@ export default function AttendancePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="inline-block w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-gray-600">جاري التحميل...</p>
         </div>
       </div>
@@ -120,7 +120,7 @@ export default function AttendancePage() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold">سجل الحضور</h1>
-              <p className="text-blue-200">تاريخ حضورك للجيم</p>
+              <p className="text-primary-200">تاريخ حضورك للجيم</p>
             </div>
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function AttendancePage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-xl shadow p-4 text-center">
-            <p className="text-3xl font-bold text-blue-600">{stats.thisWeek}</p>
+            <p className="text-3xl font-bold text-primary-600">{stats.thisWeek}</p>
             <p className="text-sm text-gray-600 mt-1">هذا الأسبوع</p>
           </div>
           <div className="bg-white rounded-xl shadow p-4 text-center">
@@ -160,7 +160,7 @@ export default function AttendancePage() {
                 <div key={checkIn.id} className="p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
                         {stats.total - offset - index}
                       </div>
                       <div>
@@ -173,7 +173,7 @@ export default function AttendancePage() {
                       </div>
                     </div>
                     <div className="text-left">
-                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      <span className="inline-block px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-xs font-medium">
                         {getMethodLabel(checkIn.checkInMethod)}
                       </span>
                     </div>
@@ -188,7 +188,7 @@ export default function AttendancePage() {
             <div className="p-4 bg-gray-50 border-t">
               <button
                 onClick={loadMore}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
               >
                 تحميل المزيد
               </button>

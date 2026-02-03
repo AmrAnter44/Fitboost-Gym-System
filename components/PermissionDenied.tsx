@@ -59,7 +59,7 @@ export default function PermissionDenied({
             {showBackButton && (
               <button
                 onClick={() => router.back()}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition font-bold shadow-lg"
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition font-bold shadow-lg"
               >
                 ← العودة للخلف
               </button>

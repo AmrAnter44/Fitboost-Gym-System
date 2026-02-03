@@ -45,7 +45,7 @@ export default function BookingCard({
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
       {/* Header with gradient */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4">
+      <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{serviceIcons[booking.serviceType]}</span>
@@ -105,7 +105,7 @@ export default function BookingCard({
             {onView && (
               <button
                 onClick={() => onView(booking)}
-                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm font-medium"
               >
                 {t('common.view')}
               </button>

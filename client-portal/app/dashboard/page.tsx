@@ -73,7 +73,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="inline-block w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-gray-600">{t('loading')}</p>
         </div>
       </div>
@@ -112,7 +112,7 @@ export default function DashboardPage() {
               <img src="/logo.png" alt="X Gym" className="w-12 h-12" />
               <div>
                 <h1 className="text-2xl font-bold">{member.name}</h1>
-                <p className="text-blue-200">{t('memberNumber')}: {member.memberNumber}</p>
+                <p className="text-primary-200">{t('memberNumber')}: {member.memberNumber}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -140,7 +140,7 @@ export default function DashboardPage() {
           </div>
 
           {member.isFrozen && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
+            <div className="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-lg text-primary-800 text-sm">
               ❄️ {t('frozen')}
             </div>
           )}
@@ -165,8 +165,8 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-              <p className="text-4xl font-bold text-blue-600 mb-1">
+            <div className="text-center p-4 bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl">
+              <p className="text-4xl font-bold text-primary-600 mb-1">
                 {member.remainingDays}
               </p>
               <p className="text-sm text-gray-600">{t('daysRemaining')}</p>
@@ -192,8 +192,8 @@ export default function DashboardPage() {
               <p className="text-2xl font-bold text-green-600">{member.invitations}</p>
               <p className="text-xs text-gray-600 mt-1">{t('invitations')}</p>
             </div>
-            <div className="text-center p-3 bg-blue-50 rounded-xl">
-              <p className="text-2xl font-bold text-blue-600">{member.inBodyScans}</p>
+            <div className="text-center p-3 bg-primary-50 rounded-xl">
+              <p className="text-2xl font-bold text-primary-600">{member.inBodyScans}</p>
               <p className="text-xs text-gray-600 mt-1">{t('inBody')}</p>
             </div>
             <Link
@@ -218,7 +218,7 @@ export default function DashboardPage() {
           >
             <div className="text-3xl mb-2">📊</div>
             <p className="text-2xl font-bold text-gray-800 mb-1">{member._count.checkIns}</p>
-            <p className="text-sm text-gray-600 group-hover:text-blue-600">{t('attendance')}</p>
+            <p className="text-sm text-gray-600 group-hover:text-primary-600">{t('attendance')}</p>
           </Link>
 
           <Link
@@ -227,7 +227,7 @@ export default function DashboardPage() {
           >
             <div className="text-3xl mb-2">🧾</div>
             <p className="text-2xl font-bold text-gray-800 mb-1">{member._count.receipts}</p>
-            <p className="text-sm text-gray-600 group-hover:text-blue-600">{t('receipts')}</p>
+            <p className="text-sm text-gray-600 group-hover:text-primary-600">{t('receipts')}</p>
           </Link>
 
           <Link
@@ -236,12 +236,12 @@ export default function DashboardPage() {
           >
             <div className="text-3xl mb-2">💆</div>
             <p className="text-2xl font-bold text-gray-800 mb-1">{member._count.spaBookings}</p>
-            <p className="text-sm text-gray-600 group-hover:text-blue-600">{t('spa')}</p>
+            <p className="text-sm text-gray-600 group-hover:text-primary-600">{t('spa')}</p>
           </Link>
         </div>
 
         {/* Info Card */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+        <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 text-sm text-primary-800">
           <p className="font-medium mb-1">💡 {t('tip')}</p>
           <p>{t('contactManagement')}</p>
         </div>

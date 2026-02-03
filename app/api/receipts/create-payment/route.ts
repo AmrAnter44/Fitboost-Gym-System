@@ -7,6 +7,7 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
+import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,6 +78,23 @@ export async function POST(request: Request) {
         memberId
       }
     })
+
+    // خصم النقاط إذا تم استخدامها في الدفع
+    const pointsResult = await processPaymentWithPoints(
+      member.id,
+      member.phone,
+      member.memberNumber,  // ✅ تمرير رقم العضوية
+      finalPaymentMethod,
+      `دفع متبقي - ${member.name}`,
+      prisma
+    )
+
+    if (!pointsResult.success) {
+      return NextResponse.json(
+        { error: pointsResult.message || 'فشل خصم النقاط' },
+        { status: 400 }
+      )
+    }
 
     return NextResponse.json(receipt)
   } catch (error: any) {

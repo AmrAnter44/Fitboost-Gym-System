@@ -6,6 +6,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import { useConfirm } from '../../hooks/useConfirm'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useServiceSettings } from '@/contexts/ServiceSettingsContext'
 import { useRouter } from 'next/navigation'
 import { fetchOffers } from '@/lib/api/offers'
 
@@ -29,6 +30,7 @@ export default function OffersPage() {
   const { t, direction } = useLanguage()
   const toast = useToast()
   const router = useRouter()
+  const { settings } = useServiceSettings()
 
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -71,6 +73,12 @@ export default function OffersPage() {
     duration: '',
     price: '',
     freePTSessions: '',
+    freeNutritionSessions: '',
+    freePhysioSessions: '',
+    freeGroupClassSessions: '',
+    nutritionPrice: '',
+    physioPrice: '',
+    groupClassPrice: '',
     inBodyScans: '',
     invitations: '',
     freezeDays: '',
@@ -119,6 +127,12 @@ export default function OffersPage() {
       duration: offer.duration.toString(),
       price: offer.price.toString(),
       freePTSessions: offer.freePTSessions.toString(),
+      freeNutritionSessions: (offer as any).freeNutritionSessions?.toString() || '0',
+      freePhysioSessions: (offer as any).freePhysioSessions?.toString() || '0',
+      freeGroupClassSessions: (offer as any).freeGroupClassSessions?.toString() || '0',
+      nutritionPrice: (offer as any).nutritionPrice?.toString() || '0',
+      physioPrice: (offer as any).physioPrice?.toString() || '0',
+      groupClassPrice: (offer as any).groupClassPrice?.toString() || '0',
       inBodyScans: offer.inBodyScans.toString(),
       invitations: offer.invitations.toString(),
       freezeDays: offer.freezeDays.toString(),
@@ -190,6 +204,12 @@ export default function OffersPage() {
       duration: '',
       price: '',
       freePTSessions: '',
+      freeNutritionSessions: '',
+      freePhysioSessions: '',
+      freeGroupClassSessions: '',
+      nutritionPrice: '',
+      physioPrice: '',
+      groupClassPrice: '',
       inBodyScans: '',
       invitations: '',
       freezeDays: '',
@@ -203,7 +223,7 @@ export default function OffersPage() {
   const iconOptions = ['📅', '⭐', '🎁', '💎', '🔥', '✨', '🏆', '💪']
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50" dir={direction}>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-primary-50" dir={direction}>
       <div className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
@@ -214,7 +234,7 @@ export default function OffersPage() {
             </div>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:scale-105 transition-transform"
+              className="bg-gradient-to-r from-purple-600 to-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:scale-105 transition-transform"
             >
               {showForm ? `✖ ${t('offers.cancel')}` : `➕ ${t('offers.addNewOffer')}`}
             </button>
@@ -234,7 +254,7 @@ export default function OffersPage() {
 
           {/* Add/Edit Form */}
           {showForm && (
-            <div className="mb-8 bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border-2 border-purple-200">
+            <div className="mb-8 bg-gradient-to-r from-purple-50 to-primary-50 p-6 rounded-xl border-2 border-purple-200">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">
                 {editingOffer ? `✏️ ${t('offers.editOffer')}` : `➕ ${t('offers.newOffer')}`}
               </h2>
@@ -287,16 +307,63 @@ export default function OffersPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-gray-700 font-bold mb-2">{t('offers.inBodyScans')}</label>
-                  <input
-                    type="number"
-                    value={formData.inBodyScans}
-                    onChange={(e) => setFormData({ ...formData, inBodyScans: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
-                    placeholder="0"
-                  />
-                </div>
+                {settings.nutritionEnabled && (
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-2">
+                      🥗 {t('offers.freeNutritionSessions')}
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.freeNutritionSessions}
+                      onChange={(e) => setFormData({ ...formData, freeNutritionSessions: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+
+                {settings.physiotherapyEnabled && (
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-2">
+                      🏥 {t('offers.freePhysioSessions')}
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.freePhysioSessions}
+                      onChange={(e) => setFormData({ ...formData, freePhysioSessions: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+
+                {settings.groupClassEnabled && (
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-2">
+                      👥 {t('offers.freeGroupClassSessions')}
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.freeGroupClassSessions}
+                      onChange={(e) => setFormData({ ...formData, freeGroupClassSessions: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+
+                {settings.inBodyEnabled && (
+                  <div>
+                    <label className="block text-gray-700 font-bold mb-2">{t('offers.inBodyScans')}</label>
+                    <input
+                      type="number"
+                      value={formData.inBodyScans}
+                      onChange={(e) => setFormData({ ...formData, inBodyScans: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-gray-700 font-bold mb-2">{t('offers.freeInvitations')}</label>
@@ -425,21 +492,41 @@ export default function OffersPage() {
                       <span className="text-gray-600">{t('offers.ptSessions')}</span>
                       <span className="font-bold text-gray-800">{offer.freePTSessions}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">{t('offers.inBody')}</span>
-                      <span className="font-bold text-gray-800">{offer.inBodyScans}</span>
-                    </div>
+                    {settings.nutritionEnabled && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">🥗 {t('offers.nutritionSessions')}</span>
+                        <span className="font-bold text-gray-800">{(offer as any).freeNutritionSessions || 0}</span>
+                      </div>
+                    )}
+                    {settings.physiotherapyEnabled && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">🏥 {t('offers.physioSessions')}</span>
+                        <span className="font-bold text-gray-800">{(offer as any).freePhysioSessions || 0}</span>
+                      </div>
+                    )}
+                    {settings.groupClassEnabled && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">👥 {t('offers.groupClassSessions')}</span>
+                        <span className="font-bold text-gray-800">{(offer as any).freeGroupClassSessions || 0}</span>
+                      </div>
+                    )}
+                    {settings.inBodyEnabled && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">{t('offers.inBody')}</span>
+                        <span className="font-bold text-gray-800">{offer.inBodyScans}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-600">{t('offers.invitations')}</span>
                       <span className="font-bold text-gray-800">{offer.invitations}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-600">❄️ أيام الفريز</span>
-                      <span className="font-bold text-blue-600">{offer.freezeDays}</span>
+                      <span className="font-bold text-primary-600">{offer.freezeDays}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm border-t pt-2 mt-2">
                       <span className="text-gray-600">{t('offers.upgradeWindow')}</span>
-                      <span className="font-bold text-blue-600">
+                      <span className="font-bold text-primary-600">
                         {offer.upgradeEligibilityDays !== null && offer.upgradeEligibilityDays !== undefined
                           ? `${offer.upgradeEligibilityDays} ${t('offers.days')}`
                           : t('offers.noUpgrade')
@@ -451,7 +538,7 @@ export default function OffersPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(offer)}
-                      className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-bold hover:bg-blue-600 transition-colors"
+                      className="flex-1 bg-primary-500 text-white py-2 rounded-lg font-bold hover:bg-primary-600 transition-colors"
                     >
                       ✏️ {t('offers.edit')}
                     </button>

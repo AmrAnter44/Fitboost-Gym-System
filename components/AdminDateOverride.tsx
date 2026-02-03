@@ -106,7 +106,7 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
                       type="date"
                       value={customDate}
                       onChange={(e) => setCustomDate(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 font-mono focus:border-blue-500 focus:outline-none"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 font-mono focus:border-primary-500 focus:outline-none"
                     />
                   </div>
 
@@ -118,7 +118,7 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
                       type="time"
                       value={customTime}
                       onChange={(e) => setCustomTime(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 font-mono focus:border-blue-500 focus:outline-none"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 font-mono focus:border-primary-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -129,7 +129,7 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
                     const now = new Date()
                     setCustomTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`)
                   }}
-                  className="w-full px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg font-semibold transition"
+                  className="w-full px-4 py-3 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg font-semibold transition"
                 >
                   🔄 تعيين التاريخ والوقت الحالي
                 </button>

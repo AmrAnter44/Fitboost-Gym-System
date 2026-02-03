@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
-import { PaymentMethod, validatePaymentDistribution } from '../lib/paymentHelpers'
+import { PaymentMethod, validatePaymentDistribution, calculatePointsRequired, calculatePointsValue } from '../lib/paymentHelpers'
 
 interface PaymentMethodSelectorProps {
   value: string | PaymentMethod[]
@@ -10,6 +10,9 @@ interface PaymentMethodSelectorProps {
   totalAmount?: number  // للدفع المتعدد
   allowMultiple?: boolean  // تفعيل خيار الدفع المتعدد
   required?: boolean
+  memberPoints?: number  // نقاط العضو المتاحة
+  pointsValueInEGP?: number  // قيمة النقطة بالجنيه
+  pointsEnabled?: boolean  // تفعيل النقاط كوسيلة دفع
 }
 
 interface PaymentAmounts {
@@ -17,6 +20,7 @@ interface PaymentAmounts {
   visa: number
   instapay: number
   wallet: number
+  points: number
 }
 
 export default function PaymentMethodSelector({
@@ -24,22 +28,29 @@ export default function PaymentMethodSelector({
   onChange,
   totalAmount,
   allowMultiple = false,
-  required = false
+  required = false,
+  memberPoints = 0,
+  pointsValueInEGP = 0,
+  pointsEnabled = false
 }: PaymentMethodSelectorProps) {
   const { t, direction } = useLanguage()
   const [amounts, setAmounts] = useState<PaymentAmounts>({
     cash: 0,
     visa: 0,
     instapay: 0,
-    wallet: 0
+    wallet: 0,
+    points: 0
   })
   const [errorMessage, setErrorMessage] = useState<string>('')
 
   const paymentMethods = [
     { value: 'cash', key: 'cash' as const, icon: '💵', color: 'bg-green-100 border-green-500', gradientColor: 'from-green-100 to-green-50 border-green-500' },
-    { value: 'visa', key: 'visa' as const, icon: '💳', color: 'bg-blue-100 border-blue-500', gradientColor: 'from-blue-100 to-blue-50 border-blue-500' },
+    { value: 'visa', key: 'visa' as const, icon: '💳', color: 'bg-primary-100 border-primary-500', gradientColor: 'from-primary-100 to-primary-50 border-primary-500' },
     { value: 'instapay', key: 'instapay' as const, icon: '📱', color: 'bg-purple-100 border-purple-500', gradientColor: 'from-purple-100 to-purple-50 border-purple-500' },
     { value: 'wallet', key: 'wallet' as const, icon: '💰', color: 'bg-orange-100 border-orange-500', gradientColor: 'from-orange-100 to-orange-50 border-orange-500' },
+    ...(pointsEnabled && memberPoints > 0 ? [
+      { value: 'points', key: 'points' as const, icon: '🏆', color: 'bg-yellow-100 border-yellow-500', gradientColor: 'from-yellow-100 to-yellow-50 border-yellow-500' }
+    ] : []),
   ]
 
   // التحقق إذا كانت القيمة مصفوفة (دفع متعدد)
@@ -78,6 +89,7 @@ export default function PaymentMethodSelector({
         visa: value.find(m => m.method === 'visa')?.amount || 0,
         instapay: value.find(m => m.method === 'instapay')?.amount || 0,
         wallet: value.find(m => m.method === 'wallet')?.amount || 0,
+        points: value.find(m => m.method === 'points')?.amount || 0,
       }
       setAmounts(newAmounts)
     }
@@ -85,10 +97,21 @@ export default function PaymentMethodSelector({
 
   const handleAmountChange = (method: keyof PaymentAmounts, newValue: string) => {
     const numValue = parseFloat(newValue) || 0
-    setAmounts(prev => ({
-      ...prev,
-      [method]: numValue
-    }))
+
+    // للنقاط: التحقق من عدم تجاوز الرصيد المتاح
+    if (method === 'points' && pointsValueInEGP > 0) {
+      const maxPointsValue = calculatePointsValue(memberPoints, pointsValueInEGP)
+      const cappedValue = Math.min(numValue, maxPointsValue)
+      setAmounts(prev => ({
+        ...prev,
+        [method]: cappedValue
+      }))
+    } else {
+      setAmounts(prev => ({
+        ...prev,
+        [method]: numValue
+      }))
+    }
   }
 
   const handleMultiPaymentApply = () => {
@@ -101,6 +124,10 @@ export default function PaymentMethodSelector({
     if (amounts.visa > 0) methods.push({ method: 'visa', amount: amounts.visa })
     if (amounts.instapay > 0) methods.push({ method: 'instapay', amount: amounts.instapay })
     if (amounts.wallet > 0) methods.push({ method: 'wallet', amount: amounts.wallet })
+    if (amounts.points > 0 && pointsValueInEGP > 0) {
+      const pointsUsed = calculatePointsRequired(amounts.points, pointsValueInEGP)
+      methods.push({ method: 'points', amount: amounts.points, pointsUsed })
+    }
 
     // Validation نهائي
     const validation = validatePaymentDistribution(methods, totalAmount)
@@ -117,19 +144,31 @@ export default function PaymentMethodSelector({
   const handleQuickSelect = (method: keyof PaymentAmounts) => {
     if (!totalAmount) return
 
+    // للنقاط: التحقق من الرصيد المتاح
+    if (method === 'points' && pointsValueInEGP > 0) {
+      const maxPointsValue = calculatePointsValue(memberPoints, pointsValueInEGP)
+      if (totalAmount > maxPointsValue) {
+        setErrorMessage(t('multiPayment.validation.insufficientPoints') || 'رصيد النقاط غير كافي')
+        return
+      }
+    }
+
     // إعادة تعيين كل المبالغ إلى 0
     const newAmounts: PaymentAmounts = {
       cash: 0,
       visa: 0,
       instapay: 0,
       wallet: 0,
+      points: 0,
       [method]: totalAmount
     }
 
     setAmounts(newAmounts)
 
     // تطبيق الاختيار مباشرة
-    const methods: PaymentMethod[] = [{ method, amount: totalAmount }]
+    const methods: PaymentMethod[] = method === 'points' && pointsValueInEGP > 0
+      ? [{ method, amount: totalAmount, pointsUsed: calculatePointsRequired(totalAmount, pointsValueInEGP) }]
+      : [{ method, amount: totalAmount }]
     onChange(methods)
     setErrorMessage('')
   }
@@ -158,12 +197,12 @@ export default function PaymentMethodSelector({
       {allowMultiple && totalAmount && totalAmount > 0 ? (
         <div className="space-y-4">
           {/* المبلغ الكلي */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border-2 border-primary-300 rounded-lg p-4">
             <div className="flex justify-between items-center">
-              <span className="text-base font-semibold text-blue-900">
+              <span className="text-base font-semibold text-primary-900">
                 {t('multiPayment.totalAmount')}:
               </span>
-              <span className="text-2xl font-bold text-blue-600">
+              <span className="text-2xl font-bold text-primary-600">
                 {totalAmount.toFixed(2)} {t('members.egp')}
               </span>
             </div>
@@ -187,7 +226,7 @@ export default function PaymentMethodSelector({
                     ? 'bg-red-500'
                     : paidTotal === totalAmount
                     ? 'bg-green-500'
-                    : 'bg-blue-500'
+                    : 'bg-primary-500'
                 }`}
                 style={{ width: `${Math.min((paidTotal / totalAmount) * 100, 100)}%` }}
               />
@@ -196,51 +235,85 @@ export default function PaymentMethodSelector({
 
           {/* وسائل الدفع */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {paymentMethods.map(method => (
-              <div
-                key={method.value}
-                className="relative"
-              >
-                {/* زر الاختيار السريع */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickSelect(method.key)}
-                  className={`absolute top-2 z-10 px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                    direction === 'rtl' ? 'left-2' : 'right-2'
-                  } ${
-                    amounts[method.key] === totalAmount && paidTotal === totalAmount
-                      ? 'bg-green-600 text-white shadow-lg'
-                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                  }`}
-                  title={`${t('multiPayment.payFullAmount') || 'دفع المبلغ الكلي'} (${totalAmount} ${t('members.egp')}) ${t('multiPayment.using') || 'بـ'} ${t(`members.paymentMethods.${method.value}`)}`}
-                >
-                  {amounts[method.key] === totalAmount && paidTotal === totalAmount
-                    ? `✓ ${t('multiPayment.all') || 'الكل'}`
-                    : t('multiPayment.all') || 'الكل'}
-                </button>
+            {paymentMethods.map(method => {
+              const isPoints = method.key === 'points'
+              const pointsRequired = isPoints && amounts.points > 0 && pointsValueInEGP > 0
+                ? calculatePointsRequired(amounts.points, pointsValueInEGP)
+                : 0
+              const maxPointsValue = isPoints && pointsValueInEGP > 0
+                ? calculatePointsValue(memberPoints, pointsValueInEGP)
+                : 0
 
+              return (
                 <div
-                  className={`bg-gradient-to-br ${method.gradientColor} border-2 rounded-lg p-3 transition-all hover:shadow-md`}
+                  key={method.value}
+                  className="relative"
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">{method.icon}</span>
-                    <span className="font-semibold text-gray-700 text-sm">
-                      {t(`members.paymentMethods.${method.value}`)}
-                    </span>
-                  </div>
+                  {/* زر الاختيار السريع */}
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSelect(method.key)}
+                    disabled={isPoints && maxPointsValue < totalAmount!}
+                    className={`absolute top-2 z-10 px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                      direction === 'rtl' ? 'left-2' : 'right-2'
+                    } ${
+                      amounts[method.key] === totalAmount && paidTotal === totalAmount
+                        ? 'bg-green-600 text-white shadow-lg'
+                        : isPoints && maxPointsValue < totalAmount!
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                    }`}
+                    title={`${t('multiPayment.payFullAmount') || 'دفع المبلغ الكلي'} (${totalAmount} ${t('members.egp')}) ${t('multiPayment.using') || 'بـ'} ${t(`members.paymentMethods.${method.value}`)}`}
+                  >
+                    {amounts[method.key] === totalAmount && paidTotal === totalAmount
+                      ? `✓ ${t('multiPayment.all') || 'الكل'}`
+                      : t('multiPayment.all') || 'الكل'}
+                  </button>
 
-                  <input
-                    type="number"
-                    value={amounts[method.key] || ''}
-                    onChange={(e) => handleAmountChange(method.key, e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    step="0.01"
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-base font-bold focus:border-purple-500 focus:outline-none transition"
-                  />
+                  <div
+                    className={`bg-gradient-to-br ${method.gradientColor} border-2 rounded-lg p-3 transition-all hover:shadow-md`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">{method.icon}</span>
+                      <span className="font-semibold text-gray-700 text-sm">
+                        {t(`members.paymentMethods.${method.value}`)}
+                      </span>
+                    </div>
+
+                    <input
+                      type="number"
+                      value={amounts[method.key] || ''}
+                      onChange={(e) => handleAmountChange(method.key, e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      max={isPoints ? maxPointsValue : undefined}
+                      step="0.01"
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-base font-bold focus:border-purple-500 focus:outline-none transition"
+                    />
+
+                    {/* معلومات إضافية للنقاط */}
+                    {isPoints && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>{t('multiPayment.availablePoints') || 'النقاط المتاحة'}:</span>
+                          <span className="font-bold text-yellow-600">{memberPoints} 🏆</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>{t('multiPayment.maxValue') || 'أقصى قيمة'}:</span>
+                          <span className="font-bold">{maxPointsValue.toFixed(2)} {t('members.egp')}</span>
+                        </div>
+                        {pointsRequired > 0 && (
+                          <div className="flex justify-between text-xs font-bold text-yellow-700 bg-yellow-50 p-1 rounded">
+                            <span>{t('multiPayment.pointsToUse') || 'النقاط المطلوبة'}:</span>
+                            <span>{pointsRequired} 🏆</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* رسائل الخطأ */}

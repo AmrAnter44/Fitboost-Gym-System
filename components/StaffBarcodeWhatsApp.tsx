@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Toast from './Toast'
 
 interface StaffBarcodeWhatsAppProps {
@@ -14,6 +14,29 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
   const [barcodeImage, setBarcodeImage] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
+  const [websiteUrl, setWebsiteUrl] = useState('https://www.xgym.website')
+  const [showWebsite, setShowWebsite] = useState(true)
+
+  // جلب إعدادات الموقع
+  useEffect(() => {
+    const fetchWebsiteSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/services')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.websiteUrl) {
+            setWebsiteUrl(data.websiteUrl)
+          }
+          if (typeof data.showWebsiteOnReceipts === 'boolean') {
+            setShowWebsite(data.showWebsiteOnReceipts)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching website settings:', error)
+      }
+    }
+    fetchWebsiteSettings()
+  }, [])
 
   // توليد الباركود عن طريق API
   const handleGenerateBarcode = async () => {
@@ -68,7 +91,11 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
       const displayCode = staffCode.toLowerCase().startsWith('s')
         ? staffCode.toUpperCase()
         : `S${staffCode}`
-      const message = `Barcode الموظف #${displayCode} (${staffName})\n\n🌐 *الموقع الإلكتروني:*\nhttps://www.xgym.website/`
+
+      // إضافة رابط الموقع إذا كان مفعلاً
+      const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
+
+      const message = `Barcode الموظف #${displayCode} (${staffName})${websiteSection}`
       const phone = staffPhone.replace(/\D/g, '') // تنظيف رقم الهاتف
       const url = `https://wa.me/2${phone}?text=${encodeURIComponent(message)}`
       window.open(url, '_blank')
@@ -86,7 +113,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
         <button
           onClick={handleGenerateBarcode}
           disabled={loading}
-          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm flex items-center gap-1"
+          className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 text-sm flex items-center gap-1"
           title="عرض Barcode"
         >
           🔢

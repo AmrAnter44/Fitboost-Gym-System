@@ -5,6 +5,9 @@ generator client {
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+
+  // ⏱️ تحسين أداء SQLite للتعامل مع transactions الكبيرة
+  relationMode = "prisma"
 }
 
 model Member {
@@ -12,13 +15,23 @@ model Member {
   memberNumber      Int?         @unique
   name              String
   phone             String
+  backupPhone       String?
+  nationalId        String?
+  birthDate         DateTime?
+  source            String?
   profileImage      String?
+  idCardFront       String?
+  idCardBack        String?
   inBodyScans       Int          @default(0)
   invitations       Int          @default(0)
   freePTSessions    Int          @default(0)
+  freeNutritionSessions   Int    @default(0)
+  freePhysioSessions      Int    @default(0)
+  freeGroupClassSessions  Int    @default(0)
   remainingFreezeDays Int        @default(0)
   subscriptionPrice Float
   remainingAmount   Float        @default(0)
+  points            Int          @default(0)
   notes             String?
   isActive          Boolean      @default(true)
   isFrozen          Boolean      @default(false)
@@ -33,6 +46,7 @@ model Member {
   fitnessTestRequests  FitnessTestRequest[]
   spaBookings          SpaBooking[]
   freezeRequests       FreezeRequest[]
+  pointsHistory        PointsHistory[]
   coach                Staff?       @relation("CoachMembers", fields: [coachId], references: [id], onDelete: SetNull)
 
   @@index([coachId])
@@ -164,6 +178,9 @@ model Receipt {
   memberId      String?
   ptNumber      Int?
   dayUseId      String?
+  nutritionNumber    Int?
+  physioNumber       Int?
+  classNumber        Int?
   isCancelled   Boolean       @default(false)
   cancelledAt   DateTime?
   cancelledBy   String?
@@ -171,6 +188,9 @@ model Receipt {
   dayUse        DayUseInBody? @relation(fields: [dayUseId], references: [id])
   pt            PT?           @relation(fields: [ptNumber], references: [ptNumber])
   member        Member?       @relation(fields: [memberId], references: [id])
+  nutrition     Nutrition?    @relation(fields: [nutritionNumber], references: [nutritionNumber])
+  physiotherapy Physiotherapy? @relation(fields: [physioNumber], references: [physioNumber])
+  groupClass    GroupClass?   @relation(fields: [classNumber], references: [classNumber])
 }
 
 model ReceiptCounter {
@@ -189,6 +209,12 @@ model Offer {
   duration                Int
   price                   Float
   freePTSessions          Int      @default(0)
+  freeNutritionSessions   Int      @default(0)
+  freePhysioSessions      Int      @default(0)
+  freeGroupClassSessions  Int      @default(0)
+  nutritionPrice          Float?   @default(0)
+  physioPrice             Float?   @default(0)
+  groupClassPrice         Float?   @default(0)
   inBodyScans             Int      @default(0)
   invitations             Int      @default(0)
   freezeDays              Int      @default(0)
@@ -307,6 +333,21 @@ model Permission {
   canEditPT               Boolean @default(false)
   canDeletePT             Boolean @default(false)
   canRegisterPTAttendance Boolean @default(false)
+  canViewNutrition        Boolean @default(false)
+  canCreateNutrition      Boolean @default(false)
+  canEditNutrition        Boolean @default(false)
+  canDeleteNutrition      Boolean @default(false)
+  canRegisterNutritionAttendance Boolean @default(false)
+  canViewPhysiotherapy    Boolean @default(false)
+  canCreatePhysiotherapy  Boolean @default(false)
+  canEditPhysiotherapy    Boolean @default(false)
+  canDeletePhysiotherapy  Boolean @default(false)
+  canRegisterPhysioAttendance Boolean @default(false)
+  canViewGroupClass       Boolean @default(false)
+  canCreateGroupClass     Boolean @default(false)
+  canEditGroupClass       Boolean @default(false)
+  canDeleteGroupClass     Boolean @default(false)
+  canRegisterClassAttendance Boolean @default(false)
   canViewStaff            Boolean @default(false)
   canCreateStaff          Boolean @default(false)
   canEditStaff            Boolean @default(false)
@@ -562,4 +603,198 @@ model FreezeRequest {
   @@index([memberId])
   @@index([status])
   @@index([startDate])
+}
+
+model CommissionSettings {
+  id          String   @id @default(cuid())
+  // حدود الدخل الشهري
+  tier1Limit  Float    @default(5000)   // أقل من 5000
+  tier2Limit  Float    @default(11000)  // 5000-10999
+  tier3Limit  Float    @default(15000)  // 11000-14999
+  tier4Limit  Float    @default(20000)  // 15000-19999
+  // النسب المئوية لكل مستوى
+  tier1Rate   Float    @default(25)     // 25%
+  tier2Rate   Float    @default(30)     // 30%
+  tier3Rate   Float    @default(35)     // 35%
+  tier4Rate   Float    @default(40)     // 40%
+  tier5Rate   Float    @default(45)     // 45%
+  // تواريخ
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ===== التغذية (Nutrition) =====
+model Nutrition {
+  nutritionNumber   Int         @id @default(autoincrement())
+  clientName        String
+  phone             String
+  sessionsPurchased Int
+  sessionsRemaining Int
+  nutritionistName  String
+  pricePerSession   Float
+  startDate         DateTime?
+  expiryDate        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  coachUserId       String?
+  qrCode            String?     @unique
+  qrCodeImage       String?
+  remainingAmount   Int?
+  sessions          NutritionSession[]
+  receipts          Receipt[]
+
+  @@index([coachUserId])
+  @@index([qrCode])
+}
+
+model NutritionSession {
+  id              String      @id @default(cuid())
+  nutritionNumber Int
+  clientName      String
+  nutritionistName String
+  sessionDate     DateTime
+  notes           String?
+  createdAt       DateTime    @default(now())
+  attended        Boolean     @default(false)
+  attendedAt      DateTime?
+  attendedBy      String?
+  nutrition       Nutrition   @relation(fields: [nutritionNumber], references: [nutritionNumber], onDelete: Cascade)
+
+  @@index([nutritionNumber])
+  @@index([sessionDate])
+  @@index([attended])
+}
+
+// ===== العلاج الطبيعي (Physiotherapy) =====
+model Physiotherapy {
+  physioNumber      Int         @id @default(autoincrement())
+  clientName        String
+  phone             String
+  sessionsPurchased Int
+  sessionsRemaining Int
+  therapistName     String
+  pricePerSession   Float
+  startDate         DateTime?
+  expiryDate        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  therapistUserId   String?
+  qrCode            String?     @unique
+  qrCodeImage       String?
+  remainingAmount   Int?
+  sessions          PhysiotherapySession[]
+  receipts          Receipt[]
+
+  @@index([therapistUserId])
+  @@index([qrCode])
+}
+
+model PhysiotherapySession {
+  id            String         @id @default(cuid())
+  physioNumber  Int
+  clientName    String
+  therapistName String
+  sessionDate   DateTime
+  notes         String?
+  createdAt     DateTime       @default(now())
+  attended      Boolean        @default(false)
+  attendedAt    DateTime?
+  attendedBy    String?
+  physiotherapy Physiotherapy  @relation(fields: [physioNumber], references: [physioNumber], onDelete: Cascade)
+
+  @@index([physioNumber])
+  @@index([sessionDate])
+  @@index([attended])
+}
+
+// ===== جروب كلاسيس (Group Classes) =====
+model GroupClass {
+  classNumber       Int         @id @default(autoincrement())
+  clientName        String
+  phone             String
+  sessionsPurchased Int
+  sessionsRemaining Int
+  instructorName    String
+  pricePerSession   Float
+  startDate         DateTime?
+  expiryDate        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  instructorUserId  String?
+  qrCode            String?     @unique
+  qrCodeImage       String?
+  remainingAmount   Int?
+  sessions          GroupClassSession[]
+  receipts          Receipt[]
+
+  @@index([instructorUserId])
+  @@index([qrCode])
+}
+
+model GroupClassSession {
+  id             String      @id @default(cuid())
+  classNumber    Int
+  clientName     String
+  instructorName String
+  sessionDate    DateTime
+  notes          String?
+  createdAt      DateTime    @default(now())
+  attended       Boolean     @default(false)
+  attendedAt     DateTime?
+  attendedBy     String?
+  groupClass     GroupClass  @relation(fields: [classNumber], references: [classNumber], onDelete: Cascade)
+
+  @@index([classNumber])
+  @@index([sessionDate])
+  @@index([attended])
+}
+
+// نظام إعدادات الخدمات
+model SystemSettings {
+  id                    String   @id @default("singleton")
+  nutritionEnabled      Boolean  @default(true)
+  physiotherapyEnabled  Boolean  @default(true)
+  groupClassEnabled     Boolean  @default(true)
+  spaEnabled            Boolean  @default(true)
+  inBodyEnabled         Boolean  @default(true)
+  pointsEnabled         Boolean  @default(true)
+  pointsPerCheckIn      Int      @default(1)
+  pointsPerInvitation   Int      @default(2)
+  pointsPerEGPSpent     Float    @default(0.1)  // نقاط لكل جنيه يتم دفعه
+  pointsValueInEGP      Float    @default(0.1)
+  websiteUrl            String?  @default("https://www.xgym.website")  // رابط الموقع الإلكتروني
+  showWebsiteOnReceipts Boolean  @default(true)  // عرض رابط الموقع في الإيصالات
+  updatedAt             DateTime @updatedAt
+  updatedBy             String?
+}
+
+// باقات الخدمات
+model ServicePackage {
+  id          String   @id @default(cuid())
+  name        String
+  serviceType String   // 'PT', 'Nutrition', 'Physiotherapy', 'GroupClass'
+  sessions    Int
+  price       Float
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([serviceType])
+  @@index([isActive])
+}
+
+// نظام النقاط - تاريخ اكتساب النقاط
+model PointsHistory {
+  id          String   @id @default(cuid())
+  memberId    String
+  points      Int      // عدد النقاط المكتسبة
+  action      String   // نوع النشاط: 'check-in', 'invitation'
+  description String?  // وصف اختياري
+  createdAt   DateTime @default(now())
+
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([createdAt])
+  @@index([action])
 }

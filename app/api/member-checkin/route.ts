@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
+import { addPoints } from '../../../lib/points'
 
 // POST: تسجيل دخول عضو
 
@@ -60,6 +61,25 @@ export async function POST(request: Request) {
         checkInMethod: method,
       },
     })
+
+    // إضافة نقاط عند الحضور (إذا كان نظام النقاط مفعل)
+    try {
+      const settings = await prisma.systemSettings.findUnique({
+        where: { id: 'singleton' }
+      })
+
+      if (settings && settings.pointsEnabled && settings.pointsPerCheckIn > 0) {
+        await addPoints(
+          memberId,
+          settings.pointsPerCheckIn,
+          'check-in',
+          `حضور بتاريخ ${now.toLocaleDateString('ar-EG')}`
+        )
+      }
+    } catch (pointsError) {
+      console.error('Error adding check-in points:', pointsError)
+      // لا نوقف العملية إذا فشلت إضافة النقاط
+    }
 
     return NextResponse.json({
       success: true,

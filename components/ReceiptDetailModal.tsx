@@ -3,6 +3,7 @@
 import { printReceiptFromData } from '../lib/printSystem'
 import { useLanguage } from '../contexts/LanguageContext'
 import { normalizePaymentMethod, getPaymentMethodLabel } from '../lib/paymentHelpers'
+import { getReceiptTypeTranslationKey } from '../lib/translateReceiptType'
 
 interface ReceiptDetailModalProps {
   receipt: {
@@ -25,13 +26,13 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
   const isMultiPayment = paymentData.methods.length > 1
   
   const getTypeLabel = (type: string) => {
-    const typeKey = type.toLowerCase()
-    return t(`receipts.type.${typeKey}` as any) || type
+    const translationKey = getReceiptTypeTranslationKey(type)
+    return t(translationKey as any) || type
   }
 
   const getTypeColor = (type: string) => {
     const colors: { [key: string]: string } = {
-      'Member': 'from-blue-500 to-blue-600',
+      'Member': 'from-primary-500 to-primary-600',
       'PT': 'from-green-500 to-green-600',
       'DayUse': 'from-purple-500 to-purple-600',
       'InBody': 'from-orange-500 to-orange-600'
@@ -76,9 +77,9 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
           {/* Customer Info */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {details.memberNumber && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs text-blue-600 mb-1">{t('receipts.detail.membershipNumber')}</p>
-                <p className="text-xl font-bold text-blue-600">#{details.memberNumber}</p>
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
+                <p className="text-xs text-primary-600 mb-1">{t('receipts.detail.membershipNumber')}</p>
+                <p className="text-xl font-bold text-primary-600">#{details.memberNumber}</p>
               </div>
             )}
             {details.memberName && (
@@ -192,15 +193,15 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                       {paymentData.methods.map((pm, idx) => (
                         <span
                           key={idx}
-                          className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-bold"
+                          className="inline-flex items-center gap-1 bg-primary-100 text-primary-800 px-2 py-0.5 rounded-full text-xs font-bold"
                         >
                           <span>{getPaymentMethodLabel(pm.method, language)}</span>
-                          <span className="text-blue-600">({pm.amount} {t('common.currency')})</span>
+                          <span className="text-primary-600">({pm.amount} {t('common.currency')})</span>
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
+                    <span className="inline-flex items-center gap-1 bg-primary-100 text-primary-800 px-2 py-1 rounded-full text-xs font-bold">
                       {getPaymentMethodLabel(paymentData.methods[0].method, language)}
                     </span>
                   )}

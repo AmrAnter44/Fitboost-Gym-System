@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     //   },
     // });
 
-    console.log('Push subscription saved for member:', memberData.id);
+    console.log('Push subscription saved for member:', (memberData as any).id);
     console.log('Subscription:', subscription);
 
     return NextResponse.json({

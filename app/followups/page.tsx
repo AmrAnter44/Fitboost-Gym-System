@@ -586,7 +586,7 @@ export default function FollowUpsPage() {
       interested: 'bg-green-100 text-green-800',
       'not-interested': 'bg-red-100 text-red-800',
       postponed: 'bg-yellow-100 text-yellow-800',
-      subscribed: 'bg-blue-100 text-blue-800',
+      subscribed: 'bg-primary-100 text-primary-800',
     }
     const labels: Record<string, string> = {
       interested: t('followups.results.interested'),
@@ -636,7 +636,7 @@ export default function FollowUpsPage() {
     }
     if (priority === 'upcoming') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
           📅 {t('followups.priority.upcoming')}
         </span>
       )
@@ -750,7 +750,7 @@ export default function FollowUpsPage() {
               setShowForm(!showForm)
               setSelectedVisitorId('')
             }}
-            className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold shadow-lg"
+            className="w-full sm:w-auto bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-semibold shadow-lg"
           >
             {showForm ? `❌ ${t('followups.close')}` : `➕ ${t('followups.addNew')}`}
           </button>
@@ -762,7 +762,7 @@ export default function FollowUpsPage() {
             onClick={() => setViewMode('list')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               viewMode === 'list'
-                ? 'bg-blue-600 text-white shadow-md'
+                ? 'bg-primary-600 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -772,7 +772,7 @@ export default function FollowUpsPage() {
             onClick={() => setViewMode('analytics')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               viewMode === 'analytics'
-                ? 'bg-blue-600 text-white shadow-md'
+                ? 'bg-primary-600 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -828,8 +828,8 @@ export default function FollowUpsPage() {
                 onClick={() => setSalesFilter('my-followups')}
                 className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
                   salesFilter === 'my-followups'
-                    ? 'bg-blue-600 text-white shadow-lg'
-                    : 'bg-white text-blue-700 hover:bg-blue-100 border border-blue-300'
+                    ? 'bg-primary-600 text-white shadow-lg'
+                    : 'bg-white text-primary-700 hover:bg-primary-100 border border-primary-300'
                 }`}
               >
                 👤 {t('followups.quickFilters.myFollowups')} ({allFollowUps.filter(fu => fu.salesName === user.name).length})
@@ -863,7 +863,7 @@ export default function FollowUpsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 gap-2 sm:gap-3 mb-6">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
+          <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">{t('followups.stats.total')}</p>
             <p className="text-2xl sm:text-3xl font-bold">{stats.total}</p>
           </div>
@@ -923,7 +923,7 @@ export default function FollowUpsPage() {
                     key={stat.name}
                     className={`bg-white rounded-lg p-4 shadow-md border-2 transition-all hover:shadow-lg ${
                       isCurrentUser
-                        ? 'border-blue-500 ring-2 ring-blue-300'
+                        ? 'border-primary-500 ring-2 ring-primary-300'
                         : index < 3
                         ? 'border-amber-400'
                         : 'border-gray-200'
@@ -934,10 +934,10 @@ export default function FollowUpsPage() {
                         <span className="text-2xl">{medal}</span>
                         <div>
                           <h4 className={`font-bold text-sm sm:text-base ${
-                            isCurrentUser ? 'text-blue-700' : 'text-gray-900'
+                            isCurrentUser ? 'text-primary-700' : 'text-gray-900'
                           }`}>
                             {stat.name}
-                            {isCurrentUser && <span className="text-xs text-blue-600 ml-1">({t('followups.analytics.leaderboard.you')})</span>}
+                            {isCurrentUser && <span className="text-xs text-primary-600 ml-1">({t('followups.analytics.leaderboard.you')})</span>}
                           </h4>
                         </div>
                       </div>
@@ -954,9 +954,9 @@ export default function FollowUpsPage() {
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="bg-blue-50 rounded p-2">
-                        <p className="text-[10px] text-blue-700 font-medium">{t('followups.analytics.leaderboard.followupsShort')}</p>
-                        <p className="text-lg font-bold text-blue-900">{stat.totalFollowUps}</p>
+                      <div className="bg-primary-50 rounded p-2">
+                        <p className="text-[10px] text-primary-700 font-medium">{t('followups.analytics.leaderboard.followupsShort')}</p>
+                        <p className="text-lg font-bold text-primary-900">{stat.totalFollowUps}</p>
                       </div>
                       <div className="bg-green-50 rounded p-2">
                         <p className="text-[10px] text-green-700 font-medium">{t('followups.analytics.leaderboard.conversionsShort')}</p>
@@ -1114,7 +1114,7 @@ export default function FollowUpsPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
               placeholder={t('followups.filters.searchPlaceholder')}
             />
           </div>
@@ -1124,7 +1124,7 @@ export default function FollowUpsPage() {
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
               <option value="expired-member">❌ {t('followups.sources.expiredMembers')}</option>
@@ -1140,7 +1140,7 @@ export default function FollowUpsPage() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
               <option value="overdue">🔥 {t('followups.priority.overdue')}</option>
@@ -1154,7 +1154,7 @@ export default function FollowUpsPage() {
             <select
               value={resultFilter}
               onChange={(e) => setResultFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
               <option value="interested">✅ {t('followups.results.interested')}</option>
@@ -1169,7 +1169,7 @@ export default function FollowUpsPage() {
             <select
               value={contactedFilter}
               onChange={(e) => setContactedFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
               <option value="contacted">✅ {t('followups.filters.contactedYes')}</option>
@@ -1184,7 +1184,7 @@ export default function FollowUpsPage() {
             onClick={() => setSourceFilter('all')}
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
               sourceFilter === 'all'
-                ? 'bg-blue-600 text-white shadow-lg'
+                ? 'bg-primary-600 text-white shadow-lg'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -1268,7 +1268,7 @@ export default function FollowUpsPage() {
                       ? 'border-r-4 border-red-500'
                       : isExpiring
                       ? 'border-r-4 border-yellow-500'
-                      : 'border-r-4 border-blue-500'
+                      : 'border-r-4 border-primary-500'
                   }`}
                 >
                   {/* Action Buttons at Top */}
@@ -1297,7 +1297,7 @@ export default function FollowUpsPage() {
                       {!isExpired && (
                         <button
                           onClick={() => openQuickFollowUp(followUp.visitor)}
-                          className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-blue-50 hover:bg-blue-100"
+                          className="text-primary-600 hover:text-primary-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-primary-50 hover:bg-primary-100"
                         >
                           ➕
                         </button>
@@ -1364,7 +1364,7 @@ export default function FollowUpsPage() {
                         followUp.visitor.source === 'invitation'
                           ? 'bg-purple-100 text-purple-800 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium'
                           : followUp.visitor.source === 'member-invitation'
-                          ? 'bg-blue-100 text-blue-800 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium'
+                          ? 'bg-primary-100 text-primary-800 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium'
                           : followUp.visitor.source === 'expired-member'
                           ? 'bg-red-100 text-red-800 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold'
                           : followUp.visitor.source === 'expiring-member'
@@ -1450,7 +1450,7 @@ export default function FollowUpsPage() {
                     <p>{t('followups.messages.noFollowups')}</p>
                     <button
                       onClick={() => setShowForm(true)}
-                      className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                      className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
                     >
                       ➕ {t('followups.messages.addFirst')}
                     </button>
@@ -1464,7 +1464,7 @@ export default function FollowUpsPage() {
           <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-              <thead className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <thead className="bg-gradient-to-r from-primary-500 to-primary-600 text-white">
                 <tr>
                   <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.priority')}</th>
                   <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.visitor')}</th>
@@ -1490,7 +1490,7 @@ export default function FollowUpsPage() {
                         ? 'bg-red-50 hover:bg-red-100'
                         : isExpiring
                         ? 'bg-yellow-50 hover:bg-yellow-100'
-                        : 'hover:bg-blue-50'
+                        : 'hover:bg-primary-50'
                     }`}
                   >
                     <td className="px-4 py-3">
@@ -1541,7 +1541,7 @@ export default function FollowUpsPage() {
                         followUp.visitor.source === 'invitation'
                           ? 'bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium'
                           : followUp.visitor.source === 'member-invitation'
-                          ? 'bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium'
+                          ? 'bg-primary-100 text-primary-800 px-2 py-1 rounded-full text-xs font-medium'
                           : followUp.visitor.source === 'expired-member'
                           ? 'bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold'
                           : followUp.visitor.source === 'expiring-member'
@@ -1617,7 +1617,7 @@ export default function FollowUpsPage() {
                         {!isExpired && (
                           <button
                             onClick={() => openQuickFollowUp(followUp.visitor)}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 rounded bg-blue-50 hover:bg-blue-100"
+                            className="text-primary-600 hover:text-primary-800 text-sm font-medium px-3 py-1 rounded bg-primary-50 hover:bg-primary-100"
                             title={t('followups.actions.addFollowupNew')}
                           >
                             ➕ {t('followups.buttons.followup')}
@@ -1666,7 +1666,7 @@ export default function FollowUpsPage() {
                     <p>{t('followups.messages.noFollowups')}</p>
                     <button
                       onClick={() => setShowForm(true)}
-                      className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                      className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
                     >
                       ➕ {t('followups.messages.addFirst')}
                     </button>
@@ -1694,7 +1694,7 @@ export default function FollowUpsPage() {
                       setItemsPerPage(Number(e.target.value))
                       setCurrentPage(1)
                     }}
-                    className="px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                    className="px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -1741,7 +1741,7 @@ export default function FollowUpsPage() {
                             onClick={() => goToPage(pageNum)}
                             className={`px-3 py-2 rounded-lg font-medium ${
                               currentPage === pageNum
-                                ? 'bg-blue-600 text-white'
+                                ? 'bg-primary-600 text-white'
                                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                           >
@@ -1806,7 +1806,7 @@ export default function FollowUpsPage() {
                         <p className="font-bold text-gray-900 text-sm sm:text-base">{fu.visitor.name}</p>
                         <p className="text-xs text-gray-500">{fu.visitor.phone}</p>
                         {isRenewal && (
-                          <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-primary-100 text-primary-700 text-[10px] font-bold rounded-full">
                             🔄 تجديد
                           </span>
                         )}
@@ -1859,7 +1859,7 @@ export default function FollowUpsPage() {
           </div>
           <div className="bg-white/90 backdrop-blur p-5 rounded-lg shadow-md">
             <p className="text-sm text-gray-600 font-medium mb-1">{t('followups.successRate.conversionRate')}</p>
-            <p className="text-4xl font-bold text-blue-600">
+            <p className="text-4xl font-bold text-primary-600">
               {stats.total > 0 ? ((stats.convertedToMembers / stats.total) * 100).toFixed(1) : '0'}%
             </p>
           </div>
@@ -1870,12 +1870,12 @@ export default function FollowUpsPage() {
       </div>
 
       {/* Quick Tips */}
-      <div className="mt-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-r-4 border-blue-500 p-5 rounded-lg">
-        <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+      <div className="mt-4 bg-gradient-to-r from-primary-50 to-indigo-50 border-r-4 border-primary-500 p-5 rounded-lg">
+        <h3 className="font-bold text-primary-900 mb-2 flex items-center gap-2">
           <span>💡</span>
           <span>{t('followups.tips.title')}</span>
         </h3>
-        <ul className="text-sm text-blue-800 space-y-1">
+        <ul className="text-sm text-primary-800 space-y-1">
           <li>• 🔥 <strong>{t('followups.tips.overdue.title')}:</strong> {t('followups.tips.overdue.text')}</li>
           <li>• ⚡ <strong>{t('followups.tips.today.title')}:</strong> {t('followups.tips.today.text')}</li>
           <li>• 💬 <strong>{t('followups.tips.whatsapp.title')}:</strong> {t('followups.tips.whatsapp.text')}</li>

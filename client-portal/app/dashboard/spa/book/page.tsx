@@ -12,7 +12,7 @@ interface TimeSlot {
 const SERVICE_TYPES = {
   massage: { name: 'مساج', icon: '💆', color: 'from-purple-500 to-pink-500' },
   sauna: { name: 'ساونا', icon: '🧖', color: 'from-orange-500 to-red-500' },
-  jacuzzi: { name: 'جاكوزي', icon: '🛀', color: 'from-blue-500 to-cyan-500' },
+  jacuzzi: { name: 'جاكوزي', icon: '🛀', color: 'from-primary-500 to-cyan-500' },
 };
 
 const DURATIONS = [
@@ -122,7 +122,7 @@ export default function SpaBookingPage() {
   }, [serviceType, date, duration]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 pb-20" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-primary-50 pb-20" dir="rtl">
       {/* Header */}
       <div className="bg-white shadow-lg sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -294,7 +294,7 @@ export default function SpaBookingPage() {
         </form>
 
         {/* Info */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+        <div className="mt-6 bg-primary-50 border border-primary-200 rounded-xl p-4 text-sm text-primary-800">
           <p className="font-medium mb-1">💡 معلومة</p>
           <p>سيتم مراجعة حجزك وتأكيده من قبل الإدارة. سنقوم بإعلامك بحالة الحجز.</p>
         </div>

@@ -8,6 +8,7 @@ import { ToastProvider } from '../contexts/ToastContext'
 import { DeviceSettingsProvider } from '../contexts/DeviceSettingsContext'
 import { SearchProvider } from '../contexts/SearchContext'
 import { UpdateProvider } from '../contexts/UpdateContext'
+import { ServiceSettingsProvider } from '../contexts/ServiceSettingsContext'
 import QueryProvider from './QueryProvider'
 import Navbar from './Navbar'
 import { PreventInputScroll } from '../app/PreventInputScroll'
@@ -23,25 +24,27 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     <QueryProvider>
       <LicenseProvider>
         <LanguageProvider>
-          <DeviceSettingsProvider>
-            <SearchProvider>
-              <ToastProvider>
-                <UpdateProvider>
-                  <AdminDateProvider>
-                    <LicenseLockedScreen />
-                    <PreventInputScroll />
-                    <BarcodeInputDetector />
-                    <UpdateNotification />
-                    <InstallPrompt />
-                    <Navbar />
-                    <ToastContainer />
-                    <SearchModal />
-                    <main className="overflow-x-hidden w-full max-w-full">{children}</main>
-                  </AdminDateProvider>
-                </UpdateProvider>
-              </ToastProvider>
-            </SearchProvider>
-          </DeviceSettingsProvider>
+          <ServiceSettingsProvider>
+            <DeviceSettingsProvider>
+              <SearchProvider>
+                <ToastProvider>
+                  <UpdateProvider>
+                    <AdminDateProvider>
+                      <LicenseLockedScreen />
+                      <PreventInputScroll />
+                      <BarcodeInputDetector />
+                      <UpdateNotification />
+                      <InstallPrompt />
+                      <Navbar />
+                      <ToastContainer />
+                      <SearchModal />
+                      <main className="overflow-x-hidden w-full max-w-full">{children}</main>
+                    </AdminDateProvider>
+                  </UpdateProvider>
+                </ToastProvider>
+              </SearchProvider>
+            </DeviceSettingsProvider>
+          </ServiceSettingsProvider>
         </LanguageProvider>
       </LicenseProvider>
     </QueryProvider>

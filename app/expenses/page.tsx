@@ -553,7 +553,7 @@ export default function ExpensesPage() {
                     {hasPermission('canEditExpense') && (
                       <button
                         onClick={() => handleEdit(expense)}
-                        className="text-blue-600 hover:text-blue-800 font-bold text-sm"
+                        className="text-primary-600 hover:text-primary-800 font-bold text-sm"
                       >
                         ✏️ {t('expenses.actions.edit')}
                       </button>
@@ -677,7 +677,7 @@ export default function ExpensesPage() {
                         {hasPermission('canEditExpense') && (
                           <button
                             onClick={() => handleEdit(expense)}
-                            className="text-blue-600 hover:text-blue-800 font-bold"
+                            className="text-primary-600 hover:text-primary-800 font-bold"
                           >
                             ✏️ {t('expenses.actions.edit')}
                           </button>

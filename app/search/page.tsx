@@ -589,7 +589,7 @@ export default function SearchPage() {
       </div>
 
       {searchMode === 'id' && (
-        <div className="bg-white p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl shadow-lg mb-3 sm:mb-4 border-2 border-blue-200">
+        <div className="bg-white p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl shadow-lg mb-3 sm:mb-4 border-2 border-primary-200">
           <div className="mb-3 sm:mb-4">
             {/* 🆕 رسالة تسجيل الحضور */}
             {attendanceMessage && (
@@ -643,7 +643,7 @@ export default function SearchPage() {
                   }}
                   className={`px-2 py-2 sm:py-3 md:py-4 lg:py-5 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
                     (searchMode as SearchMode) === 'id'
-                      ? 'bg-blue-600 text-white shadow-lg'
+                      ? 'bg-primary-600 text-white shadow-lg'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                   title={t('search.searchByIdOrAttendance')}
@@ -719,7 +719,7 @@ export default function SearchPage() {
                   }}
                   className={`px-2 py-2 sm:py-3 md:py-4 lg:py-5 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
                     (searchMode as SearchMode) === 'id'
-                      ? 'bg-blue-600 text-white shadow-lg'
+                      ? 'bg-primary-600 text-white shadow-lg'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                   title={t('search.searchByIdOrAttendance')}
@@ -823,12 +823,12 @@ export default function SearchPage() {
 
               <div className="space-y-3 sm:space-y-4">
                 {results.map((result, index) => (
-                  <div key={index} className="border-2 border-blue-200 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-blue-50 transition">
+                  <div key={index} className="border-2 border-primary-200 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-primary-50 transition">
                     {result.type === 'member' && (
                       <div>
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-3">
                           <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-blue-300 bg-gray-100 flex-shrink-0">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-primary-300 bg-gray-100 flex-shrink-0">
                               {result.data.profileImage ? (
                                 <img 
                                   src={result.data.profileImage} 
@@ -845,7 +845,7 @@ export default function SearchPage() {
                             </div>
 
                             <div>
-                              <span className="bg-blue-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
+                              <span className="bg-primary-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
                                 👤 {t('search.member')}
                               </span>
                               <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-1.5 sm:mt-2">{result.data.name}</h3>
@@ -853,7 +853,7 @@ export default function SearchPage() {
                           </div>
                           {/* ✅ عرض رقم العضوية فقط إذا كان موجود (ليس Other) */}
                           {result.data.memberNumber !== null && (
-                            <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600">
+                            <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary-600">
                               #{result.data.memberNumber}
                             </span>
                           )}
@@ -881,7 +881,7 @@ export default function SearchPage() {
                             <p className="text-xs text-gray-600">{t('search.status')}</p>
                             <span className={`inline-block px-2 py-0.5 rounded text-xs sm:text-sm md:text-base font-bold ${
                               result.data.isFrozen
-                                ? 'bg-blue-500 text-white'
+                                ? 'bg-primary-500 text-white'
                                 : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
                                 ? 'bg-green-500 text-white'
                                 : 'bg-red-500 text-white animate-pulse'
@@ -897,7 +897,7 @@ export default function SearchPage() {
                         </div>
 
                         {(result.data.startDate || result.data.expiryDate) && (
-                          <div className="mb-2 sm:mb-3 bg-gradient-to-r from-blue-50 to-yellow-50 border-2 border-blue-300 rounded p-2 sm:p-3">
+                          <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 border-2 border-primary-300 rounded p-2 sm:p-3">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {result.data.startDate && (
                                 <div>
@@ -951,10 +951,10 @@ export default function SearchPage() {
 
                         {/* عرض الملاحظات */}
                         {result.data.notes && (
-                          <div className="mb-2 sm:mb-3 bg-blue-50 border-2 border-blue-400 rounded p-2 sm:p-3">
+                          <div className="mb-2 sm:mb-3 bg-primary-50 border-2 border-primary-400 rounded p-2 sm:p-3">
                             <div className="flex items-start gap-1 mb-1">
                               <span className="text-base sm:text-lg">📝</span>
-                              <p className="text-xs font-bold text-blue-800">{t('search.notes')}</p>
+                              <p className="text-xs font-bold text-primary-800">{t('search.notes')}</p>
                             </div>
                             <p className="text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
                               {result.data.notes}
@@ -1014,18 +1014,18 @@ export default function SearchPage() {
 
                               {/* InBody المجاني */}
                               {result.data.inBodyScans > 0 && (
-                                <div className="bg-white rounded-lg p-3 border-2 border-blue-200">
+                                <div className="bg-white rounded-lg p-3 border-2 border-primary-200">
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
                                       <span className="text-xl">⚖️</span>
                                       <div>
                                         <p className="text-xs text-gray-600">InBody</p>
-                                        <p className="text-xl font-bold text-blue-600">{result.data.inBodyScans}</p>
+                                        <p className="text-xl font-bold text-primary-600">{result.data.inBodyScans}</p>
                                       </div>
                                     </div>
                                     <button
                                       onClick={() => setServiceModal({ isOpen: true, type: 'inBody', memberId: result.data.id, memberName: result.data.name })}
-                                      className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 text-xs font-bold"
+                                      className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                     >
                                       {t('search.deduct')}
                                     </button>
@@ -1039,7 +1039,7 @@ export default function SearchPage() {
                         <div className="grid grid-cols-1 gap-2">
                           <button
                             onClick={() => handleViewMemberDetails(result.data.id)}
-                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-blue-700 hover:to-blue-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
+                            className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-primary-700 hover:to-primary-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
                           >
                             <span>👁️</span>
                             <span>{t('search.viewFullDetails')}</span>
