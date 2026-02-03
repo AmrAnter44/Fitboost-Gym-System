@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
     // البحث عن جلسة GroupClass
     const groupClass = await prisma.groupClass.findUnique({
-      where: { groupClassNumber: parseInt(groupClassNumber) }
+      where: { classNumber: parseInt(groupClassNumber) }
     })
 
     if (!groupClass) {
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     // تحديث المبلغ المتبقي
     const newRemainingAmount = currentRemaining - paymentAmount
     const updatedGroupClass = await prisma.groupClass.update({
-      where: { groupClassNumber: parseInt(groupClassNumber) },
+      where: { classNumber: parseInt(groupClassNumber) },
       data: { remainingAmount: newRemainingAmount }
     })
 
@@ -104,10 +104,10 @@ export async function POST(request: Request) {
           paymentMethod: finalPaymentMethod,
           staffName: staffName || '',
           itemDetails: JSON.stringify({
-            groupClassNumber: groupClass.groupClassNumber,
+            groupClassNumber: groupClass.classNumber,
             clientName: groupClass.clientName,
             phone: groupClass.phone,
-            groupClassistName: groupClass.groupClassistName,
+            instructorName: groupClass.instructorName,
             paymentAmount,
             previousRemaining: currentRemaining,
             newRemaining: newRemainingAmount,
