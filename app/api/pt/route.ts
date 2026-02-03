@@ -402,7 +402,7 @@ export async function POST(request: Request) {
         const pointsResult = await processPaymentWithPoints(
           null,  // لا يوجد memberId لـ PT
           phone,
-          memberNumber,  // ✅ تمرير رقم العضوية للبحث عن العضو
+          null,  // PT model doesn't have memberNumber field
           finalPaymentMethod,
           `دفع برايفت - ${clientName}`,
           tx
