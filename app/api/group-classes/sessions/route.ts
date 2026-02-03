@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       // التحقق من أن المدرب يطلب بيانات عميل خاص به
       if (user.role === 'COACH') {
         const groupClass = await prisma.groupClass.findUnique({
-          where: { groupClassNumber: parseInt(groupClassNumber) }
+          where: { classNumber: parseInt(groupClassNumber) }
         })
 
         if (groupClass && groupClass.instructorUserId !== user.userId) {
@@ -31,13 +31,13 @@ export async function GET(request: Request) {
 
       // جلب سجلات جلسة GroupClass معينة
       const sessions = await prisma.groupClassSession.findMany({
-        where: { groupClassNumber: parseInt(groupClassNumber) },
+        where: { classNumber: parseInt(groupClassNumber) },
         orderBy: { sessionDate: 'desc' },
         include: {
           groupClass: {
             select: {
               clientName: true,
-              groupClassistName: true,
+              instructorName: true,
               phone: true
             }
           }
@@ -62,7 +62,7 @@ export async function GET(request: Request) {
           groupClass: {
             select: {
               clientName: true,
-              groupClassistName: true,
+              instructorName: true,
               phone: true
             }
           }
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
 
     // التحقق من وجود جلسة GroupClass
     const groupClass = await prisma.groupClass.findUnique({
-      where: { groupClassNumber: parseInt(groupClassNumber) }
+      where: { classNumber: parseInt(groupClassNumber) }
     })
 
     if (!groupClass) {
@@ -122,9 +122,9 @@ export async function POST(request: Request) {
     // تسجيل جلسة جديدة (بدون حضور)
     const session = await prisma.groupClassSession.create({
       data: {
-        groupClassNumber: parseInt(groupClassNumber),
+        classNumber: parseInt(groupClassNumber),
         clientName: groupClass.clientName,
-        groupClassistName: groupClass.groupClassistName,
+        instructorName: groupClass.instructorName,
         sessionDate: new Date(sessionDate),
         notes: notes || null,
         attended: false
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
 
     // خصم جلسة من الجلسات المتبقية
     await prisma.groupClass.update({
-      where: { groupClassNumber: parseInt(groupClassNumber) },
+      where: { classNumber: parseInt(groupClassNumber) },
       data: { sessionsRemaining: groupClass.sessionsRemaining - 1 }
     })
 
@@ -175,12 +175,12 @@ export async function DELETE(request: Request) {
 
     // إعادة الجلسة للعداد
     const groupClass = await prisma.groupClass.findUnique({
-      where: { groupClassNumber: session.groupClassNumber }
+      where: { classNumber: session.classNumber }
     })
 
     if (groupClass) {
       await prisma.groupClass.update({
-        where: { groupClassNumber: session.groupClassNumber },
+        where: { classNumber: session.classNumber },
         data: { sessionsRemaining: groupClass.sessionsRemaining + 1 }
       })
     }

@@ -68,7 +68,7 @@ export async function POST(request: Request) {
         {
           error: 'لا توجد حصص متبقية لهذا العميل',
           groupClass: {
-            groupClassNumber: groupClass.groupClassNumber,
+            classNumber: groupClass.classNumber,
             clientName: groupClass.clientName,
             sessionsRemaining: groupClass.sessionsRemaining,
             sessionsPurchased: groupClass.sessionsPurchased
@@ -81,9 +81,9 @@ export async function POST(request: Request) {
     // إنشاء session جديدة وتسجيل الحضور
     const session = await prisma.groupClassSession.create({
       data: {
-        groupClassNumber: groupClass.groupClassNumber,
+        classNumber: groupClass.classNumber,
         clientName: groupClass.clientName,
-        groupClassistName: groupClass.groupClassistName,
+        instructorName: groupClass.instructorName,
         sessionDate: new Date(), // تاريخ ووقت الحضور الفعلي
         notes: notes || null,
         attended: true,
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 
     // تقليل عدد الحصص المتبقية
     await prisma.groupClass.update({
-      where: { groupClassNumber: groupClass.groupClassNumber },
+      where: { classNumber: groupClass.classNumber },
       data: { sessionsRemaining: groupClass.sessionsRemaining - 1 }
     })
 
@@ -105,9 +105,9 @@ export async function POST(request: Request) {
       message: 'تم تسجيل حضورك بنجاح',
       session: {
         id: session.id,
-        groupClassNumber: session.groupClassNumber,
+        classNumber: session.classNumber,
         clientName: session.clientName,
-        groupClassistName: session.groupClassistName,
+        instructorName: session.instructorName,
         sessionDate: session.sessionDate,
         attended: session.attended,
         attendedAt: session.attendedAt,
@@ -170,9 +170,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       valid: true,
       groupClass: {
-        groupClassNumber: groupClass.groupClassNumber,
+        classNumber: groupClass.classNumber,
         clientName: groupClass.clientName,
-        groupClassistName: groupClass.groupClassistName,
+        instructorName: groupClass.instructorName,
         sessionsRemaining: groupClass.sessionsRemaining,
         sessionsPurchased: groupClass.sessionsPurchased,
         canCheckIn: groupClass.sessionsRemaining > 0
