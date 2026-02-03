@@ -22,6 +22,13 @@ export interface Permissions {
   canDeletePT: boolean
   canRegisterPTAttendance: boolean // للكوتشات فقط
 
+  // صلاحيات الكلاسات الجماعية
+  canViewGroupClass: boolean
+  canCreateGroupClass: boolean
+  canEditGroupClass: boolean
+  canDeleteGroupClass: boolean
+  canRegisterGroupClassAttendance: boolean
+
   // صلاحيات الموظفين
   canViewStaff: boolean
   canCreateStaff: boolean
@@ -149,6 +156,11 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditPT: true,
     canDeletePT: true,
     canRegisterPTAttendance: true,
+    canViewGroupClass: true,
+    canCreateGroupClass: true,
+    canEditGroupClass: true,
+    canDeleteGroupClass: true,
+    canRegisterGroupClassAttendance: true,
     canViewStaff: true,
     canCreateStaff: true,
     canEditStaff: true,
@@ -198,6 +210,11 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditPT: true,
     canDeletePT: false,
     canRegisterPTAttendance: true,
+    canViewGroupClass: true,
+    canCreateGroupClass: true,
+    canEditGroupClass: true,
+    canDeleteGroupClass: false,
+    canRegisterGroupClassAttendance: true,
     canViewStaff: true,
     canCreateStaff: false,
     canEditStaff: false,
@@ -247,6 +264,11 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditPT: false,
     canDeletePT: false,
     canRegisterPTAttendance: false,
+    canViewGroupClass: true,
+    canCreateGroupClass: false,
+    canEditGroupClass: false,
+    canDeleteGroupClass: false,
+    canRegisterGroupClassAttendance: true,
     canViewStaff: false,
     canCreateStaff: false,
     canEditStaff: false,
@@ -297,6 +319,11 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditPT: false,
     canDeletePT: false,
     canRegisterPTAttendance: true, // الصلاحية الأساسية للكوتش
+    canViewGroupClass: true, // يرى كلاساته فقط
+    canCreateGroupClass: false,
+    canEditGroupClass: false,
+    canDeleteGroupClass: false,
+    canRegisterGroupClassAttendance: true, // يسجل حضور كلاساته
     canViewStaff: false,
     canCreateStaff: false,
     canEditStaff: false,
@@ -351,6 +378,11 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditPT: 'تعديل جلسة PT',
   canDeletePT: 'حذف جلسة PT',
   canRegisterPTAttendance: 'تسجيل حضور PT',
+  canViewGroupClass: 'عرض الكلاسات الجماعية',
+  canCreateGroupClass: 'إنشاء كلاس جماعي',
+  canEditGroupClass: 'تعديل كلاس جماعي',
+  canDeleteGroupClass: 'حذف كلاس جماعي',
+  canRegisterGroupClassAttendance: 'تسجيل حضور كلاس جماعي',
   canViewStaff: 'عرض الموظفين',
   canCreateStaff: 'إضافة موظف',
   canEditStaff: 'تعديل موظف',
@@ -412,6 +444,16 @@ export const PERMISSION_GROUPS = {
       'canEditPT',
       'canDeletePT',
       'canRegisterPTAttendance',
+    ] as Array<keyof Permissions>,
+  },
+  groupClass: {
+    label: '👥 الكلاسات الجماعية',
+    permissions: [
+      'canViewGroupClass',
+      'canCreateGroupClass',
+      'canEditGroupClass',
+      'canDeleteGroupClass',
+      'canRegisterGroupClassAttendance',
     ] as Array<keyof Permissions>,
   },
   staff: {
@@ -517,6 +559,11 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canEditPT: '✏️',
   canDeletePT: '🗑️',
   canRegisterPTAttendance: '✅',
+  canViewGroupClass: '👁️',
+  canCreateGroupClass: '➕',
+  canEditGroupClass: '✏️',
+  canDeleteGroupClass: '🗑️',
+  canRegisterGroupClassAttendance: '✅',
   canViewStaff: '👁️',
   canCreateStaff: '➕',
   canEditStaff: '✏️',
