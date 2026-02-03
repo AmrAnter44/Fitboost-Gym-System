@@ -465,7 +465,7 @@ export async function POST(request: Request) {
                 console.log(`⚠️ PT: لم تُضف نقاط:`, rewardResult)
               }
             } else {
-              console.log(`⚠️ PT: لم يُعثر على عضو برقم ${memberNumber} أو هاتف ${phone}`)
+              console.log(`⚠️ PT: لم يُعثر على عضو بهاتف ${phone}`)
             }
           } catch (rewardError) {
             console.error('⚠️ PT: فشل إضافة نقاط المكافأة (غير حرج):', rewardError)
