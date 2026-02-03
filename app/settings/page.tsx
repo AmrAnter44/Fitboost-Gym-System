@@ -36,7 +36,12 @@ export default function SettingsPage() {
     spaEnabled: true,
     inBodyEnabled: true,
     websiteUrl: 'https://www.xgym.website',
-    showWebsiteOnReceipts: true
+    showWebsiteOnReceipts: true,
+    pointsEnabled: false,
+    pointsPerCheckIn: 0,
+    pointsPerInvitation: 0,
+    pointsPerEGPSpent: 0,
+    pointsValueInEGP: 0
   })
   const [loadingServices, setLoadingServices] = useState(false)
 

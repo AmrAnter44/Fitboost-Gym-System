@@ -846,8 +846,6 @@ export default function CoachCommissionPage() {
       ) : (
         /* Coach View - Show current method only (read-only) */
         <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
-          {/* Debug info */}
-          {console.log('🎨 Rendering Coach View - calculationMethod:', calculationMethod, 'methodLoaded:', methodLoaded, 'isAdmin:', isAdmin)}
           <label className="block text-sm font-bold mb-3 text-gray-700">
             {t('pt.commission.calculationMethodLabel')}
           </label>

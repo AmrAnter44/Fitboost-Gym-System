@@ -923,7 +923,7 @@ export default function PhysiotherapyPage() {
               className="w-full px-3 py-2 border-2 rounded-lg"
             >
               <option value="">{t('physiotherapy.allPhysiotherapyists')}</option>
-              {Array.from(new Set(sessions.map(s => s.therapistName).filter((name): name is string => !!name))).sort().map(coach => (
+              {(Array.from(new Set(sessions.map(s => s.therapistName).filter((name): name is string => !!name))) as string[]).sort().map(coach => (
                 <option key={coach} value={coach}>{coach}</option>
               ))}
             </select>
