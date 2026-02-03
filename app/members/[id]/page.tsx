@@ -35,6 +35,7 @@ interface Member {
   remainingFreezeDays: number
   subscriptionPrice: number
   remainingAmount: number
+  points?: number
   notes?: string
   isActive: boolean
   isFrozen: boolean

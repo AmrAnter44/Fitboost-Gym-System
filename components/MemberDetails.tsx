@@ -24,6 +24,7 @@ interface Member {
   remainingFreezeDays: number
   subscriptionPrice: number
   remainingAmount: number
+  points?: number
   notes?: string
   isActive: boolean
   startDate?: string
@@ -35,7 +36,7 @@ export default function MemberDetailPage() {
   const params = useParams()
   const router = useRouter()
   const memberId = params.id as string
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
 
