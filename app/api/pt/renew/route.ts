@@ -188,7 +188,7 @@ export async function POST(request: Request) {
         const pointsResult = await processPaymentWithPoints(
           null,  // لا يوجد memberId لـ PT
           phone || existingPT.phone,
-          memberNumber,  // ✅ تمرير رقم العضوية للبحث عن العضو
+          existingPT.memberNumber,  // ✅ تمرير رقم العضوية للبحث عن العضو
           finalPaymentMethod,
           `دفع تجديد برايفت - ${existingPT.clientName}`,
           tx
