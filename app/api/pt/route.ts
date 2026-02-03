@@ -437,31 +437,18 @@ export async function POST(request: Request) {
         console.log('🎁 PT Points reward check:', {
           actualAmountPaid,
           paidAmount,
-          memberNumber,
           phone,
           finalPaymentMethod: typeof finalPaymentMethod === 'string' ? finalPaymentMethod : 'array'
         })
 
-        if (actualAmountPaid > 0 && (memberNumber || phone)) {
+        if (actualAmountPaid > 0 && phone) {
           try {
-            // البحث عن العضو برقم العضوية أولاً، ثم بالهاتف
-            let member = null
-            if (memberNumber) {
-              console.log(`🔍 PT: البحث عن عضو برقم العضوية: ${memberNumber}`)
-              member = await tx.member.findUnique({
-                where: { memberNumber: parseInt(memberNumber) },
-                select: { id: true, name: true }
-              })
-            }
-
-            // إذا لم يُعثر على العضو برقم العضوية، نبحث بالهاتف
-            if (!member && phone) {
-              console.log(`🔍 PT: البحث عن عضو بالهاتف: ${phone}`)
-              member = await tx.member.findFirst({
-                where: { phone: phone },
-                select: { id: true, name: true }
-              })
-            }
+            // البحث عن العضو بالهاتف (PT doesn't have memberNumber)
+            console.log(`🔍 PT: البحث عن عضو بالهاتف: ${phone}`)
+            const member = await tx.member.findFirst({
+              where: { phone: phone },
+              select: { id: true, name: true }
+            })
 
             if (member) {
               console.log(`👤 PT: تم العثور على العضو: ${member.name} (${member.id})`)
