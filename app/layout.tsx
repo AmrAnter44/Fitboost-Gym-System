@@ -93,13 +93,13 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <head>
-        <link rel="icon" href="/assets/icon.png" />
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
 
         {/* PWA Icons - iOS */}
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icon.svg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icon.svg" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/icon.svg" />
 
         {/* iOS Splash Screens - handled in metadata */}
 
