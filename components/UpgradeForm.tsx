@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import Paymentmethodselector from './Paymentmethodselector'
 import type { PaymentMethod } from '../lib/paymentHelpers'
 
@@ -16,6 +17,7 @@ interface Member {
   invitations: number
   remainingFreezeDays: number
   remainingAmount: number
+  points?: number
   isFrozen: boolean
   profileImage?: string
   notes?: string
@@ -45,6 +47,7 @@ interface UpgradeFormProps {
 
 export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormProps) {
   const { t, direction } = useLanguage()
+  const { settings } = useServiceSettings()
   const [offers, setOffers] = useState<Offer[]>([])
   const [selectedOfferId, setSelectedOfferId] = useState<string>('')
   const [paymentMethod, setPaymentMethod] = useState<string | PaymentMethod[]>('cash')
@@ -357,6 +360,9 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                 onChange={setPaymentMethod}
                 allowMultiple={true}
                 totalAmount={selectedOffer ? calculateUpgradeAmount(selectedOffer.price) : 0}
+                memberPoints={member.points || 0}
+                pointsValueInEGP={settings.pointsValueInEGP}
+                pointsEnabled={settings.pointsEnabled}
               />
             </div>
 
