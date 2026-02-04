@@ -99,9 +99,9 @@ export default function Navbar() {
                   title={t('nav.home')}
                 >
                   <img
-                    src="/assets/icon.png"
+                    src="/assets/icon.svg"
                     alt="Home"
-                    className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-2xl object-cover rounded-lg"
+                    className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-2xl"
                   />
                 </Link>
               )}
