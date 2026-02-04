@@ -13,6 +13,12 @@
   "prefer_related_applications": false,
   "icons": [
     {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
@@ -67,28 +73,28 @@
       "short_name": "أعضاء",
       "description": "عرض قائمة الأعضاء",
       "url": "/members",
-      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     },
     {
       "name": "حجوزات SPA",
       "short_name": "SPA",
       "description": "إدارة حجوزات السبا والمساج",
       "url": "/spa-bookings",
-      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     },
     {
       "name": "المتابعات",
       "short_name": "متابعات",
       "description": "متابعة الزوار والمهتمين",
       "url": "/followups",
-      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     },
     {
       "name": "الإيصالات",
       "short_name": "إيصالات",
       "description": "إدارة الإيصالات والدفعات",
       "url": "/receipts",
-      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     }
   ],
   "categories": ["business", "productivity", "sports"],
