@@ -68,7 +68,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4"
       onClick={(e) => e.target === e.currentTarget && !submitting && handleClose()}
       dir={direction}
     >
@@ -159,7 +159,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
 
 interface SimpleServiceModalProps {
   isOpen: boolean
-  serviceType: 'freePT' | 'inBody'
+  serviceType: 'freePT' | 'inBody' | 'nutrition' | 'physio' | 'groupClass'
   memberName: string
   memberId: string
   onClose: () => void
@@ -175,17 +175,26 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
 
   const serviceNames = {
     freePT: 'جلسة PT مجانية',
-    inBody: 'InBody'
+    inBody: 'InBody',
+    nutrition: 'جلسة تغذية مجانية',
+    physio: 'جلسة علاج طبيعي مجانية',
+    groupClass: 'جلسة كلاس مجانية'
   }
 
   const serviceIcons = {
     freePT: '💪',
-    inBody: '⚖️'
+    inBody: '⚖️',
+    nutrition: '🥗',
+    physio: '🏥',
+    groupClass: '👥'
   }
 
   const serviceColors = {
     freePT: { bg: 'green', hover: 'green' },
-    inBody: { bg: 'blue', hover: 'blue' }
+    inBody: { bg: 'blue', hover: 'blue' },
+    nutrition: { bg: 'orange', hover: 'orange' },
+    physio: { bg: 'teal', hover: 'teal' },
+    groupClass: { bg: 'indigo', hover: 'indigo' }
   }
 
   const handleConfirm = async () => {
@@ -226,7 +235,7 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4"
       onClick={(e) => e.target === e.currentTarget && !submitting && handleClose()}
       dir={direction}
     >

@@ -160,6 +160,7 @@ export async function POST(request: Request) {
         }
 
         // إنشاء الإيصال
+        console.log('🔵 Creating renewal receipt with type:', RECEIPT_TYPES.NUTRITION_RENEWAL)
         const receipt = await tx.receipt.create({
           data: {
             receiptNumber: receiptNumber,
@@ -186,6 +187,7 @@ export async function POST(request: Request) {
             ptNumber: updatedNutrition.nutritionNumber,
           },
         })
+        console.log('✅ Receipt created successfully:', { receiptNumber: receipt.receiptNumber, type: receipt.type, nutritionistName: nutritionistName || existingNutrition.nutritionistName })
 
         // خصم النقاط إذا تم استخدامها في الدفع
         const pointsResult = await processPaymentWithPoints(

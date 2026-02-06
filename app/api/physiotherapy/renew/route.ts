@@ -160,6 +160,7 @@ export async function POST(request: Request) {
         }
 
         // إنشاء الإيصال
+        console.log('🔵 Creating physiotherapy renewal receipt with type:', RECEIPT_TYPES.PHYSIOTHERAPY_RENEWAL)
         const receipt = await tx.receipt.create({
           data: {
             receiptNumber: receiptNumber,
@@ -186,6 +187,7 @@ export async function POST(request: Request) {
             ptNumber: updatedPhysiotherapy.physioNumber,
           },
         })
+        console.log('✅ Physiotherapy receipt created successfully:', { receiptNumber: receipt.receiptNumber, type: receipt.type, therapistName: therapistName || existingPhysiotherapy.therapistName })
 
         // خصم النقاط إذا تم استخدامها في الدفع
         const pointsResult = await processPaymentWithPoints(

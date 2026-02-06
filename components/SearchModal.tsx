@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { InvitationModal, SimpleServiceModal } from './ServiceDeductionModals'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useSearch } from '../contexts/SearchContext'
+import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 
 interface SearchResult {
   type: 'member' | 'pt'
@@ -17,6 +18,7 @@ export default function SearchModal() {
   const router = useRouter()
   const { isOpen, searchValue, closeSearch } = useSearch()
   const { t, direction, locale } = useLanguage()
+  const { settings } = useServiceSettings()
 
   const getPositionLabel = (position: string | null | undefined): string => {
     if (!position) return '-'
@@ -87,7 +89,7 @@ export default function SearchModal() {
   const audioContextRef = useRef<AudioContext | null>(null)
 
   const [invitationModal, setInvitationModal] = useState<{isOpen: boolean, memberId: string, memberName: string}>({ isOpen: false, memberId: '', memberName: '' })
-  const [serviceModal, setServiceModal] = useState<{isOpen: boolean, type: 'freePT' | 'inBody', memberId: string, memberName: string}>({ isOpen: false, type: 'freePT', memberId: '', memberName: '' })
+  const [serviceModal, setServiceModal] = useState<{isOpen: boolean, type: 'freePT' | 'inBody' | 'nutrition' | 'physio' | 'groupClass', memberId: string, memberName: string}>({ isOpen: false, type: 'freePT', memberId: '', memberName: '' })
 
   // Reset when modal opens/closes
   useEffect(() => {
@@ -832,7 +834,7 @@ export default function SearchModal() {
                               <div>
                                 <div className="flex flex-col sm:flex-row justify-between items-start gap-1.5 mb-2">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-primary-300 bg-gray-100 flex-shrink-0">
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-primary-300 bg-gray-100 flex-shrink-0">
                                       {result.data.profileImage ? (
                                         <img
                                           src={result.data.profileImage}
@@ -964,7 +966,7 @@ export default function SearchModal() {
                                   </div>
                                 )}
 
-                                {result.data.isActive && (result.data.invitations > 0 || result.data.freePTSessions > 0 || result.data.inBodyScans > 0) && (
+                                {result.data.isActive && (result.data.invitations > 0 || result.data.freePTSessions > 0 || (settings.inBodyEnabled && result.data.inBodyScans > 0) || (settings.nutritionEnabled && result.data.freeNutritionSessions > 0) || (settings.physiotherapyEnabled && result.data.freePhysioSessions > 0) || (settings.groupClassEnabled && result.data.freeGroupClassSessions > 0)) && (
                                   <div className="mb-3 sm:mb-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-400 rounded-xl p-4">
                                     <div className="flex items-center gap-2 mb-3">
                                       <span className="text-2xl">🎁</span>
@@ -1011,7 +1013,7 @@ export default function SearchModal() {
                                         </div>
                                       )}
 
-                                      {result.data.inBodyScans > 0 && (
+                                      {settings.inBodyEnabled && result.data.inBodyScans > 0 && (
                                         <div className="bg-white rounded-lg p-3 border-2 border-primary-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
@@ -1030,6 +1032,85 @@ export default function SearchModal() {
                                           </div>
                                         </div>
                                       )}
+
+                                      {settings.nutritionEnabled && result.data.freeNutritionSessions > 0 && (
+                                        <div className="bg-white rounded-lg p-3 border-2 border-orange-200">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xl">🥗</span>
+                                              <div>
+                                                <p className="text-xs text-gray-600">{t('search.nutrition')}</p>
+                                                <p className="text-xl font-bold text-orange-600">{result.data.freeNutritionSessions}</p>
+                                              </div>
+                                            </div>
+                                            <button
+                                              onClick={() => setServiceModal({ isOpen: true, type: 'nutrition', memberId: result.data.id, memberName: result.data.name })}
+                                              className="bg-orange-600 text-white px-3 py-1.5 rounded-lg hover:bg-orange-700 text-xs font-bold"
+                                            >
+                                              {t('search.deduct')}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {settings.physiotherapyEnabled && result.data.freePhysioSessions > 0 && (
+                                        <div className="bg-white rounded-lg p-3 border-2 border-teal-200">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xl">🏥</span>
+                                              <div>
+                                                <p className="text-xs text-gray-600">{t('search.physiotherapy')}</p>
+                                                <p className="text-xl font-bold text-teal-600">{result.data.freePhysioSessions}</p>
+                                              </div>
+                                            </div>
+                                            <button
+                                              onClick={() => setServiceModal({ isOpen: true, type: 'physio', memberId: result.data.id, memberName: result.data.name })}
+                                              className="bg-teal-600 text-white px-3 py-1.5 rounded-lg hover:bg-teal-700 text-xs font-bold"
+                                            >
+                                              {t('search.deduct')}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {settings.groupClassEnabled && result.data.freeGroupClassSessions > 0 && (
+                                        <div className="bg-white rounded-lg p-3 border-2 border-indigo-200">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xl">👥</span>
+                                              <div>
+                                                <p className="text-xs text-gray-600">{t('search.groupClass')}</p>
+                                                <p className="text-xl font-bold text-indigo-600">{result.data.freeGroupClassSessions}</p>
+                                              </div>
+                                            </div>
+                                            <button
+                                              onClick={() => setServiceModal({ isOpen: true, type: 'groupClass', memberId: result.data.id, memberName: result.data.name })}
+                                              className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 text-xs font-bold"
+                                            >
+                                              {t('search.deduct')}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* نظام النقاط */}
+                                {settings.pointsEnabled && result.data.points > 0 && (
+                                  <div className="mb-3 sm:mb-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400 rounded-xl p-4">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-3xl">⭐</span>
+                                        <div>
+                                          <p className="text-xs text-gray-600">{t('search.pointsBalance')}</p>
+                                          <p className="text-2xl font-bold text-amber-600">{result.data.points}</p>
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-xs text-gray-600">{t('search.valueInEGP')}</p>
+                                        <p className="text-lg font-bold text-green-600">{(result.data.points * settings.pointsValueInEGP).toFixed(2)} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
+                                      </div>
                                     </div>
                                   </div>
                                 )}

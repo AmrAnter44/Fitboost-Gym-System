@@ -44,6 +44,8 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
   const [memberNumber, setMemberNumber] = useState<number | null>(null)
   const [instructors, setInstructors] = useState<Staff[]>([])
   const [coachesLoading, setCoachesLoading] = useState(true)
+  const [packages, setPackages] = useState<any[]>([])
+  const [successMessage, setSuccessMessage] = useState('')
 
   const getDefaultStartDate = () => {
     if (session.expiryDate) {
@@ -101,6 +103,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
 
   useEffect(() => {
     fetchCoaches()
+    fetchPackages()
   }, [])
 
   useEffect(() => {
@@ -122,6 +125,33 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
     } finally {
       setCoachesLoading(false)
     }
+  }
+
+  const fetchPackages = async () => {
+    try {
+      const response = await fetch('/api/packages?serviceType=GroupClass')
+      const data = await response.json()
+      if (Array.isArray(data)) {
+        setPackages(data)
+      } else {
+        console.warn('Received data is not an array:', data)
+        setPackages([])
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error)
+      setPackages([])
+    }
+  }
+
+  const applyPackage = (pkg: any) => {
+    setFormData(prev => ({
+      ...prev,
+      sessionsPurchased: pkg.sessions || 0,
+      totalPrice: pkg.price || 0
+    }))
+
+    setSuccessMessage(`✅ ${t('renewal.offerApplied', { offerName: pkg.name })}`)
+    setTimeout(() => setSuccessMessage(''), 2000)
   }
 
   const calculateDuration = () => {
@@ -224,10 +254,53 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
         </div>
 
         <div className="p-4">
+          {successMessage && (
+            <div className="bg-green-100 text-green-800 p-3 rounded-lg text-center font-medium text-sm mb-4">
+              {successMessage}
+            </div>
+          )}
+
+          {/* Packages Section */}
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-100 border-2 border-indigo-400 rounded-xl p-4 mb-4">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-indigo-800">
+              <span>⚡</span>
+              <span>{t('packages.selectPackage')}</span>
+            </h3>
+
+            {!Array.isArray(packages) || packages.length === 0 ? (
+              <div className="text-center py-4 bg-white rounded-xl border-2 border-dashed border-gray-300">
+                <p className="text-gray-500 text-xs">{t('renewal.noOffersAvailable')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('renewal.adminCanAddOffers')}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {packages.map(pkg => (
+                  <button
+                    key={pkg.id}
+                    type="button"
+                    onClick={() => applyPackage(pkg)}
+                    className="bg-white hover:bg-indigo-50 border-2 border-indigo-300 hover:border-indigo-500 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg"
+                  >
+                    <div className="text-center">
+                      <div className="text-2xl mb-1">👥</div>
+                      <div className="font-bold text-gray-800 text-sm">{pkg.name}</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {pkg.sessions} {t('packages.sessions')}
+                      </div>
+                      <div className="text-lg font-bold text-indigo-600 mt-1">
+                        {pkg.price} {t('groupClass.egp')}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="bg-purple-50 border-l-4 border-r-4 border-purple-500 p-3 rounded-lg mb-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <p className="text-xs text-gray-600">{t('groupClass.renewal.groupClassNumber')}</p>
+                <p className="text-xs text-gray-600">{t('groupClass.renewal.classNumber')}</p>
                 <p className="text-xl font-bold text-purple-600">#{session.groupClassNumber}</p>
               </div>
               <div>
@@ -239,7 +312,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                 <p className="text-base">{session.instructorName}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('groupClass.renewal.currentRemainingSessions')}</p>
+                <p className="text-xs text-gray-600">{t('groupClass.renewal.currentSessionsRemaining')}</p>
                 <p className="text-xl font-bold text-orange-600">{session.sessionsRemaining}</p>
               </div>
             </div>
@@ -331,7 +404,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
               <div className="mt-3">
                 <div>
                   <label className="block text-xs font-medium mb-1">
-                    {t('groupClass.renewal.totalPrice')} <span className="text-red-600">*</span>
+                    {t('groupClass.renewal.totalAmount')} <span className="text-red-600">*</span>
                   </label>
                   <input
                     type="number"
