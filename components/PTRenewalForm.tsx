@@ -43,6 +43,8 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
   const [memberPoints, setMemberPoints] = useState(0)
   const [coaches, setCoaches] = useState<Staff[]>([])
   const [coachesLoading, setCoachesLoading] = useState(true)
+  const [offers, setOffers] = useState<any[]>([])
+  const [successMessage, setSuccessMessage] = useState('')
 
   const getDefaultStartDate = () => {
     if (session.expiryDate) {
@@ -99,6 +101,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
 
   useEffect(() => {
     fetchCoaches()
+    fetchOffers()
   }, [])
 
   useEffect(() => {
@@ -120,6 +123,41 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     } finally {
       setCoachesLoading(false)
     }
+  }
+
+  const fetchOffers = async () => {
+    try {
+      const response = await fetch('/api/offers?activeOnly=true')
+      const data = await response.json()
+      if (Array.isArray(data)) {
+        // Filter offers that have PT sessions
+        const ptOffers = data.filter(offer => offer.freePTSessions && offer.freePTSessions > 0)
+        setOffers(ptOffers)
+      } else {
+        console.warn('Received data is not an array:', data)
+        setOffers([])
+      }
+    } catch (error) {
+      console.error('Error fetching offers:', error)
+      setOffers([])
+    }
+  }
+
+  const applyOffer = (offer: any) => {
+    const start = formData.startDate || formatDateYMD(new Date())
+    const expiry = new Date(start)
+    expiry.setDate(expiry.getDate() + offer.duration)
+
+    setFormData(prev => ({
+      ...prev,
+      sessionsPurchased: offer.freePTSessions,
+      totalPrice: offer.price,
+      startDate: start,
+      expiryDate: formatDateYMD(expiry)
+    }))
+
+    setSuccessMessage(`✅ ${t('renewal.offerApplied', { offerName: offer.name })}`)
+    setTimeout(() => setSuccessMessage(''), 2000)
   }
 
   const calculateDuration = () => {
@@ -221,6 +259,54 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
         </div>
 
         <div className="p-4">
+          {successMessage && (
+            <div className="bg-green-100 text-green-800 p-3 rounded-lg text-center font-medium text-sm mb-4">
+              {successMessage}
+            </div>
+          )}
+
+          {/* Offers Section */}
+          <div className="bg-gradient-to-br from-purple-50 to-primary-50 border-2 border-purple-200 rounded-xl p-4 mb-4">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-purple-800">
+              <span>🎁</span>
+              <span>{t('renewal.availableOffers')}</span>
+            </h3>
+            <p className="text-xs text-gray-600 mb-3">{t('renewal.selectOfferToAutoFill')}</p>
+
+            {!Array.isArray(offers) || offers.length === 0 ? (
+              <div className="text-center py-4 bg-white rounded-xl border-2 border-dashed border-gray-300">
+                <p className="text-gray-500 text-xs">{t('renewal.noOffersAvailable')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('renewal.adminCanAddOffers')}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                {offers.map(offer => (
+                  <button
+                    key={offer.id}
+                    type="button"
+                    onClick={() => applyOffer(offer)}
+                    className="bg-white border-2 border-purple-300 hover:border-purple-500 hover:bg-purple-50 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg group"
+                  >
+                    <div className="text-2xl mb-1">{offer.icon}</div>
+                    <div className="font-bold text-purple-800 mb-1 text-sm">{offer.name}</div>
+                    <div className="text-xl font-bold text-green-600 mb-1">{offer.price} {t('renewal.currency')}</div>
+                    <div className="text-xs text-gray-600 space-y-0.5">
+                      <div>💪 {offer.freePTSessions} PT</div>
+                      <div>⚖️ {offer.inBodyScans} InBody</div>
+                      <div>🎟️ {offer.invitations} {t('renewal.invitations')}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className={`mt-3 bg-primary-100 p-2 rounded ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500`}>
+              <p className="text-xs text-primary-800">
+                <strong>💡 {t('renewal.note')}:</strong> {t('renewal.noteCanEditAfterOffer')}
+              </p>
+            </div>
+          </div>
+
           <div className="bg-green-50 border-l-4 border-r-4 border-green-500 p-3 rounded-lg mb-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>

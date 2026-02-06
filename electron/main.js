@@ -522,7 +522,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       webSecurity: false, // Disabled for localhost development
-      partition: 'persist:gym', // حفظ الـ cookies والـ session
+      partition: 'gym', // ✅ session مؤقت - مش بيتحفظ بعد إغلاق الأبلكيشن
       enableRemoteModule: false,
       preload: path.join(__dirname, 'preload.js'),
       enableBlinkFeatures: 'WebHID,WebSerial', // تفعيل Web HID و Web Serial APIs

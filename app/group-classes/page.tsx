@@ -462,9 +462,6 @@ export default function GroupClassPage() {
       session.groupClassNumber.toString().includes(searchTerm) ||
       session.phone.includes(searchTerm)
 
-    // فلتر المدرب
-    const matchesCoach = filterCoach === '' || session.instructorName === filterCoach
-
     // فلتر الحالة
     let matchesStatus = true
     if (filterStatus !== 'all') {
@@ -489,7 +486,7 @@ export default function GroupClassPage() {
     if (filterType === 'regular') matchesType = session.groupClassNumber >= 0
     else if (filterType === 'dayuse') matchesType = session.groupClassNumber < 0
 
-    return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType
+    return matchesSearch && matchesStatus && matchesSessions && matchesType
   })
 
   // ✅ التحقق من الصلاحيات
@@ -517,13 +514,6 @@ export default function GroupClassPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
-          <button
-            onClick={() => router.push('/groupClass/commission')}
-            className="flex-1 min-w-[140px] sm:flex-none bg-gradient-to-r from-purple-600 to-purple-700 text-white px-3 sm:px-6 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
-          >
-            <span>💰</span>
-            <span>{t('groupClass.commissionCalculator')}</span>
-          </button>
           <button
             onClick={() => router.push('/groupClass/sessions/history')}
             className="flex-1 min-w-[140px] sm:flex-none bg-gradient-to-r from-purple-600 to-purple-700 text-white px-3 sm:px-6 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
@@ -604,45 +594,6 @@ export default function GroupClassPage() {
                   className="w-full px-3 py-2 border rounded-lg"
                   placeholder={t('groupClass.phonePlaceholder')}
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('groupClass.instructorName')} <span className="text-red-600">*</span>
-                </label>
-                {coachesLoading ? (
-                  <div className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500">
-                    {t('groupClass.loadingInstructors')}
-                  </div>
-                ) : coaches.length === 0 ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      required
-                      value={formData.instructorName}
-                      onChange={(e) => setFormData({ ...formData, instructorName: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder={t('groupClass.instructorNamePlaceholder')}
-                    />
-                    <p className="text-xs text-amber-600">
-                      ⚠️ {t('groupClass.noActiveInstructors')}
-                    </p>
-                  </div>
-                ) : (
-                  <select
-                    required
-                    value={formData.instructorName}
-                    onChange={(e) => setFormData({ ...formData, instructorName: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg bg-white"
-                  >
-                    <option value="">{t('groupClass.selectInstructor')}</option>
-                    {coaches.map((coach) => (
-                      <option key={coach.id} value={coach.name}>
-                        {coach.name} {coach.phone && `(${coach.phone})`}
-                      </option>
-                    ))}
-                  </select>
-                )}
               </div>
 
               {/* Day Use Checkbox - مخفي في وضع التعديل */}
@@ -913,22 +864,7 @@ export default function GroupClassPage() {
         </div>
 
         {/* الفلاتر */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          {/* فلتر المدرب */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5">{t('groupClass.filterByInstructor')}</label>
-            <select
-              value={filterCoach}
-              onChange={(e) => setFilterCoach(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg"
-            >
-              <option value="">{t('groupClass.allInstructors')}</option>
-              {(Array.from(new Set(sessions.map(s => s.instructorName).filter((name): name is string => !!name))) as string[]).sort().map(coach => (
-                <option key={coach} value={coach}>{coach}</option>
-              ))}
-            </select>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* فلتر الحالة */}
           <div>
             <label className="block text-sm font-medium mb-1.5">{t('groupClass.filterByStatus')}</label>
@@ -974,11 +910,10 @@ export default function GroupClassPage() {
         </div>
 
         {/* زر إعادة تعيين الفلاتر */}
-        {(filterCoach || filterStatus !== 'all' || filterSessions !== 'all' || filterType !== 'all') && (
+        {(filterStatus !== 'all' || filterSessions !== 'all' || filterType !== 'all') && (
           <div className="mt-3 flex justify-end">
             <button
               onClick={() => {
-                setFilterCoach('')
                 setFilterStatus('all')
                 setFilterSessions('all')
                 setFilterType('all')
@@ -1001,9 +936,8 @@ export default function GroupClassPage() {
               <table className="w-full" dir={direction}>
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('groupClass.groupClassNumber')}</th>
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('groupClass.classNumber')}</th>
                     <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('groupClass.client')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('groupClass.instructor')}</th>
                     <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('groupClass.sessions')}</th>
                     <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('groupClass.total')}</th>
                     <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('groupClass.remaining')}</th>
@@ -1038,7 +972,6 @@ export default function GroupClassPage() {
                             <p className="text-sm text-gray-600">{session.phone}</p>
                           </div>
                         </td>
-                        <td className="px-4 py-3">{session.instructorName}</td>
                         <td className="px-4 py-3">
                           <div className="text-center">
                             <p
@@ -1324,7 +1257,7 @@ export default function GroupClassPage() {
               <div className="bg-gradient-to-r from-purple-50 to-purple-50 border-2 border-purple-200 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-gray-600">{t('groupClass.groupClassNumber')}:</span>
+                    <span className="text-gray-600">{t('groupClass.classNumber')}:</span>
                     <span className="font-bold mr-2">#{selectedSession.groupClassNumber}</span>
                   </div>
                   <div>
@@ -1504,7 +1437,7 @@ export default function GroupClassPage() {
               <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">{t('groupClass.groupClassNumber')}:</span>
+                    <span className="text-gray-600">{t('groupClass.classNumber')}:</span>
                     <span className="font-bold">#{paymentSession.groupClassNumber}</span>
                   </div>
                   <div className="flex justify-between">
