@@ -100,7 +100,7 @@ export default function ReceiptsPage() {
   // ✅ جميع الـ hooks يجب أن تكون قبل أي return
   const canEdit = hasPermission('canEditReceipts')
   const canDelete = hasPermission('canDeleteReceipts')
-  const canCancel = hasPermission('canCancelReceipts')
+  const canCancel = hasPermission('canEditReceipts') // استخدام canEditReceipts للإلغاء
 
   // ✅ معالجة أخطاء الإيصالات
   useEffect(() => {

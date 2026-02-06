@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   try {
     // التحقق من صلاحية تسجيل الحضور
-    const user = await requirePermission(request, 'canRegisterGroupClassAttendance')
+    const user = await requirePermission(request, 'canRegisterClassAttendance')
 
     const body = await request.json()
     const { qrCode, notes } = body
