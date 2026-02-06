@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   try {
     // التحقق من الصلاحيات - المدرب والأدمن فقط
-    const user = await requirePermission(request, 'canRegisterGroupClassAttendance')
+    const user = await requirePermission(request, 'canRegisterClassAttendance')
 
     const { searchParams } = new URL(request.url)
     const groupClassNumber = searchParams.get('groupClassNumber')

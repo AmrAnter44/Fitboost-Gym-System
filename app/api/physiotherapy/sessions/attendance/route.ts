@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   try {
     // التحقق من صلاحية تسجيل الحضور
-    const user = await requirePermission(request, 'canRegisterPhysiotherapyAttendance')
+    const user = await requirePermission(request, 'canRegisterPhysioAttendance')
 
     const body = await request.json()
     const { qrCode, notes } = body

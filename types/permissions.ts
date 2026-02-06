@@ -27,7 +27,7 @@ export interface Permissions {
   canCreateGroupClass: boolean
   canEditGroupClass: boolean
   canDeleteGroupClass: boolean
-  canRegisterGroupClassAttendance: boolean
+  canRegisterClassAttendance: boolean
 
   // صلاحيات التغذية
   canViewNutrition: boolean
@@ -41,7 +41,7 @@ export interface Permissions {
   canCreatePhysiotherapy: boolean
   canEditPhysiotherapy: boolean
   canDeletePhysiotherapy: boolean
-  canRegisterPhysiotherapyAttendance: boolean
+  canRegisterPhysioAttendance: boolean
 
   // صلاحيات الموظفين
   canViewStaff: boolean
@@ -51,10 +51,8 @@ export interface Permissions {
 
   // صلاحيات الإيصالات
   canViewReceipts: boolean
-  canCreateReceipts: boolean
   canEditReceipts: boolean
   canDeleteReceipts: boolean
-  canCancelReceipts: boolean
 
   // صلاحيات المصروفات
   canViewExpenses: boolean
@@ -174,7 +172,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateGroupClass: true,
     canEditGroupClass: true,
     canDeleteGroupClass: true,
-    canRegisterGroupClassAttendance: true,
+    canRegisterClassAttendance: true,
     canViewNutrition: true,
     canCreateNutrition: true,
     canEditNutrition: true,
@@ -184,16 +182,14 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreatePhysiotherapy: true,
     canEditPhysiotherapy: true,
     canDeletePhysiotherapy: true,
-    canRegisterPhysiotherapyAttendance: true,
+    canRegisterPhysioAttendance: true,
     canViewStaff: true,
     canCreateStaff: true,
     canEditStaff: true,
     canDeleteStaff: true,
     canViewReceipts: true,
-    canCreateReceipts: true,
     canEditReceipts: true,
     canDeleteReceipts: true,
-    canCancelReceipts: true,
     canViewExpenses: true,
     canCreateExpense: true,
     canEditExpense: true,
@@ -238,7 +234,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateGroupClass: true,
     canEditGroupClass: true,
     canDeleteGroupClass: false,
-    canRegisterGroupClassAttendance: true,
+    canRegisterClassAttendance: true,
     canViewNutrition: true,
     canCreateNutrition: true,
     canEditNutrition: true,
@@ -248,16 +244,14 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreatePhysiotherapy: true,
     canEditPhysiotherapy: true,
     canDeletePhysiotherapy: false,
-    canRegisterPhysiotherapyAttendance: true,
+    canRegisterPhysioAttendance: true,
     canViewStaff: true,
     canCreateStaff: false,
     canEditStaff: false,
     canDeleteStaff: false,
     canViewReceipts: true,
-    canCreateReceipts: true,
     canEditReceipts: true,
     canDeleteReceipts: false,
-    canCancelReceipts: true,
     canViewExpenses: true,
     canCreateExpense: true,
     canEditExpense: true,
@@ -302,7 +296,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateGroupClass: false,
     canEditGroupClass: false,
     canDeleteGroupClass: false,
-    canRegisterGroupClassAttendance: true,
+    canRegisterClassAttendance: true,
     canViewNutrition: true,
     canCreateNutrition: false,
     canEditNutrition: false,
@@ -312,16 +306,14 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreatePhysiotherapy: false,
     canEditPhysiotherapy: false,
     canDeletePhysiotherapy: false,
-    canRegisterPhysiotherapyAttendance: true,
+    canRegisterPhysioAttendance: true,
     canViewStaff: false,
     canCreateStaff: false,
     canEditStaff: false,
     canDeleteStaff: false,
     canViewReceipts: true,
-    canCreateReceipts: false,
     canEditReceipts: false,
     canDeleteReceipts: false,
-    canCancelReceipts: false,
     canViewExpenses: false,
     canCreateExpense: false,
     canEditExpense: false,
@@ -367,7 +359,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateGroupClass: false,
     canEditGroupClass: false,
     canDeleteGroupClass: false,
-    canRegisterGroupClassAttendance: true, // يسجل حضور كلاساته
+    canRegisterClassAttendance: true, // يسجل حضور كلاساته
     canViewNutrition: true, // يرى عملاءه فقط
     canCreateNutrition: false,
     canEditNutrition: false,
@@ -377,16 +369,14 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreatePhysiotherapy: false,
     canEditPhysiotherapy: false,
     canDeletePhysiotherapy: false,
-    canRegisterPhysiotherapyAttendance: true,
+    canRegisterPhysioAttendance: true,
     canViewStaff: false,
     canCreateStaff: false,
     canEditStaff: false,
     canDeleteStaff: false,
     canViewReceipts: false,
-    canCreateReceipts: false,
     canEditReceipts: false,
     canDeleteReceipts: false,
-    canCancelReceipts: false,
     canViewExpenses: false,
     canCreateExpense: false,
     canEditExpense: false,
@@ -436,7 +426,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canCreateGroupClass: 'إنشاء كلاس جماعي',
   canEditGroupClass: 'تعديل كلاس جماعي',
   canDeleteGroupClass: 'حذف كلاس جماعي',
-  canRegisterGroupClassAttendance: 'تسجيل حضور كلاس جماعي',
+  canRegisterClassAttendance: 'تسجيل حضور كلاس جماعي',
   canViewNutrition: 'عرض التغذية',
   canCreateNutrition: 'إنشاء جلسة تغذية',
   canEditNutrition: 'تعديل جلسة تغذية',
@@ -446,16 +436,14 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canCreatePhysiotherapy: 'إنشاء جلسة علاج طبيعي',
   canEditPhysiotherapy: 'تعديل جلسة علاج طبيعي',
   canDeletePhysiotherapy: 'حذف جلسة علاج طبيعي',
-  canRegisterPhysiotherapyAttendance: 'تسجيل حضور علاج طبيعي',
+  canRegisterPhysioAttendance: 'تسجيل حضور علاج طبيعي',
   canViewStaff: 'عرض الموظفين',
   canCreateStaff: 'إضافة موظف',
   canEditStaff: 'تعديل موظف',
   canDeleteStaff: 'حذف موظف',
   canViewReceipts: 'عرض الإيصالات',
-  canCreateReceipts: 'إضافة إيصال',
   canEditReceipts: 'تعديل إيصال',
   canDeleteReceipts: 'حذف إيصال',
-  canCancelReceipts: 'إلغاء إيصال',
   canViewExpenses: 'عرض المصروفات',
   canCreateExpense: 'إضافة مصروف',
   canEditExpense: 'تعديل مصروف',
@@ -517,7 +505,7 @@ export const PERMISSION_GROUPS = {
       'canCreateGroupClass',
       'canEditGroupClass',
       'canDeleteGroupClass',
-      'canRegisterGroupClassAttendance',
+      'canRegisterClassAttendance',
     ] as Array<keyof Permissions>,
   },
   nutrition: {
@@ -537,7 +525,7 @@ export const PERMISSION_GROUPS = {
       'canCreatePhysiotherapy',
       'canEditPhysiotherapy',
       'canDeletePhysiotherapy',
-      'canRegisterPhysiotherapyAttendance',
+      'canRegisterPhysioAttendance',
     ] as Array<keyof Permissions>,
   },
   staff: {
@@ -553,10 +541,8 @@ export const PERMISSION_GROUPS = {
     label: '🧾 الإيصالات',
     permissions: [
       'canViewReceipts',
-      'canCreateReceipts',
       'canEditReceipts',
       'canDeleteReceipts',
-      'canCancelReceipts',
     ] as Array<keyof Permissions>,
   },
   expenses: {
@@ -647,7 +633,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canCreateGroupClass: '➕',
   canEditGroupClass: '✏️',
   canDeleteGroupClass: '🗑️',
-  canRegisterGroupClassAttendance: '✅',
+  canRegisterClassAttendance: '✅',
   canViewNutrition: '👁️',
   canCreateNutrition: '➕',
   canEditNutrition: '✏️',
@@ -657,16 +643,14 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canCreatePhysiotherapy: '➕',
   canEditPhysiotherapy: '✏️',
   canDeletePhysiotherapy: '🗑️',
-  canRegisterPhysiotherapyAttendance: '✅',
+  canRegisterPhysioAttendance: '✅',
   canViewStaff: '👁️',
   canCreateStaff: '➕',
   canEditStaff: '✏️',
   canDeleteStaff: '🗑️',
   canViewReceipts: '👁️',
-  canCreateReceipts: '➕',
   canEditReceipts: '✏️',
   canDeleteReceipts: '🗑️',
-  canCancelReceipts: '❌',
   canViewExpenses: '👁️',
   canCreateExpense: '➕',
   canEditExpense: '✏️',

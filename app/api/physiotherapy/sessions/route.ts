@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   try {
     // التحقق من الصلاحيات - أخصائي العلاج الطبيعي والأدمن فقط
-    const user = await requirePermission(request, 'canRegisterPhysiotherapyAttendance')
+    const user = await requirePermission(request, 'canRegisterPhysioAttendance')
 
     const { searchParams } = new URL(request.url)
     const physioNumber = searchParams.get('physioNumber')
