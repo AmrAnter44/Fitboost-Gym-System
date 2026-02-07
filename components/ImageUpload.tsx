@@ -53,12 +53,12 @@ export default function ImageUpload({
       if (response.ok) {
         onImageChange(data.imageUrl)
       } else {
-        alert(data.error || 'فشل رفع الصورة')
+        console.error(data.error || 'فشل رفع الصورة')
         setPreview(currentImage || null)
       }
     } catch (error) {
       console.error('خطأ في رفع الصورة:', error)
-      alert('حدث خطأ في رفع الصورة')
+      console.error('حدث خطأ في رفع الصورة')
       setPreview(currentImage || null)
     } finally {
       setUploading(false)
@@ -107,12 +107,12 @@ export default function ImageUpload({
       if (response.ok) {
         onImageChange(data.imageUrl)
       } else {
-        alert(data.error || 'فشل رفع الصورة')
+        console.error(data.error || 'فشل رفع الصورة')
         setPreview(currentImage || null)
       }
     } catch (error) {
       console.error('خطأ في رفع الصورة:', error)
-      alert('حدث خطأ في رفع الصورة')
+      console.error('حدث خطأ في رفع الصورة')
       setPreview(currentImage || null)
     } finally {
       setUploading(false)

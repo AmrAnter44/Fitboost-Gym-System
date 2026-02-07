@@ -422,7 +422,7 @@ export default function ReceiptsPage() {
       )
     } catch (error) {
       console.error('Error printing receipt:', error)
-      alert(`❌ ${t('receipts.actions.printError')}`)
+      toast.error(`❌ ${t('receipts.actions.printError')}`)
     }
   }
 
@@ -490,7 +490,7 @@ export default function ReceiptsPage() {
 
   const handleUpdateNextReceiptNumber = async () => {
     if (nextReceiptNumber < 1) {
-      alert(t('receipts.nextReceiptNumber.invalidNumber'))
+      toast.error(t('receipts.nextReceiptNumber.invalidNumber'))
       return
     }
 

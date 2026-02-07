@@ -272,7 +272,7 @@ export default function SettingsPage() {
 
         // التحقق من أن المستخدم Admin
         if (data.user.role !== 'ADMIN') {
-          alert('هذه الصفحة مخصصة للمدراء فقط')
+          // سيتم redirect مباشرة دون عرض رسالة لأن الصفحة محمية
           router.push('/')
           return
         }
