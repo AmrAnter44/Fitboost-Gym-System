@@ -40,7 +40,19 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(bytes)
 
     // إنشاء مجلد uploads إذا لم يكن موجوداً
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'members')
+    // في Electron، نستخدم UPLOADS_PATH من userData لتجنب مشاكل الصلاحيات
+    const isElectron = process.env.UPLOADS_PATH !== undefined
+    let uploadsDir: string
+
+    if (isElectron && process.env.UPLOADS_PATH) {
+      // في Electron: استخدام مسار userData/uploads
+      uploadsDir = path.join(process.env.UPLOADS_PATH, 'members')
+      console.log('📁 Using Electron uploads path:', uploadsDir)
+    } else {
+      // في Web: استخدام public/uploads
+      uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'members')
+    }
+
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true })
     }
@@ -54,8 +66,12 @@ export async function POST(request: Request) {
     // حفظ الملف
     await writeFile(filepath, buffer)
 
-    // إرجاع المسار النسبي
-    const imageUrl = `/uploads/members/${filename}`
+    // إرجاع المسار المناسب
+    // في Electron: نستخدم API route لخدمة الصورة من userData
+    // في Web: نرجع المسار النسبي /uploads/members/...
+    const imageUrl = isElectron
+      ? `/api/serve-image?path=${encodeURIComponent(filepath)}`
+      : `/uploads/members/${filename}`
 
     return NextResponse.json({ 
       success: true, 
@@ -77,7 +93,7 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const imageUrl = searchParams.get('url')
-    
+
     if (!imageUrl) {
       return NextResponse.json(
         { error: 'لم يتم تحديد الصورة' },
@@ -85,9 +101,18 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const filepath = path.join(process.cwd(), 'public', imageUrl)
-    
-    if (existsSync(filepath)) {
+    // التحقق إذا كان المسار من Electron API route
+    let filepath: string
+    if (imageUrl.startsWith('/api/serve-image?path=')) {
+      // استخراج المسار الحقيقي من query parameter
+      const urlObj = new URL(imageUrl, 'http://localhost')
+      filepath = urlObj.searchParams.get('path') || ''
+    } else {
+      // مسار عادي من public
+      filepath = path.join(process.cwd(), 'public', imageUrl)
+    }
+
+    if (filepath && existsSync(filepath)) {
       await unlink(filepath)
     }
 

@@ -129,7 +129,8 @@ export default function MessageTemplateManager({
 
   const handleSave = () => {
     if (!formData.title.trim() || !formData.message.trim()) {
-      alert(t('followups.templates.form.fillAllFields'))
+      // يمكن استخدام toast هنا عند الحاجة
+      console.error(t('followups.templates.form.fillAllFields'))
       return
     }
 

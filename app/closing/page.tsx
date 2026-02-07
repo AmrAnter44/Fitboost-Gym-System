@@ -710,7 +710,8 @@ export default function ClosingPage() {
 
     } catch (error) {
       console.error('❌ خطأ في التصدير:', error)
-      alert(t('closing.excel.error'))
+      // يمكن استخدام toast هنا إذا تم إضافة ToastContext
+      console.error(t('closing.excel.error'))
     }
   }
 

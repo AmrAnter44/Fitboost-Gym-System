@@ -419,6 +419,14 @@ async function startProductionServer() {
       const dbPath = getDatabasePath();
       const DATABASE_URL = `file:${dbPath}`;
 
+      // إنشاء مسار دائم للصور المرفوعة
+      const userDataPath = app.getPath('userData');
+      const uploadsPath = path.join(userDataPath, 'uploads');
+      if (!fs.existsSync(uploadsPath)) {
+        fs.mkdirSync(uploadsPath, { recursive: true });
+        console.log('📁 Created uploads directory:', uploadsPath);
+      }
+
       serverProcess = spawn('npx', ['next', 'start', '-p', '4001', '-H', '0.0.0.0'], {
         cwd: appPath,
         env: {
@@ -426,7 +434,8 @@ async function startProductionServer() {
           NODE_ENV: 'production',
           PORT: '4001',
           HOSTNAME: '0.0.0.0',
-          DATABASE_URL: DATABASE_URL
+          DATABASE_URL: DATABASE_URL,
+          UPLOADS_PATH: uploadsPath
         },
         shell: true,
         stdio: 'pipe'
@@ -447,8 +456,17 @@ async function startProductionServer() {
       const dbPath = getDatabasePath();
       const DATABASE_URL = `file:${dbPath}`;
 
+      // إنشاء مسار دائم للصور المرفوعة
+      const userDataPath = app.getPath('userData');
+      const uploadsPath = path.join(userDataPath, 'uploads');
+      if (!fs.existsSync(uploadsPath)) {
+        fs.mkdirSync(uploadsPath, { recursive: true });
+        console.log('📁 Created uploads directory:', uploadsPath);
+      }
+
       console.log('App path:', appPath);
       console.log('Database URL:', DATABASE_URL);
+      console.log('Uploads path:', uploadsPath);
 
       // استخدام custom server wrapper للـ public folder support
       // في production، الـ standalone-server.js موجود في app.asar.unpacked
@@ -475,7 +493,8 @@ async function startProductionServer() {
             NODE_ENV: 'production',
             PORT: '4001',
             HOSTNAME: '0.0.0.0',
-            DATABASE_URL: DATABASE_URL
+            DATABASE_URL: DATABASE_URL,
+            UPLOADS_PATH: uploadsPath
           },
           shell: false,
           stdio: 'pipe'
@@ -489,7 +508,8 @@ async function startProductionServer() {
             NODE_ENV: 'production',
             PORT: '4001',
             HOSTNAME: '0.0.0.0',
-            DATABASE_URL: DATABASE_URL
+            DATABASE_URL: DATABASE_URL,
+            UPLOADS_PATH: uploadsPath
           },
           shell: false,
           stdio: 'pipe'

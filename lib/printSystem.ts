@@ -506,8 +506,8 @@ export async function printReceipt(
       return { filePath: result.filePath || undefined }
     } catch (error) {
       console.error('❌ خطأ في تحويل PDF:', error)
-      alert('فشل تحويل الإيصال إلى PDF')
-      return
+      // سيتم معالجة الخطأ في المكون المستدعي
+      throw new Error('فشل تحويل الإيصال إلى PDF')
     }
   }
 
@@ -541,8 +541,8 @@ function printReceiptTraditional(receiptHTML: string): void {
   const printWindow = window.open('', '_blank', 'width=302,height=600,scrollbars=no')
 
   if (!printWindow) {
-    alert('يرجى السماح بالنوافذ المنبثقة لطباعة الإيصال')
-    return
+    // سيتم معالجة الخطأ في المكون المستدعي
+    throw new Error('يرجى السماح بالنوافذ المنبثقة لطباعة الإيصال')
   }
 
   printWindow.document.open()

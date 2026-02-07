@@ -100,12 +100,12 @@ export default function MemberDetailPage() {
 
   const handlePayment = async () => {
     if (!member || paymentData.amount <= 0) {
-      alert(t('memberDetails.paymentModal.enterValidAmount'))
+      toast.error(t('memberDetails.paymentModal.enterValidAmount'))
       return
     }
 
     if (paymentData.amount > member.remainingAmount) {
-      alert(t('memberDetails.paymentModal.amountExceedsRemaining'))
+      toast.error(t('memberDetails.paymentModal.amountExceedsRemaining'))
       return
     }
 
@@ -166,7 +166,7 @@ export default function MemberDetailPage() {
 
   const handleUseInBody = async () => {
     if (!member || member.inBodyScans <= 0) {
-      alert(t('memberDetails.noInBodySessionsRemaining'))
+      toast.error(t('memberDetails.noInBodySessionsRemaining'))
       return
     }
 
@@ -196,7 +196,7 @@ export default function MemberDetailPage() {
 
   const handleUseInvitation = async () => {
     if (!member || member.invitations <= 0) {
-      alert(t('memberDetails.noInvitationsRemaining'))
+      toast.error(t('memberDetails.noInvitationsRemaining'))
       return
     }
 
@@ -226,7 +226,7 @@ export default function MemberDetailPage() {
 
   const handleUseFreePT = async () => {
     if (!member || member.freePTSessions <= 0) {
-      alert(t('memberDetails.noFreePTRemaining'))
+      toast.error(t('memberDetails.noFreePTRemaining'))
       return
     }
 
@@ -256,13 +256,13 @@ export default function MemberDetailPage() {
 
   const handleFreeze = async () => {
     if (!member || !member.expiryDate || freezeData.days <= 0) {
-      alert(t('memberDetails.freezeModal.enterValidDays'))
+      toast.error(t('memberDetails.freezeModal.enterValidDays'))
       return
     }
 
     // التحقق من رصيد الفريز الكافي
     if (freezeData.days > member.remainingFreezeDays) {
-      alert(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم، المطلوب: ${freezeData.days} يوم`)
+      toast.error(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم، المطلوب: ${freezeData.days} يوم`)
       return
     }
 
@@ -297,7 +297,7 @@ export default function MemberDetailPage() {
 
   const handleEdit = async () => {
     if (!member || !editData.name || !editData.phone) {
-      alert('يرجى إدخال الاسم ورقم الهاتف')
+      toast.error('يرجى إدخال الاسم ورقم الهاتف')
       return
     }
 

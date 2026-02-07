@@ -54,7 +54,7 @@ export default function CoachDashboard() {
       // Check if user is COACH
       if (data.user.role !== 'COACH') {
         console.warn('User is not COACH, redirecting to home')
-        alert('هذه الصفحة للمدربين فقط')
+        // سيتم redirect مباشرة دون عرض رسالة لأن الصفحة محمية
         router.push('/')
         return
       }
