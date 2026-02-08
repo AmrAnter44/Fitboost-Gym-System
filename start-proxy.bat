@@ -19,12 +19,11 @@ if not exist "node_modules" (
 )
 
 echo [*] Starting proxy on port 80...
-echo [*] Make sure ports 4001 and 3002 are running!
+echo [*] Make sure port 4001 is running!
 echo.
 echo ========================================
 echo   Routing:
 echo   system.xgym.website → localhost:4001
-echo   client.xgym.website → localhost:3002
 echo ========================================
 echo.
 
