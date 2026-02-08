@@ -8,14 +8,11 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
-    // ✅ التحقق من تسجيل الدخول
-    const user = await verifyAuth(request)
-    if (!user) {
-      return NextResponse.json(
-        { error: 'يجب تسجيل الدخول أولاً' },
-        { status: 401 }
-      )
-    }
+    /**
+     * جلب جميع الزوار
+     * @permission canViewVisitors - صلاحية عرض قائمة الزوار
+     */
+    const user = await requirePermission(request, 'canViewVisitors')
 
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')

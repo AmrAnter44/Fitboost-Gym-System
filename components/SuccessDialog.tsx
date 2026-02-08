@@ -90,6 +90,7 @@ export default function SuccessDialog({
 
         <div className="p-6 pt-0">
           <button
+            type="button"
             onClick={onClose}
             className={`w-full ${colors.button} text-white py-3 px-6 rounded-lg font-bold text-lg transition transform hover:scale-105 shadow-lg`}
           >

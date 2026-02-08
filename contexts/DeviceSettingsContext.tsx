@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { safeStorage } from '../lib/safeStorage'
 
 interface DeviceFingerprint {
   vendorId?: string
@@ -39,7 +40,7 @@ export function DeviceSettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // جلب الإعدادات المحفوظة من localStorage
-    const savedSettings = localStorage.getItem(STORAGE_KEY)
+    const savedSettings = safeStorage.getItem(STORAGE_KEY)
     if (savedSettings) {
       try {
         const settings: DeviceSettings = JSON.parse(savedSettings)
@@ -66,11 +67,11 @@ export function DeviceSettingsProvider({ children }: { children: ReactNode }) {
     setSelectedScannerFingerprintState(fingerprint)
 
     // حفظ في localStorage
-    const savedSettings = localStorage.getItem(STORAGE_KEY)
+    const savedSettings = safeStorage.getItem(STORAGE_KEY)
     const settings: DeviceSettings = savedSettings ? JSON.parse(savedSettings) : {}
     settings.selectedScanner = deviceId
     settings.selectedScannerFingerprint = fingerprint
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    safeStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
 
     console.log('✅ Device saved:', { deviceId, fingerprint })
   }
@@ -79,20 +80,20 @@ export function DeviceSettingsProvider({ children }: { children: ReactNode }) {
     setAutoScanEnabledState(enabled)
 
     // حفظ في localStorage
-    const savedSettings = localStorage.getItem(STORAGE_KEY)
+    const savedSettings = safeStorage.getItem(STORAGE_KEY)
     const settings: DeviceSettings = savedSettings ? JSON.parse(savedSettings) : {}
     settings.autoScanEnabled = enabled
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    safeStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
   }
 
   const setStrictMode = (enabled: boolean) => {
     setStrictModeState(enabled)
 
     // حفظ في localStorage
-    const savedSettings = localStorage.getItem(STORAGE_KEY)
+    const savedSettings = safeStorage.getItem(STORAGE_KEY)
     const settings: DeviceSettings = savedSettings ? JSON.parse(savedSettings) : {}
     settings.strictMode = enabled
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    safeStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
   }
 
   return (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { safeStorage } from '../../lib/safeStorage'
 
 export interface MessageTemplate {
   id: string
@@ -69,7 +70,9 @@ export default function MessageTemplateManager({
 
   // تحميل القوالب من localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('whatsapp-templates')
+    if (typeof window === 'undefined') return
+
+    const saved = safeStorage.getItem('whatsapp-templates')
     if (saved) {
       try {
         const savedTemplates = JSON.parse(saved)
@@ -90,7 +93,7 @@ export default function MessageTemplateManager({
   // حفظ جميع القوالب في localStorage
   const saveCustomTemplates = (allTemplates: MessageTemplate[]) => {
     // حفظ جميع القوالب (المعدلة والمخصصة)
-    localStorage.setItem('whatsapp-templates', JSON.stringify(allTemplates))
+    safeStorage.setItem('whatsapp-templates', JSON.stringify(allTemplates))
   }
 
   // استبدال المتغيرات في النص
@@ -164,7 +167,7 @@ export default function MessageTemplateManager({
   const handleResetToDefault = () => {
     if (confirm(t('followups.templates.resetConfirm'))) {
       setTemplates(DEFAULT_TEMPLATES)
-      localStorage.removeItem('whatsapp-templates')
+      safeStorage.removeItem('whatsapp-templates')
     }
   }
 

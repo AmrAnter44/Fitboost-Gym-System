@@ -10,8 +10,11 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    // التحقق من صلاحية إلغاء الإيصالات
-    const user = await requirePermission(request, 'canEditMembers')
+    /**
+     * إلغاء إيصال
+     * @permission canEditReceipts - صلاحية تعديل وإلغاء الإيصالات
+     */
+    const user = await requirePermission(request, 'canEditReceipts')
 
     const { reason } = await request.json()
     const receiptId = params.id

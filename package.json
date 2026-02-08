@@ -17,8 +17,8 @@
     "db:optimize": "node optimize-database.js",
     "db:studio": "prisma studio",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:4001 && electron . --enable-features=WebRTC --enable-usermedia-screen-capturing\"",
-    "electron:build": "electron-builder",
-    "electron:build:win": "electron-builder --win --x64 --publish never"
+    "electron:build": "electron-builder --publish onTagOrDraft",
+    "electron:build:win": "electron-builder --win --x64 --publish onTagOrDraft"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

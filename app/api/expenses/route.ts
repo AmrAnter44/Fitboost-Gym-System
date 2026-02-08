@@ -8,12 +8,15 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
-    // ✅ محاولة التحقق من صلاحية عرض المالية
+    /**
+     * جلب كل المصروفات
+     * @permission canViewExpenses - صلاحية عرض المصروفات والنفقات
+     */
     let user
     try {
-      user = await requirePermission(request, 'canViewFinancials')
+      user = await requirePermission(request, 'canViewExpenses')
     } catch (permError: any) {
-      // إذا لم يكن لديه صلاحية canViewFinancials، نتحقق إذا كان كوتش يريد رؤية قروضه فقط
+      // إذا لم يكن لديه صلاحية canViewExpenses، نتحقق إذا كان كوتش يريد رؤية قروضه فقط
       const { verifyAuth } = await import('../../../lib/auth')
       user = await verifyAuth(request)
 
@@ -52,7 +55,7 @@ export async function GET(request: Request) {
       throw permError
     }
 
-    // ✅ إذا كان لديه صلاحية canViewFinancials، نطبق المنطق العادي
+    // ✅ إذا كان لديه صلاحية canViewExpenses، نطبق المنطق العادي
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
     const staffId = searchParams.get('staffId')
@@ -94,8 +97,11 @@ export async function GET(request: Request) {
 // POST - إضافة مصروف جديد
 export async function POST(request: Request) {
   try {
-    // ✅ التحقق من صلاحية الوصول للإعدادات (المصروفات جزء من الإدارة)
-    await requirePermission(request, 'canAccessSettings')
+    /**
+     * إضافة مصروف جديد
+     * @permission canCreateExpense - صلاحية إنشاء مصروفات جديدة
+     */
+    await requirePermission(request, 'canCreateExpense')
 
     const body = await request.json()
     const { type, amount, description, notes, staffId, customCreatedAt } = body
@@ -201,8 +207,11 @@ export async function PUT(request: Request) {
 // DELETE - حذف مصروف
 export async function DELETE(request: Request) {
   try {
-    // ✅ التحقق من صلاحية الوصول للإعدادات
-    await requirePermission(request, 'canAccessSettings')
+    /**
+     * حذف مصروف
+     * @permission canDeleteExpense - صلاحية حذف المصروفات
+     */
+    await requirePermission(request, 'canDeleteExpense')
     
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

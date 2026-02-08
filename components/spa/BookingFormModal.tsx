@@ -131,6 +131,7 @@ export default function BookingFormModal({
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">{t('spa.newBooking')}</h2>
             <button
+              type="button"
               onClick={onClose}
               className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
             >

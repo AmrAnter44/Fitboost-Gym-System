@@ -170,6 +170,7 @@ export default function LinkModal({ onClose }: LinkModalProps) {
                       onClick={(e) => e.currentTarget.select()}
                     />
                     <button
+                      type="button"
                       onClick={copyToClipboard}
                       className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 font-bold text-xs whitespace-nowrap"
                     >
@@ -193,6 +194,7 @@ export default function LinkModal({ onClose }: LinkModalProps) {
               {/* أزرار */}
               <div className="grid grid-cols-2 gap-2">
                 <button
+                  type="button"
                   onClick={shareOnWhatsApp}
                   className="bg-green-500 text-white py-1.5 px-3 rounded-lg hover:bg-green-600 font-bold text-sm flex items-center justify-center gap-1"
                 >
@@ -200,6 +202,7 @@ export default function LinkModal({ onClose }: LinkModalProps) {
                   <span>واتساب</span>
                 </button>
                 <button
+                  type="button"
                   onClick={onClose}
                   className="bg-gray-200 text-gray-700 py-1.5 px-3 rounded-lg hover:bg-gray-300 font-bold text-sm"
                 >

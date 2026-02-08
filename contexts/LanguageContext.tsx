@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { safeStorage, isDocumentAvailable } from '../lib/safeStorage'
 
 type Language = 'ar' | 'en'
 type Direction = 'rtl' | 'ltr'
@@ -21,7 +22,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // جلب اللغة المحفوظة من localStorage
-    const savedLocale = localStorage.getItem('locale') as Language
+    const savedLocale = safeStorage.getItem('locale') as Language
     if (savedLocale && (savedLocale === 'ar' || savedLocale === 'en')) {
       setLocale(savedLocale)
     }
@@ -33,14 +34,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setMessages(msgs.default)
     })
 
-    // تحديث dir و lang في html
-    document.documentElement.lang = locale
-    document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'
+    // تحديث dir و lang في html (SSR safe)
+    if (isDocumentAvailable()) {
+      document.documentElement.lang = locale
+      document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'
+    }
   }, [locale])
 
   const setLanguage = (lang: Language) => {
     setLocale(lang)
-    localStorage.setItem('locale', lang)
+    safeStorage.setItem('locale', lang)
   }
 
   // دالة الترجمة البسيطة

@@ -201,12 +201,14 @@ export default function MultiPaymentModal({
         {/* Footer */}
         <div className="p-6 bg-gray-50 border-t flex gap-3 justify-end">
           <button
+            type="button"
             onClick={handleCancel}
             className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
           >
             {t('multiPayment.cancel')}
           </button>
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={!isValid}
             className={`px-6 py-3 rounded-lg font-semibold transition ${
