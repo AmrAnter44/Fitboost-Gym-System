@@ -633,7 +633,6 @@ function createWindow() {
     console.log('⚠️ Window closed by user');
     mainWindow = null;
     if (serverProcess) serverProcess.kill();
-    if (clientPortalProcess) clientPortalProcess.kill();
   });
 }
 

@@ -17,8 +17,6 @@ app/
 └── globals.css            ← CSS Variables
 
 tailwind.config.ts         ← Tailwind Integration
-client-portal/
-└── tailwind.config.ts     ← Client Portal Integration
 ```
 
 ## الاستخدام

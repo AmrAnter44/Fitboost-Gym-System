@@ -23,11 +23,6 @@ REM Create startup script in project directory
 echo @echo off > "%SCRIPT_DIR%startup-xgym.bat"
 echo cd /d "%SCRIPT_DIR%" >> "%SCRIPT_DIR%startup-xgym.bat"
 echo start /min "" cmd /c "npm start" >> "%SCRIPT_DIR%startup-xgym.bat"
-echo cd client-portal >> "%SCRIPT_DIR%startup-xgym.bat"
-echo start /min "" cmd /c "npm start" >> "%SCRIPT_DIR%startup-xgym.bat"
-echo cd .. >> "%SCRIPT_DIR%startup-xgym.bat"
-echo timeout /t 10 /nobreak ^>nul >> "%SCRIPT_DIR%startup-xgym.bat"
-echo if exist "C:\Caddy\caddy.exe" start /min "" "C:\Caddy\caddy.exe" run >> "%SCRIPT_DIR%startup-xgym.bat"
 
 REM Create scheduled task
 echo.

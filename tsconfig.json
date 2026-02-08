@@ -35,7 +35,6 @@
 , "scripts/admin.js"  ],
   "exclude": [
     "node_modules",
-    "scripts",
-    "client-portal"
+    "scripts"
   ]
 }

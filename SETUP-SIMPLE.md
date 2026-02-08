@@ -31,12 +31,9 @@ Double Click على: STOP XGYM.bat
 ```
 الإنترنت
     ↓
-http://system.xgym.website (Port 80)
+http://system.xgym.website
     ↓
-  Node.js Proxy (simple-proxy.js)
-    ↓
-    ├─→ localhost:4001 (Main System)
-    └─→ localhost:3002 (Client Portal)
+  localhost:4001 (Main System)
 ```
 
 ---
@@ -59,11 +56,9 @@ http://system.xgym.website (Port 80)
 بعد التشغيل، افتح المتصفح:
 
 - **النظام الأساسي:** http://system.xgym.website
-- **بوابة الأعضاء:** http://client.xgym.website
 
 أو محلي:
 - http://localhost:4001
-- http://localhost:3002
 
 ---
 
