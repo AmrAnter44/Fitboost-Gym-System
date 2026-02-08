@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { verifyAuth } from '../../../../lib/auth'
+import { verifyAuth, requirePermission } from '../../../../lib/auth'
 
 // GET - جلب متابعات زائر معين أو جميع المتابعات
 
