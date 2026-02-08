@@ -39,17 +39,9 @@ function startReverseProxy(port = 80) {
         // Log request
         console.log(`📥 [Proxy] ${req.method} ${host}${req.url}`);
 
-        // Route based on domain
-        let target;
-        if (host === 'client.xgym.website' || host.includes('client')) {
-          // Client Portal
-          target = 'http://localhost:3002';
-          console.log(`   ↳ Routing to Client Portal (3002)`);
-        } else {
-          // Default to Main System (system.xgym.website, localhost, or any other)
-          target = 'http://localhost:4001';
-          console.log(`   ↳ Routing to Main System (4001)`);
-        }
+        // Route to Main System
+        const target = 'http://localhost:4001';
+        console.log(`   ↳ Routing to Main System (4001)`);
 
         // Proxy the request
         proxy.web(req, res, { target });
@@ -57,10 +49,7 @@ function startReverseProxy(port = 80) {
 
       // Handle WebSocket upgrade requests
       server.on('upgrade', (req, socket, head) => {
-        const host = req.headers.host ? req.headers.host.split(':')[0] : '';
-        const target = host.includes('client')
-          ? 'http://localhost:3002'
-          : 'http://localhost:4001';
+        const target = 'http://localhost:4001';
 
         console.log(`🔌 [Proxy] WebSocket upgrade to ${target}`);
         proxy.ws(req, socket, head, { target });
@@ -78,7 +67,6 @@ function startReverseProxy(port = 80) {
         console.log('');
         console.log('🌐 Routing:');
         console.log('   system.xgym.website  → localhost:4001');
-        console.log('   client.xgym.website  → localhost:3002');
         console.log('   localhost            → localhost:4001');
         console.log('');
 

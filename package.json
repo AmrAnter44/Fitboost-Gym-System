@@ -82,13 +82,6 @@
       ".next/standalone/**/*",
       "!.next/standalone/node_modules",
       ".next/static/**/*",
-      "client-portal/.next/standalone/**/*",
-      "!client-portal/.next/standalone/node_modules",
-      "client-portal/.next/static/**/*",
-      "client-portal/public/**/*",
-      "client-portal/package.json",
-      "!client-portal/node_modules",
-      "!client-portal/.next/cache",
       "build/**/*",
       "prisma/**/*",
       "package.json"
@@ -96,28 +89,15 @@
     "asarUnpack": [
       ".next/standalone/**/*",
       "!.next/standalone/node_modules",
-      "client-portal/.next/standalone/**/*",
-      "!client-portal/.next/standalone/node_modules",
-      "client-portal/.next/static/**/*",
-      "client-portal/public/**/*",
-      "client-portal/package.json",
       "node_modules/uiohook-napi/**/*",
       "node_modules/better-sqlite3/**/*",
       "node_modules/node-hid/**/*",
-      "electron/standalone-server.js",
-      "electron/client-portal-server.js"
+      "electron/standalone-server.js"
     ],
     "extraResources": [
       {
         "from": ".next/standalone/node_modules",
         "to": "app.asar.unpacked/.next/standalone/node_modules",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "client-portal/.next/standalone/node_modules",
-        "to": "app.asar.unpacked/client-portal/.next/standalone/node_modules",
         "filter": [
           "**/*"
         ]
