@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {prisma} from "../../../lib/prisma";
 import { requireValidLicense } from "../../../lib/license";
-import { verifyAuth } from "../../../lib/auth";
+import { verifyAuth, requirePermission } from "../../../lib/auth";
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -13,14 +13,11 @@ export const dynamic = 'force-dynamic'
 // ✅ GET كل العمليات
 export async function GET(request: Request) {
   try {
-    // ✅ التحقق من تسجيل الدخول
-    const user = await verifyAuth(request)
-    if (!user) {
-      return NextResponse.json(
-        { error: 'يجب تسجيل الدخول أولاً' },
-        { status: 401 }
-      )
-    }
+    /**
+     * جلب جميع عمليات Day Use
+     * @permission canViewDayUse - صلاحية عرض عمليات الاستخدام اليومي
+     */
+    const user = await requirePermission(request, 'canViewDayUse')
 
     const dayUses = await prisma.dayUseInBody.findMany({
       orderBy: { id: "desc" },
@@ -35,14 +32,11 @@ export async function GET(request: Request) {
 // ✅ POST لإضافة يوم استخدام أو InBody + إنشاء إيصال
 export async function POST(request: Request) {
   try {
-    // ✅ التحقق من تسجيل الدخول
-    const user = await verifyAuth(request)
-    if (!user) {
-      return NextResponse.json(
-        { error: 'يجب تسجيل الدخول أولاً' },
-        { status: 401 }
-      )
-    }
+    /**
+     * إضافة عملية Day Use جديدة
+     * @permission canCreateDayUse - صلاحية إنشاء عمليات الاستخدام اليومي
+     */
+    const user = await requirePermission(request, 'canCreateDayUse')
 
     const body = await request.json();
     const { name, phone, serviceType, price, staffName, paymentMethod } = body;

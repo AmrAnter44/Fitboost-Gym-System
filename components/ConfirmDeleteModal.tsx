@@ -53,6 +53,7 @@ export default function ConfirmDeleteModal({
         {/* Footer */}
         <div className="p-4 bg-gray-50 border-t flex gap-3 justify-end">
           <button
+            type="button"
             onClick={onClose}
             disabled={loading}
             className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 transition"
@@ -60,6 +61,7 @@ export default function ConfirmDeleteModal({
             إلغاء
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={loading}
             className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 transition flex items-center gap-2"

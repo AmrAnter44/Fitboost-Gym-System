@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { safeStorage } from '../lib/safeStorage'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -14,16 +15,23 @@ export default function InstallPrompt() {
   const [isStandalone, setIsStandalone] = useState(false)
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+
     // تحقق إذا كان التطبيق مثبت فعلاً
-    const isInStandaloneMode = () =>
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone ||
-      document.referrer.includes('android-app://')
+    const isInStandaloneMode = () => {
+      if (typeof window === 'undefined' || typeof document === 'undefined') return false
+      return (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone ||
+        document.referrer.includes('android-app://')
+      )
+    }
 
     setIsStandalone(isInStandaloneMode())
 
     // تحقق إذا كان iOS
     const checkIsIOS = () => {
+      if (typeof window === 'undefined') return false
       const userAgent = window.navigator.userAgent.toLowerCase()
       return /iphone|ipad|ipod/.test(userAgent)
     }
@@ -35,7 +43,7 @@ export default function InstallPrompt() {
       setDeferredPrompt(e as BeforeInstallPromptEvent)
 
       // تحقق إذا المستخدم رفض التثبيت قبل كده
-      const dismissed = localStorage.getItem('pwa-install-dismissed')
+      const dismissed = safeStorage.getItem('pwa-install-dismissed')
       const dismissedDate = dismissed ? new Date(dismissed) : null
       const daysSinceDismissal = dismissedDate
         ? (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -69,7 +77,7 @@ export default function InstallPrompt() {
       console.log('User accepted the install prompt')
     } else {
       console.log('User dismissed the install prompt')
-      localStorage.setItem('pwa-install-dismissed', new Date().toISOString())
+      safeStorage.setItem('pwa-install-dismissed', new Date().toISOString())
     }
 
     setDeferredPrompt(null)
@@ -80,7 +88,7 @@ export default function InstallPrompt() {
     setShowInstallPrompt(false)
     // لا نحفظ رفض iOS - يظهر في كل مرة من البراوزر
     if (!isIOS) {
-      localStorage.setItem('pwa-install-dismissed', new Date().toISOString())
+      safeStorage.setItem('pwa-install-dismissed', new Date().toISOString())
     }
   }
 

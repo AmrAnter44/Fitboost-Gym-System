@@ -8,14 +8,11 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
-    // ✅ التحقق من تسجيل الدخول
-    const user = await verifyAuth(request)
-    if (!user) {
-      return NextResponse.json(
-        { error: 'يجب تسجيل الدخول أولاً' },
-        { status: 401 }
-      )
-    }
+    /**
+     * جلب المتابعات
+     * @permission canViewFollowUps - صلاحية عرض متابعات الزوار
+     */
+    const user = await requirePermission(request, 'canViewFollowUps')
 
     const { searchParams } = new URL(request.url)
     const visitorId = searchParams.get('visitorId')
@@ -48,14 +45,11 @@ export async function GET(request: Request) {
 // POST - إضافة متابعة جديدة
 export async function POST(request: Request) {
   try {
-    // ✅ التحقق من تسجيل الدخول
-    const user = await verifyAuth(request)
-    if (!user) {
-      return NextResponse.json(
-        { error: 'يجب تسجيل الدخول أولاً' },
-        { status: 401 }
-      )
-    }
+    /**
+     * إضافة متابعة جديدة
+     * @permission canCreateFollowUp - صلاحية إنشاء متابعات جديدة
+     */
+    const user = await requirePermission(request, 'canCreateFollowUp')
 
     const body = await request.json()
     const { visitorId, notes, contacted, nextFollowUpDate, result, salesName, visitorData } = body

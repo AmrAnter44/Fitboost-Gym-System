@@ -81,15 +81,11 @@ export async function GET(request: Request) {
 // PUT - تحديث الإعدادات (للأدمن فقط)
 export async function PUT(request: Request) {
   try {
-    // التحقق من أن المستخدم Admin
-    const user = await requirePermission(request, null)
-
-    if (user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'هذه الصفحة مخصصة للمدراء فقط' },
-        { status: 403 }
-      )
-    }
+    /**
+     * تحديث إعدادات الكومشن
+     * @permission canAccessSettings - صلاحية الوصول للإعدادات العامة
+     */
+    const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
     const { defaultCommissionMethod } = body

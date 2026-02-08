@@ -38,8 +38,11 @@ export async function GET(request: NextRequest) {
 // PUT - تحديث إعدادات الكومشن
 export async function PUT(request: NextRequest) {
   try {
-    // التحقق من صلاحية التعديل
-    await requirePermission(request, 'canEditMembers')
+    /**
+     * تحديث إعدادات الكومشن
+     * @permission canAccessSettings - صلاحية الوصول للإعدادات العامة
+     */
+    await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
     const {

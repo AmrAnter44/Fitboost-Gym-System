@@ -4,6 +4,8 @@
  * Clear all authentication cookies
  */
 export function clearAuthCookies() {
+  if (typeof document === 'undefined') return
+
   // Clear all cookies by setting them to expire
   document.cookie.split(';').forEach(cookie => {
     const cookieName = cookie.split('=')[0].trim()
@@ -28,16 +30,20 @@ export async function handleAuthError(response: Response) {
         console.log('🔄 Redirecting to login after clearing cookies...')
 
         // Small delay to ensure cookies are cleared
-        setTimeout(() => {
-          window.location.href = '/login'
-        }, 100)
+        if (typeof window !== 'undefined') {
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 100)
+        }
       }
     } catch (error) {
       // If JSON parsing fails, just clear cookies anyway for 401
       clearAuthCookies()
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 100)
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 100)
+      }
     }
   }
 }

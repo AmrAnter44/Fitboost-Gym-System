@@ -82,6 +82,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
             <p className="text-sm text-gray-600 mt-1">للعضو: {memberName}</p>
           </div>
           <button
+            type="button"
             onClick={handleClose}
             disabled={submitting}
             className="text-gray-400 hover:text-gray-600 text-3xl leading-none disabled:opacity-50"
@@ -137,6 +138,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
 
           <div className="flex gap-3 pt-2">
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || !guestName.trim() || !guestPhone.trim()}
               className="flex-1 bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold transition"
@@ -144,6 +146,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
               {submitting ? '⏳ جاري التسجيل...' : '✅ تسجيل الدعوة'}
             </button>
             <button
+              type="button"
               onClick={handleClose}
               disabled={submitting}
               className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold disabled:opacity-50"
@@ -256,6 +259,7 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
 
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={submitting}
             className={`flex-1 bg-${color.bg}-600 text-white py-3 rounded-lg hover:bg-${color.hover}-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold transition`}
@@ -263,6 +267,7 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
             {submitting ? '⏳ جاري الخصم...' : '✅ تأكيد الخصم'}
           </button>
           <button
+            type="button"
             onClick={handleClose}
             disabled={submitting}
             className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold disabled:opacity-50"

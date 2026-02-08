@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { safeStorage } from '../lib/safeStorage'
 
 export default function PWAInstaller() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+
     // next-pwa handles service worker registration automatically
     // نحن فقط نتعامل مع install prompt
 
@@ -16,7 +19,7 @@ export default function PWAInstaller() {
       setDeferredPrompt(e)
 
       // التحقق من أن التطبيق غير مثبت بالفعل
-      if (!window.matchMedia('(display-mode: standalone)').matches) {
+      if (typeof window !== 'undefined' && !window.matchMedia('(display-mode: standalone)').matches) {
         setShowInstallPrompt(true)
       }
     }
@@ -49,12 +52,14 @@ export default function PWAInstaller() {
   const handleDismiss = () => {
     setShowInstallPrompt(false)
     // إخفاء لمدة أسبوع
-    localStorage.setItem('pwa-install-dismissed', Date.now().toString())
+    safeStorage.setItem('pwa-install-dismissed', Date.now().toString())
   }
 
   // عدم إظهار الرسالة إذا تم رفضها مؤخراً
   useEffect(() => {
-    const dismissed = localStorage.getItem('pwa-install-dismissed')
+    if (typeof window === 'undefined') return
+
+    const dismissed = safeStorage.getItem('pwa-install-dismissed')
     if (dismissed) {
       const dismissedTime = parseInt(dismissed)
       const weekInMs = 7 * 24 * 60 * 60 * 1000

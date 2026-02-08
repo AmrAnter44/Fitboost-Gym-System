@@ -138,6 +138,7 @@ export default function CameraModal({ isOpen, onClose, onCapture }: CameraModalP
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-xl font-bold">{t('members.form.capturePhoto')}</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100"
           >
@@ -194,6 +195,7 @@ export default function CameraModal({ isOpen, onClose, onCapture }: CameraModalP
           {capturedImage ? (
             <div className="flex gap-3 justify-center">
               <button
+                type="button"
                 onClick={handleRetake}
                 className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center gap-2"
               >
@@ -203,6 +205,7 @@ export default function CameraModal({ isOpen, onClose, onCapture }: CameraModalP
                 {t('members.form.retakePhoto')}
               </button>
               <button
+                type="button"
                 onClick={handleConfirm}
                 className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2"
               >
@@ -215,6 +218,7 @@ export default function CameraModal({ isOpen, onClose, onCapture }: CameraModalP
           ) : (
             <div className="flex justify-center">
               <button
+                type="button"
                 onClick={handleCapture}
                 disabled={!isCameraReady || !!error}
                 className="px-8 py-4 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-medium flex items-center gap-3 text-lg"

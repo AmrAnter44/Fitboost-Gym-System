@@ -13,8 +13,11 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
-    // ✅ التحقق من صلاحية تعديل الأعضاء (لأن دفع المتبقي يعدل بيانات العضو)
-    await requirePermission(request, 'canEditMembers')
+    /**
+     * إنشاء إيصال دفع متبقي
+     * @permission canEditReceipts - صلاحية تعديل وإنشاء الإيصالات
+     */
+    await requirePermission(request, 'canEditReceipts')
     
     const { memberId, amount, paymentMethod, notes } = await request.json()
 
