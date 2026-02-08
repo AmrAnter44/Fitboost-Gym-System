@@ -18,7 +18,6 @@ let uIOhook = null;
 
 let mainWindow;
 let serverProcess;
-let clientPortalProcess; // بوابة العملاء
 
 // ------------------ Barcode Scanner Setup ------------------
 
@@ -176,186 +175,6 @@ function getDatabasePath() {
   }
 
   return dbPath;
-}
-
-// ------------------ تشغيل بوابة العملاء (Development) ------------------
-
-async function startClientPortalDevServer() {
-  try {
-    console.log('🌐 Starting Client Portal Dev Server...');
-
-    // kill port إذا مش فاضي
-    const portAvailable = await checkPort(3002);
-    if (!portAvailable) {
-      console.log('Port 3002 in use, killing...');
-      await killProcessOnPort(3002);
-    }
-
-    // البحث عن مسار client-portal
-    const clientPortalPath = path.join(process.cwd(), 'client-portal');
-
-    if (!fs.existsSync(clientPortalPath)) {
-      console.error('❌ Client Portal not found at:', clientPortalPath);
-      return;
-    }
-
-    console.log('✓ Found client-portal at:', clientPortalPath);
-    console.log('Starting client portal on port 3002 (dev mode)...');
-
-    // تشغيل client portal في dev mode
-    clientPortalProcess = spawn('npm', ['run', 'dev'], {
-      cwd: clientPortalPath,
-      env: {
-        ...process.env,
-        NODE_ENV: 'development',
-        PORT: '3002',
-      },
-      shell: true,
-      stdio: 'pipe'
-    });
-
-    clientPortalProcess.stdout.on('data', data => console.log(`Client Portal: ${data}`));
-    clientPortalProcess.stderr.on('data', data => console.error(`Client Portal ERR: ${data}`));
-    clientPortalProcess.on('error', err => console.error('Client Portal failed:', err));
-    clientPortalProcess.on('exit', code => {
-      if (code !== 0) console.error('Client Portal exited code:', code);
-    });
-
-    console.log('✅ Client Portal dev server started');
-  } catch (error) {
-    console.error('❌ Error starting client portal dev server:', error);
-  }
-}
-
-// ------------------ تشغيل بوابة العملاء (Production) ------------------
-
-async function startClientPortalServer() {
-  try {
-    console.log('🌐 Starting Client Portal Server...');
-
-    // kill port إذا مش فاضي
-    const portAvailable = await checkPort(3002);
-    if (!portAvailable) {
-      console.log('Port 3002 in use, killing...');
-      await killProcessOnPort(3002);
-    }
-
-    // البحث عن مسار client-portal standalone
-    const possiblePaths = [
-      // في حالة Production - داخل app.asar.unpacked
-      path.join(process.resourcesPath, 'app.asar.unpacked', 'client-portal', '.next', 'standalone'),
-      // في حالة Production - داخل app.asar (fallback)
-      path.join(app.getAppPath(), 'client-portal', '.next', 'standalone'),
-      // في حالة development
-      path.join(process.cwd(), 'client-portal', '.next', 'standalone'),
-    ];
-
-    let appPath = null;
-    let serverFile = null;
-
-    // البحث عن server.js في standalone build
-    for (const testPath of possiblePaths) {
-      const serverPath = path.join(testPath, 'server.js');
-      console.log('Checking client-portal server path:', serverPath);
-      if (fs.existsSync(serverPath)) {
-        appPath = testPath;
-        serverFile = serverPath;
-        console.log('✓ Found client-portal server at:', serverPath);
-        break;
-      }
-    }
-
-    // إذا مش لاقيين standalone، نستخدم npx next start
-    if (!serverFile) {
-      console.log('Client portal standalone not found, using npx next start');
-      const clientPortalPath = possiblePaths.find(p => {
-        const parentPath = path.dirname(path.dirname(path.dirname(p)));
-        return fs.existsSync(path.join(parentPath, 'package.json'));
-      });
-
-      if (!clientPortalPath) {
-        console.error('❌ Client Portal not found!');
-        return;
-      }
-
-      const clientPortalRoot = path.dirname(path.dirname(path.dirname(clientPortalPath)));
-
-      clientPortalProcess = spawn('npx', ['next', 'start', '-p', '3002', '-H', '0.0.0.0'], {
-        cwd: clientPortalRoot,
-        env: {
-          ...process.env,
-          NODE_ENV: 'production',
-          PORT: '3002',
-          HOSTNAME: '0.0.0.0',
-        },
-        shell: true,
-        stdio: 'pipe'
-      });
-    } else {
-      // تشغيل standalone server.js with custom server wrapper
-      console.log('Starting client portal standalone server with custom public folder support');
-
-      // التحقق من وجود مجلد public
-      const publicPath = path.join(appPath, 'public');
-      if (fs.existsSync(publicPath)) {
-        console.log('✓ Client portal public folder found at:', publicPath);
-      } else {
-        console.warn('⚠️ Client portal public folder NOT found at:', publicPath);
-      }
-
-      console.log('Client portal app path:', appPath);
-
-      // استخدام custom server wrapper
-      let customServerPath = path.join(__dirname, 'client-portal-server.js');
-
-      // في production، دايماً استخدم unpacked version
-      if (!isDev) {
-        const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
-        customServerPath = path.join(unpackedPath, 'client-portal-server.js');
-        console.log('Looking for custom client portal server in unpacked:', customServerPath);
-
-        if (fs.existsSync(customServerPath)) {
-          console.log('✓ Using custom client portal server with public folder support');
-        } else {
-          console.warn('⚠️ Custom client portal server not found, using default');
-          customServerPath = serverFile; // fallback to default server.js
-        }
-      } else {
-        if (fs.existsSync(customServerPath)) {
-          console.log('✓ Using custom client portal server with public folder support');
-        } else {
-          console.warn('⚠️ Custom client portal server not found, using default');
-          customServerPath = serverFile;
-        }
-      }
-
-      console.log('Custom client portal server path:', customServerPath);
-
-      // Pass standalone directory as argument to custom server
-      clientPortalProcess = spawn('node', [customServerPath, appPath], {
-        cwd: appPath,
-        env: {
-          ...process.env,
-          NODE_ENV: 'production',
-          PORT: '3002',
-          HOSTNAME: '0.0.0.0',
-        },
-        shell: false,
-        stdio: 'pipe'
-      });
-    }
-
-    clientPortalProcess.stdout.on('data', data => console.log(`Client Portal: ${data}`));
-    clientPortalProcess.stderr.on('data', data => console.error(`Client Portal ERR: ${data}`));
-    clientPortalProcess.on('error', err => console.error('Client Portal failed:', err));
-    clientPortalProcess.on('exit', code => {
-      if (code !== 0) console.error('Client Portal exited code:', code);
-    });
-
-    console.log('✅ Client Portal server started');
-  } catch (error) {
-    console.error('❌ Error starting client portal:', error);
-  }
 }
 
 // ------------------ تشغيل Next Production ------------------
@@ -1217,33 +1036,11 @@ ipcMain.handle('save-pdf-to-documents', async (event, { fileName, pdfData }) => 
 
 app.whenReady().then(async () => {
   if (!isDev) {
-    // Production mode: شغل الاتنين
-    // Start reverse proxy FIRST (before Next.js servers)
-    try {
-      const proxyPort = await startReverseProxy();
-      console.log(`✅ Reverse proxy started on port ${proxyPort}`);
-    } catch (error) {
-      console.error('❌ Failed to start reverse proxy:', error.message);
-      console.log('⚠️  Continuing without reverse proxy...');
-    }
-
+    // Production mode
     await startProductionServer(); // النظام الرئيسي - port 4001
-    await startClientPortalServer(); // بوابة العملاء - port 3002
   } else {
-    // Development mode: شغل client-portal تلقائياً
-    console.log('🔧 Development mode: Starting client portal automatically...');
-
-    // Optionally start proxy on dev port (8080)
-    // Uncomment if you want to test proxy in development
-    // try {
-    //   await startReverseProxy(8080);
-    //   console.log('✅ Reverse proxy started on port 8080 (dev mode)');
-    // } catch (error) {
-    //   console.log('⚠️  Reverse proxy not started in dev mode');
-    // }
-
-    await startClientPortalDevServer(); // بوابة العملاء في dev mode
-    console.log('✅ Client portal started on port 3002');
+    // Development mode
+    console.log('🔧 Development mode');
     console.log('💡 Main system should be running on port 4001 (npm run dev)');
   }
   createWindow();
@@ -1253,7 +1050,6 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (serverProcess) serverProcess.kill();
-  if (clientPortalProcess) clientPortalProcess.kill();
   if (process.platform !== 'darwin') app.quit();
 });
 
@@ -1273,11 +1069,9 @@ app.on('before-quit', async () => {
   // Stop reverse proxy
   await stopReverseProxy();
 
-  // Stop Next.js servers
+  // Stop Next.js server
   if (serverProcess) serverProcess.kill();
-  if (clientPortalProcess) clientPortalProcess.kill();
   await killProcessOnPort(4001);
-  await killProcessOnPort(3002);
 
   console.log('✅ All services stopped');
 });
