@@ -48,6 +48,7 @@ export default function AdminUsersPage() {
     role: 'STAFF' as 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH',
     staffId: ''
   })
+  const [newUserPermissions, setNewUserPermissions] = useState<Partial<Permissions>>({})
   
   // State للـ Modal تعديل الصلاحيات
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
@@ -113,7 +114,10 @@ export default function AdminUsersPage() {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUserData)
+        body: JSON.stringify({
+          ...newUserData,
+          permissions: newUserPermissions  // ✅ إرسال الصلاحيات مع البيانات
+        })
       })
 
       const data = await response.json()
@@ -122,6 +126,7 @@ export default function AdminUsersPage() {
         toast.success('تم إضافة المستخدم بنجاح')
         setShowAddModal(false)
         setNewUserData({ name: '', email: '', password: '', role: 'STAFF', staffId: '' })
+        setNewUserPermissions({})  // ✅ إعادة تعيين الصلاحيات
         fetchUsers()
       } else {
         toast.error(data.error || 'فشل إضافة المستخدم')
@@ -440,12 +445,15 @@ export default function AdminUsersPage() {
 
       {/* Modal: إضافة مستخدم */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-6 my-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">➕ إضافة مستخدم جديد</h2>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false)
+                  setNewUserPermissions({})
+                }}
                 className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
               >
                 ×
@@ -544,10 +552,61 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
-              <div className="md:col-span-2 bg-primary-50 border-r-4 border-primary-500 p-4 rounded">
-                <p className="text-sm text-primary-800">
-                  <strong>📌 ملاحظة:</strong> بعد إنشاء المستخدم، يمكنك تعديل صلاحياته التفصيلية من قائمة المستخدمين.
-                </p>
+              {/* قسم الصلاحيات */}
+              <div className="md:col-span-2 border-t-2 pt-4 mt-2">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <span>🔒</span>
+                  <span>الصلاحيات</span>
+                </h3>
+
+                {newUserData.role === 'ADMIN' && (
+                  <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded mb-4">
+                    <p className="text-sm text-yellow-800">
+                      <strong>👑 مدير:</strong> المدراء لديهم صلاحيات كاملة تلقائياً ولا يمكن تقييد صلاحياتهم.
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {Object.entries(PERMISSION_GROUPS).map(([groupKey, group], index) => {
+                    const colors = [
+                      'border-primary-200 bg-primary-50 text-primary-800',
+                      'border-green-200 bg-green-50 text-green-800',
+                      'border-purple-200 bg-purple-50 text-purple-800',
+                      'border-orange-200 bg-orange-50 text-orange-800',
+                      'border-pink-200 bg-pink-50 text-pink-800',
+                      'border-yellow-200 bg-yellow-50 text-yellow-800',
+                      'border-indigo-200 bg-indigo-50 text-indigo-800',
+                      'border-teal-200 bg-teal-50 text-teal-800',
+                      'border-red-200 bg-red-50 text-red-800'
+                    ]
+                    const colorClass = colors[index % colors.length]
+
+                    return (
+                      <div key={groupKey} className={`border-2 rounded-lg p-3 ${colorClass}`}>
+                        <h4 className="font-bold mb-2 flex items-center gap-2 text-sm">
+                          <span>{group.label}</span>
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {group.permissions.map((permission) => (
+                            <label key={permission} className="flex items-center gap-2 cursor-pointer hover:bg-white/50 p-2 rounded transition">
+                              <input
+                                type="checkbox"
+                                checked={newUserPermissions[permission] || false}
+                                onChange={(e) => setNewUserPermissions({ ...newUserPermissions, [permission]: e.target.checked })}
+                                disabled={newUserData.role === 'ADMIN'}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-xs">
+                                {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
 
               <div className="md:col-span-2 flex gap-3">

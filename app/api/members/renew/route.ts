@@ -41,8 +41,8 @@ async function getNextAvailableReceiptNumber(startingNumber: number): Promise<nu
 // POST - تجديد اشتراك عضو
 export async function POST(request: Request) {
   try {
-    // ✅ التحقق من صلاحية تعديل الأعضاء
-    await requirePermission(request, 'canEditMembers')
+    // ✅ التحقق من صلاحية إضافة/إنشاء الأعضاء (تشمل التجديد)
+    await requirePermission(request, 'canCreateMembers')
     
     const body = await request.json()
     const {
@@ -127,20 +127,16 @@ export async function POST(request: Request) {
 
     // إنشاء إيصال التجديد
     try {
-      let counter = await prisma.receiptCounter.findUnique({ where: { id: 1 } })
-      
-      if (!counter) {
-        counter = await prisma.receiptCounter.create({
-          data: { id: 1, current: 1000 }
-        })
-      }
+      // ✅ استخدام upsert مع increment لتجنب race condition
+      const counter = await prisma.receiptCounter.upsert({
+        where: { id: 1 },
+        update: { current: { increment: 1 } },
+        create: { id: 1, current: 1001 },
+      })
 
-      console.log('🧾 رقم الإيصال من العداد:', counter.current)
+      const receiptNumber = counter.current
 
-      // ✅ البحث عن رقم إيصال متاح
-      const availableReceiptNumber = await getNextAvailableReceiptNumber(counter.current)
-      
-      console.log('✅ سيتم استخدام رقم الإيصال:', availableReceiptNumber)
+      console.log('✅ رقم الإيصال:', receiptNumber)
 
       const paidAmount = subscriptionPrice - (remainingAmount || 0)
 
@@ -172,7 +168,7 @@ export async function POST(request: Request) {
 
       const receipt = await prisma.receipt.create({
         data: {
-          receiptNumber: availableReceiptNumber,
+          receiptNumber: receiptNumber,
           type: RECEIPT_TYPES.MEMBERSHIP_RENEWAL,
           amount: paidAmount,
           paymentMethod: finalPaymentMethod,
@@ -230,15 +226,6 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       }
-
-      // ✅ تحديث العداد للرقم بعد الرقم المستخدم
-      const newCounterValue = availableReceiptNumber + 1
-      await prisma.receiptCounter.update({
-        where: { id: 1 },
-        data: { current: newCounterValue }
-      })
-
-      console.log('🔄 تم تحديث عداد الإيصالات إلى:', newCounterValue)
 
       // إضافة نقاط مكافأة على الدفع
       try {

@@ -1863,8 +1863,8 @@ export default function MemberDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        {/* Upgrade Package - Show only for active members with subscription */}
-        {member?.isActive && member?.startDate && (
+        {/* Upgrade Package - Show only for users with canCreateMembers permission and active members with subscription */}
+        {hasPermission('canCreateMembers') && member?.isActive && member?.startDate && (
           <div className="bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-300 rounded-xl shadow-lg p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-orange-200 p-3 rounded-full">
@@ -1885,24 +1885,27 @@ export default function MemberDetailPage() {
           </div>
         )}
 
-        <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-xl shadow-lg p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-green-200 p-3 rounded-full">
-              <span className="text-3xl">🔄</span>
+        {/* Renewal Form - Show only for users with canCreateMembers permission */}
+        {hasPermission('canCreateMembers') && (
+          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-green-200 p-3 rounded-full">
+                <span className="text-3xl">🔄</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-green-800">{t('renewall.title')}</h3>
+                <p className="text-sm text-green-700">{t('renewall.subtitle')}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-green-800">{t('renewall.title')}</h3>
-              <p className="text-sm text-green-700">{t('renewall.subtitle')}</p>
-            </div>
+            <button
+              onClick={() => setShowRenewalForm(true)}
+              disabled={loading}
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg"
+            >
+              🔄 {t('renewall.renewButton')}
+            </button>
           </div>
-          <button
-            onClick={() => setShowRenewalForm(true)}
-            disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg"
-          >
-            🔄 {t('renewall.renewButton')}
-          </button>
-        </div>
+        )}
 
         <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-3 mb-4">

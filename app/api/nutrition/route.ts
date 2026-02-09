@@ -320,51 +320,15 @@ export async function POST(request: Request) {
 
         console.log('✅ تم إنشاء جلسة Nutrition:', nutrition.nutritionNumber)
 
-        // جلب العداد الحالي
-        let counter = await tx.receiptCounter.findUnique({
-          where: { id: 1 }
-        })
-
-        if (!counter) {
-          counter = await tx.receiptCounter.create({
-            data: { id: 1, current: 1000 }
-          })
-        }
-
-        let receiptNumber = counter.current
-        let foundAvailable = false
-        let attempts = 0
-        const maxAttempts = 100 // حد أقصى للمحاولات لتجنب infinite loop
-
-        // البحث عن أول رقم متاح
-        while (!foundAvailable && attempts < maxAttempts) {
-          const existingReceipt = await tx.receipt.findUnique({
-            where: { receiptNumber: receiptNumber }
-          })
-
-          if (!existingReceipt) {
-            // الرقم متاح!
-            foundAvailable = true
-            console.log(`✅ وجدنا رقم إيصال متاح: ${receiptNumber}`)
-          } else {
-            // الرقم مستخدم، جرب الرقم التالي
-            console.log(`⏭️ رقم ${receiptNumber} مستخدم، جرب ${receiptNumber + 1}`)
-            receiptNumber++
-            attempts++
-          }
-        }
-
-        if (!foundAvailable) {
-          throw new Error('فشل في إيجاد رقم إيصال متاح بعد 100 محاولة')
-        }
-
-        // تحديث العداد للرقم التالي
-        await tx.receiptCounter.update({
+        // استخدام upsert لتجنب race condition
+        const counter = await tx.receiptCounter.upsert({
           where: { id: 1 },
-          data: { current: receiptNumber + 1 }
+          update: { current: { increment: 1 } },
+          create: { id: 1, current: 1001 },
         })
 
-        console.log('🔢 استخدام رقم الإيصال:', receiptNumber, '| العداد الجديد:', receiptNumber + 1)
+        const receiptNumber = counter.current
+        console.log('🔢 استخدام رقم الإيصال:', receiptNumber)
 
         // ✅ معالجة وسائل الدفع المتعددة
         let finalPaymentMethod: string
