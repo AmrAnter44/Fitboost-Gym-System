@@ -5,6 +5,7 @@ import { printReceiptFromData } from '../lib/printSystem'
 import Toast from './Toast'
 import { useLanguage } from '../contexts/LanguageContext'
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel } from '../lib/paymentHelpers'
+import { sendWhatsAppMessage } from '../lib/whatsappHelper'
 
 interface ReceiptProps {
   receiptNumber: number
@@ -196,7 +197,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     return message
   }
 
-  const handleSendWhatsApp = () => {
+  const handleSendWhatsApp = async () => {
     if (!phone || phone.trim().length < 10) {
       setToast({ message: 'يرجى إدخال رقم هاتف صحيح', type: 'warning' })
       return
@@ -206,13 +207,16 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
 
     try {
       const receiptMessage = prepareReceiptMessage()
-      const cleanPhone = phone.replace(/\D/g, '')
-      const url = `https://wa.me/20${cleanPhone}?text=${encodeURIComponent(receiptMessage)}`
-      window.open(url, '_blank')
+      // استخدام الـ helper الجديد (مع إضافة 0 لأن الـ helper سيحولها لـ 2)
+      const success = await sendWhatsAppMessage('0' + phone.replace(/\D/g, ''), receiptMessage, true)
 
-      setToast({ message: 'سيتم فتح واتساب الآن', type: 'success' })
-      setShowWhatsAppModal(false)
-      setPhone('')
+      if (success) {
+        setToast({ message: 'سيتم فتح واتساب الآن', type: 'success' })
+        setShowWhatsAppModal(false)
+        setPhone('')
+      } else {
+        setToast({ message: 'فشل فتح واتساب', type: 'error' })
+      }
     } catch (err) {
       console.error(err)
       setToast({ message: 'حدث خطأ أثناء الإرسال', type: 'error' })

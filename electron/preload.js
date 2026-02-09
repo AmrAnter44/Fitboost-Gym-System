@@ -131,5 +131,11 @@ contextBridge.exposeInMainWorld('electron', {
     console.log('📄 PDF path:', pdfPath);
     console.log('📞 Phone:', phoneNumber);
     return ipcRenderer.invoke('open-whatsapp-with-pdf', { message, pdfPath, phoneNumber });
+  },
+
+  // Open external URL (WhatsApp, browsers, etc.)
+  openExternal: (url) => {
+    console.log('🌐 preload: openExternal called with URL:', url);
+    return ipcRenderer.invoke('open-external-url', url);
   }
 });
