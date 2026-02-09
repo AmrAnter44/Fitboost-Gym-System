@@ -40,13 +40,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Electron installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: electron-installer
-          path: dist/*.exe
-          retention-days: 1
-        if: always()
+      # ⚠️ تم تعطيل Artifacts بسبب امتلاء Storage Quota
+      # للحصول على ملف الـ Setup:
+      # 1. اعمل Git Tag: git tag v1.x.x && git push origin v1.x.x
+      # 2. الملف سيُرفع تلقائياً في Releases
+      #
+      # - name: Upload Electron installer
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: electron-installer
+      #     path: dist/*.exe
+      #     retention-days: 1
+      #   if: always()
+
+      # 📊 عرض معلومات الملف المبني
+      - name: Show build info
+        if: success()
+        run: |
+          echo "✅ Build completed successfully!"
+          echo ""
+          echo "📦 Built files:"
+          dir dist\*.exe
+          echo ""
+          echo "ℹ️ To get the setup file:"
+          echo "   1. Create a release: git tag v1.x.x && git push origin v1.x.x"
+          echo "   2. Download from: https://github.com/AmrAnter44/sys-Xgym/releases"
 
       - name: Create Release (if tag)
         if: startsWith(github.ref, 'refs/tags/v')
