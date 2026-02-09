@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import QRCode from 'qrcode'
 import { useLanguage } from '../contexts/LanguageContext'
+import { openWhatsApp } from '../lib/whatsappHelper'
 
 interface LinkModalProps {
   onClose: () => void
@@ -89,22 +90,11 @@ export default function LinkModal({ onClose }: LinkModalProps) {
   }
 
   const shareOnWhatsApp = async () => {
-    const message = encodeURIComponent(`🏋️ رابط نظام إدارة الصالة الرياضية:\n\n${url}\n\nافتح الرابط من أي جهاز على نفس الشبكة للدخول للنظام`)
-    const whatsappUrl = `https://wa.me/?text=${message}`
+    const message = `🏋️ رابط نظام إدارة الصالة الرياضية:\n\n${url}\n\nافتح الرابط من أي جهاز على نفس الشبكة للدخول للنظام`
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
 
-    // ✅ في Electron، استخدم نافذة منفصلة تغلق تلقائياً بعد 10 ثواني
-    if (typeof window !== 'undefined' && (window as any).electron?.openWhatsAppWindow) {
-      try {
-        await (window as any).electron.openWhatsAppWindow(whatsappUrl)
-      } catch (error) {
-        console.error('Failed to open WhatsApp window:', error)
-        // Fallback للمتصفح العادي
-        window.open(whatsappUrl, '_blank')
-      }
-    } else {
-      // في المتصفح العادي، افتح في تاب جديد
-      window.open(whatsappUrl, '_blank')
-    }
+    // استخدام الـ helper الجديد
+    await openWhatsApp(whatsappUrl)
   }
 
   return (

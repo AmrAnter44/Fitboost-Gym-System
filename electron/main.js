@@ -929,6 +929,20 @@ ipcMain.handle('open-whatsapp-with-pdf', async (event, { message, pdfPath, phone
   }
 });
 
+// فتح رابط خارجي (WhatsApp, متصفح, إلخ)
+ipcMain.handle('open-external-url', async (event, url) => {
+  try {
+    console.log('🌐 Opening external URL:', url);
+    const { shell } = require('electron');
+    await shell.openExternal(url);
+    console.log('✅ URL opened successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error opening external URL:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // حفظ PDF في مجلد Documents
 ipcMain.handle('save-pdf-to-documents', async (event, { fileName, pdfData }) => {
   try {

@@ -223,10 +223,9 @@ export async function sharePDFWhatsApp(
     }
 
     // في المتصفح، فتح WhatsApp Web مع رسالة
-    const message = encodeURIComponent(
-      `إيصال رقم ${receiptNumber}\n\nتم إرسال الإيصال كملف PDF. يرجى تحميله من الرابط أدناه.`
-    )
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank')
+    const { sendWhatsAppMessage } = await import('./whatsappHelper')
+    const message = `إيصال رقم ${receiptNumber}\n\nتم إرسال الإيصال كملف PDF. يرجى تحميله من الرابط أدناه.`
+    await sendWhatsAppMessage(phoneNumber, message, false)
 
     // تحميل PDF بشكل منفصل (لأن WhatsApp Web لا يدعم إرفاق ملفات مباشرة)
     const url = URL.createObjectURL(blob)

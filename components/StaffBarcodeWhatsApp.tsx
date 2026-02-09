@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Toast from './Toast'
+import { sendWhatsAppMessage } from '../lib/whatsappHelper'
 
 interface StaffBarcodeWhatsAppProps {
   staffCode: string
@@ -98,11 +99,15 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
       const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
 
       const message = `Barcode الموظف #${displayCode} (${staffName})${websiteSection}`
-      const phone = staffPhone.replace(/\D/g, '') // تنظيف رقم الهاتف
-      const url = `https://wa.me/2${phone}?text=${encodeURIComponent(message)}`
-      window.open(url, '_blank')
 
-      setToast({ message: 'تم تحميل صورة الباركود!\nسيتم فتح واتساب الآن، قم بإرفاق الصورة المحملة مع الرسالة.', type: 'success' })
+      // استخدام الـ helper الجديد
+      const success = await sendWhatsAppMessage(staffPhone, message, true)
+
+      if (success) {
+        setToast({ message: 'تم تحميل صورة الباركود!\nسيتم فتح واتساب الآن، قم بإرفاق الصورة المحملة مع الرسالة.', type: 'success' })
+      } else {
+        setToast({ message: 'تم تحميل الباركود لكن فشل فتح واتساب', type: 'warning' })
+      }
     }, 500)
   }
 

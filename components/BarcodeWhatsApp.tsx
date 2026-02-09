@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import Toast from './Toast'
+import { sendWhatsAppMessage } from '../lib/whatsappHelper'
 
 interface BarcodeWhatsAppProps {
   memberNumber: number
@@ -93,11 +94,15 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
       const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
 
       const message = baseMessage + termsAndConditions + websiteSection
-      const phone = memberPhone.replace(/\D/g, '') // تنظيف رقم الهاتف
-      const url = `https://wa.me/2${phone}?text=${encodeURIComponent(message)}`
-      window.open(url, '_blank')
 
-      setToast({ message: t('barcode.downloadedOpenWhatsApp'), type: 'success' })
+      // استخدام الـ helper الجديد
+      const success = await sendWhatsAppMessage(memberPhone, message, true)
+
+      if (success) {
+        setToast({ message: t('barcode.downloadedOpenWhatsApp'), type: 'success' })
+      } else {
+        setToast({ message: 'فشل فتح واتساب', type: 'error' })
+      }
     }, 500)
   }
 

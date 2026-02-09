@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Toast from './Toast';
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel } from '../lib/paymentHelpers';
+import { sendWhatsAppMessage } from '../lib/whatsappHelper';
 
 interface ReceiptWhatsAppProps {
   receipt: {
@@ -189,7 +190,7 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
     return message;
   };
 
-  const handleSendWhatsApp = () => {
+  const handleSendWhatsApp = async () => {
     if (!phone || phone.trim().length < 10) {
       setToast({ message: 'يرجى إدخال رقم هاتف صحيح', type: 'warning' });
       return;
@@ -209,15 +210,16 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
     });
 
     try {
-      // تنظيف رقم الهاتف من أي أحرف غير رقمية
-      const cleanPhone = phone.replace(/\D/g, '');
-      // فتح واتساب مباشرة
-      const url = `https://wa.me/2${cleanPhone}?text=${encodeURIComponent(receiptMessage)}`;
-      window.open(url, '_blank');
+      // استخدام الـ helper الجديد لفتح WhatsApp
+      const success = await sendWhatsAppMessage(phone, receiptMessage, true);
 
-      setToast({ message: 'سيتم فتح واتساب الآن', type: 'success' });
-      setShowSendModal(false);
-      setPhone('');
+      if (success) {
+        setToast({ message: 'سيتم فتح واتساب الآن', type: 'success' });
+        setShowSendModal(false);
+        setPhone('');
+      } else {
+        setToast({ message: 'فشل فتح واتساب', type: 'error' });
+      }
     } catch (err) {
       console.error(err);
       setToast({ message: 'حدث خطأ أثناء الإرسال', type: 'error' });
