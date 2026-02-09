@@ -84,7 +84,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
 
     handleDownloadBarcode()
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const baseMessage = t('barcode.whatsappMessage', { memberNumber: memberNumber.toString(), memberName })
 
       // إضافة الشروط والأحكام

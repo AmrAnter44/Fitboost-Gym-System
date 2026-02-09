@@ -90,7 +90,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
 
     handleDownloadBarcode()
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const displayCode = staffCode.toLowerCase().startsWith('s')
         ? staffCode.toUpperCase()
         : `S${staffCode}`
