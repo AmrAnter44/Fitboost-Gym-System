@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     await requireAdmin(request)
     
     const body = await request.json()
-    const { name, email, password, role, staffId } = body
+    const { name, email, password, role, staffId, permissions } = body
 
     // التحقق من البيانات
     if (!name || !email || !password || !role) {
@@ -128,30 +128,35 @@ export async function POST(request: Request) {
       }
     })
     
-    // إنشاء صلاحيات افتراضية
+    // إنشاء صلاحيات (مخصصة أو افتراضية)
+    const defaultPermissions = {
+      // صلاحيات افتراضية حسب الـ role
+      canViewMembers: role === 'MANAGER' || role === 'STAFF',
+      canCreateMembers: role === 'MANAGER',
+      canEditMembers: role === 'MANAGER',
+      canDeleteMembers: false,
+      canViewPT: role === 'MANAGER' || role === 'STAFF' || role === 'COACH',
+      canCreatePT: role === 'MANAGER',
+      canEditPT: role === 'MANAGER',
+      canDeletePT: false,
+      canRegisterPTAttendance: role === 'COACH',  // ✅ الكوتش يسجل الحضور فقط
+      canViewStaff: role === 'MANAGER',
+      canCreateStaff: false,
+      canEditStaff: false,
+      canDeleteStaff: false,
+      canViewReceipts: role === 'MANAGER' || role === 'STAFF',
+      canEditReceipts: role === 'MANAGER',
+      canDeleteReceipts: false,
+      canViewReports: role === 'MANAGER',
+      canViewFinancials: role === 'MANAGER',
+      canAccessSettings: false
+    }
+
+    // ✅ استخدام الصلاحيات المخصصة إذا تم إرسالها، وإلا استخدام الافتراضية
     await prisma.permission.create({
       data: {
         userId: user.id,
-        // صلاحيات افتراضية حسب الـ role
-        canViewMembers: role === 'MANAGER' || role === 'STAFF',
-        canCreateMembers: role === 'MANAGER',
-        canEditMembers: role === 'MANAGER',
-        canDeleteMembers: false,
-        canViewPT: role === 'MANAGER' || role === 'STAFF' || role === 'COACH',
-        canCreatePT: role === 'MANAGER',
-        canEditPT: role === 'MANAGER',
-        canDeletePT: false,
-        canRegisterPTAttendance: role === 'COACH',  // ✅ الكوتش يسجل الحضور فقط
-        canViewStaff: role === 'MANAGER',
-        canCreateStaff: false,
-        canEditStaff: false,
-        canDeleteStaff: false,
-        canViewReceipts: role === 'MANAGER' || role === 'STAFF',
-        canEditReceipts: role === 'MANAGER',
-        canDeleteReceipts: false,
-        canViewReports: role === 'MANAGER',
-        canViewFinancials: role === 'MANAGER',
-        canAccessSettings: false
+        ...(permissions && Object.keys(permissions).length > 0 ? permissions : defaultPermissions)
       }
     })
     

@@ -49,8 +49,8 @@ async function getNextAvailableReceiptNumber(startingNumber: number): Promise<nu
 // POST - ترقية باكدج العضو
 export async function POST(request: Request) {
   try {
-    // التحقق من صلاحية تعديل الأعضاء
-    await requirePermission(request, 'canEditMembers')
+    // التحقق من صلاحية إضافة/إنشاء الأعضاء (تشمل التجديد والترقية)
+    await requirePermission(request, 'canCreateMembers')
 
     const body = await request.json()
     const {
@@ -178,15 +178,16 @@ export async function POST(request: Request) {
       newExpiry: formatDateYMD(updatedMember.expiryDate)
     })
 
-    // 12. الحصول على رقم الإيصال التالي
-    const counter = await prisma.receiptCounter.findFirst()
-    if (!counter) {
-      return NextResponse.json({
-        error: 'خطأ في النظام: عداد الإيصالات غير موجود'
-      }, { status: 500 })
-    }
+    // 12. الحصول على رقم الإيصال التالي (atomic operation)
+    const counter = await prisma.receiptCounter.upsert({
+      where: { id: 1 },
+      update: { current: { increment: 1 } },
+      create: { id: 1, current: 1001 },
+    })
 
-    const receiptNumber = await getNextAvailableReceiptNumber(counter.current)
+    const receiptNumber = counter.current
+
+    console.log('✅ رقم الإيصال:', receiptNumber)
 
     // 13. إنشاء تفاصيل الإيصال
     const itemDetails = {
@@ -247,12 +248,6 @@ export async function POST(request: Request) {
     })
 
     console.log('🧾 تم إنشاء إيصال الترقية:', receiptNumber)
-
-    // 15. تحديث عداد الإيصالات
-    await prisma.receiptCounter.update({
-      where: { id: counter.id },
-      data: { current: receiptNumber + 1 }
-    })
 
     // إضافة نقاط مكافأة على الدفع
     try {

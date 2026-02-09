@@ -112,12 +112,21 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
   // فحص أهلية الترقية لعرض معين
   const isUpgradeEligible = (offer: Offer): boolean => {
     if (!member.startDate || !member.expiryDate) return false
-    if (offer.upgradeEligibilityDays === null || offer.upgradeEligibilityDays === undefined) return false
 
-    const daysSinceStart = calculateDaysBetween(member.startDate, new Date())
-    if (daysSinceStart > offer.upgradeEligibilityDays) return false
+    // حساب مدة الباقة الحالية
+    const currentDuration = calculateDaysBetween(member.startDate, member.expiryDate)
 
+    // ✅ عرض فقط الباقات الأطول من الباقة الحالية
+    if (offer.duration <= currentDuration) return false
+
+    // ✅ التحقق من أن السعر أكبر (اختياري - يمكن إزالته إذا كنت تريد عرض كل الباقات الأطول)
     if (offer.price <= member.subscriptionPrice) return false
+
+    // فحص upgradeEligibilityDays إذا كان محدد
+    if (offer.upgradeEligibilityDays !== null && offer.upgradeEligibilityDays !== undefined) {
+      const daysSinceStart = calculateDaysBetween(member.startDate, new Date())
+      if (daysSinceStart > offer.upgradeEligibilityDays) return false
+    }
 
     return true
   }

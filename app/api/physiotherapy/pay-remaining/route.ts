@@ -13,8 +13,8 @@ export const dynamic = 'force-dynamic'
 // POST - دفع المبلغ المتبقي
 export async function POST(request: Request) {
   try {
-    // ✅ التحقق من صلاحية التعديل
-    await requirePermission(request, 'canEditPhysiotherapy')
+    // ✅ التحقق من صلاحية إنشاء Physiotherapy (تشمل دفع الباقي)
+    await requirePermission(request, 'canCreatePhysiotherapy')
 
     const body = await request.json()
     const {
@@ -70,14 +70,6 @@ export async function POST(request: Request) {
 
     // إنشاء إيصال للدفعة
     try {
-      let counter = await prisma.receiptCounter.findUnique({ where: { id: 1 } })
-
-      if (!counter) {
-        counter = await prisma.receiptCounter.create({
-          data: { id: 1, current: 1000 }
-        })
-      }
-
       // 🔒 License validation check
       await requireValidLicense()
 
@@ -95,6 +87,13 @@ export async function POST(request: Request) {
       } else {
         finalPaymentMethod = paymentMethod || 'cash'
       }
+
+      // ✅ استخدام upsert مع increment لتجنب race condition
+      const counter = await prisma.receiptCounter.upsert({
+        where: { id: 1 },
+        update: { current: { increment: 1 } },
+        create: { id: 1, current: 1001 },
+      })
 
       const receipt = await prisma.receipt.create({
         data: {
@@ -117,11 +116,6 @@ export async function POST(request: Request) {
       })
 
       console.log('✅ تم إنشاء إيصال الدفع:', receipt.receiptNumber)
-
-      await prisma.receiptCounter.update({
-        where: { id: 1 },
-        data: { current: counter.current + 1 }
-      })
 
       // ✅ إنشاء سجل عمولة لأخصائي العلاج الطبيعي
       try {

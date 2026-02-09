@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requireValidLicense } from '../../../../lib/license'
+import { requirePermission } from '../../../../lib/auth'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -15,6 +16,9 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
+    // ✅ التحقق من صلاحية إنشاء GroupClass (تشمل التجديد)
+    await requirePermission(request, 'canCreateGroupClass')
+
     const body = await request.json()
     const {
       classNumber,
@@ -101,51 +105,15 @@ export async function POST(request: Request) {
 
       // استخدام Transaction مع البحث عن أول رقم متاح
       const result = await prisma.$transaction(async (tx) => {
-        // جلب العداد الحالي
-        let counter = await tx.receiptCounter.findUnique({
-          where: { id: 1 }
-        })
-
-        if (!counter) {
-          counter = await tx.receiptCounter.create({
-            data: { id: 1, current: 1000 }
-          })
-        }
-
-        let receiptNumber = counter.current
-        let foundAvailable = false
-        let attempts = 0
-        const maxAttempts = 100 // حد أقصى للمحاولات لتجنب infinite loop
-
-        // البحث عن أول رقم متاح
-        while (!foundAvailable && attempts < maxAttempts) {
-          const existingReceipt = await tx.receipt.findUnique({
-            where: { receiptNumber: receiptNumber }
-          })
-
-          if (!existingReceipt) {
-            // الرقم متاح!
-            foundAvailable = true
-            console.log(`✅ وجدنا رقم إيصال متاح: ${receiptNumber}`)
-          } else {
-            // الرقم مستخدم، جرب الرقم التالي
-            console.log(`⏭️ رقم ${receiptNumber} مستخدم، جرب ${receiptNumber + 1}`)
-            receiptNumber++
-            attempts++
-          }
-        }
-
-        if (!foundAvailable) {
-          throw new Error('فشل في إيجاد رقم إيصال متاح بعد 100 محاولة')
-        }
-
-        // تحديث العداد للرقم التالي
-        await tx.receiptCounter.update({
+        // استخدام upsert لتجنب race condition
+        const counter = await tx.receiptCounter.upsert({
           where: { id: 1 },
-          data: { current: receiptNumber + 1 }
+          update: { current: { increment: 1 } },
+          create: { id: 1, current: 1001 },
         })
 
-        console.log('🔢 استخدام رقم الإيصال:', receiptNumber, '| العداد الجديد:', receiptNumber + 1)
+        const receiptNumber = counter.current
+        console.log('🔢 استخدام رقم الإيصال:', receiptNumber)
 
         // ✅ معالجة وسائل الدفع المتعددة
         let finalPaymentMethod: string

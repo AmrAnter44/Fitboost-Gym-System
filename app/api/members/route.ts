@@ -375,20 +375,16 @@ export async function POST(request: Request) {
     if (!skipReceipt) {
       // ✅ إنشاء الإيصال فقط إذا لم يتم تفعيل خيار عدم الإنشاء
       try {
-      let counter = await prisma.receiptCounter.findUnique({ where: { id: 1 } })
-      
-      if (!counter) {
-        console.log('📊 إنشاء عداد الإيصالات لأول مرة')
-        counter = await prisma.receiptCounter.create({
-          data: { id: 1, current: 1000 }
-        })
-      }
+      // ✅ استخدام upsert مع increment لتجنب race condition
+      const counter = await prisma.receiptCounter.upsert({
+        where: { id: 1 },
+        update: { current: { increment: 1 } },
+        create: { id: 1, current: 1001 },
+      })
 
-      console.log('🧾 رقم الإيصال من العداد:', counter.current)
+      const receiptNumber = counter.current
 
-      const availableReceiptNumber = await getNextAvailableReceiptNumber(counter.current)
-      
-      console.log('✅ سيتم استخدام رقم الإيصال:', availableReceiptNumber)
+      console.log('✅ رقم الإيصال:', receiptNumber)
 
       const paidAmount = cleanSubscriptionPrice - cleanRemainingAmount
 
@@ -418,7 +414,7 @@ export async function POST(request: Request) {
       }
 
       let receiptData: any = {
-        receiptNumber: availableReceiptNumber,
+        receiptNumber: receiptNumber,
         type: 'Member',
         amount: paidAmount,
         paymentMethod: finalPaymentMethod,
@@ -474,14 +470,6 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       }
-
-      const newCounterValue = availableReceiptNumber + 1
-      await prisma.receiptCounter.update({
-        where: { id: 1 },
-        data: { current: newCounterValue }
-      })
-
-      console.log('🔄 تم تحديث عداد الإيصالات إلى:', newCounterValue)
 
       receiptData = {
         receiptNumber: receipt.receiptNumber,
