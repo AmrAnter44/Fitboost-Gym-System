@@ -935,67 +935,12 @@ ipcMain.handle('open-external-url', async (event, url) => {
     console.log('🌐 Opening external URL:', url);
     const { shell } = require('electron');
 
-    // إذا كان رابط WhatsApp، حاول فتح التطبيق أولاً
-    if (url.includes('wa.me') || url.includes('whatsapp.com')) {
-      console.log('📱 Detected WhatsApp URL, checking if WhatsApp Desktop is installed...');
+    // فتح الرابط مباشرة في المتصفح الافتراضي
+    // المتصفح نفسه سيتعامل مع فتح WhatsApp Desktop أو WhatsApp Web
+    await shell.openExternal(url);
+    console.log('✅ URL opened successfully');
 
-      // التحقق من وجود WhatsApp Desktop
-      const whatsappPaths = [
-        path.join(process.env.LOCALAPPDATA || '', 'WhatsApp', 'WhatsApp.exe'),
-        path.join(process.env.PROGRAMFILES || '', 'WhatsApp', 'WhatsApp.exe'),
-        path.join(process.env['PROGRAMFILES(X86)'] || '', 'WhatsApp', 'WhatsApp.exe')
-      ];
-
-      let whatsappInstalled = false;
-      for (const whatsappPath of whatsappPaths) {
-        if (fs.existsSync(whatsappPath)) {
-          console.log('✅ WhatsApp Desktop found at:', whatsappPath);
-          whatsappInstalled = true;
-          break;
-        }
-      }
-
-      // استخراج رقم الهاتف والرسالة
-      let phoneNumber = '';
-      let message = '';
-
-      try {
-        const urlObj = new URL(url);
-        phoneNumber = urlObj.pathname.replace(/\//g, '');
-        message = urlObj.searchParams.get('text') || '';
-
-        console.log('📞 Phone:', phoneNumber);
-        console.log('💬 Message length:', message.length);
-
-        // إذا WhatsApp Desktop مثبت، افتحه باستخدام protocol
-        if (whatsappInstalled) {
-          const whatsappProtocol = phoneNumber
-            ? `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`
-            : `whatsapp://send?text=${encodeURIComponent(message)}`;
-
-          console.log('🔗 Opening WhatsApp Desktop with protocol');
-          await shell.openExternal(whatsappProtocol);
-          console.log('✅ WhatsApp Desktop opened successfully');
-          return { success: true, method: 'whatsapp-desktop' };
-        } else {
-          // إذا WhatsApp Desktop مش مثبت، افتح WhatsApp Web في المتصفح
-          console.log('⚠️ WhatsApp Desktop not installed, opening WhatsApp Web in browser');
-          await shell.openExternal(url);
-          console.log('✅ WhatsApp Web opened in browser');
-          return { success: true, method: 'whatsapp-web' };
-        }
-      } catch (parseError) {
-        console.error('❌ Error parsing WhatsApp URL:', parseError);
-        // Fallback: افتح الرابط مباشرة
-        await shell.openExternal(url);
-        return { success: true, method: 'browser-fallback' };
-      }
-    } else {
-      // للروابط العادية (غير WhatsApp)
-      await shell.openExternal(url);
-      console.log('✅ URL opened successfully');
-      return { success: true, method: 'default' };
-    }
+    return { success: true };
   } catch (error) {
     console.error('❌ Error opening external URL:', error);
     return { success: false, error: error.message };
