@@ -305,6 +305,12 @@ export default function SearchPage() {
         console.log('✅ تم تسجيل دخول العضو:', data.message)
       } else if (data.alreadyCheckedIn) {
         console.log('ℹ️ العضو مسجل دخول بالفعل')
+        playWarningSound()
+        setAttendanceMessage({
+          type: 'error',
+          text: data.error || 'تم تسجيل الحضور مسبقاً اليوم ✅'
+        })
+        setTimeout(() => setAttendanceMessage(null), 4000)
       }
     } catch (error) {
       console.error('Error checking in member:', error)

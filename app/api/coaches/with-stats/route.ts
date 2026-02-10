@@ -48,11 +48,18 @@ export async function GET(request: Request) {
       },
     })
 
-    // فلترة الموظفين الذين position تحتوي على "مدرب" أو "coach"
+    // فلترة الموظفين الذين position تحتوي على "مدرب" أو "coach" أو "تغذية" أو "علاج"
     const coaches = allStaff.filter(staff => {
       if (!staff.position) return false
       const position = staff.position.toLowerCase()
-      return position.includes('مدرب') || position.includes('coach') || position.includes('كوتش')
+      return position.includes('مدرب') ||
+             position.includes('coach') ||
+             position.includes('كوتش') ||
+             position.includes('تغذية') ||
+             position.includes('nutrition') ||
+             position.includes('علاج') ||
+             position.includes('physiotherapy') ||
+             position.includes('physio')
     })
 
     // تنسيق البيانات للإرجاع
