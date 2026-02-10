@@ -934,9 +934,54 @@ ipcMain.handle('open-external-url', async (event, url) => {
   try {
     console.log('🌐 Opening external URL:', url);
     const { shell } = require('electron');
-    await shell.openExternal(url);
-    console.log('✅ URL opened successfully');
-    return { success: true };
+
+    // إذا كان رابط WhatsApp، حاول فتح التطبيق أولاً
+    if (url.includes('wa.me') || url.includes('whatsapp.com')) {
+      console.log('📱 Detected WhatsApp URL, trying to open WhatsApp Desktop...');
+
+      // استخراج رقم الهاتف والرسالة
+      let phoneNumber = '';
+      let message = '';
+
+      try {
+        const urlObj = new URL(url);
+        phoneNumber = urlObj.pathname.replace(/\//g, '');
+        message = urlObj.searchParams.get('text') || '';
+
+        console.log('📞 Phone:', phoneNumber);
+        console.log('💬 Message:', message ? message.substring(0, 50) + '...' : 'none');
+
+        // محاولة فتح WhatsApp Desktop باستخدام whatsapp:// protocol
+        const whatsappProtocol = phoneNumber
+          ? `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`
+          : `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+        console.log('🔗 Trying WhatsApp protocol:', whatsappProtocol);
+
+        // محاولة فتح whatsapp:// protocol
+        try {
+          await shell.openExternal(whatsappProtocol);
+          console.log('✅ WhatsApp Desktop opened successfully');
+          return { success: true, method: 'whatsapp-desktop' };
+        } catch (protocolError) {
+          console.log('⚠️ WhatsApp Desktop not available, falling back to browser...');
+          // إذا فشل whatsapp:// protocol، استخدم https://
+          await shell.openExternal(url);
+          console.log('✅ Opened in default browser');
+          return { success: true, method: 'browser' };
+        }
+      } catch (parseError) {
+        console.error('❌ Error parsing WhatsApp URL:', parseError);
+        // Fallback: افتح الرابط مباشرة
+        await shell.openExternal(url);
+        return { success: true, method: 'browser-fallback' };
+      }
+    } else {
+      // للروابط العادية (غير WhatsApp)
+      await shell.openExternal(url);
+      console.log('✅ URL opened successfully');
+      return { success: true, method: 'default' };
+    }
   } catch (error) {
     console.error('❌ Error opening external URL:', error);
     return { success: false, error: error.message };
