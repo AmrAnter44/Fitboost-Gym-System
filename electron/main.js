@@ -375,6 +375,18 @@ function createWindow() {
     show: false
   });
 
+  // ✅ منع فتح نوافذ جديدة في Electron - فتح كل الروابط في المتصفح الخارجي
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    console.log('🔗 Window open requested for:', url);
+
+    // فتح الرابط في المتصفح الخارجي بدلاً من نافذة Electron جديدة
+    require('electron').shell.openExternal(url);
+    console.log('✅ Opened in external browser');
+
+    // منع فتح نافذة Electron جديدة
+    return { action: 'deny' };
+  });
+
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     mainWindow.focus();
