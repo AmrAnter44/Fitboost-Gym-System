@@ -44,8 +44,36 @@ export async function POST(request: Request) {
       )
     }
 
-    // إنشاء تسجيل دخول جديد
+    // التحقق من أن العضو لم يسجل حضوره اليوم
     const now = new Date()
+    const startOfToday = new Date(now)
+    startOfToday.setHours(0, 0, 0, 0)
+
+    const endOfToday = new Date(now)
+    endOfToday.setHours(23, 59, 59, 999)
+
+    const todayCheckIn = await prisma.memberCheckIn.findFirst({
+      where: {
+        memberId,
+        checkInTime: {
+          gte: startOfToday,
+          lte: endOfToday,
+        },
+      },
+    })
+
+    if (todayCheckIn) {
+      return NextResponse.json(
+        {
+          error: 'تم تسجيل الحضور مسبقاً اليوم ✅',
+          alreadyCheckedIn: true,
+          checkInTime: todayCheckIn.checkInTime,
+        },
+        { status: 400 }
+      )
+    }
+
+    // إنشاء تسجيل دخول جديد
 
     console.log('📍 تسجيل حضور جديد:', {
       memberId,

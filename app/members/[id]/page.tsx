@@ -1314,6 +1314,25 @@ export default function MemberDetailPage() {
 
 
       <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-2xl shadow-2xl p-8 mb-6">
+        {/* صورة العضو */}
+        <div className="flex justify-center mb-6">
+          <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-white">
+            {member.profileImage ? (
+              <img
+                src={member.profileImage}
+                alt={member.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100">
+                <svg className="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className={member.coach ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "grid grid-cols-1 md:grid-cols-3 gap-6"}>
           <div>
             <div className="flex items-center gap-2 mb-2">
