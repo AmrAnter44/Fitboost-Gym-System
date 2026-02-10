@@ -11,11 +11,46 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
+    // Get member to access memberNumber and phone for service receipt lookup
+    const member = await prisma.member.findUnique({
+      where: { id: memberId },
+      select: { memberNumber: true, phone: true },
+    });
+
+    if (!member) {
+      return NextResponse.json(
+        { error: 'العضو غير موجود' },
+        { status: 404 }
+      );
+    }
+
+    // Build query to include all receipts:
+    // 1. Direct receipts (memberId matches)
+    // 2. Service receipts linked via memberNumber (Nutrition, Physiotherapy, GroupClass)
+    // 3. PT receipts linked via phone (PT doesn't have memberNumber)
+    const orConditions: any[] = [
+      { memberId },
+      { pt: { phone: member.phone } },
+    ];
+
+    // Add service receipts if memberNumber exists
+    if (member.memberNumber) {
+      orConditions.push(
+        { nutrition: { memberNumber: member.memberNumber } },
+        { physiotherapy: { memberNumber: member.memberNumber } },
+        { groupClass: { memberNumber: member.memberNumber } }
+      );
+    }
+
+    const whereClause = {
+      AND: [
+        { isCancelled: false },
+        { OR: orConditions },
+      ],
+    };
+
     const receipts = await prisma.receipt.findMany({
-      where: {
-        memberId,
-        isCancelled: false,
-      },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
@@ -32,17 +67,11 @@ export async function GET(
     });
 
     const totalReceipts = await prisma.receipt.count({
-      where: {
-        memberId,
-        isCancelled: false,
-      },
+      where: whereClause,
     });
 
     const totalPaidResult = await prisma.receipt.aggregate({
-      where: {
-        memberId,
-        isCancelled: false,
-      },
+      where: whereClause,
       _sum: {
         amount: true,
       },

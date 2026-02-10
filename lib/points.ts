@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { sendPushNotification, NotificationTemplates } from './pushNotifications'
 
 export async function addPoints(
   memberId: string,
@@ -29,6 +30,24 @@ export async function addPoints(
         description: description || `حصل على ${points} نقطة من ${action === 'check-in' ? 'تسجيل الحضور' : action === 'invitation' ? 'استخدام دعوة' : 'الدفع'}`
       }
     })
+
+    // 🔔 Send push notification to member
+    try {
+      const member = await db.member.findUnique({
+        where: { id: memberId },
+        select: { pushToken: true, name: true }
+      })
+
+      if (member?.pushToken) {
+        const reason = action === 'check-in' ? 'تسجيل الحضور' :
+                      action === 'invitation' ? 'استخدام دعوة' : 'الدفع'
+        const notification = NotificationTemplates.pointsEarned(points, reason)
+        await sendPushNotification(member.pushToken, notification)
+      }
+    } catch (error) {
+      console.error('Failed to send points notification:', error)
+      // Don't fail the operation if notification fails
+    }
 
     return true
   } catch (error) {

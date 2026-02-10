@@ -62,11 +62,34 @@ export async function GET(
       }
     }
 
+    // Calculate subscription type based on duration
+    let subscriptionType = 'غير محدد';
+    if (member.startDate && member.expiryDate) {
+      const startDate = new Date(member.startDate);
+      const endDate = new Date(member.expiryDate);
+      const durationInDays = Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (durationInDays <= 35) {
+        subscriptionType = 'شهري';
+      } else if (durationInDays <= 100) {
+        subscriptionType = '3 شهور';
+      } else if (durationInDays <= 190) {
+        subscriptionType = '6 شهور';
+      } else if (durationInDays <= 380) {
+        subscriptionType = 'سنوي';
+      } else {
+        subscriptionType = `${Math.round(durationInDays / 30)} شهر`;
+      }
+    }
+
     return NextResponse.json({
       member: {
         ...member,
         remainingDays,
         status,
+        subscriptionType,
       },
     });
   } catch (error) {

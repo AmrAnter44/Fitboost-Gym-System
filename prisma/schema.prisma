@@ -33,6 +33,7 @@ model Member {
   remainingAmount   Float        @default(0)
   points            Int          @default(0)
   notes             String?
+  pushToken         String?      // Expo push notification token
   isActive          Boolean      @default(true)
   isFrozen          Boolean      @default(false)
   startDate         DateTime?
