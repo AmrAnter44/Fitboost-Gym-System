@@ -140,13 +140,6 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!instructorName || instructorName.trim() === '') {
-      return NextResponse.json(
-        { error: 'اسم المدرب مطلوب' },
-        { status: 400 }
-      )
-    }
-
     if (!sessionsPurchased || sessionsPurchased <= 0) {
       return NextResponse.json(
         { error: 'عدد الجلسات مطلوب ويجب أن يكون أكبر من صفر' },

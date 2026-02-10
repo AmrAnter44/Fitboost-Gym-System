@@ -38,6 +38,7 @@
     "electron-is-dev": "^2.0.0",
     "electron-updater": "^6.7.3",
     "exceljs": "^4.4.0",
+    "expo-server-sdk": "^5.0.0",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "http-proxy": "^1.18.1",
