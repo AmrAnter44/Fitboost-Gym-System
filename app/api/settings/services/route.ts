@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { requirePermission } from '../../../../lib/auth'
+import { requirePermission, verifyAuth } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 // GET - جلب إعدادات الخدمات
+// ✅ السماح لجميع المستخدمين المسجلين بقراءة الإعدادات (بدون صلاحية)
+// هذا ضروري لإخفاء الأقسام المعطلة من Navigation للمستخدمين العاديين
 export async function GET(request: Request) {
   try {
-    await requirePermission(request, 'canAccessSettings')
+    // التحقق من تسجيل الدخول فقط (بدون صلاحية محددة)
+    const user = await verifyAuth(request)
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     let settings = await prisma.systemSettings.findUnique({
       where: { id: 'singleton' }

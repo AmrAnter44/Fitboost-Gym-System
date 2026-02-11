@@ -14,7 +14,7 @@ const isElectron = () => {
 
 export default function BarcodeInputDetector() {
   const { openSearch } = useSearch()
-  const { autoScanEnabled, selectedScanner, strictMode } = useDeviceSettings()
+  const { autoScanEnabled, selectedScanner, selectedScannerFingerprint, strictMode } = useDeviceSettings()
   const [isElectronApp, setIsElectronApp] = useState(false)
 
   // التحقق من البيئة عند التحميل
@@ -22,15 +22,23 @@ export default function BarcodeInputDetector() {
     setIsElectronApp(isElectron())
   }, [])
 
-  // Send strict mode status to Electron
+  // Send device name and strict mode to Electron on load
   useEffect(() => {
     if (!isElectronApp) return
 
+    // Send selected scanner to Electron
+    if (typeof window !== 'undefined' && (window as any).electron?.setCurrentDeviceName) {
+      const deviceName = selectedScannerFingerprint?.deviceName || selectedScanner || 'Unknown Device'
+      ;(window as any).electron.setCurrentDeviceName(deviceName)
+      console.log('📱 Device name sent to Electron on load:', deviceName)
+    }
+
+    // Send strict mode to Electron
     if (typeof window !== 'undefined' && (window as any).electron?.setStrictMode) {
       ;(window as any).electron.setStrictMode(strictMode)
       console.log('🔒 Strict mode sent to Electron:', strictMode)
     }
-  }, [isElectronApp, strictMode])
+  }, [isElectronApp, strictMode, selectedScanner, selectedScannerFingerprint])
 
   // Track if SearchModal is open and notify Electron
   useEffect(() => {
