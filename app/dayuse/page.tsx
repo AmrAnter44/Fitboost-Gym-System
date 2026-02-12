@@ -377,7 +377,7 @@ export default function DayUsePage() {
                   <div className="flex items-start gap-2">
                     <span className="text-gray-500 text-sm min-w-[80px]">📱 {t('dayUse.phoneLabel')}</span>
                     <a
-                      href={`https://wa.me/2${entry.phone}`}
+                      href={`https://wa.me/20${entry.phone}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-green-600 font-medium hover:text-green-700"
