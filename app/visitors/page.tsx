@@ -584,7 +584,7 @@ export default function VisitorsPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500 text-sm">📱</span>
                     <a
-                      href={`https://wa.me/2${visitor.phone}`}
+                      href={`https://wa.me/20${visitor.phone}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg font-medium text-xs sm:text-sm bg-green-500 hover:bg-green-600 text-white transition-colors"
@@ -736,7 +736,7 @@ export default function VisitorsPage() {
                     <td className="px-4 py-3 font-medium">{visitor.name}</td>
                     <td className="px-4 py-3">
                       <a
-                        href={`https://wa.me/2${visitor.phone}`}
+                        href={`https://wa.me/20${visitor.phone}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 px-3 py-1 rounded-lg font-medium text-sm bg-green-500 hover:bg-green-600 text-white transition-colors"

@@ -51,7 +51,7 @@ export function createWhatsAppUrl(
     if (cleanPhone.startsWith('0')) {
       cleanPhone = cleanPhone.substring(1);
     }
-    cleanPhone = '2' + cleanPhone;
+    cleanPhone = '20' + cleanPhone;
   }
 
   // Build URL

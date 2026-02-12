@@ -1361,7 +1361,7 @@ export default function MemberDetailPage() {
                         const termsAndConditions = `\n\n━━━━━━━━━━━━━━━━━━━━\n*شروط وأحكام*\n━━━━━━━━━━━━━━━━━━━━\nالساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه`
                         const message = baseMessage + termsAndConditions
                         const phone = member.phone.replace(/\D/g, '')
-                        const url = `https://wa.me/2${phone}?text=${encodeURIComponent(message)}`
+                        const url = `https://wa.me/20${phone}?text=${encodeURIComponent(message)}`
                         window.open(url, '_blank')
                       }, 500)
                     }

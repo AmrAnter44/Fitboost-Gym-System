@@ -402,7 +402,7 @@ export default function FollowUpsPage() {
       .replace(/\{time\}/g, new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }))
 
     const encodedMessage = encodeURIComponent(message)
-    const url = `https://wa.me/2${selectedVisitorForTemplate.phone}?text=${encodedMessage}`
+    const url = `https://wa.me/20${selectedVisitorForTemplate.phone}?text=${encodedMessage}`
 
     window.open(url, '_blank')
     setShowTemplateModal(false)
@@ -1336,7 +1336,7 @@ export default function FollowUpsPage() {
                       <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📱 {t('followups.table.phone')}:</span>
                       <div className="flex gap-1">
                         <a
-                          href={`https://wa.me/2${followUp.visitor.phone}`}
+                          href={`https://wa.me/20${followUp.visitor.phone}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg font-medium text-xs sm:text-sm ${
@@ -1515,7 +1515,7 @@ export default function FollowUpsPage() {
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <a
-                          href={`https://wa.me/2${followUp.visitor.phone}`}
+                          href={`https://wa.me/20${followUp.visitor.phone}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg font-medium text-sm transition-colors ${
