@@ -1074,7 +1074,7 @@ app.whenReady().then(async () => {
   }
   createWindow();
   setupBarcodeScanner();
-  setupAutoUpdater(); // إعداد نظام التحديثات
+  // setupAutoUpdater(); // ✅ Auto-updater disabled
 });
 
 app.on('window-all-closed', () => {
