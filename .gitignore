@@ -17,9 +17,10 @@ release/
 !.env.example
 
 # Database files
-prisma/gym.db
+# prisma/gym.db  ← نحتفظ بها في git للـ seed database
 prisma/dev.db
 prisma/*.db
+!prisma/gym.db
 *.db-journal
 
 # Electron builds
