@@ -464,33 +464,6 @@ export default function MembersPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6" dir={direction}>
-        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-4 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.total}</div>
-          <div className="text-sm opacity-90">{t('members.totalMembers')}</div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.active}</div>
-          <div className="text-sm opacity-90">{t('members.activeMembers')}</div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-4 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.expiringSoon}</div>
-          <div className="text-sm opacity-90">{t('members.expiringSoon7Days')}</div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-4 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.expired}</div>
-          <div className="text-sm opacity-90">{t('members.expiredMembers')}</div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-4 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.hasRemaining}</div>
-          <div className="text-sm opacity-90">{t('members.hasRemaining')}</div>
-        </div>
-      </div>
-
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-200 dark:border-primary-700" dir={direction}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold flex items-center gap-2 dark:text-white">
@@ -511,70 +484,57 @@ export default function MembersPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
               filterStatus === 'all'
                 ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-xl border-2 border-primary-400'
-                : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow-md'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
             }`}
           >
-            <div className="text-xl mb-1">📊</div>
-            <div className="text-xs">{t('members.all')}</div>
-            <div className="text-lg font-bold">{stats.total}</div>
+            <div className="text-2xl mb-1">📊</div>
+            <div className="text-sm">{t('members.all')}</div>
+            <div className="text-2xl font-bold">{stats.total}</div>
           </button>
 
           <button
             onClick={() => setFilterStatus('active')}
-            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
               filterStatus === 'active'
                 ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-xl border-2 border-green-400'
-                : 'bg-white dark:bg-gray-700 border-2 border-green-200 dark:border-green-700 text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/50 hover:border-green-300 dark:hover:border-green-600 shadow-md'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500'
             }`}
           >
-            <div className="text-xl mb-1">🟢</div>
-            <div className="text-xs">{t('members.active')}</div>
-            <div className="text-lg font-bold">{stats.active}</div>
+            <div className="text-2xl mb-1">🟢</div>
+            <div className="text-sm">{t('members.active')}</div>
+            <div className="text-2xl font-bold">{stats.active}</div>
           </button>
 
           <button
             onClick={() => setFilterStatus('expiring-soon')}
-            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
               filterStatus === 'expiring-soon'
                 ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl border-2 border-orange-400'
-                : 'bg-white dark:bg-gray-700 border-2 border-orange-200 dark:border-orange-700 text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-orange-900/50 hover:border-orange-300 dark:hover:border-orange-600 shadow-md'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-orange-400 dark:hover:border-orange-500'
             }`}
           >
-            <div className="text-xl mb-1">🟡</div>
-            <div className="text-xs">{t('members.expiringSoon')}</div>
-            <div className="text-lg font-bold">{stats.expiringSoon}</div>
+            <div className="text-2xl mb-1">🟡</div>
+            <div className="text-sm">{t('members.expiringSoon7Days')}</div>
+            <div className="text-2xl font-bold">{stats.expiringSoon}</div>
           </button>
 
           <button
             onClick={() => setFilterStatus('expired')}
-            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
               filterStatus === 'expired'
                 ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-xl border-2 border-red-400'
-                : 'bg-white dark:bg-gray-700 border-2 border-red-200 dark:border-red-700 text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/50 hover:border-red-300 dark:hover:border-red-600 shadow-md'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500'
             }`}
           >
-            <div className="text-xl mb-1">🔴</div>
-            <div className="text-xs">{t('members.expired')}</div>
-            <div className="text-lg font-bold">{stats.expired}</div>
-          </button>
-
-          <button
-            onClick={() => setFilterStatus('has-remaining')}
-            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
-              filterStatus === 'has-remaining'
-                ? 'bg-gradient-to-br from-yellow-500 to-yellow-600 text-white shadow-xl border-2 border-yellow-400'
-                : 'bg-white dark:bg-gray-700 border-2 border-yellow-200 dark:border-yellow-700 text-gray-700 dark:text-gray-200 hover:bg-yellow-50 dark:hover:bg-yellow-900/50 hover:border-yellow-300 dark:hover:border-yellow-600 shadow-md'
-            }`}
-          >
-            <div className="text-xl mb-1">💰</div>
-            <div className="text-xs">{t('members.hasRemaining')}</div>
-            <div className="text-lg font-bold">{stats.hasRemaining}</div>
+            <div className="text-2xl mb-1">🔴</div>
+            <div className="text-sm">{t('members.expiredMembers')}</div>
+            <div className="text-2xl font-bold">{stats.expired}</div>
           </button>
         </div>
 
@@ -583,64 +543,65 @@ export default function MembersPage() {
             <span>📦</span>
             <span>{locale === 'ar' ? 'فلترة حسب الباقة' : 'Filter by Package'}</span>
           </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <button
               onClick={() => setFilterPackage('all')}
-              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === 'all'
                   ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
               }`}
             >
-              <div className="text-sm">{locale === 'ar' ? 'الكل' : 'All'}</div>
+              <div className="text-base">{locale === 'ar' ? 'الكل' : 'All'}</div>
+              <div className="text-lg font-bold mt-1">{membersData.length}</div>
             </button>
 
             <button
               onClick={() => setFilterPackage('month')}
-              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === 'month'
                   ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
               }`}
             >
-              <div className="text-sm">{locale === 'ar' ? 'شهر' : 'Month'}</div>
-              <div className="text-xs opacity-70">({stats.packageMonth})</div>
+              <div className="text-base">{locale === 'ar' ? 'شهر' : 'Month'}</div>
+              <div className="text-lg font-bold mt-1">{stats.packageMonth}</div>
             </button>
 
             <button
               onClick={() => setFilterPackage('3-months')}
-              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === '3-months'
                   ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
               }`}
             >
-              <div className="text-sm">{locale === 'ar' ? '3 شهور' : '3 Months'}</div>
-              <div className="text-xs opacity-70">({stats.package3Months})</div>
+              <div className="text-base">{locale === 'ar' ? '3 شهور' : '3 Months'}</div>
+              <div className="text-lg font-bold mt-1">{stats.package3Months}</div>
             </button>
 
             <button
               onClick={() => setFilterPackage('6-months')}
-              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === '6-months'
                   ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
               }`}
             >
-              <div className="text-sm">{locale === 'ar' ? '6 شهور' : '6 Months'}</div>
-              <div className="text-xs opacity-70">({stats.package6Months})</div>
+              <div className="text-base">{locale === 'ar' ? '6 شهور' : '6 Months'}</div>
+              <div className="text-lg font-bold mt-1">{stats.package6Months}</div>
             </button>
 
             <button
               onClick={() => setFilterPackage('year')}
-              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === 'year'
                   ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
               }`}
             >
-              <div className="text-sm">{locale === 'ar' ? 'سنة' : 'Year'}</div>
-              <div className="text-xs opacity-70">({stats.packageYear})</div>
+              <div className="text-base">{locale === 'ar' ? 'سنة' : 'Year'}</div>
+              <div className="text-lg font-bold mt-1">{stats.packageYear}</div>
             </button>
           </div>
         </div>
