@@ -1,6 +1,6 @@
 {
   "name": "gym-management",
-  "version": "5.5.1",
+  "version": "5.5.2",
   "description": "gym system",
   "private": true,
   "main": "electron/main.js",
@@ -106,7 +106,7 @@
         ]
       },
       {
-        "from": "prisma/prisma/gym.db",
+        "from": "prisma/gym.db",
         "to": "seed-database/gym.db"
       }
     ],
