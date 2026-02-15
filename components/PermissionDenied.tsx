@@ -17,7 +17,7 @@ export default function PermissionDenied({
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50" dir="rtl">
       <div className="max-w-md w-full mx-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 text-center">
           {/* Icon */}
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-red-100 rounded-full">
@@ -38,12 +38,12 @@ export default function PermissionDenied({
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">
             🚫 الوصول مرفوض
           </h1>
 
           {/* Message */}
-          <p className="text-lg text-gray-600 mb-8">
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
             {message}
           </p>
 
@@ -67,7 +67,7 @@ export default function PermissionDenied({
             
             <button
               onClick={() => router.push('/')}
-              className="w-full bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-bold"
+              className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-bold"
             >
               🏠 العودة للصفحة الرئيسية
             </button>
@@ -76,7 +76,7 @@ export default function PermissionDenied({
 
         {/* Additional Info */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300">
             💡 <strong>نصيحة:</strong> تأكد من تسجيل الدخول بحساب يملك الصلاحيات المطلوبة
           </p>
         </div>

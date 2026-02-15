@@ -27,7 +27,7 @@ export default function ConfirmDeleteModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden" dir={direction}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden" dir={direction}>
         {/* Header */}
         <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
           <div className="flex items-center gap-3">
@@ -38,10 +38,10 @@ export default function ConfirmDeleteModal({
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-gray-700 text-lg mb-4">{message}</p>
+          <p className="text-gray-700 dark:text-gray-200 text-lg mb-4">{message}</p>
           {itemName && (
             <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-gray-600 mb-1">العنصر المراد حذفه:</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">العنصر المراد حذفه:</p>
               <p className="text-xl font-bold text-red-700">{itemName}</p>
             </div>
           )}
@@ -51,7 +51,7 @@ export default function ConfirmDeleteModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-gray-50 border-t flex gap-3 justify-end">
+        <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t flex gap-3 justify-end">
           <button
             type="button"
             onClick={onClose}

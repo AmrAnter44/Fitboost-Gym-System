@@ -86,7 +86,7 @@ export default function Navbar() {
   return (
     <>
       {/* ✅ Navbar أفقية مع أيقونات عمودية على اليمين */}
-      <nav className="bg-primary-700 text-white shadow-xl sticky top-0 z-40 border-b border-primary-800">
+      <nav className="bg-primary-700 dark:bg-gray-900 text-white shadow-xl sticky top-0 z-40 border-b border-primary-800 dark:border-gray-700">
         <div className="w-full px-2 sm:px-4 relative z-10">
           <div className="flex items-center justify-between gap-2">
             {/* Logo + Hamburger Menu - على اليسار */}
@@ -109,7 +109,7 @@ export default function Navbar() {
               {/* Hamburger Menu - على الموبايل فقط */}
               <button
                 onClick={() => setShowDrawer(!showDrawer)}
-                className="p-1.5 hover:bg-white/20 rounded-lg transition-all hover:scale-110 active:scale-95 lg:hidden"
+                className="p-1.5 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition-all hover:scale-110 active:scale-95 lg:hidden"
                 aria-label="القائمة"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,15 +124,15 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3 xl:px-4 py-2 xl:py-2.5 rounded-lg transition-all hover:bg-white/15 text-center flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 border border-transparent relative ${
-                    pathname === link.href ? 'bg-white/20 font-bold border-white/30 shadow-lg' : 'hover:border-white/20'
+                  className={`px-3 xl:px-4 py-2 xl:py-2.5 rounded-lg transition-all hover:bg-white/15 dark:hover:bg-gray-700 text-center flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 border border-transparent relative ${
+                    pathname === link.href ? 'bg-white/20 dark:bg-gray-800 font-bold border-white/30 dark:border-gray-600 shadow-lg' : 'hover:border-white/20 dark:hover:border-gray-600'
                   }`}
                 >
                   <span className="text-base xl:text-lg drop-shadow">{link.icon}</span>
                   <span className="text-sm xl:text-base font-bold whitespace-nowrap">{link.label}</span>
                   {/* Update badge for Settings */}
                   {link.href === '/settings' && updateAvailable && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-primary-700 animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-primary-700 dark:border-gray-900 animate-pulse"></span>
                   )}
                 </Link>
               ))}
@@ -145,10 +145,10 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center justify-center bg-white/10 backdrop-blur-sm p-1.5 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 border border-white/20"
+                    className="flex items-center justify-center bg-white/10 dark:bg-gray-700 backdrop-blur-sm p-1.5 rounded-full hover:bg-white/20 dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 border border-white/20 dark:border-gray-600"
                     title={user.name}
                   >
-                    <div className="w-7 h-7 bg-gradient-to-br from-white/40 to-white/20 rounded-full flex items-center justify-center font-bold text-sm shadow-lg">
+                    <div className="w-7 h-7 bg-gradient-to-br from-white/40 to-white/20 dark:from-gray-500 dark:to-gray-600 rounded-full flex items-center justify-center font-bold text-sm shadow-lg">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                   </button>
@@ -165,18 +165,18 @@ export default function Navbar() {
                       {/* Menu */}
                       <div
                         dir={locale === 'ar' ? 'rtl' : 'ltr'}
-                        className={`absolute mt-2 w-64 bg-white/95 backdrop-blur-lg rounded-xl shadow-2xl overflow-hidden z-40 border-2 border-gray-500/50 ${
+                        className={`absolute mt-2 w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg rounded-xl shadow-2xl overflow-hidden z-40 border-2 border-gray-500/50 dark:border-gray-600 ${
                           locale === 'ar' ? 'left-0' : 'right-0'
                         }`}>
                         {/* User Info */}
-                        <div className="bg-primary-700 text-white p-4">
+                        <div className="bg-primary-700 dark:bg-gray-900 text-white p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center font-bold text-lg">
+                            <div className="w-10 h-10 bg-white/30 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-lg">
                               {user.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
                               <p className="font-bold">{user.name}</p>
-                              <p className="text-xs text-white/80">{user.email}</p>
+                              <p className="text-xs text-white/80 dark:text-gray-300">{user.email}</p>
                               <p className="text-xs mt-1">{getRoleLabel(user.role)}</p>
                             </div>
                           </div>
@@ -188,7 +188,7 @@ export default function Navbar() {
                             <Link
                               href="/admin/users"
                               onClick={() => setShowUserMenu(false)}
-                              className={`px-4 py-3 text-gray-700 hover:bg-gray-100/80 transition-all flex items-center gap-2 ${
+                              className={`px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700 transition-all flex items-center gap-2 ${
                                 locale === 'ar' ? 'hover:translate-x-1' : 'hover:-translate-x-1'
                               }`}
                             >
@@ -198,11 +198,11 @@ export default function Navbar() {
                           )}
 
                           {/* Separator before logout */}
-                          <div className="border-t border-gray-200 my-1" />
+                          <div className="border-t border-gray-200 dark:border-gray-600 my-1" />
 
                           <button
                             onClick={handleLogout}
-                            className={`w-full px-4 py-3 text-red-600 hover:bg-red-50/80 transition-all flex items-center gap-2 font-bold ${
+                            className={`w-full px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/30 transition-all flex items-center gap-2 font-bold ${
                               locale === 'ar' ? 'text-right hover:translate-x-1' : 'text-left hover:-translate-x-1'
                             }`}
                           >
@@ -219,7 +219,7 @@ export default function Navbar() {
               {/* Quick Search Button */}
               <button
                 onClick={() => openSearch()}
-                className="w-9 h-9 bg-white/10 backdrop-blur-sm rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 flex items-center justify-center font-bold flex-shrink-0 border border-white/20 shadow-lg"
+                className="w-9 h-9 bg-white/10 dark:bg-gray-700 backdrop-blur-sm rounded-full hover:bg-white/20 dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 flex items-center justify-center font-bold flex-shrink-0 border border-white/20 dark:border-gray-600 shadow-lg"
                 title="بحث سريع (Ctrl+K)"
               >
                 <span className="text-base">🔍</span>
@@ -239,19 +239,19 @@ export default function Navbar() {
           />
 
           {/* Drawer */}
-          <div className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto border-gray-500 ${
+          <div className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto border-gray-500 dark:border-gray-700 ${
             locale === 'ar'
               ? 'right-0 animate-slideRight border-l-4'
               : 'left-0 animate-slideLeft border-r-4'
           }`}>
             {/* Header */}
-            <div className="bg-primary-700 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
+            <div className="bg-primary-700 dark:bg-gray-900 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
               <div className="flex items-center gap-3">
                 <span className="font-bold text-xl">{t('nav.menu')}</span>
               </div>
               <button
                 onClick={() => setShowDrawer(false)}
-                className="p-2 hover:bg-white/20 rounded-lg transition"
+                className="p-2 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -268,15 +268,15 @@ export default function Navbar() {
                   onClick={() => setShowDrawer(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:translate-x-2 relative ${
                     pathname === link.href
-                      ? 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 font-bold shadow-md border-r-4 border-gray-500'
-                      : 'text-gray-700 hover:bg-gray-100/80'
+                      ? 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-800 dark:text-gray-100 font-bold shadow-md border-r-4 border-gray-500 dark:border-gray-400'
+                      : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700/80'
                   }`}
                 >
                   <span className="text-2xl drop-shadow">{link.icon}</span>
                   <span className="text-base">{link.label}</span>
                   {/* Update badge for Settings */}
                   {link.href === '/settings' && updateAvailable && (
-                    <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                    <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></span>
                   )}
                 </Link>
               ))}
@@ -284,15 +284,15 @@ export default function Navbar() {
 
             {/* User Info at Bottom */}
             {user && (
-              <div className="p-4 border-t mt-4">
-                <div className="bg-gray-50 rounded-lg p-4">
+              <div className="p-4 border-t dark:border-gray-700 mt-4">
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-gray-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                    <div className="w-12 h-12 bg-gray-600 dark:bg-gray-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-800">{user.name}</p>
-                      <p className="text-xs text-gray-600">{getRoleLabel(user.role)}</p>
+                      <p className="font-bold text-gray-800 dark:text-gray-100">{user.name}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">{getRoleLabel(user.role)}</p>
                     </div>
                   </div>
 
@@ -300,7 +300,7 @@ export default function Navbar() {
                     <Link
                       href="/admin/users"
                       onClick={() => setShowDrawer(false)}
-                      className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition mb-2"
+                      className="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition mb-2"
                     >
                       <span>👥</span>
                       <span className="text-sm">{t('auth.manageUsers')}</span>
@@ -309,7 +309,7 @@ export default function Navbar() {
 
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-bold"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500 dark:bg-red-600 text-white rounded-lg hover:bg-red-600 dark:hover:bg-red-700 transition font-bold"
                   >
                     <span>🚪</span>
                     <span>{t('auth.logout')}</span>

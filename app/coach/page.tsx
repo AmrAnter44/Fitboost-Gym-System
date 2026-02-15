@@ -120,50 +120,50 @@ export default function CoachDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900 flex items-center justify-center">
         <div className="text-white text-2xl">جاري التحميل...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900 p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">👋 مرحباً {user?.name}</h1>
-            <p className="text-gray-600 mt-2">لوحة تحكم المدرب - حصص PT</p>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">👋 مرحباً {user?.name}</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">لوحة تحكم المدرب - حصص PT</p>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">اشتراكات نشطة</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">اشتراكات نشطة</p>
                 <p className="text-3xl font-bold text-green-600">{activePTs.length}</p>
               </div>
               <div className="text-5xl">✅</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">حصص متبقية</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">حصص متبقية</p>
                 <p className="text-3xl font-bold text-orange-600">{totalActiveSessions}</p>
               </div>
               <div className="text-5xl">⏳</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">حصص مكتملة</p>
-                <p className="text-3xl font-bold text-purple-600">{totalCompletedSessions}</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">حصص مكتملة</p>
+                <p className="text-3xl font-bold text-primary-600">{totalCompletedSessions}</p>
               </div>
               <div className="text-5xl">💪</div>
             </div>
@@ -171,27 +171,27 @@ export default function CoachDashboard() {
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 mb-6">
           <div className="relative">
             <input
               type="text"
               placeholder="🔍 ابحث عن عضو (الاسم، الهاتف، رقم PT)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-6 py-4 border-2 border-gray-300 rounded-xl text-lg focus:border-purple-500 focus:outline-none"
+              className="w-full px-6 py-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-lg focus:border-primary-500 focus:outline-none"
             />
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 mb-6">
           <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('active')}
               className={`flex-1 py-3 rounded-lg font-bold text-lg ${
                 activeTab === 'active'
                   ? 'bg-green-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-200 text-gray-700 dark:text-gray-200 hover:bg-gray-300'
               }`}
             >
               ✅ نشط ({activePTs.length})
@@ -201,7 +201,7 @@ export default function CoachDashboard() {
               className={`flex-1 py-3 rounded-lg font-bold text-lg ${
                 activeTab === 'expired'
                   ? 'bg-red-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-200 text-gray-700 dark:text-gray-200 hover:bg-gray-300'
               }`}
             >
               ⏰ منتهي ({expiredPTs.length})
@@ -210,14 +210,14 @@ export default function CoachDashboard() {
         </div>
 
         {/* PTs List */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
           <h2 className="text-2xl font-bold mb-6">
             {activeTab === 'active' ? '✅ اشتراكات نشطة' : '⏰ اشتراكات منتهية'} ({filteredPTs.length})
           </h2>
 
           {filteredPTs.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-xl text-gray-500">
+              <p className="text-xl text-gray-500 dark:text-gray-400 dark:text-gray-500">
                 {activeTab === 'active' ? 'لا توجد اشتراكات نشطة' : 'لا توجد اشتراكات منتهية'}
               </p>
             </div>
@@ -232,15 +232,15 @@ export default function CoachDashboard() {
                   <div
                     key={pt.ptNumber}
                     className={`border-2 rounded-xl p-4 hover:shadow-lg transition-all ${
-                      isExpired ? 'border-red-300 bg-red-50' : 'border-purple-300 bg-purple-50'
+                      isExpired ? 'border-red-300 bg-red-50' : 'border-primary-300 bg-primary-50'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h3 className="font-bold text-lg text-gray-800">{pt.clientName}</h3>
-                        <p className="text-gray-600 text-sm">رقم PT: #{pt.ptNumber}</p>
+                        <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">{pt.clientName}</h3>
+                        <p className="text-gray-600 dark:text-gray-300 text-sm">رقم PT: #{pt.ptNumber}</p>
                         {pt.phone && (
-                          <p className="text-gray-600 text-sm">📱 {pt.phone}</p>
+                          <p className="text-gray-600 dark:text-gray-300 text-sm">📱 {pt.phone}</p>
                         )}
                       </div>
                       {isExpired ? (
@@ -256,7 +256,7 @@ export default function CoachDashboard() {
 
                     {/* Progress Bar */}
                     <div className="mb-3">
-                      <div className="flex justify-between text-xs text-gray-600 mb-1">
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-300 mb-1">
                         <span>الحصص المستخدمة: {usedSessions} / {pt.sessionsPurchased}</span>
                         <span>{Math.round(progressPercentage)}%</span>
                       </div>
@@ -274,23 +274,23 @@ export default function CoachDashboard() {
 
                     {/* Info Grid */}
                     <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                      <div className="bg-white rounded p-2">
-                        <p className="text-gray-600">متبقي</p>
+                      <div className="bg-white dark:bg-gray-800 rounded p-2">
+                        <p className="text-gray-600 dark:text-gray-300">متبقي</p>
                         <p className="font-bold text-orange-600">{pt.sessionsRemaining} حصة</p>
                       </div>
-                      <div className="bg-white rounded p-2">
-                        <p className="text-gray-600">السعر/حصة</p>
+                      <div className="bg-white dark:bg-gray-800 rounded p-2">
+                        <p className="text-gray-600 dark:text-gray-300">السعر/حصة</p>
                         <p className="font-bold text-green-600">{pt.pricePerSession} ج.م</p>
                       </div>
                       {pt.startDate && (
-                        <div className="bg-white rounded p-2">
-                          <p className="text-gray-600">البداية</p>
+                        <div className="bg-white dark:bg-gray-800 rounded p-2">
+                          <p className="text-gray-600 dark:text-gray-300">البداية</p>
                           <p className="font-bold">{new Date(pt.startDate).toLocaleDateString('ar-EG')}</p>
                         </div>
                       )}
                       {pt.expiryDate && (
-                        <div className="bg-white rounded p-2">
-                          <p className="text-gray-600">الانتهاء</p>
+                        <div className="bg-white dark:bg-gray-800 rounded p-2">
+                          <p className="text-gray-600 dark:text-gray-300">الانتهاء</p>
                           <p className={`font-bold ${isExpired ? 'text-red-600' : ''}`}>
                             {new Date(pt.expiryDate).toLocaleDateString('ar-EG')}
                           </p>
@@ -310,12 +310,12 @@ export default function CoachDashboard() {
                     {/* Sessions History */}
                     {pt.sessions && pt.sessions.length > 0 && (
                       <div className="border-t pt-3 mt-3">
-                        <p className="text-xs text-gray-600 font-bold mb-2">
+                        <p className="text-xs text-gray-600 dark:text-gray-300 font-bold mb-2">
                           📅 آخر الحصص ({pt.sessions.length})
                         </p>
                         <div className="space-y-1 max-h-32 overflow-y-auto">
                           {pt.sessions.slice(0, 3).map((session) => (
-                            <div key={session.id} className="bg-white rounded p-2 text-xs flex justify-between items-center">
+                            <div key={session.id} className="bg-white dark:bg-gray-800 rounded p-2 text-xs flex justify-between items-center">
                               <span>{new Date(session.sessionDate).toLocaleDateString('ar-EG')}</span>
                               {session.attended ? (
                                 <span className="text-green-600 font-bold">✅ حضر</span>

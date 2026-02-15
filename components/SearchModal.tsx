@@ -582,7 +582,7 @@ export default function SearchModal() {
       {/* Modal */}
       <div className="fixed inset-0 z-[9999] overflow-auto" dir={direction} data-search-modal>
         <div className="min-h-screen p-1 sm:p-2">
-          <div className="bg-white rounded-xl shadow-2xl max-w-3xl mx-auto my-2 animate-slideDown">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl mx-auto my-2 animate-slideDown">
             {/* Header */}
             <div className="bg-primary-600 text-white p-2 sm:p-3 rounded-t-xl flex items-center justify-between sticky top-0 z-10">
               <h1 className="text-base sm:text-lg font-bold flex items-center gap-1">
@@ -591,7 +591,7 @@ export default function SearchModal() {
               </h1>
               <button
                 onClick={closeSearch}
-                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 title="Close (ESC)"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -604,7 +604,7 @@ export default function SearchModal() {
             <div className="p-2 sm:p-3">
               {/* Search Mode Selector and Input */}
               {searchMode === 'id' && (
-                <div className="bg-gray-50 p-2 sm:p-3 rounded-lg mb-2 border border-primary-200">
+                <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded-lg mb-2 border border-primary-200">
                   <div className="mb-2">
                     {attendanceMessage && (
                       <div className={`mb-2 p-2 sm:p-3 rounded-lg border-2 animate-slideDown ${
@@ -628,15 +628,15 @@ export default function SearchModal() {
                               {attendanceMessage.text}
                             </p>
                             {attendanceMessage.staff && (
-                              <div className="mt-2 bg-white/50 rounded-lg p-2">
+                              <div className="mt-2 bg-white dark:bg-gray-800/50 rounded-lg p-2">
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
-                                    <p className="text-xs text-gray-600">{t('nav.employee')}</p>
-                                    <p className="text-xs sm:text-sm font-bold text-gray-800">{attendanceMessage.staff.name}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{t('nav.employee')}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100">{attendanceMessage.staff.name}</p>
                                   </div>
                                   <div>
-                                    <p className="text-xs text-gray-600">{t('nav.position')}</p>
-                                    <p className="text-xs sm:text-sm font-bold text-gray-800">{getPositionLabel(attendanceMessage.staff.position)}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{t('nav.position')}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100">{getPositionLabel(attendanceMessage.staff.position)}</p>
                                   </div>
                                 </div>
                               </div>
@@ -657,7 +657,7 @@ export default function SearchModal() {
                           className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             searchMode === 'id'
                               ? 'bg-primary-600 text-white shadow-lg'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                           title={t('search.searchByIdOrAttendance')}
                         >
@@ -672,7 +672,7 @@ export default function SearchModal() {
                           className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             (searchMode as SearchMode) === 'name'
                               ? 'bg-green-600 text-white shadow-lg'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                           title={t('search.searchByNamePhone')}
                         >
@@ -687,7 +687,7 @@ export default function SearchModal() {
                           value={memberId}
                           onChange={(e) => setMemberId(e.target.value)}
                           onKeyPress={handleIdKeyPress}
-                          className="flex-1 px-3 py-2 border-2 border-green-300 rounded-lg text-base sm:text-lg font-bold text-center focus:border-green-600 focus:ring-1 focus:ring-green-200 transition"
+                          className="flex-1 px-3 py-2 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-base sm:text-lg font-bold text-center focus:border-green-600 focus:ring-1 focus:ring-green-200 dark:focus:ring-green-700 transition"
                           placeholder={t('search.idPlaceholder')}
                           data-search-input
                           autoFocus
@@ -701,7 +701,7 @@ export default function SearchModal() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1.5">
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5">
                       💡 {t('search.pressEnter')}
                     </p>
                   </div>
@@ -709,11 +709,11 @@ export default function SearchModal() {
               )}
 
               {(searchMode as SearchMode) === 'name' && (
-                <div className="bg-gray-50 p-2 sm:p-3 rounded-lg mb-2 border border-green-200">
+                <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded-lg mb-2 border border-green-200">
                   <div className="mb-2">
                     {attendanceMessage && (
-                      <div className="mb-2 p-2 rounded-lg border-2 bg-red-50 border-red-500 animate-slideDown">
-                        <p className="text-xs sm:text-sm font-bold text-red-700">
+                      <div className="mb-2 p-2 rounded-lg border-2 bg-red-50 dark:bg-red-900/30 border-red-500 dark:border-red-700 animate-slideDown">
+                        <p className="text-xs sm:text-sm font-bold text-red-700 dark:text-red-300">
                           {attendanceMessage.text}
                         </p>
                       </div>
@@ -730,7 +730,7 @@ export default function SearchModal() {
                           className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             searchMode === 'id'
                               ? 'bg-primary-600 text-white shadow-lg'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                           title={t('search.searchByIdOrAttendance')}
                         >
@@ -745,7 +745,7 @@ export default function SearchModal() {
                           className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
                             (searchMode as SearchMode) === 'name'
                               ? 'bg-green-600 text-white shadow-lg'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                           title={t('search.searchByNamePhone')}
                         >
@@ -756,27 +756,27 @@ export default function SearchModal() {
                       <div className="flex-1">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                           <div>
-                            <label className="block text-xs font-medium mb-0.5">{t('search.name')}</label>
+                            <label className="block text-xs font-medium mb-0.5 text-gray-700 dark:text-gray-200">{t('search.name')}</label>
                             <input
                               ref={nameRef}
                               type="text"
                               value={searchName}
                               onChange={(e) => setSearchName(e.target.value)}
                               onKeyPress={handleNameKeyPress}
-                              className="w-full px-2 py-1.5 border-2 border-green-300 rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 transition"
+                              className="w-full px-2 py-1.5 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 dark:focus:ring-green-700 transition"
                               placeholder={t('search.namePlaceholder')}
                               data-search-input
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium mb-0.5">{t('search.phoneNumber')}</label>
+                            <label className="block text-xs font-medium mb-0.5 text-gray-700 dark:text-gray-200">{t('search.phoneNumber')}</label>
                             <input
                               type="tel"
                               value={searchPhone}
                               onChange={(e) => setSearchPhone(e.target.value)}
                               onKeyPress={handleNameKeyPress}
-                              className="w-full px-2 py-1.5 border-2 border-green-300 rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 transition"
+                              className="w-full px-2 py-1.5 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 dark:focus:ring-green-700 transition"
                               placeholder={t('search.phonePlaceholder')}
                               data-search-input
                             />
@@ -793,7 +793,7 @@ export default function SearchModal() {
                       </div>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1.5">
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5">
                       💡 {t('search.searchTip')}
                     </p>
                   </div>
@@ -801,24 +801,24 @@ export default function SearchModal() {
               )}
 
               {lastSearchTime && (
-                <div className="bg-gray-100 p-2 rounded text-center text-xs text-gray-600 mb-3">
+                <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded text-center text-xs text-gray-600 dark:text-gray-300 mb-3">
                   {t('search.lastSearch')} {lastSearchTime.toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                 </div>
               )}
 
               {/* Results - نفس الكود من صفحة البحث */}
               {searched && (
-                <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-green-200 animate-fadeIn">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-green-200 dark:border-green-700 animate-fadeIn">
                   {loading ? (
                     <div className="text-center py-6 sm:py-8">
                       <div className="inline-block animate-spin text-3xl sm:text-4xl mb-2">⏳</div>
-                      <p className="text-sm sm:text-base text-gray-600 font-bold">{t('search.searching')}</p>
+                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 font-bold">{t('search.searching')}</p>
                     </div>
                   ) : results.length === 0 ? (
-                    <div className="text-center py-6 sm:py-8 bg-red-50 animate-pulse">
+                    <div className="text-center py-6 sm:py-8 bg-red-50 dark:bg-red-900/30 animate-pulse">
                       <div className="text-4xl sm:text-5xl mb-2 sm:mb-3 animate-bounce">🚨</div>
-                      <p className="text-base sm:text-lg font-bold text-red-600 mb-1 px-3">{t('search.noResults')}</p>
-                      <p className="text-sm text-red-500 px-3">
+                      <p className="text-base sm:text-lg font-bold text-red-600 dark:text-red-400 mb-1 px-3">{t('search.noResults')}</p>
+                      <p className="text-sm text-red-500 dark:text-red-300 px-3">
                         {searchMode === 'id'
                           ? `${t('search.searchingFor')} "${memberId}"`
                           : `${t('search.searchingFor')} "${searchName || searchPhone}"`
@@ -828,19 +828,19 @@ export default function SearchModal() {
                   ) : (
                     <div className="p-2 sm:p-3 max-h-[60vh] overflow-y-auto">
                       <div className="mb-2 text-center">
-                        <span className="bg-green-100 text-green-800 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold">
+                        <span className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border border-green-200 dark:border-green-700">
                           ✅ {t('search.foundResults')} {results.length} {results.length === 1 ? t('search.result') : t('search.results')}
                         </span>
                       </div>
 
                       <div className="space-y-2">
                         {results.map((result, index) => (
-                          <div key={index} className="border border-primary-200 rounded-lg p-2 sm:p-3 hover:bg-primary-50 transition">
+                          <div key={index} className="border border-primary-200 dark:border-primary-700 rounded-lg p-2 sm:p-3 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition">
                             {result.type === 'member' && (
                               <div>
                                 <div className="flex flex-col sm:flex-row justify-between items-start gap-1.5 mb-2">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-primary-300 bg-gray-100 flex-shrink-0">
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-primary-300 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                                       {result.data.profileImage ? (
                                         <img
                                           src={result.data.profileImage}
@@ -848,7 +848,7 @@ export default function SearchModal() {
                                           className="w-full h-full object-cover"
                                         />
                                       ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                        <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
                                           <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                           </svg>
@@ -860,7 +860,7 @@ export default function SearchModal() {
                                       <span className="bg-primary-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold">
                                         👤 {t('search.member')}
                                       </span>
-                                      <h3 className="text-sm sm:text-base md:text-lg font-bold mt-0.5 sm:mt-1">{result.data.name}</h3>
+                                      <h3 className="text-sm sm:text-base md:text-lg font-bold mt-0.5 sm:mt-1 text-gray-800 dark:text-gray-100">{result.data.name}</h3>
                                     </div>
                                   </div>
                                   {result.data.memberNumber !== null && (
@@ -869,27 +869,27 @@ export default function SearchModal() {
                                     </span>
                                   )}
                                   {result.data.memberNumber === null && (
-                                    <span className="text-xs sm:text-sm font-bold text-gray-500 bg-gray-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
+                                    <span className="text-xs sm:text-sm font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                                       Other
                                     </span>
                                   )}
                                 </div>
 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-1.5 sm:mb-2">
-                                  <div className="bg-gray-50 p-1.5 sm:p-2 rounded">
-                                    <p className="text-xs text-gray-600">{t('common.phone')}</p>
-                                    <p className="text-xs sm:text-sm font-bold">{result.data.phone}</p>
+                                  <div className="bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{t('common.phone')}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100">{result.data.phone}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-1.5 sm:p-2 rounded">
-                                    <p className="text-xs text-gray-600">{t('search.price')}</p>
-                                    <p className="text-xs sm:text-sm font-bold">{result.data.subscriptionPrice} {t('members.egp')}</p>
+                                  <div className="bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.price')}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100">{result.data.subscriptionPrice} {t('members.egp')}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-1.5 sm:p-2 rounded">
-                                    <p className="text-xs text-gray-600">{locale === 'ar' ? 'الباقة' : 'Package'}</p>
-                                    <p className="text-xs sm:text-sm font-bold text-purple-600">{getPackageName(result.data.startDate, result.data.expiryDate)}</p>
+                                  <div className="bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{locale === 'ar' ? 'الباقة' : 'Package'}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-primary-600 dark:text-primary-400">{getPackageName(result.data.startDate, result.data.expiryDate)}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-1.5 sm:p-2 rounded">
-                                    <p className="text-xs text-gray-600">{t('search.status')}</p>
+                                  <div className="bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.status')}</p>
                                     <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold ${
                                       result.data.isFrozen
                                         ? 'bg-primary-500 text-white'
@@ -908,20 +908,20 @@ export default function SearchModal() {
                                 </div>
 
                                 {(result.data.startDate || result.data.expiryDate) && (
-                                  <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 border-2 border-primary-300 rounded p-2 sm:p-3">
+                                  <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 dark:from-primary-900/30 dark:to-yellow-900/30 border-2 border-primary-300 dark:border-primary-700 rounded p-2 sm:p-3">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       {result.data.startDate && (
                                         <div>
-                                          <p className="text-xs text-gray-600">{t('common.startDate')}</p>
-                                          <p className="text-sm sm:text-base md:text-lg font-bold text-gray-800">
+                                          <p className="text-xs text-gray-600 dark:text-gray-300">{t('common.startDate')}</p>
+                                          <p className="text-sm sm:text-base md:text-lg font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100">
                                             {new Date(result.data.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                           </p>
                                         </div>
                                       )}
                                       {result.data.expiryDate && (
                                         <div>
-                                          <p className="text-xs text-gray-600">{t('search.expiryDate')}</p>
-                                          <p className="text-sm sm:text-base md:text-lg font-bold text-gray-800">
+                                          <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.expiryDate')}</p>
+                                          <p className="text-sm sm:text-base md:text-lg font-bold text-gray-800 dark:text-gray-100 dark:text-gray-100">
                                             {new Date(result.data.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                           </p>
                                         </div>
@@ -961,37 +961,37 @@ export default function SearchModal() {
                                 )}
 
                                 {result.data.notes && (
-                                  <div className="mb-2 sm:mb-3 bg-primary-50 border-2 border-primary-400 rounded p-2 sm:p-3">
+                                  <div className="mb-2 sm:mb-3 bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-400 dark:border-primary-700 rounded p-2 sm:p-3">
                                     <div className="flex items-start gap-1 mb-1">
                                       <span className="text-base sm:text-lg">📝</span>
-                                      <p className="text-xs font-bold text-primary-800">{t('search.notes')}</p>
+                                      <p className="text-xs font-bold text-primary-800 dark:text-primary-300">{t('search.notes')}</p>
                                     </div>
-                                    <p className="text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                    <p className="text-xs sm:text-sm md:text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
                                       {result.data.notes}
                                     </p>
                                   </div>
                                 )}
 
                                 {result.data.isActive && (result.data.invitations > 0 || result.data.freePTSessions > 0 || (settings.inBodyEnabled && result.data.inBodyScans > 0) || (settings.nutritionEnabled && result.data.freeNutritionSessions > 0) || (settings.physiotherapyEnabled && result.data.freePhysioSessions > 0) || (settings.groupClassEnabled && result.data.freeGroupClassSessions > 0)) && (
-                                  <div className="mb-3 sm:mb-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-400 rounded-xl p-4">
+                                  <div className="mb-3 sm:mb-4 bg-gradient-to-r from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 border-2 border-primary-400 dark:border-primary-700 rounded-xl p-4">
                                     <div className="flex items-center gap-2 mb-3">
                                       <span className="text-2xl">🎁</span>
-                                      <p className="text-sm sm:text-base font-bold text-purple-800">{t('search.freeServicesRemaining')}</p>
+                                      <p className="text-sm sm:text-base font-bold text-primary-800 dark:text-primary-300">{t('search.freeServicesRemaining')}</p>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                       {result.data.invitations > 0 && (
-                                        <div className="bg-white rounded-lg p-3 border-2 border-purple-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-primary-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xl">🎟️</span>
                                               <div>
-                                                <p className="text-xs text-gray-600">{t('search.invitations')}</p>
-                                                <p className="text-xl font-bold text-purple-600">{result.data.invitations}</p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.invitations')}</p>
+                                                <p className="text-xl font-bold text-primary-600">{result.data.invitations}</p>
                                               </div>
                                             </div>
                                             <button
                                               onClick={() => setInvitationModal({ isOpen: true, memberId: result.data.id, memberName: result.data.name })}
-                                              className="bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 text-xs font-bold"
+                                              className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                             >
                                               {t('search.use')}
                                             </button>
@@ -1000,12 +1000,12 @@ export default function SearchModal() {
                                       )}
 
                                       {result.data.freePTSessions > 0 && (
-                                        <div className="bg-white rounded-lg p-3 border-2 border-green-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-green-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xl">💪</span>
                                               <div>
-                                                <p className="text-xs text-gray-600">{t('search.freePT')}</p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.freePT')}</p>
                                                 <p className="text-xl font-bold text-green-600">{result.data.freePTSessions}</p>
                                               </div>
                                             </div>
@@ -1020,12 +1020,12 @@ export default function SearchModal() {
                                       )}
 
                                       {settings.inBodyEnabled && result.data.inBodyScans > 0 && (
-                                        <div className="bg-white rounded-lg p-3 border-2 border-primary-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-primary-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xl">⚖️</span>
                                               <div>
-                                                <p className="text-xs text-gray-600">InBody</p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-300">InBody</p>
                                                 <p className="text-xl font-bold text-primary-600">{result.data.inBodyScans}</p>
                                               </div>
                                             </div>
@@ -1040,12 +1040,12 @@ export default function SearchModal() {
                                       )}
 
                                       {settings.nutritionEnabled && result.data.freeNutritionSessions > 0 && (
-                                        <div className="bg-white rounded-lg p-3 border-2 border-orange-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-orange-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xl">🥗</span>
                                               <div>
-                                                <p className="text-xs text-gray-600">{t('search.nutrition')}</p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.nutrition')}</p>
                                                 <p className="text-xl font-bold text-orange-600">{result.data.freeNutritionSessions}</p>
                                               </div>
                                             </div>
@@ -1060,12 +1060,12 @@ export default function SearchModal() {
                                       )}
 
                                       {settings.physiotherapyEnabled && result.data.freePhysioSessions > 0 && (
-                                        <div className="bg-white rounded-lg p-3 border-2 border-teal-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-teal-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xl">🏥</span>
                                               <div>
-                                                <p className="text-xs text-gray-600">{t('search.physiotherapy')}</p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.physiotherapy')}</p>
                                                 <p className="text-xl font-bold text-teal-600">{result.data.freePhysioSessions}</p>
                                               </div>
                                             </div>
@@ -1080,18 +1080,18 @@ export default function SearchModal() {
                                       )}
 
                                       {settings.groupClassEnabled && result.data.freeGroupClassSessions > 0 && (
-                                        <div className="bg-white rounded-lg p-3 border-2 border-indigo-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-primary-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xl">👥</span>
                                               <div>
-                                                <p className="text-xs text-gray-600">{t('search.groupClass')}</p>
-                                                <p className="text-xl font-bold text-indigo-600">{result.data.freeGroupClassSessions}</p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.groupClass')}</p>
+                                                <p className="text-xl font-bold text-primary-600">{result.data.freeGroupClassSessions}</p>
                                               </div>
                                             </div>
                                             <button
                                               onClick={() => setServiceModal({ isOpen: true, type: 'groupClass', memberId: result.data.id, memberName: result.data.name })}
-                                              className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 text-xs font-bold"
+                                              className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                             >
                                               {t('search.deduct')}
                                             </button>
@@ -1104,18 +1104,18 @@ export default function SearchModal() {
 
                                 {/* نظام النقاط */}
                                 {settings.pointsEnabled && result.data.points > 0 && (
-                                  <div className="mb-3 sm:mb-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400 rounded-xl p-4">
+                                  <div className="mb-3 sm:mb-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border-2 border-amber-400 dark:border-amber-700 rounded-xl p-4">
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-3">
                                         <span className="text-3xl">⭐</span>
                                         <div>
-                                          <p className="text-xs text-gray-600">{t('search.pointsBalance')}</p>
-                                          <p className="text-2xl font-bold text-amber-600">{result.data.points}</p>
+                                          <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.pointsBalance')}</p>
+                                          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{result.data.points}</p>
                                         </div>
                                       </div>
                                       <div className="text-right">
-                                        <p className="text-xs text-gray-600">{t('search.valueInEGP')}</p>
-                                        <p className="text-lg font-bold text-green-600">{(result.data.points * settings.pointsValueInEGP).toFixed(2)} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
+                                        <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.valueInEGP')}</p>
+                                        <p className="text-lg font-bold text-green-600 dark:text-green-400">{(result.data.points * settings.pointsValueInEGP).toFixed(2)} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
                                       </div>
                                     </div>
                                   </div>
@@ -1141,26 +1141,26 @@ export default function SearchModal() {
                                     <span className="bg-green-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
                                       💪 PT
                                     </span>
-                                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-1.5 sm:mt-2">{result.data.clientName}</h3>
+                                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-1.5 sm:mt-2 text-gray-800 dark:text-gray-100">{result.data.clientName}</h3>
                                   </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2 sm:mb-3">
-                                  <div className="bg-gray-50 p-2 sm:p-3 rounded">
-                                    <p className="text-xs text-gray-600">{t('common.phone')}</p>
-                                    <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.phone}</p>
+                                  <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded">
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{t('common.phone')}</p>
+                                    <p className="text-xs sm:text-sm md:text-base font-bold text-gray-800 dark:text-gray-100">{result.data.phone}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-2 sm:p-3 rounded">
-                                    <p className="text-xs text-gray-600">{t('search.coach')}</p>
-                                    <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.coachName}</p>
+                                  <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded">
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.coach')}</p>
+                                    <p className="text-xs sm:text-sm md:text-base font-bold text-gray-800 dark:text-gray-100">{result.data.coachName}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-2 sm:p-3 rounded">
-                                    <p className="text-xs text-gray-600">{t('search.sessionsRemaining')}</p>
-                                    <p className="text-xs sm:text-sm md:text-base font-bold text-green-600">{result.data.sessionsRemaining}</p>
+                                  <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded">
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.sessionsRemaining')}</p>
+                                    <p className="text-xs sm:text-sm md:text-base font-bold text-green-600 dark:text-green-400">{result.data.sessionsRemaining}</p>
                                   </div>
-                                  <div className="bg-gray-50 p-2 sm:p-3 rounded">
-                                    <p className="text-xs text-gray-600">{t('search.sessionPrice')}</p>
-                                    <p className="text-xs sm:text-sm md:text-base font-bold">{result.data.pricePerSession} {t('members.egp')}</p>
+                                  <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded">
+                                    <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.sessionPrice')}</p>
+                                    <p className="text-xs sm:text-sm md:text-base font-bold text-gray-800 dark:text-gray-100">{result.data.pricePerSession} {t('members.egp')}</p>
                                   </div>
                                 </div>
 

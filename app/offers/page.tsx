@@ -223,18 +223,18 @@ export default function OffersPage() {
   const iconOptions = ['📅', '⭐', '🎁', '💎', '🔥', '✨', '🏆', '💪']
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-primary-50" dir={direction}>
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20" dir={direction}>
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">🎁 {t('offers.title')}</h1>
-              <p className="text-gray-600">{t('offers.subtitle')}</p>
+              <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">🎁 {t('offers.title')}</h1>
+              <p className="text-gray-600 dark:text-gray-300">{t('offers.subtitle')}</p>
             </div>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="bg-gradient-to-r from-purple-600 to-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:scale-105 transition-transform"
+              className="bg-gradient-to-r from-primary-600 to-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:scale-105 dark:hover:scale-105 transition-transform"
             >
               {showForm ? `✖ ${t('offers.cancel')}` : `➕ ${t('offers.addNewOffer')}`}
             </button>
@@ -242,81 +242,81 @@ export default function OffersPage() {
 
           {/* Messages */}
           {error && (
-            <div className="mb-6 bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl">
+            <div className="mb-6 bg-red-50 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-6 py-4 rounded-xl">
               {error}
             </div>
           )}
           {success && (
-            <div className="mb-6 bg-green-50 border-2 border-green-200 text-green-700 px-6 py-4 rounded-xl">
+            <div className="mb-6 bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 px-6 py-4 rounded-xl">
               {success}
             </div>
           )}
 
           {/* Add/Edit Form */}
           {showForm && (
-            <div className="mb-8 bg-gradient-to-r from-purple-50 to-primary-50 p-6 rounded-xl border-2 border-purple-200">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">
+            <div className="mb-8 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 p-6 rounded-xl border-2 border-primary-200 dark:border-primary-700">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">
                 {editingOffer ? `✏️ ${t('offers.editOffer')}` : `➕ ${t('offers.newOffer')}`}
               </h2>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-gray-700 font-bold mb-2">{t('offers.offerName')} *</label>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.offerName')} *</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                     placeholder={t('offers.offerNamePlaceholder')}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-bold mb-2">{t('offers.duration')} *</label>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.duration')} *</label>
                   <input
                     type="number"
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                     placeholder={t('offers.durationPlaceholder')}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-bold mb-2">{t('offers.price')} *</label>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.price')} *</label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                     placeholder={t('offers.pricePlaceholder')}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-bold mb-2">{t('offers.freePTSessions')}</label>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.freePTSessions')}</label>
                   <input
                     type="number"
                     value={formData.freePTSessions}
                     onChange={(e) => setFormData({ ...formData, freePTSessions: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                     placeholder="0"
                   />
                 </div>
 
                 {settings.nutritionEnabled && (
                   <div>
-                    <label className="block text-gray-700 font-bold mb-2">
+                    <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
                       🥗 {t('offers.freeNutritionSessions')}
                     </label>
                     <input
                       type="number"
                       value={formData.freeNutritionSessions}
                       onChange={(e) => setFormData({ ...formData, freeNutritionSessions: e.target.value })}
-                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                      className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                       placeholder="0"
                     />
                   </div>
@@ -324,14 +324,14 @@ export default function OffersPage() {
 
                 {settings.physiotherapyEnabled && (
                   <div>
-                    <label className="block text-gray-700 font-bold mb-2">
+                    <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
                       🏥 {t('offers.freePhysioSessions')}
                     </label>
                     <input
                       type="number"
                       value={formData.freePhysioSessions}
                       onChange={(e) => setFormData({ ...formData, freePhysioSessions: e.target.value })}
-                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                      className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                       placeholder="0"
                     />
                   </div>
@@ -339,14 +339,14 @@ export default function OffersPage() {
 
                 {settings.groupClassEnabled && (
                   <div>
-                    <label className="block text-gray-700 font-bold mb-2">
+                    <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
                       👥 {t('offers.freeGroupClassSessions')}
                     </label>
                     <input
                       type="number"
                       value={formData.freeGroupClassSessions}
                       onChange={(e) => setFormData({ ...formData, freeGroupClassSessions: e.target.value })}
-                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                      className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                       placeholder="0"
                     />
                   </div>
@@ -354,56 +354,56 @@ export default function OffersPage() {
 
                 {settings.inBodyEnabled && (
                   <div>
-                    <label className="block text-gray-700 font-bold mb-2">{t('offers.inBodyScans')}</label>
+                    <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.inBodyScans')}</label>
                     <input
                       type="number"
                       value={formData.inBodyScans}
                       onChange={(e) => setFormData({ ...formData, inBodyScans: e.target.value })}
-                      className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                      className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                       placeholder="0"
                     />
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-gray-700 font-bold mb-2">{t('offers.freeInvitations')}</label>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.freeInvitations')}</label>
                   <input
                     type="number"
                     value={formData.invitations}
                     onChange={(e) => setFormData({ ...formData, invitations: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                     placeholder="0"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-bold mb-2">❄️ أيام الفريز</label>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">❄️ أيام الفريز</label>
                   <input
                     type="number"
                     value={formData.freezeDays}
                     onChange={(e) => setFormData({ ...formData, freezeDays: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                     placeholder="0"
                     min="0"
                   />
-                  <p className="text-xs text-gray-500 mt-1">عدد أيام الفريز المسموح بها لهذا العرض</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">عدد أيام الفريز المسموح بها لهذا العرض</p>
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-bold mb-2">{t('offers.upgradeEligibilityDays')}</label>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.upgradeEligibilityDays')}</label>
                   <input
                     type="number"
                     value={formData.upgradeEligibilityDays}
                     onChange={(e) => setFormData({ ...formData, upgradeEligibilityDays: e.target.value })}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                     placeholder="7"
                     min="0"
                   />
-                  <p className="text-xs text-gray-500 mt-1">{t('offers.upgradeEligibilityDaysHelp')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('offers.upgradeEligibilityDaysHelp')}</p>
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-gray-700 font-bold mb-2">{t('offers.icon')}</label>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.icon')}</label>
                   <div className="flex gap-3">
                     {iconOptions.map((icon) => (
                       <button
@@ -412,8 +412,8 @@ export default function OffersPage() {
                         onClick={() => setFormData({ ...formData, icon })}
                         className={`text-3xl p-3 rounded-lg border-2 transition-all ${
                           formData.icon === icon
-                            ? 'border-purple-500 bg-purple-100 scale-110'
-                            : 'border-gray-300 hover:border-purple-300'
+                            ? 'border-primary-500 bg-primary-100 dark:bg-primary-900/50 scale-110'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-500'
                         }`}
                       >
                         {icon}
@@ -426,14 +426,14 @@ export default function OffersPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-bold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-bold hover:scale-105 dark:hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {submitting ? '⏳ جاري الحفظ...' : editingOffer ? `💾 ${t('offers.saveChanges')}` : `➕ ${t('offers.addOffer')}`}
                   </button>
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-8 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400 transition-colors"
+                    className="px-8 bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg font-bold hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors"
                   >
                     {t('offers.cancel')}
                   </button>
@@ -445,38 +445,38 @@ export default function OffersPage() {
           {/* Offers Grid */}
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
-              <p className="mt-4 text-gray-600">{t('offers.loading')}</p>
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-300">{t('offers.loading')}</p>
             </div>
           ) : !Array.isArray(offers) || offers.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-xl">
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-700 rounded-xl">
               <p className="text-2xl text-gray-400 mb-2">🎁</p>
-              <p className="text-gray-600">{t('offers.noOffers')}</p>
-              <p className="text-gray-500 text-sm mt-2">{t('offers.addFirstOffer')}</p>
+              <p className="text-gray-600 dark:text-gray-300">{t('offers.noOffers')}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">{t('offers.addFirstOffer')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {offers.map((offer) => (
                 <div
                   key={offer.id}
-                  className={`bg-white border-2 rounded-xl p-6 transition-all hover:shadow-lg ${
-                    offer.isActive ? 'border-purple-200' : 'border-gray-200 opacity-60'
+                  className={`bg-white dark:bg-gray-800 border-2 rounded-xl p-6 transition-all hover:shadow-lg ${
+                    offer.isActive ? 'border-primary-200 dark:border-primary-700' : 'border-gray-200 dark:border-gray-600 opacity-60'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
                       <span className="text-4xl">{offer.icon}</span>
                       <div>
-                        <h3 className="text-xl font-bold text-gray-800">{offer.name}</h3>
-                        <p className="text-sm text-gray-500">{offer.duration} {t('offers.days')}</p>
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{offer.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{offer.duration} {t('offers.days')}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => toggleActive(offer)}
                       className={`px-3 py-1 rounded-full text-xs font-bold ${
                         offer.isActive
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-700'
+                          ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
                       }`}
                     >
                       {offer.isActive ? `✓ ${t('offers.active')}` : `✕ ${t('offers.inactive')}`}
@@ -485,48 +485,48 @@ export default function OffersPage() {
 
                   <div className="space-y-2 mb-6">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">{t('offers.price')}</span>
-                      <span className="text-2xl font-bold text-purple-600">{offer.price} {t('offers.priceEGP')}</span>
+                      <span className="text-gray-600 dark:text-gray-300">{t('offers.price')}</span>
+                      <span className="text-2xl font-bold text-primary-600">{offer.price} {t('offers.priceEGP')}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">{t('offers.ptSessions')}</span>
-                      <span className="font-bold text-gray-800">{offer.freePTSessions}</span>
+                      <span className="text-gray-600 dark:text-gray-300">{t('offers.ptSessions')}</span>
+                      <span className="font-bold text-gray-800 dark:text-gray-100">{offer.freePTSessions}</span>
                     </div>
                     {settings.nutritionEnabled && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">🥗 {t('offers.nutritionSessions')}</span>
-                        <span className="font-bold text-gray-800">{(offer as any).freeNutritionSessions || 0}</span>
+                        <span className="text-gray-600 dark:text-gray-300">🥗 {t('offers.nutritionSessions')}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100">{(offer as any).freeNutritionSessions || 0}</span>
                       </div>
                     )}
                     {settings.physiotherapyEnabled && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">🏥 {t('offers.physioSessions')}</span>
-                        <span className="font-bold text-gray-800">{(offer as any).freePhysioSessions || 0}</span>
+                        <span className="text-gray-600 dark:text-gray-300">🏥 {t('offers.physioSessions')}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100">{(offer as any).freePhysioSessions || 0}</span>
                       </div>
                     )}
                     {settings.groupClassEnabled && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">👥 {t('offers.groupClassSessions')}</span>
-                        <span className="font-bold text-gray-800">{(offer as any).freeGroupClassSessions || 0}</span>
+                        <span className="text-gray-600 dark:text-gray-300">👥 {t('offers.groupClassSessions')}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100">{(offer as any).freeGroupClassSessions || 0}</span>
                       </div>
                     )}
                     {settings.inBodyEnabled && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">{t('offers.inBody')}</span>
-                        <span className="font-bold text-gray-800">{offer.inBodyScans}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('offers.inBody')}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100">{offer.inBodyScans}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">{t('offers.invitations')}</span>
-                      <span className="font-bold text-gray-800">{offer.invitations}</span>
+                      <span className="text-gray-600 dark:text-gray-300">{t('offers.invitations')}</span>
+                      <span className="font-bold text-gray-800 dark:text-gray-100">{offer.invitations}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">❄️ أيام الفريز</span>
-                      <span className="font-bold text-primary-600">{offer.freezeDays}</span>
+                      <span className="text-gray-600 dark:text-gray-300">❄️ أيام الفريز</span>
+                      <span className="font-bold text-primary-600 dark:text-primary-400">{offer.freezeDays}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm border-t pt-2 mt-2">
-                      <span className="text-gray-600">{t('offers.upgradeWindow')}</span>
-                      <span className="font-bold text-primary-600">
+                    <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                      <span className="text-gray-600 dark:text-gray-300">{t('offers.upgradeWindow')}</span>
+                      <span className="font-bold text-primary-600 dark:text-primary-400">
                         {offer.upgradeEligibilityDays !== null && offer.upgradeEligibilityDays !== undefined
                           ? `${offer.upgradeEligibilityDays} ${t('offers.days')}`
                           : t('offers.noUpgrade')
@@ -538,13 +538,13 @@ export default function OffersPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(offer)}
-                      className="flex-1 bg-primary-500 text-white py-2 rounded-lg font-bold hover:bg-primary-600 transition-colors"
+                      className="flex-1 bg-primary-500 text-white py-2 rounded-lg font-bold hover:bg-primary-600 dark:hover:bg-primary-500 transition-colors"
                     >
                       ✏️ {t('offers.edit')}
                     </button>
                     <button
                       onClick={() => handleDelete(offer)}
-                      className="flex-1 bg-red-500 text-white py-2 rounded-lg font-bold hover:bg-red-600 transition-colors"
+                      className="flex-1 bg-red-500 text-white py-2 rounded-lg font-bold hover:bg-red-600 dark:hover:bg-red-500 transition-colors"
                     >
                       🗑️ {t('offers.delete')}
                     </button>

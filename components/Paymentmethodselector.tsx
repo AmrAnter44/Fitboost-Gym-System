@@ -46,7 +46,7 @@ export default function PaymentMethodSelector({
   const paymentMethods = [
     { value: 'cash', key: 'cash' as const, icon: '💵', color: 'bg-green-100 border-green-500', gradientColor: 'from-green-100 to-green-50 border-green-500' },
     { value: 'visa', key: 'visa' as const, icon: '💳', color: 'bg-primary-100 border-primary-500', gradientColor: 'from-primary-100 to-primary-50 border-primary-500' },
-    { value: 'instapay', key: 'instapay' as const, icon: '📱', color: 'bg-purple-100 border-purple-500', gradientColor: 'from-purple-100 to-purple-50 border-purple-500' },
+    { value: 'instapay', key: 'instapay' as const, icon: '📱', color: 'bg-primary-100 border-primary-500', gradientColor: 'from-primary-100 to-primary-50 border-primary-500' },
     { value: 'wallet', key: 'wallet' as const, icon: '💰', color: 'bg-orange-100 border-orange-500', gradientColor: 'from-orange-100 to-orange-50 border-orange-500' },
     ...(pointsEnabled && memberPoints > 0 ? [
       { value: 'points', key: 'points' as const, icon: '🏆', color: 'bg-yellow-100 border-yellow-500', gradientColor: 'from-yellow-100 to-yellow-50 border-yellow-500' }
@@ -197,7 +197,7 @@ export default function PaymentMethodSelector({
       {allowMultiple && totalAmount && totalAmount > 0 ? (
         <div className="space-y-4">
           {/* المبلغ الكلي */}
-          <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border-2 border-primary-300 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-300 rounded-lg p-4">
             <div className="flex justify-between items-center">
               <span className="text-base font-semibold text-primary-900">
                 {t('multiPayment.totalAmount')}:
@@ -260,8 +260,8 @@ export default function PaymentMethodSelector({
                       amounts[method.key] === totalAmount && paidTotal === totalAmount
                         ? 'bg-green-600 text-white shadow-lg'
                         : isPoints && maxPointsValue < totalAmount!
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                        ? 'bg-gray-300 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                        : 'bg-white text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600'
                     }`}
                     title={`${t('multiPayment.payFullAmount') || 'دفع المبلغ الكلي'} (${totalAmount} ${t('members.egp')}) ${t('multiPayment.using') || 'بـ'} ${t(`members.paymentMethods.${method.value}`)}`}
                   >
@@ -275,7 +275,7 @@ export default function PaymentMethodSelector({
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">{method.icon}</span>
-                      <span className="font-semibold text-gray-700 text-sm">
+                      <span className="font-semibold text-gray-700 dark:text-gray-200 text-sm">
                         {t(`members.paymentMethods.${method.value}`)}
                       </span>
                     </div>
@@ -288,17 +288,17 @@ export default function PaymentMethodSelector({
                       min="0"
                       max={isPoints ? maxPointsValue : undefined}
                       step="0.01"
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-base font-bold focus:border-purple-500 focus:outline-none transition"
+                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-base font-bold focus:border-primary-500 focus:outline-none transition"
                     />
 
                     {/* معلومات إضافية للنقاط */}
                     {isPoints && (
                       <div className="mt-2 space-y-1">
-                        <div className="flex justify-between text-xs text-gray-600">
+                        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-300">
                           <span>{t('multiPayment.availablePoints') || 'النقاط المتاحة'}:</span>
                           <span className="font-bold text-yellow-600">{memberPoints} 🏆</span>
                         </div>
-                        <div className="flex justify-between text-xs text-gray-600">
+                        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-300">
                           <span>{t('multiPayment.maxValue') || 'أقصى قيمة'}:</span>
                           <span className="font-bold">{maxPointsValue.toFixed(2)} {t('members.egp')}</span>
                         </div>
@@ -342,7 +342,7 @@ export default function PaymentMethodSelector({
                 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all
                 ${selectedSingleMethod === method.value
                   ? `${method.color} border-2 shadow-md scale-105`
-                  : 'bg-white border-gray-300 hover:border-gray-400'
+                  : 'bg-white border-gray-300 dark:border-gray-600 hover:border-gray-400'
                 }
               `}
             >

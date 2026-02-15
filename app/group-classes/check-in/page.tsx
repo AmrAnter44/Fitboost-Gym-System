@@ -59,44 +59,44 @@ export default function GroupClassCheckInPage() {
 
   if (showSuccess && sessionInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-green-500 to-purple-600 flex items-center justify-center p-4" dir="rtl">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary-400 via-green-500 to-primary-600 flex items-center justify-center p-4" dir="rtl">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center">
           {/* Success Animation */}
           <div className="mb-6">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-purple-100 rounded-full mb-4 animate-bounce">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-primary-100 rounded-full mb-4 animate-bounce">
               <span className="text-6xl">✅</span>
             </div>
-            <h1 className="text-3xl font-bold text-purple-700 mb-2">
+            <h1 className="text-3xl font-bold text-primary-700 mb-2">
               تم تسجيل حضورك بنجاح!
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               استمتع بجلستك مع المدرب
             </p>
           </div>
 
           {/* Session Details */}
-          <div className="bg-gradient-to-br from-purple-50 to-purple-50 border-2 border-purple-300 rounded-2xl p-6 mb-6 text-right">
-            <h3 className="text-lg font-bold text-purple-800 mb-4 text-center">
+          <div className="bg-gradient-to-br from-primary-50 to-primary-50 border-2 border-primary-300 rounded-2xl p-6 mb-6 text-right">
+            <h3 className="text-lg font-bold text-primary-800 mb-4 text-center">
               تفاصيل الجلسة
             </h3>
             <div className="space-y-3">
-              <div className="flex justify-between items-center border-b border-purple-200 pb-2">
-                <span className="text-gray-600">الاسم:</span>
-                <span className="font-bold text-purple-900">{sessionInfo.clientName}</span>
+              <div className="flex justify-between items-center border-b border-primary-200 pb-2">
+                <span className="text-gray-600 dark:text-gray-300">الاسم:</span>
+                <span className="font-bold text-primary-900">{sessionInfo.clientName}</span>
               </div>
-              <div className="flex justify-between items-center border-b border-purple-200 pb-2">
-                <span className="text-gray-600">رقم GroupClass:</span>
-                <span className="font-bold text-purple-900">
+              <div className="flex justify-between items-center border-b border-primary-200 pb-2">
+                <span className="text-gray-600 dark:text-gray-300">رقم GroupClass:</span>
+                <span className="font-bold text-primary-900">
                   {sessionInfo.groupClassNumber < 0 ? '🏃 Day Use' : `#${sessionInfo.groupClassNumber}`}
                 </span>
               </div>
-              <div className="flex justify-between items-center border-b border-purple-200 pb-2">
-                <span className="text-gray-600">المدرب:</span>
-                <span className="font-bold text-purple-900">{sessionInfo.instructorName}</span>
+              <div className="flex justify-between items-center border-b border-primary-200 pb-2">
+                <span className="text-gray-600 dark:text-gray-300">المدرب:</span>
+                <span className="font-bold text-primary-900">{sessionInfo.instructorName}</span>
               </div>
-              <div className="flex justify-between items-center border-b border-purple-200 pb-2">
-                <span className="text-gray-600">التاريخ:</span>
-                <span className="font-bold text-purple-900">
+              <div className="flex justify-between items-center border-b border-primary-200 pb-2">
+                <span className="text-gray-600 dark:text-gray-300">التاريخ:</span>
+                <span className="font-bold text-primary-900">
                   {new Date(sessionInfo.sessionDate).toLocaleDateString('ar-EG', {
                     year: 'numeric',
                     month: 'long',
@@ -104,9 +104,9 @@ export default function GroupClassCheckInPage() {
                   })}
                 </span>
               </div>
-              <div className="flex justify-between items-center bg-purple-100 -mx-6 px-6 py-3 mt-4">
-                <span className="text-purple-800 font-semibold">الجلسات المتبقية:</span>
-                <span className="text-3xl font-bold text-purple-600">
+              <div className="flex justify-between items-center bg-primary-100 -mx-6 px-6 py-3 mt-4">
+                <span className="text-primary-800 font-semibold">الجلسات المتبقية:</span>
+                <span className="text-3xl font-bold text-primary-600">
                   {sessionInfo.sessionsRemaining}
                 </span>
               </div>
@@ -120,13 +120,13 @@ export default function GroupClassCheckInPage() {
                 setShowSuccess(false)
                 setSessionInfo(null)
               }}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-purple-700 font-bold text-lg shadow-lg"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl hover:from-primary-700 hover:to-primary-700 font-bold text-lg shadow-lg"
             >
               تسجيل جلسة أخرى
             </button>
             <button
               onClick={() => router.push('/')}
-              className="w-full bg-gray-200 text-gray-700 py-3 rounded-xl hover:bg-gray-300 font-medium"
+              className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-xl hover:bg-gray-300 font-medium"
             >
               العودة للصفحة الرئيسية
             </button>
@@ -144,17 +144,17 @@ export default function GroupClassCheckInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-green-600 to-purple-500 flex items-center justify-center p-4" dir="rtl">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-green-600 to-primary-500 flex items-center justify-center p-4" dir="rtl">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-md w-full p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-100 to-purple-100 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-100 to-primary-100 rounded-full mb-4">
             <span className="text-5xl">🥗</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
             تسجيل حضور جلسة جروب كلاسيس
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             أدخل رقم GroupClass أو Barcode الخاص بجلستك
           </p>
         </div>
@@ -163,7 +163,7 @@ export default function GroupClassCheckInPage() {
         {/* Form */}
         <form onSubmit={handleCheckIn} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               رقم GroupClass / Barcode <span className="text-red-600">*</span>
             </label>
             <input
@@ -171,26 +171,26 @@ export default function GroupClassCheckInPage() {
               value={qrCode}
               onChange={(e) => setQrCode(e.target.value)}
               placeholder="أدخل رقم GroupClass أو امسح Barcode..."
-              className="w-full px-4 py-4 border-2 border-purple-300 rounded-xl focus:outline-none focus:border-purple-500 font-mono text-lg"
+              className="w-full px-4 py-4 border-2 border-primary-300 rounded-xl focus:outline-none focus:border-primary-500 font-mono text-lg"
               autoFocus
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">
               💡 أدخل الرقم المرسل لك عبر WhatsApp أو امسح الباركود
             </p>
           </div>
 
           {/* Character Counter */}
           {qrCode && (
-            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
-              <p className="text-xs text-purple-700 mb-2">
+            <div className="bg-primary-50 border-2 border-primary-200 rounded-xl p-4">
+              <p className="text-xs text-primary-700 mb-2">
                 الكود المدخل ({qrCode.length}):
               </p>
-              <p className="font-mono text-sm text-purple-900 break-all select-all">
+              <p className="font-mono text-sm text-primary-900 break-all select-all">
                 {qrCode.match(/.{1,4}/g)?.join('-') || qrCode}
               </p>
               {qrCode.length === 32 ? (
-                <p className="text-xs text-purple-600 mt-2 flex items-center gap-1">
+                <p className="text-xs text-primary-600 mt-2 flex items-center gap-1">
                   <span>✅</span>
                   <span>طول الكود صحيح</span>
                 </p>
@@ -207,15 +207,15 @@ export default function GroupClassCheckInPage() {
           <button
             type="submit"
             disabled={loading || qrCode.length !== 32}
-            className="w-full bg-gradient-to-r from-purple-600 to-purple-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition"
+            className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl hover:from-primary-700 hover:to-primary-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition"
           >
             {loading ? '⏳ جاري التحقق...' : '✅ تسجيل الحضور'}
           </button>
         </form>
 
         {/* Security Notice */}
-        <div className="mt-6 bg-purple-50 border-r-4 border-purple-500 p-4 rounded-lg">
-          <p className="text-xs text-purple-800">
+        <div className="mt-6 bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg">
+          <p className="text-xs text-primary-800">
             <strong>🔒 ملاحظة أمنية:</strong> QR Code الخاص بك فريد وآمن.
             لا تشاركه مع أي شخص آخر. كل QR Code يستخدم مرة واحدة فقط.
           </p>
@@ -223,10 +223,10 @@ export default function GroupClassCheckInPage() {
 
         {/* Help Section */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             لم تستلم QR Code؟
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">
             تواصل مع المدرب أو الإدارة للحصول على الكود
           </p>
         </div>

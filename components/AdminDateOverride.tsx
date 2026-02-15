@@ -36,7 +36,7 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
         className={`relative px-3 py-2 rounded-lg font-semibold transition-all text-sm ${
           isEnabled
             ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
-            : 'bg-purple-600 text-white hover:bg-purple-700'
+            : 'bg-primary-600 text-white hover:bg-primary-700'
         }`}
         title="تغيير تاريخ التسجيل"
       >
@@ -52,15 +52,15 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 ⏰ تغيير تاريخ التسجيل
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
               >
                 ×
               </button>
@@ -68,14 +68,14 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
 
             {/* Enable/Disable Toggle */}
             <div className={`p-4 rounded-lg mb-6 ${
-              isEnabled ? 'bg-red-50 border-2 border-red-300' : 'bg-gray-50 border-2 border-gray-200'
+              isEnabled ? 'bg-red-50 border-2 border-red-300' : 'bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600'
             }`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-lg text-gray-900">
+                  <p className="font-semibold text-lg text-gray-900 dark:text-white">
                     {isEnabled ? '🔴 الوضع مفعّل حالياً' : '⚪ الوضع غير مفعّل'}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                     {isEnabled
                       ? '⚠️ جميع العمليات ستُسجل بالتاريخ المخصص أدناه'
                       : 'العمليات ستُسجل بالتاريخ والوقت الحالي'}
@@ -99,26 +99,26 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-200">
                       📅 التاريخ
                     </label>
                     <input
                       type="date"
                       value={customDate}
                       onChange={(e) => setCustomDate(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 font-mono focus:border-primary-500 focus:outline-none"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono focus:border-primary-500 focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-200">
                       🕐 الوقت
                     </label>
                     <input
                       type="time"
                       value={customTime}
                       onChange={(e) => setCustomTime(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 font-mono focus:border-primary-500 focus:outline-none"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono focus:border-primary-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -146,7 +146,7 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition"
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:text-gray-100 rounded-lg font-semibold transition"
               >
                 إغلاق
               </button>

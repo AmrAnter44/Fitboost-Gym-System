@@ -53,30 +53,30 @@ export default function CoachSelector({ value, onChange, required = false }: Coa
   const selectedCoach = coaches.find(c => c.id === value)
 
   return (
-    <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-3">
-      <h3 className="font-bold text-base mb-3 flex items-center gap-2">
+    <div className="bg-primary-50 dark:bg-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-3">
+      <h3 className="font-bold text-base mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
         <span>👨‍🏫</span>
-        <span>{required ? t('members.form.selectCoach') : t('members.form.selectCoachOptional')} {required && <span className="text-red-500">*</span>}</span>
+        <span>{required ? t('members.form.selectCoach') : t('members.form.selectCoachOptional')} {required && <span className="text-red-500 dark:text-red-400">*</span>}</span>
       </h3>
 
       {loading ? (
         <div className="text-center py-4">
-          <p className="text-sm text-gray-500">⏳ {t('members.form.loadingCoaches')}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">⏳ {t('members.form.loadingCoaches')}</p>
         </div>
       ) : error ? (
-        <div className="bg-red-100 border-2 border-red-300 rounded-lg p-3 text-center">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="bg-red-100 dark:bg-red-900/50 border-2 border-red-300 dark:border-red-700 rounded-lg p-3 text-center">
+          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
           <button
             type="button"
             onClick={fetchCoaches}
-            className="mt-2 text-xs text-red-600 underline hover:text-red-800"
+            className="mt-2 text-xs text-red-600 dark:text-red-400 underline hover:text-red-800 dark:hover:text-red-200"
           >
             {t('members.form.retry')}
           </button>
         </div>
       ) : coaches.length === 0 ? (
-        <div className="text-center py-4 bg-white rounded-xl border-2 border-dashed border-gray-300">
-          <p className="text-gray-500 text-sm">{t('members.form.noCoachesAvailable')}</p>
+        <div className="text-center py-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">{t('members.form.noCoachesAvailable')}</p>
         </div>
       ) : (
         <>
@@ -92,10 +92,10 @@ export default function CoachSelector({ value, onChange, required = false }: Coa
                 className={`
                   relative p-3 rounded-lg border-2 transition-all
                   ${value === coach.id
-                    ? 'bg-indigo-200 border-indigo-500 shadow-md scale-105'
-                    : 'bg-white border-gray-300 hover:border-indigo-400 hover:bg-indigo-50'
+                    ? 'bg-primary-200 dark:bg-primary-800 border-primary-500 dark:border-primary-400 shadow-md scale-105'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/50'
                   }
-                  ${coach.isCheckedIn ? 'ring-2 ring-green-400' : ''}
+                  ${coach.isCheckedIn ? 'ring-2 ring-green-400 dark:ring-green-500' : ''}
                   ${!coach.isActive ? 'opacity-60' : ''}
                 `}
               >
@@ -106,21 +106,21 @@ export default function CoachSelector({ value, onChange, required = false }: Coa
 
                 <div className="text-center">
                   <div className="text-2xl mb-1">👨‍🏫</div>
-                  <div className="font-bold text-sm text-gray-800 mb-1">
+                  <div className="font-bold text-sm text-gray-800 dark:text-gray-100 mb-1">
                     {coach.name}
                   </div>
-                  <div className="text-xs text-gray-600 mb-2">
+                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-2">
                     #{coach.staffCode}
                   </div>
 
                   {/* عدد الأعضاء */}
-                  <div className="bg-primary-100 text-primary-800 text-xs font-bold py-1 px-2 rounded-full">
+                  <div className="bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 text-xs font-bold py-1 px-2 rounded-full">
                     {coach.memberCount} {t('members.form.memberCount')}
                   </div>
 
                   {/* علامة غير نشط */}
                   {!coach.isActive && (
-                    <div className="mt-1 text-xs text-red-600 font-medium">
+                    <div className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">
                       {t('members.form.inactive')}
                     </div>
                   )}
@@ -134,7 +134,7 @@ export default function CoachSelector({ value, onChange, required = false }: Coa
             <button
               type="button"
               onClick={() => onChange(null)}
-              className="w-full py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition"
+              className="w-full py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition"
             >
               ✕ {t('members.form.cancelSelection')}
             </button>
@@ -142,25 +142,25 @@ export default function CoachSelector({ value, onChange, required = false }: Coa
 
           {/* معلومات المدرب المختار */}
           {selectedCoach && (
-            <div className="mt-3 bg-white border-2 border-indigo-300 rounded-lg p-2">
-              <p className="text-xs text-gray-600">
+            <div className="mt-3 bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300">
                 {t('members.form.selectedCoach')}
-                <span className="font-bold text-indigo-600 mr-1">
+                <span className="font-bold text-primary-600 dark:text-primary-400 mr-1">
                   {selectedCoach.name}
                 </span>
                 {selectedCoach.isCheckedIn && (
-                  <span className="text-green-600 mr-1">● {t('members.form.presentNow')}</span>
+                  <span className="text-green-600 dark:text-green-400 mr-1">● {t('members.form.presentNow')}</span>
                 )}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {t('members.form.hasMembers', { count: selectedCoach.memberCount.toString() })}
               </p>
             </div>
           )}
 
           {/* ملاحظة توضيحية */}
-          <div className="mt-3 bg-primary-50 border-l-4 border-primary-500 p-2 rounded">
-            <p className="text-xs text-primary-800">
+          <div className="mt-3 bg-primary-50 dark:bg-primary-900/50 border-l-4 border-primary-500 dark:border-primary-600 p-2 rounded">
+            <p className="text-xs text-primary-800 dark:text-primary-200">
               <strong>💡 {t('common.notes')}:</strong> {t('members.form.coachNote')}
             </p>
           </div>

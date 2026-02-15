@@ -71,43 +71,43 @@ export function ReceiptStats({ receipts }: StatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Total Receipts */}
-      <div className="bg-white p-4 rounded-lg shadow-md border-r-4 border-primary-500">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-r-4 border-primary-500">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-600">إجمالي الإيصالات</h3>
+          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">إجمالي الإيصالات</h3>
           <span className="text-2xl">📊</span>
         </div>
         <p className="text-3xl font-bold text-primary-600">{stats.total}</p>
-        <p className="text-xs text-gray-500 mt-1">منذ البداية</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">منذ البداية</p>
       </div>
 
       {/* Today */}
-      <div className="bg-white p-4 rounded-lg shadow-md border-r-4 border-green-500">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-r-4 border-green-500">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-600">إيصالات اليوم</h3>
+          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">إيصالات اليوم</h3>
           <span className="text-2xl">📅</span>
         </div>
         <p className="text-3xl font-bold text-green-600">{stats.today}</p>
-        <p className="text-xs text-gray-500 mt-1">{stats.todayRevenue.toFixed(0)} ج.م</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stats.todayRevenue.toFixed(0)} ج.م</p>
       </div>
 
       {/* This Week */}
-      <div className="bg-white p-4 rounded-lg shadow-md border-r-4 border-purple-500">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-r-4 border-primary-500">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-600">هذا الأسبوع</h3>
+          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">هذا الأسبوع</h3>
           <span className="text-2xl">📆</span>
         </div>
-        <p className="text-3xl font-bold text-purple-600">{stats.thisWeek}</p>
-        <p className="text-xs text-gray-500 mt-1">آخر 7 أيام</p>
+        <p className="text-3xl font-bold text-primary-600">{stats.thisWeek}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">آخر 7 أيام</p>
       </div>
 
       {/* Total Revenue */}
-      <div className="bg-white p-4 rounded-lg shadow-md border-r-4 border-orange-500">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-r-4 border-orange-500">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-600">إجمالي الإيرادات</h3>
+          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">إجمالي الإيرادات</h3>
           <span className="text-2xl">💰</span>
         </div>
         <p className="text-3xl font-bold text-orange-600">{stats.totalRevenue.toFixed(0)}</p>
-        <p className="text-xs text-gray-500 mt-1">جنيه مصري</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">جنيه مصري</p>
       </div>
 
       {/* By Type - Members */}
@@ -135,7 +135,7 @@ export function ReceiptStats({ receipts }: StatsProps) {
       </div>
 
       {/* By Type - Day Use */}
-      <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-4 rounded-lg shadow-md">
+      <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-4 rounded-lg shadow-md">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-medium">يوم استخدام</h3>
           <span className="text-2xl">📊</span>

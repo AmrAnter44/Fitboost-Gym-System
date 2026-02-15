@@ -237,7 +237,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-t-2xl">
           <div className="flex justify-between items-center">
             <div>
@@ -246,7 +246,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
             </div>
             <button
               onClick={onClose}
-              className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center transition"
+              className="text-white hover:bg-white dark:bg-gray-800 hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center transition"
             >
               ✕
             </button>
@@ -268,8 +268,8 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
             </h3>
 
             {!Array.isArray(packages) || packages.length === 0 ? (
-              <div className="text-center py-4 bg-white rounded-xl border-2 border-dashed border-gray-300">
-                <p className="text-gray-500 text-xs">{t('renewal.noOffersAvailable')}</p>
+              <div className="text-center py-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
+                <p className="text-gray-500 dark:text-gray-400 text-xs">{t('renewal.noOffersAvailable')}</p>
                 <p className="text-xs text-gray-400 mt-1">{t('renewal.adminCanAddOffers')}</p>
               </div>
             ) : (
@@ -279,12 +279,12 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                     key={pkg.id}
                     type="button"
                     onClick={() => applyPackage(pkg)}
-                    className="bg-white hover:bg-teal-50 border-2 border-teal-300 hover:border-teal-500 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg"
+                    className="bg-white dark:bg-gray-800 hover:bg-teal-50 border-2 border-teal-300 hover:border-teal-500 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg"
                   >
                     <div className="text-center">
                       <div className="text-2xl mb-1">🏥</div>
-                      <div className="font-bold text-gray-800 text-sm">{pkg.name}</div>
-                      <div className="text-xs text-gray-600 mt-1">
+                      <div className="font-bold text-gray-800 dark:text-gray-100 text-sm">{pkg.name}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                         {pkg.sessions} {t('packages.sessions')}
                       </div>
                       <div className="text-lg font-bold text-teal-600 mt-1">
@@ -300,33 +300,33 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
           <div className="bg-blue-50 border-l-4 border-r-4 border-blue-500 p-3 rounded-lg mb-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <p className="text-xs text-gray-600">{t('physiotherapy.renewal.physioNumber')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('physiotherapy.renewal.physioNumber')}</p>
                 <p className="text-xl font-bold text-blue-600">#{session.physioNumber}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('physiotherapy.renewal.clientName')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('physiotherapy.renewal.clientName')}</p>
                 <p className="text-base font-bold">{session.clientName}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('physiotherapy.renewal.currentTherapist')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('physiotherapy.renewal.currentTherapist')}</p>
                 <p className="text-base">{session.therapistName}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('physiotherapy.renewal.currentSessionsRemaining')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('physiotherapy.renewal.currentSessionsRemaining')}</p>
                 <p className="text-xl font-bold text-orange-600">{session.sessionsRemaining}</p>
               </div>
             </div>
 
             {session.expiryDate && (
               <div className="mt-2 pt-2 border-t border-blue-200">
-                <p className="text-xs text-gray-600 inline-block">{t('physiotherapy.renewal.currentExpiryDate')}: </p>
+                <p className="text-xs text-gray-600 dark:text-gray-300 inline-block">{t('physiotherapy.renewal.currentExpiryDate')}: </p>
                 <p className="text-sm font-mono inline-block ml-2">{formatDateYMD(session.expiryDate)}</p>
               </div>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
+            <div className="bg-gradient-to-br from-blue-50 to-primary-50 border-2 border-blue-200 rounded-xl p-4">
               <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                 <span>📋</span>
                 <span>{t('physiotherapy.renewal.renewalData')}</span>
@@ -366,7 +366,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                     {t('physiotherapy.therapistName')} <span className="text-red-600">*</span>
                   </label>
                   {coachesLoading ? (
-                    <div className="w-full px-3 py-2 border-2 rounded-lg bg-gray-50 text-gray-500 text-sm">
+                    <div className="w-full px-3 py-2 border-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm">
                       {t('physiotherapy.loadingPhysiotherapyists')}
                     </div>
                   ) : therapists.length === 0 ? (
@@ -376,7 +376,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                         required
                         value={formData.therapistName}
                         onChange={(e) => setFormData({ ...formData, therapistName: e.target.value })}
-                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm"
+                        className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                         placeholder={t('physiotherapy.therapistNamePlaceholder')}
                       />
                       <p className="text-xs text-amber-600">
@@ -388,7 +388,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                       required
                       value={formData.therapistName}
                       onChange={(e) => setFormData({ ...formData, therapistName: e.target.value })}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-sm"
+                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
                     >
                       <option value="">{t('physiotherapy.selectPhysiotherapyist')}</option>
                       {therapists.map((therapist) => (
@@ -475,7 +475,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                 </div>
 
                 {duration !== null && formData.expiryDate && (
-                  <div className="bg-white border-2 border-blue-300 rounded-lg p-2">
+                  <div className="bg-white dark:bg-gray-800 border-2 border-blue-300 rounded-lg p-2">
                     {duration > 0 ? (
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">⏱️</span>
@@ -525,12 +525,12 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                       </p>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">{t('physiotherapy.renewal.newSessionsLabel')}</span>
+                      <span className="text-gray-600 dark:text-gray-300">{t('physiotherapy.renewal.newSessionsLabel')}</span>
                       <span className="font-bold text-blue-600">{formData.sessionsPurchased} {t('physiotherapy.session')}</span>
                     </div>
                     <div className="bg-blue-100 border-l-4 border-r-4 border-blue-500 p-2 rounded">
                       <div className="flex justify-between">
-                        <span className="font-bold text-gray-800 text-sm">{t('physiotherapy.renewal.paidAmount')}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100 text-sm">{t('physiotherapy.renewal.paidAmount')}</span>
                         <span className="font-bold text-blue-600 text-base">{formData.totalPrice} {t('physiotherapy.egp')}</span>
                       </div>
                     </div>
@@ -551,7 +551,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="px-6 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium text-base"
+                className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium text-base"
               >
                 {t('physiotherapy.cancelButton')}
               </button>

@@ -124,7 +124,7 @@ export default function NutritionSessionHistoryPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">📊 {t('nutrition.sessionHistory.title')}</h1>
-          <p className="text-gray-600">{t('nutrition.sessionHistory.subtitle')}</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('nutrition.sessionHistory.subtitle')}</p>
         </div>
         {!isCoach && (
           <button
@@ -170,7 +170,7 @@ export default function NutritionSessionHistoryPage() {
       </div>
 
       {/* الفلاتر */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-bold mb-4">🔍 {t('nutrition.sessionHistory.filtersAndSearch')}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -181,7 +181,7 @@ export default function NutritionSessionHistoryPage() {
               placeholder={t('nutrition.sessionHistory.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             />
           </div>
 
@@ -192,7 +192,7 @@ export default function NutritionSessionHistoryPage() {
               placeholder={t('nutrition.sessionHistory.nutritionNumberPlaceholder')}
               value={filterNutritionNumber}
               onChange={(e) => setFilterNutritionNumber(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             />
           </div>
 
@@ -202,7 +202,7 @@ export default function NutritionSessionHistoryPage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             />
           </div>
 
@@ -212,7 +212,7 @@ export default function NutritionSessionHistoryPage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             />
           </div>
         </div>
@@ -233,26 +233,26 @@ export default function NutritionSessionHistoryPage() {
       </div>
 
       {/* جدول السجلات */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
         {loading ? (
           <div className="text-center py-12">{t('nutrition.sessionHistory.loading')}</div>
         ) : filteredSessions.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500">
             {t('nutrition.sessionHistory.noRecords')}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-100">
+              <thead className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-right">{t('nutrition.sessionHistory.nutritionNumber')}</th>
-                  <th className="px-4 py-3 text-right">{t('nutrition.sessionHistory.client')}</th>
-                  <th className="px-4 py-3 text-right">{t('nutrition.sessionHistory.nutritionist')}</th>
-                  <th className="px-4 py-3 text-right">{t('nutrition.sessionHistory.sessionDate')}</th>
-                  <th className="px-4 py-3 text-right">{t('nutrition.sessionHistory.sessionTime')}</th>
-                  <th className="px-4 py-3 text-right">{t('nutrition.sessionHistory.notes')}</th>
-                  <th className="px-4 py-3 text-right">{t('nutrition.sessionHistory.registrationDate')}</th>
-                  <th className="px-4 py-3 text-right">{t('nutrition.sessionHistory.actions')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('nutrition.sessionHistory.nutritionNumber')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('nutrition.sessionHistory.client')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('nutrition.sessionHistory.nutritionist')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('nutrition.sessionHistory.sessionDate')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('nutrition.sessionHistory.sessionTime')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('nutrition.sessionHistory.notes')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('nutrition.sessionHistory.registrationDate')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('nutrition.sessionHistory.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -263,7 +263,7 @@ export default function NutritionSessionHistoryPage() {
                   return (
                     <tr
                       key={session.id}
-                      className={`border-t hover:bg-gray-50 ${isToday ? 'bg-green-50' : ''}`}
+                      className={`border-t hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 ${isToday ? 'bg-green-50' : ''}`}
                     >
                       <td className="px-4 py-3">
                         {session.nutritionNumber < 0 ? (
@@ -275,7 +275,7 @@ export default function NutritionSessionHistoryPage() {
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-semibold">{session.clientName}</p>
-                          <p className="text-sm text-gray-600">{session.nutrition.phone}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{session.nutrition.phone}</p>
                         </div>
                       </td>
                       <td className="px-4 py-3">{session.nutritionistName}</td>
@@ -298,13 +298,13 @@ export default function NutritionSessionHistoryPage() {
                       </td>
                       <td className="px-4 py-3">
                         {session.notes ? (
-                          <span className="text-sm text-gray-700">{session.notes}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-200">{session.notes}</span>
                         ) : (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                           {new Date(session.createdAt).toLocaleDateString('ar-EG')}
                         </span>
                       </td>
@@ -328,7 +328,7 @@ export default function NutritionSessionHistoryPage() {
       {/* ملخص بالأسفل */}
       {filteredSessions.length > 0 && (
         <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-200">
             {t('nutrition.sessionHistory.showing', { count: filteredSessions.length.toString(), total: sessions.length.toString() })}
           </p>
         </div>

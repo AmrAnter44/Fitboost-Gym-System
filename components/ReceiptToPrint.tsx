@@ -230,19 +230,19 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 no-print">
-        <div className="bg-white rounded-2xl p-6 max-w-md shadow-2xl">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md shadow-2xl">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold text-gray-800">إيصال الدفع</h3>
+            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">إيصال الدفع</h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-3xl font-light transition"
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl font-light transition"
             >
               ×
             </button>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <div className="text-center text-gray-600">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+            <div className="text-center text-gray-600 dark:text-gray-300">
               <div className="text-5xl mb-3">📄</div>
               <p className="font-medium">إيصال رقم <span className="text-primary-600">#{receiptNumber}</span></p>
             </div>
@@ -270,13 +270,13 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
             </button>
             <button
               onClick={onClose}
-              className="w-full bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-medium"
+              className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-medium"
             >
               إغلاق
             </button>
           </div>
 
-          <div className="mt-4 text-xs text-gray-500 text-center">
+          <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
             <p>💡 يمكنك طباعة الإيصال أو إرساله عبر واتساب</p>
           </div>
         </div>
@@ -294,13 +294,13 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
             }
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
                 <span className="text-4xl">📱</span>
                 <div>
                   <h3 className="text-2xl font-bold">إرسال تفاصيل الإيصال</h3>
-                  <p className="text-sm text-gray-500">إيصال #{receiptNumber}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">إيصال #{receiptNumber}</p>
                 </div>
               </div>
               <button
@@ -308,20 +308,20 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
                   setShowWhatsAppModal(false)
                   setPhone('')
                 }}
-                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
               >
                 ×
               </button>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-bold text-gray-700 mb-2">📞 رقم الهاتف *</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">📞 رقم الهاتف *</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="01xxxxxxxxx"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-lg"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-lg"
                 dir="ltr"
                 autoFocus
               />
@@ -342,7 +342,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
                   setPhone('')
                 }}
                 disabled={sending}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                className="px-6 py-3 bg-gray-200 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300"
               >
                 إلغاء
               </button>

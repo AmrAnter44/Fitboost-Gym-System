@@ -257,7 +257,7 @@ export default function AttendanceReportPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">📊 {t('attendanceReport.title')}</h1>
-          <p className="text-gray-600">{t('attendanceReport.subtitle')}</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('attendanceReport.subtitle')}</p>
         </div>
         <button
           onClick={() => router.push('/staff')}
@@ -268,7 +268,7 @@ export default function AttendanceReportPage() {
       </div>
 
       {/* اختيار الشهر والسنة */}
-      <div className="bg-gradient-to-br from-primary-50 to-purple-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-primary-200">
+      <div className="bg-gradient-to-br from-primary-50 to-primary-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-primary-200">
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
           <span>📅</span>
           <span>{direction === 'rtl' ? 'اختر الشهر' : 'Select Month'}</span>
@@ -282,7 +282,7 @@ export default function AttendanceReportPage() {
             <select
               value={selectedMonth}
               onChange={(e) => handleMonthChange(Number(e.target.value))}
-              className="w-full px-4 py-3 border-2 border-primary-300 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white"
+              className="w-full px-4 py-3 border-2 border-primary-300 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white dark:bg-gray-800"
             >
               {months.map((month, index) => (
                 <option key={index} value={index}>
@@ -299,7 +299,7 @@ export default function AttendanceReportPage() {
             <select
               value={selectedYear}
               onChange={(e) => handleYearChange(Number(e.target.value))}
-              className="w-full px-4 py-3 border-2 border-primary-300 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white"
+              className="w-full px-4 py-3 border-2 border-primary-300 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white dark:bg-gray-800"
             >
               {years.map((year) => (
                 <option key={year} value={year}>
@@ -321,7 +321,7 @@ export default function AttendanceReportPage() {
       </div>
 
       {/* فلاتر البحث */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200 dark:border-gray-600">
         <h3 className="text-xl font-bold mb-4">🔍 {t('attendanceReport.searchFilters')}</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -331,7 +331,7 @@ export default function AttendanceReportPage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:border-primary-500 transition"
             />
           </div>
 
@@ -341,7 +341,7 @@ export default function AttendanceReportPage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:border-primary-500 transition"
             />
           </div>
 
@@ -350,7 +350,7 @@ export default function AttendanceReportPage() {
             <select
               value={selectedStaff}
               onChange={(e) => setSelectedStaff(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:border-primary-500 transition"
             >
               <option value="">{t('attendanceReport.all')}</option>
               {staff.map((s) => (
@@ -385,10 +385,10 @@ export default function AttendanceReportPage() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm mb-1">{t('attendanceReport.staffCount')}</p>
+              <p className="text-primary-100 text-sm mb-1">{t('attendanceReport.staffCount')}</p>
               <p className="text-4xl font-bold">{uniqueStaff}</p>
             </div>
             <div className="text-5xl opacity-20">👥</div>
@@ -409,7 +409,7 @@ export default function AttendanceReportPage() {
 
       {/* إحصائيات الموظفين */}
       {Object.keys(staffStats).length > 0 && (
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
           <h3 className="text-xl font-bold mb-4">📋 {t('attendanceReport.staffStatistics')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(staffStats)
@@ -417,12 +417,12 @@ export default function AttendanceReportPage() {
               .map(([staffId, stats]) => (
                 <div
                   key={staffId}
-                  className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-gray-200"
+                  className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-600"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-bold text-lg">{stats.name}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                         #{stats.staffCode} {stats.position && `• ${stats.position}`}
                       </p>
                     </div>
@@ -440,13 +440,13 @@ export default function AttendanceReportPage() {
       )}
 
       {/* سجلات الحضور بتصميم Cards */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-primary-500 to-primary-600">
           <h3 className="text-xl font-bold text-white">📋 {t('attendanceReport.attendanceRecords')}</h3>
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-500">{t('attendanceReport.loading')}</div>
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500">{t('attendanceReport.loading')}</div>
         ) : attendance.length > 0 ? (
           <div className="p-6 space-y-4">
             {attendance.map((att) => {
@@ -481,7 +481,7 @@ export default function AttendanceReportPage() {
                       ? 'bg-green-50 border-green-300'
                       : att.checkOut === null
                       ? 'bg-red-50 border-red-300'
-                      : 'bg-white border-gray-200'
+                      : 'bg-white border-gray-200 dark:border-gray-600'
                   }`}
                 >
                   {/* Header: التاريخ والاسم */}
@@ -492,11 +492,11 @@ export default function AttendanceReportPage() {
                           #{att.staff.staffCode}
                         </span>
                         <div>
-                          <h3 className="text-xl font-bold text-gray-800">{att.staff.name}</h3>
-                          <p className="text-sm text-gray-600">{getPositionLabel(att.staff.position)}</p>
+                          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{att.staff.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{getPositionLabel(att.staff.position)}</p>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                         📅 {checkInTime.toLocaleDateString('ar-EG', {
                           weekday: 'long',
                           year: 'numeric',
@@ -573,29 +573,29 @@ export default function AttendanceReportPage() {
                     <div
                       className={`border-2 rounded-lg p-4 ${
                         att.checkOut
-                          ? 'bg-purple-50 border-purple-200'
+                          ? 'bg-primary-50 border-primary-200'
                           : 'bg-green-50 border-green-300'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-2xl">⏱️</span>
-                        <p className="text-xs font-bold text-purple-700">{t('attendanceReport.workHours')}</p>
+                        <p className="text-xs font-bold text-primary-700">{t('attendanceReport.workHours')}</p>
                       </div>
 
                       {hours === 0 && minutes === 0 ? (
-                        <p className="text-lg font-bold text-gray-600">
+                        <p className="text-lg font-bold text-gray-600 dark:text-gray-300">
                           {att.checkOut === null && !isToday ? t('attendanceReport.notCalculated') : t('attendanceReport.justStarted')}
                         </p>
                       ) : (
                         <div className="flex gap-2 justify-center">
                           {hours > 0 && (
-                            <div className="bg-white border-2 border-purple-300 rounded-lg px-3 py-2 flex-1 text-center">
-                              <div className="text-2xl font-bold text-purple-800">{hours}</div>
-                              <div className="text-xs text-purple-600">ساعة</div>
+                            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 rounded-lg px-3 py-2 flex-1 text-center">
+                              <div className="text-2xl font-bold text-primary-800">{hours}</div>
+                              <div className="text-xs text-primary-600">ساعة</div>
                             </div>
                           )}
                           {minutes > 0 && (
-                            <div className="bg-white border-2 border-primary-300 rounded-lg px-3 py-2 flex-1 text-center">
+                            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 rounded-lg px-3 py-2 flex-1 text-center">
                               <div className="text-2xl font-bold text-primary-800">{minutes}</div>
                               <div className="text-xs text-primary-600">دقيقة</div>
                             </div>
@@ -605,7 +605,7 @@ export default function AttendanceReportPage() {
 
                       <p
                         className={`text-xs mt-2 font-semibold text-center ${
-                          att.checkOut ? 'text-purple-600' : 'text-green-600'
+                          att.checkOut ? 'text-primary-600' : 'text-green-600'
                         }`}
                       >
                         {att.checkOut ? `✅ ${t('attendanceReport.finished')}` : `⏳ ${t('attendanceReport.workingNow')}`}
@@ -627,7 +627,7 @@ export default function AttendanceReportPage() {
                           <p className="text-xs text-red-100">{t('attendanceReport.oldRecord')}</p>
                         </div>
                       ) : (
-                        <div className="bg-gray-500 text-white rounded-xl p-4 text-center w-full">
+                        <div className="bg-gray-50 dark:bg-gray-7000 text-white rounded-xl p-4 text-center w-full">
                           <div className="text-4xl mb-2">🔴</div>
                           <p className="font-bold text-lg">{t('attendanceReport.outside')}</p>
                           <p className="text-xs text-gray-100">{t('attendanceReport.leftWork')}</p>
@@ -640,7 +640,7 @@ export default function AttendanceReportPage() {
             })}
           </div>
         ) : (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-gray-400 dark:text-gray-500">
             <div className="text-6xl mb-4">📭</div>
             <p className="text-xl">{t('attendanceReport.noRecords')}</p>
             <p className="text-sm mt-2">{t('attendanceReport.tryChangingFilters')}</p>

@@ -15,6 +15,7 @@ import { formatDateYMD, calculateRemainingDays } from '../../lib/dateFormatter'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { fetchMembers, fetchOffers } from '../../lib/api/members'
 import { useToast } from '../../contexts/ToastContext'
+import { MembersSkeleton } from '../../components/LoadingSkeleton'
 
 interface Member {
   id: string
@@ -424,31 +425,26 @@ export default function MembersPage() {
     return <PermissionDenied message={t('members.permissionDeniedViewMembers')} />
   }
 
+  // ✅ حالة التحميل مع Skeleton
+  if (loading) {
+    return <MembersSkeleton />
+  }
+
   return (
     <div className="container mx-auto p-6" dir={direction}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">{t('members.managementTitle')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">{t('members.managementTitle')}</h1>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <Link
             href="/member-attendance"
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
+            className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 text-white px-4 sm:px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 dark:hover:from-primary-800 dark:hover:to-primary-900 transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
           >
             <span>🏋️</span>
             <span>{t('nav.memberAttendance')}</span>
           </Link>
           <button
-            onClick={() => {
-              setShowAttendanceModal(true)
-              fetchAttendanceSummary()
-            }}
-            className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
-          >
-            <span>📊</span>
-            <span>{t('members.attendanceLog')}</span>
-          </button>
-          <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-primary-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-primary-700 text-xs sm:text-sm font-bold"
+            className="bg-primary-600 dark:bg-primary-700 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-800 text-xs sm:text-sm font-bold"
           >
             {showForm ? t('members.hideForm') : t('members.addMember')}
           </button>
@@ -456,8 +452,8 @@ export default function MembersPage() {
       </div>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6" dir={direction}>
-          <h2 className="text-xl font-semibold mb-4">{t('members.addMember')}</h2>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6" dir={direction}>
+          <h2 className="text-xl font-semibold mb-4 dark:text-white">{t('members.addMember')}</h2>
           <MemberForm
             onSuccess={() => {
               refetchMembers()
@@ -495,9 +491,9 @@ export default function MembersPage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-purple-200" dir={direction}>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-200 dark:border-primary-700" dir={direction}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold flex items-center gap-2">
+          <h3 className="text-xl font-bold flex items-center gap-2 dark:text-white">
             <span>🎯</span>
             <span>{t('members.quickFilters')}</span>
           </h3>
@@ -508,135 +504,149 @@ export default function MembersPage() {
                 setFilterPackage('all')
                 setSpecificDate('')
               }}
-              className="bg-purple-100 text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-200 text-sm font-medium"
+              className="bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 px-4 py-2 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-800/50 text-sm font-medium"
             >
               ✖️ {t('members.clearFilters')}
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-4">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-3 rounded-lg font-medium transition ${
+            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
               filterStatus === 'all'
-                ? 'bg-primary-600 text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-xl border-2 border-primary-400'
+                : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow-md'
             }`}
           >
-            📊 {t('members.all')} ({stats.total})
+            <div className="text-xl mb-1">📊</div>
+            <div className="text-xs">{t('members.all')}</div>
+            <div className="text-lg font-bold">{stats.total}</div>
           </button>
 
           <button
             onClick={() => setFilterStatus('active')}
-            className={`px-4 py-3 rounded-lg font-medium transition ${
+            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
               filterStatus === 'active'
-                ? 'bg-green-600 text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-xl border-2 border-green-400'
+                : 'bg-white dark:bg-gray-700 border-2 border-green-200 dark:border-green-700 text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/50 hover:border-green-300 dark:hover:border-green-600 shadow-md'
             }`}
           >
-            ✅ {t('members.active')} ({stats.active})
+            <div className="text-xl mb-1">🟢</div>
+            <div className="text-xs">{t('members.active')}</div>
+            <div className="text-lg font-bold">{stats.active}</div>
           </button>
 
           <button
             onClick={() => setFilterStatus('expiring-soon')}
-            className={`px-4 py-3 rounded-lg font-medium transition ${
+            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
               filterStatus === 'expiring-soon'
-                ? 'bg-orange-600 text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl border-2 border-orange-400'
+                : 'bg-white dark:bg-gray-700 border-2 border-orange-200 dark:border-orange-700 text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-orange-900/50 hover:border-orange-300 dark:hover:border-orange-600 shadow-md'
             }`}
           >
-            ⚠️ {t('members.expiringSoon')} ({stats.expiringSoon})
+            <div className="text-xl mb-1">🟡</div>
+            <div className="text-xs">{t('members.expiringSoon')}</div>
+            <div className="text-lg font-bold">{stats.expiringSoon}</div>
           </button>
 
           <button
             onClick={() => setFilterStatus('expired')}
-            className={`px-4 py-3 rounded-lg font-medium transition ${
+            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
               filterStatus === 'expired'
-                ? 'bg-red-600 text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-xl border-2 border-red-400'
+                : 'bg-white dark:bg-gray-700 border-2 border-red-200 dark:border-red-700 text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/50 hover:border-red-300 dark:hover:border-red-600 shadow-md'
             }`}
           >
-            ❌ {t('members.expired')} ({stats.expired})
+            <div className="text-xl mb-1">🔴</div>
+            <div className="text-xs">{t('members.expired')}</div>
+            <div className="text-lg font-bold">{stats.expired}</div>
           </button>
 
           <button
             onClick={() => setFilterStatus('has-remaining')}
-            className={`px-4 py-3 rounded-lg font-medium transition ${
+            className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
               filterStatus === 'has-remaining'
-                ? 'bg-yellow-600 text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-br from-yellow-500 to-yellow-600 text-white shadow-xl border-2 border-yellow-400'
+                : 'bg-white dark:bg-gray-700 border-2 border-yellow-200 dark:border-yellow-700 text-gray-700 dark:text-gray-200 hover:bg-yellow-50 dark:hover:bg-yellow-900/50 hover:border-yellow-300 dark:hover:border-yellow-600 shadow-md'
             }`}
           >
-            💰 {t('members.hasRemaining')} ({stats.hasRemaining})
+            <div className="text-xl mb-1">💰</div>
+            <div className="text-xs">{t('members.hasRemaining')}</div>
+            <div className="text-lg font-bold">{stats.hasRemaining}</div>
           </button>
         </div>
 
-        <div className="border-t pt-4 mt-4">
-          <h4 className="text-lg font-bold mb-3 flex items-center gap-2">
+        <div className="border-t dark:border-gray-700 pt-4 mt-4">
+          <h4 className="text-lg font-bold mb-3 flex items-center gap-2 dark:text-white">
             <span>📦</span>
             <span>{locale === 'ar' ? 'فلترة حسب الباقة' : 'Filter by Package'}</span>
           </h4>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             <button
               onClick={() => setFilterPackage('all')}
-              className={`px-4 py-3 rounded-lg font-medium transition ${
+              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === 'all'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
+                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
               }`}
             >
-              {locale === 'ar' ? 'الكل' : 'All'}
+              <div className="text-sm">{locale === 'ar' ? 'الكل' : 'All'}</div>
             </button>
 
             <button
               onClick={() => setFilterPackage('month')}
-              className={`px-4 py-3 rounded-lg font-medium transition ${
+              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === 'month'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
+                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
               }`}
             >
-              {locale === 'ar' ? 'شهر' : 'Month'} ({stats.packageMonth})
+              <div className="text-sm">{locale === 'ar' ? 'شهر' : 'Month'}</div>
+              <div className="text-xs opacity-70">({stats.packageMonth})</div>
             </button>
 
             <button
               onClick={() => setFilterPackage('3-months')}
-              className={`px-4 py-3 rounded-lg font-medium transition ${
+              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === '3-months'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
+                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
               }`}
             >
-              {locale === 'ar' ? '3 شهور' : '3 Months'} ({stats.package3Months})
+              <div className="text-sm">{locale === 'ar' ? '3 شهور' : '3 Months'}</div>
+              <div className="text-xs opacity-70">({stats.package3Months})</div>
             </button>
 
             <button
               onClick={() => setFilterPackage('6-months')}
-              className={`px-4 py-3 rounded-lg font-medium transition ${
+              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === '6-months'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
+                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
               }`}
             >
-              {locale === 'ar' ? '6 شهور' : '6 Months'} ({stats.package6Months})
+              <div className="text-sm">{locale === 'ar' ? '6 شهور' : '6 Months'}</div>
+              <div className="text-xs opacity-70">({stats.package6Months})</div>
             </button>
 
             <button
               onClick={() => setFilterPackage('year')}
-              className={`px-4 py-3 rounded-lg font-medium transition ${
+              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
                 filterPackage === 'year'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
+                  : 'bg-white dark:bg-gray-700 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 dark:hover:border-primary-600 shadow'
               }`}
             >
-              {locale === 'ar' ? 'سنة' : 'Year'} ({stats.packageYear})
+              <div className="text-sm">{locale === 'ar' ? 'سنة' : 'Year'}</div>
+              <div className="text-xs opacity-70">({stats.packageYear})</div>
             </button>
           </div>
         </div>
 
-        <div className="border-t pt-4 mt-4">
-          <label className="block text-sm font-medium mb-2">
+        <div className="border-t dark:border-gray-700 pt-4 mt-4">
+          <label className="block text-sm font-medium mb-2 dark:text-gray-200">
             📅 {t('members.filterByExpiryDate')}
           </label>
           <div className="flex gap-2">
@@ -644,36 +654,36 @@ export default function MembersPage() {
               type="date"
               value={specificDate}
               onChange={(e) => setSpecificDate(e.target.value)}
-              className="flex-1 px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition"
+              className="flex-1 px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none transition"
               dir={direction}
             />
             {specificDate && (
               <button
                 onClick={() => setSpecificDate('')}
-                className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                className="px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
               >
                 ✖️
               </button>
             )}
           </div>
           {specificDate && (
-            <p className="text-sm text-purple-600 mt-2">
+            <p className="text-sm text-primary-600 dark:text-primary-400 mt-2">
               🔍 {t('members.showingMembersExpiring')}: {new Date(specificDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
             </p>
           )}
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-200" dir={direction}>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-200 dark:border-primary-700" dir={direction}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold flex items-center gap-2">
+          <h3 className="text-xl font-bold flex items-center gap-2 dark:text-white">
             <span>🔍</span>
             <span>{t('members.directSearch')}</span>
           </h3>
           {(searchId || searchName || searchPhone) && (
             <button
               onClick={clearSearch}
-              className="bg-red-100 text-red-600 px-4 py-2 rounded-lg hover:bg-red-200 text-sm font-medium"
+              className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-800/50 text-sm font-medium"
             >
               ✖️ {t('members.clearSearch')}
             </button>
@@ -682,36 +692,36 @@ export default function MembersPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">{t('members.membershipNumber')} (ID)</label>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">{t('members.membershipNumber')} (ID)</label>
             <input
               type="text"
               value={searchId}
               onChange={(e) => setSearchId(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none transition"
+              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none transition"
               placeholder={t('members.searchByMembershipNumber')}
               dir={direction}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">{t('members.name')}</label>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">{t('members.name')}</label>
             <input
               type="text"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none transition"
+              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none transition"
               placeholder={t('members.searchByName')}
               dir={direction}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">{t('members.phone')}</label>
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">{t('members.phone')}</label>
             <input
               type="text"
               value={searchPhone}
               onChange={(e) => setSearchPhone(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none transition"
+              className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none transition"
               placeholder={t('members.searchByPhone')}
               dir={direction}
             />
@@ -720,7 +730,7 @@ export default function MembersPage() {
 
         {(searchId || searchName || searchPhone) && (
           <div className="mt-4 text-center">
-            <span className="bg-primary-100 text-primary-800 px-4 py-2 rounded-lg text-sm font-medium">
+            <span className="bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 px-4 py-2 rounded-lg text-sm font-medium">
               📊 {t('members.showing', { count: filteredMembers.length.toString(), total: membersData.length.toString() })}
             </span>
           </div>
@@ -728,17 +738,17 @@ export default function MembersPage() {
       </div>
 
       {(searchId || searchName || searchPhone || filterStatus !== 'all' || filterPackage !== 'all' || specificDate) && (
-        <div className="bg-yellow-50 border-2 border-yellow-300 p-4 rounded-xl mb-6 flex items-center justify-between" dir={direction}>
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 p-4 rounded-xl mb-6 flex items-center justify-between" dir={direction}>
           <div className="flex items-center gap-2">
             <span className="text-2xl">🔎</span>
             <div>
-              <p className="font-bold text-yellow-800">{t('members.filtersActive')}</p>
-              <p className="text-sm text-yellow-700">{t('members.showing', { count: filteredMembers.length.toString(), total: membersData.length.toString() })}</p>
+              <p className="font-bold text-yellow-800 dark:text-yellow-300">{t('members.filtersActive')}</p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-400">{t('members.showing', { count: filteredMembers.length.toString(), total: membersData.length.toString() })}</p>
             </div>
           </div>
           <button
             onClick={clearAllFilters}
-            className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 font-medium"
+            className="bg-yellow-600 dark:bg-yellow-700 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 dark:hover:bg-yellow-800 font-medium"
           >
             🗑️ {t('members.clearAllFilters')}
           </button>
@@ -746,25 +756,25 @@ export default function MembersPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-12">{t('common.loading')}</div>
+        <div className="text-center py-12 dark:text-white">{t('common.loading')}</div>
       ) : (
         <>
           {/* Desktop Table - Hidden on mobile/tablet */}
-          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full" dir={direction}>
-                <thead className="bg-gray-100">
+                <thead className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700 dark:bg-gray-700 dark:bg-gray-700">
                   <tr>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.image')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>ID</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.name')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.phone')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.price')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{locale === 'ar' ? 'الباقة' : 'Package'}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.status')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.startDate')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.expiryDate')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.actions')}</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.image')}</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>ID</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.name')}</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.phone')}</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.price')}</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{locale === 'ar' ? 'الباقة' : 'Package'}</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.status')}</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.startDate')}</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.expiryDate')}</th>
+                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -774,9 +784,9 @@ export default function MembersPage() {
                     const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
 
                     return (
-                      <tr key={member.id} className="border-t hover:bg-gray-50">
+                      <tr key={member.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700/50">
                         <td className="px-4 py-3">
-                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 dark:bg-gray-700">
                             {member.profileImage ? (
                               <img
                                 src={member.profileImage}
@@ -784,7 +794,7 @@ export default function MembersPage() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 dark:text-gray-400">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
@@ -807,28 +817,32 @@ export default function MembersPage() {
                         </td>
                         <td className="px-4 py-3">{member.subscriptionPrice} {t('members.egp')}</td>
                         <td className="px-4 py-3">
-                          <span className="text-purple-600 font-bold">
+                          <span className="text-primary-600 font-bold">
                             {getPackageName(member.startDate, member.expiryDate, locale)}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-sm ${
+                          <span className={`px-3 py-1.5 rounded-lg text-sm font-bold inline-flex items-center gap-1.5 shadow-sm ${
                             member.isFrozen
-                              ? 'bg-primary-100 text-primary-800'
-                              : member.isActive && !isExpired
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
+                              ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-300'
+                              : isExpiringSoon
+                                ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300'
+                                : member.isActive && !isExpired
+                                  ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300'
+                                  : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
                           }`}>
                             {member.isFrozen
-                              ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
-                              : member.isActive && !isExpired
-                                ? t('members.active')
-                                : t('members.expired')
+                              ? <><span className="text-lg">❄️</span> {locale === 'ar' ? 'مجمد' : 'Frozen'}</>
+                              : isExpiringSoon
+                                ? <><span className="text-lg">🟡</span> {locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'}</>
+                                : member.isActive && !isExpired
+                                  ? <><span className="text-lg">🟢</span> {t('members.active')}</>
+                                  : <><span className="text-lg">🔴</span> {t('members.expired')}</>
                             }
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-gray-700 font-mono">
+                          <span className="text-gray-700 dark:text-gray-200 font-mono">
                             {formatDateYMD(member.startDate)}
                           </span>
                         </td>
@@ -839,7 +853,7 @@ export default function MembersPage() {
                                 {formatDateYMD(member.expiryDate)}
                               </span>
                               {daysRemaining !== null && daysRemaining > 0 && (
-                                <p className={`text-xs ${isExpiringSoon ? 'text-orange-600' : 'text-gray-500'}`}>
+                                <p className={`text-xs ${isExpiringSoon ? 'text-orange-600' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400'}`}>
                                   {isExpiringSoon && '⚠️ '} {t('members.daysRemaining', { days: daysRemaining.toString() })}
                                 </p>
                               )}
@@ -875,11 +889,11 @@ export default function MembersPage() {
               const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
 
               return (
-                <div key={member.id} className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-gray-200 hover:shadow-lg transition" dir={direction}>
+                <div key={member.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 border-gray-200 dark:border-gray-600 hover:shadow-lg dark:hover:shadow-2xl transition" dir={direction}>
                   {/* Header with Image and Member Number */}
-                  <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-2.5">
+                  <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 p-2.5">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-white shadow-lg bg-gray-100 flex-shrink-0">
+                      <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-white shadow-lg bg-gray-100 dark:bg-gray-700 dark:bg-gray-700 flex-shrink-0">
                         {member.profileImage ? (
                           <img
                             src={member.profileImage}
@@ -887,7 +901,7 @@ export default function MembersPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 dark:text-gray-400">
                             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
@@ -898,10 +912,10 @@ export default function MembersPage() {
                         <div className="text-xl font-bold text-white mb-1">#{member.memberNumber}</div>
                         <div className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           member.isFrozen
-                            ? 'bg-primary-400 text-white'
+                            ? 'bg-primary-400 dark:bg-primary-500 text-white'
                             : member.isActive && !isExpired
-                              ? 'bg-green-500 text-white'
-                              : 'bg-red-500 text-white'
+                              ? 'bg-green-500 dark:bg-green-600 text-white'
+                              : 'bg-red-500 dark:bg-red-600 text-white'
                         }`}>
                           {member.isFrozen
                             ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
@@ -917,19 +931,19 @@ export default function MembersPage() {
                   {/* Card Body */}
                   <div className="p-3 space-y-2.5">
                     {/* Name */}
-                    <div className="pb-2.5 border-b-2 border-gray-100">
+                    <div className="pb-2.5 border-b-2 border-gray-100 dark:border-gray-700 dark:border-gray-700">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-base">👤</span>
-                        <span className="text-xs text-gray-500 font-semibold">{t('members.name')}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 font-semibold">{t('members.name')}</span>
                       </div>
-                      <div className="text-base font-bold text-gray-800">{member.name}</div>
+                      <div className="text-base font-bold text-gray-800 dark:text-gray-100">{member.name}</div>
                     </div>
 
                     {/* Phone */}
-                    <div className="pb-2.5 border-b-2 border-gray-100">
+                    <div className="pb-2.5 border-b-2 border-gray-100 dark:border-gray-700 dark:border-gray-700">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-base">📱</span>
-                        <span className="text-xs text-gray-500 font-semibold">{t('members.phone')}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 font-semibold">{t('members.phone')}</span>
                       </div>
                       <a
                         href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
@@ -943,55 +957,55 @@ export default function MembersPage() {
 
                     {/* Price and Package Info */}
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-green-50 border-2 border-green-200 rounded-lg p-2.5">
+                      <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-2.5">
                         <div className="flex items-center gap-1 mb-1">
                           <span className="text-sm">💰</span>
-                          <span className="text-xs text-green-700 font-semibold">{t('members.price')}</span>
+                          <span className="text-xs text-green-700 dark:text-green-300 font-semibold">{t('members.price')}</span>
                         </div>
-                        <div className="text-base font-bold text-green-600">{member.subscriptionPrice} {t('members.egp')}</div>
+                        <div className="text-base font-bold text-green-600 dark:text-green-400">{member.subscriptionPrice} {t('members.egp')}</div>
                       </div>
 
-                      <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-2.5">
+                      <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-2.5">
                         <div className="flex items-center gap-1 mb-1">
                           <span className="text-sm">📦</span>
-                          <span className="text-xs text-purple-700 font-semibold">{locale === 'ar' ? 'الباقة' : 'Package'}</span>
+                          <span className="text-xs text-primary-700 dark:text-primary-300 font-semibold">{locale === 'ar' ? 'الباقة' : 'Package'}</span>
                         </div>
-                        <div className="text-base font-bold text-purple-600">{getPackageName(member.startDate, member.expiryDate, locale)}</div>
+                        <div className="text-base font-bold text-primary-600 dark:text-primary-400">{getPackageName(member.startDate, member.expiryDate, locale)}</div>
                       </div>
                     </div>
 
                     {/* Dates */}
                     <div className="space-y-1.5 pt-1">
-                      <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-2.5">
+                      <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-2.5">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm">📅</span>
-                          <span className="text-xs text-primary-700 font-semibold">{t('members.startDate')}</span>
+                          <span className="text-xs text-primary-700 dark:text-primary-300 font-semibold">{t('members.startDate')}</span>
                         </div>
-                        <div className="text-sm font-mono text-gray-700">{formatDateYMD(member.startDate)}</div>
+                        <div className="text-sm font-mono text-gray-700 dark:text-gray-200">{formatDateYMD(member.startDate)}</div>
                       </div>
 
                       {member.expiryDate && (
                         <div className={`border-2 rounded-lg p-2.5 ${
-                          isExpired ? 'bg-red-50 border-red-300' : isExpiringSoon ? 'bg-orange-50 border-orange-300' : 'bg-gray-50 border-gray-200'
+                          isExpired ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
                         }`}>
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm">{isExpired ? '❌' : isExpiringSoon ? '⚠️' : '📅'}</span>
                             <span className={`text-xs font-semibold ${
-                              isExpired ? 'text-red-700' : isExpiringSoon ? 'text-orange-700' : 'text-gray-700'
+                              isExpired ? 'text-red-700 dark:text-red-400' : isExpiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'
                             }`}>{t('members.expiryDate')}</span>
                           </div>
                           <div className={`text-sm font-mono font-bold ${
-                            isExpired ? 'text-red-600' : isExpiringSoon ? 'text-orange-600' : 'text-gray-700'
+                            isExpired ? 'text-red-600 dark:text-red-400' : isExpiringSoon ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'
                           }`}>
                             {formatDateYMD(member.expiryDate)}
                           </div>
                           {daysRemaining !== null && daysRemaining > 0 && (
-                            <div className={`text-xs mt-1 font-semibold ${isExpiringSoon ? 'text-orange-700' : 'text-gray-600'}`}>
+                            <div className={`text-xs mt-1 font-semibold ${isExpiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300'}`}>
                               {isExpiringSoon && '⚠️ '} {t('members.daysRemaining', { days: daysRemaining.toString() })}
                             </div>
                           )}
                           {isExpired && daysRemaining !== null && (
-                            <div className="text-xs mt-1 font-semibold text-red-700">
+                            <div className="text-xs mt-1 font-semibold text-red-700 dark:text-red-400">
                               ❌ {t('members.expiredSince', { days: Math.abs(daysRemaining).toString() })}
                             </div>
                           )}
@@ -1003,23 +1017,23 @@ export default function MembersPage() {
                     {lastReceipts[member.id] && (
                       <div
                         onClick={() => handleShowReceipts(member.id, member.memberNumber)}
-                        className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-orange-200 rounded-lg p-2.5 cursor-pointer hover:shadow-md transition"
+                        className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-2.5 cursor-pointer hover:shadow-md dark:hover:shadow-lg transition"
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm">🧾</span>
-                          <span className="text-xs text-orange-700 font-semibold">{locale === 'ar' ? 'آخر إيصال' : 'Last Receipt'}</span>
+                          <span className="text-xs text-orange-700 dark:text-orange-300 font-semibold">{locale === 'ar' ? 'آخر إيصال' : 'Last Receipt'}</span>
                         </div>
-                        <div className="text-sm font-bold text-orange-600">
+                        <div className="text-sm font-bold text-orange-600 dark:text-orange-400">
                           #{lastReceipts[member.id].receiptNumber} - {lastReceipts[member.id].amount} {t('members.egp')}
                         </div>
-                        <div className="text-xs text-gray-600 mt-1">
+                        <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                           {new Date(lastReceipts[member.id].createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
                           })}
                         </div>
-                        <div className="text-xs text-primary-600 mt-1 font-semibold">
+                        <div className="text-xs text-primary-600 dark:text-primary-400 mt-1 font-semibold">
                           {locale === 'ar' ? '⬅️ اضغط لعرض السجل' : 'Click to view history ➡️'}
                         </div>
                       </div>
@@ -1042,10 +1056,10 @@ export default function MembersPage() {
 
       {/* Pagination Controls */}
       {!loading && filteredMembers.length > 0 && (
-            <div className="mt-6 bg-white rounded-lg shadow-md p-6" dir={direction}>
+            <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" dir={direction}>
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 {/* معلومات الصفحة */}
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-300">
                   {t('members.showingXToYOfZ', {
                     start: (startIndex + 1).toString(),
                     end: Math.min(endIndex, filteredMembers.length).toString(),
@@ -1055,14 +1069,14 @@ export default function MembersPage() {
 
                 {/* عدد العناصر في الصفحة */}
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600">{t('members.itemsPerPage')}:</label>
+                  <label className="text-sm text-gray-600 dark:text-gray-300">{t('members.itemsPerPage')}:</label>
                   <select
                     value={itemsPerPage}
                     onChange={(e) => {
                       setItemsPerPage(Number(e.target.value))
                       setCurrentPage(1)
                     }}
-                    className="px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none"
+                    className="px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -1077,14 +1091,14 @@ export default function MembersPage() {
                     <button
                       onClick={() => goToPage(1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       {t('members.firstPage')}
                     </button>
                     <button
                       onClick={() => goToPage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       {t('members.previousPage')}
                     </button>
@@ -1110,7 +1124,7 @@ export default function MembersPage() {
                             className={`px-3 py-2 rounded-lg font-medium ${
                               currentPage === pageNum
                                 ? 'bg-primary-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
                             }`}
                           >
                             {pageNum}
@@ -1122,14 +1136,14 @@ export default function MembersPage() {
                     <button
                       onClick={() => goToPage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       {t('members.nextPage')}
                     </button>
                     <button
                       onClick={() => goToPage(totalPages)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       {t('members.lastPage')}
                     </button>
@@ -1138,14 +1152,14 @@ export default function MembersPage() {
               </div>
 
               {/* معلومات إضافية */}
-              <div className="mt-4 text-center text-sm text-gray-500">
+              <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
                 {t('members.pageXOfY', { current: currentPage.toString(), total: totalPages.toString() })}
               </div>
             </div>
           )}
 
       {filteredMembers.length === 0 && !loading && (
-        <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500" dir={direction}>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center text-gray-500 dark:text-gray-400" dir={direction}>
           {(searchId || searchName || searchPhone || filterStatus !== 'all' || specificDate) ? (
             <>
               <div className="text-6xl mb-4">🔍</div>
@@ -1169,7 +1183,7 @@ export default function MembersPage() {
       {/* Modal سجل الحضور */}
       {showAttendanceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" dir={direction}>
             {/* Header */}
             <div className="bg-gradient-to-r from-green-600 to-green-700 p-6 text-white flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -1178,14 +1192,14 @@ export default function MembersPage() {
               </div>
               <button
                 onClick={() => setShowAttendanceModal(false)}
-                className="text-white hover:bg-white hover:text-green-600 rounded-full w-10 h-10 flex items-center justify-center transition"
+                className="text-white hover:bg-white dark:bg-gray-800 hover:text-green-600 rounded-full w-10 h-10 flex items-center justify-center transition"
               >
                 ✕
               </button>
             </div>
 
             {/* Filters */}
-            <div className="p-6 bg-gray-50 border-b" dir={direction}>
+            <div className="p-6 bg-gray-50 dark:bg-gray-700 dark:bg-gray-700 border-b" dir={direction}>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-2">{t('members.fromDate')}</label>
@@ -1193,7 +1207,7 @@ export default function MembersPage() {
                     type="date"
                     value={attendanceStartDate}
                     onChange={(e) => setAttendanceStartDate(e.target.value)}
-                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:border-green-500 focus:outline-none"
                     dir={direction}
                   />
                 </div>
@@ -1203,7 +1217,7 @@ export default function MembersPage() {
                     type="date"
                     value={attendanceEndDate}
                     onChange={(e) => setAttendanceEndDate(e.target.value)}
-                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:border-green-500 focus:outline-none"
                     dir={direction}
                   />
                 </div>
@@ -1224,22 +1238,22 @@ export default function MembersPage() {
               {attendanceLoading ? (
                 <div className="text-center py-12">
                   <div className="text-4xl mb-4">⏳</div>
-                  <p className="text-gray-600">{t('members.loadingData')}</p>
+                  <p className="text-gray-600 dark:text-gray-300">{t('members.loadingData')}</p>
                 </div>
               ) : attendanceSummary.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">📭</div>
-                  <p className="text-xl text-gray-600">{t('members.noAttendanceRecords')}</p>
+                  <p className="text-xl text-gray-600 dark:text-gray-300">{t('members.noAttendanceRecords')}</p>
                 </div>
               ) : (
                 <>
                   <div className="mb-4 flex items-center justify-between bg-primary-50 p-4 rounded-lg">
                     <div>
-                      <p className="text-sm text-gray-600">{t('members.membersWhoAttended')}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('members.membersWhoAttended')}</p>
                       <p className="text-3xl font-bold text-primary-600">{attendanceSummary.length}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">{t('members.totalAttendance')}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('members.totalAttendance')}</p>
                       <p className="text-3xl font-bold text-green-600">
                         {attendanceSummary.reduce((sum, item) => sum + item.count, 0)}
                       </p>
@@ -1248,7 +1262,7 @@ export default function MembersPage() {
 
                   <div className="overflow-x-auto">
                     <table className="w-full" dir={direction}>
-                      <thead className="bg-gray-100 sticky top-0">
+                      <thead className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700 dark:bg-gray-700 sticky top-0">
                         <tr>
                           <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.rank')}</th>
                           <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.membershipNumber')}</th>
@@ -1259,7 +1273,7 @@ export default function MembersPage() {
                       </thead>
                       <tbody>
                         {attendanceSummary.map((item, index) => (
-                          <tr key={item.member?.id || index} className="border-t hover:bg-gray-50">
+                          <tr key={item.member?.id || index} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700">
                             <td className="px-4 py-3">
                               <span className="font-bold text-lg">
                                 {index === 0 && '🥇'}
@@ -1299,7 +1313,7 @@ export default function MembersPage() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-gray-50 border-t flex justify-end">
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 dark:bg-gray-700 border-t flex justify-end">
               <button
                 onClick={() => setShowAttendanceModal(false)}
                 className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
@@ -1314,7 +1328,7 @@ export default function MembersPage() {
       {/* Member Receipts Modal */}
       {showReceiptsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" dir={direction}>
             {/* Header */}
             <div className="bg-gradient-to-r from-orange-600 to-yellow-600 text-white p-6 rounded-t-lg">
               <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -1331,11 +1345,11 @@ export default function MembersPage() {
               {receiptsLoading ? (
                 <div className="text-center py-12">
                   <div className="inline-block animate-spin text-6xl mb-4">⏳</div>
-                  <p className="text-xl text-gray-600">{locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+                  <p className="text-xl text-gray-600 dark:text-gray-300">{locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
                 </div>
               ) : memberReceipts.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 text-xl">
+                  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 text-xl">
                     {locale === 'ar' ? 'لا توجد إيصالات' : 'No receipts found'}
                   </p>
                 </div>
@@ -1346,7 +1360,7 @@ export default function MembersPage() {
                     return (
                       <div
                         key={receipt.id}
-                        className="bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+                        className="bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition"
                       >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                           <div className="flex-1">
@@ -1367,11 +1381,11 @@ export default function MembersPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-sm">
                               <div>
-                                <span className="text-gray-500">{locale === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
+                                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
                                 <span className="font-bold text-green-600 mr-2">{receipt.amount} {t('members.egp')}</span>
                               </div>
                               <div>
-                                <span className="text-gray-500">{locale === 'ar' ? 'الطريقة:' : 'Method:'}</span>
+                                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الطريقة:' : 'Method:'}</span>
                                 <span className="font-semibold mr-2">
                                   {receipt.paymentMethod === 'cash' ? (locale === 'ar' ? 'كاش 💵' : 'Cash 💵')
                                     : receipt.paymentMethod === 'visa' ? (locale === 'ar' ? 'فيزا 💳' : 'Visa 💳')
@@ -1382,12 +1396,12 @@ export default function MembersPage() {
                               </div>
                               {itemDetails.packageType && (
                                 <div>
-                                  <span className="text-gray-500">{locale === 'ar' ? 'الباقة:' : 'Package:'}</span>
+                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الباقة:' : 'Package:'}</span>
                                   <span className="font-semibold mr-2">{itemDetails.packageType}</span>
                                 </div>
                               )}
                               <div>
-                                <span className="text-gray-500">{locale === 'ar' ? 'التاريخ:' : 'Date:'}</span>
+                                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'التاريخ:' : 'Date:'}</span>
                                 <span className="font-mono text-xs mr-2">
                                   {new Date(receipt.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
                                     year: 'numeric',
@@ -1400,8 +1414,8 @@ export default function MembersPage() {
                               </div>
                             </div>
                             {itemDetails.startDate && itemDetails.expiryDate && (
-                              <div className="mt-2 pt-2 border-t border-gray-200">
-                                <div className="text-xs text-gray-600">
+                              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                <div className="text-xs text-gray-600 dark:text-gray-300">
                                   <span className="font-semibold">{locale === 'ar' ? 'الفترة:' : 'Period:'}</span>
                                   <span className="font-mono mr-2">
                                     {new Date(itemDetails.startDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -1423,8 +1437,8 @@ export default function MembersPage() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
-              <div className="text-sm text-gray-600">
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 dark:bg-gray-700 border-t flex justify-between items-center">
+              <div className="text-sm text-gray-600 dark:text-gray-300">
                 {locale === 'ar' ? 'إجمالي الإيصالات:' : 'Total Receipts:'} <span className="font-bold">{memberReceipts.length}</span>
               </div>
               <button

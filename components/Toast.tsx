@@ -96,7 +96,7 @@ export default function Toast({ message, type = 'info', onClose, duration = 4000
           </div>
           <button
             onClick={handleClose}
-            className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center text-2xl font-bold transition flex-shrink-0"
+            className="text-white hover:bg-white dark:bg-gray-800/20 rounded-full w-8 h-8 flex items-center justify-center text-2xl font-bold transition flex-shrink-0"
             title={direction === 'rtl' ? 'إغلاق' : 'Close'}
           >
             ×
@@ -112,7 +112,7 @@ export default function Toast({ message, type = 'info', onClose, duration = 4000
 
         {/* Progress Bar */}
         {duration > 0 && (
-          <div className="h-1 bg-white/20 relative overflow-hidden">
+          <div className="h-1 bg-white dark:bg-gray-800/20 relative overflow-hidden">
             <div
               className={`h-full ${colors[type].progress}`}
               style={{

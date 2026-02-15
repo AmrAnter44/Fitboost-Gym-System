@@ -172,7 +172,7 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-3 sm:p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2">
@@ -184,7 +184,7 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
               stopScanner()
               onClose()
             }}
-            className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
           >
             ×
           </button>
@@ -201,8 +201,8 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
             }}
             className={`flex-1 py-3 px-4 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
               scanMode === 'camera'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
             }`}
           >
             <span>📷</span>
@@ -215,8 +215,8 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
             }}
             className={`flex-1 py-3 px-4 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
               scanMode === 'upload'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
             }`}
           >
             <span>🖼️</span>
@@ -234,7 +234,7 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
                 stopScanner()
                 setSelectedCamera(e.target.value)
               }}
-              className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-purple-500"
+              className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500"
             >
               {cameras.map((camera) => (
                 <option key={camera.id} value={camera.id}>
@@ -247,7 +247,7 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
 
         {/* Scanner Region - Camera Mode */}
         {scanMode === 'camera' && (
-          <div className="mb-4 bg-gray-100 rounded-lg overflow-hidden">
+          <div className="mb-4 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
             <div id={qrCodeRegionId} className="w-full"></div>
           </div>
         )}
@@ -266,7 +266,7 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingImage}
-              className="w-full bg-gradient-to-r from-purple-600 to-primary-600 text-white py-16 rounded-lg hover:from-purple-700 hover:to-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-16 rounded-lg hover:from-primary-700 hover:to-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {uploadingImage ? (
                 <div className="flex flex-col items-center gap-3">
@@ -311,7 +311,7 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
             stopScanner()
             onClose()
           }}
-          className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-medium"
+          className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-medium"
         >
           إلغاء
         </button>

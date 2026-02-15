@@ -120,11 +120,11 @@ export default function FollowUpForm({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         dir={direction}
       >
-        <div className="sticky top-0 bg-primary-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+        <div className="sticky top-0 bg-primary-600 dark:bg-primary-700 text-white p-4 rounded-t-lg flex justify-between items-center">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <span>📝</span>
             <span>{t('followups.form.title')}</span>
@@ -140,50 +140,50 @@ export default function FollowUpForm({
         <form onSubmit={handleSubmit} className="p-4 space-y-3">
           {/* عرض معلومات الزائر/العضو المختار */}
           {selectedInfo ? (
-            <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border-2 border-primary-200 rounded-lg p-4">
+            <div className="bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-4">
               <div className="flex items-center gap-3">
-                <div className="bg-primary-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold">
+                <div className="bg-primary-600 dark:bg-primary-700 text-white rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold">
                   {selectedInfo.name.charAt(0)}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-lg text-gray-800">{selectedInfo.name}</h3>
-                    <span className="text-xs px-2 py-1 bg-primary-600 text-white rounded-full">
+                    <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">{selectedInfo.name}</h3>
+                    <span className="text-xs px-2 py-1 bg-primary-600 dark:bg-primary-700 text-white rounded-full">
                       {selectedInfo.type}
                     </span>
                   </div>
-                  <p className="text-gray-600 text-sm mt-1">📱 {selectedInfo.phone}</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">📱 {selectedInfo.phone}</p>
                 </div>
               </div>
               {/* Hidden input to store visitorId */}
               <input type="hidden" name="visitorId" value={formData.visitorId} />
             </div>
           ) : (
-            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 text-center">
-              <p className="text-red-600 font-medium">{t('followups.form.noMemberSelected')}</p>
-              <p className="text-red-500 text-sm mt-1">{t('followups.form.pleaseSelectMember')}</p>
+            <div className="bg-red-50 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-700 rounded-lg p-4 text-center">
+              <p className="text-red-600 dark:text-red-400 font-medium">{t('followups.form.noMemberSelected')}</p>
+              <p className="text-red-500 dark:text-red-400 text-sm mt-1">{t('followups.form.pleaseSelectMember')}</p>
             </div>
           )}
 
           {/* ✅ اسم السيلز يتم تعبئته تلقائياً من المستخدم المسجل */}
           {user?.name && (
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-3">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg p-3">
               <div className="flex items-center gap-2">
-                <span className="text-green-700 font-bold text-sm">👤 {t('followups.form.salesName')}:</span>
-                <span className="text-green-900 font-bold">{user.name}</span>
+                <span className="text-green-700 dark:text-green-400 font-bold text-sm">👤 {t('followups.form.salesName')}:</span>
+                <span className="text-green-900 dark:text-green-300 font-bold">{user.name}</span>
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium mb-1 dark:text-gray-100">
               {t('followups.form.notes')} {t('followups.form.required')}
             </label>
             <textarea
               required
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm dark:bg-gray-700 dark:text-white"
               rows={3}
               placeholder={t('followups.form.notesPlaceholder')}
             />
@@ -191,11 +191,11 @@ export default function FollowUpForm({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1">{t('followups.form.result')}</label>
+              <label className="block text-sm font-medium mb-1 dark:text-gray-100">{t('followups.form.result')}</label>
               <select
                 value={formData.result}
                 onChange={(e) => setFormData({ ...formData, result: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm dark:bg-gray-700 dark:text-white"
               >
                 <option value="">{t('followups.form.selectResult')}</option>
                 <option value="interested">{t('followups.form.interested')}</option>
@@ -206,24 +206,24 @@ export default function FollowUpForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">{t('followups.form.nextFollowUpDate')}</label>
+              <label className="block text-sm font-medium mb-1 dark:text-gray-100">{t('followups.form.nextFollowUpDate')}</label>
               <input
                 type="date"
                 value={formData.nextFollowUpDate}
                 onChange={(e) => setFormData({ ...formData, nextFollowUpDate: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm dark:bg-gray-700 dark:text-white"
               />
             </div>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer p-2 bg-gray-50 rounded-lg">
+          <label className="flex items-center gap-2 cursor-pointer p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <input
               type="checkbox"
               checked={formData.contacted}
               onChange={(e) => setFormData({ ...formData, contacted: e.target.checked })}
               className="rounded w-4 h-4"
             />
-            <span className="text-sm font-medium">{t('followups.form.contactedCheckbox')}</span>
+            <span className="text-sm font-medium dark:text-gray-100">{t('followups.form.contactedCheckbox')}</span>
           </label>
 
           <button

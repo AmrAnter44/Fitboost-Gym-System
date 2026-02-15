@@ -583,10 +583,10 @@ export default function FollowUpsPage() {
 
   const getResultBadge = useCallback((result?: string) => {
     const badges = {
-      interested: 'bg-green-100 text-green-800',
-      'not-interested': 'bg-red-100 text-red-800',
-      postponed: 'bg-yellow-100 text-yellow-800',
-      subscribed: 'bg-primary-100 text-primary-800',
+      interested: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      'not-interested': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      postponed: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+      subscribed: 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200',
     }
     const labels: Record<string, string> = {
       interested: t('followups.results.interested'),
@@ -594,9 +594,9 @@ export default function FollowUpsPage() {
       postponed: t('followups.results.postponed'),
       subscribed: t('followups.results.subscribed'),
     }
-    if (!result) return <span className="text-gray-400">-</span>
+    if (!result) return <span className="text-gray-400 dark:text-gray-500">-</span>
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badges[result as keyof typeof badges] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badges[result as keyof typeof badges] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}>
         {labels[result] || result}
       </span>
     )
@@ -622,21 +622,21 @@ export default function FollowUpsPage() {
 
     if (priority === 'overdue') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
           🔥 {t('followups.priority.overdue')}
         </span>
       )
     }
     if (priority === 'today') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
           ⚡ {t('followups.priority.today')}
         </span>
       )
     }
     if (priority === 'upcoming') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
           📅 {t('followups.priority.upcoming')}
         </span>
       )
@@ -743,7 +743,7 @@ export default function FollowUpsPage() {
               <span>📝</span>
               <span>{t('followups.title')}</span>
             </h1>
-            <p className="text-gray-600 mt-2 text-sm sm:text-base">{t('followups.subtitle')}</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base">{t('followups.subtitle')}</p>
           </div>
           <button
             onClick={() => {
@@ -763,7 +763,7 @@ export default function FollowUpsPage() {
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               viewMode === 'list'
                 ? 'bg-primary-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
             }`}
           >
             📋 {t('followups.viewModes.list')}
@@ -773,7 +773,7 @@ export default function FollowUpsPage() {
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               viewMode === 'analytics'
                 ? 'bg-primary-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
             }`}
           >
             📈 {t('followups.viewModes.analytics')}
@@ -781,10 +781,10 @@ export default function FollowUpsPage() {
         </div>
 
         {/* Filter for Expiring Days */}
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-3 sm:p-4 mb-4">
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-300 dark:border-yellow-600 rounded-xl p-3 sm:p-4 mb-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             <div className="flex-1 w-full sm:w-auto">
-              <label className="block text-xs sm:text-sm font-bold text-yellow-900 mb-2">
+              <label className="block text-xs sm:text-sm font-bold text-yellow-900 dark:text-yellow-100 mb-2">
                 ⏰ {t('followups.filters.expiringDays')}
               </label>
               <div className="flex items-center gap-2">
@@ -794,9 +794,9 @@ export default function FollowUpsPage() {
                   max="365"
                   value={expiringDays}
                   onChange={(e) => setExpiringDays(Number(e.target.value))}
-                  className="px-3 sm:px-4 py-2 border-2 border-yellow-400 rounded-lg font-bold text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 w-20 sm:w-24"
+                  className="px-3 sm:px-4 py-2 border-2 border-yellow-400 dark:border-yellow-600 dark:bg-gray-700 dark:text-white rounded-lg font-bold text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 w-20 sm:w-24"
                 />
-                <span className="text-base sm:text-lg font-bold text-yellow-900">{t('followups.days')}</span>
+                <span className="text-base sm:text-lg font-bold text-yellow-900 dark:text-yellow-100">{t('followups.days')}</span>
               </div>
             </div>
             <div className="text-center w-full sm:w-auto">
@@ -808,8 +808,8 @@ export default function FollowUpsPage() {
 
         {/* 🎯 Quick Personal Filters */}
         {user?.name && (
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-xl p-3 sm:p-4 mb-4">
-            <h3 className="font-bold text-purple-900 mb-3 flex items-center gap-2 text-sm sm:text-base">
+          <div className="bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-300 dark:border-primary-600 rounded-xl p-3 sm:p-4 mb-4">
+            <h3 className="font-bold text-primary-900 dark:text-primary-100 mb-3 flex items-center gap-2 text-sm sm:text-base">
               <span>🎯</span>
               <span>{t('followups.quickFilters.title')} - {user.name}</span>
             </h3>
@@ -818,8 +818,8 @@ export default function FollowUpsPage() {
                 onClick={() => setSalesFilter('all')}
                 className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
                   salesFilter === 'all'
-                    ? 'bg-purple-600 text-white shadow-lg'
-                    : 'bg-white text-purple-700 hover:bg-purple-100 border border-purple-300'
+                    ? 'bg-primary-600 text-white shadow-lg'
+                    : 'bg-white dark:bg-gray-700 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50 border border-primary-300 dark:border-primary-600'
                 }`}
               >
                 📋 {t('followups.quickFilters.all')} ({allFollowUps.length})
@@ -829,7 +829,7 @@ export default function FollowUpsPage() {
                 className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
                   salesFilter === 'my-followups'
                     ? 'bg-primary-600 text-white shadow-lg'
-                    : 'bg-white text-primary-700 hover:bg-primary-100 border border-primary-300'
+                    : 'bg-white dark:bg-gray-700 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50 border border-primary-300 dark:border-primary-600'
                 }`}
               >
                 👤 {t('followups.quickFilters.myFollowups')} ({allFollowUps.filter(fu => fu.salesName === user.name).length})
@@ -839,7 +839,7 @@ export default function FollowUpsPage() {
                 className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
                   salesFilter === 'my-overdue'
                     ? 'bg-red-600 text-white shadow-lg'
-                    : 'bg-white text-red-700 hover:bg-red-100 border border-red-300'
+                    : 'bg-white dark:bg-gray-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-300 dark:border-red-600'
                 }`}
               >
                 🔥 {t('followups.quickFilters.myOverdue')} ({allFollowUps.filter(fu => fu.salesName === user.name && getFollowUpPriority(fu) === 'overdue').length})
@@ -849,7 +849,7 @@ export default function FollowUpsPage() {
                 className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
                   salesFilter === 'today'
                     ? 'bg-orange-600 text-white shadow-lg'
-                    : 'bg-white text-orange-700 hover:bg-orange-100 border border-orange-300'
+                    : 'bg-white dark:bg-gray-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/50 border border-orange-300 dark:border-orange-600'
                 }`}
               >
                 ⚡ {t('followups.quickFilters.today')} ({allFollowUps.filter(fu => {
@@ -865,50 +865,50 @@ export default function FollowUpsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 gap-2 sm:gap-3 mb-6">
           <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">{t('followups.stats.total')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.total}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.total}</p>
           </div>
           <div className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">🔥 {t('followups.stats.overdue')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.overdue}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.overdue}</p>
           </div>
           <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">⚡ {t('followups.stats.today')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.today}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.today}</p>
           </div>
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
+          <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">❌ {t('followups.stats.expiredMembers')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.expiredMembers}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.expiredMembers}</p>
           </div>
           <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">⏰ {t('followups.stats.expiringMembers')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.expiringMembers}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.expiringMembers}</p>
           </div>
           <div className="bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">🎁 {t('followups.stats.dayUse')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.dayUse}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.dayUse}</p>
           </div>
           <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">👥 {t('followups.stats.invitations')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.invitations}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.invitations}</p>
           </div>
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
+          <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">👤 {t('followups.stats.visitors')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.visitors}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.visitors}</p>
           </div>
           <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">✅ {t('followups.stats.contactedToday')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.contactedToday}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.contactedToday}</p>
           </div>
           <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl p-3 sm:p-4 shadow-lg">
             <p className="text-[10px] sm:text-xs opacity-90 mb-1">🎉 {t('followups.stats.subscribedAndHidden')}</p>
-            <p className="text-2xl sm:text-3xl font-bold">{stats.subscribedAndHidden}</p>
+            <p className="text-2xl sm:text-3xl font-bold dark:text-white">{stats.subscribedAndHidden}</p>
           </div>
         </div>
 
         {/* 🏆 Sales Leaderboard */}
         {salesStats.length > 0 && (
-          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-4 sm:p-6 mb-6">
-            <h3 className="font-bold text-amber-900 mb-4 flex items-center gap-2 text-lg sm:text-xl">
+          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-2 border-amber-300 dark:border-amber-600 rounded-xl p-4 sm:p-6 mb-6">
+            <h3 className="font-bold text-amber-900 dark:text-amber-100 mb-4 flex items-center gap-2 text-lg sm:text-xl">
               <span>🏆</span>
               <span>{t('followups.analytics.leaderboard.title')}</span>
             </h3>
@@ -921,12 +921,12 @@ export default function FollowUpsPage() {
                 return (
                   <div
                     key={stat.name}
-                    className={`bg-white rounded-lg p-4 shadow-md border-2 transition-all hover:shadow-lg ${
+                    className={`bg-white dark:bg-gray-700 rounded-lg p-4 shadow-md border-2 transition-all hover:shadow-lg ${
                       isCurrentUser
-                        ? 'border-primary-500 ring-2 ring-primary-300'
+                        ? 'border-primary-500 dark:border-primary-400 ring-2 ring-primary-300 dark:ring-primary-600'
                         : index < 3
-                        ? 'border-amber-400'
-                        : 'border-gray-200'
+                        ? 'border-amber-400 dark:border-amber-500'
+                        : 'border-gray-200 dark:border-gray-600'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-3">
@@ -934,15 +934,15 @@ export default function FollowUpsPage() {
                         <span className="text-2xl">{medal}</span>
                         <div>
                           <h4 className={`font-bold text-sm sm:text-base ${
-                            isCurrentUser ? 'text-primary-700' : 'text-gray-900'
+                            isCurrentUser ? 'text-primary-700 dark:text-primary-300' : 'text-gray-900 dark:text-gray-100'
                           }`}>
                             {stat.name}
-                            {isCurrentUser && <span className="text-xs text-primary-600 ml-1">({t('followups.analytics.leaderboard.you')})</span>}
+                            {isCurrentUser && <span className="text-xs text-primary-600 dark:text-primary-400 ml-1">({t('followups.analytics.leaderboard.you')})</span>}
                           </h4>
                         </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-xs text-gray-500">{t('followups.analytics.leaderboard.successRate')}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">{t('followups.analytics.leaderboard.successRate')}</p>
                         <p className={`text-2xl font-bold ${
                           stat.conversionRate >= 30 ? 'text-green-600' :
                           stat.conversionRate >= 15 ? 'text-yellow-600' :
@@ -954,30 +954,30 @@ export default function FollowUpsPage() {
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="bg-primary-50 rounded p-2">
-                        <p className="text-[10px] text-primary-700 font-medium">{t('followups.analytics.leaderboard.followupsShort')}</p>
-                        <p className="text-lg font-bold text-primary-900">{stat.totalFollowUps}</p>
+                      <div className="bg-primary-50 dark:bg-primary-900/30 rounded p-2">
+                        <p className="text-[10px] text-primary-700 dark:text-primary-300 font-medium">{t('followups.analytics.leaderboard.followupsShort')}</p>
+                        <p className="text-lg font-bold text-primary-900 dark:text-primary-200">{stat.totalFollowUps}</p>
                       </div>
-                      <div className="bg-green-50 rounded p-2">
-                        <p className="text-[10px] text-green-700 font-medium">{t('followups.analytics.leaderboard.conversionsShort')}</p>
-                        <p className="text-lg font-bold text-green-900">{stat.conversions}</p>
+                      <div className="bg-green-50 dark:bg-green-900/30 rounded p-2">
+                        <p className="text-[10px] text-green-700 dark:text-green-300 font-medium">{t('followups.analytics.leaderboard.conversionsShort')}</p>
+                        <p className="text-lg font-bold text-green-900 dark:text-green-200">{stat.conversions}</p>
                       </div>
-                      <div className="bg-purple-50 rounded p-2">
-                        <p className="text-[10px] text-purple-700 font-medium">{t('followups.analytics.leaderboard.todayShort')}</p>
-                        <p className="text-lg font-bold text-purple-900">{stat.contactedToday}</p>
+                      <div className="bg-primary-50 dark:bg-primary-900/30 rounded p-2">
+                        <p className="text-[10px] text-primary-700 dark:text-primary-300 font-medium">{t('followups.analytics.leaderboard.todayShort')}</p>
+                        <p className="text-lg font-bold text-primary-900 dark:text-primary-200">{stat.contactedToday}</p>
                       </div>
                     </div>
 
                     <div className="mt-3 flex gap-2 text-xs">
                       {stat.overdueCount > 0 && (
-                        <div className="flex-1 bg-red-50 text-red-700 px-2 py-1 rounded flex items-center justify-center gap-1">
+                        <div className="flex-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-1 rounded flex items-center justify-center gap-1">
                           <span>🔥</span>
                           <span className="font-bold">{stat.overdueCount}</span>
                           <span>{t('followups.analytics.leaderboard.overdueShort')}</span>
                         </div>
                       )}
                       {stat.todayCount > 0 && (
-                        <div className="flex-1 bg-orange-50 text-orange-700 px-2 py-1 rounded flex items-center justify-center gap-1">
+                        <div className="flex-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded flex items-center justify-center gap-1">
                           <span>⚡</span>
                           <span className="font-bold">{stat.todayCount}</span>
                           <span>{t('followups.analytics.leaderboard.todayShort')}</span>
@@ -1023,8 +1023,8 @@ export default function FollowUpsPage() {
       {/* History Modal - سجل المتابعات (Lightweight) */}
       {showHistoryModal && selectedVisitorForHistory && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowHistoryModal(false)}>
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-purple-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-primary-600 text-white p-4 rounded-t-lg flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-bold flex items-center gap-2">
                   <span>📋</span>
@@ -1036,7 +1036,7 @@ export default function FollowUpsPage() {
               </div>
               <button
                 onClick={() => setShowHistoryModal(false)}
-                className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center"
+                className="text-white hover:bg-white dark:bg-gray-800/20 rounded-full w-8 h-8 flex items-center justify-center"
               >
                 ✕
               </button>
@@ -1044,14 +1044,14 @@ export default function FollowUpsPage() {
 
             <div className="p-4">
               {visitorHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                   <div className="text-4xl mb-2">📭</div>
                   <p className="text-sm">{t('followups.history.noHistory')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                    <p className="text-sm font-bold text-purple-900">
+                  <div className="bg-primary-50 dark:bg-primary-900/30 p-3 rounded-lg border border-primary-200 dark:border-primary-600">
+                    <p className="text-sm font-bold text-primary-900 dark:text-primary-100">
                       {t('followups.history.total')}: <span className="text-2xl">{visitorHistory.length}</span>
                     </p>
                   </div>
@@ -1060,39 +1060,39 @@ export default function FollowUpsPage() {
                     <div
                       key={fu.id}
                       className={`border rounded-lg p-3 ${
-                        fu.contacted ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
+                        fu.contacted ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xl font-bold text-gray-400">#{visitorHistory.length - index}</span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xl font-bold text-gray-400 dark:text-gray-500">#{visitorHistory.length - index}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                               {new Date(fu.createdAt).toLocaleDateString('ar-EG')}
                             </span>
                             {fu.contacted ? (
-                              <span className="text-green-700 font-bold text-xs">✅ {t('followups.history.contacted')}</span>
+                              <span className="text-green-700 dark:text-green-300 font-bold text-xs">✅ {t('followups.history.contacted')}</span>
                             ) : (
-                              <span className="text-orange-600 font-bold text-xs">⏳ {t('followups.history.notContacted')}</span>
+                              <span className="text-orange-600 dark:text-orange-300 font-bold text-xs">⏳ {t('followups.history.notContacted')}</span>
                             )}
                           </div>
                         </div>
                         <div className="flex gap-1 flex-wrap justify-end">
                           {fu.result && getResultBadge(fu.result)}
                           {fu.salesName && (
-                            <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs">
+                            <span className="bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 px-2 py-0.5 rounded-full text-xs">
                               {fu.salesName}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="bg-white p-2 rounded border border-gray-200 mb-2">
-                        <p className="text-sm text-gray-800">{fu.notes}</p>
+                      <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600 mb-2">
+                        <p className="text-sm text-gray-800 dark:text-gray-100">{fu.notes}</p>
                       </div>
 
                       {fu.nextFollowUpDate && (
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">
                           📅 {t('followups.history.nextFollowUp')}: <span className="font-bold">{new Date(fu.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
                         </div>
                       )}
@@ -1106,25 +1106,25 @@ export default function FollowUpsPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md mb-6">
+      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-md mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
           <div className="sm:col-span-2 lg:col-span-1">
-            <label className="block text-xs sm:text-sm font-medium mb-1">🔍 {t('followups.filters.search')}</label>
+            <label className="block text-xs sm:text-sm font-medium mb-1 dark:text-gray-200">🔍 {t('followups.filters.search')}</label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
               placeholder={t('followups.filters.searchPlaceholder')}
             />
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium mb-1">📂 {t('followups.filters.source')}</label>
+            <label className="block text-xs sm:text-sm font-medium mb-1 dark:text-gray-200">📂 {t('followups.filters.source')}</label>
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
               <option value="expired-member">❌ {t('followups.sources.expiredMembers')}</option>
@@ -1136,11 +1136,11 @@ export default function FollowUpsPage() {
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium mb-1">📊 {t('followups.filters.priority')}</label>
+            <label className="block text-xs sm:text-sm font-medium mb-1 dark:text-gray-200">📊 {t('followups.filters.priority')}</label>
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
               <option value="overdue">🔥 {t('followups.priority.overdue')}</option>
@@ -1150,11 +1150,11 @@ export default function FollowUpsPage() {
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium mb-1">📈 {t('followups.filters.result')}</label>
+            <label className="block text-xs sm:text-sm font-medium mb-1 dark:text-gray-200">📈 {t('followups.filters.result')}</label>
             <select
               value={resultFilter}
               onChange={(e) => setResultFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
               <option value="interested">✅ {t('followups.results.interested')}</option>
@@ -1165,11 +1165,11 @@ export default function FollowUpsPage() {
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium mb-1">📞 {t('followups.filters.contacted')}</label>
+            <label className="block text-xs sm:text-sm font-medium mb-1 dark:text-gray-200">📞 {t('followups.filters.contacted')}</label>
             <select
               value={contactedFilter}
               onChange={(e) => setContactedFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
               <option value="contacted">✅ {t('followups.filters.contactedYes')}</option>
@@ -1185,7 +1185,7 @@ export default function FollowUpsPage() {
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
               sourceFilter === 'all'
                 ? 'bg-primary-600 text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             {t('followups.filters.all')} ({allFollowUps.length})
@@ -1195,7 +1195,7 @@ export default function FollowUpsPage() {
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
               sourceFilter === 'expired-member'
                 ? 'bg-red-600 text-white shadow-lg'
-                : 'bg-red-50 text-red-700 hover:bg-red-100'
+                : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50'
             }`}
           >
             ❌ {t('followups.sources.expiredMembers')} ({stats.expiredMembers})
@@ -1205,7 +1205,7 @@ export default function FollowUpsPage() {
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
               sourceFilter === 'expiring-member'
                 ? 'bg-yellow-600 text-white shadow-lg'
-                : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                : 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/50'
             }`}
           >
             ⏰ {t('followups.sources.expiringMembers')} ({stats.expiringMembers})
@@ -1215,7 +1215,7 @@ export default function FollowUpsPage() {
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
               sourceFilter === 'member-invitation'
                 ? 'bg-cyan-600 text-white shadow-lg'
-                : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
+                : 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'
             }`}
           >
             👥 {t('followups.sources.memberInvitations')} ({stats.invitations})
@@ -1225,7 +1225,7 @@ export default function FollowUpsPage() {
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
               sourceFilter === 'dayuse'
                 ? 'bg-pink-600 text-white shadow-lg'
-                : 'bg-pink-50 text-pink-700 hover:bg-pink-100'
+                : 'bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/50'
             }`}
           >
             🎁 {t('followups.sources.dayUse')} ({stats.dayUse})
@@ -1234,8 +1234,8 @@ export default function FollowUpsPage() {
             onClick={() => setSourceFilter('visitors')}
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
               sourceFilter === 'visitors'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                ? 'bg-primary-600 text-white shadow-lg'
+                : 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50'
             }`}
           >
             👤 {t('followups.sources.visitors')} ({stats.visitors})
@@ -1263,12 +1263,12 @@ export default function FollowUpsPage() {
               return (
                 <div
                   key={followUp.id}
-                  className={`bg-white rounded-lg shadow-md p-3 sm:p-4 ${
+                  className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4 ${
                     isExpired
-                      ? 'border-r-4 border-red-500'
+                      ? 'border-r-4 border-red-500 dark:border-red-400'
                       : isExpiring
-                      ? 'border-r-4 border-yellow-500'
-                      : 'border-r-4 border-primary-500'
+                      ? 'border-r-4 border-yellow-500 dark:border-yellow-400'
+                      : 'border-r-4 border-primary-500 dark:border-primary-400'
                   }`}
                 >
                   {/* Action Buttons at Top */}
@@ -1281,7 +1281,7 @@ export default function FollowUpsPage() {
                       {(isExpired || isExpiring) && (
                         <Link
                           href={`/members?search=${encodeURIComponent(followUp.visitor.phone)}`}
-                          className="text-green-600 hover:text-green-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-green-50 hover:bg-green-100"
+                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
                         >
                           🔄
                         </Link>
@@ -1289,7 +1289,7 @@ export default function FollowUpsPage() {
                       {isExpired && (
                         <button
                           onClick={() => openQuickFollowUp(followUp.visitor)}
-                          className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 hover:bg-red-100"
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
                         >
                           ➕
                         </button>
@@ -1297,21 +1297,21 @@ export default function FollowUpsPage() {
                       {!isExpired && (
                         <button
                           onClick={() => openQuickFollowUp(followUp.visitor)}
-                          className="text-primary-600 hover:text-primary-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-primary-50 hover:bg-primary-100"
+                          className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
                         >
                           ➕
                         </button>
                       )}
                       <button
                         onClick={() => openHistoryModal(followUp.visitor)}
-                        className="text-purple-600 hover:text-purple-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-purple-50 hover:bg-purple-100"
+                        className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
                       >
                         📋
                       </button>
                       {!followUp.id.startsWith('expired-') && !followUp.id.startsWith('expiring-') && !followUp.id.startsWith('dayuse-') && !followUp.id.startsWith('invitation-') && (
                         <button
                           onClick={() => handleDeleteFollowUp(followUp.id, followUp.visitor.name)}
-                          className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 hover:bg-red-100"
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
                           disabled={deleteMutation.isPending}
                           title={t('followups.actions.deleteFollowup')}
                         >
@@ -1324,16 +1324,16 @@ export default function FollowUpsPage() {
                   {/* Follow-up Info */}
                   <div className="space-y-1.5 sm:space-y-2">
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">👤 {t('followups.table.name')}:</span>
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">👤 {t('followups.table.name')}:</span>
                       <span className={`font-bold text-sm sm:text-base ${
-                        isExpired ? 'text-red-700' : 'text-gray-900'
+                        isExpired ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'
                       }`}>
                         {followUp.visitor.name}
                       </span>
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📱 {t('followups.table.phone')}:</span>
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📱 {t('followups.table.phone')}:</span>
                       <div className="flex gap-1">
                         <a
                           href={`https://wa.me/20${followUp.visitor.phone}`}
@@ -1359,17 +1359,17 @@ export default function FollowUpsPage() {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📂 {t('followups.table.source')}:</span>
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📂 {t('followups.table.source')}:</span>
                       <span className={`${
                         followUp.visitor.source === 'invitation'
-                          ? 'bg-purple-100 text-purple-800 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium'
+                          ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium'
                           : followUp.visitor.source === 'member-invitation'
-                          ? 'bg-primary-100 text-primary-800 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium'
+                          ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium'
                           : followUp.visitor.source === 'expired-member'
-                          ? 'bg-red-100 text-red-800 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold'
                           : followUp.visitor.source === 'expiring-member'
-                          ? 'bg-yellow-100 text-yellow-800 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold'
-                          : 'text-gray-600 text-xs sm:text-sm'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold'
+                          : 'text-gray-600 dark:text-gray-300 text-xs sm:text-sm'
                       }`}>
                         {getSourceLabel(followUp.visitor.source)}
                       </span>
@@ -1377,7 +1377,7 @@ export default function FollowUpsPage() {
 
                     {followUp.salesName && (
                       <div className="flex items-start gap-2">
-                        <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">🧑‍💼 {t('followups.table.sales')}:</span>
+                        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">🧑‍💼 {t('followups.table.sales')}:</span>
                         <span className="text-orange-600 font-semibold text-xs sm:text-sm">{followUp.salesName}</span>
                       </div>
                     )}
@@ -1386,10 +1386,10 @@ export default function FollowUpsPage() {
                       const lastComment = getLastComment(followUp.visitor.phone)
                       return lastComment ? (
                         <div className="flex items-start gap-2">
-                          <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">💬 {t('followups.table.lastComment')}:</span>
+                          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">💬 {t('followups.table.lastComment')}:</span>
                           <div className="flex-1">
-                            <p className="text-xs sm:text-sm text-gray-700">{lastComment.notes}</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">
+                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200">{lastComment.notes}</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                               {lastComment.salesName && <span className="text-orange-500">{lastComment.salesName} • </span>}
                               {new Date(lastComment.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                             </p>
@@ -1397,20 +1397,20 @@ export default function FollowUpsPage() {
                         </div>
                       ) : (
                         <div className="flex items-start gap-2">
-                          <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📝 {t('followups.table.notes')}:</span>
-                          <p className="text-xs sm:text-sm text-gray-700 flex-1">{followUp.notes}</p>
+                          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📝 {t('followups.table.notes')}:</span>
+                          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 flex-1">{followUp.notes}</p>
                         </div>
                       )
                     })()}
 
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📊 {t('followups.table.result')}:</span>
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📊 {t('followups.table.result')}:</span>
                       {getResultBadge(followUp.result)}
                     </div>
 
                     {followUp.nextFollowUpDate && (
                       <div className="flex items-start gap-2">
-                        <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📅 {t('followups.table.nextFollowUp')}:</span>
+                        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📅 {t('followups.table.nextFollowUp')}:</span>
                         <span className="text-xs sm:text-sm font-medium">
                           {new Date(followUp.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                         </span>
@@ -1418,14 +1418,14 @@ export default function FollowUpsPage() {
                     )}
 
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📅 {t('followups.table.date')}:</span>
-                      <span className="text-[10px] sm:text-xs text-gray-500">
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📅 {t('followups.table.date')}:</span>
+                      <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                         {new Date(followUp.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                       </span>
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📞 {t('followups.table.contacted')}:</span>
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📞 {t('followups.table.contacted')}:</span>
                       {followUp.contacted ? (
                         <span className="text-green-600 text-xs sm:text-sm">✅ {t('followups.labels.contactedYes')}</span>
                       ) : (
@@ -1438,7 +1438,7 @@ export default function FollowUpsPage() {
             })}
 
             {filteredFollowUps.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                 {searchTerm || resultFilter !== 'all' || contactedFilter !== 'all' || priorityFilter !== 'all' ? (
                   <>
                     <div className="text-5xl mb-3">🔍</div>
@@ -1461,7 +1461,7 @@ export default function FollowUpsPage() {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
               <thead className="bg-gradient-to-r from-primary-500 to-primary-600 text-white">
@@ -1485,12 +1485,12 @@ export default function FollowUpsPage() {
                   return (
                   <tr
                     key={followUp.id}
-                    className={`border-t transition-colors ${
+                    className={`border-t dark:border-gray-700 transition-colors ${
                       isExpired
-                        ? 'bg-red-50 hover:bg-red-100'
+                        ? 'bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30'
                         : isExpiring
-                        ? 'bg-yellow-50 hover:bg-yellow-100'
-                        : 'hover:bg-primary-50'
+                        ? 'bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30'
+                        : 'hover:bg-primary-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     <td className="px-4 py-3">
@@ -1499,11 +1499,11 @@ export default function FollowUpsPage() {
                     <td className="px-4 py-3">
                       <div>
                         <p className={`font-semibold ${
-                          isExpired ? 'text-red-700' : 'text-gray-900'
+                          isExpired ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'
                         }`}>
                           {followUp.visitor.name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                           {followUp.contacted ? (
                             <span className="text-green-600">✅ {t('followups.labels.contactedYes')}</span>
                           ) : (
@@ -1539,14 +1539,14 @@ export default function FollowUpsPage() {
                     <td className="px-4 py-3 text-sm">
                       <span className={`${
                         followUp.visitor.source === 'invitation'
-                          ? 'bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium'
+                          ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-1 rounded-full text-xs font-medium'
                           : followUp.visitor.source === 'member-invitation'
-                          ? 'bg-primary-100 text-primary-800 px-2 py-1 rounded-full text-xs font-medium'
+                          ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-1 rounded-full text-xs font-medium'
                           : followUp.visitor.source === 'expired-member'
-                          ? 'bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-2 py-1 rounded-full text-xs font-bold'
                           : followUp.visitor.source === 'expiring-member'
-                          ? 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold'
-                          : 'text-gray-600'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-1 rounded-full text-xs font-bold'
+                          : 'text-gray-600 dark:text-gray-300'
                       }`}>
                         {getSourceLabel(followUp.visitor.source)}
                       </span>
@@ -1558,7 +1558,7 @@ export default function FollowUpsPage() {
                           <span>{followUp.salesName}</span>
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -1567,11 +1567,11 @@ export default function FollowUpsPage() {
                         const displayNotes = lastComment?.notes || followUp.notes
                         return (
                           <div>
-                            <p className="text-sm text-gray-700 max-w-xs" title={displayNotes}>
+                            <p className="text-sm text-gray-700 dark:text-gray-200 max-w-xs" title={displayNotes}>
                               {displayNotes.length > 50 ? displayNotes.substring(0, 50) + '...' : displayNotes}
                             </p>
                             {lastComment && (
-                              <p className="text-xs text-gray-400 mt-1">
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                                 {lastComment.salesName && <span className="text-orange-500">{lastComment.salesName} • </span>}
                                 {new Date(lastComment.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                               </p>
@@ -1589,7 +1589,7 @@ export default function FollowUpsPage() {
                           {new Date(followUp.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -1598,7 +1598,7 @@ export default function FollowUpsPage() {
                         {(isExpired || isExpiring) && (
                           <Link
                             href={`/members?search=${encodeURIComponent(followUp.visitor.phone)}`}
-                            className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 text-sm font-medium px-3 py-1 rounded bg-green-50 hover:bg-green-100"
+                            className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
                             title={t('followups.actions.quickRenew')}
                           >
                             🔄 {t('followups.actions.quickRenew')}
@@ -1608,7 +1608,7 @@ export default function FollowUpsPage() {
                         {isExpired && (
                           <button
                             onClick={() => openQuickFollowUp(followUp.visitor)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 rounded bg-red-50 hover:bg-red-100"
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
                             title={t('followups.actions.addFollowupRenewal')}
                           >
                             ➕ {t('followups.buttons.followup')}
@@ -1617,7 +1617,7 @@ export default function FollowUpsPage() {
                         {!isExpired && (
                           <button
                             onClick={() => openQuickFollowUp(followUp.visitor)}
-                            className="text-primary-600 hover:text-primary-800 text-sm font-medium px-3 py-1 rounded bg-primary-50 hover:bg-primary-100"
+                            className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-medium px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
                             title={t('followups.actions.addFollowupNew')}
                           >
                             ➕ {t('followups.buttons.followup')}
@@ -1627,7 +1627,7 @@ export default function FollowUpsPage() {
                         {/* زر سجل المتابعات */}
                         <button
                           onClick={() => openHistoryModal(followUp.visitor)}
-                          className="text-purple-600 hover:text-purple-800 text-sm font-medium px-3 py-1 rounded bg-purple-50 hover:bg-purple-100"
+                          className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-medium px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
                           title={t('followups.actions.viewHistory')}
                         >
                           📋 {t('followups.buttons.history')}
@@ -1637,7 +1637,7 @@ export default function FollowUpsPage() {
                         {!followUp.id.startsWith('expired-') && !followUp.id.startsWith('expiring-') && !followUp.id.startsWith('dayuse-') && !followUp.id.startsWith('invitation-') && (
                           <button
                             onClick={() => handleDeleteFollowUp(followUp.id, followUp.visitor.name)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 rounded bg-red-50 hover:bg-red-100"
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
                             title={t('followups.actions.deleteFollowup')}
                             disabled={deleteMutation.isPending}
                           >
@@ -1654,7 +1654,7 @@ export default function FollowUpsPage() {
           </div>
 
             {filteredFollowUps.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                 {searchTerm || resultFilter !== 'all' || contactedFilter !== 'all' || priorityFilter !== 'all' ? (
                   <>
                     <div className="text-5xl mb-3">🔍</div>
@@ -1678,23 +1678,23 @@ export default function FollowUpsPage() {
 
           {/* Pagination Controls */}
           {filteredFollowUps.length > 0 && (
-            <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+            <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 {/* معلومات الصفحة */}
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-300">
                   {t('followups.pagination.showing')} {startIndex + 1} {t('followups.pagination.to')} {Math.min(endIndex, filteredFollowUps.length)} {t('followups.pagination.of')} {filteredFollowUps.length} {t('followups.pagination.followups')}
                 </div>
 
                 {/* عدد العناصر في الصفحة */}
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600">{t('followups.pagination.itemsPerPage')}:</label>
+                  <label className="text-sm text-gray-600 dark:text-gray-300">{t('followups.pagination.itemsPerPage')}:</label>
                   <select
                     value={itemsPerPage}
                     onChange={(e) => {
                       setItemsPerPage(Number(e.target.value))
                       setCurrentPage(1)
                     }}
-                    className="px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none"
+                    className="px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -1709,14 +1709,14 @@ export default function FollowUpsPage() {
                     <button
                       onClick={() => goToPage(1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       {t('followups.pagination.first')}
                     </button>
                     <button
                       onClick={() => goToPage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       {t('followups.pagination.previous')}
                     </button>
@@ -1742,7 +1742,7 @@ export default function FollowUpsPage() {
                             className={`px-3 py-2 rounded-lg font-medium ${
                               currentPage === pageNum
                                 ? 'bg-primary-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
                             }`}
                           >
                             {pageNum}
@@ -1754,14 +1754,14 @@ export default function FollowUpsPage() {
                     <button
                       onClick={() => goToPage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       {t('followups.pagination.next')}
                     </button>
                     <button
                       onClick={() => goToPage(totalPages)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       {t('followups.pagination.last')}
                     </button>
@@ -1770,7 +1770,7 @@ export default function FollowUpsPage() {
               </div>
 
               {/* معلومات إضافية */}
-              <div className="mt-4 text-center text-sm text-gray-500">
+              <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                 {t('followups.pagination.page')} {currentPage} {t('followups.pagination.of')} {totalPages}
               </div>
             </div>
@@ -1780,8 +1780,8 @@ export default function FollowUpsPage() {
 
       {/* Recently Converted Section */}
       {convertedMembers.length > 0 && viewMode === 'list' && (
-        <div className="mt-6 bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-300 rounded-xl p-4 sm:p-6">
-          <h3 className="font-bold text-emerald-900 mb-4 flex items-center gap-2 text-lg sm:text-xl">
+        <div className="mt-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-300 dark:border-emerald-600 rounded-xl p-4 sm:p-6">
+          <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-4 flex items-center gap-2 text-lg sm:text-xl">
             <span>🎉</span>
             <span>تحولوا لأعضاء / جددوا الاشتراك</span>
             <span className="bg-emerald-600 text-white text-sm px-3 py-1 rounded-full">
@@ -1799,26 +1799,26 @@ export default function FollowUpsPage() {
                 return (
                   <div
                     key={fu.id}
-                    className="bg-white border-2 border-emerald-200 rounded-lg p-3 hover:shadow-md transition-shadow"
+                    className="bg-white dark:bg-gray-700 border-2 border-emerald-200 dark:border-emerald-600 rounded-lg p-3 hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <p className="font-bold text-gray-900 text-sm sm:text-base">{fu.visitor.name}</p>
-                        <p className="text-xs text-gray-500">{fu.visitor.phone}</p>
+                        <p className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base">{fu.visitor.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{fu.visitor.phone}</p>
                         {isRenewal && (
-                          <span className="inline-block mt-1 px-2 py-0.5 bg-primary-100 text-primary-700 text-[10px] font-bold rounded-full">
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 text-[10px] font-bold rounded-full">
                             🔄 تجديد
                           </span>
                         )}
                         {!isRenewal && (
-                          <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-[10px] font-bold rounded-full">
                             ⭐ عضو جديد
                           </span>
                         )}
                       </div>
                       <span className="text-2xl">✅</span>
                     </div>
-                    <div className="text-xs text-gray-600 mt-2">
+                    <div className="text-xs text-gray-600 dark:text-gray-300 mt-2">
                       <p className="flex items-center gap-1">
                         <span>📂</span>
                         <span>{getSourceLabel(fu.visitor.source)}</span>
@@ -1826,7 +1826,7 @@ export default function FollowUpsPage() {
                       {fu.salesName && (
                         <p className="flex items-center gap-1 mt-1">
                           <span>🧑‍💼</span>
-                          <span className="font-semibold text-emerald-700">{fu.salesName}</span>
+                          <span className="font-semibold text-emerald-700 dark:text-emerald-300">{fu.salesName}</span>
                         </p>
                       )}
                     </div>
@@ -1835,7 +1835,7 @@ export default function FollowUpsPage() {
               })}
           </div>
           {convertedMembers.length > 6 && (
-            <p className="text-center text-sm text-emerald-700 mt-4 font-medium">
+            <p className="text-center text-sm text-emerald-700 dark:text-emerald-300 mt-4 font-medium">
               وأكثر من {convertedMembers.length - 6} شخص آخر تحول لعضو / جدد 🎊
             </p>
           )}
@@ -1849,16 +1849,16 @@ export default function FollowUpsPage() {
           <span>{t('followups.successRate.title')}</span>
         </h3>
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white/90 backdrop-blur p-5 rounded-lg shadow-md">
-            <p className="text-sm text-gray-600 font-medium mb-1">{t('followups.successRate.totalFollowups')}</p>
-            <p className="text-4xl font-bold text-gray-900">{stats.total}</p>
+          <div className="bg-white dark:bg-gray-800/90 backdrop-blur p-5 rounded-lg shadow-md">
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-1">{t('followups.successRate.totalFollowups')}</p>
+            <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
           </div>
-          <div className="bg-white/90 backdrop-blur p-5 rounded-lg shadow-md">
-            <p className="text-sm text-gray-600 font-medium mb-1">{t('followups.successRate.convertedToMembers')}</p>
+          <div className="bg-white dark:bg-gray-800/90 backdrop-blur p-5 rounded-lg shadow-md">
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-1">{t('followups.successRate.convertedToMembers')}</p>
             <p className="text-4xl font-bold text-green-600">{stats.convertedToMembers}</p>
           </div>
-          <div className="bg-white/90 backdrop-blur p-5 rounded-lg shadow-md">
-            <p className="text-sm text-gray-600 font-medium mb-1">{t('followups.successRate.conversionRate')}</p>
+          <div className="bg-white dark:bg-gray-800/90 backdrop-blur p-5 rounded-lg shadow-md">
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-1">{t('followups.successRate.conversionRate')}</p>
             <p className="text-4xl font-bold text-primary-600">
               {stats.total > 0 ? ((stats.convertedToMembers / stats.total) * 100).toFixed(1) : '0'}%
             </p>
@@ -1870,7 +1870,7 @@ export default function FollowUpsPage() {
       </div>
 
       {/* Quick Tips */}
-      <div className="mt-4 bg-gradient-to-r from-primary-50 to-indigo-50 border-r-4 border-primary-500 p-5 rounded-lg">
+      <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 border-r-4 border-primary-500 p-5 rounded-lg">
         <h3 className="font-bold text-primary-900 mb-2 flex items-center gap-2">
           <span>💡</span>
           <span>{t('followups.tips.title')}</span>
@@ -1892,7 +1892,7 @@ export default function FollowUpsPage() {
           onClick={cancelDelete}
         >
           <div
-            className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 transform transition-all"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-6 transform transition-all"
             onClick={(e) => e.stopPropagation()}
             dir={direction}
           >
@@ -1900,7 +1900,7 @@ export default function FollowUpsPage() {
             <div className="flex items-center gap-3 mb-4">
               <div className="text-4xl">⚠️</div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                   {t('followups.deleteConfirm.title')}
                 </h3>
               </div>
@@ -1908,11 +1908,11 @@ export default function FollowUpsPage() {
 
             {/* Content */}
             <div className="mb-6 space-y-3">
-              <p className="text-gray-700 text-base">
-                {t('followups.deleteConfirm.message')} <strong className="text-red-600">{deleteTarget.name}</strong>؟
+              <p className="text-gray-700 dark:text-gray-200 text-base">
+                {t('followups.deleteConfirm.message')} <strong className="text-red-600 dark:text-red-400">{deleteTarget.name}</strong>؟
               </p>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-sm text-red-800 flex items-start gap-2">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3">
+                <p className="text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
                   <span className="text-lg">⚠️</span>
                   <span>{t('followups.deleteConfirm.warning')}</span>
                 </p>
@@ -1941,7 +1941,7 @@ export default function FollowUpsPage() {
               <button
                 onClick={cancelDelete}
                 disabled={deleteMutation.isPending}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 font-bold py-3 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-bold py-3 px-4 rounded-lg transition-colors"
               >
                 {t('followups.deleteConfirm.cancelButton')}
               </button>

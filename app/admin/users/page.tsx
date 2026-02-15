@@ -243,12 +243,12 @@ export default function AdminUsersPage() {
 
   const getRoleBadge = (role: string) => {
     const badges = {
-      'ADMIN': 'bg-red-100 text-red-800 border-red-300',
-      'MANAGER': 'bg-primary-100 text-primary-800 border-primary-300',
-      'STAFF': 'bg-green-100 text-green-800 border-green-300',
-      'COACH': 'bg-purple-100 text-purple-800 border-purple-300'
+      'ADMIN': 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-300 dark:border-red-700',
+      'MANAGER': 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400 border-primary-300 dark:border-primary-700',
+      'STAFF': 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-300 dark:border-green-700',
+      'COACH': 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400 border-primary-300 dark:border-primary-700'
     }
-    return badges[role as keyof typeof badges] || 'bg-gray-100 text-gray-800'
+    return badges[role as keyof typeof badges] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'
   }
 
   const getRoleLabel = (role: string) => {
@@ -283,8 +283,8 @@ export default function AdminUsersPage() {
     <div className="container mx-auto p-6" dir={direction}>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">👥 إدارة المستخدمين</h1>
-          <p className="text-gray-600">التحكم في حسابات النظام والصلاحيات</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">👥 إدارة المستخدمين</h1>
+          <p className="text-gray-600 dark:text-gray-300">التحكم في حسابات النظام والصلاحيات</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -322,40 +322,40 @@ export default function AdminUsersPage() {
           <div className="text-sm opacity-90">موظفين</div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-5 rounded-xl shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-5 rounded-xl shadow-lg">
           <div className="text-3xl font-bold">{stats.coaches}</div>
           <div className="text-sm opacity-90">كوتشات</div>
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gradient-to-r from-gray-100 to-gray-200">
+            <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
               <tr>
-                <th className="px-6 py-4 text-right font-bold">الاسم</th>
-                <th className="px-6 py-4 text-right font-bold">البريد الإلكتروني</th>
-                <th className="px-6 py-4 text-right font-bold">الدور</th>
-                <th className="px-6 py-4 text-right font-bold">الموظف</th>
-                <th className="px-6 py-4 text-right font-bold">الحالة</th>
-                <th className="px-6 py-4 text-right font-bold">تاريخ الإنشاء</th>
-                <th className="px-6 py-4 text-right font-bold">إجراءات</th>
+                <th className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">الاسم</th>
+                <th className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">البريد الإلكتروني</th>
+                <th className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">الدور</th>
+                <th className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">الموظف</th>
+                <th className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">الحالة</th>
+                <th className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">تاريخ الإنشاء</th>
+                <th className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">إجراءات</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.id} className="border-t hover:bg-primary-50 transition">
+                <tr key={user.id} className="border-t border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-gray-700 transition">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-500 flex items-center justify-center text-white font-bold">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
-                      <span className="font-semibold">{user.name}</span>
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">{user.name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-gray-600 dir-ltr block">{user.email}</span>
+                    <span className="text-gray-600 dark:text-gray-300 dir-ltr block">{user.email}</span>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-sm font-bold border-2 ${getRoleBadge(user.role)}`}>
@@ -365,23 +365,23 @@ export default function AdminUsersPage() {
                   <td className="px-6 py-4">
                     {user.staff ? (
                       <div className="text-sm">
-                        <div className="font-semibold text-purple-700">{user.staff.name}</div>
-                        <div className="text-gray-500">#{user.staff.staffCode}</div>
+                        <div className="font-semibold text-primary-700 dark:text-primary-400">{user.staff.name}</div>
+                        <div className="text-gray-500 dark:text-gray-400">#{user.staff.staffCode}</div>
                       </div>
                     ) : (
-                      <span className="text-gray-400 text-sm">-</span>
+                      <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>
                     )}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                      user.isActive 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
+                      user.isActive
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
                     }`}>
                       {user.isActive ? '✅ نشط' : '❌ موقوف'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                     {new Date(user.createdAt).toLocaleDateString('ar-EG')}
                   </td>
                   <td className="px-6 py-4">
@@ -408,7 +408,7 @@ export default function AdminUsersPage() {
                       
                       <button
                         onClick={() => handleResetPassword(user)}
-                        className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium"
+                        className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 text-sm font-medium"
                         title="إعادة تعيين كلمة المرور"
                       >
                         🔑
@@ -430,7 +430,7 @@ export default function AdminUsersPage() {
         </div>
 
         {users.length === 0 && (
-          <div className="text-center py-20 text-gray-500">
+          <div className="text-center py-20 text-gray-500 dark:text-gray-400">
             <div className="text-6xl mb-4">👥</div>
             <p className="text-xl font-medium">لا يوجد مستخدمين</p>
             <button
@@ -446,70 +446,69 @@ export default function AdminUsersPage() {
       {/* Modal: إضافة مستخدم */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-6 my-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">➕ إضافة مستخدم جديد</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-7xl w-full p-4 my-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">➕ إضافة مستخدم جديد</h2>
               <button
                 onClick={() => {
                   setShowAddModal(false)
                   setNewUserPermissions({})
                 }}
-                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-3xl leading-none"
               >
                 ×
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
                   الاسم <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
                   value={newUserData.name}
                   onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                   placeholder="أحمد محمد"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
                   البريد الإلكتروني <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="email"
                   value={newUserData.email}
                   onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                   placeholder="user@example.com"
                   dir="ltr"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
                   كلمة المرور <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="password"
                   value={newUserData.password}
                   onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                   placeholder="••••••••"
                 />
-                <p className="text-xs text-gray-500 mt-1">يجب أن تكون 6 أحرف على الأقل</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
                   الدور <span className="text-red-600">*</span>
                 </label>
                 <select
                   value={newUserData.role}
                   onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value as any, staffId: '' })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                 >
                   <option value="STAFF">👷 موظف</option>
                   <option value="MANAGER">📊 مشرف</option>
@@ -519,8 +518,8 @@ export default function AdminUsersPage() {
               </div>
 
               {newUserData.role === 'COACH' && (
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">
+                <div className="lg:col-span-4">
+                  <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
                     الموظف <span className="text-red-600">*</span>
                   </label>
                   <select
@@ -534,7 +533,7 @@ export default function AdminUsersPage() {
                         email: selectedStaff ? `coach${selectedStaff.staffCode}@gym.com` : ''
                       })
                     }}
-                    className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                   >
                     <option value="">اختر موظف...</option>
                     {staff
@@ -546,56 +545,53 @@ export default function AdminUsersPage() {
                         </option>
                       ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    سيتم إنشاء حساب كوتش مرتبط بهذا الموظف
-                  </p>
                 </div>
               )}
 
               {/* قسم الصلاحيات */}
-              <div className="md:col-span-2 border-t-2 pt-4 mt-2">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <div className="lg:col-span-4 border-t-2 border-gray-200 dark:border-gray-700 pt-3 mt-2">
+                <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100">
                   <span>🔒</span>
                   <span>الصلاحيات</span>
                 </h3>
 
                 {newUserData.role === 'ADMIN' && (
-                  <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded mb-4">
-                    <p className="text-sm text-yellow-800">
+                  <div className="bg-yellow-50 dark:bg-yellow-900/30 border-r-4 border-yellow-500 dark:border-yellow-700 p-2 rounded mb-2">
+                    <p className="text-xs text-yellow-800 dark:text-yellow-300">
                       <strong>👑 مدير:</strong> المدراء لديهم صلاحيات كاملة تلقائياً ولا يمكن تقييد صلاحياتهم.
                     </p>
                   </div>
                 )}
 
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-2 max-h-52 overflow-y-auto">
                   {Object.entries(PERMISSION_GROUPS).map(([groupKey, group], index) => {
                     const colors = [
-                      'border-primary-200 bg-primary-50 text-primary-800',
-                      'border-green-200 bg-green-50 text-green-800',
-                      'border-purple-200 bg-purple-50 text-purple-800',
-                      'border-orange-200 bg-orange-50 text-orange-800',
-                      'border-pink-200 bg-pink-50 text-pink-800',
-                      'border-yellow-200 bg-yellow-50 text-yellow-800',
-                      'border-indigo-200 bg-indigo-50 text-indigo-800',
-                      'border-teal-200 bg-teal-50 text-teal-800',
-                      'border-red-200 bg-red-50 text-red-800'
+                      'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
+                      'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300',
+                      'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
+                      'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300',
+                      'border-pink-200 dark:border-pink-700 bg-pink-50 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300',
+                      'border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+                      'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
+                      'border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300',
+                      'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                     ]
                     const colorClass = colors[index % colors.length]
 
                     return (
-                      <div key={groupKey} className={`border-2 rounded-lg p-3 ${colorClass}`}>
-                        <h4 className="font-bold mb-2 flex items-center gap-2 text-sm">
+                      <div key={groupKey} className={`border-2 rounded-lg p-2 ${colorClass}`}>
+                        <h4 className="font-bold mb-1 flex items-center gap-1 text-xs">
                           <span>{group.label}</span>
                         </h4>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
                           {group.permissions.map((permission) => (
-                            <label key={permission} className="flex items-center gap-2 cursor-pointer hover:bg-white/50 p-2 rounded transition">
+                            <label key={permission} className="flex items-center gap-1 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-1 rounded transition">
                               <input
                                 type="checkbox"
                                 checked={newUserPermissions[permission] || false}
                                 onChange={(e) => setNewUserPermissions({ ...newUserPermissions, [permission]: e.target.checked })}
                                 disabled={newUserData.role === 'ADMIN'}
-                                className="w-4 h-4"
+                                className="w-3 h-3"
                               />
                               <span className="text-xs">
                                 {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
@@ -609,17 +605,17 @@ export default function AdminUsersPage() {
                 </div>
               </div>
 
-              <div className="md:col-span-2 flex gap-3">
+              <div className="lg:col-span-4 flex gap-2">
                 <button
                   onClick={handleAddUser}
                   disabled={loading}
-                  className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
+                  className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold text-sm"
                 >
                   {loading ? 'جاري الإضافة...' : '✅ إضافة'}
                 </button>
                 <button
                   onClick={() => setShowAddModal(false)}
-                  className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                  className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-sm"
                 >
                   إلغاء
                 </button>
@@ -632,23 +628,23 @@ export default function AdminUsersPage() {
       {/* Modal: تعديل الصلاحيات */}
       {showPermissionsModal && editingUser && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold">🔒 تعديل صلاحيات {editingUser.name}</h2>
-                <p className="text-sm text-gray-600">{editingUser.email}</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">🔒 تعديل صلاحيات {editingUser.name}</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{editingUser.email}</p>
               </div>
               <button
                 onClick={() => setShowPermissionsModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-3xl leading-none"
               >
                 ×
               </button>
             </div>
 
             {editingUser.role === 'ADMIN' && (
-              <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded mb-6">
-                <p className="text-sm text-yellow-800">
+              <div className="bg-yellow-50 dark:bg-yellow-900/30 border-r-4 border-yellow-500 dark:border-yellow-700 p-4 rounded mb-6">
+                <p className="text-sm text-yellow-800 dark:text-yellow-300">
                   <strong>👑 مدير:</strong> المدراء لديهم صلاحيات كاملة تلقائياً ولا يمكن تقييد صلاحياتهم.
                 </p>
               </div>
@@ -657,15 +653,15 @@ export default function AdminUsersPage() {
             <div className="space-y-4">
               {Object.entries(PERMISSION_GROUPS).map(([groupKey, group], index) => {
                 const colors = [
-                  'border-primary-200 bg-primary-50 text-primary-800',
-                  'border-green-200 bg-green-50 text-green-800',
-                  'border-purple-200 bg-purple-50 text-purple-800',
-                  'border-orange-200 bg-orange-50 text-orange-800',
-                  'border-pink-200 bg-pink-50 text-pink-800',
-                  'border-yellow-200 bg-yellow-50 text-yellow-800',
-                  'border-indigo-200 bg-indigo-50 text-indigo-800',
-                  'border-teal-200 bg-teal-50 text-teal-800',
-                  'border-red-200 bg-red-50 text-red-800'
+                  'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
+                  'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300',
+                  'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
+                  'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300',
+                  'border-pink-200 dark:border-pink-700 bg-pink-50 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300',
+                  'border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+                  'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
+                  'border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300',
+                  'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                 ]
                 const colorClass = colors[index % colors.length]
 
@@ -676,7 +672,7 @@ export default function AdminUsersPage() {
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
                       {group.permissions.map((permission) => (
-                        <label key={permission} className="flex items-center gap-2 cursor-pointer hover:bg-white/50 p-2 rounded transition">
+                        <label key={permission} className="flex items-center gap-2 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-2 rounded transition">
                           <input
                             type="checkbox"
                             checked={permissions[permission] || false}
@@ -705,7 +701,7 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setShowPermissionsModal(false)}
-                className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
               >
                 إلغاء
               </button>
@@ -717,11 +713,11 @@ export default function AdminUsersPage() {
       {/* Modal: التأكيد */}
       {showConfirmModal && confirmAction && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">⚠️</div>
-              <h2 className="text-2xl font-bold mb-2">{confirmAction.title}</h2>
-              <p className="text-gray-600">{confirmAction.message}</p>
+              <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">{confirmAction.title}</h2>
+              <p className="text-gray-600 dark:text-gray-300">{confirmAction.message}</p>
             </div>
 
             <div className="flex gap-3">
@@ -733,7 +729,7 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setShowConfirmModal(false)}
-                className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
               >
                 إلغاء
               </button>

@@ -243,7 +243,7 @@ export default function MessageTemplateManager({
                         <div className="flex-1">
                           <h3 className="font-bold text-green-900 text-lg">{template.title}</h3>
                           {template.isCustom && (
-                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                            <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded">
                               {t('followups.templates.custom')}
                             </span>
                           )}

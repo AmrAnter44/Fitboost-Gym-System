@@ -700,7 +700,7 @@ export default function CoachCommissionPage() {
     if (percentage <= 25) return 'from-orange-500 to-orange-600'
     if (percentage <= 30) return 'from-yellow-500 to-yellow-600'
     if (percentage <= 35) return 'from-primary-500 to-primary-600'
-    if (percentage <= 40) return 'from-purple-500 to-purple-600'
+    if (percentage <= 40) return 'from-primary-500 to-primary-600'
     return 'from-green-500 to-green-600'
   }
 
@@ -722,7 +722,7 @@ export default function CoachCommissionPage() {
             <div className="text-3xl sm:text-4xl md:text-5xl">💰</div>
             <div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">{t('pt.commission.title')}</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">
                 {t('pt.commission.subtitle')}
               </p>
             </div>
@@ -745,27 +745,27 @@ export default function CoachCommissionPage() {
       </div>
 
       {/* Time Period Selection */}
-      <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-        <label className="block text-sm font-bold mb-3 text-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-6">
+        <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
           📅 {t('pt.commission.selectPeriod')}
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-gray-600 mb-1">{t('pt.commission.fromDate')}</label>
+            <label className="block text-xs text-gray-600 dark:text-gray-300 mb-1">{t('pt.commission.fromDate')}</label>
             <input
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition dark:bg-gray-700 dark:text-white"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">{t('pt.commission.toDate')}</label>
+            <label className="block text-xs text-gray-600 dark:text-gray-300 mb-1">{t('pt.commission.toDate')}</label>
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition dark:bg-gray-700 dark:text-white"
             />
           </div>
         </div>
@@ -773,8 +773,8 @@ export default function CoachCommissionPage() {
 
       {/* Calculation Method Selection - Admin Only */}
       {isAdmin ? (
-        <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
-          <label className="block text-sm font-bold mb-3 text-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
+          <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
             {t('pt.commission.calculationMethodLabel')}
           </label>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -783,7 +783,7 @@ export default function CoachCommissionPage() {
               className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
                 calculationMethod === 'revenue'
                   ? 'bg-primary-600 text-white shadow-lg sm:scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               <div className="flex items-center justify-center gap-2">
@@ -799,7 +799,7 @@ export default function CoachCommissionPage() {
               className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
                 calculationMethod === 'sessions'
                   ? 'bg-green-600 text-white shadow-lg sm:scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               <div className="flex items-center justify-center gap-2">
@@ -813,29 +813,29 @@ export default function CoachCommissionPage() {
           </div>
 
           {/* Info Box */}
-          <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-            <p className="text-xs sm:text-sm text-blue-800">
+          <div className="mt-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-500 dark:border-blue-600 p-3 rounded">
+            <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300">
               <strong>{t('pt.commission.methodDifferenceTitle')}</strong>
             </p>
-            <ul className="list-disc list-inside text-xs text-blue-700 mt-2 space-y-1">
+            <ul className="list-disc list-inside text-xs text-blue-700 dark:text-blue-400 mt-2 space-y-1">
               <li><strong>{t('pt.commission.byRevenue')}:</strong> {t('pt.commission.byRevenueFullDesc')}</li>
               <li><strong>{t('pt.commission.bySessions')}:</strong> {t('pt.commission.bySessionsFullDesc')}</li>
             </ul>
           </div>
 
           {/* Admin Only: Save as Default */}
-          <div className="mt-4 bg-gradient-to-r from-purple-50 to-primary-50 border-2 border-purple-300 rounded-lg p-3 sm:p-4">
+          <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-lg sm:text-xl">⚙️</span>
                 <div>
-                  <p className="text-xs sm:text-sm font-bold text-purple-900">{t('pt.commission.adminSettings')}</p>
-                  <p className="text-xs text-purple-700 hidden sm:block">{t('pt.commission.saveCurrentMethodAsDefault')}</p>
+                  <p className="text-xs sm:text-sm font-bold text-primary-900 dark:text-primary-300">{t('pt.commission.adminSettings')}</p>
+                  <p className="text-xs text-primary-700 dark:text-primary-400 hidden sm:block">{t('pt.commission.saveCurrentMethodAsDefault')}</p>
                 </div>
               </div>
               <button
                 onClick={() => saveDefaultCalculationMethod(calculationMethod)}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-lg font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2 w-full sm:w-auto justify-center"
+                className="bg-primary-600 hover:bg-primary-700 text-white px-3 sm:px-4 py-2 rounded-lg font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2 w-full sm:w-auto justify-center"
               >
                 <span>💾</span>
                 <span>{t('pt.commission.saveAsDefault')}</span>
@@ -845,12 +845,12 @@ export default function CoachCommissionPage() {
         </div>
       ) : (
         /* Coach View - Show current method only (read-only) */
-        <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
-          <label className="block text-sm font-bold mb-3 text-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
+          <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
             {t('pt.commission.calculationMethodLabel')}
           </label>
           {!methodLoaded || calculationMethod === null ? (
-            <div className="px-4 sm:px-6 py-3 sm:py-4 rounded-lg bg-gray-100 text-gray-600 text-center">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-center">
               <div className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-4 w-4 sm:h-5 sm:w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -876,8 +876,8 @@ export default function CoachCommissionPage() {
               </div>
 
               {/* Info for Coach */}
-              <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-                <p className="text-xs text-blue-800">
+              <div className="mt-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-500 dark:border-blue-600 p-3 rounded">
+                <p className="text-xs text-blue-800 dark:text-blue-300">
                   ℹ️ <strong>{t('pt.commission.currentMethodInfo')}</strong>
                 </p>
               </div>
@@ -888,19 +888,19 @@ export default function CoachCommissionPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Input Form */}
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2">
             <span>📋</span>
             <span>{t('pt.commission.calculationData')}</span>
           </h2>
 
           {loading ? (
-            <div className="text-center py-8 sm:py-12 text-gray-500 text-sm sm:text-base">{t('pt.commission.loading')}</div>
+            <div className="text-center py-8 sm:py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 text-sm sm:text-base">{t('pt.commission.loading')}</div>
           ) : coaches.length === 0 ? (
             <div className="text-center py-8 sm:py-12">
               <div className="text-4xl sm:text-6xl mb-4">😕</div>
-              <p className="text-sm sm:text-base text-gray-600">{t('pt.commission.noActiveCoaches')}</p>
-              <p className="text-xs sm:text-sm text-gray-500 mt-2">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">{t('pt.commission.noActiveCoaches')}</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2">
                 {t('pt.commission.addCoachesHint')}
               </p>
             </div>
@@ -909,11 +909,11 @@ export default function CoachCommissionPage() {
               {/* Coach Selection - للأدمن فقط */}
               {isAdmin && (
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold mb-2 sm:mb-3 text-gray-700">
+                  <label className="block text-xs sm:text-sm font-bold mb-2 sm:mb-3 text-gray-700 dark:text-gray-200">
                     👤 {coaches.length === 1 ? t('pt.commission.theCoach') : t('pt.commission.selectCoach')} <span className="text-red-600">*</span>
                   </label>
                   {coaches.length === 1 ? (
-                    <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-primary-50 border-2 border-primary-200 rounded-lg text-base sm:text-lg font-bold text-primary-700">
+                    <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-primary-50 dark:bg-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-lg text-base sm:text-lg font-bold text-primary-700 dark:text-primary-300">
                       {coaches[0].name} {coaches[0].phone && `(${coaches[0].phone})`}
                     </div>
                   ) : (
@@ -924,7 +924,7 @@ export default function CoachCommissionPage() {
                         setResult(null)
                         setCoachEarnings(null)
                       }}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg text-base sm:text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-base sm:text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition dark:bg-gray-700 dark:text-white"
                     >
                       <option value="">{t('pt.commission.selectCoachOption')}</option>
                       {coaches.map((coach) => (
@@ -940,10 +940,10 @@ export default function CoachCommissionPage() {
               {/* عرض اسم الكوتش للكوتش المسجل */}
               {!isAdmin && selectedCoach && (
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold mb-2 sm:mb-3 text-gray-700">
+                  <label className="block text-xs sm:text-sm font-bold mb-2 sm:mb-3 text-gray-700 dark:text-gray-200">
                     👤 {t('pt.commission.theCoach')}
                   </label>
-                  <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-primary-50 to-indigo-50 border-2 border-primary-300 rounded-lg text-base sm:text-lg font-bold text-primary-800 flex items-center gap-2">
+                  <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-300 dark:border-primary-700 rounded-lg text-base sm:text-lg font-bold text-primary-800 dark:text-primary-300 flex items-center gap-2">
                     <span>🏋️</span>
                     <span>{selectedCoach}</span>
                   </div>
@@ -952,7 +952,7 @@ export default function CoachCommissionPage() {
 
               {/* Custom Income Option - فقط في طريقة الإيرادات */}
               {calculationMethod === 'revenue' && (
-                <div className="bg-primary-50 border-2 border-primary-200 rounded-xl p-4">
+                <div className="bg-primary-50 dark:bg-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-4">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -960,7 +960,7 @@ export default function CoachCommissionPage() {
                       onChange={(e) => setUseCustomIncome(e.target.checked)}
                       className="w-5 h-5 text-primary-600 rounded"
                     />
-                    <span className="text-sm font-bold text-gray-700">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
                       {t('pt.commission.useCustomIncome')}
                     </span>
                   </label>
@@ -970,7 +970,7 @@ export default function CoachCommissionPage() {
               {/* Custom Income Input - فقط في طريقة الإيرادات */}
               {calculationMethod === 'revenue' && useCustomIncome && (
                 <div>
-                  <label className="block text-sm font-bold mb-3 text-gray-700">
+                  <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
                     💵 {t('pt.commission.customMonthlyIncome')} <span className="text-red-600">*</span>
                   </label>
                   <input
@@ -979,7 +979,7 @@ export default function CoachCommissionPage() {
                     step="0.01"
                     value={customIncome}
                     onChange={(e) => setCustomIncome(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
+                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
                     placeholder={t('pt.commission.exampleIncome')}
                   />
                 </div>
@@ -987,29 +987,29 @@ export default function CoachCommissionPage() {
 
               {/* جدول النسب - فقط في طريقة الإيرادات */}
               {calculationMethod === 'revenue' && (
-                <div className="bg-gradient-to-br from-primary-50 to-purple-50 border-2 border-primary-200 rounded-xl p-5">
-                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5">
+                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-gray-100">
                     <span>📊</span>
                     <span>{t('pt.commission.percentageTable')}</span>
                   </h3>
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
                       <span>{t('pt.commission.lessThanAmount', { amount: commissionSettings.tier1Limit.toLocaleString(localeString) })} {t('pt.commission.egp')}</span>
                       <span className="font-bold text-orange-600">{commissionSettings.tier1Rate}%</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
                       <span>{commissionSettings.tier1Limit.toLocaleString(localeString)} - {(commissionSettings.tier2Limit - 1).toLocaleString(localeString)} {t('pt.commission.egp')}</span>
                       <span className="font-bold text-yellow-600">{commissionSettings.tier2Rate}%</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
                       <span>{commissionSettings.tier2Limit.toLocaleString(localeString)} - {(commissionSettings.tier3Limit - 1).toLocaleString(localeString)} {t('pt.commission.egp')}</span>
-                      <span className="font-bold text-primary-600">{commissionSettings.tier3Rate}%</span>
+                      <span className="font-bold text-primary-600 dark:text-primary-400">{commissionSettings.tier3Rate}%</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
                       <span>{commissionSettings.tier3Limit.toLocaleString(localeString)} - {(commissionSettings.tier4Limit - 1).toLocaleString(localeString)} {t('pt.commission.egp')}</span>
-                      <span className="font-bold text-purple-600">{commissionSettings.tier4Rate}%</span>
+                      <span className="font-bold text-primary-600">{commissionSettings.tier4Rate}%</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
                       <span>{t('pt.commission.orMoreAmount', { amount: commissionSettings.tier4Limit.toLocaleString(localeString) })} {t('pt.commission.egp')}</span>
                       <span className="font-bold text-green-600">{commissionSettings.tier5Rate}%</span>
                     </div>
@@ -1029,7 +1029,7 @@ export default function CoachCommissionPage() {
                 {result && (
                   <button
                     onClick={handleReset}
-                    className="px-4 sm:px-6 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 py-3 sm:py-4 rounded-lg hover:from-gray-300 hover:to-gray-400 font-bold text-base sm:text-lg shadow-lg transform transition hover:scale-105 active:scale-95"
+                    className="px-4 sm:px-6 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 dark:text-gray-200 py-3 sm:py-4 rounded-lg hover:from-gray-300 hover:to-gray-400 font-bold text-base sm:text-lg shadow-lg transform transition hover:scale-105 active:scale-95"
                   >
                     🔄 {t('pt.commission.resetButton')}
                   </button>
@@ -1040,7 +1040,7 @@ export default function CoachCommissionPage() {
         </div>
 
         {/* Calculation Result */}
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2">
             <span>📈</span>
             <span>{calculationMethod === 'sessions' ? t('pt.commission.sessionsResult') : t('pt.commission.result')}</span>
@@ -1055,7 +1055,7 @@ export default function CoachCommissionPage() {
                 return (
                   <div className="flex flex-col items-center justify-center h-full py-8 sm:py-12">
                     <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">📭</div>
-                    <p className="text-gray-500 text-base sm:text-lg text-center px-4">
+                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 text-base sm:text-lg text-center px-4">
                       {t('pt.commission.noSessionsForCoach')}
                     </p>
                   </div>
@@ -1065,35 +1065,35 @@ export default function CoachCommissionPage() {
               return (
                 <div className="space-y-3 sm:space-y-4">
                   {/* بطاقة الكوتش */}
-                  <div className="bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-200 rounded-xl p-3 sm:p-4">
+                  <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/50 dark:to-teal-900/50 border-2 border-green-200 dark:border-green-700 rounded-xl p-3 sm:p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="text-xl sm:text-2xl">👨‍🏫</div>
                       <div>
-                        <p className="text-xs sm:text-sm text-gray-600">{t('pt.commission.coach')}</p>
-                        <p className="text-base sm:text-xl md:text-2xl font-bold text-green-900">{coachData.coachName}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{t('pt.commission.coach')}</p>
+                        <p className="text-base sm:text-xl md:text-2xl font-bold text-green-900 dark:text-green-300">{coachData.coachName}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* عدد الحصص المستخدمة */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-3 sm:p-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-primary-50 dark:from-blue-900/50 dark:to-primary-900/50 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-3 sm:p-4">
                     <div className="flex items-center gap-2 sm:gap-3 mb-2">
                       <div className="text-xl sm:text-2xl md:text-3xl">📊</div>
                       <div className="flex-1">
-                        <p className="text-xs sm:text-sm text-gray-600">{t('pt.commission.usedSessionsCount')}</p>
-                        <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900">{coachData.totalUsedSessions}</p>
-                        <p className="text-xs text-gray-500 mt-1">{t('pt.commission.fromPTSubscriptions', { count: coachData.ptCount.toString() })}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{t('pt.commission.usedSessionsCount')}</p>
+                        <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900 dark:text-blue-300">{coachData.totalUsedSessions}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('pt.commission.fromPTSubscriptions', { count: coachData.ptCount.toString() })}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* سعر الحصص */}
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-3 sm:p-4">
+                  <div className="bg-gradient-to-br from-primary-50 to-pink-50 dark:from-primary-900/50 dark:to-pink-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-3 sm:p-4">
                     <div className="flex items-center gap-2 sm:gap-3 mb-2">
                       <div className="text-xl sm:text-2xl md:text-3xl">💵</div>
                       <div className="flex-1">
-                        <p className="text-xs sm:text-sm text-gray-600">{t('pt.commission.totalSessionsValue')}</p>
-                        <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-900 break-words">
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{t('pt.commission.totalSessionsValue')}</p>
+                        <p className="text-lg sm:text-2xl md:text-3xl font-bold text-primary-900 dark:text-primary-300 break-words">
                           {coachData.totalSessionsValue.toLocaleString(localeString, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
@@ -1104,8 +1104,8 @@ export default function CoachCommissionPage() {
                   </div>
 
                   {/* نسبة الكومشن قابلة للتعديل */}
-                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 border-2 border-orange-200 rounded-xl p-3 sm:p-4">
-                    <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3">
+                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/50 dark:to-amber-900/50 border-2 border-orange-200 dark:border-orange-700 rounded-xl p-3 sm:p-4">
+                    <label className="block text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 mb-2 sm:mb-3">
                       {t('pt.commission.editablePercentage')}
                     </label>
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -1116,11 +1116,11 @@ export default function CoachCommissionPage() {
                         step="0.1"
                         value={customSessionPercentage}
                         onChange={(e) => setCustomSessionPercentage(e.target.value)}
-                        className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-orange-300 rounded-lg text-xl sm:text-2xl md:text-3xl font-bold text-center focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                        className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-orange-300 dark:border-orange-600 rounded-lg text-xl sm:text-2xl md:text-3xl font-bold text-center focus:border-orange-500 focus:ring-2 focus:ring-orange-200 dark:bg-gray-700 dark:text-white"
                       />
-                      <span className="text-2xl sm:text-3xl md:text-4xl font-black text-orange-600">%</span>
+                      <span className="text-2xl sm:text-3xl md:text-4xl font-black text-orange-600 dark:text-orange-400">%</span>
                     </div>
-                    <p className="text-xs text-gray-600 mt-2 text-center">
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 text-center">
                       {t('pt.commission.enterPercentageHint')}
                     </p>
                   </div>
@@ -1146,12 +1146,12 @@ export default function CoachCommissionPage() {
 
                   {/* نصيب الجيم - للأدمن فقط */}
                   {isAdmin && (
-                    <div className="bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 rounded-xl p-3 sm:p-4 md:p-5">
+                    <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl p-3 sm:p-4 md:p-5">
                       <div className="flex items-center gap-2 sm:gap-3">
                         <div className="text-xl sm:text-2xl md:text-3xl">🏢</div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs sm:text-sm text-gray-600">{t('pt.commission.gymShare')}</p>
-                          <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 break-words">
+                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{t('pt.commission.gymShare')}</p>
+                          <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 break-words">
                             {(coachData.totalSessionsValue - calculatedSessionCommission).toLocaleString(localeString, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2
@@ -1166,7 +1166,7 @@ export default function CoachCommissionPage() {
             })() : (
               <div className="flex flex-col items-center justify-center h-full py-8 sm:py-12">
                 <div className="text-5xl sm:text-6xl md:text-8xl mb-4 sm:mb-6">🧮</div>
-                <p className="text-gray-500 text-sm sm:text-base md:text-lg text-center px-4">
+                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 text-sm sm:text-base md:text-lg text-center px-4">
                   {loadingSessionData ? t('pt.commission.calculatingSessions') : selectedCoach ? t('pt.commission.noDataAvailable') : t('pt.commission.selectCoachToViewSessions')}
                 </p>
               </div>
@@ -1174,19 +1174,19 @@ export default function CoachCommissionPage() {
           ) : !result ? (
           <div className="flex flex-col items-center justify-center h-full py-8 sm:py-12">
             <div className="text-5xl sm:text-6xl md:text-8xl mb-4 sm:mb-6">🧮</div>
-            <p className="text-gray-500 text-sm sm:text-base md:text-lg text-center px-4">
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 text-sm sm:text-base md:text-lg text-center px-4">
               {t('pt.commission.selectCoachToCalculate')}
             </p>
           </div>
         ) : (
             <div className="space-y-4 sm:space-y-6">
               {/* بطاقة الكوتش */}
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-xl p-3 sm:p-4 md:p-5">
+              <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-3 sm:p-4 md:p-5">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
                   <div className="text-xl sm:text-2xl md:text-3xl">👤</div>
                   <div>
-                    <p className="text-xs sm:text-sm text-gray-600">{t('pt.commission.coach')}</p>
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-indigo-900">{result.coachName}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{t('pt.commission.coach')}</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-900 dark:text-primary-300">{result.coachName}</p>
                   </div>
                 </div>
               </div>
@@ -1211,8 +1211,8 @@ export default function CoachCommissionPage() {
                 })
 
                 return coachPTReceipts.length > 0 ? (
-                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-xl p-3 sm:p-4 md:p-5">
-                    <h3 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2">
+                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/50 dark:to-cyan-900/50 border-2 border-teal-200 dark:border-teal-700 rounded-xl p-3 sm:p-4 md:p-5">
+                    <h3 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2 dark:text-gray-100">
                       <span className="text-lg sm:text-xl">📊</span>
                       <span>{t('pt.commission.ptReceipts', { count: coachPTReceipts.length.toString() })}</span>
                     </h3>
@@ -1223,22 +1223,22 @@ export default function CoachCommissionPage() {
                           details = JSON.parse(receipt.itemDetails)
                         } catch {}
                         return (
-                          <div key={receipt.receiptNumber} className="bg-white rounded-lg p-2 sm:p-3 border border-teal-200">
+                          <div key={receipt.receiptNumber} className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-teal-200 dark:border-teal-700">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
                               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                <div className="bg-teal-100 text-teal-800 font-bold w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm flex-shrink-0">
+                                <div className="bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-300 font-bold w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm flex-shrink-0">
                                   {index + 1}
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="text-xs sm:text-sm font-semibold text-gray-800 break-words">
+                                  <p className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 break-words">
                                     {t('pt.commission.receiptLabel', { number: receipt.receiptNumber.toString() })} - {receipt.type}
                                   </p>
-                                  <p className="text-xs text-gray-500 break-words">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 break-words">
                                     {details.clientName || 'N/A'} - {
                                       details.ptNumber < 0 ? '🏃 Day Use' : `PT #${details.ptNumber || 'N/A'}`
                                     }
                                   </p>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
                                     {new Date(receipt.createdAt).toLocaleDateString(localeString, {
                                       day: 'numeric',
                                       month: 'short',
@@ -1248,18 +1248,18 @@ export default function CoachCommissionPage() {
                                 </div>
                               </div>
                               <div className="text-right flex-shrink-0 w-full sm:w-auto">
-                                <p className="text-base sm:text-lg font-bold text-teal-600 break-words">{receipt.amount.toLocaleString(localeString)} {t('pt.commission.currency')}</p>
+                                <p className="text-base sm:text-lg font-bold text-teal-600 dark:text-teal-400 break-words">{receipt.amount.toLocaleString(localeString)} {t('pt.commission.currency')}</p>
                               </div>
                             </div>
                             {details.sessionsPurchased && (
                               <div className="grid grid-cols-2 gap-2 mt-2">
-                                <div className="bg-gray-50 rounded p-2 text-center">
-                                  <p className="text-xs text-gray-600">{t('pt.commission.sessions')}</p>
-                                  <p className="text-sm font-bold text-gray-800">{details.sessionsPurchased}</p>
+                                <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 text-center">
+                                  <p className="text-xs text-gray-600 dark:text-gray-300">{t('pt.commission.sessions')}</p>
+                                  <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{details.sessionsPurchased}</p>
                                 </div>
-                                <div className="bg-gray-50 rounded p-2 text-center">
-                                  <p className="text-xs text-gray-600">{t('pt.commission.pricePerSession')}</p>
-                                  <p className="text-sm font-bold text-gray-800">{details.pricePerSession}</p>
+                                <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 text-center">
+                                  <p className="text-xs text-gray-600 dark:text-gray-300">{t('pt.commission.pricePerSession')}</p>
+                                  <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{details.pricePerSession}</p>
                                 </div>
                               </div>
                             )}
@@ -1267,10 +1267,10 @@ export default function CoachCommissionPage() {
                         )
                       })}
                     </div>
-                    <div className="mt-3 pt-3 border-t-2 border-teal-200">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-teal-100 rounded-lg p-3">
-                        <span className="font-bold text-sm sm:text-base text-gray-700">{t('pt.commission.totalPTRevenue')}</span>
-                        <span className="text-lg sm:text-xl font-bold text-teal-600 break-words">
+                    <div className="mt-3 pt-3 border-t-2 border-teal-200 dark:border-teal-700">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-teal-100 dark:bg-teal-900/50 rounded-lg p-3">
+                        <span className="font-bold text-sm sm:text-base text-gray-700 dark:text-gray-200">{t('pt.commission.totalPTRevenue')}</span>
+                        <span className="text-lg sm:text-xl font-bold text-teal-600 dark:text-teal-400 break-words">
                           {coachPTReceipts.reduce((sum, receipt) => sum + receipt.amount, 0).toLocaleString(localeString)} {t('pt.commission.currency')}
                         </span>
                       </div>
@@ -1283,21 +1283,21 @@ export default function CoachCommissionPage() {
               {coachEarnings && !useCustomIncome && (() => {
                 const coachSignupData = memberSignupCommissions.find(c => c.coachName === result.coachName)
                 return coachSignupData && coachSignupData.count > 0 ? (
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-3 sm:p-4 md:p-5">
-                    <h3 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2">
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/50 dark:to-emerald-900/50 border-2 border-green-200 dark:border-green-700 rounded-xl p-3 sm:p-4 md:p-5">
+                    <h3 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2 dark:text-gray-100">
                       <span className="text-lg sm:text-xl">💵</span>
                       <span>{t('pt.commission.memberSubscriptions', { count: coachSignupData.count.toString() })}</span>
                     </h3>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {coachSignupData.commissions.map((commission, index) => (
-                        <div key={commission.id} className="bg-white rounded-lg p-2 sm:p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border border-green-200">
+                        <div key={commission.id} className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border border-green-200 dark:border-green-700">
                           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                            <div className="bg-green-100 text-green-800 font-bold w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm flex-shrink-0">
+                            <div className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 font-bold w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm flex-shrink-0">
                               {index + 1}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs sm:text-sm font-semibold text-gray-800 break-words">{commission.description || t('pt.commission.newMemberRegistration')}</p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 break-words">{commission.description || t('pt.commission.newMemberRegistration')}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {new Date(commission.createdAt).toLocaleDateString(localeString, {
                                   day: 'numeric',
                                   month: 'short',
@@ -1307,18 +1307,18 @@ export default function CoachCommissionPage() {
                             </div>
                           </div>
                           <div className="text-right flex-shrink-0 w-full sm:w-auto">
-                            <p className="text-base sm:text-lg font-bold text-green-600 break-words">{commission.amount} {t('pt.commission.currency')}</p>
+                            <p className="text-base sm:text-lg font-bold text-green-600 dark:text-green-400 break-words">{commission.amount} {t('pt.commission.currency')}</p>
                           </div>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 pt-3 border-t-2 border-green-200">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-green-100 rounded-lg p-3">
-                        <span className="font-bold text-sm sm:text-base text-gray-700">{t('pt.commission.totalSubscriptionCommissions')}</span>
-                        <span className="text-lg sm:text-xl font-bold text-green-600 break-words">{coachSignupData.totalAmount} {t('pt.commission.currency')}</span>
+                    <div className="mt-3 pt-3 border-t-2 border-green-200 dark:border-green-700">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-green-100 dark:bg-green-900/50 rounded-lg p-3">
+                        <span className="font-bold text-sm sm:text-base text-gray-700 dark:text-gray-200">{t('pt.commission.totalSubscriptionCommissions')}</span>
+                        <span className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400 break-words">{coachSignupData.totalAmount} {t('pt.commission.currency')}</span>
                       </div>
-                      <div className="mt-2 bg-green-200 rounded-lg p-2 text-center">
-                        <p className="text-xs sm:text-sm font-bold text-green-800">{t('pt.commission.coachGetsFullAmount')}</p>
+                      <div className="mt-2 bg-green-200 dark:bg-green-900/40 rounded-lg p-2 text-center">
+                        <p className="text-xs sm:text-sm font-bold text-green-800 dark:text-green-300">{t('pt.commission.coachGetsFullAmount')}</p>
                       </div>
                     </div>
                   </div>
@@ -1327,36 +1327,36 @@ export default function CoachCommissionPage() {
 
               {/* تفاصيل عمولات PT */}
               {ptCommissions.length > 0 && (
-                <div className="bg-gradient-to-br from-primary-50 to-indigo-50 border-2 border-primary-200 rounded-xl p-3 sm:p-4 md:p-5">
+                <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-3 sm:p-4 md:p-5">
                   <h3 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
                     <span className="text-lg sm:text-xl">💎</span>
                     <span>{t('pt.commission.ptCommissionDetails', { count: ptCommissions.length.toString() })}</span>
                   </h3>
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-primary-100 sticky top-0">
+                      <thead className="bg-primary-100 dark:bg-primary-900/40 sticky top-0">
                         <tr>
-                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 border-b border-primary-200">{t('pt.commission.date')}</th>
-                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 border-b border-primary-200">{t('pt.commission.description')}</th>
-                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 border-b border-primary-200">{t('pt.commission.amountPaid')}</th>
-                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 border-b border-primary-200">{t('pt.commission.commissionRate')}</th>
-                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 border-b border-primary-200">{t('pt.commission.commissionAmount')}</th>
+                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 dark:text-gray-200 border-b border-primary-200 dark:border-primary-700">{t('pt.commission.date')}</th>
+                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 dark:text-gray-200 border-b border-primary-200 dark:border-primary-700">{t('pt.commission.description')}</th>
+                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 dark:text-gray-200 border-b border-primary-200 dark:border-primary-700">{t('pt.commission.amountPaid')}</th>
+                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 dark:text-gray-200 border-b border-primary-200 dark:border-primary-700">{t('pt.commission.commissionRate')}</th>
+                          <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 dark:text-gray-200 border-b border-primary-200 dark:border-primary-700">{t('pt.commission.commissionAmount')}</th>
                         </tr>
                       </thead>
                       <tbody className="max-h-80 overflow-y-auto">
                         {ptCommissions.map((comm, index) => {
                           const notes = JSON.parse(comm.notes || '{}')
                           return (
-                            <tr key={comm.id} className={`border-b border-primary-100 ${index % 2 === 0 ? 'bg-white' : 'bg-primary-50'}`}>
-                              <td className="px-3 py-2 text-sm text-gray-700">
+                            <tr key={comm.id} className={`border-b border-primary-100 dark:border-primary-800 dark:border-primary-800 ${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-primary-50 dark:bg-primary-900/50'}`}>
+                              <td className="px-3 py-2 text-sm text-gray-700 dark:text-gray-200">
                                 {new Date(comm.createdAt).toLocaleDateString(localeString, { day: 'numeric', month: 'short' })}
                               </td>
-                              <td className="px-3 py-2 text-sm text-gray-800">{comm.description}</td>
-                              <td className="px-3 py-2 text-sm font-mono text-gray-700">
+                              <td className="px-3 py-2 text-sm text-gray-800 dark:text-gray-100">{comm.description}</td>
+                              <td className="px-3 py-2 text-sm font-mono text-gray-700 dark:text-gray-200">
                                 {notes.paymentAmount?.toLocaleString(localeString) || 0} {t('pt.commission.currency')}
                               </td>
-                              <td className="px-3 py-2 text-sm text-primary-600 font-bold">{notes.percentage || 0}%</td>
-                              <td className="px-3 py-2 text-sm text-green-600 font-bold">
+                              <td className="px-3 py-2 text-sm text-primary-600 dark:text-primary-400 font-bold">{notes.percentage || 0}%</td>
+                              <td className="px-3 py-2 text-sm text-green-600 dark:text-green-400 font-bold">
                                 {comm.amount.toLocaleString(localeString)} {t('pt.commission.currency')}
                               </td>
                             </tr>
@@ -1365,15 +1365,15 @@ export default function CoachCommissionPage() {
                       </tbody>
                     </table>
                   </div>
-                  <div className="mt-3 pt-3 border-t-2 border-primary-200">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-primary-100 rounded-lg p-3">
-                      <span className="font-bold text-sm sm:text-base text-gray-700">{t('pt.commission.totalPTCommissions')}</span>
+                  <div className="mt-3 pt-3 border-t-2 border-primary-200 dark:border-primary-700">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-primary-100 dark:bg-primary-900/40 rounded-lg p-3">
+                      <span className="font-bold text-sm sm:text-base text-gray-700 dark:text-gray-200">{t('pt.commission.totalPTCommissions')}</span>
                       <span className="text-lg sm:text-xl font-bold text-primary-600 break-words">
                         {ptCommissions.reduce((sum, c) => sum + c.amount, 0).toLocaleString(localeString)} {t('pt.commission.egp')}
                       </span>
                     </div>
-                    <div className="mt-2 bg-primary-200 rounded-lg p-2 text-center">
-                      <p className="text-xs sm:text-sm font-bold text-primary-800">
+                    <div className="mt-2 bg-primary-200 dark:bg-primary-900/40 rounded-lg p-2 text-center">
+                      <p className="text-xs sm:text-sm font-bold text-primary-800 dark:text-primary-300">
                         {t('pt.commission.eachPaymentCalculatedIndependently')}
                       </p>
                     </div>
@@ -1382,14 +1382,14 @@ export default function CoachCommissionPage() {
               )}
 
               {/* الدخل الشهري */}
-              <div className="bg-gradient-to-br from-cyan-50 to-primary-50 border-2 border-cyan-200 rounded-xl p-3 sm:p-4 md:p-5">
+              <div className="bg-gradient-to-br from-cyan-50 to-primary-50 dark:from-cyan-900/50 dark:to-primary-900/50 border-2 border-cyan-200 dark:border-cyan-700 rounded-xl p-3 sm:p-4 md:p-5">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
                   <div className="text-xl sm:text-2xl md:text-3xl">💵</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                       {useCustomIncome ? t('pt.commission.customIncome') : t('pt.commission.totalPTIncome')}
                     </p>
-                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-cyan-900 break-words">
+                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-cyan-900 dark:text-cyan-300 break-words">
                       {result.monthlyIncome.toLocaleString(localeString, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -1444,9 +1444,9 @@ export default function CoachCommissionPage() {
               </div>
 
               {/* معادلة الحساب */}
-              <div className="bg-gradient-to-br from-slate-50 to-gray-100 border-2 border-slate-300 rounded-xl p-3 sm:p-4 md:p-5">
-                <h3 className="font-bold text-center mb-3 text-sm sm:text-base md:text-lg text-gray-700">{t('pt.commission.calculationFormula')}</h3>
-                <div className="bg-white rounded-lg p-3 sm:p-4 text-center">
+              <div className="bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900/50 dark:to-gray-800/50 border-2 border-slate-300 dark:border-slate-700 rounded-xl p-3 sm:p-4 md:p-5">
+                <h3 className="font-bold text-center mb-3 text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-200">{t('pt.commission.calculationFormula')}</h3>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 text-center">
                   {!useCustomIncome && (() => {
                     const start = new Date(dateFrom)
                     const end = new Date(dateTo)
@@ -1471,16 +1471,16 @@ export default function CoachCommissionPage() {
                     if (signupRevenue > 0) {
                       return (
                         <div className="space-y-2">
-                          <p className="text-xs sm:text-sm text-gray-700 break-words">
+                          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
                             <span className="font-bold text-teal-600">{ptRevenue.toLocaleString(localeString)}</span> (PT) ×
-                            <span className="font-bold text-purple-600"> {result.percentage}%</span> =
+                            <span className="font-bold text-primary-600"> {result.percentage}%</span> =
                             <span className="font-bold text-green-600"> {ptCommission.toLocaleString(localeString)}</span>
                           </p>
-                          <p className="text-base sm:text-lg font-bold text-gray-500">+</p>
-                          <p className="text-xs sm:text-sm text-gray-700 break-words">
+                          <p className="text-base sm:text-lg font-bold text-gray-500 dark:text-gray-400">+</p>
+                          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
                             <span className="font-bold text-green-600">{signupRevenue.toLocaleString(localeString)}</span> ({t('pt.commission.signupCommissions')})
                           </p>
-                          <div className="border-t-2 border-gray-300 pt-2 mt-2">
+                          <div className="border-t-2 border-gray-300 dark:border-gray-600 pt-2 mt-2">
                             <p className="text-base sm:text-lg font-bold break-words">
                               {t('pt.commission.total')} = <span className="text-green-600">{result.commission.toLocaleString(localeString, {
                                 minimumFractionDigits: 2,
@@ -1509,12 +1509,12 @@ export default function CoachCommissionPage() {
               </div>
 
               {/* ملاحظة */}
-              <div className="bg-amber-50 border-r-4 border-amber-500 rounded-lg p-3 sm:p-4">
+              <div className="bg-amber-50 dark:bg-amber-900/50 border-r-4 border-amber-500 dark:border-amber-600 rounded-lg p-3 sm:p-4">
                 <div className="flex items-start gap-2 sm:gap-3">
                   <div className="text-lg sm:text-xl md:text-2xl">⚠️</div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-amber-800 mb-1 text-sm sm:text-base">{t('pt.commission.importantNote')}</p>
-                    <p className="text-xs sm:text-sm text-amber-700">
+                    <p className="font-bold text-amber-800 dark:text-amber-300 mb-1 text-sm sm:text-base">{t('pt.commission.importantNote')}</p>
+                    <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
                       {t('pt.commission.displayOnlyNote')}
                     </p>
                   </div>
@@ -1528,7 +1528,7 @@ export default function CoachCommissionPage() {
       {/* نتائج الطريقة الثانية: حسب الحصص المستخدمة */}
       {calculationMethod === 'sessions' && (
         <div className="mt-6">
-          <div className="bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-300 rounded-xl shadow-lg p-6">
+          <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/50 dark:to-teal-900/50 border-2 border-green-300 dark:border-green-700 rounded-xl shadow-lg p-6">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
               <span>📊</span>
               <span>{t('pt.commission.commissionBySessions')}</span>
@@ -1537,25 +1537,25 @@ export default function CoachCommissionPage() {
             {loadingSessionData ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">{t('pt.commission.calculatingCommission')}</p>
+                <p className="text-gray-600 dark:text-gray-300">{t('pt.commission.calculatingCommission')}</p>
               </div>
             ) : sessionCommissions.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">📭</div>
-                <p className="text-gray-600 font-bold">{t('pt.commission.noDataToDisplay')}</p>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-gray-600 dark:text-gray-300 font-bold">{t('pt.commission.noDataToDisplay')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   {selectedCoach ? t('pt.commission.noSessionsForSelectedCoach', { coach: selectedCoach }) : t('pt.commission.selectCoachToViewSessions')}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {sessionCommissions.map((coach, index) => (
-                  <div key={index} className="bg-white rounded-xl p-5 shadow-md border-2 border-green-200">
+                  <div key={index} className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-md border-2 border-green-200 dark:border-green-700">
                     {/* معلومات الكوتش */}
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-1">{coach.coachName}</h3>
-                        <p className="text-sm text-gray-600">
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-1">{coach.coachName}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
                           {t('pt.commission.ptSubscriptionsAndSessions', {
                             ptCount: coach.ptCount.toString(),
                             sessions: coach.totalUsedSessions.toString()
@@ -1569,29 +1569,29 @@ export default function CoachCommissionPage() {
                             maximumFractionDigits: 2
                           })} {t('pt.commission.egp')}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">{t('pt.commission.commissionWithPercentage', { percentage: coach.percentage.toString() })}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('pt.commission.commissionWithPercentage', { percentage: coach.percentage.toString() })}</p>
                       </div>
                     </div>
 
                     {/* إحصائيات */}
                     <div className={`grid ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'} gap-3 mb-4 pb-4 border-b`}>
-                      <div className="bg-blue-50 rounded-lg p-3 text-center">
-                        <p className="text-xs text-gray-600 mb-1">{t('pt.commission.sessionsValue')}</p>
-                        <p className="text-lg font-bold text-blue-700">
+                      <div className="bg-blue-50 dark:bg-blue-900/50 rounded-lg p-3 text-center">
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{t('pt.commission.sessionsValue')}</p>
+                        <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
                           {coach.totalSessionsValue.toLocaleString(localeString)} {t('pt.commission.egp')}
                         </p>
                       </div>
-                      <div className="bg-green-50 rounded-lg p-3 text-center">
-                        <p className="text-xs text-gray-600 mb-1">{t('pt.commission.coachCommission')}</p>
-                        <p className="text-lg font-bold text-green-700">
+                      <div className="bg-green-50 dark:bg-green-900/50 rounded-lg p-3 text-center">
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{t('pt.commission.coachCommission')}</p>
+                        <p className="text-lg font-bold text-green-700 dark:text-green-300">
                           {coach.commission.toLocaleString(localeString)} {t('pt.commission.egp')}
                         </p>
                       </div>
                       {/* نصيب الجيم - للأدمن فقط */}
                       {isAdmin && (
-                        <div className="bg-gray-50 rounded-lg p-3 text-center">
-                          <p className="text-xs text-gray-600 mb-1">{t('pt.commission.gymShare')}</p>
-                          <p className="text-lg font-bold text-gray-700">
+                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
+                          <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{t('pt.commission.gymShare')}</p>
+                          <p className="text-lg font-bold text-gray-700 dark:text-gray-200">
                             {coach.gymShare.toLocaleString(localeString)} {t('pt.commission.egp')}
                           </p>
                         </div>
@@ -1600,19 +1600,19 @@ export default function CoachCommissionPage() {
 
                     {/* تفاصيل كل PT */}
                     <details className="group">
-                      <summary className="cursor-pointer text-sm font-bold text-green-700 hover:text-green-800 transition-colors flex items-center gap-2">
+                      <summary className="cursor-pointer text-sm font-bold text-green-700 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors flex items-center gap-2">
                         <span className="group-open:rotate-90 transition-transform">▶</span>
                         <span>{t('pt.commission.showSubscriptionDetails', { count: coach.ptCount.toString() })}</span>
                       </summary>
                       <div className="mt-3 space-y-2 pl-6">
                         {coach.details.map((pt) => (
-                          <div key={pt.ptNumber} className="bg-gray-50 rounded-lg p-3 text-sm border border-gray-200">
+                          <div key={pt.ptNumber} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-sm border border-gray-200 dark:border-gray-600">
                             <div className="flex justify-between items-start mb-2">
                               <div>
-                                <p className="font-bold text-gray-800">
+                                <p className="font-bold text-gray-800 dark:text-gray-100">
                                   PT #{pt.ptNumber} - {pt.clientName}
                                 </p>
-                                <p className="text-xs text-gray-600 mt-1">
+                                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                                   {t('pt.commission.sessionUsageDetails', {
                                     used: pt.usedSessions.toString(),
                                     total: pt.sessionsPurchased.toString(),
@@ -1624,7 +1624,7 @@ export default function CoachCommissionPage() {
                                 <p className="font-bold text-green-600">
                                   {pt.sessionValue.toLocaleString(localeString)} {t('pt.commission.egp')}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                   {pt.usedSessions} × {pt.pricePerSession} {t('pt.commission.egp')}
                                 </p>
                               </div>
@@ -1646,11 +1646,11 @@ export default function CoachCommissionPage() {
         <div className={`mt-6 grid grid-cols-1 ${isAdmin ? 'md:grid-cols-3' : ''} gap-4`}>
           {/* نصيب الجيم - للأدمن فقط */}
           {isAdmin && (
-            <div className="bg-white rounded-lg shadow-md p-5">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm mb-1">{t('pt.commission.gymShare')}</p>
-                  <p className="text-2xl font-bold text-primary-600">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">{t('pt.commission.gymShare')}</p>
+                  <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
                     {result.gymShare.toLocaleString(localeString, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -1665,11 +1665,11 @@ export default function CoachCommissionPage() {
 
           {/* نسبة الجيم - للأدمن فقط */}
           {isAdmin && (
-            <div className="bg-white rounded-lg shadow-md p-5">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm mb-1">{t('pt.commission.gymPercentage')}</p>
-                  <p className="text-2xl font-bold text-purple-600">{100 - result.percentage}%</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">{t('pt.commission.gymPercentage')}</p>
+                  <p className="text-2xl font-bold text-primary-600">{100 - result.percentage}%</p>
                 </div>
                 <div className="text-4xl">📉</div>
               </div>
@@ -1677,10 +1677,10 @@ export default function CoachCommissionPage() {
           )}
 
           {/* حالة الدخل - للجميع */}
-          <div className="bg-white rounded-lg shadow-md p-5">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm mb-1">{t('pt.commission.incomeStatus')}</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">{t('pt.commission.incomeStatus')}</p>
                 <p className="text-lg font-bold text-green-600">
                   {result.monthlyIncome >= 20000
                     ? `🔥 ${t('pt.commission.excellent')}`
@@ -1699,7 +1699,7 @@ export default function CoachCommissionPage() {
 
       {/* جدول ملخص جميع الكوتشات */}
       {!loading && coaches.length > 0 && (
-        <div className="mt-6 bg-white rounded-xl shadow-lg p-6">
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <span>📋</span>
             <span>
@@ -1712,15 +1712,15 @@ export default function CoachCommissionPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-100 to-gray-200">
+              <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
                 <tr>
-                  <th className="px-4 py-3 text-right">{t('pt.commission.coach')}</th>
-                  <th className="px-4 py-3 text-right">{t('pt.commission.clients')}</th>
-                  <th className="px-4 py-3 text-right">{t('pt.commission.totalSessions')}</th>
-                  <th className="px-4 py-3 text-right">{t('pt.commission.completedSessions')}</th>
-                  <th className="px-4 py-3 text-right">{t('pt.commission.totalIncome')}</th>
-                  <th className="px-4 py-3 text-right">{t('pt.commission.percentage')}</th>
-                  <th className="px-4 py-3 text-right">{t('pt.commission.expectedCommission')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.commission.coach')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.commission.clients')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.commission.totalSessions')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.commission.completedSessions')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.commission.totalIncome')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.commission.percentage')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.commission.expectedCommission')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1732,14 +1732,14 @@ export default function CoachCommissionPage() {
                     const commission = (stat.earnings.totalRevenue * percentage) / 100
 
                     return (
-                      <tr key={stat.coachName} className="border-t hover:bg-gray-50">
-                        <td className="px-4 py-3 font-semibold">{stat.coachName}</td>
-                        <td className="px-4 py-3 text-center">{stat.earnings.clients}</td>
-                        <td className="px-4 py-3 text-center">{stat.earnings.totalSessions}</td>
-                        <td className="px-4 py-3 text-center text-green-600 font-bold">
+                      <tr key={stat.coachName} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-4 py-3 font-semibold dark:text-gray-200">{stat.coachName}</td>
+                        <td className="px-4 py-3 text-center dark:text-gray-300">{stat.earnings.clients}</td>
+                        <td className="px-4 py-3 text-center dark:text-gray-300">{stat.earnings.totalSessions}</td>
+                        <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 dark:text-green-400 font-bold">
                           {stat.earnings.completedSessions}
                         </td>
-                        <td className="px-4 py-3 font-bold text-primary-600">
+                        <td className="px-4 py-3 font-bold text-primary-600 dark:text-primary-400">
                           {stat.earnings.totalRevenue.toLocaleString(localeString, {
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0,
@@ -1760,7 +1760,7 @@ export default function CoachCommissionPage() {
                     )
                   })}
               </tbody>
-              <tfoot className="bg-gradient-to-r from-primary-50 to-purple-50 font-bold">
+              <tfoot className="bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 font-bold">
                 <tr>
                   <td className="px-4 py-3">{t('pt.commission.total')}</td>
                   <td className="px-4 py-3 text-center">
@@ -1775,7 +1775,7 @@ export default function CoachCommissionPage() {
                   <td className="px-4 py-3 text-center">
                     {allCoachesStats.reduce((sum, s) => sum + s.earnings.totalSessions, 0)}
                   </td>
-                  <td className="px-4 py-3 text-center text-green-600">
+                  <td className="px-4 py-3 text-center text-green-600 dark:text-green-400">
                     {allCoachesStats.reduce((sum, s) => sum + s.earnings.completedSessions, 0)}
                   </td>
                   <td className="px-4 py-3 text-primary-600">
@@ -1806,7 +1806,7 @@ export default function CoachCommissionPage() {
           </div>
 
           {allCoachesStats.filter((stat) => stat.earnings.totalRevenue > 0).length === 0 && (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               <div className="text-6xl mb-4">📊</div>
               <p className="text-xl">{t('pt.commission.noPTDataForPeriod')}</p>
             </div>
@@ -1815,7 +1815,7 @@ export default function CoachCommissionPage() {
       )}
 
       {/* جدول عمولات تسجيل الأعضاء */}
-      <div className="mt-6 bg-white rounded-xl shadow-lg p-6">
+      <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <span>💵</span>
           <span>
@@ -1828,37 +1828,37 @@ export default function CoachCommissionPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gradient-to-r from-green-100 to-emerald-200">
+            <thead className="bg-gradient-to-r from-green-100 to-emerald-200 dark:from-green-900/40 dark:to-emerald-900/40">
               <tr>
-                <th className="px-4 py-3 text-right">{t('pt.commission.coach')}</th>
-                <th className="px-4 py-3 text-center">{t('pt.commission.staffNumber')}</th>
-                <th className="px-4 py-3 text-center">{t('pt.commission.subscriptionCount')}</th>
-                <th className="px-4 py-3 text-center">{t('pt.commission.commissionPerSubscription')}</th>
-                <th className="px-4 py-3 text-center">{t('pt.commission.totalCommissions')}</th>
+                <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.commission.coach')}</th>
+                <th className="px-4 py-3 text-center dark:text-gray-200">{t('pt.commission.staffNumber')}</th>
+                <th className="px-4 py-3 text-center dark:text-gray-200">{t('pt.commission.subscriptionCount')}</th>
+                <th className="px-4 py-3 text-center dark:text-gray-200">{t('pt.commission.commissionPerSubscription')}</th>
+                <th className="px-4 py-3 text-center dark:text-gray-200">{t('pt.commission.totalCommissions')}</th>
               </tr>
             </thead>
             <tbody>
               {memberSignupCommissions.length > 0 ? (
                 memberSignupCommissions.map((commission) => (
-                  <tr key={commission.coachId} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-3 font-semibold">{commission.coachName}</td>
-                    <td className="px-4 py-3 text-center text-gray-600">#{commission.staffCode}</td>
+                  <tr key={commission.coachId} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-4 py-3 font-semibold dark:text-gray-200">{commission.coachName}</td>
+                    <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">#{commission.staffCode}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className="inline-block bg-primary-100 text-primary-800 font-bold px-3 py-1 rounded-full">
+                      <span className="inline-block bg-primary-100 dark:bg-primary-900/40 text-primary-800 dark:text-primary-300 font-bold px-3 py-1 rounded-full">
                         {commission.count}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center font-bold text-gray-700">
+                    <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
                       50 {t('pt.commission.egp')}
                     </td>
-                    <td className="px-4 py-3 text-center font-bold text-green-600 text-lg">
+                    <td className="px-4 py-3 text-center font-bold text-green-600 dark:text-green-400 text-lg">
                       {commission.totalAmount.toLocaleString(localeString)} {t('pt.commission.egp')}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={5} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
                     <div className="text-6xl mb-4">📭</div>
                     <p className="text-xl">{t('pt.commission.noCommissionsInPeriod')}</p>
                   </td>
@@ -1866,16 +1866,16 @@ export default function CoachCommissionPage() {
               )}
             </tbody>
             {memberSignupCommissions.length > 0 && (
-              <tfoot className="bg-gradient-to-r from-green-50 to-emerald-100 font-bold">
+              <tfoot className="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 font-bold">
                 <tr>
                   <td className="px-4 py-3" colSpan={2}>{t('pt.commission.total')}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="inline-block bg-primary-500 text-white font-bold px-3 py-1 rounded-full">
+                    <span className="inline-block bg-primary-500 dark:bg-primary-600 text-white font-bold px-3 py-1 rounded-full">
                       {memberSignupCommissions.reduce((sum, c) => sum + c.count, 0)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">-</td>
-                  <td className="px-4 py-3 text-center text-green-600 text-xl">
+                  <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 text-xl">
                     {memberSignupCommissions.reduce((sum, c) => sum + c.totalAmount, 0).toLocaleString(localeString)} {t('pt.commission.egp')}
                   </td>
                 </tr>
@@ -1888,7 +1888,7 @@ export default function CoachCommissionPage() {
       {/* Settings Modal */}
       {showSettingsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-gradient-to-r from-gray-700 to-gray-600 text-white p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold flex items-center gap-3">
@@ -1900,7 +1900,7 @@ export default function CoachCommissionPage() {
                 </h2>
                 <button
                   onClick={() => setShowSettingsModal(false)}
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition"
+                  className="text-white hover:bg-white dark:bg-gray-800 hover:bg-opacity-20 rounded-lg p-2 transition"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1910,8 +1910,8 @@ export default function CoachCommissionPage() {
             </div>
 
             <div className="p-6">
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
-                <p className="text-blue-800 text-sm">
+              <div className="bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-500 dark:border-blue-600 p-4 mb-6 rounded">
+                <p className="text-blue-800 dark:text-blue-300 text-sm">
                   <strong>{t('pt.commission.settingsNote')}</strong> {t('pt.commission.settingsNoteText')}
                 </p>
               </div>
@@ -1923,54 +1923,54 @@ export default function CoachCommissionPage() {
                   {t('pt.commission.monthlyIncomeLimits')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
                       {t('pt.commission.tier1Label')}
                     </label>
                     <input
                       type="number"
                       value={commissionSettings.tier1Limit}
                       onChange={(e) => setCommissionSettings({ ...commissionSettings, tier1Limit: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-700 dark:text-white"
                       placeholder="5000"
                     />
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
                       {t('pt.commission.tier2Label')}
                     </label>
                     <input
                       type="number"
                       value={commissionSettings.tier2Limit}
                       onChange={(e) => setCommissionSettings({ ...commissionSettings, tier2Limit: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-700 dark:text-white"
                       placeholder="11000"
                     />
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
                       {t('pt.commission.tier3Label')}
                     </label>
                     <input
                       type="number"
                       value={commissionSettings.tier3Limit}
                       onChange={(e) => setCommissionSettings({ ...commissionSettings, tier3Limit: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-700 dark:text-white"
                       placeholder="15000"
                     />
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
                       {t('pt.commission.tier4Label')}
                     </label>
                     <input
                       type="number"
                       value={commissionSettings.tier4Limit}
                       onChange={(e) => setCommissionSettings({ ...commissionSettings, tier4Limit: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-700 dark:text-white"
                       placeholder="20000"
                     />
                   </div>
@@ -1984,8 +1984,8 @@ export default function CoachCommissionPage() {
                   {t('pt.commission.commissionPercentages')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <div className="bg-green-50 p-4 rounded-lg border-2 border-green-200">
-                    <label className="block text-sm font-medium mb-2 text-green-700">
+                  <div className="bg-green-50 dark:bg-green-900/50 p-4 rounded-lg border-2 border-green-200 dark:border-green-700">
+                    <label className="block text-sm font-medium mb-2 text-green-700 dark:text-green-300">
                       {t('pt.commission.tier1Percentage')}
                     </label>
                     <div className="relative">
@@ -1993,16 +1993,16 @@ export default function CoachCommissionPage() {
                         type="number"
                         value={commissionSettings.tier1Rate}
                         onChange={(e) => setCommissionSettings({ ...commissionSettings, tier1Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg text-lg font-mono focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                        className="w-full px-4 py-3 border-2 border-green-300 dark:border-green-700 rounded-lg text-lg font-mono focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:bg-gray-700 dark:text-white"
                         placeholder="25"
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-600 font-bold">%</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400 font-bold">%</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{t('pt.commission.lessThanAmount', { amount: commissionSettings.tier1Limit.toLocaleString(localeString) })} {t('pt.commission.currency')}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('pt.commission.lessThanAmount', { amount: commissionSettings.tier1Limit.toLocaleString(localeString) })} {t('pt.commission.currency')}</p>
                   </div>
 
-                  <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-                    <label className="block text-sm font-medium mb-2 text-blue-700">
+                  <div className="bg-blue-50 dark:bg-blue-900/50 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-700">
+                    <label className="block text-sm font-medium mb-2 text-blue-700 dark:text-blue-300">
                       {t('pt.commission.tier2Percentage')}
                     </label>
                     <div className="relative">
@@ -2010,16 +2010,16 @@ export default function CoachCommissionPage() {
                         type="number"
                         value={commissionSettings.tier2Rate}
                         onChange={(e) => setCommissionSettings({ ...commissionSettings, tier2Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg text-lg font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                        className="w-full px-4 py-3 border-2 border-blue-300 dark:border-blue-700 rounded-lg text-lg font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-700 dark:text-white"
                         placeholder="30"
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 font-bold">%</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 dark:text-blue-400 font-bold">%</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{commissionSettings.tier1Limit.toLocaleString(localeString)} - {(commissionSettings.tier2Limit - 1).toLocaleString(localeString)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{commissionSettings.tier1Limit.toLocaleString(localeString)} - {(commissionSettings.tier2Limit - 1).toLocaleString(localeString)}</p>
                   </div>
 
-                  <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-200">
-                    <label className="block text-sm font-medium mb-2 text-yellow-700">
+                  <div className="bg-yellow-50 dark:bg-yellow-900/50 p-4 rounded-lg border-2 border-yellow-200 dark:border-yellow-700">
+                    <label className="block text-sm font-medium mb-2 text-yellow-700 dark:text-yellow-300">
                       {t('pt.commission.tier3Percentage')}
                     </label>
                     <div className="relative">
@@ -2027,16 +2027,16 @@ export default function CoachCommissionPage() {
                         type="number"
                         value={commissionSettings.tier3Rate}
                         onChange={(e) => setCommissionSettings({ ...commissionSettings, tier3Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-yellow-300 rounded-lg text-lg font-mono focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200"
+                        className="w-full px-4 py-3 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg text-lg font-mono focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 dark:bg-gray-700 dark:text-white"
                         placeholder="35"
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-600 font-bold">%</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-600 dark:text-yellow-400 font-bold">%</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{commissionSettings.tier2Limit.toLocaleString(localeString)} - {(commissionSettings.tier3Limit - 1).toLocaleString(localeString)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{commissionSettings.tier2Limit.toLocaleString(localeString)} - {(commissionSettings.tier3Limit - 1).toLocaleString(localeString)}</p>
                   </div>
 
-                  <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
-                    <label className="block text-sm font-medium mb-2 text-orange-700">
+                  <div className="bg-orange-50 dark:bg-orange-900/50 p-4 rounded-lg border-2 border-orange-200 dark:border-orange-700">
+                    <label className="block text-sm font-medium mb-2 text-orange-700 dark:text-orange-300">
                       {t('pt.commission.tier4Percentage')}
                     </label>
                     <div className="relative">
@@ -2044,16 +2044,16 @@ export default function CoachCommissionPage() {
                         type="number"
                         value={commissionSettings.tier4Rate}
                         onChange={(e) => setCommissionSettings({ ...commissionSettings, tier4Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg text-lg font-mono focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                        className="w-full px-4 py-3 border-2 border-orange-300 dark:border-orange-700 rounded-lg text-lg font-mono focus:border-orange-500 focus:ring-2 focus:ring-orange-200 dark:bg-gray-700 dark:text-white"
                         placeholder="40"
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-600 font-bold">%</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-600 dark:text-orange-400 font-bold">%</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{commissionSettings.tier3Limit.toLocaleString(localeString)} - {(commissionSettings.tier4Limit - 1).toLocaleString(localeString)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{commissionSettings.tier3Limit.toLocaleString(localeString)} - {(commissionSettings.tier4Limit - 1).toLocaleString(localeString)}</p>
                   </div>
 
-                  <div className="bg-red-50 p-4 rounded-lg border-2 border-red-200">
-                    <label className="block text-sm font-medium mb-2 text-red-700">
+                  <div className="bg-red-50 dark:bg-red-900/50 p-4 rounded-lg border-2 border-red-200 dark:border-red-700">
+                    <label className="block text-sm font-medium mb-2 text-red-700 dark:text-red-300">
                       {t('pt.commission.tier5Percentage')}
                     </label>
                     <div className="relative">
@@ -2061,18 +2061,18 @@ export default function CoachCommissionPage() {
                         type="number"
                         value={commissionSettings.tier5Rate}
                         onChange={(e) => setCommissionSettings({ ...commissionSettings, tier5Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-red-300 rounded-lg text-lg font-mono focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                        className="w-full px-4 py-3 border-2 border-red-300 dark:border-red-700 rounded-lg text-lg font-mono focus:border-red-500 focus:ring-2 focus:ring-red-200 dark:bg-gray-700 dark:text-white"
                         placeholder="45"
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600 font-bold">%</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600 dark:text-red-400 font-bold">%</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{t('pt.commission.orMoreAmount', { amount: commissionSettings.tier4Limit.toLocaleString(localeString) })} {t('pt.commission.currency')}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('pt.commission.orMoreAmount', { amount: commissionSettings.tier4Limit.toLocaleString(localeString) })} {t('pt.commission.currency')}</p>
                   </div>
                 </div>
               </div>
 
               {/* أزرار الحفظ */}
-              <div className="flex gap-3 pt-4 border-t">
+              <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
                 <button
                   onClick={handleSaveSettings}
                   disabled={savingSettings}
@@ -2082,7 +2082,7 @@ export default function CoachCommissionPage() {
                 </button>
                 <button
                   onClick={() => setShowSettingsModal(false)}
-                  className="px-8 bg-gray-200 hover:bg-gray-300 text-gray-700 py-4 rounded-lg font-bold text-lg transition-all"
+                  className="px-8 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-4 rounded-lg font-bold text-lg transition-all"
                 >
                   {t('pt.commission.cancelSettings')}
                 </button>

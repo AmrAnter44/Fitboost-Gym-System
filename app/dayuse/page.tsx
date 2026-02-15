@@ -220,7 +220,7 @@ export default function DayUsePage() {
   return (
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">{t('dayUse.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">{t('dayUse.title')}</h1>
         <button
           onClick={() => {
             setShowForm(!showForm)
@@ -238,14 +238,14 @@ export default function DayUsePage() {
               setRenewingEntryId(null)
             }
           }}
-          className="w-full sm:w-auto bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
+          className="w-full sm:w-auto bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
         >
           {showForm ? t('dayUse.hideForm') : t('dayUse.addNewOperation')}
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-xl font-semibold mb-4">
             {isRenewing ? '🔄 تجديد خدمة' : t('dayUse.addOperationTitle')}
           </h2>
@@ -259,7 +259,7 @@ export default function DayUsePage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   placeholder={t('dayUse.namePlaceholder')}
                 />
               </div>
@@ -271,7 +271,7 @@ export default function DayUsePage() {
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   placeholder={t('dayUse.phonePlaceholder')}
                 />
               </div>
@@ -281,7 +281,7 @@ export default function DayUsePage() {
                 <select
                   value={formData.serviceType}
                   onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                 >
                   <option value="DayUse">{t('dayUse.dayUse')}</option>
                   {settings.inBodyEnabled && <option value="InBody">{t('dayUse.inBody')}</option>}
@@ -297,7 +297,7 @@ export default function DayUsePage() {
                   min="0"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   placeholder={t('dayUse.pricePlaceholder')}
                 />
               </div>
@@ -309,14 +309,14 @@ export default function DayUsePage() {
                   required
                   value={formData.staffName}
                   readOnly
-                  className="w-full px-3 py-2 border rounded-lg bg-gray-100 cursor-not-allowed"
+                  className="w-full px-3 py-2 border rounded-lg bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
                   placeholder={t('dayUse.staffNamePlaceholder')}
                 />
               </div>
             </div>
 
             {/* قسم طريقة الدفع */}
-            <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-5">
+            <div className="bg-gradient-to-br from-green-50 to-primary-50 dark:from-green-900/30 dark:to-primary-900/30 border-2 border-green-200 dark:border-green-700 rounded-xl p-5">
               <PaymentMethodSelector
                 value={formData.paymentMethod}
                 onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
@@ -332,7 +332,7 @@ export default function DayUsePage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {submitting ? t('dayUse.saving') : t('dayUse.add')}
             </button>
@@ -349,7 +349,7 @@ export default function DayUsePage() {
             {entries.map((entry) => (
               <div
                 key={entry.id}
-                className="bg-white border-r-4 border-purple-500 rounded-lg shadow-md p-4"
+                className="bg-white dark:bg-gray-800 border-r-4 border-primary-500 rounded-lg shadow-md p-4"
               >
                 {/* Action Buttons at Top */}
                 <div className="flex flex-col sm:flex-row justify-end gap-2 mb-3">
@@ -370,12 +370,12 @@ export default function DayUsePage() {
                 {/* Entry Info */}
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 text-sm min-w-[80px]">👤 {t('dayUse.nameLabel')}</span>
-                    <span className="font-bold text-gray-900">{entry.name}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">👤 {t('dayUse.nameLabel')}</span>
+                    <span className="font-bold text-gray-900 dark:text-white">{entry.name}</span>
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 text-sm min-w-[80px]">📱 {t('dayUse.phoneLabel')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">📱 {t('dayUse.phoneLabel')}</span>
                     <a
                       href={`https://wa.me/20${entry.phone}`}
                       target="_blank"
@@ -387,13 +387,13 @@ export default function DayUsePage() {
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 text-sm min-w-[80px]">🎯 {t('dayUse.serviceLabel')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">🎯 {t('dayUse.serviceLabel')}</span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       entry.serviceType === 'DayUse'
-                        ? 'bg-primary-100 text-primary-800'
+                        ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200'
                         : entry.serviceType === 'InBody'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-orange-100 text-orange-800'
+                        ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
+                        : 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200'
                     }`}>
                       {entry.serviceType === 'DayUse' ? t('dayUse.dayUse') :
                        entry.serviceType === 'InBody' ? t('dayUse.inBody') : t('dayUse.lockerRental')}
@@ -401,18 +401,18 @@ export default function DayUsePage() {
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 text-sm min-w-[80px]">💰 {t('dayUse.priceLabel')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">💰 {t('dayUse.priceLabel')}</span>
                     <span className="font-bold text-green-600">{entry.price} {t('dayUse.egp')}</span>
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 text-sm min-w-[80px]">👨‍💼 {t('dayUse.staffLabel')}</span>
-                    <span className="text-gray-700">{entry.staffName}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">👨‍💼 {t('dayUse.staffLabel')}</span>
+                    <span className="text-gray-700 dark:text-gray-200">{entry.staffName}</span>
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 text-sm min-w-[80px]">📅 {t('dayUse.dateLabel')}</span>
-                    <span className="text-gray-700">
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">📅 {t('dayUse.dateLabel')}</span>
+                    <span className="text-gray-700 dark:text-gray-200">
                       {new Date(entry.createdAt).toLocaleDateString('ar-EG')}
                     </span>
                   </div>
@@ -421,7 +421,7 @@ export default function DayUsePage() {
             ))}
 
             {entries.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <div className="text-5xl mb-3">📦</div>
                 <p>{t('dayUse.noOperationsYet')}</p>
               </div>
@@ -429,31 +429,31 @@ export default function DayUsePage() {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-100">
+              <thead className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700 dark:bg-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-right">{t('dayUse.name')}</th>
-                  <th className="px-4 py-3 text-right">{t('dayUse.phone')}</th>
-                  <th className="px-4 py-3 text-right">{t('dayUse.serviceType')}</th>
-                  <th className="px-4 py-3 text-right">{t('dayUse.price')}</th>
-                  <th className="px-4 py-3 text-right">{t('dayUse.staffName')}</th>
-                  <th className="px-4 py-3 text-right">{t('dayUse.dateLabel')}</th>
-                  <th className="px-4 py-3 text-center">{t('dayUse.actions')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.name')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.phone')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.serviceType')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.price')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.staffName')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.dateLabel')}</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">{t('dayUse.actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.map((entry) => (
-                  <tr key={entry.id} className="border-t hover:bg-gray-50">
+                  <tr key={entry.id} className="border-t hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-4 py-3">{entry.name}</td>
                     <td className="px-4 py-3">{entry.phone}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-sm ${
                         entry.serviceType === 'DayUse'
-                          ? 'bg-primary-100 text-primary-800'
+                          ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200'
                           : entry.serviceType === 'InBody'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-orange-100 text-orange-800'
+                          ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
+                          : 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200'
                       }`}>
                         {entry.serviceType === 'DayUse' ? t('dayUse.dayUse') :
                          entry.serviceType === 'InBody' ? t('dayUse.inBody') : t('dayUse.lockerRental')}
@@ -486,7 +486,7 @@ export default function DayUsePage() {
             </table>
 
             {entries.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 {t('dayUse.noOperationsYet')}
               </div>
             )}
@@ -524,25 +524,25 @@ export default function DayUsePage() {
           onClick={() => !deleting && setShowDeletePopup(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
               {/* Warning Icon */}
               <div className="mb-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-3">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/40 rounded-full mb-3">
                   <span className="text-4xl">⚠️</span>
                 </div>
-                <h3 className="text-2xl font-bold text-red-700 mb-2">
+                <h3 className="text-2xl font-bold text-red-700 dark:text-red-400 mb-2">
                   {t('dayUse.deleteModal.title')}
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 dark:text-gray-300 text-sm">
                   {t('dayUse.deleteModal.message')}
                 </p>
               </div>
 
               {/* Entry Details */}
-              <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 mb-6 text-right">
+              <div className="bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl p-4 mb-6 text-right">
                 <div className="space-y-2">
                   <p><span className="font-semibold">{t('dayUse.deleteModal.nameLabel')}</span> {entryToDelete.name}</p>
                   <p><span className="font-semibold">{t('dayUse.deleteModal.phoneLabel')}</span> {entryToDelete.phone}</p>
@@ -557,8 +557,8 @@ export default function DayUsePage() {
               </div>
 
               {/* Warning Message */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-xs text-yellow-800">
+              <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3 mb-4">
+                <p className="text-xs text-yellow-800 dark:text-yellow-300">
                   {t('dayUse.deleteModal.warning')}
                 </p>
               </div>
@@ -575,7 +575,7 @@ export default function DayUsePage() {
                 <button
                   onClick={() => setShowDeletePopup(false)}
                   disabled={deleting}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed font-medium transition"
+                  className="flex-1 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 dark:bg-gray-700 disabled:cursor-not-allowed font-medium transition"
                 >
                   ✖️ {t('dayUse.deleteModal.cancel')}
                 </button>

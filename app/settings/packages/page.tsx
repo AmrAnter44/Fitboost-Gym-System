@@ -142,11 +142,11 @@ export default function PackagesManagementPage() {
 
   const getServiceColor = (serviceType: string) => {
     switch (serviceType) {
-      case 'PT': return 'bg-purple-50 border-purple-300'
-      case 'Nutrition': return 'bg-lime-50 border-lime-400'
-      case 'Physiotherapy': return 'bg-blue-50 border-blue-400'
-      case 'GroupClass': return 'bg-fuchsia-50 border-fuchsia-400'
-      default: return 'bg-gray-50 border-gray-300'
+      case 'PT': return 'bg-primary-50 dark:bg-primary-900/50 border-primary-300 dark:border-primary-700'
+      case 'Nutrition': return 'bg-lime-50 dark:bg-lime-900/50 border-lime-400 dark:border-lime-700'
+      case 'Physiotherapy': return 'bg-blue-50 dark:bg-blue-900/50 border-blue-400 dark:border-blue-700'
+      case 'GroupClass': return 'bg-fuchsia-50 dark:bg-fuchsia-900/50 border-fuchsia-400 dark:border-fuchsia-700'
+      default: return 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600'
     }
   }
 
@@ -162,7 +162,7 @@ export default function PackagesManagementPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4 animate-spin">⏳</div>
-          <p className="text-xl text-gray-600">{t('common.loading')}</p>
+          <p className="text-xl text-gray-600 dark:text-gray-300">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -176,11 +176,11 @@ export default function PackagesManagementPage() {
             <span>📦</span>
             {t('packages.title')}
           </h1>
-          <p className="text-gray-600 mt-2">{t('packages.description')}</p>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">{t('packages.description')}</p>
         </div>
         <button
           onClick={() => router.back()}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-bold"
+          className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-lg font-bold"
         >
           ← {t('common.back')}
         </button>
@@ -190,7 +190,7 @@ export default function PackagesManagementPage() {
       {!showForm && (
         <button
           onClick={() => setShowForm(true)}
-          className="mb-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition-all hover:scale-105"
+          className="mb-6 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 dark:hover:from-primary-600 dark:hover:to-primary-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition-all hover:scale-105"
         >
           + {t('packages.addNew')}
         </button>
@@ -198,33 +198,33 @@ export default function PackagesManagementPage() {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-purple-200">
-          <h2 className="text-2xl font-bold mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border-2 border-primary-200 dark:border-primary-700">
+          <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
             {editingPackage ? t('packages.edit') : t('packages.addNew')}
           </h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
                 {t('packages.packageName')}
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                 placeholder="مثال: 8 جلسات"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
                 {t('packages.serviceType')}
               </label>
               <select
                 value={formData.serviceType}
                 onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
-                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                 disabled={!!editingPackage}
               >
                 <option value="PT">💪 PT</option>
@@ -235,28 +235,28 @@ export default function PackagesManagementPage() {
             </div>
 
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
                 {t('packages.sessions')}
               </label>
               <input
                 type="number"
                 value={formData.sessions}
                 onChange={(e) => setFormData({ ...formData, sessions: e.target.value })}
-                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                 placeholder="8"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
                 {t('packages.price')}
               </label>
               <input
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                 placeholder="800"
                 required
               />
@@ -265,14 +265,14 @@ export default function PackagesManagementPage() {
             <div className="md:col-span-2 flex gap-3">
               <button
                 type="submit"
-                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-bold"
+                className="bg-primary-600 hover:bg-primary-700 dark:hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-bold"
               >
                 {editingPackage ? t('common.save') : t('common.add')}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-3 rounded-lg font-bold"
+                className="bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg font-bold"
               >
                 {t('common.cancel')}
               </button>
@@ -292,7 +292,7 @@ export default function PackagesManagementPage() {
           if (serviceType === 'GroupClass' && !settings.groupClassEnabled) return null
 
           return (
-            <div key={serviceType} className="bg-white rounded-xl shadow-md p-6">
+            <div key={serviceType} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 {getServiceIcon(serviceType)}
                 {serviceType === 'PT' ? 'PT' :
@@ -309,28 +309,28 @@ export default function PackagesManagementPage() {
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="font-bold text-lg">{pkg.name}</h3>
-                        <p className="text-sm text-gray-600">
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">{pkg.name}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
                           {pkg.sessions} {t('packages.sessions')}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-purple-600">
+                        <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
                           {pkg.price}
                         </p>
-                        <p className="text-xs text-gray-500">{t('members.egp')}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{t('members.egp')}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleEdit(pkg)}
-                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold"
+                        className="flex-1 bg-blue-500 hover:bg-blue-600 dark:hover:bg-blue-500 text-white px-3 py-2 rounded text-sm font-bold"
                       >
                         {t('common.edit')}
                       </button>
                       <button
                         onClick={() => handleDelete(pkg.id)}
-                        className="flex-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm font-bold"
+                        className="flex-1 bg-red-500 hover:bg-red-600 dark:hover:bg-red-500 text-white px-3 py-2 rounded text-sm font-bold"
                       >
                         {t('common.delete')}
                       </button>
@@ -343,10 +343,10 @@ export default function PackagesManagementPage() {
         })}
 
         {packages.length === 0 && (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-12 text-center">
             <div className="text-6xl mb-4">📦</div>
-            <p className="text-xl text-gray-600">{t('packages.noPackages')}</p>
-            <p className="text-gray-500 mt-2">{t('packages.addFirstPackage')}</p>
+            <p className="text-xl text-gray-600 dark:text-gray-300">{t('packages.noPackages')}</p>
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">{t('packages.addFirstPackage')}</p>
           </div>
         )}
       </div>

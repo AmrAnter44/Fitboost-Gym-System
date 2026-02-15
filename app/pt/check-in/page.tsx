@@ -59,8 +59,8 @@ export default function PTCheckInPage() {
 
   if (showSuccess && sessionInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-400 via-primary-500 to-purple-600 flex items-center justify-center p-4" dir="rtl">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-green-400 via-primary-500 to-primary-600 flex items-center justify-center p-4" dir="rtl">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center">
           {/* Success Animation */}
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-green-100 rounded-full mb-4 animate-bounce">
@@ -69,33 +69,33 @@ export default function PTCheckInPage() {
             <h1 className="text-3xl font-bold text-green-700 mb-2">
               تم تسجيل حضورك بنجاح!
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               استمتع بتمرينك مع الكوتش
             </p>
           </div>
 
           {/* Session Details */}
-          <div className="bg-gradient-to-br from-primary-50 to-purple-50 border-2 border-primary-300 rounded-2xl p-6 mb-6 text-right">
+          <div className="bg-gradient-to-br from-primary-50 to-primary-50 border-2 border-primary-300 rounded-2xl p-6 mb-6 text-right">
             <h3 className="text-lg font-bold text-primary-800 mb-4 text-center">
               تفاصيل الحصة
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center border-b border-primary-200 pb-2">
-                <span className="text-gray-600">الاسم:</span>
+                <span className="text-gray-600 dark:text-gray-300">الاسم:</span>
                 <span className="font-bold text-primary-900">{sessionInfo.clientName}</span>
               </div>
               <div className="flex justify-between items-center border-b border-primary-200 pb-2">
-                <span className="text-gray-600">رقم PT:</span>
+                <span className="text-gray-600 dark:text-gray-300">رقم PT:</span>
                 <span className="font-bold text-primary-900">
                   {sessionInfo.ptNumber < 0 ? '🏃 Day Use' : `#${sessionInfo.ptNumber}`}
                 </span>
               </div>
               <div className="flex justify-between items-center border-b border-primary-200 pb-2">
-                <span className="text-gray-600">الكوتش:</span>
+                <span className="text-gray-600 dark:text-gray-300">الكوتش:</span>
                 <span className="font-bold text-primary-900">{sessionInfo.coachName}</span>
               </div>
               <div className="flex justify-between items-center border-b border-primary-200 pb-2">
-                <span className="text-gray-600">التاريخ:</span>
+                <span className="text-gray-600 dark:text-gray-300">التاريخ:</span>
                 <span className="font-bold text-primary-900">
                   {new Date(sessionInfo.sessionDate).toLocaleDateString('ar-EG', {
                     year: 'numeric',
@@ -120,13 +120,13 @@ export default function PTCheckInPage() {
                 setShowSuccess(false)
                 setSessionInfo(null)
               }}
-              className="w-full bg-gradient-to-r from-primary-600 to-purple-600 text-white py-4 rounded-xl hover:from-primary-700 hover:to-purple-700 font-bold text-lg shadow-lg"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl hover:from-primary-700 hover:to-primary-700 font-bold text-lg shadow-lg"
             >
               تسجيل حصة أخرى
             </button>
             <button
               onClick={() => router.push('/')}
-              className="w-full bg-gray-200 text-gray-700 py-3 rounded-xl hover:bg-gray-300 font-medium"
+              className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-xl hover:bg-gray-300 font-medium"
             >
               العودة للصفحة الرئيسية
             </button>
@@ -144,17 +144,17 @@ export default function PTCheckInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-primary-600 to-cyan-500 flex items-center justify-center p-4" dir="rtl">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-600 to-cyan-500 flex items-center justify-center p-4" dir="rtl">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-md w-full p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-100 to-primary-100 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-100 to-primary-100 rounded-full mb-4">
             <span className="text-5xl">🏋️</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
             تسجيل حضور PT
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             أدخل رقم PT أو Barcode الخاص بحصتك
           </p>
         </div>
@@ -163,7 +163,7 @@ export default function PTCheckInPage() {
         {/* Form */}
         <form onSubmit={handleCheckIn} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               رقم PT / Barcode <span className="text-red-600">*</span>
             </label>
             <input
@@ -171,22 +171,22 @@ export default function PTCheckInPage() {
               value={qrCode}
               onChange={(e) => setQrCode(e.target.value)}
               placeholder="أدخل رقم PT أو امسح Barcode..."
-              className="w-full px-4 py-4 border-2 border-purple-300 rounded-xl focus:outline-none focus:border-purple-500 font-mono text-lg"
+              className="w-full px-4 py-4 border-2 border-primary-300 rounded-xl focus:outline-none focus:border-primary-500 font-mono text-lg"
               autoFocus
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">
               💡 أدخل الرقم المرسل لك عبر WhatsApp أو امسح الباركود
             </p>
           </div>
 
           {/* Character Counter */}
           {qrCode && (
-            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
-              <p className="text-xs text-purple-700 mb-2">
+            <div className="bg-primary-50 border-2 border-primary-200 rounded-xl p-4">
+              <p className="text-xs text-primary-700 mb-2">
                 الكود المدخل ({qrCode.length}):
               </p>
-              <p className="font-mono text-sm text-purple-900 break-all select-all">
+              <p className="font-mono text-sm text-primary-900 break-all select-all">
                 {qrCode.match(/.{1,4}/g)?.join('-') || qrCode}
               </p>
               {qrCode.length === 32 ? (
@@ -207,7 +207,7 @@ export default function PTCheckInPage() {
           <button
             type="submit"
             disabled={loading || qrCode.length !== 32}
-            className="w-full bg-gradient-to-r from-purple-600 to-primary-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-primary-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition"
+            className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl hover:from-primary-700 hover:to-primary-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition"
           >
             {loading ? '⏳ جاري التحقق...' : '✅ تسجيل الحضور'}
           </button>
@@ -223,10 +223,10 @@ export default function PTCheckInPage() {
 
         {/* Help Section */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             لم تستلم QR Code؟
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">
             تواصل مع الكوتش أو الإدارة للحصول على الكود
           </p>
         </div>

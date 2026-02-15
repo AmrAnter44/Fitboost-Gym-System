@@ -143,29 +143,29 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
           style={{ zIndex: 9999 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowBarcodeModal(false) }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold">🔢 Barcode الموظف</h3>
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
                 type="button"
               >
                 ×
               </button>
             </div>
 
-            <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4 mb-6 text-center">
-              <p className="text-sm text-purple-600 mb-2">الموظف</p>
-              <p className="text-xl font-bold text-purple-800">{staffName}</p>
-              <p className="text-3xl font-bold text-purple-600 mt-2">
+            <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 mb-6 text-center">
+              <p className="text-sm text-primary-600 mb-2">الموظف</p>
+              <p className="text-xl font-bold text-primary-800">{staffName}</p>
+              <p className="text-3xl font-bold text-primary-600 mt-2">
                 #{staffCode.toLowerCase().startsWith('s') ? staffCode.toUpperCase() : `S${staffCode}`}
               </p>
             </div>
 
             {/* Logo أعلى الباركود */}
             <div className="flex justify-center mb-4">
-              <div className="bg-white rounded-lg shadow-lg p-3 border-2 border-purple-400">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 border-2 border-primary-400">
                 <img
                   src="/assets/icon.png"
                   alt="Gym Logo"
@@ -175,7 +175,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
             </div>
 
             {/* الباركود بدون تداخل */}
-            <div className="bg-white border-2 border-purple-200 rounded-lg p-6 mb-6 flex justify-center">
+            <div className="bg-white dark:bg-gray-800 border-2 border-primary-200 rounded-lg p-6 mb-6 flex justify-center">
               <img
                 src={barcodeImage}
                 alt={`Barcode S${staffCode}`}
@@ -187,7 +187,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
             <div className="space-y-3">
               <button
                 onClick={handleDownloadBarcode}
-                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-bold flex items-center justify-center gap-2"
+                className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center justify-center gap-2"
               >
                 <span>💾</span>
                 <span>تحميل الصورة</span>
@@ -206,7 +206,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
 
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold"
               >
                 إغلاق
               </button>

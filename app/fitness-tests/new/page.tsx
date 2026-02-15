@@ -178,8 +178,8 @@ function NewFitnessTestContent() {
 
   if (!memberId || !coachId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl p-8 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center">
           <p className="text-2xl text-red-600">❌ معلومات غير مكتملة</p>
         </div>
       </div>
@@ -187,14 +187,14 @@ function NewFitnessTestContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900 p-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">📋 نموذج تقييم اللياقة</h1>
-              <p className="text-gray-600 mt-2">إنشاء اختبار لياقة جديد</p>
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">📋 نموذج تقييم اللياقة</h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">إنشاء اختبار لياقة جديد</p>
             </div>
             <button
               onClick={() => router.back()}
@@ -207,25 +207,25 @@ function NewFitnessTestContent() {
 
 
         {/* Form */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
           {/* Section 1: Auto-filled Member Info */}
           <div className="bg-primary-50 p-6 rounded-lg mb-6">
             <h2 className="font-bold mb-4 text-xl">معلومات العضو</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-gray-600 text-sm">رقم العضوية</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">رقم العضوية</p>
                 <p className="font-bold text-lg">#{member?.memberNumber || '...'}</p>
               </div>
               <div>
-                <p className="text-gray-600 text-sm">الاسم</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">الاسم</p>
                 <p className="font-bold text-lg">{member?.name || '...'}</p>
               </div>
               <div>
-                <p className="text-gray-600 text-sm">الهاتف</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">الهاتف</p>
                 <p className="font-bold text-lg">{member?.phone || '...'}</p>
               </div>
               <div>
-                <p className="text-gray-600 text-sm">المدرب</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">المدرب</p>
                 <p className="font-bold text-lg text-teal-600">{coach?.name || '...'}</p>
               </div>
             </div>
@@ -284,7 +284,7 @@ function NewFitnessTestContent() {
           </div>
 
           {/* Section 5: Flexibility Test */}
-          <div className="bg-purple-50 p-6 rounded-lg mb-6">
+          <div className="bg-primary-50 p-6 rounded-lg mb-6">
             <h2 className="font-bold mb-4 text-xl">اختبار المرونة</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {flexibilityParts.map((part) => (
@@ -387,7 +387,7 @@ function NewFitnessTestContent() {
 
 export default function NewFitnessTestPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4"><div className="text-white text-xl">جاري التحميل...</div></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900 flex items-center justify-center p-4"><div className="text-white text-xl">جاري التحميل...</div></div>}>
       <NewFitnessTestContent />
     </Suspense>
   )

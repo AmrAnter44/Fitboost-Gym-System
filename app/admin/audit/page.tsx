@@ -213,10 +213,10 @@ export default function AuditPage() {
   // Status translations and colors
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success': return 'bg-green-100 text-green-800'
-      case 'failure': return 'bg-red-100 text-red-800'
-      case 'warning': return 'bg-yellow-100 text-yellow-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'success': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
+      case 'failure': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+      case 'warning': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'
     }
   }
 
@@ -248,26 +248,26 @@ export default function AuditPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6" dir={direction}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-700 p-6" dir={direction}>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           🔒 سجلات التدقيق والأمان
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-gray-300">
           تتبع جميع العمليات والمستخدمين النشطين في النظام
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm mb-6">
-        <div className="flex border-b">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setActiveTab('logs')}
             className={`px-6 py-4 font-medium transition ${
               activeTab === 'logs'
                 ? 'border-b-2 border-primary-600 text-primary-600'
-                : 'text-gray-600 hover:text-gray-900'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
             📋 سجلات التدقيق
@@ -277,7 +277,7 @@ export default function AuditPage() {
             className={`px-6 py-4 font-medium transition ${
               activeTab === 'sessions'
                 ? 'border-b-2 border-primary-600 text-primary-600'
-                : 'text-gray-600 hover:text-gray-900'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
             🟢 المتصلين حالياً
@@ -289,30 +289,30 @@ export default function AuditPage() {
       {activeTab === 'logs' && (
         <div className="space-y-6">
           {/* Filters */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
               🔍 فلاتر البحث
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* User Search */}
               <div>
-                <label className="block text-sm font-medium mb-2">البحث عن مستخدم</label>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">البحث عن مستخدم</label>
                 <input
                   type="text"
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   placeholder="اسم أو بريد إلكتروني..."
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
               {/* Action Filter */}
               <div>
-                <label className="block text-sm font-medium mb-2">نوع العملية</label>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">نوع العملية</label>
                 <select
                   value={actionFilter}
                   onChange={(e) => setActionFilter(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">الكل</option>
                   <option value="LOGIN">🔐 تسجيل دخول</option>
@@ -329,11 +329,11 @@ export default function AuditPage() {
 
               {/* Resource Filter */}
               <div>
-                <label className="block text-sm font-medium mb-2">نوع المورد</label>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">نوع المورد</label>
                 <select
                   value={resourceFilter}
                   onChange={(e) => setResourceFilter(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">الكل</option>
                   <option value="Member">👤 أعضاء</option>
@@ -350,11 +350,11 @@ export default function AuditPage() {
 
               {/* Status Filter */}
               <div>
-                <label className="block text-sm font-medium mb-2">الحالة</label>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">الحالة</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">الكل</option>
                   <option value="success">✓ نجح</option>
@@ -366,7 +366,7 @@ export default function AuditPage() {
 
             {/* Clear Filters Button */}
             {(actionFilter || statusFilter || resourceFilter || userSearch) && (
-              <div className="mt-4 pt-4 border-t">
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => {
                     setActionFilter('')
@@ -374,7 +374,7 @@ export default function AuditPage() {
                     setResourceFilter('')
                     setUserSearch('')
                   }}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition"
+                  className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition"
                 >
                   ✖️ مسح الفلاتر
                 </button>
@@ -388,11 +388,11 @@ export default function AuditPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
             </div>
           ) : error ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 text-red-800 dark:text-red-300">
               {error}
             </div>
           ) : logs.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-12 text-center text-gray-500">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-12 text-center text-gray-500 dark:text-gray-400">
               لا توجد سجلات
             </div>
           ) : (
@@ -403,13 +403,13 @@ export default function AuditPage() {
                 const resourceName = resourceTranslations[log.resource] || log.resource
 
                 return (
-                  <div key={log.id} className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition border border-gray-100">
+                  <div key={log.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition border border-gray-100 dark:border-gray-700">
                     <div className="flex items-start gap-4">
                       {/* Action Icon */}
                       <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
-                        log.status === 'success' ? 'bg-green-100' :
-                        log.status === 'failure' ? 'bg-red-100' :
-                        'bg-yellow-100'
+                        log.status === 'success' ? 'bg-green-100 dark:bg-green-900/30' :
+                        log.status === 'failure' ? 'bg-red-100 dark:bg-red-900/30' :
+                        'bg-yellow-100 dark:bg-yellow-900/30'
                       }`}>
                         {actionIcon}
                       </div>
@@ -418,15 +418,15 @@ export default function AuditPage() {
                       <div className="flex-1 min-w-0">
                         {/* Header: User + Action */}
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <span className="font-bold text-gray-900">
+                          <span className="font-bold text-gray-900 dark:text-white">
                             {log.userName || log.userEmail || 'مستخدم غير معروف'}
                           </span>
-                          <span className="text-gray-500">•</span>
+                          <span className="text-gray-500 dark:text-gray-400">•</span>
                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                            log.userRole === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
-                            log.userRole === 'MANAGER' ? 'bg-primary-100 text-primary-800' :
-                            log.userRole === 'STAFF' ? 'bg-gray-100 text-gray-800' :
-                            'bg-gray-100 text-gray-600'
+                            log.userRole === 'ADMIN' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400' :
+                            log.userRole === 'MANAGER' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400' :
+                            log.userRole === 'STAFF' ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100' :
+                            'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                           }`}>
                             {log.userRole || 'مستخدم'}
                           </span>
@@ -435,17 +435,17 @@ export default function AuditPage() {
                         {/* Main Action Description */}
                         <div className="mb-3">
                           {detailsText ? (
-                            <p className="text-base text-gray-800 font-medium">
+                            <p className="text-base text-gray-800 dark:text-gray-100 font-medium">
                               {detailsText}
                             </p>
                           ) : (
-                            <p className="text-base text-gray-800">
+                            <p className="text-base text-gray-800 dark:text-gray-100">
                               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(log.status)}`}>
                                 {actionTranslations[log.action] || log.action}
                               </span>
                               <span className="mx-2">←</span>
                               <span className="font-medium">{resourceName}</span>
-                              {log.resourceId && <span className="text-gray-500"> #{log.resourceId}</span>}
+                              {log.resourceId && <span className="text-gray-500 dark:text-gray-400"> #{log.resourceId}</span>}
                             </p>
                           )}
                         </div>
@@ -453,9 +453,9 @@ export default function AuditPage() {
                         {/* Status Badge */}
                         <div className="flex items-center gap-3 mb-2">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium ${
-                            log.status === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                            log.status === 'failure' ? 'bg-red-50 text-red-700 border border-red-200' :
-                            'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                            log.status === 'success' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700' :
+                            log.status === 'failure' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700' :
+                            'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-700'
                           }`}>
                             {log.status === 'success' && '✓'}
                             {log.status === 'failure' && '✗'}
@@ -466,22 +466,22 @@ export default function AuditPage() {
 
                         {/* Error Message (if any) */}
                         {log.errorMessage && (
-                          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-3">
                             <div className="flex items-start gap-2">
-                              <span className="text-red-600 text-sm">⚠️</span>
-                              <p className="text-sm text-red-700 font-medium">{log.errorMessage}</p>
+                              <span className="text-red-600 dark:text-red-400 text-sm">⚠️</span>
+                              <p className="text-sm text-red-700 dark:text-red-300 font-medium">{log.errorMessage}</p>
                             </div>
                           </div>
                         )}
 
                         {/* Footer: Metadata */}
-                        <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t border-gray-100">
+                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
                           <span className="flex items-center gap-1">
                             🕐 {formatDate(log.createdAt)}
                           </span>
                           {log.ipAddress && (
                             <span className="flex items-center gap-1">
-                              🌐 <code className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">{log.ipAddress}</code>
+                              🌐 <code className="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{log.ipAddress}</code>
                             </span>
                           )}
                         </div>
@@ -503,17 +503,17 @@ export default function AuditPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
             </div>
           ) : error ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 text-red-800 dark:text-red-300">
               {error}
             </div>
           ) : sessions.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-12 text-center text-gray-500">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-12 text-center text-gray-500 dark:text-gray-400">
               لا توجد جلسات نشطة
             </div>
           ) : (
             <div>
-              <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-                <div className="flex items-center gap-2 text-lg font-medium">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-4">
+                <div className="flex items-center gap-2 text-lg font-medium text-gray-900 dark:text-gray-100">
                   <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
                   <span>{sessions.length} مستخدم متصل حالياً</span>
                 </div>
@@ -521,25 +521,25 @@ export default function AuditPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sessions.map((session) => (
-                  <div key={session.id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition">
+                  <div key={session.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 hover:shadow-md transition">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="font-bold text-lg text-gray-900">{session.userName}</h3>
-                        <p className="text-sm text-gray-600">{session.userEmail}</p>
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-white">{session.userName}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{session.userEmail}</p>
                       </div>
-                      <span className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-xs font-medium">
+                      <span className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400 rounded-full text-xs font-medium">
                         {session.userRole}
                       </span>
                     </div>
 
-                    <div className="space-y-2 text-sm text-gray-600">
+                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                       <div className="flex items-center gap-2">
                         <span>🔐 تسجيل الدخول:</span>
                         <span>{formatDate(session.loginAt)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span>⏱️ آخر نشاط:</span>
-                        <span className="text-green-600 font-medium">
+                        <span className="text-green-600 dark:text-green-400 font-medium">
                           {getTimeSince(session.lastActivityAt)}
                         </span>
                       </div>

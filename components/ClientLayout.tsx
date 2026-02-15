@@ -9,6 +9,7 @@ import { DeviceSettingsProvider } from '../contexts/DeviceSettingsContext'
 import { SearchProvider } from '../contexts/SearchContext'
 import { UpdateProvider } from '../contexts/UpdateContext'
 import { ServiceSettingsProvider } from '../contexts/ServiceSettingsContext'
+import { DarkModeProvider } from '../contexts/DarkModeContext'
 import QueryProvider from './QueryProvider'
 import Navbar from './Navbar'
 import { PreventInputScroll } from '../app/PreventInputScroll'
@@ -18,18 +19,20 @@ import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
 import UpdateNotification from './UpdateNotification'
 import InstallPrompt from './InstallPrompt'
+import KeyboardShortcuts from './KeyboardShortcuts'
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <QueryProvider>
       <LicenseProvider>
-        <LanguageProvider>
-          <ServiceSettingsProvider>
-            <DeviceSettingsProvider>
-              <SearchProvider>
-                <ToastProvider>
-                  <UpdateProvider>
-                    <AdminDateProvider>
+        <DarkModeProvider>
+          <LanguageProvider>
+            <ServiceSettingsProvider>
+              <DeviceSettingsProvider>
+                <SearchProvider>
+                  <ToastProvider>
+                    <UpdateProvider>
+                      <AdminDateProvider>
                       <LicenseLockedScreen />
                       <PreventInputScroll />
                       <BarcodeInputDetector />
@@ -38,14 +41,16 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                       <Navbar />
                       <ToastContainer />
                       <SearchModal />
-                      <main className="overflow-x-hidden w-full max-w-full">{children}</main>
-                    </AdminDateProvider>
-                  </UpdateProvider>
-                </ToastProvider>
-              </SearchProvider>
-            </DeviceSettingsProvider>
-          </ServiceSettingsProvider>
-        </LanguageProvider>
+                      <KeyboardShortcuts />
+                        <main className="overflow-x-hidden w-full max-w-full">{children}</main>
+                      </AdminDateProvider>
+                    </UpdateProvider>
+                  </ToastProvider>
+                </SearchProvider>
+              </DeviceSettingsProvider>
+            </ServiceSettingsProvider>
+          </LanguageProvider>
+        </DarkModeProvider>
       </LicenseProvider>
     </QueryProvider>
   )

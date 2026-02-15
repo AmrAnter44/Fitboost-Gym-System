@@ -38,6 +38,32 @@
   --background-end-rgb: 249, 250, 251;
 }
 
+/* Dark Mode Colors */
+.dark {
+  /* Dark Mode Primary Colors */
+  --color-primary-50: #1e3a8a;
+  --color-primary-100: #1e40af;
+  --color-primary-200: #1d4ed8;
+  --color-primary-300: #2563eb;
+  --color-primary-400: #3b82f6;
+  --color-primary-500: #60a5fa;
+  --color-primary-600: #93c5fd;
+  --color-primary-700: #bfdbfe;
+  --color-primary-800: #dbeafe;
+  --color-primary-900: #eff6ff;
+
+  /* Dark Mode Background & Foreground */
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 17, 24, 39;
+  --background-end-rgb: 17, 24, 39;
+}
+
+/* Dark Mode Body */
+.dark body {
+  background: rgb(17, 24, 39);
+  color: rgb(243, 244, 246);
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -315,6 +341,19 @@ button:disabled {
   border: 1px solid #d1d5db;
 }
 
+/* Dark mode support for excel-table */
+@media (prefers-color-scheme: dark) {
+  .excel-table th,
+  .excel-table td {
+    border-color: #4b5563;
+  }
+}
+
+.dark .excel-table th,
+.dark .excel-table td {
+  border-color: #4b5563;
+}
+
 /* Print styles */
 @media print {
   @page {
@@ -418,4 +457,23 @@ textarea {
   textarea {
     font-size: 16px !important;
   }
+}
+
+/* Dark Mode Toggle Animations */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+/* Smooth transitions for dark mode toggle */
+.dark-mode-toggle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

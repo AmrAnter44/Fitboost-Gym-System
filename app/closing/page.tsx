@@ -739,7 +739,7 @@ export default function ClosingPage() {
 
       return (
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-bold text-purple-600">🔀 {emojis}</span>
+          <span className="text-xs font-bold text-primary-600">🔀 {emojis}</span>
           {normalized.methods.map((m, idx) => {
             const methodLabels: { [key: string]: string } = {
               'cash': t('closing.paymentMethods.cash'),
@@ -772,8 +772,8 @@ export default function ClosingPage() {
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
       <div className="mb-4 sm:mb-6 no-print">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">💰 {t('closing.title')}</h1>
-        <p className="text-gray-600 text-sm sm:text-base">{t('closing.subtitle')}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">💰 {t('closing.title')}</h1>
+        <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">{t('closing.subtitle')}</p>
 
         {/* View Mode Tabs */}
         <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
@@ -782,7 +782,7 @@ export default function ClosingPage() {
             className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'daily'
                 ? 'bg-primary-600 text-white shadow-lg'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
             }`}
           >
             📅 {t('closing.viewMode.daily')}
@@ -792,7 +792,7 @@ export default function ClosingPage() {
             className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'monthly'
                 ? 'bg-primary-600 text-white shadow-lg'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
             }`}
           >
             📆 {t('closing.viewMode.monthly')}
@@ -802,7 +802,7 @@ export default function ClosingPage() {
             className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'yearly'
                 ? 'bg-primary-600 text-white shadow-lg'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
             }`}
           >
             📅 {t('closing.viewMode.yearly')}
@@ -811,8 +811,8 @@ export default function ClosingPage() {
             onClick={() => setViewMode('comparison')}
             className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
               viewMode === 'comparison'
-                ? 'bg-purple-600 text-white shadow-lg'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ? 'bg-primary-600 text-white shadow-lg'
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
             }`}
           >
             📊 {t('closing.viewMode.comparison')}
@@ -821,19 +821,19 @@ export default function ClosingPage() {
       </div>
 
       {/* Controls */}
-      <div className="mb-4 sm:mb-6 bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-md no-print">
+      <div className="mb-4 sm:mb-6 bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-lg shadow-md no-print border dark:border-gray-700">
         <div className="space-y-3 sm:space-y-4">
           {viewMode === 'daily' ? (
             /* اختيار اليوم للعرض اليومي */
             <div>
-              <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.controls.selectDay')}</label>
+              <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.controls.selectDay')}</label>
               <input
                 type="date"
                 value={selectedDay}
                 onChange={(e) => setSelectedDay(e.target.value)}
-                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
               />
-              <p className="text-xs sm:text-sm text-gray-600 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2">
                 {t('closing.controls.viewDayDetails', {
                   date: new Date(selectedDay).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
                     weekday: 'long',
@@ -847,14 +847,14 @@ export default function ClosingPage() {
           ) : viewMode === 'monthly' ? (
             /* اختيار الشهر للعرض الشهري */
             <div>
-              <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.controls.selectMonth')}</label>
+              <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.controls.selectMonth')}</label>
               <input
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
               />
-              <p className="text-xs sm:text-sm text-gray-600 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2">
                 {t('closing.controls.viewMonthDetails', {
                   month: new Date(selectedMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })
                 })}
@@ -863,16 +863,16 @@ export default function ClosingPage() {
           ) : viewMode === 'yearly' ? (
             /* اختيار السنة للعرض السنوي */
             <div>
-              <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.controls.selectYear')}</label>
+              <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.controls.selectYear')}</label>
               <input
                 type="number"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 min="2020"
                 max="2030"
-                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
               />
-              <p className="text-xs sm:text-sm text-gray-600 mt-2">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2">
                 {t('closing.controls.viewYearDetails', { year: selectedYear })}
               </p>
             </div>
@@ -881,25 +881,25 @@ export default function ClosingPage() {
             <div className="space-y-3 sm:space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.comparison.startMonth')}</label>
+                  <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.comparison.startMonth')}</label>
                   <input
                     type="month"
                     value={comparisonStartMonth}
                     onChange={(e) => setComparisonStartMonth(e.target.value)}
-                    className="w-full px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
+                    className="w-full px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium mb-2">📅 {t('closing.comparison.endMonth')}</label>
+                  <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.comparison.endMonth')}</label>
                   <input
                     type="month"
                     value={comparisonEndMonth}
                     onChange={(e) => setComparisonEndMonth(e.target.value)}
-                    className="w-full px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg"
+                    className="w-full px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   />
                 </div>
               </div>
-              <p className="text-xs sm:text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                 {t('closing.comparison.periodInfo', {
                   start: new Date(comparisonStartMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
                   end: new Date(comparisonEndMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
@@ -912,19 +912,19 @@ export default function ClosingPage() {
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             <button
               onClick={handlePrint}
-              className="bg-green-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
+              className="bg-green-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
             >
               🖨️ <span className="hidden sm:inline">{t('closing.buttons.print')}</span>
             </button>
             <button
               onClick={handleExportExcel}
-              className="bg-primary-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
+              className="bg-primary-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-800 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
             >
               📊 <span className="hidden sm:inline">{t('closing.buttons.export')}</span>
             </button>
             <button
               onClick={fetchData}
-              className="bg-purple-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
+              className="bg-primary-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-800 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
             >
               🔄 <span className="hidden sm:inline">{t('closing.buttons.refresh')}</span>
             </button>
@@ -935,14 +935,14 @@ export default function ClosingPage() {
       {loading ? (
         <div className="text-center py-20">
           <div className="inline-block animate-spin text-6xl mb-4">⏳</div>
-          <p className="text-xl text-gray-600">{t('closing.loading')}</p>
+          <p className="text-xl text-gray-600 dark:text-gray-300">{t('closing.loading')}</p>
         </div>
       ) : (
         <>
           {/* Header للطباعة */}
           <div className="text-center mb-6 print-only" style={{ display: 'none' }}>
             <h1 className="text-3xl font-bold mb-2">X - GYM</h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 dark:text-gray-300">
               {viewMode === 'daily'
                 ? `${t('closing.viewMode.daily')} - ${new Date(selectedDay).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`
                 : `${t('closing.viewMode.monthly')} - ${new Date(selectedMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })}`
@@ -957,7 +957,7 @@ export default function ClosingPage() {
               {monthlyComparison.length > 0 && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
+                    <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
                       <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalRevenue')}</p>
                       <p className="text-2xl sm:text-3xl font-bold">
                         {monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0).toFixed(0)}
@@ -966,7 +966,7 @@ export default function ClosingPage() {
                         {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0) / monthlyComparison.length).toFixed(0)}
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 dark:from-red-700 dark:to-red-800 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
                       <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalExpenses')}</p>
                       <p className="text-2xl sm:text-3xl font-bold">
                         {monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0).toFixed(0)}
@@ -975,7 +975,7 @@ export default function ClosingPage() {
                         {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0) / monthlyComparison.length).toFixed(0)}
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 dark:from-green-700 dark:to-green-800 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
                       <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalNetProfit')}</p>
                       <p className="text-2xl sm:text-3xl font-bold">
                         {monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0).toFixed(0)}
@@ -984,7 +984,7 @@ export default function ClosingPage() {
                         {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0) / monthlyComparison.length).toFixed(0)}
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg">
+                    <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
                       <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalSubscriptions')}</p>
                       <p className="text-2xl sm:text-3xl font-bold">
                         {monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0)}
@@ -996,8 +996,8 @@ export default function ClosingPage() {
                   </div>
 
                   {/* Revenue & Expenses Trend Chart */}
-                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-lg">
-                    <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4">{t('closing.comparison.revenueExpensesTrend')}</h3>
+                  <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.revenueExpensesTrend')}</h3>
                     <ResponsiveContainer width="100%" height={300} className="sm:!h-[350px] md:!h-[400px]">
                       <LineChart data={monthlyComparison}>
                         <CartesianGrid strokeDasharray="3 3" />
@@ -1037,8 +1037,8 @@ export default function ClosingPage() {
                   </div>
 
                   {/* Revenue Breakdown Chart */}
-                  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg shadow-lg">
-                    <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4">{t('closing.comparison.revenueBreakdown')}</h3>
+                  <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.revenueBreakdown')}</h3>
                     <ResponsiveContainer width="100%" height={300} className="sm:!h-[350px] md:!h-[400px]">
                       <BarChart data={monthlyComparison}>
                         <CartesianGrid strokeDasharray="3 3" />
@@ -1059,8 +1059,8 @@ export default function ClosingPage() {
                   </div>
 
                   {/* Subscriptions Chart */}
-                  <div className="bg-white p-6 rounded-lg shadow-lg">
-                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.subscriptionsChart')}</h3>
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
+                    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.subscriptionsChart')}</h3>
                     <ResponsiveContainer width="100%" height={400}>
                       <BarChart data={monthlyComparison}>
                         <CartesianGrid strokeDasharray="3 3" />
@@ -1081,8 +1081,8 @@ export default function ClosingPage() {
                   </div>
 
                   {/* Payment Methods Distribution (PieChart) */}
-                  <div className="bg-white p-6 rounded-lg shadow-lg">
-                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.paymentMethodsDistribution')}</h3>
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
+                    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.paymentMethodsDistribution')}</h3>
                     <ResponsiveContainer width="100%" height={400}>
                       <PieChart>
                         <Pie
@@ -1134,8 +1134,8 @@ export default function ClosingPage() {
                   </div>
 
                   {/* Cumulative Growth (AreaChart) */}
-                  <div className="bg-white p-6 rounded-lg shadow-lg">
-                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.cumulativeGrowth')}</h3>
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
+                    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.cumulativeGrowth')}</h3>
                     <ResponsiveContainer width="100%" height={400}>
                       <AreaChart
                         data={(() => {
@@ -1211,8 +1211,8 @@ export default function ClosingPage() {
                   </div>
 
                   {/* Performance Radar Chart */}
-                  <div className="bg-white p-6 rounded-lg shadow-lg">
-                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.performanceRadar')}</h3>
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
+                    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.performanceRadar')}</h3>
                     <ResponsiveContainer width="100%" height={500}>
                       <RadarChart data={monthlyComparison.slice(-6)}>
                         <PolarGrid />
@@ -1239,19 +1239,19 @@ export default function ClosingPage() {
                   </div>
 
                   {/* Detailed Comparison Table */}
-                  <div className="bg-white rounded-lg shadow-lg overflow-x-auto">
-                    <h3 className="text-xl font-bold p-6 border-b">{t('closing.comparison.detailedTable')}</h3>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-x-auto border dark:border-gray-700 hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 hover:border-primary-200 dark:hover:border-primary-700">
+                    <h3 className="text-xl font-bold p-6 border-b dark:border-gray-700 text-gray-900 dark:text-gray-100">{t('closing.comparison.detailedTable')}</h3>
                     <table className="w-full border-collapse text-sm">
                       <thead>
-                        <tr className="bg-gray-200">
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold">{t('closing.comparison.month')}</th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-primary-100">{t('closing.comparison.floorRevenue')}</th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-green-100">{t('closing.comparison.ptRevenue')}</th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-yellow-100">{t('closing.comparison.totalRevenue')}</th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-red-100">{t('closing.comparison.expenses')}</th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-green-200">{t('closing.comparison.netProfit')}</th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-purple-100">{t('closing.comparison.subscriptions')}</th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold bg-gray-100">{t('closing.comparison.growth')}</th>
+                        <tr className="bg-gray-200 dark:bg-gray-700">
+                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold dark:text-gray-200">{t('closing.comparison.month')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.floorRevenue')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-green-100 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.ptRevenue')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-yellow-100 dark:bg-yellow-900/50 dark:text-gray-200">{t('closing.comparison.totalRevenue')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-red-100 dark:bg-red-900/50 dark:text-gray-200">{t('closing.comparison.expenses')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-green-200 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.netProfit')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.subscriptions')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-gray-100 dark:bg-gray-700 dark:text-gray-200">{t('closing.comparison.growth')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1260,36 +1260,36 @@ export default function ClosingPage() {
                           const growthPercent = prevMonth ? ((month.totalRevenue - prevMonth.totalRevenue) / prevMonth.totalRevenue * 100) : 0
 
                           return (
-                            <tr key={month.month} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-300 px-4 py-3 font-medium">{month.monthName}</td>
-                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600`}>
+                            <tr key={month.month} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-200 cursor-pointer`}>
+                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-3 font-medium dark:text-gray-200">{month.monthName}</td>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600 dark:text-primary-400`}>
                                 {month.floorRevenue.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600`}>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600 dark:text-green-400`}>
                                 {month.ptRevenue.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600 text-lg`}>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600 dark:text-yellow-400 text-lg`}>
                                 {month.totalRevenue.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600`}>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600 dark:text-red-400`}>
                                 {month.totalExpenses.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700 text-lg`}>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700 dark:text-green-400 text-lg`}>
                                 {month.netProfit.toFixed(0)}
                               </td>
-                              <td className="border border-gray-300 px-4 py-3 text-center font-bold text-purple-600">
+                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-3 text-center font-bold text-primary-600 dark:text-primary-400">
                                 {month.totalSubscriptions}
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                   {t('closing.comparison.members')}: {month.memberSubscriptions} | PT: {month.ptSubscriptions}
                                 </div>
                               </td>
-                              <td className="border border-gray-300 px-4 py-3 text-center">
+                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-3 text-center">
                                 {prevMonth ? (
-                                  <span className={`font-bold ${growthPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  <span className={`font-bold ${growthPercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                     {growthPercent >= 0 ? '↑' : '↓'} {Math.abs(growthPercent).toFixed(1)}%
                                   </span>
                                 ) : (
-                                  <span className="text-gray-400">-</span>
+                                  <span className="text-gray-400 dark:text-gray-500">-</span>
                                 )}
                               </td>
                             </tr>
@@ -1297,39 +1297,39 @@ export default function ClosingPage() {
                         })}
                       </tbody>
                       <tfoot>
-                        <tr className="bg-yellow-100 font-bold">
-                          <td className="border border-gray-400 px-4 py-3 text-center">{t('closing.comparison.total')}</td>
-                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700`}>
+                        <tr className="bg-yellow-100 dark:bg-yellow-900/50 font-bold">
+                          <td className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center dark:text-gray-200">{t('closing.comparison.total')}</td>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700 dark:text-primary-400`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.floorRevenue, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700`}>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 dark:text-green-400`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.ptRevenue, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 text-lg`}>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 dark:text-yellow-400 text-lg`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700`}>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 text-lg`}>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 dark:text-green-400 text-lg`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0).toFixed(0)}
                           </td>
-                          <td className="border border-gray-400 px-4 py-3 text-center text-purple-700">
+                          <td className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center text-primary-700 dark:text-primary-400">
                             {monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0)}
                           </td>
-                          <td className="border border-gray-400 px-4 py-3"></td>
+                          <td className="border border-gray-400 dark:border-gray-600 px-4 py-3"></td>
                         </tr>
                       </tfoot>
                     </table>
                   </div>
 
                   {/* Performance Insights */}
-                  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+                  <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
                     <h3 className="text-xl font-bold mb-4">{t('closing.comparison.insights')}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {monthlyComparison.length > 0 && (
                         <>
-                          <div className="bg-white/20 p-4 rounded-lg">
+                          <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm hover:bg-white/30 dark:hover:bg-gray-800/40 transition-all duration-300 cursor-pointer">
                             <p className="text-sm opacity-90">{t('closing.comparison.bestMonth')}</p>
                             <p className="text-2xl font-bold mt-2">
                               {monthlyComparison.reduce((best, m) => m.totalRevenue > best.totalRevenue ? m : best).monthName}
@@ -1338,7 +1338,7 @@ export default function ClosingPage() {
                               {monthlyComparison.reduce((best, m) => m.totalRevenue > best.totalRevenue ? m : best).totalRevenue.toFixed(0)} {t('closing.currency')}
                             </p>
                           </div>
-                          <div className="bg-white/20 p-4 rounded-lg">
+                          <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm hover:bg-white/30 dark:hover:bg-gray-800/40 transition-all duration-300 cursor-pointer">
                             <p className="text-sm opacity-90">{t('closing.comparison.worstMonth')}</p>
                             <p className="text-2xl font-bold mt-2">
                               {monthlyComparison.reduce((worst, m) => m.totalRevenue < worst.totalRevenue ? m : worst).monthName}
@@ -1347,7 +1347,7 @@ export default function ClosingPage() {
                               {monthlyComparison.reduce((worst, m) => m.totalRevenue < worst.totalRevenue ? m : worst).totalRevenue.toFixed(0)} {t('closing.currency')}
                             </p>
                           </div>
-                          <div className="bg-white/20 p-4 rounded-lg">
+                          <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm hover:bg-white/30 dark:hover:bg-gray-800/40 transition-all duration-300 cursor-pointer">
                             <p className="text-sm opacity-90">{t('closing.comparison.trend')}</p>
                             <p className="text-2xl font-bold mt-2">
                               {monthlyComparison.length > 1 &&
@@ -1367,9 +1367,9 @@ export default function ClosingPage() {
               )}
 
               {monthlyComparison.length === 0 && (
-                <div className="bg-white p-12 rounded-lg shadow-lg text-center">
-                  <p className="text-gray-500 text-xl">{t('closing.comparison.noData')}</p>
-                  <p className="text-gray-400 mt-2">{t('closing.comparison.selectPeriod')}</p>
+                <div className="bg-white dark:bg-gray-800 p-12 rounded-lg shadow-lg text-center border dark:border-gray-700">
+                  <p className="text-gray-500 dark:text-gray-400 text-xl">{t('closing.comparison.noData')}</p>
+                  <p className="text-gray-400 dark:text-gray-500 mt-2">{t('closing.comparison.selectPeriod')}</p>
                 </div>
               )}
             </div>
@@ -1393,7 +1393,7 @@ export default function ClosingPage() {
               <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalPayments')}</p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.totalPayments.toFixed(0)}</p>
             </div>
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
+            <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
               <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.numberOfDays')}</p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold">{dailyData.length}</p>
             </div>
@@ -1407,48 +1407,48 @@ export default function ClosingPage() {
 
           {/* Payment Methods Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
-            <div className="bg-white border-2 border-green-300 p-3 sm:p-4 rounded-lg shadow-md">
+            <div className="bg-white dark:bg-gray-800 border-2 border-green-300 dark:border-green-700 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.cash')} 💵</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">{totals.cash.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.cash')} 💵</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">{totals.cash.toFixed(0)}</p>
                 </div>
                 <span className="text-2xl sm:text-3xl md:text-4xl">💵</span>
               </div>
             </div>
-            <div className="bg-white border-2 border-primary-300 p-3 sm:p-4 rounded-lg shadow-md">
+            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.visa')} 💳</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600">{totals.visa.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.visa')} 💳</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600 dark:text-primary-400">{totals.visa.toFixed(0)}</p>
                 </div>
                 <span className="text-2xl sm:text-3xl md:text-4xl">💳</span>
               </div>
             </div>
-            <div className="bg-white border-2 border-purple-300 p-3 sm:p-4 rounded-lg shadow-md">
+            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.instapay')} 📱</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600">{totals.instapay.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.instapay')} 📱</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600 dark:text-primary-400">{totals.instapay.toFixed(0)}</p>
                 </div>
                 <span className="text-2xl sm:text-3xl md:text-4xl">📱</span>
               </div>
             </div>
-            <div className="bg-white border-2 border-orange-300 p-3 sm:p-4 rounded-lg shadow-md">
+            <div className="bg-white dark:bg-gray-800 border-2 border-orange-300 dark:border-orange-700 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.wallet')} 💰</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600">{totals.wallet.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.wallet')} 💰</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 dark:text-orange-400">{totals.wallet.toFixed(0)}</p>
                 </div>
                 <span className="text-2xl sm:text-3xl md:text-4xl">💰</span>
               </div>
             </div>
-            <div className="bg-white border-2 border-yellow-300 p-3 sm:p-4 rounded-lg shadow-md">
+            <div className="bg-white dark:bg-gray-800 border-2 border-yellow-300 dark:border-yellow-700 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600">{t('closing.paymentMethods.points')} 🏆</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600">{totals.points.toFixed(0)}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-500">
+                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.points')} 🏆</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 dark:text-yellow-400">{totals.points.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                     {t('closing.pointsValueLabel')}: {(totals.points * pointsValueInEGP).toFixed(2)} {t('common.egp')}
                   </p>
                 </div>
@@ -1462,13 +1462,13 @@ export default function ClosingPage() {
           {/* Excel-like Table */}
           {viewMode !== 'comparison' && (
             <>
-              <div className="bg-primary-50 border border-primary-200 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 lg:hidden">
-                <p className="text-xs sm:text-sm text-primary-800 flex items-center gap-2">
+              <div className="bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 lg:hidden">
+                <p className="text-xs sm:text-sm text-primary-800 dark:text-primary-300 flex items-center gap-2">
                   <span>👉</span>
                   <span>اسحب الجدول يميناً ويساراً لرؤية جميع البيانات</span>
                 </p>
               </div>
-              <div className="bg-white rounded-lg shadow-lg overflow-x-auto mb-4 sm:mb-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-x-auto mb-4 sm:mb-6 border dark:border-gray-700">
               {viewMode === 'daily' ? (
               /* عرض تفاصيل اليوم المحدد مباشرة */
               dailyData.length > 0 ? (
@@ -1476,7 +1476,7 @@ export default function ClosingPage() {
                   {dailyData.map((day) => (
                     <div key={day.date} className="space-y-4">
                       {/* معلومات اليوم */}
-                      <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-lg shadow-lg">
+                      <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white p-4 rounded-lg shadow-lg">
                         <h2 className="text-2xl font-bold mb-2">
                           📅 {new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
                             weekday: 'long',
@@ -1486,19 +1486,19 @@ export default function ClosingPage() {
                           })}
                         </h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                          <div className="bg-white/20 p-3 rounded-lg">
+                          <div className="bg-white/20 dark:bg-gray-800/20 p-3 rounded-lg">
                             <p className="text-sm opacity-90">{t('closing.table.floor')}</p>
                             <p className="text-xl font-bold">{day.floor > 0 ? day.floor.toFixed(0) : '0'} {t('closing.currency')}</p>
                           </div>
-                          <div className="bg-white/20 p-3 rounded-lg">
+                          <div className="bg-white/20 dark:bg-gray-800/20 p-3 rounded-lg">
                             <p className="text-sm opacity-90">{t('closing.table.pt')}</p>
                             <p className="text-xl font-bold">{day.pt > 0 ? day.pt.toFixed(0) : '0'} {t('closing.currency')}</p>
                           </div>
-                          <div className="bg-white/20 p-3 rounded-lg">
+                          <div className="bg-white/20 dark:bg-gray-800/20 p-3 rounded-lg">
                             <p className="text-sm opacity-90">{t('closing.table.expenses')}</p>
                             <p className="text-xl font-bold">{day.expenses > 0 ? day.expenses.toFixed(0) : '0'} {t('closing.currency')}</p>
                           </div>
-                          <div className="bg-white/20 p-3 rounded-lg">
+                          <div className="bg-white/20 dark:bg-gray-800/20 p-3 rounded-lg">
                             <p className="text-sm opacity-90">{t('closing.table.total')}</p>
                             <p className="text-xl font-bold">{((day.floor + day.pt) - day.expenses).toFixed(0)} {t('closing.currency')}</p>
                           </div>
@@ -1506,33 +1506,33 @@ export default function ClosingPage() {
                       </div>
 
                       {/* طرق الدفع */}
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h3 className="font-bold text-lg mb-3">💳 {t('closing.paymentMethods.title')}</h3>
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border dark:border-gray-600">
+                        <h3 className="font-bold text-lg mb-3 dark:text-white">💳 {t('closing.paymentMethods.title')}</h3>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                          <div className="bg-white p-3 rounded-lg border-2 border-green-200">
-                            <p className="text-sm text-gray-600">{t('closing.paymentMethods.cash')} 💵</p>
-                            <p className="text-lg font-bold text-green-600">{day.cash > 0 ? day.cash.toFixed(0) : '0'}</p>
-                            <div className="mt-2 pt-2 border-t border-gray-200">
-                              <p className="text-xs text-gray-500">{t('closing.paymentMethods.netCash')}</p>
-                              <p className="text-sm font-bold text-orange-600">{(day.cash - day.expenses).toFixed(0)} {t('closing.currency')}</p>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-green-200 dark:border-green-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.cash')} 💵</p>
+                            <p className="text-lg font-bold text-green-600 dark:text-green-400">{day.cash > 0 ? day.cash.toFixed(0) : '0'}</p>
+                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{t('closing.paymentMethods.netCash')}</p>
+                              <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.cash - day.expenses).toFixed(0)} {t('closing.currency')}</p>
                             </div>
                           </div>
-                          <div className="bg-white p-3 rounded-lg border-2 border-primary-200">
-                            <p className="text-sm text-gray-600">{t('closing.paymentMethods.visa')} 💳</p>
-                            <p className="text-lg font-bold text-primary-600">{day.visa > 0 ? day.visa.toFixed(0) : '0'}</p>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-primary-200 dark:border-primary-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.visa')} 💳</p>
+                            <p className="text-lg font-bold text-primary-600 dark:text-primary-400">{day.visa > 0 ? day.visa.toFixed(0) : '0'}</p>
                           </div>
-                          <div className="bg-white p-3 rounded-lg border-2 border-purple-200">
-                            <p className="text-sm text-gray-600">{t('closing.paymentMethods.instapay')} 📱</p>
-                            <p className="text-lg font-bold text-purple-600">{day.instapay > 0 ? day.instapay.toFixed(0) : '0'}</p>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-primary-200 dark:border-primary-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.instapay')} 📱</p>
+                            <p className="text-lg font-bold text-primary-600 dark:text-primary-400">{day.instapay > 0 ? day.instapay.toFixed(0) : '0'}</p>
                           </div>
-                          <div className="bg-white p-3 rounded-lg border-2 border-orange-200">
-                            <p className="text-sm text-gray-600">{t('closing.paymentMethods.wallet')} 💰</p>
-                            <p className="text-lg font-bold text-orange-600">{day.wallet > 0 ? day.wallet.toFixed(0) : '0'}</p>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-orange-200 dark:border-orange-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.wallet')} 💰</p>
+                            <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{day.wallet > 0 ? day.wallet.toFixed(0) : '0'}</p>
                           </div>
-                          <div className="bg-white p-3 rounded-lg border-2 border-yellow-200">
-                            <p className="text-sm text-gray-600">{t('closing.paymentMethods.points')} 🏆</p>
-                            <p className="text-lg font-bold text-yellow-600">{day.points > 0 ? day.points.toFixed(0) : '0'}</p>
-                            <p className="text-xs text-gray-500">
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-yellow-200 dark:border-yellow-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.points')} 🏆</p>
+                            <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{day.points > 0 ? day.points.toFixed(0) : '0'}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
                               {t('closing.pointsValueLabel')}: {(day.points * pointsValueInEGP).toFixed(2)} {t('common.egp')}
                             </p>
                           </div>
@@ -1541,13 +1541,13 @@ export default function ClosingPage() {
 
                       {/* السلف */}
                       {Object.keys(day.staffLoans).length > 0 && (
-                        <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-200">
-                          <h3 className="font-bold text-lg mb-3">💰 {t('closing.staffLoans.title')}</h3>
+                        <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg border-2 border-yellow-200 dark:border-yellow-700">
+                          <h3 className="font-bold text-lg mb-3 dark:text-white">💰 {t('closing.staffLoans.title')}</h3>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {Object.entries(day.staffLoans).map(([staffName, amount]) => (
-                              <div key={staffName} className="bg-white p-3 rounded-lg">
-                                <p className="text-sm text-gray-600">{staffName}</p>
-                                <p className="text-lg font-bold text-red-600">{amount.toFixed(0)} {t('closing.currency')}</p>
+                              <div key={staffName} className="bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700">
+                                <p className="text-sm text-gray-600 dark:text-gray-300">{staffName}</p>
+                                <p className="text-lg font-bold text-red-600 dark:text-red-400">{amount.toFixed(0)} {t('closing.currency')}</p>
                               </div>
                             ))}
                           </div>
@@ -1557,51 +1557,51 @@ export default function ClosingPage() {
                       {/* الإيصالات */}
                       {day.receipts.length > 0 ? (
                         <div>
-                          <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                          <h4 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-white">
                             <span>🧾</span>
                             <span>{t('closing.receipts.count', { count: day.receipts.length.toString() })}</span>
                           </h4>
-                          <div className="bg-white rounded-lg overflow-hidden border-2 border-primary-200">
+                          <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border-2 border-primary-200 dark:border-primary-700">
                             <table className="w-full text-sm">
-                              <thead className="bg-primary-100">
+                              <thead className="bg-primary-100 dark:bg-primary-900/50">
                                 <tr>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.time')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.receiptNumber')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.type')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.details')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.amount')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.paymentMethod')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.time')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.receiptNumber')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.type')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.details')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.amount')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.paymentMethod')}</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {day.receipts.map((receipt: any) => {
                                   const details = JSON.parse(receipt.itemDetails)
                                   return (
-                                    <tr key={receipt.id} className="border-t hover:bg-primary-50">
-                                      <td className="px-3 py-2 font-mono text-xs">
+                                    <tr key={receipt.id} className="border-t dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-900/20">
+                                      <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
                                         {new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                       </td>
-                                      <td className="px-3 py-2 font-bold text-green-600">
+                                      <td className="px-3 py-2 font-bold text-green-600 dark:text-green-400">
                                         #{receipt.receiptNumber}
                                       </td>
                                       <td className="px-3 py-2">
-                                        <span className="px-2 py-1 bg-primary-100 text-primary-800 rounded text-xs">
+                                        <span className="px-2 py-1 bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300 rounded text-xs">
                                           {getTypeLabel(receipt.type)}
                                         </span>
                                       </td>
-                                      <td className="px-3 py-2">
+                                      <td className="px-3 py-2 dark:text-gray-300">
                                         {details.memberName && (
                                           <div>
                                             {details.memberName}
                                             {details.memberNumber && (
-                                              <span className="text-xs text-gray-600"> (#{details.memberNumber})</span>
+                                              <span className="text-xs text-gray-600 dark:text-gray-400"> (#{details.memberNumber})</span>
                                             )}
                                           </div>
                                         )}
                                         {details.clientName && <div>{details.clientName}</div>}
                                         {details.name && <div>{details.name}</div>}
                                       </td>
-                                      <td className="px-3 py-2 font-bold text-green-600">
+                                      <td className="px-3 py-2 font-bold text-green-600 dark:text-green-400">
                                         {receipt.amount} {t('closing.currency')}
                                       </td>
                                       <td className="px-3 py-2">
@@ -1617,58 +1617,58 @@ export default function ClosingPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-gray-50 p-8 rounded-lg text-center">
-                          <p className="text-gray-500 text-lg">📭 {t('closing.receipts.noReceipts')}</p>
+                        <div className="bg-gray-50 dark:bg-gray-700 p-8 rounded-lg text-center border dark:border-gray-600">
+                          <p className="text-gray-500 dark:text-gray-400 text-lg">📭 {t('closing.receipts.noReceipts')}</p>
                         </div>
                       )}
 
                       {/* المصروفات */}
                       {day.expensesList.length > 0 ? (
                         <div>
-                          <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                          <h4 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-white">
                             <span>💸</span>
                             <span>{t('closing.expenses.count', { count: day.expensesList.length.toString() })}</span>
                           </h4>
-                          <div className="bg-white rounded-lg overflow-hidden border-2 border-red-200">
+                          <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border-2 border-red-200 dark:border-red-700">
                             <table className="w-full text-sm">
-                              <thead className="bg-red-100">
+                              <thead className="bg-red-100 dark:bg-red-900/50">
                                 <tr>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.time')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.type')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.description')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.staff')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.amount')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.status')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.time')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.type')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.description')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.staff')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.amount')}</th>
+                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.status')}</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {day.expensesList.map((expense: any) => (
-                                  <tr key={expense.id} className="border-t hover:bg-red-50">
-                                    <td className="px-3 py-2 font-mono text-xs">
+                                  <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                    <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
                                       {new Date(expense.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                     </td>
                                     <td className="px-3 py-2">
                                       <span className={`px-2 py-1 rounded text-xs ${
                                         expense.type === 'gym_expense'
-                                          ? 'bg-orange-100 text-orange-800'
-                                          : 'bg-purple-100 text-purple-800'
+                                          ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300'
+                                          : 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300'
                                       }`}>
                                         {expense.type === 'gym_expense' ? t('closing.expenses.gymExpense') : t('closing.expenses.staffLoan')}
                                       </span>
                                     </td>
-                                    <td className="px-3 py-2">{expense.description}</td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-3 py-2 dark:text-gray-300">{expense.description}</td>
+                                    <td className="px-3 py-2 dark:text-gray-300">
                                       {expense.staff ? expense.staff.name : '-'}
                                     </td>
-                                    <td className="px-3 py-2 font-bold text-red-600">
+                                    <td className="px-3 py-2 font-bold text-red-600 dark:text-red-400">
                                       {expense.amount} {t('closing.currency')}
                                     </td>
                                     <td className="px-3 py-2">
                                       {expense.type === 'staff_loan' && (
                                         <span className={`px-2 py-1 rounded text-xs ${
                                           expense.isPaid
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-red-100 text-red-800'
+                                            ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
+                                            : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
                                         }`}>
                                           {expense.isPaid ? `✅ ${t('closing.expenses.paid')}` : `❌ ${t('closing.expenses.unpaid')}`}
                                         </span>
@@ -1681,8 +1681,8 @@ export default function ClosingPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-gray-50 p-8 rounded-lg text-center">
-                          <p className="text-gray-500 text-lg">📭 {t('closing.expenses.noExpenses')}</p>
+                        <div className="bg-gray-50 dark:bg-gray-700 p-8 rounded-lg text-center border dark:border-gray-600">
+                          <p className="text-gray-500 dark:text-gray-400 text-lg">📭 {t('closing.expenses.noExpenses')}</p>
                         </div>
                       )}
                     </div>
@@ -1690,88 +1690,88 @@ export default function ClosingPage() {
                 </div>
               ) : (
                 <div className="p-8 text-center">
-                  <p className="text-gray-500 text-lg">📭 {t('closing.noData')}</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-lg">📭 {t('closing.noData')}</p>
                 </div>
               )
             ) : (
               /* الجدول العادي للعرض الشهري */
             <table className="w-full border-collapse text-sm excel-table">
-              <thead>
-                <tr className="bg-gray-200 border-2 border-gray-400">
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold">{t('closing.table.date')}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-primary-100">{t('closing.table.floor')}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-100">💰 {direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining'}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-green-100">{t('closing.table.pt')}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-green-50">{t('closing.table.cash')} 💵</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-primary-50">{t('closing.table.visa')} 💳</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-purple-50">{t('closing.table.instapay')} 📱</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-orange-50">{t('closing.table.wallet')} 💰</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-yellow-50">{t('closing.table.points')} 🏆</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-yellow-100">{t('closing.table.total')} 💰</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-orange-100">{t('closing.table.expenses')}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold min-w-[300px]">{t('closing.table.expenseDetails')}</th>
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold bg-yellow-50">{t('closing.table.loans')}</th>
+              <thead className="bg-gray-200 dark:bg-gray-700">
+                <tr className="border-2 border-gray-400 dark:border-gray-600">
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700">{t('closing.table.date')}</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-primary-100 dark:bg-primary-900/50">{t('closing.table.floor')}</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-red-100 dark:bg-red-900/50">💰 {direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining'}</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-green-100 dark:bg-green-900/50">{t('closing.table.pt')}</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-green-50 dark:bg-green-900/30">{t('closing.table.cash')} 💵</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-primary-50 dark:bg-primary-900/30">{t('closing.table.visa')} 💳</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-primary-50 dark:bg-primary-900/30">{t('closing.table.instapay')} 📱</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-orange-50 dark:bg-orange-900/30">{t('closing.table.wallet')} 💰</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-yellow-50 dark:bg-yellow-900/30">{t('closing.table.points')} 🏆</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-yellow-100 dark:bg-yellow-900/50">{t('closing.table.total')} 💰</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-orange-100 dark:bg-orange-900/50">{t('closing.table.expenses')}</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 min-w-[300px]">{t('closing.table.expenseDetails')}</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-yellow-50 dark:bg-yellow-900/30">{t('closing.table.loans')}</th>
                   {(staffList || []).map(staff => (
-                    <th key={staff.id} className="border border-gray-400 px-3 py-2 text-center font-bold bg-red-50 min-w-[80px]">
+                    <th key={staff.id} className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-red-50 dark:bg-red-900/30 min-w-[80px]">
                       {staff.name}
                     </th>
                   ))}
-                  <th className="border border-gray-400 px-3 py-2 text-center font-bold no-print">{t('closing.table.details')}</th>
+                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 no-print">{t('closing.table.details')}</th>
                 </tr>
               </thead>
               <tbody>
                 {dailyData.map((day, index) => (
                   <React.Fragment key={day.date}>
                     <tr
-                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} cursor-pointer hover:bg-primary-50`}
+                      className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20`}
                       onClick={() => toggleDayDetails(day.date)}
                     >
-                      <td className="border border-gray-300 px-3 py-2 text-center font-mono">
+                      <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center font-mono dark:text-gray-200">
                         {new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600 dark:text-primary-400`}>
                         {day.floor > 0 ? day.floor.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600 dark:text-red-400`}>
                         {day.remainingAmount > 0 ? day.remainingAmount.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600 dark:text-green-400`}>
                         {day.pt > 0 ? day.pt.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700 dark:text-green-400`}>
                         {day.cash > 0 ? day.cash.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-700`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-700 dark:text-primary-400`}>
                         {day.visa > 0 ? day.visa.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-purple-700`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-700 dark:text-primary-400`}>
                         {day.instapay > 0 ? day.instapay.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-orange-700`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-orange-700 dark:text-orange-400`}>
                         {day.wallet > 0 ? day.wallet.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600 dark:text-yellow-400`}>
                         {day.points > 0 ? day.points.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-700 bg-yellow-50`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30`}>
                         {(day.cash + day.visa + day.instapay + day.wallet + day.points).toFixed(0)}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600 dark:text-red-400`}>
                         {day.expenses > 0 ? day.expenses.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} text-xs`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} text-xs dark:text-gray-300`}>
                         {day.expenseDetails || '-'}
                       </td>
-                      <td className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-orange-600`}>
+                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-orange-600 dark:text-orange-400`}>
                         {Object.values(day.staffLoans).reduce((a, b) => a + b, 0).toFixed(0) || '-'}
                       </td>
                       {(staffList || []).map(staff => (
-                        <td key={staff.id} className={`border border-gray-300 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600`}>
+                        <td key={staff.id} className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 dark:text-red-400`}>
                           {day.staffLoans[staff.name] ? day.staffLoans[staff.name].toFixed(0) : '-'}
                         </td>
                       ))}
-                      <td className="border border-gray-300 px-3 py-2 text-center no-print">
-                        <button className="text-primary-600 hover:text-primary-800 font-bold">
+                      <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center no-print">
+                        <button className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-bold">
                           {expandedDay === day.date ? `▼ ${t('closing.buttons.hide')}` : `▶ ${t('closing.buttons.show')}`}
                         </button>
                       </td>
@@ -1779,57 +1779,57 @@ export default function ClosingPage() {
 
                     {/* تفاصيل اليوم */}
                     {expandedDay === day.date && (
-                      <tr className="bg-primary-50 no-print">
-                        <td colSpan={(staffList?.length || 0) + 17} className="border border-gray-400 p-4">
+                      <tr className="bg-primary-50 dark:bg-primary-900/30 no-print">
+                        <td colSpan={(staffList?.length || 0) + 17} className="border border-gray-400 dark:border-gray-600 p-4">
                           <div className="space-y-4">
                             {/* الإيصالات */}
                             {day.receipts.length > 0 && (
                               <div>
-                                <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                                <h4 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-white">
                                   <span>🧾</span>
                                   <span>{t('closing.receipts.count', { count: day.receipts.length.toString() })}</span>
                                 </h4>
-                                <div className="bg-white rounded-lg overflow-hidden border-2 border-primary-200">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border-2 border-primary-200 dark:border-primary-700">
                                   <table className="w-full text-sm">
-                                    <thead className="bg-primary-100">
+                                    <thead className="bg-primary-100 dark:bg-primary-900/50">
                                       <tr>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.time')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.receiptNumber')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.type')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.details')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.amount')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.receipts.paymentMethod')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.time')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.receiptNumber')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.type')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.details')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.amount')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.paymentMethod')}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {day.receipts.map((receipt: any) => {
                                         const details = JSON.parse(receipt.itemDetails)
                                         return (
-                                          <tr key={receipt.id} className="border-t hover:bg-primary-50">
-                                            <td className="px-3 py-2 font-mono text-xs">
+                                          <tr key={receipt.id} className="border-t dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-900/20">
+                                            <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
                                               {new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                             </td>
-                                            <td className="px-3 py-2 font-bold text-green-600">
+                                            <td className="px-3 py-2 font-bold text-green-600 dark:text-green-400">
                                               #{receipt.receiptNumber}
                                             </td>
                                             <td className="px-3 py-2">
-                                              <span className="px-2 py-1 bg-primary-100 text-primary-800 rounded text-xs">
+                                              <span className="px-2 py-1 bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300 rounded text-xs">
                                                 {getTypeLabel(receipt.type)}
                                               </span>
                                             </td>
-                                            <td className="px-3 py-2">
+                                            <td className="px-3 py-2 dark:text-gray-300">
                                               {details.memberName && (
                                                 <div>
                                                   {details.memberName}
                                                   {details.memberNumber && (
-                                                    <span className="text-xs text-gray-600"> (#{details.memberNumber})</span>
+                                                    <span className="text-xs text-gray-600 dark:text-gray-400"> (#{details.memberNumber})</span>
                                                   )}
                                                 </div>
                                               )}
                                               {details.clientName && <div>{details.clientName}</div>}
                                               {details.name && <div>{details.name}</div>}
                                             </td>
-                                            <td className="px-3 py-2 font-bold text-green-600">
+                                            <td className="px-3 py-2 font-bold text-green-600 dark:text-green-400">
                                               {receipt.amount} {t('closing.currency')}
                                             </td>
                                             <td className="px-3 py-2">
@@ -1849,50 +1849,50 @@ export default function ClosingPage() {
                             {/* المصروفات */}
                             {day.expensesList.length > 0 && (
                               <div>
-                                <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                                <h4 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-white">
                                   <span>💸</span>
                                   <span>{t('closing.expenses.count', { count: day.expensesList.length.toString() })}</span>
                                 </h4>
-                                <div className="bg-white rounded-lg overflow-hidden border-2 border-red-200">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border-2 border-red-200 dark:border-red-700">
                                   <table className="w-full text-sm">
-                                    <thead className="bg-red-100">
+                                    <thead className="bg-red-100 dark:bg-red-900/50">
                                       <tr>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.time')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.type')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.description')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.staff')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.amount')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('closing.expenses.status')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.time')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.type')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.description')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.staff')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.amount')}</th>
+                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.status')}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {day.expensesList.map((expense: any) => (
-                                        <tr key={expense.id} className="border-t hover:bg-red-50">
-                                          <td className="px-3 py-2 font-mono text-xs">
+                                        <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                          <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
                                             {new Date(expense.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                           </td>
                                           <td className="px-3 py-2">
                                             <span className={`px-2 py-1 rounded text-xs ${
                                               expense.type === 'gym_expense'
-                                                ? 'bg-orange-100 text-orange-800'
-                                                : 'bg-purple-100 text-purple-800'
+                                                ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300'
+                                                : 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300'
                                             }`}>
                                               {expense.type === 'gym_expense' ? t('closing.expenses.gymExpense') : t('closing.expenses.staffLoan')}
                                             </span>
                                           </td>
-                                          <td className="px-3 py-2">{expense.description}</td>
-                                          <td className="px-3 py-2">
+                                          <td className="px-3 py-2 dark:text-gray-300">{expense.description}</td>
+                                          <td className="px-3 py-2 dark:text-gray-300">
                                             {expense.staff ? expense.staff.name : '-'}
                                           </td>
-                                          <td className="px-3 py-2 font-bold text-red-600">
+                                          <td className="px-3 py-2 font-bold text-red-600 dark:text-red-400">
                                             {expense.amount} {t('closing.currency')}
                                           </td>
                                           <td className="px-3 py-2">
                                             {expense.type === 'staff_loan' && (
                                               <span className={`px-2 py-1 rounded text-xs ${
                                                 expense.isPaid
-                                                  ? 'bg-green-100 text-green-800'
-                                                  : 'bg-red-100 text-red-800'
+                                                  ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
+                                                  : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
                                               }`}>
                                                 {expense.isPaid ? `✅ ${t('closing.expenses.paid')}` : `❌ ${t('closing.expenses.unpaid')}`}
                                               </span>
@@ -1913,40 +1913,40 @@ export default function ClosingPage() {
                 ))}
 
                 {/* Totals Row */}
-                <tr className="bg-yellow-100 border-t-4 border-yellow-600 font-bold">
-                  <td className="border border-gray-400 px-3 py-3 text-center">{t('closing.table.totalLabel')}</td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700 text-lg`}>
+                <tr className="bg-yellow-100 dark:bg-yellow-900/50 border-t-4 border-yellow-600 dark:border-yellow-700 font-bold">
+                  <td className="border border-gray-400 dark:border-gray-600 px-3 py-3 text-center dark:text-gray-200">{t('closing.table.totalLabel')}</td>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700 dark:text-primary-400 text-lg`}>
                     {totals.floor.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 text-lg`}>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400 text-lg`}>
                     {totals.remainingAmount.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 text-lg`}>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 dark:text-green-400 text-lg`}>
                     {totals.pt.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 text-lg`}>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 dark:text-green-400 text-lg`}>
                     {totals.cash.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-800 text-lg`}>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-800 dark:text-primary-400 text-lg`}>
                     {totals.visa.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-purple-800 text-lg`}>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-800 dark:text-primary-400 text-lg`}>
                     {totals.instapay.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-orange-800 text-lg`}>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-orange-800 dark:text-orange-400 text-lg`}>
                     {totals.wallet.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 text-lg`}>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 dark:text-yellow-400 text-lg`}>
                     {totals.points.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-800 text-lg bg-yellow-200`}>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-800 dark:text-yellow-400 text-lg bg-yellow-200 dark:bg-yellow-900/50`}>
                     {totals.totalPayments.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 text-lg`}>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400 text-lg`}>
                     {totals.expenses.toFixed(0)}
                   </td>
-                  <td className="border border-gray-400 px-3 py-3"></td>
-                  <td className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-orange-700 text-lg`}>
+                  <td className="border border-gray-400 dark:border-gray-600 px-3 py-3"></td>
+                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-orange-700 dark:text-orange-400 text-lg`}>
                     {dailyData.reduce((sum, day) =>
                       sum + Object.values(day.staffLoans).reduce((a, b) => a + b, 0), 0
                     ).toFixed(0)}
@@ -1956,20 +1956,20 @@ export default function ClosingPage() {
                       sum + (day.staffLoans[staff.name] || 0), 0
                     )
                     return (
-                      <td key={staff.id} className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700`}>
+                      <td key={staff.id} className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400`}>
                         {total > 0 ? total.toFixed(0) : '-'}
                       </td>
                     )
                   })}
-                  <td className="border border-gray-400 px-3 py-3 no-print"></td>
+                  <td className="border border-gray-400 dark:border-gray-600 px-3 py-3 no-print"></td>
                 </tr>
 
                 {/* Net Profit Row */}
-                <tr className="bg-green-100 border-t-2 border-green-600 font-bold">
-                  <td colSpan={8} className="border border-gray-400 px-3 py-3 text-center text-lg">
+                <tr className="bg-green-100 dark:bg-green-900/50 border-t-2 border-green-600 dark:border-green-700 font-bold">
+                  <td colSpan={8} className="border border-gray-400 dark:border-gray-600 px-3 py-3 text-center text-lg dark:text-gray-200">
                     {t('closing.stats.netProfit')}
                   </td>
-                  <td colSpan={(staffList?.length || 0) + 9} className={`border border-gray-400 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-2xl text-green-700`}>
+                  <td colSpan={(staffList?.length || 0) + 9} className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-2xl text-green-700 dark:text-green-400`}>
                     {totals.netProfit.toFixed(0)} {t('closing.currency')}
                   </td>
                 </tr>

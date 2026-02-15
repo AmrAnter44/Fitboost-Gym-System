@@ -31,10 +31,10 @@ export default function TimeSlotSelector({
 
   if (isLoading) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
         <div className="flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-          <span className="mr-3 text-gray-600">{t('common.loading')}</span>
+          <span className="mr-3 text-gray-600 dark:text-gray-300">{t('common.loading')}</span>
         </div>
       </div>
     )
@@ -42,7 +42,7 @@ export default function TimeSlotSelector({
 
   if (error) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
         <div className="text-center text-red-600">
           {t('spa.errorLoadingSlots')}
         </div>
@@ -52,8 +52,8 @@ export default function TimeSlotSelector({
 
   if (slots.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="text-center text-gray-600">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <div className="text-center text-gray-600 dark:text-gray-300">
           {t('spa.noSlotsAvailable')}
         </div>
       </div>
@@ -61,8 +61,8 @@ export default function TimeSlotSelector({
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold mb-4 text-gray-800">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">
         {t('spa.availableSlots')}
       </h3>
 
@@ -81,7 +81,7 @@ export default function TimeSlotSelector({
                   ? 'bg-primary-500 text-white shadow-lg scale-105'
                   : isAvailable
                   ? 'bg-green-50 hover:bg-green-100 text-green-800 border-2 border-green-300 hover:shadow-md'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-300'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-300 dark:border-gray-600'
               }`}
             >
               <div className="font-bold text-lg">{formatTime12Hour(slot.time, locale as 'ar' | 'en')}</div>
@@ -102,7 +102,7 @@ export default function TimeSlotSelector({
         })}
       </div>
 
-      <div className="mt-4 flex items-center gap-4 text-sm text-gray-600 border-t pt-4">
+      <div className="mt-4 flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 border-t pt-4">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-green-100 border-2 border-green-300 rounded"></div>
           <span>{t('spa.available')}</span>
@@ -112,7 +112,7 @@ export default function TimeSlotSelector({
           <span>{t('spa.selected')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-100 border border-gray-300 rounded"></div>
+          <div className="w-4 h-4 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div>
           <span>{t('spa.full')}</span>
         </div>
       </div>

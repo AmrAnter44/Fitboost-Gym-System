@@ -137,7 +137,7 @@ export default function RegisterPhysiotherapySessionPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">📝 تسجيل حضور جلسة العلاج الطبيعي</h1>
-          <p className="text-gray-600">سجل حضور العميل في جلسة العلاج الطبيعي</p>
+          <p className="text-gray-600 dark:text-gray-300">سجل حضور العميل في جلسة العلاج الطبيعي</p>
         </div>
         <button
           onClick={() => router.push('/physiotherapy/sessions/history')}
@@ -149,7 +149,7 @@ export default function RegisterPhysiotherapySessionPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* قائمة الجلسات المتاحة */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-4">جلسات العلاج الطبيعي المتاحة</h2>
 
           <div className="mb-4">
@@ -158,14 +158,14 @@ export default function RegisterPhysiotherapySessionPage() {
               placeholder="🔍 ابحث برقم Physiotherapy أو الاسم أو الهاتف..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             />
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500">جاري التحميل...</div>
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">جاري التحميل...</div>
           ) : filteredSessions.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">
               {searchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد جلسات متاحة'}
             </div>
           ) : (
@@ -176,21 +176,21 @@ export default function RegisterPhysiotherapySessionPage() {
                   onClick={() => selectPhysiotherapy(physiotherapy)}
                   className={`border rounded-lg p-4 cursor-pointer transition ${
                     formData.physioNumber === physiotherapy.physioNumber.toString()
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50 dark:border-blue-400'
+                      : 'border-gray-200 dark:border-gray-600 hover:border-blue-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h3 className="font-bold text-lg">{physiotherapy.clientName}</h3>
-                      <p className="text-sm text-gray-600">{physiotherapy.phone}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{physiotherapy.phone}</p>
                     </div>
                     <span className="bg-blue-600 text-white px-3 py-1 rounded-full font-bold text-sm">
                       {physiotherapy.physioNumber < 0 ? '🏃 Day Use' : `#${physiotherapy.physioNumber}`}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-700">أخصائي العلاج الطبيعي: {physiotherapy.therapistName}</span>
+                    <span className="text-gray-700 dark:text-gray-200">أخصائي العلاج الطبيعي: {physiotherapy.therapistName}</span>
                     <span className={`font-bold ${physiotherapy.sessionsRemaining <= 3 ? 'text-red-600' : 'text-blue-600'}`}>
                       {physiotherapy.sessionsRemaining} جلسات متبقية
                     </span>
@@ -202,11 +202,11 @@ export default function RegisterPhysiotherapySessionPage() {
         </div>
 
         {/* نموذج التسجيل */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-4">بيانات الحضور</h2>
 
           {selectedPhysiotherapy && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
+            <div className="bg-blue-50 dark:bg-blue-900/50 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
               <h3 className="font-bold text-lg mb-2">الجلسة المحددة:</h3>
               <div className="space-y-1">
                 <p><span className="font-semibold">رقم Physiotherapy:</span> {selectedPhysiotherapy.physioNumber < 0 ? '🏃 Day Use' : `#${selectedPhysiotherapy.physioNumber}`}</p>
@@ -231,12 +231,12 @@ export default function RegisterPhysiotherapySessionPage() {
                 required
                 value={formData.physioNumber}
                 onChange={(e) => setFormData({ ...formData, physioNumber: e.target.value })}
-                className="w-full px-4 py-3 border-2 rounded-lg text-lg font-bold text-blue-600"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-lg font-bold text-blue-600 dark:text-blue-400"
                 placeholder="أدخل رقم Physiotherapy أو اختر من القائمة"
               />
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-blue-50 border-2 border-blue-200 rounded-xl p-5">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-5">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                 <span>📅</span>
                 <span>تاريخ ووقت الجلسة</span>
@@ -252,7 +252,7 @@ export default function RegisterPhysiotherapySessionPage() {
                     required
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-4 py-3 border-2 rounded-lg font-mono text-lg"
+                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg font-mono text-lg"
                   />
                 </div>
 
@@ -265,14 +265,14 @@ export default function RegisterPhysiotherapySessionPage() {
                     required
                     value={formData.time}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    className="w-full px-4 py-3 border-2 rounded-lg font-mono text-lg"
+                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg font-mono text-lg"
                   />
                 </div>
               </div>
 
-              <div className="mt-4 bg-white border-2 border-blue-300 rounded-lg p-3">
-                <p className="text-sm text-gray-600">الوقت المحدد:</p>
-                <p className="text-lg font-mono font-bold text-blue-700">
+              <div className="mt-4 bg-white dark:bg-gray-800 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-3">
+                <p className="text-sm text-gray-600 dark:text-gray-300">الوقت المحدد:</p>
+                <p className="text-lg font-mono font-bold text-blue-700 dark:text-blue-400">
                   {new Date(`${formData.date}T${formData.time}`).toLocaleString('ar-EG', {
                     year: 'numeric',
                     month: 'long',
@@ -291,7 +291,7 @@ export default function RegisterPhysiotherapySessionPage() {
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-4 py-3 border-2 rounded-lg resize-none"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg resize-none"
                 rows={3}
                 placeholder="أضف أي ملاحظات عن الجلسة..."
               />
@@ -315,54 +315,54 @@ export default function RegisterPhysiotherapySessionPage() {
           onClick={() => setShowQRModal(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
               <div className="mb-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-3">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900/50 rounded-full mb-3">
                   <span className="text-4xl">✅</span>
                 </div>
-                <h3 className="text-2xl font-bold text-blue-700 mb-2">
+                <h3 className="text-2xl font-bold text-blue-700 dark:text-blue-400 mb-2">
                   تم إنشاء QR Code بنجاح!
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 dark:text-gray-300 text-sm">
                   احفظ هذا الكود للعميل أو أرسله عبر WhatsApp
                 </p>
               </div>
 
               {/* QR Code Display */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-50 border-2 border-blue-300 rounded-xl p-6 mb-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-300 dark:border-blue-700 rounded-xl p-6 mb-4">
                 {/* QR Code Image */}
                 {qrCodeImage && (
-                  <div className="bg-white rounded-xl p-4 mb-4 flex justify-center">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 flex justify-center">
                     <div className="text-center">
-                      <p className="text-sm text-gray-600 mb-3 font-medium">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 font-medium">
                         📷 امسح هذا الكود مع أخصائي العلاج الطبيعي:
                       </p>
                       <img
                         src={qrCodeImage}
                         alt="QR Code"
-                        className="w-64 h-64 mx-auto border-4 border-gray-200 rounded-lg shadow-lg"
+                        className="w-64 h-64 mx-auto border-4 border-gray-200 dark:border-gray-600 rounded-lg shadow-lg"
                       />
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">
                         وجه الكاميرا نحو الكود لتسجيل حضورك
                       </p>
                     </div>
                   </div>
                 )}
 
-                <p className="text-sm text-gray-600 mb-3 font-medium">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 font-medium">
                   🔐 كود الجلسة الآمن (32 حرف ورقم):
                 </p>
-                <div className="bg-white rounded-lg p-4 mb-3">
-                  <p className="font-mono text-lg font-bold text-blue-700 break-all select-all">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-3">
+                  <p className="font-mono text-lg font-bold text-blue-700 dark:text-blue-400 break-all select-all">
                     {generatedQRCode}
                   </p>
                 </div>
-                <div className="bg-white rounded-lg p-3">
-                  <p className="text-xs text-gray-500 mb-1">تنسيق سهل القراءة:</p>
-                  <p className="font-mono text-sm font-medium text-blue-600 select-all">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">تنسيق سهل القراءة:</p>
+                  <p className="font-mono text-sm font-medium text-blue-600 dark:text-blue-400 select-all">
                     {generatedQRCode.match(/.{1,4}/g)?.join('-')}
                   </p>
                 </div>
@@ -401,14 +401,14 @@ export default function RegisterPhysiotherapySessionPage() {
               {/* Close Button */}
               <button
                 onClick={() => setShowQRModal(false)}
-                className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-medium"
+                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium"
               >
                 إغلاق
               </button>
 
               {/* Security Note */}
-              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-xs text-yellow-800">
+              <div className="mt-4 bg-yellow-50 dark:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3">
+                <p className="text-xs text-yellow-800 dark:text-yellow-300">
                   <strong>⚠️ تحذير أمني:</strong> هذا الكود فريد وآمن (16 حرف + 16 رقم). لا تشاركه إلا مع العميل المعني فقط.
                 </p>
               </div>
