@@ -170,7 +170,7 @@ export default function UpdateNotification() {
           dir={direction}
         >
           <div className="flex items-start gap-3">
-            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800/20 rounded-full p-2 backdrop-blur-sm">
               <span className="text-2xl">❌</span>
             </div>
             <div className="flex-1">
@@ -197,7 +197,7 @@ export default function UpdateNotification() {
           dir={direction}
         >
           <div className="flex items-start gap-3">
-            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800/20 rounded-full p-2 backdrop-blur-sm">
               <span className="text-3xl">✨</span>
             </div>
             <div className="flex-1">
@@ -223,7 +223,7 @@ export default function UpdateNotification() {
           dir={direction}
         >
           <div className="flex items-start gap-3">
-            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800/20 rounded-full p-2 backdrop-blur-sm">
               <span className="text-3xl">🎉</span>
             </div>
             <div className="flex-1">
@@ -240,7 +240,7 @@ export default function UpdateNotification() {
 
               {/* Release Notes Preview */}
               {updateInfo.releaseNotes && (
-                <div className="bg-white/10 rounded-lg p-2 mb-3 max-h-20 overflow-y-auto text-xs opacity-90">
+                <div className="bg-white dark:bg-gray-800/10 rounded-lg p-2 mb-3 max-h-20 overflow-y-auto text-xs opacity-90">
                   {updateInfo.releaseNotes.split('\n').slice(0, 3).join('\n')}
                   {updateInfo.releaseNotes.split('\n').length > 3 && '...'}
                 </div>
@@ -250,7 +250,7 @@ export default function UpdateNotification() {
               <div className="flex gap-2">
                 <button
                   onClick={handleDownloadUpdate}
-                  className="flex-1 bg-white text-green-600 px-4 py-2.5 rounded-lg font-bold hover:bg-green-50 hover:shadow-lg transition-all transform hover:scale-105"
+                  className="flex-1 bg-white dark:bg-gray-800 text-green-600 px-4 py-2.5 rounded-lg font-bold hover:bg-green-50 hover:shadow-lg transition-all transform hover:scale-105"
                 >
                   <span className="flex items-center justify-center gap-2">
                     📥
@@ -259,7 +259,7 @@ export default function UpdateNotification() {
                 </button>
                 <button
                   onClick={handleDismiss}
-                  className="px-4 py-2.5 rounded-lg font-bold bg-white/20 hover:bg-white/30 transition-colors"
+                  className="px-4 py-2.5 rounded-lg font-bold bg-white/20 hover:bg-white dark:bg-gray-800/30 transition-colors"
                 >
                   {direction === 'rtl' ? 'لاحقاً' : 'Later'}
                 </button>
@@ -283,7 +283,7 @@ export default function UpdateNotification() {
           dir={direction}
         >
           <div className="flex items-start gap-3">
-            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800/20 rounded-full p-2 backdrop-blur-sm">
               <span className="text-3xl animate-spin">⏳</span>
             </div>
             <div className="flex-1">
@@ -292,9 +292,9 @@ export default function UpdateNotification() {
               </p>
 
               {/* Progress bar */}
-              <div className="bg-white/20 rounded-full h-3 mb-2 overflow-hidden">
+              <div className="bg-white dark:bg-gray-800/20 rounded-full h-3 mb-2 overflow-hidden">
                 <div
-                  className="bg-white h-full transition-all duration-300 rounded-full"
+                  className="bg-white dark:bg-gray-800 h-full transition-all duration-300 rounded-full"
                   style={{ width: `${downloadProgress}%` }}
                 />
               </div>
@@ -316,12 +316,12 @@ export default function UpdateNotification() {
       {/* Update downloaded - ready to install */}
       {updateDownloaded && (
         <div
-          className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-purple-500 to-purple-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-purple-400"
+          className="fixed top-4 right-4 z-[10000] bg-gradient-to-br from-primary-500 to-primary-600 text-white p-5 rounded-xl shadow-2xl animate-slideDown border border-primary-400"
           style={{ minWidth: '400px', maxWidth: '450px' }}
           dir={direction}
         >
           <div className="flex items-start gap-3">
-            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800/20 rounded-full p-2 backdrop-blur-sm">
               <span className="text-3xl">✅</span>
             </div>
             <div className="flex-1">
@@ -339,7 +339,7 @@ export default function UpdateNotification() {
               <div className="flex gap-2">
                 <button
                   onClick={handleInstallUpdate}
-                  className="flex-1 bg-white text-purple-600 px-4 py-2.5 rounded-lg font-bold hover:bg-purple-50 hover:shadow-lg transition-all transform hover:scale-105"
+                  className="flex-1 bg-white dark:bg-gray-800 text-primary-600 px-4 py-2.5 rounded-lg font-bold hover:bg-primary-50 hover:shadow-lg transition-all transform hover:scale-105"
                 >
                   <span className="flex items-center justify-center gap-2">
                     🔄
@@ -348,7 +348,7 @@ export default function UpdateNotification() {
                 </button>
                 <button
                   onClick={() => setUpdateDownloaded(false)}
-                  className="px-4 py-2.5 rounded-lg font-bold bg-white/20 hover:bg-white/30 transition-colors"
+                  className="px-4 py-2.5 rounded-lg font-bold bg-white/20 hover:bg-white dark:bg-gray-800/30 transition-colors"
                 >
                   {direction === 'rtl' ? 'لاحقاً' : 'Later'}
                 </button>

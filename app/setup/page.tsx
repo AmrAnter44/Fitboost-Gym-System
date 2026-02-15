@@ -23,12 +23,12 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-600" dir="rtl">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-pink-600" dir="rtl">
+      <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-md w-full">
         <div className="text-center mb-6">
           <div className="text-6xl mb-4">🔧</div>
-          <h1 className="text-3xl font-bold text-gray-800">إعداد النظام</h1>
-          <p className="text-gray-600 mt-2">إنشاء أول حساب Admin</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">إعداد النظام</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">إنشاء أول حساب Admin</p>
         </div>
 
         <div className="bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg mb-6">
@@ -41,7 +41,7 @@ export default function SetupPage() {
           <button
             onClick={handleSetup}
             disabled={loading}
-            className="w-full bg-gradient-to-r from-primary-500 to-purple-600 text-white py-4 rounded-xl hover:from-primary-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 font-bold text-lg shadow-lg transition transform hover:scale-105"
+            className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-4 rounded-xl hover:from-primary-600 hover:to-primary-700 disabled:from-gray-400 disabled:to-gray-500 font-bold text-lg shadow-lg transition transform hover:scale-105"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -68,20 +68,20 @@ export default function SetupPage() {
                   <p className="font-bold text-xl text-green-800">تم إنشاء الحساب بنجاح!</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-lg border-2 border-green-200 mb-4">
-                  <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border-2 border-green-200 mb-4">
+                  <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
                     <span>🔑</span>
                     <span>بيانات تسجيل الدخول:</span>
                   </h3>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
-                      <span className="text-gray-600 text-sm">البريد الإلكتروني:</span>
+                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                      <span className="text-gray-600 dark:text-gray-300 text-sm">البريد الإلكتروني:</span>
                       <code className="font-mono font-bold text-primary-600 text-sm" dir="ltr">
                         {result.credentials.email}
                       </code>
                     </div>
-                    <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
-                      <span className="text-gray-600 text-sm">كلمة المرور الافتراضية:</span>
+                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                      <span className="text-gray-600 dark:text-gray-300 text-sm">كلمة المرور الافتراضية:</span>
                       <code className="font-mono font-bold text-primary-600 text-sm">
                         admin123456
                       </code>

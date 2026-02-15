@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useDeviceSettings } from '../../contexts/DeviceSettingsContext'
+import { useDarkMode } from '../../contexts/DarkModeContext'
 import LinkModal from '../../components/LinkModal'
 import { Html5Qrcode } from 'html5-qrcode'
 import { EXTERNAL_LINKS } from '../../lib/config'
@@ -13,6 +14,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { locale, setLanguage, t, direction } = useLanguage()
   const { selectedScanner, selectedScannerFingerprint, setSelectedScanner, autoScanEnabled, setAutoScanEnabled, strictMode, setStrictMode } = useDeviceSettings()
+  const { isDarkMode, toggleDarkMode } = useDarkMode()
   const [user, setUser] = useState<any>(null)
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [devices, setDevices] = useState<any[]>([])
@@ -482,31 +484,31 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8">
+      <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8">
         {/* العنوان */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2 sm:gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2 sm:gap-3">
             <span>⚙️</span>
             <span>{t('settings.title')}</span>
           </h1>
-          <p className="text-gray-600 mt-2 text-sm sm:text-base">{t('settings.systemSettings')}</p>
+          <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base">{t('settings.systemSettings')}</p>
         </div>
 
         {/* قسم إدارة المستخدمين */}
         {user?.role === 'ADMIN' && (
           <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
               <span>👑</span>
               <span>{t('settings.adminSettings')}</span>
             </h2>
 
-            <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-4 sm:p-6 border-2 border-red-200 mb-3 sm:mb-4">
+            <div className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-xl p-4 sm:p-6 border-2 border-red-200 dark:border-red-700 mb-3 sm:mb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex-1">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2">
                     {t('dashboard.manageUsers')}
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     {t('settings.manageUsersDescription')}
                   </p>
                 </div>
@@ -520,13 +522,13 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 sm:p-6 border-2 border-orange-200 mb-3 sm:mb-4">
+            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-xl p-4 sm:p-6 border-2 border-orange-200 dark:border-orange-700 mb-3 sm:mb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex-1">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2">
                     {t('nav.offers')}
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     {t('settings.offersDescription')}
                   </p>
                 </div>
@@ -541,19 +543,19 @@ export default function SettingsPage() {
             </div>
 
             {/* قسم إدارة الباقات */}
-            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 sm:p-6 border-2 border-purple-200 mb-3 sm:mb-4">
+            <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 rounded-xl p-4 sm:p-6 border-2 border-primary-200 dark:border-primary-700 mb-3 sm:mb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex-1">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2 flex items-center gap-2">
                     <span>📦</span> {t('packages.management')}
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     {t('packages.managementDesc')}
                   </p>
                 </div>
                 <Link
                   href="/settings/packages"
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-lg"
+                  className="bg-gradient-to-r from-primary-600 to-primary-600 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-700 font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-lg"
                 >
                   <span>📦</span>
                   <span>{t('packages.manage')}</span>
@@ -561,13 +563,13 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-primary-50 to-indigo-50 rounded-xl p-4 sm:p-6 border-2 border-primary-200">
+            <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 rounded-xl p-4 sm:p-6 border-2 border-primary-200 dark:border-primary-700">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex-1">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2">
                     {t('settings.auditLogsTitle')}
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     {t('settings.auditLogsDescription')}
                   </p>
                 </div>
@@ -583,15 +585,55 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* قسم الوضع الداكن / الفاتح */}
+        <div className="border-t pt-4 sm:pt-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
+            <span>{isDarkMode ? '🌙' : '☀️'}</span>
+            <span>{t('settings.darkMode')}</span>
+          </h2>
+
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  {isDarkMode ? t('settings.currentModeDark') : t('settings.currentModeLight')}
+                </label>
+                <p className="text-xs text-gray-600 dark:text-gray-300">
+                  {isDarkMode ? t('settings.switchToLight') : t('settings.switchToDark')}
+                </p>
+              </div>
+
+              <button
+                onClick={toggleDarkMode}
+                className={`relative inline-flex h-10 w-20 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                  isDarkMode ? 'bg-primary-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-8 w-8 transform rounded-full bg-white transition-transform shadow-lg ${
+                    direction === 'rtl'
+                      ? (isDarkMode ? 'translate-x-1' : 'translate-x-10')
+                      : (isDarkMode ? 'translate-x-10' : 'translate-x-1')
+                  }`}
+                >
+                  <span className="flex items-center justify-center h-full text-lg">
+                    {isDarkMode ? '🌙' : '☀️'}
+                  </span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* قسم اللغة */}
         <div className="border-t pt-4 sm:pt-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
             <span>🌐</span>
             <span>{t('settings.languageSettings')}</span>
           </h2>
 
-          <div className="bg-gray-50 rounded-xl p-4 sm:p-6">
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-3">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 sm:p-6">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
               {t('settings.currentLanguage')}
             </label>
 
@@ -601,15 +643,15 @@ export default function SettingsPage() {
                 onClick={() => handleLanguageChange('ar')}
                 className={`p-3 sm:p-4 rounded-xl border-2 transition-all ${
                   locale === 'ar'
-                    ? 'border-primary-500 bg-primary-50 shadow-md'
-                    : 'border-gray-300 hover:border-gray-400'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 shadow-md'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
               >
                 <div className="flex items-center gap-2 sm:gap-3">
                   <span className="text-2xl sm:text-3xl">🇸🇦</span>
                   <div className="text-right flex-1">
                     <div className="font-bold text-base sm:text-lg">العربية</div>
-                    <div className="text-xs sm:text-sm text-gray-600">Arabic</div>
+                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Arabic</div>
                   </div>
                   {locale === 'ar' && (
                     <span className="text-primary-500 text-lg sm:text-xl">✓</span>
@@ -622,15 +664,15 @@ export default function SettingsPage() {
                 onClick={() => handleLanguageChange('en')}
                 className={`p-3 sm:p-4 rounded-xl border-2 transition-all ${
                   locale === 'en'
-                    ? 'border-primary-500 bg-primary-50 shadow-md'
-                    : 'border-gray-300 hover:border-gray-400'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 shadow-md'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
               >
                 <div className="flex items-center gap-2 sm:gap-3">
                   <span className="text-2xl sm:text-3xl">🇬🇧</span>
                   <div className="text-left flex-1">
                     <div className="font-bold text-base sm:text-lg">English</div>
-                    <div className="text-xs sm:text-sm text-gray-600">الإنجليزية</div>
+                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">الإنجليزية</div>
                   </div>
                   {locale === 'en' && (
                     <span className="text-primary-500 text-lg sm:text-xl">✓</span>
@@ -640,7 +682,7 @@ export default function SettingsPage() {
             </div>
 
             {/* رسالة معلومات */}
-            <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-primary-100 border border-primary-300 rounded-lg text-primary-800 text-xs sm:text-sm">
+            <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-primary-100 dark:bg-primary-900/30 border border-primary-300 dark:border-primary-600 rounded-lg text-primary-800 dark:text-primary-200 text-xs sm:text-sm">
               ℹ️ {t('settings.languageChangedSuccessfully')}
             </div>
           </div>
@@ -649,20 +691,20 @@ export default function SettingsPage() {
         {/* قسم إعدادات الباركود سكانر - Electron only */}
         {isElectron && (
         <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
             <span>📷</span>
             <span>{t('settings.barcodeScanner')}</span>
           </h2>
 
-          <div className="bg-gray-50 rounded-xl p-4 sm:p-6">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 sm:p-6">
             {/* Auto-Scan Toggle */}
-            <div className="mb-4 p-3 sm:p-4 bg-white rounded-lg border-2 border-gray-200">
+            <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-600">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-800 mb-1 text-sm sm:text-base">
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-1 text-sm sm:text-base">
                     {t('settings.autoScanEnabled')}
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     {locale === 'ar'
                       ? 'تفعيل المسح التلقائي للباركود عند الإدخال'
                       : 'Enable automatic barcode scanning on input'
@@ -687,14 +729,14 @@ export default function SettingsPage() {
 
             {/* Strict Mode Toggle */}
             {selectedScanner && (
-              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border-2 border-amber-200">
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg border-2 border-amber-200 dark:border-amber-700">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2 text-sm sm:text-base">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-1 flex items-center gap-2 text-sm sm:text-base">
                       <span>🔒</span>
                       <span>{locale === 'ar' ? 'وضع العزل الكامل' : 'Strict Isolation Mode'}</span>
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                       {locale === 'ar'
                         ? 'عزل الجهاز تماماً - كل الكتابة منه تروح للبحث فقط'
                         : 'Complete device isolation - all input goes to search only'
@@ -721,12 +763,12 @@ export default function SettingsPage() {
 
             {/* Device Selector */}
             <div className="mb-3 sm:mb-4">
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 sm:mb-3">
                 {t('settings.selectDevice')}
               </label>
 
               {loadingDevices && (
-                <div className="p-3 sm:p-4 bg-primary-50 rounded-xl text-primary-700 text-center text-sm">
+                <div className="p-3 sm:p-4 bg-primary-50 dark:bg-primary-900/30 rounded-xl text-primary-700 dark:text-primary-300 text-center text-sm">
                   <span className="animate-spin inline-block">⏳</span> {locale === 'ar' ? 'جاري الكشف عن الأجهزة...' : 'Detecting devices...'}
                 </div>
               )}
@@ -737,7 +779,7 @@ export default function SettingsPage() {
                     key={`scanner-select-${selectedScanner || 'none'}`}
                     value={selectedScanner || 'none'}
                     onChange={(e) => handleDeviceChange(e.target.value)}
-                    className="w-full p-2.5 sm:p-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none text-sm sm:text-base"
+                    className="w-full p-2.5 sm:p-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none text-sm sm:text-base"
                   >
                     <option value="none">{t('settings.defaultDevice')}</option>
                     {devices.map((device) => (
@@ -749,7 +791,7 @@ export default function SettingsPage() {
 
                   <button
                     onClick={detectDevices}
-                    className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-primary-600 to-indigo-600 text-white font-semibold flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg hover:from-primary-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                    className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-primary-600 to-primary-600 text-white font-semibold flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg hover:from-primary-700 hover:to-primary-700 transition-all shadow-md hover:shadow-lg"
                   >
                     <span>🔍</span>
                     <span className="hidden sm:inline">{locale === 'ar' ? 'اكتشف جميع الأجهزة (USB, كاميرات, وغيرها)' : 'Detect All Devices (USB, Cameras, etc.)'}</span>
@@ -760,7 +802,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Info Message */}
-            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gradient-to-br from-primary-50 to-indigo-50 border-2 border-primary-300 rounded-xl text-primary-800 text-xs sm:text-sm">
+            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-300 dark:border-primary-600 rounded-xl text-primary-800 dark:text-primary-200 text-xs sm:text-sm">
               <div className="font-bold mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
                 <span>💡</span>
                 <span>{locale === 'ar' ? 'كيفية إعداد الباركود سكانر:' : 'How to Setup Barcode Scanner:'}</span>
@@ -809,14 +851,14 @@ export default function SettingsPage() {
 
             {/* Status Indicator */}
             {autoScanEnabled && (
-              <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 border-2 border-green-300 rounded-lg">
+              <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-lg">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <span className="text-xl sm:text-2xl">✅</span>
                   <div>
-                    <p className="font-semibold text-green-800 text-sm sm:text-base">
+                    <p className="font-semibold text-green-800 dark:text-green-200 text-sm sm:text-base">
                       {t('settings.autoScanEnabled')}
                     </p>
-                    <p className="text-xs sm:text-sm text-green-700">
+                    <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">
                       {locale === 'ar'
                         ? 'سيتم فتح نافذة البحث تلقائياً عند مسح الباركود'
                         : 'Search window will open automatically on barcode scan'
@@ -832,24 +874,24 @@ export default function SettingsPage() {
 
         {/* قسم مشاركة اللينك */}
         <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
             <span>🔗</span>
             <span>{t('settings.networkAccess')}</span>
           </h2>
 
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 sm:p-6 border-2 border-purple-200">
+          <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 rounded-xl p-4 sm:p-6 border-2 border-primary-200 dark:border-primary-700">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div className="flex-1">
-                <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">
+                <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2">
                   {t('settings.shareLink')}
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                   {t('settings.shareLinkDescription')}
                 </p>
               </div>
               <button
                 onClick={() => setShowLinkModal(true)}
-                className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-lg text-sm sm:text-base"
+                className="w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:from-primary-700 hover:to-primary-700 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-lg text-sm sm:text-base"
               >
                 <span>🔗</span>
                 <span>{t('settings.showLink')}</span>
@@ -861,7 +903,7 @@ export default function SettingsPage() {
         {/* قسم التحديثات - Electron only */}
         {isElectron && (
         <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
             <span>🔄</span>
             <span>{locale === 'ar' ? 'التحديثات' : 'Updates'}</span>
           </h2>
@@ -908,14 +950,14 @@ export default function SettingsPage() {
           {/* Update notifications removed - now shown only in toast via UpdateNotification component */}
 
           {/* Main update check card */}
-          <div className="bg-gradient-to-br from-primary-50 to-cyan-50 rounded-xl p-4 sm:p-6 border-2 border-primary-200">
+          <div className="bg-gradient-to-br from-primary-50 to-cyan-50 dark:from-primary-900/20 dark:to-cyan-900/20 rounded-xl p-4 sm:p-6 border-2 border-primary-200 dark:border-primary-700">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div className="flex-1">
-                <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2 flex items-center gap-2">
                   <span>⬇️</span>
                   <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 sm:mb-2">
                   {locale === 'ar'
                     ? 'تحقق من وجود تحديثات جديدة للتطبيق'
                     : 'Check if new updates are available'}
@@ -951,22 +993,22 @@ export default function SettingsPage() {
 
         {/* قسم الدعم الفني */}
         <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
             <span>📞</span>
             <span>{t('settings.technicalSupport')}</span>
           </h2>
 
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border-2 border-green-200">
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 sm:p-6 border-2 border-green-200 dark:border-green-700">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div className="flex-1">
-                <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2 flex items-center gap-2">
                   <span>💬</span>
                   <span>{t('settings.technicalSupport')}</span>
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-2 sm:mb-3">
                   {t('settings.supportDescription')}
                 </p>
-                <p className="text-xs sm:text-sm font-semibold text-green-700 flex items-center gap-2">
+                <p className="text-xs sm:text-sm font-semibold text-green-700 dark:text-green-300 flex items-center gap-2">
                   <span>📱</span>
                   <span>01028518754</span>
                 </p>
@@ -985,22 +1027,22 @@ export default function SettingsPage() {
         </div>
 
         {/* قسم إدارة الخدمات */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
             🔧 {t('settings.servicesManagement')}
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             {t('settings.servicesManagementDesc')}
           </p>
 
           <div className="space-y-4">
             {/* Nutrition Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">🥗</span>
                 <div>
-                  <h4 className="font-bold text-gray-800">{t('services.nutrition')}</h4>
-                  <p className="text-sm text-gray-600">{t('services.nutritionDesc')}</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('services.nutrition')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('services.nutritionDesc')}</p>
                 </div>
               </div>
               <button
@@ -1021,12 +1063,12 @@ export default function SettingsPage() {
             </div>
 
             {/* Physiotherapy Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">🏥</span>
                 <div>
-                  <h4 className="font-bold text-gray-800">{t('services.physiotherapy')}</h4>
-                  <p className="text-sm text-gray-600">{t('services.physiotherapyDesc')}</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('services.physiotherapy')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('services.physiotherapyDesc')}</p>
                 </div>
               </div>
               <button
@@ -1047,19 +1089,19 @@ export default function SettingsPage() {
             </div>
 
             {/* Group Classes Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">👥</span>
                 <div>
-                  <h4 className="font-bold text-gray-800">{t('services.groupClasses')}</h4>
-                  <p className="text-sm text-gray-600">{t('services.groupClassesDesc')}</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('services.groupClasses')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('services.groupClassesDesc')}</p>
                 </div>
               </div>
               <button
                 onClick={() => toggleService('groupClass')}
                 disabled={loadingServices}
                 className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
-                  serviceSettings.groupClassEnabled ? 'bg-purple-500' : 'bg-gray-300'
+                  serviceSettings.groupClassEnabled ? 'bg-primary-500' : 'bg-gray-300'
                 }`}
               >
                 <span
@@ -1073,12 +1115,12 @@ export default function SettingsPage() {
             </div>
 
             {/* SPA Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">💆</span>
                 <div>
-                  <h4 className="font-bold text-gray-800">{t('services.spa')}</h4>
-                  <p className="text-sm text-gray-600">{t('services.spaDesc')}</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('services.spa')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('services.spaDesc')}</p>
                 </div>
               </div>
               <button
@@ -1099,12 +1141,12 @@ export default function SettingsPage() {
             </div>
 
             {/* InBody Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">⚖️</span>
                 <div>
-                  <h4 className="font-bold text-gray-800">{t('services.inBody')}</h4>
-                  <p className="text-sm text-gray-600">{t('services.inBodyDesc')}</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('services.inBody')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('services.inBodyDesc')}</p>
                 </div>
               </div>
               <button
@@ -1127,7 +1169,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Points System Management */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
           <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-4 sm:p-6">
             <div className="flex items-center gap-3">
               <span className="text-3xl sm:text-4xl">🏆</span>
@@ -1140,12 +1182,12 @@ export default function SettingsPage() {
 
           <div className="p-4 sm:p-6 space-y-4">
             {/* Points System Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">🏆</span>
                 <div>
-                  <h4 className="font-bold text-gray-800">{t('settings.pointsEnabled')}</h4>
-                  <p className="text-sm text-gray-600">{t('settings.pointsEnabledDesc')}</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.pointsEnabled')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('settings.pointsEnabledDesc')}</p>
                 </div>
               </div>
               <button
@@ -1169,13 +1211,13 @@ export default function SettingsPage() {
             {serviceSettings.pointsEnabled && (
               <div className="space-y-4 animate-slideDown">
                 {/* Points per Check-in */}
-                <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">✅</span>
-                      <h4 className="font-bold text-gray-800">{t('settings.pointsPerCheckIn')}</h4>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.pointsPerCheckIn')}</h4>
                     </div>
-                    <span className="text-2xl font-bold text-green-600">{serviceSettings.pointsPerCheckIn}</span>
+                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">{serviceSettings.pointsPerCheckIn}</span>
                   </div>
                   <input
                     type="number"
@@ -1183,19 +1225,19 @@ export default function SettingsPage() {
                     max="100"
                     value={serviceSettings.pointsPerCheckIn}
                     onChange={(e) => updatePointsSettings('pointsPerCheckIn', parseInt(e.target.value) || 0)}
-                    className="w-full p-2 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-green-300 dark:border-green-700 dark:bg-gray-700 dark:text-white rounded-lg focus:border-green-500 focus:outline-none"
                   />
-                  <p className="text-xs text-gray-600 mt-1">{t('settings.pointsPerCheckInDesc')}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{t('settings.pointsPerCheckInDesc')}</p>
                 </div>
 
                 {/* Points per Invitation */}
-                <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                <div className="p-4 bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-200 dark:border-primary-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">🎁</span>
-                      <h4 className="font-bold text-gray-800">{t('settings.pointsPerInvitation')}</h4>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.pointsPerInvitation')}</h4>
                     </div>
-                    <span className="text-2xl font-bold text-purple-600">{serviceSettings.pointsPerInvitation}</span>
+                    <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">{serviceSettings.pointsPerInvitation}</span>
                   </div>
                   <input
                     type="number"
@@ -1203,19 +1245,19 @@ export default function SettingsPage() {
                     max="100"
                     value={serviceSettings.pointsPerInvitation}
                     onChange={(e) => updatePointsSettings('pointsPerInvitation', parseInt(e.target.value) || 0)}
-                    className="w-full p-2 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-primary-300 dark:border-primary-700 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none"
                   />
-                  <p className="text-xs text-gray-600 mt-1">{t('settings.pointsPerInvitationDesc')}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{t('settings.pointsPerInvitationDesc')}</p>
                 </div>
 
                 {/* Points per EGP Spent */}
-                <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">💰</span>
-                      <h4 className="font-bold text-gray-800">{t('settings.pointsPerEGPSpent')}</h4>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.pointsPerEGPSpent')}</h4>
                     </div>
-                    <span className="text-2xl font-bold text-blue-600">{serviceSettings.pointsPerEGPSpent}</span>
+                    <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{serviceSettings.pointsPerEGPSpent}</span>
                   </div>
                   <input
                     type="number"
@@ -1224,19 +1266,19 @@ export default function SettingsPage() {
                     step="0.1"
                     value={serviceSettings.pointsPerEGPSpent}
                     onChange={(e) => updatePointsSettings('pointsPerEGPSpent', parseFloat(e.target.value) || 0)}
-                    className="w-full p-2 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-blue-300 dark:border-blue-700 dark:bg-gray-700 dark:text-white rounded-lg focus:border-blue-500 focus:outline-none"
                   />
-                  <p className="text-xs text-gray-600 mt-1">{t('settings.pointsPerEGPSpentDesc')}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{t('settings.pointsPerEGPSpentDesc')}</p>
                 </div>
 
                 {/* Points Value in EGP */}
-                <div className="p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">💰</span>
-                      <h4 className="font-bold text-gray-800">{t('settings.pointsValueInEGP')}</h4>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.pointsValueInEGP')}</h4>
                     </div>
-                    <span className="text-2xl font-bold text-yellow-600">{serviceSettings.pointsValueInEGP}</span>
+                    <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{serviceSettings.pointsValueInEGP}</span>
                   </div>
                   <input
                     type="number"
@@ -1245,9 +1287,9 @@ export default function SettingsPage() {
                     step="0.1"
                     value={serviceSettings.pointsValueInEGP}
                     onChange={(e) => updatePointsSettings('pointsValueInEGP', parseFloat(e.target.value) || 0)}
-                    className="w-full p-2 border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-yellow-300 dark:border-yellow-700 dark:bg-gray-700 dark:text-white rounded-lg focus:border-yellow-500 focus:outline-none"
                   />
-                  <p className="text-xs text-gray-600 mt-1">{t('settings.pointsValueInEGPDesc')}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{t('settings.pointsValueInEGPDesc')}</p>
                 </div>
               </div>
             )}
@@ -1255,7 +1297,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Website Settings */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
           <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-4 sm:p-6">
             <div className="flex items-center gap-3">
               <span className="text-3xl sm:text-4xl">🌐</span>
@@ -1268,29 +1310,29 @@ export default function SettingsPage() {
 
           <div className="p-4 sm:p-6 space-y-4">
             {/* Website URL */}
-            <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-2xl">🔗</span>
-                <h4 className="font-bold text-gray-800">{t('settings.websiteUrl')}</h4>
+                <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.websiteUrl')}</h4>
               </div>
               <input
                 type="url"
                 value={serviceSettings.websiteUrl}
                 onChange={(e) => updateWebsiteSettings('websiteUrl', e.target.value)}
                 placeholder="https://www.example.com"
-                className="w-full p-3 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                className="w-full p-3 border-2 border-blue-300 dark:border-blue-700 dark:bg-gray-700 dark:text-white rounded-lg focus:border-blue-500 focus:outline-none text-sm"
                 dir="ltr"
               />
-              <p className="text-xs text-gray-600 mt-2">{t('settings.websiteUrlDesc')}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-2">{t('settings.websiteUrlDesc')}</p>
             </div>
 
             {/* Show Website on Receipts Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">📄</span>
                 <div>
-                  <h4 className="font-bold text-gray-800">{t('settings.showWebsiteOnReceipts')}</h4>
-                  <p className="text-sm text-gray-600">{t('settings.showWebsiteOnReceiptsDesc')}</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.showWebsiteOnReceipts')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('settings.showWebsiteOnReceiptsDesc')}</p>
                 </div>
               </div>
               <button
@@ -1321,7 +1363,7 @@ export default function SettingsPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <span className="text-xs sm:text-sm text-gray-500">{t('settings.poweredBy')}</span>
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('settings.poweredBy')}</span>
               <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-primary-600 to-cyan-600 bg-clip-text text-transparent">
                 FitBoost
               </span>

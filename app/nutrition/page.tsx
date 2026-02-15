@@ -513,7 +513,7 @@ export default function NutritionPage() {
       <div className="mb-6">
         <div className="mb-4">
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">🥗 {t('nutrition.title')}</h1>
-          <p className="text-sm sm:text-base text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
             {isCoach ? t('nutrition.viewSessions') : t('nutrition.manageSessions')}
           </p>
         </div>
@@ -547,13 +547,13 @@ export default function NutritionPage() {
       </div>
 
       {!isCoach && showForm && (
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-green-100" dir={direction}>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 border-2 border-green-100 dark:border-green-700" dir={direction}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               {editingSession ? t('nutrition.editSession') : t('nutrition.addSession')}
             </h2>
             {editingSession && isDayUse && (
-              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">
+              <span className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm font-bold">
                 🏃 Day Use
               </span>
             )}
@@ -563,8 +563,8 @@ export default function NutritionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    {t('nutrition.nutritionId')} <span className="text-xs text-gray-500">(اختياري)</span>
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                    {t('nutrition.nutritionId')} <span className="text-xs text-gray-500 dark:text-gray-400">(اختياري)</span>
                   </label>
                   <input
                     type="number"
@@ -572,47 +572,47 @@ export default function NutritionPage() {
                     value={formData.nutritionNumber}
                     onChange={(e) => setFormData({ ...formData, nutritionNumber: e.target.value })}
                     onKeyPress={handleIdKeyPress}
-                    className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:bg-gray-700 dark:text-white"
                     placeholder="اختياري - يمكن تركه فارغ"
                   />
-                  <p className="text-xs text-gray-500 mt-1">💡 اضغط Enter لتحميل بيانات العضو تلقائياً</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">💡 اضغط Enter لتحميل بيانات العضو تلقائياً</p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('nutrition.clientName')} <span className="text-red-600">*</span>
+                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                  {t('nutrition.clientName')} <span className="text-red-600 dark:text-red-400">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.clientName}
                   onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   placeholder={t('nutrition.clientNamePlaceholder')}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('nutrition.phoneNumber')} <span className="text-red-600">*</span>
+                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                  {t('nutrition.phoneNumber')} <span className="text-red-600 dark:text-red-400">*</span>
                 </label>
                 <input
                   type="tel"
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   placeholder={t('nutrition.phonePlaceholder')}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t('nutrition.nutritionistName')} <span className="text-red-600">*</span>
+                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                  {t('nutrition.nutritionistName')} <span className="text-red-600 dark:text-red-400">*</span>
                 </label>
                 {coachesLoading ? (
-                  <div className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500">
+                  <div className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                     {t('nutrition.loadingNutritionists')}
                   </div>
                 ) : coaches.length === 0 ? (
@@ -622,10 +622,10 @@ export default function NutritionPage() {
                       required
                       value={formData.nutritionistName}
                       onChange={(e) => setFormData({ ...formData, nutritionistName: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                       placeholder={t('nutrition.nutritionistNamePlaceholder')}
                     />
-                    <p className="text-xs text-amber-600">
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
                       ⚠️ {t('nutrition.noActiveNutritionists')}
                     </p>
                   </div>
@@ -634,7 +634,7 @@ export default function NutritionPage() {
                     required
                     value={formData.nutritionistName}
                     onChange={(e) => setFormData({ ...formData, nutritionistName: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg bg-white"
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">{t('nutrition.selectNutritionist')}</option>
                     {coaches.map((coach) => (
@@ -648,7 +648,7 @@ export default function NutritionPage() {
 
               {/* Day Use Checkbox - مخفي في وضع التعديل */}
               {!editingSession && (
-                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+                <div className="bg-green-50 dark:bg-green-900/50 border-2 border-green-200 dark:border-green-700 rounded-lg p-3">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -674,10 +674,10 @@ export default function NutritionPage() {
                     className="w-5 h-5"
                   />
                   <div>
-                    <span className="text-sm font-bold text-green-800">
+                    <span className="text-sm font-bold text-green-800 dark:text-green-200">
                       🏃 Day Use (استخدام يومي)
                     </span>
-                    <p className="text-xs text-green-600 mt-1">
+                    <p className="text-xs text-green-600 dark:text-green-300 mt-1">
                       تسجيل مبسط - اسم ورقم وسعر الجلسة فقط
                     </p>
                   </div>
@@ -688,7 +688,7 @@ export default function NutritionPage() {
               {/* اختيار باقة جاهزة */}
               {!isDayUse && !editingSession && packages.length > 0 && (
                 <div className="col-span-full">
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
                     ⚡ {t('packages.selectPackage')}
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -697,22 +697,22 @@ export default function NutritionPage() {
                         key={pkg.id}
                         type="button"
                         onClick={() => applyPackage(pkg)}
-                        className="bg-gradient-to-br from-lime-50 to-green-100 hover:from-lime-100 hover:to-green-200 border-2 border-lime-400 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg"
+                        className="bg-gradient-to-br from-lime-50 to-green-100 dark:from-lime-900/50 dark:to-green-900/50 hover:from-lime-100 hover:to-green-200 dark:hover:from-lime-800/50 dark:hover:to-green-800/50 border-2 border-lime-400 dark:border-lime-700 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg"
                       >
                         <div className="text-center">
                           <div className="text-2xl mb-1">🥗</div>
-                          <div className="font-bold text-gray-800 text-sm">{pkg.name}</div>
-                          <div className="text-xs text-gray-600 mt-1">
+                          <div className="font-bold text-gray-800 dark:text-gray-100 text-sm">{pkg.name}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                             {pkg.sessions} {t('packages.sessions')}
                           </div>
-                          <div className="text-lg font-bold text-green-600 mt-1">
+                          <div className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
                             {pkg.price} {t('nutrition.egp')}
                           </div>
                         </div>
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     💡 {t('packages.customPackage')}: يمكنك تعديل القيم بعد اختيار الباقة
                   </p>
                 </div>
@@ -720,8 +720,8 @@ export default function NutritionPage() {
 
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    {t('nutrition.sessionsCount')} <span className="text-red-600">*</span>
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                    {t('nutrition.sessionsCount')} <span className="text-red-600 dark:text-red-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -729,7 +729,7 @@ export default function NutritionPage() {
                     min="1"
                     value={formData.sessionsPurchased}
                     onChange={(e) => setFormData({ ...formData, sessionsPurchased: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                     placeholder={t('nutrition.sessionsPlaceholder')}
                   />
                 </div>
@@ -737,8 +737,8 @@ export default function NutritionPage() {
 
               {!isDayUse && editingSession && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    الجلسات المتبقية <span className="text-red-600">*</span>
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                    الجلسات المتبقية <span className="text-red-600 dark:text-red-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -746,18 +746,18 @@ export default function NutritionPage() {
                     min="0"
                     value={formData.sessionsRemaining}
                     onChange={(e) => setFormData({ ...formData, sessionsRemaining: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border rounded-lg bg-green-50 border-green-300"
+                    className="w-full px-3 py-2 border border-green-300 dark:border-green-700 rounded-lg bg-green-50 dark:bg-green-900/50 dark:text-white"
                     placeholder="عدد الجلسات المتبقية"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     💡 يمكنك تعديل عدد الجلسات المتبقية للعميل
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {isDayUse ? 'سعر الجلسة 💰' : t('nutrition.totalPrice')} <span className="text-red-600">*</span>
+                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                  {isDayUse ? 'سعر الجلسة 💰' : t('nutrition.totalPrice')} <span className="text-red-600 dark:text-red-400">*</span>
                 </label>
                 <input
                   type="number"
@@ -766,14 +766,14 @@ export default function NutritionPage() {
                   step="0.01"
                   value={formData.totalPrice}
                   onChange={(e) => setFormData({ ...formData, totalPrice: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border rounded-lg bg-yellow-50 border-yellow-300"
+                  className="w-full px-3 py-2 border border-yellow-300 dark:border-yellow-700 rounded-lg bg-yellow-50 dark:bg-yellow-900/50 dark:text-white"
                   placeholder={isDayUse ? 'أدخل سعر الجلسة' : t('nutrition.totalPricePlaceholder')}
                 />
               </div>
 
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
                     {t('nutrition.remainingAmount')}
                   </label>
                   <input
@@ -782,10 +782,10 @@ export default function NutritionPage() {
                     step="0.01"
                     value={formData.remainingAmount}
                     onChange={(e) => setFormData({ ...formData, remainingAmount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border rounded-lg bg-orange-50 border-orange-300"
+                    className="w-full px-3 py-2 border border-orange-300 dark:border-orange-700 rounded-lg bg-orange-50 dark:bg-orange-900/50 dark:text-white"
                     placeholder={t('nutrition.remainingAmountPlaceholder')}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {t('nutrition.remainingAmountNote')}
                   </p>
                 </div>
@@ -793,14 +793,14 @@ export default function NutritionPage() {
 
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    {t('nutrition.startDate')} <span className="text-xs text-gray-500">{t('nutrition.startDateFormat')}</span>
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                    {t('nutrition.startDate')} <span className="text-xs text-gray-500 dark:text-gray-400">{t('nutrition.startDateFormat')}</span>
                   </label>
                   <input
                     type="text"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg font-mono"
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg font-mono dark:bg-gray-700 dark:text-white"
                     placeholder={t('nutrition.startDatePlaceholder')}
                     pattern="\d{4}-\d{2}-\d{2}"
                   />
@@ -809,14 +809,14 @@ export default function NutritionPage() {
 
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    {t('nutrition.expiryDate')} <span className="text-xs text-gray-500">{t('nutrition.startDateFormat')}</span>
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                    {t('nutrition.expiryDate')} <span className="text-xs text-gray-500 dark:text-gray-400">{t('nutrition.startDateFormat')}</span>
                   </label>
                   <input
                     type="text"
                     value={formData.expiryDate}
                     onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg font-mono"
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg font-mono dark:bg-gray-700 dark:text-white"
                     placeholder={t('nutrition.expiryDatePlaceholder')}
                     pattern="\d{4}-\d{2}-\d{2}"
                   />
@@ -826,14 +826,14 @@ export default function NutritionPage() {
 
             {!isDayUse && (
               <div>
-                <p className="text-sm font-medium mb-2">{t('nutrition.quickAdd')}</p>
+                <p className="text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">{t('nutrition.quickAdd')}</p>
                 <div className="flex flex-wrap gap-2">
                   {[1, 2, 3, 6, 9, 12].map(months => (
                     <button
                       key={months}
                       type="button"
                       onClick={() => calculateExpiryFromMonths(months)}
-                      className="px-3 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg text-sm transition font-medium"
+                      className="px-3 py-2 bg-green-100 dark:bg-green-900/50 hover:bg-green-200 dark:hover:bg-green-800/50 text-green-800 dark:text-green-200 rounded-lg text-sm transition font-medium"
                     >
                       + {months} {months === 1 ? t('nutrition.month') : t('nutrition.months')}
                     </button>
@@ -856,23 +856,23 @@ export default function NutritionPage() {
             </div>
 
             {formData.sessionsPurchased > 0 && formData.totalPrice > 0 && (
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+              <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">{t('nutrition.finalTotal')}</span>
-                  <span className="text-2xl font-bold text-green-600">
+                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('nutrition.finalTotal')}</span>
+                  <span className="text-2xl font-bold text-green-600 dark:text-green-400">
                     {formData.totalPrice.toFixed(2)} {t('nutrition.egp')}
                   </span>
                 </div>
-                <div className="flex justify-between items-center mt-2 text-sm border-t pt-2">
-                  <span className="font-semibold text-green-700">{t('nutrition.paidAmount')}</span>
-                  <span className="font-bold text-green-600">
+                <div className="flex justify-between items-center mt-2 text-sm border-t dark:border-green-700 pt-2">
+                  <span className="font-semibold text-green-700 dark:text-green-300">{t('nutrition.paidAmount')}</span>
+                  <span className="font-bold text-green-600 dark:text-green-400">
                     {(formData.totalPrice - formData.remainingAmount).toFixed(2)} {t('nutrition.egp')}
                   </span>
                 </div>
                 {formData.remainingAmount > 0 && (
                   <div className="flex justify-between items-center mt-1 text-sm">
-                    <span className="font-semibold text-orange-700">{t('nutrition.remaining')}</span>
-                    <span className="font-bold text-orange-600">
+                    <span className="font-semibold text-orange-700 dark:text-orange-300">{t('nutrition.remaining')}</span>
+                    <span className="font-bold text-orange-600 dark:text-orange-400">
                       {formData.remainingAmount.toFixed(2)} {t('nutrition.egp')}
                     </span>
                   </div>
@@ -884,7 +884,7 @@ export default function NutritionPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 disabled:bg-gray-400 dark:disabled:bg-gray-600"
               >
                 {loading ? t('nutrition.saving') : editingSession ? t('nutrition.updateButton') : t('nutrition.addSessionButton')}
               </button>
@@ -892,7 +892,7 @@ export default function NutritionPage() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-6 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                  className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   {t('nutrition.cancelButton')}
                 </button>
@@ -902,14 +902,14 @@ export default function NutritionPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6" dir={direction}>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6" dir={direction}>
         <div className="mb-4">
           <input
             type="text"
             placeholder={`🔍 ${t('nutrition.searchPlaceholder')}`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-3 border-2 rounded-lg text-lg"
+            className="w-full px-4 py-3 border-2 dark:border-gray-600 rounded-lg text-lg dark:bg-gray-700 dark:text-white"
           />
         </div>
 
@@ -917,11 +917,11 @@ export default function NutritionPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {/* فلتر أخصائي التغذية */}
           <div>
-            <label className="block text-sm font-medium mb-1.5">{t('nutrition.filterByNutritionist')}</label>
+            <label className="block text-sm font-medium mb-1.5 text-gray-900 dark:text-gray-100">{t('nutrition.filterByNutritionist')}</label>
             <select
               value={filterCoach}
               onChange={(e) => setFilterCoach(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg"
+              className="w-full px-3 py-2 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
               <option value="">{t('nutrition.allNutritionists')}</option>
               {(Array.from(new Set(sessions.map(s => s.nutritionistName).filter((name): name is string => !!name))) as string[]).sort().map(coach => (
@@ -932,11 +932,11 @@ export default function NutritionPage() {
 
           {/* فلتر الحالة */}
           <div>
-            <label className="block text-sm font-medium mb-1.5">{t('nutrition.filterByStatus')}</label>
+            <label className="block text-sm font-medium mb-1.5 text-gray-900 dark:text-gray-100">{t('nutrition.filterByStatus')}</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="w-full px-3 py-2 border-2 rounded-lg"
+              className="w-full px-3 py-2 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
               <option value="all">{t('nutrition.allStatus')}</option>
               <option value="active">{t('nutrition.statusActive')}</option>
@@ -947,11 +947,11 @@ export default function NutritionPage() {
 
           {/* فلتر الجلسات */}
           <div>
-            <label className="block text-sm font-medium mb-1.5">{t('nutrition.filterBySessions')}</label>
+            <label className="block text-sm font-medium mb-1.5 text-gray-900 dark:text-gray-100">{t('nutrition.filterBySessions')}</label>
             <select
               value={filterSessions}
               onChange={(e) => setFilterSessions(e.target.value as any)}
-              className="w-full px-3 py-2 border-2 rounded-lg"
+              className="w-full px-3 py-2 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
               <option value="all">{t('nutrition.allSessions')}</option>
               <option value="low">{t('nutrition.sessionsLow')}</option>
@@ -961,11 +961,11 @@ export default function NutritionPage() {
 
           {/* فلتر النوع (Nutrition عادي / Day Use) */}
           <div>
-            <label className="block text-sm font-medium mb-1.5">نوع الجلسة</label>
+            <label className="block text-sm font-medium mb-1.5 text-gray-900 dark:text-gray-100">نوع الجلسة</label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as any)}
-              className="w-full px-3 py-2 border-2 rounded-lg"
+              className="w-full px-3 py-2 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
               <option value="all">الكل</option>
               <option value="regular">Nutrition عادي</option>
@@ -984,7 +984,7 @@ export default function NutritionPage() {
                 setFilterSessions('all')
                 setFilterType('all')
               }}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm font-medium"
             >
               🔄 {t('nutrition.resetFilters')}
             </button>
@@ -997,19 +997,19 @@ export default function NutritionPage() {
       ) : (
         <>
           {/* Desktop Table - Hidden on mobile/tablet */}
-          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full" dir={direction}>
-                <thead className="bg-gray-100">
+                <thead className="bg-gray-100 dark:bg-gray-700">
                   <tr>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.nutritionNumber')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.client')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.nutritionist')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.sessions')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.total')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.remaining')}</th>
-                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.dates')}</th>
-                    {!isCoach && <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.actions')}</th>}
+                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.nutritionNumber')}</th>
+                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.client')}</th>
+                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.nutritionist')}</th>
+                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.sessions')}</th>
+                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.total')}</th>
+                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.remaining')}</th>
+                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.dates')}</th>
+                    {!isCoach && <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.actions')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -1022,7 +1022,7 @@ export default function NutritionPage() {
                     return (
                       <tr
                         key={session.nutritionNumber}
-                        className={`border-t hover:bg-gray-50 ${
+                        className={`border-t hover:bg-gray-50 dark:hover:bg-gray-700 ${
                           isExpired ? 'bg-red-50' : isExpiringSoon ? 'bg-yellow-50' : ''
                         }`}
                       >
@@ -1036,7 +1036,7 @@ export default function NutritionPage() {
                         <td className="px-4 py-3">
                           <div>
                             <p className="font-semibold">{session.clientName}</p>
-                            <p className="text-sm text-gray-600">{session.phone}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{session.phone}</p>
                           </div>
                         </td>
                         <td className="px-4 py-3">{session.nutritionistName}</td>
@@ -1053,7 +1053,7 @@ export default function NutritionPage() {
                             >
                               {session.sessionsRemaining}
                             </p>
-                            <p className="text-xs text-gray-500">{t('nutrition.of')} {session.sessionsPurchased}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{t('nutrition.of')} {session.sessionsPurchased}</p>
                           </div>
                         </td>
                         <td className="px-4 py-3 font-bold text-green-600">
@@ -1149,18 +1149,18 @@ export default function NutritionPage() {
               return (
                 <div
                   key={session.nutritionNumber}
-                  className={`bg-white rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg transition ${
-                    isExpired ? 'border-red-300 bg-red-50' : isExpiringSoon ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
+                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg dark:hover:shadow-2xl transition ${
+                    isExpired ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20' : isExpiringSoon ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-600'
                   }`}
                 >
                   {/* Header */}
-                  <div className={`p-2.5 ${isExpired ? 'bg-red-600' : isExpiringSoon ? 'bg-orange-600' : 'bg-gradient-to-r from-green-600 to-green-700'}`}>
+                  <div className={`p-2.5 ${isExpired ? 'bg-red-600 dark:bg-red-700' : isExpiringSoon ? 'bg-orange-600 dark:bg-orange-700' : 'bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800'}`}>
                     <div className="flex items-center justify-between">
                       <div className="text-xl font-bold text-white">
                         {session.nutritionNumber < 0 ? '🏃 Day Use' : `#${session.nutritionNumber}`}
                       </div>
                       <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                        session.sessionsRemaining === 0 ? 'bg-red-500' : session.sessionsRemaining <= 3 ? 'bg-orange-500' : 'bg-green-500'
+                        session.sessionsRemaining === 0 ? 'bg-red-500 dark:bg-red-600' : session.sessionsRemaining <= 3 ? 'bg-orange-500 dark:bg-orange-600' : 'bg-green-500 dark:bg-green-600'
                       } text-white`}>
                         {session.sessionsRemaining} / {session.sessionsPurchased} {t('nutrition.session')}
                       </div>
@@ -1170,43 +1170,43 @@ export default function NutritionPage() {
                   {/* Card Body */}
                   <div className="p-3 space-y-2.5">
                     {/* Client Info */}
-                    <div className="pb-2.5 border-b-2 border-gray-100">
+                    <div className="pb-2.5 border-b-2 border-gray-100 dark:border-gray-700 dark:border-gray-700">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-base">👤</span>
-                        <span className="text-xs text-gray-500 font-semibold">{t('nutrition.client')}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 font-semibold">{t('nutrition.client')}</span>
                       </div>
-                      <div className="text-base font-bold text-gray-800">{session.clientName}</div>
-                      <div className="text-sm font-mono text-gray-600 mt-1">{session.phone}</div>
+                      <div className="text-base font-bold text-gray-800 dark:text-gray-100">{session.clientName}</div>
+                      <div className="text-sm font-mono text-gray-600 dark:text-gray-300 mt-1">{session.phone}</div>
                     </div>
 
                     {/* Nutritionist */}
-                    <div className="pb-2.5 border-b-2 border-gray-100">
+                    <div className="pb-2.5 border-b-2 border-gray-100 dark:border-gray-700 dark:border-gray-700">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-base">🥗</span>
-                        <span className="text-xs text-gray-500 font-semibold">{t('nutrition.nutritionist')}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 font-semibold">{t('nutrition.nutritionist')}</span>
                       </div>
-                      <div className="text-base font-bold text-gray-800">{session.nutritionistName}</div>
+                      <div className="text-base font-bold text-gray-800 dark:text-gray-100">{session.nutritionistName}</div>
                     </div>
 
                     {/* Price Info */}
-                    <div className="bg-green-50 border-2 border-green-200 rounded-lg p-2.5">
+                    <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-2.5">
                       <div className="flex items-center gap-1 mb-1">
                         <span className="text-sm">💵</span>
-                        <span className="text-xs text-green-700 font-semibold">{t('nutrition.total')}</span>
+                        <span className="text-xs text-green-700 dark:text-green-300 font-semibold">{t('nutrition.total')}</span>
                       </div>
-                      <div className="text-base font-bold text-green-600">
+                      <div className="text-base font-bold text-green-600 dark:text-green-400">
                         {(session.sessionsPurchased * session.pricePerSession).toFixed(0)} {t('nutrition.egp')}
                       </div>
                     </div>
 
                     {/* Remaining Amount */}
                     {(session.remainingAmount || 0) > 0 && (
-                      <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-2.5">
+                      <div className="bg-orange-50 dark:bg-orange-900/30 border-2 border-orange-300 dark:border-orange-700 rounded-lg p-2.5">
                         <div className="flex items-center gap-1 mb-1">
                           <span className="text-sm">⚠️</span>
-                          <span className="text-xs text-orange-700 font-semibold">{t('nutrition.remainingAmountLabel')}</span>
+                          <span className="text-xs text-orange-700 dark:text-orange-300 font-semibold">{t('nutrition.remainingAmountLabel')}</span>
                         </div>
-                        <div className="text-base font-bold text-orange-600">
+                        <div className="text-base font-bold text-orange-600 dark:text-orange-400">
                           {(session.remainingAmount || 0).toFixed(0)} {t('nutrition.egp')}
                         </div>
                       </div>
@@ -1215,20 +1215,20 @@ export default function NutritionPage() {
                     {/* Dates */}
                     {(session.startDate || session.expiryDate) && (
                       <div className={`border-2 rounded-lg p-2.5 ${
-                        isExpired ? 'bg-red-50 border-red-300' : isExpiringSoon ? 'bg-orange-50 border-orange-300' : 'bg-gray-50 border-gray-200'
+                        isExpired ? 'bg-red-50 border-red-300' : isExpiringSoon ? 'bg-orange-50 border-orange-300' : 'bg-gray-50 dark:bg-gray-700 dark:bg-gray-700 border-gray-200 dark:border-gray-600 dark:border-gray-600'
                       }`}>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm">📅</span>
                           <span className={`text-xs font-semibold ${
-                            isExpired ? 'text-red-700' : isExpiringSoon ? 'text-orange-700' : 'text-gray-700'
+                            isExpired ? 'text-red-700' : isExpiringSoon ? 'text-orange-700' : 'text-gray-700 dark:text-gray-200'
                           }`}>{t('nutrition.period')}</span>
                         </div>
                         <div className="space-y-1 text-xs font-mono">
                           {session.startDate && (
-                            <div className="text-gray-700">{t('nutrition.from')} {formatDateYMD(session.startDate)}</div>
+                            <div className="text-gray-700 dark:text-gray-200">{t('nutrition.from')} {formatDateYMD(session.startDate)}</div>
                           )}
                           {session.expiryDate && (
-                            <div className={isExpired ? 'text-red-600 font-bold' : 'text-gray-700'}>
+                            <div className={isExpired ? 'text-red-600 font-bold' : 'text-gray-700 dark:text-gray-200'}>
                               {t('nutrition.to')} {formatDateYMD(session.expiryDate)}
                             </div>
                           )}
@@ -1295,7 +1295,7 @@ export default function NutritionPage() {
           </div>
 
           {filteredSessions.length === 0 && (
-            <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
               <div className="text-6xl mb-4">📋</div>
               <p className="text-xl">{searchTerm ? t('nutrition.noSearchResults') : t('nutrition.noSessions')}</p>
             </div>
@@ -1306,7 +1306,7 @@ export default function NutritionPage() {
       {/* Barcode Modal */}
       {showQRModal && selectedSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6" dir={direction}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">{t('nutrition.barcodeModal.title')} - {selectedSession.clientName}</h2>
               <button
@@ -1314,7 +1314,7 @@ export default function NutritionPage() {
                   setShowQRModal(false)
                   setSelectedSession(null)
                 }}
-                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
               >
                 ×
               </button>
@@ -1325,21 +1325,21 @@ export default function NutritionPage() {
               <div className="bg-gradient-to-r from-green-50 to-green-50 border-2 border-green-200 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-gray-600">{t('nutrition.nutritionNumber')}:</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.nutritionNumber')}:</span>
                     <span className="font-bold mr-2">#{selectedSession.nutritionNumber}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">{t('nutrition.nutritionist')}:</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.nutritionist')}:</span>
                     <span className="font-bold mr-2">{selectedSession.nutritionistName}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">{t('nutrition.barcodeModal.sessionsRemaining')}</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.barcodeModal.sessionsRemaining')}</span>
                     <span className="font-bold mr-2 text-green-600">
                       {selectedSession.sessionsRemaining} / {selectedSession.sessionsPurchased}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600">{t('nutrition.barcodeModal.phone')}</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.barcodeModal.phone')}</span>
                     <span className="font-bold mr-2">{selectedSession.phone}</span>
                   </div>
                 </div>
@@ -1347,25 +1347,25 @@ export default function NutritionPage() {
 
               {/* Barcode Image */}
               {selectedSession.qrCodeImage ? (
-                <div className="flex flex-col items-center bg-white border-2 border-gray-200 rounded-lg p-6">
+                <div className="flex flex-col items-center bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 dark:border-gray-600 rounded-lg p-6">
                   <img
                     src={selectedSession.qrCodeImage}
                     alt="Barcode"
                     className="w-full max-w-md h-auto"
                   />
-                  <p className="text-xs text-gray-500 mt-3 text-center">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-3 text-center">
                     {t('nutrition.barcodeModal.scanNote')}
                   </p>
                 </div>
               ) : (
-                <div className="bg-gray-100 rounded-lg p-6 text-center">
-                  <p className="text-gray-500">{t('nutrition.barcodeModal.noBarcode')}</p>
+                <div className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700 dark:bg-gray-700 rounded-lg p-6 text-center">
+                  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{t('nutrition.barcodeModal.noBarcode')}</p>
                 </div>
               )}
 
               {/* Barcode Text */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="bg-gray-50 dark:bg-gray-700 dark:bg-gray-700 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   {t('nutrition.barcodeModal.nutritionCode')}
                 </label>
                 <div className="flex gap-2">
@@ -1373,7 +1373,7 @@ export default function NutritionPage() {
                     type="text"
                     value={selectedSession.qrCode}
                     readOnly
-                    className="flex-1 px-3 py-2 bg-white border-2 border-gray-300 rounded-lg font-mono text-sm"
+                    className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 dark:border-gray-600 rounded-lg font-mono text-sm"
                     onClick={(e) => (e.target as HTMLInputElement).select()}
                   />
                   <button
@@ -1486,7 +1486,7 @@ export default function NutritionPage() {
       {/* Payment Modal */}
       {showPaymentModal && paymentSession && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">{t('nutrition.paymentModal.title')}</h2>
               <button
@@ -1494,7 +1494,7 @@ export default function NutritionPage() {
                   setShowPaymentModal(false)
                   setPaymentSession(null)
                 }}
-                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
               >
                 ×
               </button>
@@ -1505,15 +1505,15 @@ export default function NutritionPage() {
               <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">{t('nutrition.nutritionNumber')}:</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.nutritionNumber')}:</span>
                     <span className="font-bold">#{paymentSession.nutritionNumber}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">{t('nutrition.client')}:</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.client')}:</span>
                     <span className="font-bold">{paymentSession.clientName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">{t('nutrition.nutritionist')}:</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.nutritionist')}:</span>
                     <span className="font-bold">{paymentSession.nutritionistName}</span>
                   </div>
                   <div className="flex justify-between border-t pt-2">
@@ -1542,7 +1542,7 @@ export default function NutritionPage() {
                       paymentAmount: parseFloat(e.target.value) || 0
                     })
                   }
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold"
                 />
                 <div className="flex gap-2 mt-2">
                   <button
@@ -1607,7 +1607,7 @@ export default function NutritionPage() {
                     setShowPaymentModal(false)
                     setPaymentSession(null)
                   }}
-                  className="bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                  className="bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold"
                 >
                   {t('nutrition.deleteConfirm.cancel')}
                 </button>

@@ -60,7 +60,7 @@ export default function NutritionCheckInPage() {
   if (showSuccess && sessionInfo) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-400 via-green-500 to-green-600 flex items-center justify-center p-4" dir="rtl">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center">
           {/* Success Animation */}
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-green-100 rounded-full mb-4 animate-bounce">
@@ -69,7 +69,7 @@ export default function NutritionCheckInPage() {
             <h1 className="text-3xl font-bold text-green-700 mb-2">
               تم تسجيل حضورك بنجاح!
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               استمتع بجلستك مع أخصائي التغذية
             </p>
           </div>
@@ -81,21 +81,21 @@ export default function NutritionCheckInPage() {
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center border-b border-green-200 pb-2">
-                <span className="text-gray-600">الاسم:</span>
+                <span className="text-gray-600 dark:text-gray-300">الاسم:</span>
                 <span className="font-bold text-green-900">{sessionInfo.clientName}</span>
               </div>
               <div className="flex justify-between items-center border-b border-green-200 pb-2">
-                <span className="text-gray-600">رقم Nutrition:</span>
+                <span className="text-gray-600 dark:text-gray-300">رقم Nutrition:</span>
                 <span className="font-bold text-green-900">
                   {sessionInfo.nutritionNumber < 0 ? '🏃 Day Use' : `#${sessionInfo.nutritionNumber}`}
                 </span>
               </div>
               <div className="flex justify-between items-center border-b border-green-200 pb-2">
-                <span className="text-gray-600">أخصائي التغذية:</span>
+                <span className="text-gray-600 dark:text-gray-300">أخصائي التغذية:</span>
                 <span className="font-bold text-green-900">{sessionInfo.nutritionistName}</span>
               </div>
               <div className="flex justify-between items-center border-b border-green-200 pb-2">
-                <span className="text-gray-600">التاريخ:</span>
+                <span className="text-gray-600 dark:text-gray-300">التاريخ:</span>
                 <span className="font-bold text-green-900">
                   {new Date(sessionInfo.sessionDate).toLocaleDateString('ar-EG', {
                     year: 'numeric',
@@ -126,7 +126,7 @@ export default function NutritionCheckInPage() {
             </button>
             <button
               onClick={() => router.push('/')}
-              className="w-full bg-gray-200 text-gray-700 py-3 rounded-xl hover:bg-gray-300 font-medium"
+              className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-xl hover:bg-gray-300 font-medium"
             >
               العودة للصفحة الرئيسية
             </button>
@@ -145,16 +145,16 @@ export default function NutritionCheckInPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-600 to-green-500 flex items-center justify-center p-4" dir="rtl">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-md w-full p-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-100 to-green-100 rounded-full mb-4">
             <span className="text-5xl">🥗</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
             تسجيل حضور جلسة التغذية
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             أدخل رقم Nutrition أو Barcode الخاص بجلستك
           </p>
         </div>
@@ -163,7 +163,7 @@ export default function NutritionCheckInPage() {
         {/* Form */}
         <form onSubmit={handleCheckIn} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               رقم Nutrition / Barcode <span className="text-red-600">*</span>
             </label>
             <input
@@ -175,7 +175,7 @@ export default function NutritionCheckInPage() {
               autoFocus
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">
               💡 أدخل الرقم المرسل لك عبر WhatsApp أو امسح الباركود
             </p>
           </div>
@@ -223,10 +223,10 @@ export default function NutritionCheckInPage() {
 
         {/* Help Section */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             لم تستلم QR Code؟
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">
             تواصل مع أخصائي التغذية أو الإدارة للحصول على الكود
           </p>
         </div>

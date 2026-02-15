@@ -128,8 +128,8 @@ export default function SpaBookingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('spa.title')}</h1>
-          <p className="text-gray-600 mt-1">{t('spa.subtitle')}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('spa.title')}</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">{t('spa.subtitle')}</p>
         </div>
         {hasPermission('canCreateSpaBooking') && (
           <button
@@ -144,7 +144,7 @@ export default function SpaBookingsPage() {
 
       {/* Calendar - Next 10 Days */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-3">{t('spa.selectDate')}</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('spa.selectDate')}</h2>
         <div className="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-10 gap-2">
           {next10Days.map((day) => (
             <button
@@ -167,8 +167,8 @@ export default function SpaBookingsPage() {
                 selectedDate === day.date
                   ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg scale-105'
                   : day.isToday
-                  ? 'bg-green-100 border-2 border-green-500 text-green-800 hover:bg-green-200'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                  ? 'bg-green-100 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-600 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-900/50'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
               }`}
             >
               <div className="text-xs font-medium opacity-80">{day.dayName}</div>
@@ -182,7 +182,7 @@ export default function SpaBookingsPage() {
       {/* Service Type Selector - يظهر بعد اختيار اليوم */}
       {selectedDate && (
         <div className="mb-6 animate-fadeIn">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">{t('spa.selectService')}</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('spa.selectService')}</h2>
           <div className="flex gap-3 flex-wrap">
             {(['sauna', 'massage', 'jacuzzi'] as SpaServiceType[]).map((service) => (
               <button
@@ -195,7 +195,7 @@ export default function SpaBookingsPage() {
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                   selectedService === service
                     ? 'bg-primary-500 text-white shadow-md scale-105'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-400 hover:bg-primary-50'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/50'
                 }`}
               >
                 <span className="text-2xl">{serviceIcons[service]}</span>
@@ -209,8 +209,8 @@ export default function SpaBookingsPage() {
       {/* Time Slots - يظهر بعد اختيار اليوم والخدمة */}
       {selectedDate && selectedService && showTimeSlots && hasPermission('canCreateSpaBooking') && (
         <div className="mb-6 animate-fadeIn">
-          <div className="bg-gradient-to-r from-green-50 to-primary-50 p-4 rounded-lg border-2 border-primary-200 mb-4">
-            <p className="text-center text-gray-700 font-medium">
+          <div className="bg-gradient-to-r from-green-50 to-primary-50 dark:from-green-900/20 dark:to-primary-900/20 p-4 rounded-lg border-2 border-primary-200 dark:border-primary-600 mb-4">
+            <p className="text-center text-gray-700 dark:text-gray-200 font-medium">
               ✨ {t('spa.selectTimeSlot')}
             </p>
           </div>
@@ -227,19 +227,19 @@ export default function SpaBookingsPage() {
       {/* Bookings List */}
       <div className="mt-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">{t('spa.allBookings')}</h2>
-          <div className="text-sm text-gray-600">
-            {t('spa.totalBookings')}: <span className="font-bold text-gray-900">{bookings.length}</span>
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{t('spa.allBookings')}</h2>
+          <div className="text-sm text-gray-600 dark:text-gray-300">
+            {t('spa.totalBookings')}: <span className="font-bold text-gray-900 dark:text-white">{bookings.length}</span>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value as SpaBookingStatus | '' })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             >
               <option value="">{t('spa.allStatuses')}</option>
               <option value="pending">{t('spa.status.pending')}</option>
@@ -251,7 +251,7 @@ export default function SpaBookingsPage() {
             <select
               value={filters.serviceType}
               onChange={(e) => setFilters({ ...filters, serviceType: e.target.value as SpaServiceType | '' })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             >
               <option value="">{t('spa.allServices')}</option>
               <option value="massage">{t('spa.services.massage')}</option>
@@ -264,7 +264,7 @@ export default function SpaBookingsPage() {
               placeholder={t('spa.searchPlaceholder')}
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
           </div>
         </div>
@@ -278,16 +278,16 @@ export default function SpaBookingsPage() {
 
         {/* Empty State */}
         {!isLoading && bookings.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
             <div className="text-6xl mb-4">💆</div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('spa.noBookings')}</h3>
-            <p className="text-gray-600">{t('spa.noBookingsDescription')}</p>
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">{t('spa.noBookings')}</h3>
+            <p className="text-gray-600 dark:text-gray-300">{t('spa.noBookingsDescription')}</p>
           </div>
         )}
 
         {/* Desktop Table */}
         {!isLoading && bookings.length > 0 && (
-          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gradient-to-r from-primary-500 to-primary-600 text-white">
@@ -303,10 +303,10 @@ export default function SpaBookingsPage() {
                 </thead>
                 <tbody>
                   {bookings.map((booking: SpaBooking) => (
-                    <tr key={booking.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                    <tr key={booking.id} className="border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{booking.memberName}</div>
-                        <div className="text-sm text-gray-600">{booking.memberPhone}</div>
+                        <div className="font-medium text-gray-900 dark:text-white">{booking.memberName}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-300">{booking.memberPhone}</div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -327,7 +327,7 @@ export default function SpaBookingsPage() {
                             booking.status !== 'completed' && (
                               <button
                                 onClick={() => handleCancelBooking(booking)}
-                                className="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded transition-colors"
+                                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 px-3 py-1 rounded transition-colors"
                               >
                                 {t('spa.cancel')}
                               </button>
@@ -380,9 +380,9 @@ export default function SpaBookingsPage() {
           onClick={(e) => e.target === e.currentTarget && setShowDeleteConfirm(false)}
           dir={direction}
         >
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">{t('spa.cancelBooking')}</h3>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t('spa.cancelBooking')}</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               {t('spa.confirmCancel', { memberName: deleteTarget.memberName })}
             </p>
             <div className="flex gap-3">
@@ -396,7 +396,7 @@ export default function SpaBookingsPage() {
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={cancelMutation.isPending}
-                className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors"
+                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
               >
                 {t('common.cancel')}
               </button>

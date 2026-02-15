@@ -111,14 +111,14 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* زر عرض/إرسال الباركود */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-primary-200" dir={direction}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-primary-200" dir={direction}>
         <div className="flex items-center gap-3 mb-4">
           <div className="bg-primary-100 p-3 rounded-full">
             <span className="text-3xl">📱</span>
           </div>
           <div>
             <h3 className="text-xl font-bold">{t('barcode.membershipBarcode')}</h3>
-            <p className="text-sm text-gray-600">{t('barcode.viewOrSend')}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">{t('barcode.viewOrSend')}</p>
           </div>
         </div>
 
@@ -142,12 +142,12 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
           style={{ zIndex: 9999 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowBarcodeModal(false) }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} dir={direction}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold">🔢 {t('barcode.membershipBarcode')}</h3>
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
                 type="button"
               >
                 ×
@@ -160,7 +160,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
               <p className="text-3xl font-bold text-primary-600 mt-2">#{memberNumber}</p>
             </div>
 
-            <div className="bg-white border-2 border-primary-200 rounded-lg p-6 mb-6 flex justify-center">
+            <div className="bg-white dark:bg-gray-800 border-2 border-primary-200 rounded-lg p-6 mb-6 flex justify-center">
               <div className="relative inline-block">
                 {/* Barcode */}
                 <img
@@ -172,7 +172,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
 
                 {/* Logo في نص الباركود */}
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-white rounded-lg shadow-lg p-3 border-2 border-primary-400">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 border-2 border-primary-400">
                     <img
                       src="/assets/icon.png"
                       alt="Gym Logo"
@@ -186,7 +186,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
             <div className="space-y-3">
               <button
                 onClick={handleDownloadBarcode}
-                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-bold flex items-center justify-center gap-2"
+                className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center justify-center gap-2"
               >
                 <span>💾</span>
                 <span>{t('barcode.downloadImage')}</span>
@@ -205,7 +205,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
 
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold"
               >
                 {t('barcode.close')}
               </button>

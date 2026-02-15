@@ -54,7 +54,7 @@ export default function SalesDashboard() {
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-gray-600 text-sm font-medium">{t('followups.analytics.quickStats.conversionRate')}</div>
-          <div className="text-3xl font-bold text-purple-600 mt-2">{analytics.conversionRate}%</div>
+          <div className="text-3xl font-bold text-primary-600 mt-2">{analytics.conversionRate}%</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-gray-600 text-sm font-medium">{t('followups.analytics.quickStats.unassigned')}</div>

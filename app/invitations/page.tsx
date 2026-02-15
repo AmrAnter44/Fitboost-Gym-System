@@ -144,12 +144,12 @@ export default function InvitationsPage() {
           <span>🎟️</span>
           <span>{t('invitations.title')}</span>
         </h1>
-        <p className="text-gray-600 mt-2">{t('invitations.subtitle')}</p>
+        <p className="text-gray-600 dark:text-gray-300 mt-2">{t('invitations.subtitle')}</p>
       </div>
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-5 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-5 shadow-lg">
           <p className="text-sm opacity-90 mb-1">{t('invitations.totalInvitations')}</p>
           <p className="text-4xl font-bold">{stats.total}</p>
         </div>
@@ -168,7 +168,7 @@ export default function InvitationsPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">🔍 {t('invitations.search')}</label>
@@ -197,11 +197,11 @@ export default function InvitationsPage() {
                 setSearchTerm('')
                 setDateFilter('')
               }}
-              className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg"
+              className="text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 px-3 py-1 rounded-lg"
             >
               ✖️ {t('invitations.clearFilters')}
             </button>
-            <p className="text-sm text-gray-600 py-1">
+            <p className="text-sm text-gray-600 dark:text-gray-300 py-1">
               {t('invitations.showing', {
                 count: filteredInvitations.length.toString(),
                 total: invitations.length.toString()
@@ -222,14 +222,14 @@ export default function InvitationsPage() {
           {/* Cards للموبايل */}
           <div className="grid grid-cols-1 gap-4 md:hidden">
             {currentInvitations.map((invitation) => (
-              <div key={invitation.id} className="bg-white rounded-lg shadow-md p-4 border-r-4 border-purple-500">
+              <div key={invitation.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-r-4 border-primary-500">
                 {/* الهيدر */}
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">
                       {formatDateYMD(invitation.createdAt)} • {new Date(invitation.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                     </p>
-                    <h3 className="font-bold text-lg text-purple-700">{invitation.guestName}</h3>
+                    <h3 className="font-bold text-lg text-primary-700">{invitation.guestName}</h3>
                   </div>
                   <button
                     onClick={() => handleDelete(invitation)}
@@ -242,16 +242,16 @@ export default function InvitationsPage() {
                 {/* التفاصيل */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm">📱</span>
+                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📱</span>
                     <span className="font-mono text-sm">{invitation.guestPhone}</span>
                   </div>
 
                   <div className="border-t pt-2">
-                    <p className="text-xs text-gray-500 mb-1">{t('invitations.hostingMemberLabel')}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">{t('invitations.hostingMemberLabel')}</p>
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold">{invitation.member.name}</p>
-                        <p className="text-xs text-gray-500">{invitation.member.phone}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{invitation.member.phone}</p>
                       </div>
                       <span className="bg-primary-100 text-primary-800 px-2 py-1 rounded font-bold text-xs">
                         #{invitation.member.memberNumber}
@@ -261,8 +261,8 @@ export default function InvitationsPage() {
 
                   {invitation.notes && (
                     <div className="border-t pt-2">
-                      <p className="text-xs text-gray-500 mb-1">{t('invitations.notesLabel')}</p>
-                      <p className="text-sm text-gray-700">{invitation.notes}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">{t('invitations.notesLabel')}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-200">{invitation.notes}</p>
                     </div>
                   )}
                 </div>
@@ -271,29 +271,29 @@ export default function InvitationsPage() {
           </div>
 
           {/* Table for large screens */}
-          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-100">
+                <thead className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-right">{t('invitations.date')}</th>
-                    <th className="px-4 py-3 text-right">{t('invitations.guestName')}</th>
-                    <th className="px-4 py-3 text-right">{t('invitations.guestPhone')}</th>
-                    <th className="px-4 py-3 text-right">{t('invitations.hostingMember')}</th>
-                    <th className="px-4 py-3 text-right">{t('invitations.membershipNumber')}</th>
-                    <th className="px-4 py-3 text-right">{t('invitations.notes')}</th>
-                    <th className="px-4 py-3 text-right">{t('invitations.actions')}</th>
+                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.date')}</th>
+                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.guestName')}</th>
+                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.guestPhone')}</th>
+                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.hostingMember')}</th>
+                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.membershipNumber')}</th>
+                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.notes')}</th>
+                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentInvitations.map((invitation) => (
-                    <tr key={invitation.id} className="border-t hover:bg-gray-50">
+                    <tr key={invitation.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700">
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-mono text-sm">
                             {formatDateYMD(invitation.createdAt)}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                             {new Date(invitation.createdAt).toLocaleTimeString('ar-EG', {
                               hour: '2-digit',
                               minute: '2-digit'
@@ -302,7 +302,7 @@ export default function InvitationsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-semibold text-purple-700">
+                        <p className="font-semibold text-primary-700">
                           {invitation.guestName}
                         </p>
                       </td>
@@ -311,7 +311,7 @@ export default function InvitationsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <p className="font-medium">{invitation.member.name}</p>
-                        <p className="text-xs text-gray-500">{invitation.member.phone}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{invitation.member.phone}</p>
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-block bg-primary-100 text-primary-800 px-2 py-1 rounded font-bold text-sm">
@@ -320,11 +320,11 @@ export default function InvitationsPage() {
                       </td>
                       <td className="px-4 py-3">
                         {invitation.notes ? (
-                          <p className="text-sm text-gray-600 max-w-xs truncate" title={invitation.notes}>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate" title={invitation.notes}>
                             {invitation.notes}
                           </p>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="text-gray-400 dark:text-gray-500">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -344,9 +344,9 @@ export default function InvitationsPage() {
 
           {/* Pagination Controls */}
           {filteredInvitations.length > 0 && totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-gray-50 rounded-lg">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
               {/* Page info */}
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-300">
                 {t('invitations.showingPagination', {
                   start: (startIndex + 1).toString(),
                   end: Math.min(endIndex, filteredInvitations.length).toString(),
@@ -425,14 +425,14 @@ export default function InvitationsPage() {
 
               {/* Items per page selector */}
               <div className="flex items-center gap-2 text-sm">
-                <label className="text-gray-600">{t('invitations.itemsPerPage')}:</label>
+                <label className="text-gray-600 dark:text-gray-300">{t('invitations.itemsPerPage')}:</label>
                 <select
                   value={itemsPerPage}
                   onChange={(e) => {
                     setItemsPerPage(Number(e.target.value))
                     setCurrentPage(1)
                   }}
-                  className="border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -444,7 +444,7 @@ export default function InvitationsPage() {
           )}
 
           {filteredInvitations.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500">
               {searchTerm || dateFilter ? (
                 <>
                   <div className="text-5xl mb-3">🔍</div>

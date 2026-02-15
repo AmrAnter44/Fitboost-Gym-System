@@ -367,11 +367,11 @@ export default function MemberDetailPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">👤 {t('memberDetails.title')}</h1>
-          <p className="text-sm sm:text-base text-gray-600">{t('memberDetails.subtitle')}</p>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">{t('memberDetails.subtitle')}</p>
         </div>
         <button
           onClick={() => router.push('/members')}
-          className="bg-gray-200 text-gray-700 px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-300 text-sm sm:text-base w-full sm:w-auto"
+          className="bg-gray-200 text-gray-700 dark:text-gray-200 px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-300 text-sm sm:text-base w-full sm:w-auto"
         >
           ← {t('memberDetails.back')}
         </button>
@@ -379,7 +379,7 @@ export default function MemberDetailPage() {
 
       <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-6">
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mb-6 pb-6 border-b border-white border-opacity-20">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white bg-opacity-20 flex-shrink-0">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white dark:bg-gray-800 bg-opacity-20 flex-shrink-0">
             {member.profileImage ? (
               <img
                 src={member.profileImage}
@@ -458,13 +458,13 @@ export default function MemberDetailPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-          <div className="bg-white bg-opacity-20 rounded-lg p-3 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm opacity-90">{t('memberDetails.status')}</p>
             <p className="text-base sm:text-lg font-bold">
               {member.isActive && !isExpired ? `✅ ${t('memberDetails.active')}` : `❌ ${t('memberDetails.expired')}`}
             </p>
           </div>
-          <div className="bg-white bg-opacity-20 rounded-lg p-3 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm opacity-90">{t('memberDetails.expiryDate')}</p>
             <p className="text-sm sm:text-base md:text-lg font-mono">
               {formatDateYMD(member.expiryDate)}
@@ -473,15 +473,15 @@ export default function MemberDetailPage() {
               <p className="text-xs opacity-75 mt-1">{t('memberDetails.daysRemaining', { days: daysRemaining.toString() })}</p>
             )}
           </div>
-          <div className="bg-white bg-opacity-20 rounded-lg p-3 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm opacity-90">❄️ أيام الفريز</p>
             <p className="text-lg sm:text-xl md:text-2xl font-bold text-cyan-300">{member.remainingFreezeDays}</p>
           </div>
-          <div className="bg-white bg-opacity-20 rounded-lg p-3 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm opacity-90">{t('memberDetails.subscriptionPrice')}</p>
             <p className="text-lg sm:text-xl md:text-2xl font-bold">{member.subscriptionPrice} {t('members.egp')}</p>
           </div>
-          <div className="bg-white bg-opacity-20 rounded-lg p-3 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm opacity-90">{t('memberDetails.remainingAmount')}</p>
             <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-300">{member.remainingAmount} {t('members.egp')}</p>
           </div>
@@ -498,33 +498,33 @@ export default function MemberDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
           <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-            <div className="bg-purple-100 p-2 sm:p-3 rounded-full">
+            <div className="bg-primary-100 p-2 sm:p-3 rounded-full">
               <span className="text-2xl sm:text-3xl">📷</span>
             </div>
             <div>
               <h3 className="text-lg sm:text-xl font-bold">{t('memberDetails.editImage')}</h3>
-              <p className="text-xs sm:text-sm text-gray-600">{t('memberDetails.editMemberImage')}</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.editMemberImage')}</p>
             </div>
           </div>
           <button
             onClick={() => setActiveModal('edit-image')}
             disabled={loading}
-            className="w-full bg-purple-600 text-white py-2.5 sm:py-3 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-sm sm:text-base"
+            className="w-full bg-primary-600 text-white py-2.5 sm:py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-sm sm:text-base"
           >
             📷 {t('memberDetails.editImage')}
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
           <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <div className="bg-primary-100 p-2 sm:p-3 rounded-full">
               <span className="text-2xl sm:text-3xl">✏️</span>
             </div>
             <div>
               <h3 className="text-lg sm:text-xl font-bold">تعديل البيانات</h3>
-              <p className="text-xs sm:text-sm text-gray-600">تعديل جميع بيانات العضو</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">تعديل جميع بيانات العضو</p>
             </div>
           </div>
           <button
@@ -559,12 +559,12 @@ export default function MemberDetailPage() {
             if (e.target === e.currentTarget) setActiveModal(null)
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold">📷 {t('memberDetails.editMemberImage')}</h3>
               <button
                 onClick={() => setActiveModal(null)}
-                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
                 type="button"
               >
                 ×
@@ -599,7 +599,7 @@ export default function MemberDetailPage() {
             <button
               type="button"
               onClick={() => setActiveModal(null)}
-              className="w-full mt-4 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300"
+              className="w-full mt-4 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300"
             >
               {t('common.close')}
             </button>
@@ -608,10 +608,10 @@ export default function MemberDetailPage() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-r-4 border-green-500">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 border-r-4 border-green-500">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
-              <p className="text-gray-600 text-xs sm:text-sm">InBody</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">InBody</p>
               <p className="text-3xl sm:text-4xl font-bold text-green-600">{member.inBodyScans}</p>
             </div>
             <div className="text-4xl sm:text-5xl">⚖️</div>
@@ -625,27 +625,27 @@ export default function MemberDetailPage() {
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-r-4 border-purple-500">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 border-r-4 border-primary-500">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
-              <p className="text-gray-600 text-xs sm:text-sm">الدعوات</p>
-              <p className="text-3xl sm:text-4xl font-bold text-purple-600">{member.invitations}</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">الدعوات</p>
+              <p className="text-3xl sm:text-4xl font-bold text-primary-600">{member.invitations}</p>
             </div>
             <div className="text-4xl sm:text-5xl">🎟️</div>
           </div>
           <button
             onClick={handleUseInvitation}
             disabled={member.invitations <= 0 || loading}
-            className="w-full bg-purple-600 text-white py-2 sm:py-2.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+            className="w-full bg-primary-600 text-white py-2 sm:py-2.5 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             استخدام دعوة
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-r-4 border-orange-500">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 border-r-4 border-orange-500">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
-              <p className="text-gray-600 text-xs sm:text-sm">حصص PT مجانية</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">حصص PT مجانية</p>
               <p className="text-3xl sm:text-4xl font-bold text-orange-600">{member.freePTSessions}</p>
             </div>
             <div className="text-4xl sm:text-5xl">💪</div>
@@ -659,10 +659,10 @@ export default function MemberDetailPage() {
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-r-4 border-cyan-500">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 border-r-4 border-cyan-500">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
-              <p className="text-gray-600 text-xs sm:text-sm">أيام الفريز</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">أيام الفريز</p>
               <p className="text-3xl sm:text-4xl font-bold text-cyan-600">{member.remainingFreezeDays}</p>
             </div>
             <div className="text-4xl sm:text-5xl">❄️</div>
@@ -677,14 +677,14 @@ export default function MemberDetailPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 mb-6">
         <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div className="bg-green-100 p-2 sm:p-3 rounded-full">
             <span className="text-2xl sm:text-3xl">💰</span>
           </div>
           <div>
             <h3 className="text-lg sm:text-xl font-bold">دفع المبلغ المتبقي</h3>
-            <p className="text-xs sm:text-sm text-gray-600">المتبقي: {member.remainingAmount} ج.م</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">المتبقي: {member.remainingAmount} ج.م</p>
           </div>
         </div>
         <button
@@ -698,12 +698,12 @@ export default function MemberDetailPage() {
 
       {activeModal === 'payment' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold">💰 دفع المبلغ المتبقي</h3>
               <button
                 onClick={() => setActiveModal(null)}
-                className="text-gray-400 hover:text-gray-600 text-3xl"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl"
               >
                 ×
               </button>
@@ -773,7 +773,7 @@ export default function MemberDetailPage() {
                 </button>
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300"
+                  className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300"
                 >
                   إلغاء
                 </button>
@@ -785,12 +785,12 @@ export default function MemberDetailPage() {
 
       {activeModal === 'freeze' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold">❄️ تجميد الاشتراك</h3>
               <button
                 onClick={() => setActiveModal(null)}
-                className="text-gray-400 hover:text-gray-600 text-3xl"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl"
               >
                 ×
               </button>
@@ -828,7 +828,7 @@ export default function MemberDetailPage() {
                   className="w-full px-4 py-3 border-2 rounded-lg text-xl"
                   placeholder="0"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   يمكنك تجميد حتى {member.remainingFreezeDays} يوم
                 </p>
               </div>
@@ -862,7 +862,7 @@ export default function MemberDetailPage() {
                 </button>
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300"
+                  className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300"
                 >
                   إلغاء
                 </button>
@@ -874,10 +874,10 @@ export default function MemberDetailPage() {
 
       {activeModal === 'edit' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-1">
-          <div className="bg-white rounded shadow-2xl max-w-[99vw] w-full p-1.5">
-            <div className="flex justify-between items-center mb-0.5 bg-white pb-0.5 border-b">
+          <div className="bg-white dark:bg-gray-800 rounded shadow-2xl max-w-[99vw] w-full p-1.5">
+            <div className="flex justify-between items-center mb-0.5 bg-white dark:bg-gray-800 pb-0.5 border-b">
               <h3 className="text-xs font-bold">✏️ #{member.memberNumber}</h3>
-              <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+              <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-lg leading-none">×</button>
             </div>
 
             <div className="grid grid-cols-5 md:grid-cols-10 gap-1">
@@ -942,12 +942,12 @@ export default function MemberDetailPage() {
               </div>
             </div>
 
-            <div className="flex gap-1 mt-1 pt-1 border-t bg-white">
+            <div className="flex gap-1 mt-1 pt-1 border-t bg-white dark:bg-gray-800">
               <button onClick={handleEdit} disabled={loading || !editData.name || !editData.phone}
                 className="flex-1 bg-primary-600 text-white py-1 rounded hover:bg-primary-700 disabled:bg-gray-400 font-bold text-[10px]">
                 {loading ? 'حفظ...' : '✅ حفظ'}
               </button>
-              <button onClick={() => setActiveModal(null)} className="px-2 bg-gray-200 text-gray-700 py-1 rounded hover:bg-gray-300 text-[10px]">
+              <button onClick={() => setActiveModal(null)} className="px-2 bg-gray-200 text-gray-700 dark:text-gray-200 py-1 rounded hover:bg-gray-300 text-[10px]">
                 إلغاء
               </button>
             </div>

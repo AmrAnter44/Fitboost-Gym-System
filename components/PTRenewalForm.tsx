@@ -234,7 +234,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 rounded-t-2xl">
           <div className="flex justify-between items-center">
             <div>
@@ -243,7 +243,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
             </div>
             <button
               onClick={onClose}
-              className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center transition"
+              className="text-white hover:bg-white dark:bg-gray-800 hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center transition"
             >
               ✕
             </button>
@@ -258,16 +258,16 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
           )}
 
           {/* PT Packages Section */}
-          <div className="bg-gradient-to-br from-purple-50 to-primary-50 border-2 border-purple-200 rounded-xl p-4 mb-4">
-            <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-purple-800">
+          <div className="bg-gradient-to-br from-primary-50 to-primary-50 border-2 border-primary-200 rounded-xl p-4 mb-4">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-primary-800">
               <span>💪</span>
               <span>باقات PT المتاحة</span>
             </h3>
-            <p className="text-xs text-gray-600 mb-3">اختر باقة لملء البيانات تلقائياً</p>
+            <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">اختر باقة لملء البيانات تلقائياً</p>
 
             {!Array.isArray(packages) || packages.length === 0 ? (
-              <div className="text-center py-4 bg-white rounded-xl border-2 border-dashed border-gray-300">
-                <p className="text-gray-500 text-xs">لا توجد باقات PT متاحة</p>
+              <div className="text-center py-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
+                <p className="text-gray-500 dark:text-gray-400 text-xs">لا توجد باقات PT متاحة</p>
                 <p className="text-xs text-gray-400 mt-1">يمكن للمدير إضافة باقات من الإعدادات</p>
               </div>
             ) : (
@@ -277,12 +277,12 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                     key={pkg.id}
                     type="button"
                     onClick={() => applyPackage(pkg)}
-                    className="bg-white border-2 border-purple-300 hover:border-purple-500 hover:bg-purple-50 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg group"
+                    className="bg-white dark:bg-gray-800 border-2 border-primary-300 hover:border-primary-500 hover:bg-primary-50 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg group"
                   >
                     <div className="text-2xl mb-1">💪</div>
-                    <div className="font-bold text-purple-800 mb-1 text-sm">{pkg.name}</div>
+                    <div className="font-bold text-primary-800 mb-1 text-sm">{pkg.name}</div>
                     <div className="text-xl font-bold text-green-600 mb-1">{pkg.price} {t('renewal.currency')}</div>
-                    <div className="text-xs text-gray-600 space-y-0.5">
+                    <div className="text-xs text-gray-600 dark:text-gray-300 space-y-0.5">
                       <div>🏋️ {pkg.sessions} جلسة</div>
                     </div>
                   </button>
@@ -300,33 +300,33 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
           <div className="bg-green-50 border-l-4 border-r-4 border-green-500 p-3 rounded-lg mb-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <p className="text-xs text-gray-600">{t('pt.renewal.ptNumber')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('pt.renewal.ptNumber')}</p>
                 <p className="text-xl font-bold text-green-600">#{session.ptNumber}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('pt.renewal.clientName')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('pt.renewal.clientName')}</p>
                 <p className="text-base font-bold">{session.clientName}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('pt.renewal.currentCoach')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('pt.renewal.currentCoach')}</p>
                 <p className="text-base">{session.coachName}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('pt.renewal.currentRemainingSessions')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('pt.renewal.currentRemainingSessions')}</p>
                 <p className="text-xl font-bold text-orange-600">{session.sessionsRemaining}</p>
               </div>
             </div>
 
             {session.expiryDate && (
               <div className="mt-2 pt-2 border-t border-green-200">
-                <p className="text-xs text-gray-600 inline-block">{t('pt.renewal.currentExpiryDate')}: </p>
+                <p className="text-xs text-gray-600 dark:text-gray-300 inline-block">{t('pt.renewal.currentExpiryDate')}: </p>
                 <p className="text-sm font-mono inline-block ml-2">{formatDateYMD(session.expiryDate)}</p>
               </div>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-gradient-to-br from-primary-50 to-indigo-50 border-2 border-primary-200 rounded-xl p-4">
+            <div className="bg-gradient-to-br from-primary-50 to-primary-50 border-2 border-primary-200 rounded-xl p-4">
               <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                 <span>📋</span>
                 <span>{t('pt.renewal.renewalData')}</span>
@@ -366,7 +366,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                     {t('pt.coachName')} <span className="text-red-600">*</span>
                   </label>
                   {coachesLoading ? (
-                    <div className="w-full px-3 py-2 border-2 rounded-lg bg-gray-50 text-gray-500 text-sm">
+                    <div className="w-full px-3 py-2 border-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm">
                       {t('pt.loadingCoaches')}
                     </div>
                   ) : coaches.length === 0 ? (
@@ -376,7 +376,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                         required
                         value={formData.coachName}
                         onChange={(e) => setFormData({ ...formData, coachName: e.target.value })}
-                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm"
+                        className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                         placeholder={t('pt.coachNamePlaceholder')}
                       />
                       <p className="text-xs text-amber-600">
@@ -388,7 +388,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                       required
                       value={formData.coachName}
                       onChange={(e) => setFormData({ ...formData, coachName: e.target.value })}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-sm"
+                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
                     >
                       <option value="">{t('pt.selectCoach')}</option>
                       {coaches.map((coach) => (
@@ -420,7 +420,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-primary-50 to-pink-50 border-2 border-primary-200 rounded-xl p-4">
                 <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                   <span>📅</span>
                   <span>{t('pt.renewal.newSubscriptionPeriod')}</span>
@@ -466,7 +466,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                         key={months}
                         type="button"
                         onClick={() => calculateExpiryFromMonths(months)}
-                        className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg text-xs transition font-medium"
+                        className="px-2 py-1 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg text-xs transition font-medium"
                       >
                         + {months} {months === 1 ? t('pt.month') : t('pt.months')}
                       </button>
@@ -475,12 +475,12 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                 </div>
 
                 {duration !== null && formData.expiryDate && (
-                  <div className="bg-white border-2 border-purple-300 rounded-lg p-2">
+                  <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 rounded-lg p-2">
                     {duration > 0 ? (
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">⏱️</span>
                         <div>
-                          <p className="font-bold text-purple-800 text-xs">{t('pt.renewal.subscriptionDuration')}</p>
+                          <p className="font-bold text-primary-800 text-xs">{t('pt.renewal.subscriptionDuration')}</p>
                           <p className="text-base font-mono">
                             {formatDurationInMonths(duration)}
                           </p>
@@ -525,12 +525,12 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                       </p>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">{t('pt.renewal.newSessionsLabel')}</span>
+                      <span className="text-gray-600 dark:text-gray-300">{t('pt.renewal.newSessionsLabel')}</span>
                       <span className="font-bold text-green-600">{formData.sessionsPurchased} {t('pt.session')}</span>
                     </div>
                     <div className="bg-green-100 border-l-4 border-r-4 border-green-500 p-2 rounded">
                       <div className="flex justify-between">
-                        <span className="font-bold text-gray-800 text-sm">{t('pt.renewal.paidAmount')}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100 text-sm">{t('pt.renewal.paidAmount')}</span>
                         <span className="font-bold text-green-600 text-base">{formData.totalPrice} {t('pt.egp')}</span>
                       </div>
                     </div>
@@ -551,7 +551,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="px-6 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium text-base"
+                className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium text-base"
               >
                 {t('pt.cancelButton')}
               </button>

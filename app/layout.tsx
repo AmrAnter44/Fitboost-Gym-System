@@ -108,7 +108,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" className="dark">
       <head>
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
 
@@ -143,7 +143,7 @@ export default function RootLayout({
         {/* Local Cairo Font */}
         <link rel="stylesheet" href="/fonts/cairo.css" />
       </head>
-      <body className="bg-gray-50 min-h-screen">
+      <body className="bg-gray-50 dark:bg-gray-900 min-h-screen">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

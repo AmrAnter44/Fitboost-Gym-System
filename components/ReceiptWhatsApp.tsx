@@ -269,26 +269,26 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
             }
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
                 <span className="text-4xl">📱</span>
                 <div>
-                  <h3 className="text-2xl font-bold">إرسال تفاصيل الإيصال</h3>
-                  <p className="text-sm text-gray-500">إيصال #{receipt.receiptNumber}</p>
+                  <h3 className="text-2xl font-bold dark:text-gray-100">إرسال تفاصيل الإيصال</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">إيصال #{receipt.receiptNumber}</p>
                 </div>
               </div>
-              <button onClick={() => { setShowSendModal(false); setPhone(''); }} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">×</button>
+              <button onClick={() => { setShowSendModal(false); setPhone(''); }} className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none">×</button>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-bold text-gray-700 mb-2">📞 رقم الهاتف *</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">📞 رقم الهاتف *</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="01xxxxxxxxx"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-lg"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-lg dark:bg-gray-700 dark:text-white"
                 dir="ltr"
                 autoFocus
               />
@@ -306,7 +306,7 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
               <button
                 onClick={() => { setShowSendModal(false); setPhone(''); }}
                 disabled={sending}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg"
+                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
               >
                 إلغاء
               </button>

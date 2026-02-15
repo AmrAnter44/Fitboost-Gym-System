@@ -104,7 +104,7 @@ export default function InstallPrompt() {
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-2xl animate-slide-up">
           <div className="max-w-md mx-auto">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-12 h-12 bg-white rounded-xl p-2 shadow-lg">
+              <div className="flex-shrink-0 w-12 h-12 bg-white dark:bg-gray-800 rounded-xl p-2 shadow-lg">
                 <img src="/icon-192x192.png" alt="Gym System" className="w-full h-full" />
               </div>
               <div className="flex-1 min-w-0">
@@ -115,7 +115,7 @@ export default function InstallPrompt() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleInstallClick}
-                    className="flex-1 bg-white text-primary-600 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition"
+                    className="flex-1 bg-white dark:bg-gray-800 text-primary-600 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition"
                   >
                     تثبيت 📲
                   </button>
@@ -137,7 +137,7 @@ export default function InstallPrompt() {
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-2xl animate-slide-up">
           <div className="max-w-md mx-auto">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-12 h-12 bg-white rounded-xl p-2 shadow-lg">
+              <div className="flex-shrink-0 w-12 h-12 bg-white dark:bg-gray-800 rounded-xl p-2 shadow-lg">
                 <img src="/icon-192x192.png" alt="Gym System" className="w-full h-full" />
               </div>
               <div className="flex-1 min-w-0">
@@ -159,7 +159,7 @@ export default function InstallPrompt() {
                 </div>
                 <button
                   onClick={handleDismiss}
-                  className="w-full bg-white text-primary-600 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition"
+                  className="w-full bg-white dark:bg-gray-800 text-primary-600 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition"
                 >
                   فهمت ✓
                 </button>

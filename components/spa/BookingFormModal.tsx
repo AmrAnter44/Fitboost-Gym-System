@@ -125,7 +125,7 @@ export default function BookingFormModal({
       onClick={(e) => e.target === e.currentTarget && onClose()}
       dir={direction}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-primary-500 to-primary-600 text-white p-6 rounded-t-lg">
           <div className="flex justify-between items-center">
@@ -133,7 +133,7 @@ export default function BookingFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+              className="text-white hover:bg-white dark:bg-gray-800/20 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
             >
               ✕
             </button>
@@ -150,7 +150,7 @@ export default function BookingFormModal({
 
           {/* Member Search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               {t('spa.selectMember')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -167,21 +167,21 @@ export default function BookingFormModal({
                   }
                 }}
                 onFocus={() => setShowMemberDropdown(true)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 disabled={loadingMembers}
               />
 
               {showMemberDropdown && filteredMembers.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                   {filteredMembers.map((member) => (
                     <button
                       key={member.id}
                       type="button"
                       onClick={() => handleMemberSelect(member)}
-                      className="w-full px-4 py-3 text-right hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
+                      className="w-full px-4 py-3 text-right hover:bg-gray-100 dark:hover:bg-gray-600 dark:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-600 last:border-0"
                     >
-                      <div className="font-medium text-gray-900">{member.name}</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="font-medium text-gray-900 dark:text-white">{member.name}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
                         {member.phone || t('common.noPhone')}
                         {member.memberNumber && ` • #${member.memberNumber}`}
                       </div>
@@ -206,7 +206,7 @@ export default function BookingFormModal({
 
           {/* Service Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               {t('spa.serviceType')} <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -217,12 +217,12 @@ export default function BookingFormModal({
                   onClick={() => setFormData({ ...formData, serviceType: service })}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     formData.serviceType === service
-                      ? 'border-primary-500 bg-primary-50 shadow-md'
-                      : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/50 shadow-md'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 dark:bg-gray-700'
                   }`}
                 >
                   <div className="text-3xl mb-2">{serviceIcons[service]}</div>
-                  <div className="font-medium text-gray-900">
+                  <div className="font-medium text-gray-900 dark:text-white">
                     {t(`spa.services.${service}`)}
                   </div>
                 </button>
@@ -232,7 +232,7 @@ export default function BookingFormModal({
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               {t('spa.bookingDate')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -242,7 +242,7 @@ export default function BookingFormModal({
                 setFormData({ ...formData, bookingDate: e.target.value, bookingTime: '' })
               }}
               min={minDate}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               required
             />
           </div>
@@ -250,7 +250,7 @@ export default function BookingFormModal({
           {/* Time Slots */}
           {formData.bookingDate && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 {t('spa.selectTime')} <span className="text-red-500">*</span>
               </label>
               <TimeSlotSelector
@@ -264,7 +264,7 @@ export default function BookingFormModal({
 
           {/* Duration */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               {t('spa.duration')} <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -275,8 +275,8 @@ export default function BookingFormModal({
                   onClick={() => setFormData({ ...formData, duration })}
                   className={`px-4 py-3 rounded-lg border-2 font-medium transition-all ${
                     formData.duration === duration
-                      ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-md'
-                      : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 shadow-md'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 dark:bg-gray-700'
                   }`}
                 >
                   {duration} {t('spa.minutes')}
@@ -287,20 +287,20 @@ export default function BookingFormModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('spa.notes')} <span className="text-sm text-gray-500">({t('common.optional')})</span>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+              {t('spa.notes')} <span className="text-sm text-gray-500 dark:text-gray-400">({t('common.optional')})</span>
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               placeholder={t('spa.notesPlaceholder')}
             />
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
             <button
               type="submit"
               disabled={submitting || !formData.memberId || !formData.bookingTime}
@@ -312,7 +312,7 @@ export default function BookingFormModal({
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-50 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {t('common.cancel')}
             </button>

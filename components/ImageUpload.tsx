@@ -129,7 +129,7 @@ export default function ImageUpload({
 
       <div className="flex flex-col items-center gap-4">
         {/* معاينة الصورة */}
-        <div className="relative w-48 h-48 rounded-2xl overflow-hidden border-4 border-gray-200 bg-gray-100">
+        <div className="relative w-48 h-48 rounded-2xl overflow-hidden border-4 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
           {preview ? (
             <>
               <img 
@@ -246,7 +246,7 @@ export default function ImageUpload({
           </div>
         )}
 
-        <p className="text-xs text-gray-500 text-center">
+        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
           {t('members.form.imageFormatInfo')}<br />
           {t('members.form.maxImageSize')}
         </p>

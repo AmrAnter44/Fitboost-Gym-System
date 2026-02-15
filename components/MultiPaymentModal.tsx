@@ -98,7 +98,7 @@ export default function MultiPaymentModal({
   const paymentOptions = [
     { key: 'cash' as const, icon: '💵', label: t('members.paymentMethods.cash'), color: 'from-green-100 to-green-50 border-green-500' },
     { key: 'visa' as const, icon: '💳', label: t('members.paymentMethods.visa'), color: 'from-primary-100 to-primary-50 border-primary-500' },
-    { key: 'instapay' as const, icon: '📱', label: t('members.paymentMethods.instapay'), color: 'from-purple-100 to-purple-50 border-purple-500' },
+    { key: 'instapay' as const, icon: '📱', label: t('members.paymentMethods.instapay'), color: 'from-primary-100 to-primary-50 border-primary-500' },
     { key: 'wallet' as const, icon: '💰', label: t('members.paymentMethods.wallet'), color: 'from-orange-100 to-orange-50 border-orange-500' }
   ]
 
@@ -107,14 +107,14 @@ export default function MultiPaymentModal({
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       dir={direction}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-2xl">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-6 rounded-t-2xl">
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <span>🔀</span>
             <span>{t('multiPayment.title')}</span>
           </h2>
-          <p className="text-purple-100 mt-2">
+          <p className="text-primary-100 mt-2">
             {t('multiPayment.mustMatchTotal')}
           </p>
         </div>
@@ -122,7 +122,7 @@ export default function MultiPaymentModal({
         {/* Body */}
         <div className="p-6 space-y-6">
           {/* المبلغ الكلي */}
-          <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border-2 border-primary-300 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-300 rounded-lg p-4">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-primary-900">
                 {t('multiPayment.totalAmount')}:
@@ -167,7 +167,7 @@ export default function MultiPaymentModal({
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-2xl">{option.icon}</span>
-                  <span className="font-semibold text-gray-700">{option.label}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">{option.label}</span>
                 </div>
 
                 <input
@@ -177,7 +177,7 @@ export default function MultiPaymentModal({
                   placeholder="0"
                   min="0"
                   step="0.01"
-                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-lg font-bold focus:border-purple-500 focus:outline-none transition"
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-bold focus:border-primary-500 focus:outline-none transition"
                 />
               </div>
             ))}
@@ -199,11 +199,11 @@ export default function MultiPaymentModal({
         </div>
 
         {/* Footer */}
-        <div className="p-6 bg-gray-50 border-t flex gap-3 justify-end">
+        <div className="p-6 bg-gray-50 dark:bg-gray-700 border-t flex gap-3 justify-end">
           <button
             type="button"
             onClick={handleCancel}
-            className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
+            className="px-6 py-3 bg-gray-200 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 transition font-semibold"
           >
             {t('multiPayment.cancel')}
           </button>
@@ -213,8 +213,8 @@ export default function MultiPaymentModal({
             disabled={!isValid}
             className={`px-6 py-3 rounded-lg font-semibold transition ${
               isValid
-                ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-lg'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 shadow-lg'
+                : 'bg-gray-300 text-gray-500 dark:text-gray-400 cursor-not-allowed'
             }`}
           >
             {t('multiPayment.confirm')}

@@ -77,13 +77,13 @@ export default function SuccessDialog({
               <span className="text-4xl">{colors.icon}</span>
             </div>
             <div className="flex-1">
-              <h3 className="text-2xl font-bold text-gray-800">{title}</h3>
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{title}</h3>
             </div>
           </div>
         </div>
 
         <div className="p-6">
-          <p className="text-lg text-gray-700 leading-relaxed whitespace-pre-line">
+          <p className="text-lg text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-line">
             {message}
           </p>
         </div>

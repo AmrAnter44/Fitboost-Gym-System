@@ -464,18 +464,18 @@ const handleScan = async (staffCode: string) => {
 
   const getPositionColor = (position: string): string => {
     const colors: { [key: string]: string } = {
-      مدرب: 'bg-green-100 text-green-800',
-      ريسبشن: 'bg-primary-100 text-primary-800',
-      بار: 'bg-orange-100 text-orange-800',
-      HK: 'bg-purple-100 text-purple-800',
-      مدير: 'bg-red-100 text-red-800',
-      محاسب: 'bg-indigo-100 text-indigo-800',
-      صيانة: 'bg-yellow-100 text-yellow-800',
-      أمن: 'bg-gray-100 text-gray-800',
-      'أخصائي تغذية': 'bg-lime-100 text-lime-800',
-      'أخصائي علاج طبيعي': 'bg-blue-100 text-blue-800',
+      مدرب: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700',
+      ريسبشن: 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-700',
+      بار: 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700',
+      HK: 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-700',
+      مدير: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700',
+      محاسب: 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-700',
+      صيانة: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700',
+      أمن: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600',
+      'أخصائي تغذية': 'bg-lime-100 dark:bg-lime-900/50 text-lime-800 dark:text-lime-200 border border-lime-200 dark:border-lime-700',
+      'أخصائي علاج طبيعي': 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700',
     }
-    return colors[position] || 'bg-gray-100 text-gray-800'
+    return colors[position] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600'
   }
 
   const getStaffByPosition = () => {
@@ -508,45 +508,45 @@ const handleScan = async (staffCode: string) => {
   return (
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       {/* ✅ قسم Scanner للحضور والانصراف */}
-      <div className="bg-gradient-to-r from-primary-600 to-purple-600 rounded-2xl shadow-2xl p-4 sm:p-8 mb-8 text-white">
+      <div className="bg-gradient-to-r from-primary-600 to-primary-600 dark:from-primary-700 dark:to-primary-700 rounded-2xl shadow-2xl p-4 sm:p-8 mb-8 text-white">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
               <span className="text-4xl sm:text-5xl">🔢</span>
               <span>{t('staff.scanner.title')}</span>
             </h2>
-            <p className="text-primary-100 text-sm sm:text-base">{t('staff.scanner.subtitle')}</p>
+            <p className="text-primary-100 dark:text-primary-200 text-sm sm:text-base">{t('staff.scanner.subtitle')}</p>
           </div>
           {lastScanTime && (
-            <div className="bg-white/20 backdrop-blur px-4 sm:px-6 py-2 sm:py-3 rounded-xl w-full sm:w-auto">
-              <p className="text-xs sm:text-sm">{t('staff.scanner.lastScan')}</p>
-              <p className="text-lg sm:text-xl font-bold">{lastScanTime.toLocaleTimeString('ar-EG')}</p>
+            <div className="bg-white/90 dark:bg-gray-800/30 backdrop-blur px-4 sm:px-6 py-2 sm:py-3 rounded-xl w-full sm:w-auto border border-white/20 dark:border-gray-700/50">
+              <p className="text-xs sm:text-sm text-gray-100 dark:text-gray-200">{t('staff.scanner.lastScan')}</p>
+              <p className="text-lg sm:text-xl font-bold text-white dark:text-gray-100">{lastScanTime.toLocaleTimeString('ar-EG')}</p>
             </div>
           )}
         </div>
 
-        <div className="bg-white rounded-xl p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
           <input
             ref={scannerRef}
             type="text"
             value={scannerInput}
             onChange={(e) => setScannerInput(e.target.value)}
             onKeyPress={handleScannerInput}
-            className="w-full px-4 sm:px-6 py-4 sm:py-6 border-4 border-primary-400 rounded-xl text-2xl sm:text-4xl font-bold text-center focus:border-primary-600 focus:ring-4 focus:ring-primary-200 transition text-gray-800"
+            className="w-full px-4 sm:px-6 py-4 sm:py-6 border-4 border-primary-400 dark:border-primary-500 rounded-xl text-2xl sm:text-4xl font-bold text-center focus:border-primary-600 dark:focus:border-primary-400 focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700"
             placeholder={t('staff.scanner.placeholder')}
             autoFocus
           />
-          <p className="text-center text-gray-600 mt-3 text-xs sm:text-sm">
+          <p className="text-center text-gray-600 dark:text-gray-300 mt-3 text-xs sm:text-sm">
             {t('staff.scanner.hint')}
           </p>
         </div>
 
         {scanMessage && (
           <div
-            className={`mt-4 p-4 sm:p-6 rounded-xl text-center font-bold text-lg sm:text-2xl animate-pulse ${
+            className={`mt-4 p-4 sm:p-6 rounded-xl text-center font-bold text-lg sm:text-2xl animate-pulse border-2 ${
               scanMessage.includes('✅')
-                ? 'bg-green-500'
-                : 'bg-red-500'
+                ? 'bg-green-500 dark:bg-green-600 border-green-400 dark:border-green-500 text-white'
+                : 'bg-red-500 dark:bg-red-600 border-red-400 dark:border-red-500 text-white'
             }`}
           >
             {scanMessage}
@@ -555,29 +555,29 @@ const handleScan = async (staffCode: string) => {
       </div>
 
       {/* ✅ قسم حضور اليوم */}
-      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-4 border-green-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-4 border-green-200 dark:border-green-700">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
-            <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
               <span>📊</span>
               <span>{t('staff.attendance.title')}</span>
             </h3>
             <Link
               href="/attendance-report"
-              className="w-full sm:w-auto bg-gradient-to-r from-primary-600 to-purple-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:from-primary-700 hover:to-purple-700 transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm font-bold"
+              className="w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-600 dark:from-primary-700 dark:to-primary-700 text-white px-4 sm:px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-700 dark:hover:from-primary-600 dark:hover:to-primary-600 transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm font-bold"
             >
               <span>📋</span>
               <span>{t('nav.staffAttendance')}</span>
             </Link>
           </div>
           <div className="flex gap-2 sm:gap-4 w-full lg:w-auto">
-            <div className="flex-1 lg:flex-none bg-green-100 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center">
-              <p className="text-xs sm:text-sm text-green-700">{t('staff.attendance.presentNow')}</p>
-              <p className="text-2xl sm:text-3xl font-bold text-green-800">{presentStaff}</p>
+            <div className="flex-1 lg:flex-none bg-green-100 dark:bg-green-900/50 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center border border-green-200 dark:border-green-700">
+              <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">{t('staff.attendance.presentNow')}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-800 dark:text-green-200">{presentStaff}</p>
             </div>
-            <div className="flex-1 lg:flex-none bg-primary-100 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center">
-              <p className="text-xs sm:text-sm text-primary-700">{t('staff.attendance.totalPresent')}</p>
-              <p className="text-2xl sm:text-3xl font-bold text-primary-800">{totalCheckedIn}</p>
+            <div className="flex-1 lg:flex-none bg-primary-100 dark:bg-primary-900/50 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center border border-primary-200 dark:border-primary-700">
+              <p className="text-xs sm:text-sm text-primary-700 dark:text-primary-300">{t('staff.attendance.totalPresent')}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary-800 dark:text-primary-200">{totalCheckedIn}</p>
             </div>
           </div>
         </div>
@@ -585,30 +585,30 @@ const handleScan = async (staffCode: string) => {
         {todayAttendance.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-primary-100 to-purple-100">
+              <thead className="bg-gradient-to-r from-primary-100 to-primary-100 dark:from-primary-900/50 dark:to-primary-900/50 border-b-2 border-primary-200 dark:border-primary-700">
                 <tr>
-                  <th className="px-4 py-3 text-right font-bold">{t('staff.attendance.number')}</th>
-                  <th className="px-4 py-3 text-right font-bold">{t('staff.attendance.name')}</th>
-                  <th className="px-4 py-3 text-right font-bold">{t('staff.attendance.position')}</th>
-                  <th className="px-4 py-3 text-center font-bold">
+                  <th className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200">{t('staff.attendance.number')}</th>
+                  <th className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200">{t('staff.attendance.name')}</th>
+                  <th className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200">{t('staff.attendance.position')}</th>
+                  <th className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-200">
                     <div className="flex items-center justify-center gap-2">
                       <span>🕐</span>
                       <span>وقت الدخول</span>
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-center font-bold">
+                  <th className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-200">
                     <div className="flex items-center justify-center gap-2">
                       <span>🕐</span>
                       <span>وقت الخروج</span>
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-center font-bold">
+                  <th className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-200">
                     <div className="flex items-center justify-center gap-2">
                       <span>⏱️</span>
                       <span>ساعات العمل</span>
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-center font-bold">{t('staff.attendance.status')}</th>
+                  <th className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-200">{t('staff.attendance.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -628,13 +628,13 @@ const handleScan = async (staffCode: string) => {
                   const minutes = actualMinutes % 60
 
                   return (
-                    <tr key={att.id} className={`border-t hover:bg-gray-50 transition ${att.checkOut === null ? 'bg-green-50 border-r-4 border-green-500' : 'bg-white'}`}>
+                    <tr key={att.id} className={`border-t border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition ${att.checkOut === null ? 'bg-green-50 dark:bg-green-900/30 border-r-4 border-green-500 dark:border-green-600' : 'bg-white dark:bg-gray-800'}`}>
                       <td className="px-4 py-4">
-                        <span className="bg-primary-500 text-white px-3 py-1 rounded-lg font-bold text-sm">
+                        <span className="bg-primary-500 dark:bg-primary-600 text-white px-3 py-1 rounded-lg font-bold text-sm">
                           #{att.staff.staffCode}
                         </span>
                       </td>
-                      <td className="px-4 py-4 font-bold text-gray-800">{att.staff.name}</td>
+                      <td className="px-4 py-4 font-bold text-gray-800 dark:text-gray-100">{att.staff.name}</td>
                       <td className="px-4 py-4">
                         <span
                           className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getPositionColor(
@@ -645,68 +645,68 @@ const handleScan = async (staffCode: string) => {
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <div className="bg-primary-50 px-4 py-2 rounded-lg inline-block border-2 border-primary-200">
-                          <div className="text-lg font-bold text-primary-800">
+                        <div className="bg-primary-50 dark:bg-primary-900/50 px-4 py-2 rounded-lg inline-block border-2 border-primary-200 dark:border-primary-700">
+                          <div className="text-lg font-bold text-primary-800 dark:text-primary-200">
                             {checkInTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                           </div>
-                          <div className="text-xs text-primary-600">
+                          <div className="text-xs text-primary-600 dark:text-primary-300">
                             {checkInTime.toLocaleDateString('ar-EG', { weekday: 'short' })}
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-center">
                         {checkOutTime ? (
-                          <div className="bg-orange-50 px-4 py-2 rounded-lg inline-block border-2 border-orange-200">
-                            <div className="text-lg font-bold text-orange-800">
+                          <div className="bg-orange-50 dark:bg-orange-900/50 px-4 py-2 rounded-lg inline-block border-2 border-orange-200 dark:border-orange-700">
+                            <div className="text-lg font-bold text-orange-800 dark:text-orange-200">
                               {checkOutTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                             </div>
-                            <div className="text-xs text-orange-600">
+                            <div className="text-xs text-orange-600 dark:text-orange-300">
                               {checkOutTime.toLocaleDateString('ar-EG', { weekday: 'short' })}
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-yellow-50 px-4 py-2 rounded-lg inline-block border-2 border-yellow-300">
-                            <div className="text-sm font-bold text-yellow-800">
+                          <div className="bg-yellow-50 dark:bg-yellow-900/50 px-4 py-2 rounded-lg inline-block border-2 border-yellow-300 dark:border-yellow-700">
+                            <div className="text-sm font-bold text-yellow-800 dark:text-yellow-200">
                               لم ينصرف بعد
                             </div>
-                            <div className="text-xs text-yellow-600">
+                            <div className="text-xs text-yellow-600 dark:text-yellow-300">
                               جاري العمل...
                             </div>
                           </div>
                         )}
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <div className={`px-4 py-3 rounded-lg inline-block border-2 ${att.checkOut ? 'bg-purple-50 border-purple-200' : 'bg-green-50 border-green-300'}`}>
+                        <div className={`px-4 py-3 rounded-lg inline-block border-2 ${att.checkOut ? 'bg-primary-50 dark:bg-primary-900/50 border-primary-200 dark:border-primary-700' : 'bg-green-50 dark:bg-green-900/50 border-green-300 dark:border-green-700'}`}>
                           {hours === 0 && minutes === 0 ? (
-                            <div className="text-lg font-bold text-gray-600">بدأ للتو</div>
+                            <div className="text-lg font-bold text-gray-600 dark:text-gray-300">بدأ للتو</div>
                           ) : (
                             <div className="flex gap-2 justify-center mb-2">
                               {hours > 0 && (
-                                <div className="bg-white border-2 border-purple-300 rounded px-3 py-1">
-                                  <div className="text-xl font-bold text-purple-800">{hours}</div>
-                                  <div className="text-xs text-purple-600">ساعة</div>
+                                <div className="bg-white dark:bg-gray-700 border-2 border-primary-300 dark:border-primary-600 rounded px-3 py-1">
+                                  <div className="text-xl font-bold text-primary-800 dark:text-primary-200">{hours}</div>
+                                  <div className="text-xs text-primary-600 dark:text-primary-300">ساعة</div>
                                 </div>
                               )}
                               {minutes > 0 && (
-                                <div className="bg-white border-2 border-primary-300 rounded px-3 py-1">
-                                  <div className="text-xl font-bold text-primary-800">{minutes}</div>
-                                  <div className="text-xs text-primary-600">دقيقة</div>
+                                <div className="bg-white dark:bg-gray-700 border-2 border-primary-300 dark:border-primary-600 rounded px-3 py-1">
+                                  <div className="text-xl font-bold text-primary-800 dark:text-primary-200">{minutes}</div>
+                                  <div className="text-xs text-primary-600 dark:text-primary-300">دقيقة</div>
                                 </div>
                               )}
                             </div>
                           )}
-                          <div className={`text-xs ${att.checkOut ? 'text-purple-600' : 'text-green-600'} font-semibold`}>
+                          <div className={`text-xs ${att.checkOut ? 'text-primary-600 dark:text-primary-300' : 'text-green-600 dark:text-green-300'} font-semibold`}>
                             {att.checkOut ? '✅ انتهى' : '⏳ يعمل الآن'}
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-center">
                         {att.checkOut === null ? (
-                          <span className="px-4 py-2 rounded-full text-sm font-bold bg-green-500 text-white shadow-lg animate-pulse">
+                          <span className="px-4 py-2 rounded-full text-sm font-bold bg-green-500 dark:bg-green-600 text-white shadow-lg animate-pulse">
                             🟢 {t('staff.attendance.inside')}
                           </span>
                         ) : (
-                          <span className="px-4 py-2 rounded-full text-sm font-bold bg-gray-500 text-white">
+                          <span className="px-4 py-2 rounded-full text-sm font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
                             🔴 {t('staff.attendance.outside')}
                           </span>
                         )}
@@ -718,7 +718,7 @@ const handleScan = async (staffCode: string) => {
             </table>
           </div>
         ) : (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-gray-400 dark:text-gray-500">
             <div className="text-6xl mb-4">😴</div>
             <p className="text-xl">{t('staff.attendance.noAttendance')}</p>
           </div>
@@ -728,7 +728,7 @@ const handleScan = async (staffCode: string) => {
       {/* باقي الصفحة - إدارة الموظفين */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">👥 {t('staff.title')}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900 dark:text-white">👥 {t('staff.title')}</h1>
 
         </div>
         <button
@@ -736,7 +736,7 @@ const handleScan = async (staffCode: string) => {
             resetForm()
             setShowForm(!showForm)
           }}
-          className="w-full sm:w-auto bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition transform hover:scale-105"
+          className="w-full sm:w-auto bg-primary-600 dark:bg-primary-700 text-white px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition transform hover:scale-105 shadow-md"
         >
           {showForm ? t('staff.hideForm') : `➕ ${t('staff.addNewStaff')}`}
         </button>
@@ -744,8 +744,8 @@ const handleScan = async (staffCode: string) => {
 
       {/* نموذج الإضافة/التعديل */}
       {showForm && (
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-100">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-100 dark:border-primary-700">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
             {editingStaff ? (
               <>
                 <span>✏️</span>
@@ -763,7 +763,7 @@ const handleScan = async (staffCode: string) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* ✅ رقم الموظف */}
               <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700">
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
                   {t('staff.form.staffNumberRequired')}
                 </label>
                 <input
@@ -771,14 +771,14 @@ const handleScan = async (staffCode: string) => {
                   required
                   value={formData.staffCode}
                   onChange={(e) => setFormData({ ...formData, staffCode: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition text-2xl font-bold"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition text-2xl font-bold bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder={randomStaffCode || "100000022"}
                   minLength={9}
                   maxLength={9}
                   pattern="\d{9}"
                   disabled={!!editingStaff}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {editingStaff
                     ? t('staff.form.staffNumberLocked')
                     : t('staff.form.staffNumberHint')}
@@ -787,7 +787,7 @@ const handleScan = async (staffCode: string) => {
 
               {/* الاسم */}
               <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700">
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
                   {t('staff.form.nameRequired')}
                 </label>
                 <input
@@ -795,37 +795,37 @@ const handleScan = async (staffCode: string) => {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder={t('staff.form.namePlaceholder')}
                 />
               </div>
 
               {/* رقم الهاتف */}
               <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700">{t('staff.form.phone')}</label>
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.phone')}</label>
                 <input
                   type="text"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder={t('staff.form.phonePlaceholder')}
                 />
               </div>
 
               {/* الوظيفة */}
               <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700">
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
                   {t('staff.form.positionRequired')}
                 </label>
                 <select
                   required={!showOtherPosition}
                   value={formData.position}
                   onChange={(e) => handlePositionChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition text-lg"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition text-lg text-gray-900 dark:text-white"
                 >
-                  <option value="">{t('staff.form.selectPosition')}</option>
+                  <option value="" className="dark:bg-gray-700">{t('staff.form.selectPosition')}</option>
                   {POSITIONS.map((pos) => (
-                    <option key={pos.value} value={pos.value}>
+                    <option key={pos.value} value={pos.value} className="dark:bg-gray-700">
                       {pos.label}
                     </option>
                   ))}
@@ -834,8 +834,8 @@ const handleScan = async (staffCode: string) => {
 
               {/* حقل الوظيفة المخصصة */}
               {showOtherPosition && (
-                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
-                  <label className="block text-sm font-bold mb-2 text-gray-700">
+                <div className="bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-4">
+                  <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
                     {t('staff.form.customPositionRequired')}
                   </label>
                   <input
@@ -845,7 +845,7 @@ const handleScan = async (staffCode: string) => {
                     onChange={(e) =>
                       setFormData({ ...formData, customPosition: e.target.value })
                     }
-                    className="w-full px-4 py-3 border-2 border-yellow-400 rounded-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 transition"
+                    className="w-full px-4 py-3 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 dark:focus:ring-yellow-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder={t('staff.form.customPositionPlaceholder')}
                   />
                 </div>
@@ -853,7 +853,7 @@ const handleScan = async (staffCode: string) => {
 
               {/* المرتب */}
               <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700">
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
                   {t('staff.form.salary')}
                 </label>
                 <input
@@ -864,7 +864,7 @@ const handleScan = async (staffCode: string) => {
                   onChange={(e) =>
                     setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })
                   }
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder={t('staff.form.salaryPlaceholder')}
                 />
               </div>
@@ -872,11 +872,11 @@ const handleScan = async (staffCode: string) => {
 
             {/* ملاحظات */}
             <div>
-              <label className="block text-sm font-bold mb-2 text-gray-700">{t('staff.form.notes')}</label>
+              <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.notes')}</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition resize-none"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 rows={3}
                 placeholder={t('staff.form.notesPlaceholder')}
               />
@@ -887,7 +887,7 @@ const handleScan = async (staffCode: string) => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:from-gray-400 disabled:to-gray-500 font-bold text-lg shadow-lg transform transition hover:scale-105 active:scale-95"
+                className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 text-white py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 dark:hover:from-primary-600 dark:hover:to-primary-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transform transition hover:scale-105 active:scale-95 disabled:hover:scale-100"
               >
                 {submitting ? `⏳ ${t('staff.form.saving')}` : editingStaff ? `✅ ${t('staff.form.update')}` : `➕ ${t('staff.form.addStaff')}`}
               </button>
@@ -895,7 +895,7 @@ const handleScan = async (staffCode: string) => {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-8 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 py-4 rounded-lg hover:from-gray-300 hover:to-gray-400 font-bold shadow-lg transform transition hover:scale-105 active:scale-95"
+                  className="px-8 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-200 py-4 rounded-lg hover:from-gray-300 hover:to-gray-400 dark:hover:from-gray-600 dark:hover:to-gray-500 font-bold shadow-lg transform transition hover:scale-105 active:scale-95"
                 >
                   {t('staff.form.cancel')}
                 </button>
@@ -907,30 +907,30 @@ const handleScan = async (staffCode: string) => {
 
       {/* الإحصائيات */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-primary-100 text-xs sm:text-sm mb-1">{t('staff.stats.totalStaff')}</p>
+              <p className="text-primary-100 dark:text-primary-200 text-xs sm:text-sm mb-1">{t('staff.stats.totalStaff')}</p>
               <p className="text-2xl sm:text-4xl font-bold">{staff.length}</p>
             </div>
             <div className="text-3xl sm:text-5xl opacity-20">👥</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 dark:from-green-700 dark:to-green-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-xs sm:text-sm mb-1">{t('staff.stats.activeStaff')}</p>
+              <p className="text-green-100 dark:text-green-200 text-xs sm:text-sm mb-1">{t('staff.stats.activeStaff')}</p>
               <p className="text-2xl sm:text-4xl font-bold">{staff.filter((s) => s.isActive).length}</p>
             </div>
             <div className="text-3xl sm:text-5xl opacity-20">✅</div>
           </div>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
+        <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-xs sm:text-sm mb-1">{t('staff.stats.totalSalaries')}</p>
+              <p className="text-primary-100 dark:text-primary-200 text-xs sm:text-sm mb-1">{t('staff.stats.totalSalaries')}</p>
               <p className="text-xl sm:text-3xl font-bold">
                 {staff.reduce((sum, s) => sum + (s.salary || 0), 0).toFixed(0)} ج.م
               </p>
@@ -939,10 +939,10 @@ const handleScan = async (staffCode: string) => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg p-4 sm:p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-700 dark:to-orange-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-xs sm:text-sm mb-1">{t('staff.stats.coaches')}</p>
+              <p className="text-orange-100 dark:text-orange-200 text-xs sm:text-sm mb-1">{t('staff.stats.coaches')}</p>
               <p className="text-2xl sm:text-4xl font-bold">{staffByPosition['مدرب'] || 0}</p>
             </div>
             <div className="text-3xl sm:text-5xl opacity-20">💪</div>
@@ -951,11 +951,11 @@ const handleScan = async (staffCode: string) => {
 
         <Link
           href="/expenses"
-          className="col-span-2 sm:col-span-3 lg:col-span-1 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg p-4 sm:p-6 shadow-lg hover:shadow-2xl transition-all hover:scale-105 active:scale-95"
+          className="col-span-2 sm:col-span-3 lg:col-span-1 bg-gradient-to-br from-red-500 to-red-600 dark:from-red-700 dark:to-red-800 text-white rounded-lg p-4 sm:p-6 shadow-lg hover:shadow-2xl transition-all hover:scale-105 active:scale-95"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-red-100 text-xs sm:text-sm mb-1">{t('staff.loans.title')}</p>
+              <p className="text-red-100 dark:text-red-200 text-xs sm:text-sm mb-1">{t('staff.loans.title')}</p>
               <p className="text-lg sm:text-xl font-bold">{t('staff.loans.viewInExpenses')}</p>
             </div>
             <div className="text-3xl sm:text-5xl opacity-20">💸</div>
@@ -973,16 +973,16 @@ const handleScan = async (staffCode: string) => {
             {staff.map((staffMember) => (
               <div
                 key={staffMember.id}
-                className={`bg-white rounded-lg shadow-md border-r-4 border-orange-500 overflow-hidden ${
+                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md border-r-4 border-orange-500 dark:border-orange-600 overflow-hidden ${
                   !staffMember.isActive ? 'opacity-60' : ''
-                } ${isStaffCurrentlyInside(staffMember.id) ? 'bg-green-50' : ''}`}
+                } ${isStaffCurrentlyInside(staffMember.id) ? 'bg-green-50 dark:bg-green-900/30' : ''}`}
               >
                 {/* Actions في الأعلى */}
-                <div className="bg-gray-50 px-4 py-2 flex justify-between items-center border-b">
+                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 flex justify-between items-center border-b border-gray-200 dark:border-gray-600">
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(staffMember)}
-                      className="w-8 h-8 flex items-center justify-center bg-primary-100 hover:bg-primary-200 text-primary-600 rounded-lg transition-all hover:scale-110 active:scale-95"
+                      className="w-8 h-8 flex items-center justify-center bg-primary-100 dark:bg-primary-900/50 hover:bg-primary-200 dark:hover:bg-primary-800/50 text-primary-600 dark:text-primary-300 rounded-lg transition-all hover:scale-110 active:scale-95"
                       title={t('staff.table.edit')}
                     >
                       ✏️
@@ -990,7 +990,7 @@ const handleScan = async (staffCode: string) => {
                     {hasPermission('canDeleteStaff') && (
                       <button
                         onClick={() => handleDelete(staffMember)}
-                        className="w-8 h-8 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-all hover:scale-110 active:scale-95"
+                        className="w-8 h-8 flex items-center justify-center bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-600 dark:text-red-300 rounded-lg transition-all hover:scale-110 active:scale-95"
                         title={t('staff.table.delete')}
                       >
                         🗑️
@@ -1012,22 +1012,22 @@ const handleScan = async (staffCode: string) => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="bg-primary-500 text-white px-3 py-1 rounded-lg font-bold text-sm">
+                        <span className="bg-primary-500 dark:bg-primary-600 text-white px-3 py-1 rounded-lg font-bold text-sm">
                           #{staffMember.staffCode}
                         </span>
                         {isStaffCurrentlyInside(staffMember.id) && (
-                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                          <span className="bg-green-500 dark:bg-green-600 text-white text-xs px-2 py-1 rounded-full animate-pulse">
                             🟢 {t('staff.attendance.inside')}
                           </span>
                         )}
                       </div>
-                      <h3 className="text-lg font-bold text-gray-800">{staffMember.name}</h3>
+                      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{staffMember.name}</h3>
                     </div>
                   </div>
 
                   {/* الوظيفة */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm">💼</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">💼</span>
                     <span
                       className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getPositionColor(
                         staffMember.position || ''
@@ -1040,27 +1040,27 @@ const handleScan = async (staffCode: string) => {
 
                   {/* الهاتف */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm">📱</span>
-                    <span className="text-gray-700">{staffMember.phone || '-'}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">📱</span>
+                    <span className="text-gray-700 dark:text-gray-200">{staffMember.phone || '-'}</span>
                   </div>
 
                   {/* المرتب */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm">💰</span>
-                    <span className="font-bold text-green-600">
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">💰</span>
+                    <span className="font-bold text-green-600 dark:text-green-400">
                       {staffMember.salary ? `${staffMember.salary} ج.م` : '-'}
                     </span>
                   </div>
 
                   {/* الحالة */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm">📊</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">📊</span>
                     <button
                       onClick={() => toggleActive(staffMember)}
                       className={`px-3 py-1 rounded-full text-sm font-semibold transition ${
                         staffMember.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                          ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
+                          : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
                       }`}
                     >
                       {staffMember.isActive ? `✅ ${t('staff.table.active')}` : `❌ ${t('staff.table.inactive')}`}
@@ -1071,7 +1071,7 @@ const handleScan = async (staffCode: string) => {
             ))}
 
             {staff.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <div className="text-6xl mb-4">😕</div>
                 <p className="text-xl">{t('staff.empty.title')}</p>
                 <p className="text-sm mt-2">{t('staff.empty.subtitle')}</p>
@@ -1080,44 +1080,44 @@ const handleScan = async (staffCode: string) => {
           </div>
 
           {/* الجدول للشاشات الكبيرة */}
-          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-gray-100 to-gray-200">
+                <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 border-b-2 border-gray-300 dark:border-gray-600">
                   <tr>
-                    <th className="px-4 py-3 text-right">{t('staff.table.number')}</th>
-                    <th className="px-4 py-3 text-right">{t('staff.table.name')}</th>
-                    <th className="px-4 py-3 text-right">{t('staff.table.phone')}</th>
-                    <th className="px-4 py-3 text-right">{t('staff.table.position')}</th>
-                    <th className="px-4 py-3 text-right">{t('staff.table.salary')}</th>
-                    <th className="px-4 py-3 text-right">{t('staff.table.status')}</th>
-                    <th className="px-4 py-3 text-right">{t('staff.table.actions')}</th>
+                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.number')}</th>
+                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.name')}</th>
+                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.phone')}</th>
+                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.position')}</th>
+                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.salary')}</th>
+                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.status')}</th>
+                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {staff.map((staffMember) => (
                     <tr
                       key={staffMember.id}
-                      className={`border-t hover:bg-gray-50 transition ${
+                      className={`border-t border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition ${
                         !staffMember.isActive ? 'opacity-60' : ''
-                      } ${isStaffCurrentlyInside(staffMember.id) ? 'bg-green-50' : ''}`}
+                      } ${isStaffCurrentlyInside(staffMember.id) ? 'bg-green-50 dark:bg-green-900/30' : 'bg-white dark:bg-gray-800'}`}
                     >
                       <td className="px-4 py-3">
-                        <span className="bg-primary-500 text-white px-4 py-2 rounded-lg font-bold text-xl">
+                        <span className="bg-primary-500 dark:bg-primary-600 text-white px-4 py-2 rounded-lg font-bold text-xl">
                           #{staffMember.staffCode}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">{staffMember.name}</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">{staffMember.name}</span>
                           {isStaffCurrentlyInside(staffMember.id) && (
-                            <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                            <span className="bg-green-500 dark:bg-green-600 text-white text-xs px-2 py-1 rounded-full animate-pulse">
                               🟢 {t('staff.attendance.inside')}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{staffMember.phone || '-'}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{staffMember.phone || '-'}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getPositionColor(
@@ -1128,7 +1128,7 @@ const handleScan = async (staffCode: string) => {
                           <span>{getPositionLabel(staffMember.position)}</span>
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-bold text-green-600">
+                      <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
                         {staffMember.salary ? `${staffMember.salary} ج.م` : '-'}
                       </td>
                       <td className="px-4 py-3">
@@ -1136,8 +1136,8 @@ const handleScan = async (staffCode: string) => {
                           onClick={() => toggleActive(staffMember)}
                           className={`px-3 py-1 rounded-full text-sm font-semibold transition transform hover:scale-105 ${
                             staffMember.isActive
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-red-100 text-red-800 hover:bg-red-200'
+                              ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/50'
+                              : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/50'
                           }`}
                         >
                           {staffMember.isActive ? `✅ ${t('staff.table.active')}` : `❌ ${t('staff.table.inactive')}`}
@@ -1147,7 +1147,7 @@ const handleScan = async (staffCode: string) => {
                         <div className="flex gap-2 items-center">
                           <button
                             onClick={() => handleEdit(staffMember)}
-                            className="w-9 h-9 flex items-center justify-center bg-primary-100 hover:bg-primary-200 text-primary-600 rounded-lg transition-all hover:scale-110 active:scale-95"
+                            className="w-9 h-9 flex items-center justify-center bg-primary-100 dark:bg-primary-900/50 hover:bg-primary-200 dark:hover:bg-primary-800/50 text-primary-600 dark:text-primary-300 rounded-lg transition-all hover:scale-110 active:scale-95"
                             title={t('staff.table.edit')}
                           >
                             ✏️
@@ -1156,7 +1156,7 @@ const handleScan = async (staffCode: string) => {
                           {hasPermission('canDeleteStaff') && (
                             <button
                               onClick={() => handleDelete(staffMember)}
-                              className="w-9 h-9 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-all hover:scale-110 active:scale-95"
+                              className="w-9 h-9 flex items-center justify-center bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-600 dark:text-red-300 rounded-lg transition-all hover:scale-110 active:scale-95"
                               title={t('staff.table.delete')}
                             >
                               🗑️
@@ -1179,7 +1179,7 @@ const handleScan = async (staffCode: string) => {
             </div>
 
             {staff.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <div className="text-6xl mb-4">😕</div>
                 <p className="text-xl">{t('staff.empty.title')}</p>
                 <p className="text-sm mt-2">{t('staff.empty.subtitle')}</p>

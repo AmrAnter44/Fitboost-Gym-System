@@ -154,7 +154,7 @@ export default function CheckMembershipPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-50 flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
@@ -162,18 +162,18 @@ export default function CheckMembershipPage() {
             <img src='/assets/icon.png' alt="logo" className='w-12 h-12 sm:w-16 sm:h-16'/>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-600">Gym System</h1>
           </div>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
             🔍 {t('attendance.verifyMembership')}
           </h2>
-          <p className="text-sm sm:text-base text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
             {t('attendance.enterNumberToVerify')}
           </p>
         </div>
 
         {/* Search Box */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border-4 border-primary-500 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 border-4 border-primary-500 mb-6">
           <div className="mb-6">
-            <label className="block text-lg sm:text-xl font-bold mb-4 text-gray-800 text-center">
+            <label className="block text-lg sm:text-xl font-bold mb-4 text-gray-800 dark:text-gray-100 text-center">
               {t('attendance.membershipNumber')}
             </label>
 
@@ -190,7 +190,7 @@ export default function CheckMembershipPage() {
                 value={memberNumber}
                 onChange={(e) => setMemberNumber(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className="flex-1 px-4 py-3 sm:px-6 sm:py-4 border-4 border-primary-300 rounded-xl text-2xl sm:text-3xl md:text-4xl font-bold text-center focus:border-primary-600 focus:ring-4 focus:ring-primary-200 transition text-gray-800"
+                className="flex-1 px-4 py-3 sm:px-6 sm:py-4 border-4 border-primary-300 rounded-xl text-2xl sm:text-3xl md:text-4xl font-bold text-center focus:border-primary-600 focus:ring-4 focus:ring-primary-200 transition text-gray-800 dark:text-gray-100"
                 placeholder="1001"
                 disabled={loading}
               />
@@ -203,7 +203,7 @@ export default function CheckMembershipPage() {
               </button>
             </div>
 
-            <p className="text-xs sm:text-sm text-gray-500 mt-3 text-center">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-3 text-center">
               💡 {t('attendance.pressEnterToSearch')}
             </p>
           </div>
@@ -223,11 +223,11 @@ export default function CheckMembershipPage() {
                 {result.status === 'active' ? '✅' : result.status === 'warning' ? '⚠️' : '🚨'}
               </div>
 
-              <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-gray-800">
+              <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-gray-800 dark:text-gray-100">
                 {result.name}
               </h3>
 
-              <p className="text-lg sm:text-xl text-gray-600 mb-4">
+              <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-4">
                 {t('attendance.membershipNumber')}: <span className="font-bold text-primary-600">#{result.memberNumber}</span>
               </p>
 
@@ -252,15 +252,15 @@ export default function CheckMembershipPage() {
               }`}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">{t('attendance.expiryDate')}</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-800">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">{t('attendance.expiryDate')}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
                       {new Date(result.expiryDate).toLocaleDateString('ar-EG')}
                     </p>
                   </div>
 
                   {result.remainingDays !== undefined && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">{t('attendance.daysRemaining')}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">{t('attendance.daysRemaining')}</p>
                       <p className={`text-xl sm:text-2xl font-bold ${
                         result.remainingDays > 7
                           ? 'text-green-600'
@@ -289,7 +289,7 @@ export default function CheckMembershipPage() {
                   setMemberNumber('')
                   inputRef.current?.focus()
                 }}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 font-bold transition"
+                className="px-6 py-3 bg-gray-200 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-300 font-bold transition"
               >
                 {t('attendance.searchAnother')}
               </button>
@@ -298,7 +298,7 @@ export default function CheckMembershipPage() {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-8 text-gray-600 text-sm">
+        <div className="text-center mt-8 text-gray-600 dark:text-gray-300 text-sm">
           <p>🔒 {t('attendance.securePageVerifyOnly')}</p>
           <p className="mt-2">{t('attendance.contactManagement')}</p>
         </div>

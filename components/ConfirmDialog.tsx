@@ -40,24 +40,24 @@ export default function ConfirmDialog({
 
   const typeColors = {
     danger: {
-      bg: 'bg-red-50',
-      border: 'border-red-200',
+      bg: 'bg-red-50 dark:bg-red-900/30',
+      border: 'border-red-200 dark:border-red-700',
       icon: '⚠️',
-      iconBg: 'bg-red-100',
+      iconBg: 'bg-red-100 dark:bg-red-900/50',
       confirmBtn: 'bg-red-600 hover:bg-red-700'
     },
     warning: {
-      bg: 'bg-yellow-50',
-      border: 'border-yellow-200',
+      bg: 'bg-yellow-50 dark:bg-yellow-900/30',
+      border: 'border-yellow-200 dark:border-yellow-700',
       icon: '⚡',
-      iconBg: 'bg-yellow-100',
+      iconBg: 'bg-yellow-100 dark:bg-yellow-900/50',
       confirmBtn: 'bg-yellow-600 hover:bg-yellow-700'
     },
     info: {
-      bg: 'bg-primary-50',
-      border: 'border-primary-200',
+      bg: 'bg-primary-50 dark:bg-primary-900/30',
+      border: 'border-primary-200 dark:border-primary-700',
       icon: 'ℹ️',
-      iconBg: 'bg-primary-100',
+      iconBg: 'bg-primary-100 dark:bg-primary-900/50',
       confirmBtn: 'bg-primary-600 hover:bg-primary-700'
     }
   }
@@ -70,7 +70,7 @@ export default function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className={`bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 border-4 ${colors.border}`}
+        className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 border-4 ${colors.border}`}
         onClick={(e) => e.stopPropagation()}
         dir={direction}
       >
@@ -80,13 +80,13 @@ export default function ConfirmDialog({
               <span className="text-4xl">{colors.icon}</span>
             </div>
             <div className="flex-1">
-              <h3 className="text-2xl font-bold text-gray-800">{title}</h3>
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{title}</h3>
             </div>
           </div>
         </div>
 
         <div className="p-6">
-          <p className="text-lg text-gray-700 leading-relaxed whitespace-pre-line">
+          <p className="text-lg text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-line">
             {message}
           </p>
         </div>
@@ -102,7 +102,7 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-300 font-bold text-lg transition"
+            className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-lg transition"
           >
             {cancelText}
           </button>

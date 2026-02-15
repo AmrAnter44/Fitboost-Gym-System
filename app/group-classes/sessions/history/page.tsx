@@ -124,12 +124,12 @@ export default function GroupClassSessionHistoryPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">📊 {t('groupClass.sessionHistory.title')}</h1>
-          <p className="text-gray-600">{t('groupClass.sessionHistory.subtitle')}</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('groupClass.sessionHistory.subtitle')}</p>
         </div>
         {!isCoach && (
           <button
             onClick={() => router.push('/groupClass/sessions/register')}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
+            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
           >
             ➕ {t('groupClass.sessionHistory.registerNew')}
           </button>
@@ -138,30 +138,30 @@ export default function GroupClassSessionHistoryPage() {
 
       {/* الإحصائيات */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm mb-1">{t('groupClass.sessionHistory.totalSessions')}</p>
+              <p className="text-primary-100 text-sm mb-1">{t('groupClass.sessionHistory.totalSessions')}</p>
               <p className="text-4xl font-bold">{totalSessions}</p>
             </div>
             <div className="text-5xl opacity-20">📊</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm mb-1">{t('groupClass.sessionHistory.todaySessions')}</p>
+              <p className="text-primary-100 text-sm mb-1">{t('groupClass.sessionHistory.todaySessions')}</p>
               <p className="text-4xl font-bold">{todaySessions}</p>
             </div>
             <div className="text-5xl opacity-20">📅</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm mb-1">{t('groupClass.sessionHistory.numberOfClients')}</p>
+              <p className="text-primary-100 text-sm mb-1">{t('groupClass.sessionHistory.numberOfClients')}</p>
               <p className="text-4xl font-bold">{uniqueGroupClass}</p>
             </div>
             <div className="text-5xl opacity-20">👥</div>
@@ -170,7 +170,7 @@ export default function GroupClassSessionHistoryPage() {
       </div>
 
       {/* الفلاتر */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-bold mb-4">🔍 {t('groupClass.sessionHistory.filtersAndSearch')}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -181,7 +181,7 @@ export default function GroupClassSessionHistoryPage() {
               placeholder={t('groupClass.sessionHistory.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             />
           </div>
 
@@ -192,7 +192,7 @@ export default function GroupClassSessionHistoryPage() {
               placeholder={t('groupClass.sessionHistory.groupClassNumberPlaceholder')}
               value={filterGroupClassNumber}
               onChange={(e) => setFilterGroupClassNumber(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             />
           </div>
 
@@ -202,7 +202,7 @@ export default function GroupClassSessionHistoryPage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             />
           </div>
 
@@ -212,7 +212,7 @@ export default function GroupClassSessionHistoryPage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             />
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function GroupClassSessionHistoryPage() {
               setDateFrom('')
               setDateTo('')
             }}
-            className="mt-4 text-sm text-purple-600 hover:text-purple-700"
+            className="mt-4 text-sm text-primary-600 hover:text-primary-700"
           >
             ❌ {t('groupClass.sessionHistory.clearFilters')}
           </button>
@@ -233,26 +233,26 @@ export default function GroupClassSessionHistoryPage() {
       </div>
 
       {/* جدول السجلات */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
         {loading ? (
           <div className="text-center py-12">{t('groupClass.sessionHistory.loading')}</div>
         ) : filteredSessions.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500">
             {t('groupClass.sessionHistory.noRecords')}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-100">
+              <thead className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-right">{t('groupClass.sessionHistory.groupClassNumber')}</th>
-                  <th className="px-4 py-3 text-right">{t('groupClass.sessionHistory.client')}</th>
-                  <th className="px-4 py-3 text-right">{t('groupClass.sessionHistory.instructor')}</th>
-                  <th className="px-4 py-3 text-right">{t('groupClass.sessionHistory.sessionDate')}</th>
-                  <th className="px-4 py-3 text-right">{t('groupClass.sessionHistory.sessionTime')}</th>
-                  <th className="px-4 py-3 text-right">{t('groupClass.sessionHistory.notes')}</th>
-                  <th className="px-4 py-3 text-right">{t('groupClass.sessionHistory.registrationDate')}</th>
-                  <th className="px-4 py-3 text-right">{t('groupClass.sessionHistory.actions')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('groupClass.sessionHistory.groupClassNumber')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('groupClass.sessionHistory.client')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('groupClass.sessionHistory.instructor')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('groupClass.sessionHistory.sessionDate')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('groupClass.sessionHistory.sessionTime')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('groupClass.sessionHistory.notes')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('groupClass.sessionHistory.registrationDate')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('groupClass.sessionHistory.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -263,24 +263,24 @@ export default function GroupClassSessionHistoryPage() {
                   return (
                     <tr
                       key={session.id}
-                      className={`border-t hover:bg-gray-50 ${isToday ? 'bg-purple-50' : ''}`}
+                      className={`border-t hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 ${isToday ? 'bg-primary-50' : ''}`}
                     >
                       <td className="px-4 py-3">
                         {session.groupClassNumber < 0 ? (
-                          <span className="font-bold text-purple-600">🏃 Day Use</span>
+                          <span className="font-bold text-primary-600">🏃 Day Use</span>
                         ) : (
-                          <span className="font-bold text-purple-600">#{session.groupClassNumber}</span>
+                          <span className="font-bold text-primary-600">#{session.groupClassNumber}</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-semibold">{session.clientName}</p>
-                          <p className="text-sm text-gray-600">{session.groupClass.phone}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{session.groupClass.phone}</p>
                         </div>
                       </td>
                       <td className="px-4 py-3">{session.instructorName}</td>
                       <td className="px-4 py-3">
-                        <span className={`font-mono ${isToday ? 'font-bold text-purple-600' : ''}`}>
+                        <span className={`font-mono ${isToday ? 'font-bold text-primary-600' : ''}`}>
                           {sessionDate.toLocaleDateString('ar-EG', {
                             year: 'numeric',
                             month: 'long',
@@ -289,7 +289,7 @@ export default function GroupClassSessionHistoryPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono font-bold text-purple-600">
+                        <span className="font-mono font-bold text-primary-600">
                           {sessionDate.toLocaleTimeString('ar-EG', {
                             hour: '2-digit',
                             minute: '2-digit'
@@ -298,13 +298,13 @@ export default function GroupClassSessionHistoryPage() {
                       </td>
                       <td className="px-4 py-3">
                         {session.notes ? (
-                          <span className="text-sm text-gray-700">{session.notes}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-200">{session.notes}</span>
                         ) : (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                           {new Date(session.createdAt).toLocaleDateString('ar-EG')}
                         </span>
                       </td>
@@ -327,8 +327,8 @@ export default function GroupClassSessionHistoryPage() {
 
       {/* ملخص بالأسفل */}
       {filteredSessions.length > 0 && (
-        <div className="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <p className="text-sm text-gray-700">
+        <div className="mt-4 bg-primary-50 border border-primary-200 rounded-lg p-4">
+          <p className="text-sm text-gray-700 dark:text-gray-200">
             {t('groupClass.sessionHistory.showing', { count: filteredSessions.length.toString(), total: sessions.length.toString() })}
           </p>
         </div>

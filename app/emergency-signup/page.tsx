@@ -65,13 +65,13 @@ export default function EmergencySignupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center p-4" dir="rtl">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8">
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">⚠️</div>
           <h1 className="text-3xl font-bold text-red-600 mb-2">
             إنشاء حساب أدمن طارئ
           </h1>
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-600 dark:text-gray-300 text-sm">
             استخدم هذه الصفحة فقط في حالة فقدان حساب الأدمن
           </p>
         </div>
@@ -85,11 +85,11 @@ export default function EmergencySignupPage() {
               type="text"
               value={formData.secretKey}
               onChange={(e) => setFormData({ ...formData, secretKey: e.target.value })}
-              className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               placeholder="أدخل المفتاح السري"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">
               المفتاح موجود في ملف .env تحت اسم EMERGENCY_SIGNUP_SECRET
             </p>
           </div>
@@ -102,7 +102,7 @@ export default function EmergencySignupPage() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               placeholder="أحمد محمد"
               required
             />
@@ -116,7 +116,7 @@ export default function EmergencySignupPage() {
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               placeholder="admin@gym.com"
               dir="ltr"
               required
@@ -131,7 +131,7 @@ export default function EmergencySignupPage() {
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               placeholder="••••••••"
               required
             />
@@ -145,7 +145,7 @@ export default function EmergencySignupPage() {
               type="password"
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               placeholder="••••••••"
               required
             />
@@ -167,7 +167,7 @@ export default function EmergencySignupPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
             هذه صفحة طوارئ - استخدمها مرة واحدة فقط ثم احذفها
           </p>
         </div>

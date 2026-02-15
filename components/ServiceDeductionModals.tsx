@@ -72,20 +72,20 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
       onClick={(e) => e.target === e.currentTarget && !submitting && handleClose()}
       dir={direction}
     >
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-2xl font-bold flex items-center gap-2">
               <span>🎟️</span>
               <span>استخدام دعوة</span>
             </h3>
-            <p className="text-sm text-gray-600 mt-1">للعضو: {memberName}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">للعضو: {memberName}</p>
           </div>
           <button
             type="button"
             onClick={handleClose}
             disabled={submitting}
-            className="text-gray-400 hover:text-gray-600 text-3xl leading-none disabled:opacity-50"
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none disabled:opacity-50"
           >
             ×
           </button>
@@ -100,7 +100,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
               type="text"
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
               placeholder="أدخل اسم الضيف..."
               autoFocus
               disabled={submitting}
@@ -115,7 +115,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
               type="tel"
               value={guestPhone}
               onChange={(e) => setGuestPhone(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
               placeholder="01xxxxxxxxx"
               dir="ltr"
               disabled={submitting}
@@ -129,7 +129,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 resize-none"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 resize-none"
               rows={3}
               placeholder="ملاحظات إضافية..."
               disabled={submitting}
@@ -141,7 +141,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
               type="button"
               onClick={handleSubmit}
               disabled={submitting || !guestName.trim() || !guestPhone.trim()}
-              className="flex-1 bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold transition"
+              className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold transition"
             >
               {submitting ? '⏳ جاري التسجيل...' : '✅ تسجيل الدعوة'}
             </button>
@@ -149,7 +149,7 @@ export function InvitationModal({ isOpen, memberName, memberId, onClose, onSucce
               type="button"
               onClick={handleClose}
               disabled={submitting}
-              className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold disabled:opacity-50"
+              className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold disabled:opacity-50"
             >
               إلغاء
             </button>
@@ -242,13 +242,13 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
       onClick={(e) => e.target === e.currentTarget && !submitting && handleClose()}
       dir={direction}
     >
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
         <div className="text-center mb-6">
           <div className="text-6xl mb-4">{serviceIcons[serviceType]}</div>
           <h3 className="text-2xl font-bold mb-2">
             تأكيد خصم {serviceNames[serviceType]}
           </h3>
-          <p className="text-gray-600">للعضو: {memberName}</p>
+          <p className="text-gray-600 dark:text-gray-300">للعضو: {memberName}</p>
         </div>
 
         <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-4">
@@ -270,7 +270,7 @@ export function SimpleServiceModal({ isOpen, serviceType, memberName, memberId, 
             type="button"
             onClick={handleClose}
             disabled={submitting}
-            className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-bold disabled:opacity-50"
+            className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold disabled:opacity-50"
           >
             إلغاء
           </button>

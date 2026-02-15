@@ -237,16 +237,16 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4 rounded-t-2xl">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-4 rounded-t-2xl">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-xl font-bold mb-1">🔄 {t('groupClass.renewal.title')}</h2>
-              <p className="text-purple-100 text-sm">{t('groupClass.renewal.subtitle')}</p>
+              <p className="text-primary-100 text-sm">{t('groupClass.renewal.subtitle')}</p>
             </div>
             <button
               onClick={onClose}
-              className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center transition"
+              className="text-white hover:bg-white dark:bg-gray-800 hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center transition"
             >
               ✕
             </button>
@@ -261,15 +261,15 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
           )}
 
           {/* Packages Section */}
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-100 border-2 border-indigo-400 rounded-xl p-4 mb-4">
-            <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-indigo-800">
+          <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-400 rounded-xl p-4 mb-4">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-primary-800">
               <span>⚡</span>
               <span>{t('packages.selectPackage')}</span>
             </h3>
 
             {!Array.isArray(packages) || packages.length === 0 ? (
-              <div className="text-center py-4 bg-white rounded-xl border-2 border-dashed border-gray-300">
-                <p className="text-gray-500 text-xs">{t('renewal.noOffersAvailable')}</p>
+              <div className="text-center py-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
+                <p className="text-gray-500 dark:text-gray-400 text-xs">{t('renewal.noOffersAvailable')}</p>
                 <p className="text-xs text-gray-400 mt-1">{t('renewal.adminCanAddOffers')}</p>
               </div>
             ) : (
@@ -279,15 +279,15 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                     key={pkg.id}
                     type="button"
                     onClick={() => applyPackage(pkg)}
-                    className="bg-white hover:bg-indigo-50 border-2 border-indigo-300 hover:border-indigo-500 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg"
+                    className="bg-white dark:bg-gray-800 hover:bg-primary-50 border-2 border-primary-300 hover:border-primary-500 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg"
                   >
                     <div className="text-center">
                       <div className="text-2xl mb-1">👥</div>
-                      <div className="font-bold text-gray-800 text-sm">{pkg.name}</div>
-                      <div className="text-xs text-gray-600 mt-1">
+                      <div className="font-bold text-gray-800 dark:text-gray-100 text-sm">{pkg.name}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                         {pkg.sessions} {t('packages.sessions')}
                       </div>
-                      <div className="text-lg font-bold text-indigo-600 mt-1">
+                      <div className="text-lg font-bold text-primary-600 mt-1">
                         {pkg.price} {t('groupClass.egp')}
                       </div>
                     </div>
@@ -297,36 +297,36 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
             )}
           </div>
 
-          <div className="bg-purple-50 border-l-4 border-r-4 border-purple-500 p-3 rounded-lg mb-4">
+          <div className="bg-primary-50 border-l-4 border-r-4 border-primary-500 p-3 rounded-lg mb-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <p className="text-xs text-gray-600">{t('groupClass.renewal.classNumber')}</p>
-                <p className="text-xl font-bold text-purple-600">#{session.groupClassNumber}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('groupClass.renewal.classNumber')}</p>
+                <p className="text-xl font-bold text-primary-600">#{session.groupClassNumber}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('groupClass.renewal.clientName')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('groupClass.renewal.clientName')}</p>
                 <p className="text-base font-bold">{session.clientName}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('groupClass.renewal.currentInstructor')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('groupClass.renewal.currentInstructor')}</p>
                 <p className="text-base">{session.instructorName}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('groupClass.renewal.currentSessionsRemaining')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{t('groupClass.renewal.currentSessionsRemaining')}</p>
                 <p className="text-xl font-bold text-orange-600">{session.sessionsRemaining}</p>
               </div>
             </div>
 
             {session.expiryDate && (
-              <div className="mt-2 pt-2 border-t border-purple-200">
-                <p className="text-xs text-gray-600 inline-block">{t('groupClass.renewal.currentExpiryDate')}: </p>
+              <div className="mt-2 pt-2 border-t border-primary-200">
+                <p className="text-xs text-gray-600 dark:text-gray-300 inline-block">{t('groupClass.renewal.currentExpiryDate')}: </p>
                 <p className="text-sm font-mono inline-block ml-2">{formatDateYMD(session.expiryDate)}</p>
               </div>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-xl p-4">
+            <div className="bg-gradient-to-br from-primary-50 to-primary-50 border-2 border-primary-200 rounded-xl p-4">
               <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                 <span>📋</span>
                 <span>{t('groupClass.renewal.renewalData')}</span>
@@ -366,7 +366,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                     {t('groupClass.instructorName')} <span className="text-red-600">*</span>
                   </label>
                   {coachesLoading ? (
-                    <div className="w-full px-3 py-2 border-2 rounded-lg bg-gray-50 text-gray-500 text-sm">
+                    <div className="w-full px-3 py-2 border-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm">
                       {t('groupClass.loadingInstructors')}
                     </div>
                   ) : instructors.length === 0 ? (
@@ -376,7 +376,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                         required
                         value={formData.instructorName}
                         onChange={(e) => setFormData({ ...formData, instructorName: e.target.value })}
-                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm"
+                        className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                         placeholder={t('groupClass.instructorNamePlaceholder')}
                       />
                       <p className="text-xs text-amber-600">
@@ -388,7 +388,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                       required
                       value={formData.instructorName}
                       onChange={(e) => setFormData({ ...formData, instructorName: e.target.value })}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-sm"
+                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
                     >
                       <option value="">{t('groupClass.selectInstructor')}</option>
                       {instructors.map((instructor) => (
@@ -412,7 +412,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                     min="0"
                     value={formData.totalPrice}
                     onChange={(e) => setFormData({ ...formData, totalPrice: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border-2 border-purple-400 rounded-lg text-sm font-bold"
+                    className="w-full px-3 py-2 border-2 border-primary-400 rounded-lg text-sm font-bold"
                     placeholder="0.00"
                   />
                 </div>
@@ -420,7 +420,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-primary-50 to-pink-50 border-2 border-primary-200 rounded-xl p-4">
                 <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                   <span>📅</span>
                   <span>{t('groupClass.renewal.newSubscriptionPeriod')}</span>
@@ -466,7 +466,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                         key={months}
                         type="button"
                         onClick={() => calculateExpiryFromMonths(months)}
-                        className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg text-xs transition font-medium"
+                        className="px-2 py-1 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg text-xs transition font-medium"
                       >
                         + {months} {months === 1 ? t('groupClass.month') : t('groupClass.months')}
                       </button>
@@ -475,12 +475,12 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                 </div>
 
                 {duration !== null && formData.expiryDate && (
-                  <div className="bg-white border-2 border-purple-300 rounded-lg p-2">
+                  <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 rounded-lg p-2">
                     {duration > 0 ? (
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">⏱️</span>
                         <div>
-                          <p className="font-bold text-purple-800 text-xs">{t('groupClass.renewal.subscriptionDuration')}</p>
+                          <p className="font-bold text-primary-800 text-xs">{t('groupClass.renewal.subscriptionDuration')}</p>
                           <p className="text-base font-mono">
                             {formatDurationInMonths(duration)}
                           </p>
@@ -497,7 +497,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
               </div>
 
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-purple-50 to-purple-50 border-2 border-purple-200 rounded-xl p-4">
+                <div className="bg-gradient-to-br from-primary-50 to-primary-50 border-2 border-primary-200 rounded-xl p-4">
                   <PaymentMethodSelector
                     value={formData.paymentMethod}
                     onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
@@ -517,21 +517,21 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                   </h3>
 
                   <div className="space-y-2">
-                    <div className="bg-purple-50 border-l-4 border-r-4 border-purple-400 p-2 rounded">
-                      <p className="text-xs text-purple-800">
+                    <div className="bg-primary-50 border-l-4 border-r-4 border-primary-400 p-2 rounded">
+                      <p className="text-xs text-primary-800">
                         ⚠️ {t('groupClass.renewal.replacementWarning', {
                           sessionsRemaining: session.sessionsRemaining.toString()
                         })}
                       </p>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">{t('groupClass.renewal.newSessionsLabel')}</span>
-                      <span className="font-bold text-purple-600">{formData.sessionsPurchased} {t('groupClass.session')}</span>
+                      <span className="text-gray-600 dark:text-gray-300">{t('groupClass.renewal.newSessionsLabel')}</span>
+                      <span className="font-bold text-primary-600">{formData.sessionsPurchased} {t('groupClass.session')}</span>
                     </div>
-                    <div className="bg-purple-100 border-l-4 border-r-4 border-purple-500 p-2 rounded">
+                    <div className="bg-primary-100 border-l-4 border-r-4 border-primary-500 p-2 rounded">
                       <div className="flex justify-between">
-                        <span className="font-bold text-gray-800 text-sm">{t('groupClass.renewal.paidAmount')}</span>
-                        <span className="font-bold text-purple-600 text-base">{formData.totalPrice} {t('groupClass.egp')}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100 text-sm">{t('groupClass.renewal.paidAmount')}</span>
+                        <span className="font-bold text-primary-600 text-base">{formData.totalPrice} {t('groupClass.egp')}</span>
                       </div>
                     </div>
                   </div>
@@ -543,7 +543,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
               <button
                 type="submit"
                 disabled={loading || (duration !== null && duration <= 0)}
-                className="flex-1 bg-purple-600 text-white py-2.5 px-6 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 transition font-bold text-base"
+                className="flex-1 bg-primary-600 text-white py-2.5 px-6 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 transition font-bold text-base"
               >
                 {loading ? t('groupClass.renewal.renewing') : t('groupClass.renewal.renewButton')}
               </button>
@@ -551,7 +551,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="px-6 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium text-base"
+                className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium text-base"
               >
                 {t('groupClass.cancelButton')}
               </button>

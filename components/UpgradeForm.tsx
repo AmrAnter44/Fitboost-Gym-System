@@ -196,16 +196,16 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8" dir={direction}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8" dir={direction}>
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+          <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
             <span>🚀</span>
             <span>{t('upgrade.title')}</span>
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
           >
             ×
           </button>
@@ -219,31 +219,31 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
         )}
 
         {/* معلومات الباكدج الحالي */}
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6 border-2 border-gray-200">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">{t('upgrade.currentPackage')}</h3>
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6 border-2 border-gray-200 dark:border-gray-600">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">{t('upgrade.currentPackage')}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <p className="text-gray-600">{t('offers.price')}</p>
-              <p className="font-bold text-lg text-gray-800">{member.subscriptionPrice} {t('members.egp')}</p>
+              <p className="text-gray-600 dark:text-gray-300">{t('offers.price')}</p>
+              <p className="font-bold text-lg text-gray-800 dark:text-gray-100">{member.subscriptionPrice} {t('members.egp')}</p>
             </div>
             <div>
-              <p className="text-gray-600">{t('offers.ptSessions')}</p>
-              <p className="font-bold text-lg text-gray-800">{member.freePTSessions}</p>
+              <p className="text-gray-600 dark:text-gray-300">{t('offers.ptSessions')}</p>
+              <p className="font-bold text-lg text-gray-800 dark:text-gray-100">{member.freePTSessions}</p>
             </div>
             <div>
-              <p className="text-gray-600">{t('offers.inBody')}</p>
-              <p className="font-bold text-lg text-gray-800">{member.inBodyScans}</p>
+              <p className="text-gray-600 dark:text-gray-300">{t('offers.inBody')}</p>
+              <p className="font-bold text-lg text-gray-800 dark:text-gray-100">{member.inBodyScans}</p>
             </div>
             <div>
-              <p className="text-gray-600">{t('offers.invitations')}</p>
-              <p className="font-bold text-lg text-gray-800">{member.invitations}</p>
+              <p className="text-gray-600 dark:text-gray-300">{t('offers.invitations')}</p>
+              <p className="font-bold text-lg text-gray-800 dark:text-gray-100">{member.invitations}</p>
             </div>
           </div>
         </div>
 
         {/* اختيار الباكدج الجديد */}
         <div className="mb-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">{t('upgrade.selectPackage')}</h3>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">{t('upgrade.selectPackage')}</h3>
 
           {eligibleOffers.length === 0 ? (
             <div className="bg-yellow-50 border-2 border-yellow-200 text-yellow-800 px-6 py-8 rounded-xl text-center">
@@ -266,15 +266,15 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
                     className={`p-4 rounded-xl border-2 text-left transition-all ${
                       isSelected
                         ? 'border-orange-500 bg-orange-50 shadow-lg'
-                        : 'border-gray-300 hover:border-orange-300 hover:bg-orange-50'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-orange-300 hover:bg-orange-50'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-3xl">{offer.icon}</span>
                         <div>
-                          <h4 className="font-bold text-lg text-gray-800">{offer.name}</h4>
-                          <p className="text-sm text-gray-600">{offer.duration} {t('offers.days')}</p>
+                          <h4 className="font-bold text-lg text-gray-800 dark:text-gray-100">{offer.name}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{offer.duration} {t('offers.days')}</p>
                         </div>
                       </div>
                       {isSelected && (
@@ -284,14 +284,14 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
 
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">{t('offers.price')}:</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('offers.price')}:</span>
                         <span className="font-bold text-orange-600">{offer.price} {t('members.egp')}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">{t('upgrade.upgradeCost')}:</span>
+                        <span className="text-gray-600 dark:text-gray-300">{t('upgrade.upgradeCost')}:</span>
                         <span className="font-bold text-green-600">+{upgradeAmount} {t('members.egp')}</span>
                       </div>
-                      <div className="flex justify-between text-xs text-gray-500 pt-1 border-t">
+                      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 pt-1 border-t">
                         <span>PT: {offer.freePTSessions}</span>
                         <span>InBody: {offer.inBodyScans}</span>
                         <span>{t('offers.invitations')}: {offer.invitations}</span>
@@ -311,19 +311,19 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-primary-700 font-semibold mb-2">{t('upgrade.currentPackage')}</p>
-                <div className="space-y-1 text-gray-700">
+                <div className="space-y-1 text-gray-700 dark:text-gray-200">
                   <p>{t('offers.price')}: {member.subscriptionPrice} {t('members.egp')}</p>
                   <p>PT: {member.freePTSessions}</p>
                   <p>InBody: {member.inBodyScans}</p>
                   <p>{t('offers.invitations')}: {member.invitations}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {t('members.expiryDate')}: {new Date(member.expiryDate).toLocaleDateString('ar-EG')}
                   </p>
                 </div>
               </div>
               <div>
                 <p className="text-green-700 font-semibold mb-2">{t('upgrade.newPackage')}</p>
-                <div className="space-y-1 text-gray-700">
+                <div className="space-y-1 text-gray-700 dark:text-gray-200">
                   <p>{t('offers.price')}: {selectedOffer.price} {t('members.egp')}</p>
                   <p>PT: {selectedOffer.freePTSessions}</p>
                   <p>InBody: {selectedOffer.inBodyScans}</p>
@@ -361,7 +361,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
         {selectedOffer && (
           <div className="space-y-4 mb-6">
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
                 {t('members.paymentMethod')} *
               </label>
               <Paymentmethodselector
@@ -425,7 +425,7 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-8 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-400 transition-colors"
+            className="px-8 bg-gray-300 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-bold hover:bg-gray-400 transition-colors"
           >
             {t('common.cancel')}
           </button>

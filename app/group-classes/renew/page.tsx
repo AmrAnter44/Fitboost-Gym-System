@@ -64,10 +64,10 @@ function GroupClassRenewContent() {
         <div className="bg-red-50 border-2 border-red-200 rounded-lg p-8">
           <div className="text-6xl mb-4">❌</div>
           <h2 className="text-2xl font-bold mb-2">رقم GroupClass غير محدد</h2>
-          <p className="text-gray-600 mb-4">يرجى تحديد رقم GroupClass للتجديد</p>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">يرجى تحديد رقم GroupClass للتجديد</p>
           <button
             onClick={() => router.push('/groupClass')}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
+            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
           >
             العودة لصفحة جروب كلاسيس
           </button>
@@ -80,7 +80,7 @@ function GroupClassRenewContent() {
     return (
       <div className="container mx-auto p-6 text-center" dir="rtl">
         <div className="text-6xl mb-4">⏳</div>
-        <p className="text-xl text-gray-600">جاري التحميل...</p>
+        <p className="text-xl text-gray-600 dark:text-gray-300">جاري التحميل...</p>
       </div>
     )
   }
@@ -93,7 +93,7 @@ function GroupClassRenewContent() {
           <h2 className="text-2xl font-bold mb-2">{error || 'جلسة جروب كلاسيس غير موجودة'}</h2>
           <button
             onClick={() => router.push('/groupClass')}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
+            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
           >
             العودة لصفحة جروب كلاسيس
           </button>

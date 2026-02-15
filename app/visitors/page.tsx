@@ -277,9 +277,9 @@ export default function VisitorsPage() {
       postponed: t('visitors.results.postponed'),
       subscribed: t('visitors.results.subscribed'),
     }
-    if (!result) return <span className="text-gray-400">-</span>
+    if (!result) return <span className="text-gray-400 dark:text-gray-500">-</span>
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badges[result as keyof typeof badges] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badges[result as keyof typeof badges] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}>
         {labels[result] || result}
       </span>
     )
@@ -299,7 +299,7 @@ export default function VisitorsPage() {
       rejected: t('visitors.status.rejected'),
     }
     return (
-      <span className={`px-2 py-1 rounded-full text-xs ${badges[status as keyof typeof badges] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs ${badges[status as keyof typeof badges] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}>
         {labels[status] || status}
       </span>
     )
@@ -340,8 +340,8 @@ export default function VisitorsPage() {
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">{t('visitors.title')}</h1>
-            <p className="text-gray-600 mt-2 text-sm sm:text-base">{t('visitors.subtitle')}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">{t('visitors.title')}</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base">{t('visitors.subtitle')}</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -353,7 +353,7 @@ export default function VisitorsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-4 sm:p-5 shadow-lg">
+          <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-4 sm:p-5 shadow-lg">
             <div className="text-xs sm:text-sm opacity-90 mb-1">
               {monthFilter !== 'all' ? `${t('visitors.stats.visitorsOf')} ${getMonthLabel(monthFilter)}` : t('visitors.status.totalVisitors')}
             </div>
@@ -363,14 +363,14 @@ export default function VisitorsPage() {
             )}
           </div>
           {stats.map((stat) => (
-            <div key={stat.status} className="bg-white p-4 sm:p-5 rounded-xl shadow-lg border-2">
-              <div className="text-gray-500 text-xs sm:text-sm font-medium mb-1">
+            <div key={stat.status} className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-xl shadow-lg border-2">
+              <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm font-medium mb-1">
                 {stat.status === 'pending' && `⏳ ${t('visitors.status.pending')}`}
                 {stat.status === 'contacted' && `📞 ${t('visitors.status.contacted')}`}
                 {stat.status === 'subscribed' && `✅ ${t('visitors.status.subscribed')}`}
                 {stat.status === 'rejected' && `❌ ${t('visitors.status.rejected')}`}
               </div>
-              <div className="text-2xl sm:text-3xl font-bold">{stat._count}</div>
+              <div className="text-2xl sm:text-3xl font-bold dark:text-white">{stat._count}</div>
             </div>
           ))}
         </div>
@@ -378,7 +378,7 @@ export default function VisitorsPage() {
 
       {/* Add Visitor Form */}
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-xl font-semibold mb-4">{t('visitors.form.title')}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -390,7 +390,7 @@ export default function VisitorsPage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   placeholder={t('visitors.form.namePlaceholder')}
                 />
               </div>
@@ -402,7 +402,7 @@ export default function VisitorsPage() {
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   placeholder={t('visitors.form.phonePlaceholder')}
                   pattern="^(010|011|012|015)[0-9]{8}$"
                   title={t('visitors.form.phonePattern')}
@@ -414,7 +414,7 @@ export default function VisitorsPage() {
                 <select
                   value={formData.source}
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="walk-in">{t('visitors.sources.walkIn')}</option>
                   <option value="facebook">{t('visitors.sources.facebook')}</option>
@@ -430,7 +430,7 @@ export default function VisitorsPage() {
                   type="text"
                   value={formData.interestedIn}
                   onChange={(e) => setFormData({ ...formData, interestedIn: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   placeholder={t('visitors.form.interestedInPlaceholder')}
                 />
               </div>
@@ -441,7 +441,7 @@ export default function VisitorsPage() {
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 rows={3}
                 placeholder={t('visitors.form.notesPlaceholder')}
               />
@@ -459,7 +459,7 @@ export default function VisitorsPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">🔍 {t('visitors.filters.search')}</label>
@@ -467,7 +467,7 @@ export default function VisitorsPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder={t('visitors.filters.searchPlaceholder')}
             />
           </div>
@@ -477,7 +477,7 @@ export default function VisitorsPage() {
             <select
               value={monthFilter}
               onChange={(e) => setMonthFilter(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="all">{t('visitors.filters.allMonths', { count: visitors.length.toString() })}</option>
               {availableMonths.map(month => {
@@ -500,7 +500,7 @@ export default function VisitorsPage() {
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="all">{t('visitors.filters.all')}</option>
               <option value="walk-in">{t('visitors.sources.walkIn')}</option>
@@ -516,7 +516,7 @@ export default function VisitorsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="all">{t('visitors.filters.all')}</option>
               <option value="pending">{t('visitors.status.pending')}</option>
@@ -541,33 +541,33 @@ export default function VisitorsPage() {
             {currentVisitors.map((visitor) => (
               <div
                 key={visitor.id}
-                className="bg-white rounded-lg shadow-md border-r-4 border-green-500 overflow-hidden"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-r-4 border-green-500 overflow-hidden"
               >
                 {/* Actions في الأعلى */}
-                <div className="bg-gray-50 px-4 py-2 flex justify-between items-center border-b">
+                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 flex justify-between items-center border-b dark:border-gray-600">
                   <div className="flex gap-2 flex-wrap">
                     {visitor.status === 'subscribed' ? (
-                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded text-xs font-bold">
+                      <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded text-xs font-bold">
                         ✅ مشترك
                       </span>
                     ) : (
                       <button
                         onClick={() => openQuickFollowUp(visitor)}
-                        className="text-primary-600 hover:text-primary-800 text-xs font-medium px-2 py-1 rounded bg-primary-50"
+                        className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs font-medium px-2 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
                       >
                         ➕ {t('visitors.actions.followUp')}
                       </button>
                     )}
                     <button
                       onClick={() => openHistoryModal(visitor)}
-                      className="text-purple-600 hover:text-purple-800 text-xs font-medium px-2 py-1 rounded bg-purple-50"
+                      className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs font-medium px-2 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
                     >
                       📋 {t('visitors.actions.history')}
                     </button>
                   </div>
                   <button
                     onClick={() => handleDelete(visitor)}
-                    className="text-red-600 hover:text-red-800 text-xs font-bold px-2 py-1 rounded bg-red-50"
+                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs font-bold px-2 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
                   >
                     🗑️ {t('visitors.actions.delete')}
                   </button>
@@ -577,12 +577,12 @@ export default function VisitorsPage() {
                 <div className="p-4 space-y-3">
                   {/* الاسم */}
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800">{visitor.name}</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">{visitor.name}</h3>
                   </div>
 
                   {/* رقم الهاتف */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm">📱</span>
+                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📱</span>
                     <a
                       href={`https://wa.me/20${visitor.phone}`}
                       target="_blank"
@@ -596,25 +596,25 @@ export default function VisitorsPage() {
 
                   {/* المصدر */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm">📂</span>
-                    <span className="text-gray-700 text-sm">{getSourceLabel(visitor.source)}</span>
+                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📂</span>
+                    <span className="text-gray-700 dark:text-gray-200 text-sm">{getSourceLabel(visitor.source)}</span>
                   </div>
 
                   {/* مهتم بـ */}
                   {visitor.interestedIn && (
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500 text-sm">💡</span>
-                      <span className="text-gray-700 text-sm">{visitor.interestedIn}</span>
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">💡</span>
+                      <span className="text-gray-700 dark:text-gray-200 text-sm">{visitor.interestedIn}</span>
                     </div>
                   )}
 
                   {/* الحالة */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm">📊</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">📊</span>
                     <select
                       value={visitor.status}
                       onChange={(e) => handleUpdateStatus(visitor.id, e.target.value)}
-                      className="text-xs px-2 py-1 rounded border flex-1"
+                      className="text-xs px-2 py-1 rounded border dark:border-gray-600 dark:bg-gray-700 dark:text-white flex-1"
                     >
                       <option value="pending">{t('visitors.status.pending')}</option>
                       <option value="contacted">{t('visitors.status.contacted')}</option>
@@ -625,16 +625,16 @@ export default function VisitorsPage() {
 
                   {/* تاريخ الزيارة */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm">📅</span>
-                    <span className="text-gray-700 text-sm">
+                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📅</span>
+                    <span className="text-gray-700 dark:text-gray-200 text-sm">
                       {new Date(visitor.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                     </span>
                   </div>
 
                   {/* الملاحظات */}
                   {visitor.notes && (
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-sm text-gray-600">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
                         <span className="font-semibold">📝 {t('visitors.table.notes')}:</span> {visitor.notes}
                       </p>
                     </div>
@@ -645,8 +645,8 @@ export default function VisitorsPage() {
 
             {/* Pagination للموبايل */}
             {filteredVisitors.length > 0 && totalPages > 1 && (
-              <div className="bg-white rounded-lg shadow-md p-4 space-y-3">
-                <div className="text-sm text-gray-600 text-center">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 space-y-3">
+                <div className="text-sm text-gray-600 dark:text-gray-300 text-center">
                   {t('visitors.pagination.showing', {
                     start: (startIndex + 1).toString(),
                     end: Math.min(endIndex, filteredVisitors.length).toString(),
@@ -658,7 +658,7 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 hover:bg-gray-200"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-gray-700 hover:bg-gray-200"
                   >
                     {t('visitors.pagination.previous')}
                   </button>
@@ -670,21 +670,21 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 hover:bg-gray-200"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-gray-700 hover:bg-gray-200"
                   >
                     {t('visitors.pagination.next')}
                   </button>
                 </div>
 
                 <div className="flex items-center justify-center gap-2 text-sm">
-                  <label className="text-gray-600">{t('visitors.pagination.itemsPerPage')}:</label>
+                  <label className="text-gray-600 dark:text-gray-300">{t('visitors.pagination.itemsPerPage')}:</label>
                   <select
                     value={itemsPerPage}
                     onChange={(e) => {
                       setItemsPerPage(Number(e.target.value))
                       setCurrentPage(1)
                     }}
-                    className="border border-gray-300 rounded-lg px-3 py-1"
+                    className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-1"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -696,7 +696,7 @@ export default function VisitorsPage() {
             )}
 
             {filteredVisitors.length === 0 && (
-              <div className="text-center py-12 text-gray-500 bg-white rounded-lg shadow-md">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                 <div className="text-5xl mb-3">🚶</div>
                 {monthFilter !== 'all' ? (
                   <>
@@ -716,23 +716,23 @@ export default function VisitorsPage() {
           </div>
 
           {/* الجدول للشاشات الكبيرة */}
-          <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-100">
+              <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
                 <tr>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('visitors.table.name')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('visitors.table.phone')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('visitors.table.source')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('visitors.table.interestedIn')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('visitors.table.status')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('visitors.table.visitDate')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('visitors.table.notes')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('visitors.table.actions')}</th>
+                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('visitors.table.name')}</th>
+                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('visitors.table.phone')}</th>
+                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('visitors.table.source')}</th>
+                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('visitors.table.interestedIn')}</th>
+                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('visitors.table.status')}</th>
+                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('visitors.table.visitDate')}</th>
+                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('visitors.table.notes')}</th>
+                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('visitors.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {currentVisitors.map((visitor) => (
-                  <tr key={visitor.id} className="border-t hover:bg-gray-50">
+                  <tr key={visitor.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-4 py-3 font-medium">{visitor.name}</td>
                     <td className="px-4 py-3">
                       <a
@@ -745,17 +745,17 @@ export default function VisitorsPage() {
                         <span className="font-mono">{visitor.phone}</span>
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                       {getSourceLabel(visitor.source)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                       {visitor.interestedIn || '-'}
                     </td>
                     <td className="px-4 py-3">
                       <select
                         value={visitor.status}
                         onChange={(e) => handleUpdateStatus(visitor.id, e.target.value)}
-                        className="text-xs px-2 py-1 rounded border"
+                        className="text-xs px-2 py-1 rounded border dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       >
                         <option value="pending">{t('visitors.status.pending')}</option>
                         <option value="contacted">{t('visitors.status.contacted')}</option>
@@ -768,23 +768,23 @@ export default function VisitorsPage() {
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {visitor.notes ? (
-                        <p className="text-gray-600 max-w-xs truncate" title={visitor.notes}>
+                        <p className="text-gray-600 dark:text-gray-300 max-w-xs truncate" title={visitor.notes}>
                           {visitor.notes}
                         </p>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2 flex-wrap">
                         {visitor.status === 'subscribed' ? (
-                          <span className="bg-green-100 text-green-800 px-3 py-1 rounded text-sm font-bold">
+                          <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded text-sm font-bold">
                             ✅ مشترك
                           </span>
                         ) : (
                           <button
                             onClick={() => openQuickFollowUp(visitor)}
-                            className="text-primary-600 hover:text-primary-800 text-sm font-medium px-3 py-1 rounded bg-primary-50 hover:bg-primary-100"
+                            className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-medium px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
                             title={t('visitors.actions.followUpTitle')}
                           >
                             ➕ {t('visitors.actions.followUp')}
@@ -792,14 +792,14 @@ export default function VisitorsPage() {
                         )}
                         <button
                           onClick={() => openHistoryModal(visitor)}
-                          className="text-purple-600 hover:text-purple-800 text-sm font-medium px-3 py-1 rounded bg-purple-50 hover:bg-purple-100"
+                          className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-medium px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
                           title={t('visitors.actions.historyTitle')}
                         >
                           📋 {t('visitors.actions.history')}
                         </button>
                         <button
                           onClick={() => handleDelete(visitor)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 rounded bg-red-50 hover:bg-red-100"
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
                         >
                           🗑️ {t('visitors.actions.delete')}
                         </button>
@@ -812,9 +812,9 @@ export default function VisitorsPage() {
 
             {/* Pagination Controls */}
             {filteredVisitors.length > 0 && totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-gray-50 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 {/* معلومات الصفحة */}
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-300">
                   {t('visitors.pagination.showing', {
                     start: (startIndex + 1).toString(),
                     end: Math.min(endIndex, filteredVisitors.length).toString(),
@@ -827,7 +827,7 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     title={t('visitors.pagination.firstPage')}
                   >
                     {t('visitors.pagination.first')}
@@ -836,7 +836,7 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     title={t('visitors.pagination.previousPage')}
                   >
                     {t('visitors.pagination.previous')}
@@ -863,7 +863,7 @@ export default function VisitorsPage() {
                           className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                             currentPage === pageNum
                               ? 'bg-primary-600 text-white'
-                              : 'hover:bg-gray-200'
+                              : 'hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                         >
                           {pageNum}
@@ -875,7 +875,7 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     title={t('visitors.pagination.nextPage')}
                   >
                     {t('visitors.pagination.next')}
@@ -884,7 +884,7 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(totalPages)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     title={t('visitors.pagination.lastPage')}
                   >
                     {t('visitors.pagination.last')}
@@ -893,14 +893,14 @@ export default function VisitorsPage() {
 
                 {/* اختيار عدد العناصر في الصفحة */}
                 <div className="flex items-center gap-2 text-sm">
-                  <label className="text-gray-600">{t('visitors.pagination.itemsPerPage')}:</label>
+                  <label className="text-gray-600 dark:text-gray-300">{t('visitors.pagination.itemsPerPage')}:</label>
                   <select
                     value={itemsPerPage}
                     onChange={(e) => {
                       setItemsPerPage(Number(e.target.value))
                       setCurrentPage(1)
                     }}
-                    className="border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -912,7 +912,7 @@ export default function VisitorsPage() {
             )}
 
             {filteredVisitors.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                 <div className="text-5xl mb-3">🚶</div>
                 {monthFilter !== 'all' ? (
                   <>
@@ -936,8 +936,8 @@ export default function VisitorsPage() {
       {/* History Modal - سجل المتابعات */}
       {showHistoryModal && selectedVisitorForHistory && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowHistoryModal(false)}>
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} dir={direction}>
-            <div className="sticky top-0 bg-purple-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} dir={direction}>
+            <div className="sticky top-0 bg-primary-600 text-white p-4 rounded-t-lg flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-bold flex items-center gap-2">
                   <span>📋</span>
@@ -949,7 +949,7 @@ export default function VisitorsPage() {
               </div>
               <button
                 onClick={() => setShowHistoryModal(false)}
-                className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center"
+                className="text-white hover:bg-white dark:bg-gray-800/20 rounded-full w-8 h-8 flex items-center justify-center"
               >
                 ✕
               </button>
@@ -957,7 +957,7 @@ export default function VisitorsPage() {
 
             <div className="p-4">
               {visitorHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                   <div className="text-4xl mb-2">📭</div>
                   <p className="text-sm">{t('visitors.historyModal.noFollowUps')}</p>
                   <button
@@ -972,8 +972,8 @@ export default function VisitorsPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                    <p className="text-sm font-bold text-purple-900">
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg border border-primary-200 dark:border-primary-700">
+                    <p className="text-sm font-bold text-primary-900 dark:text-primary-300">
                       {t('visitors.historyModal.total')}: <span className="text-2xl">{visitorHistory.length}</span>
                     </p>
                   </div>
@@ -982,14 +982,14 @@ export default function VisitorsPage() {
                     <div
                       key={fu.id}
                       className={`border rounded-lg p-3 ${
-                        fu.contacted ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
+                        fu.contacted ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xl font-bold text-gray-400">#{visitorHistory.length - index}</span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xl font-bold text-gray-400 dark:text-gray-500">#{visitorHistory.length - index}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
                               {new Date(fu.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                             </span>
                             {fu.contacted ? (
@@ -1002,19 +1002,19 @@ export default function VisitorsPage() {
                         <div className="flex gap-1 flex-wrap justify-end">
                           {fu.result && getResultBadge(fu.result)}
                           {fu.salesName && (
-                            <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs">
+                            <span className="bg-primary-100 text-primary-800 px-2 py-0.5 rounded-full text-xs">
                               {fu.salesName}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="bg-white p-2 rounded border border-gray-200 mb-2">
-                        <p className="text-sm text-gray-800">{fu.notes}</p>
+                      <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600 mb-2">
+                        <p className="text-sm text-gray-800 dark:text-gray-100">{fu.notes}</p>
                       </div>
 
                       {fu.nextFollowUpDate && (
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">
                           📅 {t('visitors.historyModal.nextFollowUp')}: <span className="font-bold">{new Date(fu.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
                         </div>
                       )}

@@ -228,7 +228,7 @@ export function getStageColor(stage: string): string {
     case 'negotiating':
       return 'bg-yellow-100 text-yellow-800'
     case 'converted':
-      return 'bg-purple-100 text-purple-800'
+      return 'bg-primary-100 text-primary-800'
     case 'lost':
       return 'bg-red-100 text-red-800'
     default:

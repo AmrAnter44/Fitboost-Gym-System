@@ -378,17 +378,17 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
   return (
     <form onSubmit={handleSubmit} className="space-y-3" dir={direction}>
       {/* قسم العروض */}
-      <div className="bg-gradient-to-br from-purple-50 to-primary-50 border-2 border-purple-200 rounded-xl p-4">
-        <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-purple-800">
+      <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-4">
+        <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-primary-800 dark:text-primary-200">
           <span>🎁</span>
           <span>{t('members.form.availableOffers')}</span>
         </h3>
-        <p className="text-xs text-gray-600 mb-3">{t('members.form.selectOfferToAutoFill')}</p>
+        <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">{t('members.form.selectOfferToAutoFill')}</p>
 
         {!Array.isArray(offers) || offers.length === 0 ? (
-          <div className="text-center py-4 bg-white rounded-xl border-2 border-dashed border-gray-300">
-            <p className="text-gray-500 text-xs">{t('members.form.noOffersAvailable')}</p>
-            <p className="text-xs text-gray-400 mt-1">{t('members.form.adminCanAddOffers')}</p>
+          <div className="text-center py-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
+            <p className="text-gray-500 dark:text-gray-400 text-xs">{t('members.form.noOffersAvailable')}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('members.form.adminCanAddOffers')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -397,12 +397,12 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
                 key={offer.id}
                 type="button"
                 onClick={() => applyOffer(offer)}
-                className="bg-white border-2 border-purple-300 hover:border-purple-500 hover:bg-purple-50 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg group"
+                className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 hover:border-primary-500 dark:hover:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg group"
               >
                 <div className="text-2xl mb-1">{offer.icon}</div>
-                <div className="font-bold text-purple-800 mb-1 text-sm">{offer.name}</div>
-                <div className="text-xl font-bold text-green-600 mb-1">{offer.price} ج.م</div>
-                <div className="text-xs text-gray-600 space-y-0.5">
+                <div className="font-bold text-primary-800 dark:text-primary-200 mb-1 text-sm">{offer.name}</div>
+                <div className="text-xl font-bold text-green-600 dark:text-green-400 mb-1">{offer.price} ج.م</div>
+                <div className="text-xs text-gray-600 dark:text-gray-300 space-y-0.5">
                   <div>💪 {offer.freePTSessions} PT</div>
                   <div>⚖️ {offer.inBodyScans} InBody</div>
                   <div>🎟️ {offer.invitations} دعوات</div>
@@ -412,14 +412,14 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
           </div>
         )}
 
-        <div className="mt-3 bg-primary-100 border-r-4 border-primary-500 p-2 rounded">
-          <p className="text-xs text-primary-800">
+        <div className="mt-3 bg-primary-100 dark:bg-primary-900/30 border-r-4 border-primary-500 dark:border-primary-700 p-2 rounded">
+          <p className="text-xs text-primary-800 dark:text-primary-300">
             <strong>💡 {t('members.notes')}:</strong> {t('members.form.noteCanEditAfterOffer')}
           </p>
         </div>
       </div>
 
-      <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-3">
+      <div className="bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg p-3">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
           <span>👤</span>
           <span>{t('members.form.basicInformation')}</span>
@@ -435,14 +435,14 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
                 type="checkbox"
                 checked={formData.isOther}
                 onChange={(e) => handleOtherChange(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300"
+                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
               />
-              <span className="text-xs font-medium text-gray-700">{t('members.form.otherNoNumber')}</span>
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{t('members.form.otherNoNumber')}</span>
             </label>
           </div>
 
           {formData.isOther ? (
-            <div className="w-full px-3 py-2 border-2 border-dashed rounded-lg bg-gray-100 text-gray-500 text-center">
+            <div className="w-full px-3 py-2 border-2 border-dashed rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-center">
               {t('members.form.noMembershipNumber')}
             </div>
           ) : (
@@ -451,26 +451,26 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               required={!formData.isOther}
               value={formData.memberNumber}
               onChange={(e) => setFormData({ ...formData, memberNumber: e.target.value })}
-              className="w-full px-3 py-2 border-2 rounded-lg"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
               placeholder="مثال: 1001"
               disabled={formData.isOther}
             />
           )}
 
           {!formData.isOther && nextMemberNumber && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               💡 {t('members.form.suggestedNextNumber', { number: nextMemberNumber.toString() })}
             </p>
           )}
         </div>
 
         {nextReceiptNumber && (
-          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-2 mb-3">
+          <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-2 mb-3">
             <div className="flex items-center gap-2">
               <span className="text-xl">🧾</span>
               <div>
-                <p className="text-xs font-medium text-green-800">{t('members.form.nextReceiptNumber')}</p>
-                <p className="text-xl font-bold text-green-600">#{nextReceiptNumber}</p>
+                <p className="text-xs font-medium text-green-800 dark:text-green-300">{t('members.form.nextReceiptNumber')}</p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">#{nextReceiptNumber}</p>
               </div>
             </div>
           </div>
@@ -484,7 +484,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
               placeholder="أحمد محمد"
             />
           </div>
@@ -496,7 +496,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               required
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
               placeholder="01234567890"
               dir="ltr"
             />
@@ -508,7 +508,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               type="tel"
               value={formData.backupPhone}
               onChange={(e) => setFormData({ ...formData, backupPhone: e.target.value })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
               placeholder="01234567890"
               dir="ltr"
             />
@@ -520,7 +520,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               type="text"
               value={formData.nationalId}
               onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
               placeholder="29512345678901"
               dir="ltr"
               maxLength={14}
@@ -533,7 +533,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               type="date"
               value={formData.birthDate}
               onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
             />
           </div>
 
@@ -542,7 +542,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
             <select
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
             >
               <option value="">{t('members.form.selectSource')}</option>
               <option value="facebook">{t('members.form.sourceFacebook')}</option>
@@ -560,7 +560,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               required
               value={formData.staffName}
               readOnly
-              className="w-full px-3 py-2 border-2 rounded-lg bg-gray-100 cursor-not-allowed text-sm"
+              className="w-full px-3 py-2 border-2 rounded-lg bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-sm"
               placeholder="محمد علي"
             />
           </div>
@@ -574,7 +574,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         required={false}
       />
 
-      <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-3">
+      <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-3">
         <ImageUpload
           currentImage={imagePreview || null}
           onImageChange={(imageUrl) => {
@@ -590,7 +590,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       </div>
 
       {/* صور البطاقة الشخصية / الباسبور */}
-      <div className="bg-secondary-50 border-2 border-secondary-300 rounded-lg p-4">
+      <div className="bg-secondary-50 dark:bg-gray-700 border-2 border-secondary-300 dark:border-gray-600 rounded-lg p-4">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
           <span>🪪</span>
           <span>{t('members.form.idCardImagesOptional')}</span>
@@ -598,10 +598,10 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* الوجه الأمامي */}
-          <div className="bg-white border-2 border-secondary-200 rounded-lg p-3">
+          <div className="bg-white dark:bg-gray-800 border-2 border-secondary-200 dark:border-gray-600 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-2xl">🆔</span>
-              <span className="font-bold text-sm text-secondary-800">{t('members.form.idCardFront')}</span>
+              <span className="font-bold text-sm text-secondary-800 dark:text-gray-200">{t('members.form.idCardFront')}</span>
             </div>
             <ImageUpload
               currentImage={idCardFrontPreview || null}
@@ -619,10 +619,10 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
           </div>
 
           {/* الوجه الخلفي */}
-          <div className="bg-white border-2 border-secondary-200 rounded-lg p-3">
+          <div className="bg-white dark:bg-gray-800 border-2 border-secondary-200 dark:border-gray-600 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-2xl">🔄</span>
-              <span className="font-bold text-sm text-secondary-800">{t('members.form.idCardBack')}</span>
+              <span className="font-bold text-sm text-secondary-800 dark:text-gray-200">{t('members.form.idCardBack')}</span>
             </div>
             <ImageUpload
               currentImage={idCardBackPreview || null}
@@ -641,14 +641,14 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         </div>
 
         {/* ملاحظة */}
-        <div className="mt-3 bg-secondary-100 border-l-4 border-secondary-500 p-2 rounded">
-          <p className="text-xs text-secondary-900">{t('members.form.idCardNote')}</p>
+        <div className="mt-3 bg-secondary-100 dark:bg-gray-800 border-l-4 border-secondary-500 dark:border-gray-600 p-2 rounded">
+          <p className="text-xs text-secondary-900 dark:text-gray-300">{t('members.form.idCardNote')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-      <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-3">
+      <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-3">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
           <span>📅</span>
           <span>{t('members.form.subscriptionPeriod')}</span>
@@ -657,13 +657,13 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         <div className="grid grid-cols-1 gap-3 mb-3">
           <div>
             <label className="block text-xs font-medium mb-1">
-              {t('members.startDate')} <span className="text-xs text-gray-500">(yyyy-mm-dd)</span>
+              {t('members.startDate')} <span className="text-xs text-gray-500 dark:text-gray-400">(yyyy-mm-dd)</span>
             </label>
             <input
               type="text"
               value={formData.startDate}
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              className="w-full px-3 py-2 border-2 rounded-lg font-mono text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white"
               placeholder="2025-11-18"
               pattern="\d{4}-\d{2}-\d{2}"
             />
@@ -671,13 +671,13 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
 
           <div>
             <label className="block text-xs font-medium mb-1">
-              {t('members.expiryDate')} <span className="text-xs text-gray-500">(yyyy-mm-dd)</span>
+              {t('members.expiryDate')} <span className="text-xs text-gray-500 dark:text-gray-400">(yyyy-mm-dd)</span>
             </label>
             <input
               type="text"
               value={formData.expiryDate}
               onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-              className="w-full px-3 py-2 border-2 rounded-lg font-mono text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white"
               placeholder="2025-12-18"
               pattern="\d{4}-\d{2}-\d{2}"
             />
@@ -692,7 +692,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
                 key={months}
                 type="button"
                 onClick={() => calculateExpiryFromMonths(months)}
-                className="px-2 py-1 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg text-xs transition"
+                className="px-2 py-1 bg-primary-100 dark:bg-primary-900/40 hover:bg-primary-200 dark:hover:bg-primary-800/50 text-primary-800 dark:text-primary-300 rounded-lg text-xs transition"
               >
                 + {months} {months === 1 ? t('members.form.month') : t('members.form.months')}
               </button>
@@ -701,10 +701,10 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         </div>
 
         {duration !== null && (
-          <div className="bg-white border-2 border-primary-300 rounded-lg p-2">
+          <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-2">
             <p className="text-xs">
               <span className="font-medium">📊 {t('members.form.subscriptionDuration')}: </span>
-              <span className="font-bold text-primary-600">
+              <span className="font-bold text-primary-600 dark:text-primary-400">
                 {duration} {t('members.form.daysSingle')}
                 {duration >= 30 && ` (${Math.floor(duration / 30)} ${Math.floor(duration / 30) === 1 ? t('members.form.month') : t('members.form.months')})`}
               </span>
@@ -713,7 +713,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         )}
       </div>
 
-      <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+      <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-3">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
           <span>🎁</span>
           <span>{t('members.form.additionalServices')}</span>
@@ -727,7 +727,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               min="0"
               value={formData.inBodyScans}
               onChange={(e) => setFormData({ ...formData, inBodyScans: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
             />
           </div>
 
@@ -738,7 +738,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               min="0"
               value={formData.invitations}
               onChange={(e) => setFormData({ ...formData, invitations: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
             />
           </div>
 
@@ -749,7 +749,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               min="0"
               value={formData.freePTSessions}
               onChange={(e) => setFormData({ ...formData, freePTSessions: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
             />
           </div>
 
@@ -760,14 +760,14 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               min="0"
               value={formData.remainingFreezeDays}
               onChange={(e) => setFormData({ ...formData, remainingFreezeDays: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
             />
           </div>
         </div>
       </div>
       </div>
 
-      <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3">
+      <div className="bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg p-3">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
           <span>💰</span>
           <span>{t('members.form.financialInformation')}</span>
@@ -781,15 +781,15 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
             min="0"
             value={formData.subscriptionPrice}
             onChange={(e) => setFormData({ ...formData, subscriptionPrice: parseInt(e.target.value) || 0 })}
-            className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+            className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
             placeholder="0"
           />
         </div>
 
-        <div className="bg-white border-2 border-yellow-300 rounded-lg p-2">
+        <div className="bg-white dark:bg-gray-800 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-2">
           <div className="flex justify-between items-center">
             <span className="text-xs font-medium">{t('members.form.paidAmount')}:</span>
-            <span className="font-bold text-green-600">
+            <span className="font-bold text-green-600 dark:text-green-400">
               {paidAmount} {t('members.egp')}
             </span>
           </div>
@@ -813,26 +813,26 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
 
         {/* ✅ خيار عدم إنشاء إيصال */}
         <div className="mt-3">
-          <label className="flex items-center gap-2 cursor-pointer bg-yellow-50 border-2 border-yellow-300 rounded-lg p-2">
+          <label className="flex items-center gap-2 cursor-pointer bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-2">
             <input
               type="checkbox"
               checked={formData.skipReceipt}
               onChange={(e) => setFormData({ ...formData, skipReceipt: e.target.checked })}
-              className="w-4 h-4 rounded border-gray-300"
+              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
             />
-            <span className="text-xs font-bold text-yellow-800">
+            <span className="text-xs font-bold text-yellow-800 dark:text-yellow-300">
               🚫 {t('members.form.skipReceiptAdminOnly')}
             </span>
           </label>
         </div>
       </div>
 
-      <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-3">
+      <div className="bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg p-3">
         <label className="block text-xs font-medium mb-2">📝 {t('members.notes')}</label>
         <textarea
           value={formData.notes}
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-          className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+          className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
           rows={2}
           placeholder={`${t('members.notes')}...`}
         />
@@ -842,14 +842,14 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 font-bold transition"
+          className="flex-1 bg-green-600 dark:bg-green-700 text-white py-3 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 disabled:bg-gray-400 font-bold transition"
         >
           {loading ? `⏳ ${t('members.form.saving')}` : `✅ ${t('members.form.saveMember')}`}
         </button>
       </div>
 
-      <div className="bg-primary-50 border-2 border-primary-300 rounded-lg p-3 text-center">
-        <p className="text-xs text-primary-800">
+      <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 text-center">
+        <p className="text-xs text-primary-800 dark:text-primary-300">
           🖨️ <strong>{t('members.notes')}:</strong> {t('members.form.receiptWillPrintAutomatically')}
         </p>
       </div>
