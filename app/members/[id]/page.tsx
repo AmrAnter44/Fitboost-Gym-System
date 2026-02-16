@@ -2291,64 +2291,64 @@ export default function MemberDetailPage() {
                   setActiveModal(null)
                   setInvitationData({ guestName: '', guestPhone: '', notes: '' })
                 }}
-                className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-3xl leading-none"
                 type="button"
               >
                 ×
               </button>
             </div>
 
-            <div className={`bg-primary-50 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500 p-4 rounded-lg mb-6`}>
-              <p className="font-bold text-primary-800">
+            <div className={`bg-primary-50 dark:bg-primary-900/30 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500 dark:border-primary-400 p-4 rounded-lg mb-6`}>
+              <p className="font-bold text-primary-800 dark:text-primary-200">
                 {t('memberDetails.invitationModal.memberLabel', { name: member.name, number: member.memberNumber.toString() })}
               </p>
-              <p className="text-sm text-primary-700 mt-1">
+              <p className="text-sm text-primary-700 dark:text-primary-300 mt-1">
                 {t('memberDetails.invitationModal.invitationsRemaining', { count: (member.invitations ?? 0).toString() })}
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  {t('memberDetails.invitationModal.guestName')} <span className="text-red-600">{t('memberDetails.invitationModal.required')}</span>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('memberDetails.invitationModal.guestName')} <span className="text-red-600 dark:text-red-400">{t('memberDetails.invitationModal.required')}</span>
                 </label>
                 <input
                   type="text"
                   value={invitationData.guestName}
                   onChange={(e) => setInvitationData({ ...invitationData, guestName: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-primary-500"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
                   placeholder={t('memberDetails.invitationModal.guestNamePlaceholder')}
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  {t('memberDetails.invitationModal.guestPhone')} <span className="text-red-600">{t('memberDetails.invitationModal.required')}</span>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('memberDetails.invitationModal.guestPhone')} <span className="text-red-600 dark:text-red-400">{t('memberDetails.invitationModal.required')}</span>
                 </label>
                 <input
                   type="tel"
                   value={invitationData.guestPhone}
                   onChange={(e) => setInvitationData({ ...invitationData, guestPhone: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-primary-500 font-mono"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 font-mono"
                   placeholder={t('memberDetails.invitationModal.guestPhonePlaceholder')}
                   dir="ltr"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">{t('memberDetails.invitationModal.notes')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('memberDetails.invitationModal.notes')}</label>
                 <textarea
                   value={invitationData.notes}
                   onChange={(e) => setInvitationData({ ...invitationData, notes: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-primary-500"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
                   rows={3}
                   placeholder={t('memberDetails.invitationModal.notesPlaceholder')}
                 />
               </div>
 
               <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-green-800">
+                <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
                   <span className="text-xl">✅</span>
                   <div>
                     <p className="font-semibold">{t('memberDetails.invitationModal.actionsSummary')}</p>
@@ -2374,7 +2374,7 @@ export default function MemberDetailPage() {
                     setActiveModal(null)
                     setInvitationData({ guestName: '', guestPhone: '', notes: '' })
                   }}
-                  className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300"
+                  className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   {t('memberDetails.invitationModal.cancel')}
                 </button>
