@@ -86,14 +86,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // ✅ Atomic increment للعداد - thread-safe
-    const counter = await prisma.receiptCounter.upsert({
-      where: { id: 1 },
-      update: { current: { increment: 1 } },
-      create: { id: 1, current: 1001 },
-    });
-    const receiptNumber = counter.current;
-
     // ✅ تحديد الاسم بالعربي حسب نوع الخدمة
     const typeArabic =
       serviceType === "DayUse"
@@ -124,6 +116,14 @@ export async function POST(request: Request) {
 
     // ✅ إنشاء DayUse و Receipt في transaction واحدة لضمان الذرية
     const result = await prisma.$transaction(async (tx) => {
+      // ✅ Atomic increment للعداد داخل الـ transaction - thread-safe
+      const counter = await tx.receiptCounter.upsert({
+        where: { id: 1 },
+        update: { current: { increment: 1 } },
+        create: { id: 1, current: 1001 },
+      });
+      const receiptNumber = counter.current;
+
       // إنشاء الإدخال
       const entry = await tx.dayUseInBody.create({
         data: {
