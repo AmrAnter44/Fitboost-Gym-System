@@ -991,6 +991,7 @@
     "serviceLabel": "الخدمة:",
     "priceLabel": "السعر:",
     "staffLabel": "الموظف:",
+    "receiptNumber": "رقم الإيصال",
     "dateLabel": "التاريخ:",
     "egp": "ج.م",
     "delete": "حذف",

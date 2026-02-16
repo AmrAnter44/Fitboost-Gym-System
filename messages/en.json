@@ -985,6 +985,7 @@
     "serviceLabel": "Service:",
     "priceLabel": "Price:",
     "staffLabel": "Staff:",
+    "receiptNumber": "Receipt #",
     "dateLabel": "Date:",
     "egp": "EGP",
     "delete": "Delete",

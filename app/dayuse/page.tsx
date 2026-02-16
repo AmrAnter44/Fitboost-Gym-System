@@ -21,6 +21,10 @@ interface DayUseEntry {
   price: number
   staffName: string
   createdAt: string
+  Receipt?: {
+    receiptNumber: number
+    amount: number
+  }[]
 }
 
 export default function DayUsePage() {
@@ -405,6 +409,13 @@ export default function DayUsePage() {
                     <span className="font-bold text-green-600">{entry.price} {t('dayUse.egp')}</span>
                   </div>
 
+                  {entry.Receipt && entry.Receipt.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">🧾 {t('dayUse.receiptNumber')}</span>
+                      <span className="text-primary-600 dark:text-primary-400 font-semibold">#{entry.Receipt[0].receiptNumber}</span>
+                    </div>
+                  )}
+
                   <div className="flex items-start gap-2">
                     <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">👨‍💼 {t('dayUse.staffLabel')}</span>
                     <span className="text-gray-700 dark:text-gray-200">{entry.staffName}</span>
@@ -436,6 +447,7 @@ export default function DayUsePage() {
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.name')}</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.phone')}</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.serviceType')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.receiptNumber')}</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.price')}</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.staffName')}</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('dayUse.dateLabel')}</th>
@@ -458,6 +470,15 @@ export default function DayUsePage() {
                         {entry.serviceType === 'DayUse' ? t('dayUse.dayUse') :
                          entry.serviceType === 'InBody' ? t('dayUse.inBody') : t('dayUse.lockerRental')}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {entry.Receipt && entry.Receipt.length > 0 ? (
+                        <span className="text-primary-600 dark:text-primary-400 font-semibold">
+                          #{entry.Receipt[0].receiptNumber}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">{entry.price} {t('dayUse.egp')}</td>
                     <td className="px-4 py-3">{entry.staffName}</td>
