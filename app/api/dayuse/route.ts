@@ -21,6 +21,14 @@ export async function GET(request: Request) {
 
     const dayUses = await prisma.dayUseInBody.findMany({
       orderBy: { id: "desc" },
+      include: {
+        Receipt: {
+          select: {
+            receiptNumber: true,
+            amount: true
+          }
+        }
+      }
     });
     return NextResponse.json(dayUses);
   } catch (error) {
