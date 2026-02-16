@@ -7,6 +7,7 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods
 } from "../../../lib/paymentHelpers";
+import { processPaymentWithPoints } from "../../../lib/paymentProcessor";
 
 export const dynamic = 'force-dynamic'
 
@@ -156,6 +157,22 @@ export async function POST(request: Request) {
     });
 
     const entry = result.entry;
+    const receipt = result.receipt;
+
+    // ✅ خصم النقاط إذا تم استخدامها في الدفع
+    const pointsResult = await processPaymentWithPoints(
+      null,  // لا يوجد memberId
+      phone,
+      null,  // لا يوجد memberNumber لـ DayUse
+      finalPaymentMethod,
+      `دفع ${typeArabic} - ${name}`,
+      prisma
+    );
+
+    if (!pointsResult.success) {
+      console.error("⚠️ تحذير: فشل خصم النقاط:", pointsResult.message);
+      // نستمر في العملية حتى لو فشل خصم النقاط
+    }
 
     // ✅ إنشاء visitor تلقائياً من الدعوة (إذا لم يكن موجوداً)
     try {
@@ -197,7 +214,17 @@ export async function POST(request: Request) {
       console.error("⚠️ تحذير: فشل إنشاء الزائر من الدعوة:", visitorError);
     }
 
-    return NextResponse.json(entry, { status: 201 });
+    console.log('✅ تم إنشاء DayUse و إيصال:', { entryId: entry.id, receiptNumber: receipt.receiptNumber });
+
+    return NextResponse.json({
+      ...entry,
+      receipt: {
+        receiptNumber: receipt.receiptNumber,
+        amount: receipt.amount,
+        type: receipt.type,
+        createdAt: receipt.createdAt
+      }
+    }, { status: 201 });
   } catch (error: any) {
     console.error("❌ خطأ أثناء إنشاء DayUse أو الإيصال:", error);
     if (error.code === "P2002") {
