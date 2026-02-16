@@ -15,7 +15,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel as getPaymentLabel } from '../../lib/paymentHelpers'
 import { useToast } from '../../contexts/ToastContext'
-import { fetchReceipts, fetchNextReceiptNumber } from '../../lib/api/receipts'
+import { fetchReceipts } from '../../lib/api/receipts'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
 
 interface Receipt {
@@ -60,25 +60,6 @@ export default function ReceiptsPage() {
     staleTime: 2 * 60 * 1000, // البيانات تعتبر fresh لمدة دقيقتين
   })
 
-  // ✅ استخدام useQuery لجلب رقم الإيصال التالي
-  const {
-    data: fetchedNextReceiptNumber = 1000
-  } = useQuery({
-    queryKey: ['nextReceiptNumber'],
-    queryFn: fetchNextReceiptNumber,
-    enabled: !permissionsLoading && hasPermission('canViewReceipts'),
-    retry: 1,
-    staleTime: 60 * 1000, // fresh لمدة دقيقة
-  })
-
-  // State محلي لتعديل رقم الإيصال التالي
-  const [nextReceiptNumber, setNextReceiptNumber] = useState(fetchedNextReceiptNumber)
-
-  // تحديث الـ state المحلي عند تغيير البيانات المجلوبة
-  useEffect(() => {
-    setNextReceiptNumber(fetchedNextReceiptNumber)
-  }, [fetchedNextReceiptNumber])
-
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterPayment, setFilterPayment] = useState('all')
@@ -92,7 +73,6 @@ export default function ReceiptsPage() {
     staffName: '',
     createdAt: ''
   })
-  const [showReceiptNumberEdit, setShowReceiptNumberEdit] = useState(false)
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -489,32 +469,6 @@ export default function ReceiptsPage() {
     }
   }
 
-  const handleUpdateNextReceiptNumber = async () => {
-    if (nextReceiptNumber < 1) {
-      toast.error(t('receipts.nextReceiptNumber.invalidNumber'))
-      return
-    }
-
-    try {
-      const response = await fetch('/api/receipts/next-number', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startNumber: nextReceiptNumber })
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        toast.success(data.message)
-        setShowReceiptNumberEdit(false)
-      } else {
-        toast.error(data.error)
-      }
-    } catch (error) {
-      toast.error('حدث خطأ في التحديث')
-    }
-  }
-
   if (loading) {
     return (
       <div className="container mx-auto p-6" dir={direction}>
@@ -575,48 +529,6 @@ export default function ReceiptsPage() {
             <div className="text-5xl opacity-20">💵</div>
           </div>
         </div>
-      </div>
-
-      {/* تعديل رقم الإيصال التالي - قسم صغير */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-6" dir={direction}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-xl">🔢</span>
-            <div>
-              <p className="font-bold text-sm dark:text-gray-100">{t('receipts.nextReceiptNumber.title')}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-300">#{nextReceiptNumber}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowReceiptNumberEdit(!showReceiptNumberEdit)}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium transition"
-          >
-            {showReceiptNumberEdit ? `✕ ${t('receipts.nextReceiptNumber.cancel')}` : `✏️ ${t('receipts.nextReceiptNumber.edit')}`}
-          </button>
-        </div>
-
-        {showReceiptNumberEdit && (
-          <div className="mt-4 pt-4 border-t dark:border-gray-700 flex gap-3 items-end">
-            <div className="flex-1">
-              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-200">
-                {t('receipts.nextReceiptNumber.newNumber')}
-              </label>
-              <input
-                type="number"
-                value={nextReceiptNumber}
-                onChange={(e) => setNextReceiptNumber(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                placeholder="1000"
-              />
-            </div>
-            <button
-              onClick={handleUpdateNextReceiptNumber}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition"
-            >
-              ✓ {t('receipts.nextReceiptNumber.save')}
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Filters */}

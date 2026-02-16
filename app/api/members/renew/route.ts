@@ -11,32 +11,9 @@ import {
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../../lib/points'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
+import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
 
 export const dynamic = 'force-dynamic'
-
-// 🔧 دالة للبحث عن رقم إيصال متاح
-async function getNextAvailableReceiptNumber(startingNumber: number): Promise<number> {
-  let currentNumber = startingNumber
-  let attempts = 0
-  const MAX_ATTEMPTS = 100
-  
-  while (attempts < MAX_ATTEMPTS) {
-    const existingReceipt = await prisma.receipt.findUnique({
-      where: { receiptNumber: currentNumber }
-    })
-    
-    if (!existingReceipt) {
-      console.log(`✅ رقم إيصال متاح: ${currentNumber}`)
-      return currentNumber
-    }
-    
-    console.log(`⚠️ رقم ${currentNumber} موجود، تجربة ${currentNumber + 1}...`)
-    currentNumber++
-    attempts++
-  }
-  
-  throw new Error(`فشل إيجاد رقم إيصال متاح بعد ${MAX_ATTEMPTS} محاولة`)
-}
 
 // POST - تجديد اشتراك عضو
 export async function POST(request: Request) {
@@ -127,16 +104,7 @@ export async function POST(request: Request) {
 
     // إنشاء إيصال التجديد
     try {
-      // ✅ استخدام upsert مع increment لتجنب race condition
-      const counter = await prisma.receiptCounter.upsert({
-        where: { id: 1 },
-        update: { current: { increment: 1 } },
-        create: { id: 1, current: 1001 },
-      })
-
-      const receiptNumber = counter.current
-
-      console.log('✅ رقم الإيصال:', receiptNumber)
+      const receiptNumber = await getNextReceiptNumberDirect(prisma)
 
       const paidAmount = subscriptionPrice - (remainingAmount || 0)
 

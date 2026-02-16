@@ -9,6 +9,7 @@ import {
 } from '../../../../lib/paymentHelpers'
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
+import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,15 +103,7 @@ export async function POST(request: Request) {
 
       // استخدام Transaction مع البحث عن أول رقم متاح
       const result = await prisma.$transaction(async (tx) => {
-        // استخدام upsert لتجنب race condition
-        const counter = await tx.receiptCounter.upsert({
-          where: { id: 1 },
-          update: { current: { increment: 1 } },
-          create: { id: 1, current: 1001 },
-        })
-
-        const receiptNumber = counter.current
-        console.log('🔢 استخدام رقم الإيصال:', receiptNumber)
+        const receiptNumber = await getNextReceiptNumber(tx)
 
         // ✅ معالجة وسائل الدفع المتعددة
         let finalPaymentMethod: string

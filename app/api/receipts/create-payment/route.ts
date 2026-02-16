@@ -8,6 +8,7 @@ import {
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
+import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,13 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'العضو غير موجود' }, { status: 404 })
     }
 
-    // ✅ Atomic increment للعداد - thread-safe
-    const counter = await prisma.receiptCounter.upsert({
-      where: { id: 1 },
-      update: { current: { increment: 1 } },
-      create: { id: 1, current: 1001 },
-    })
-    const receiptNumber = counter.current
+    const receiptNumber = await getNextReceiptNumberDirect(prisma)
 
     // ✅ معالجة وسائل الدفع المتعددة
     let finalPaymentMethod: string

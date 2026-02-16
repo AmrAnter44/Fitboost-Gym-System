@@ -10,6 +10,7 @@ import {
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
 import { addPointsForPayment } from '../../../../lib/points'
+import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,30 +21,6 @@ function calculateDaysBetween(date1Str: string | Date, date2Str: string | Date):
   const diffTime = Math.abs(date2.getTime() - date1.getTime())
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   return diffDays
-}
-
-// دالة للبحث عن رقم إيصال متاح
-async function getNextAvailableReceiptNumber(startingNumber: number): Promise<number> {
-  let currentNumber = startingNumber
-  let attempts = 0
-  const MAX_ATTEMPTS = 100
-
-  while (attempts < MAX_ATTEMPTS) {
-    const existingReceipt = await prisma.receipt.findUnique({
-      where: { receiptNumber: currentNumber }
-    })
-
-    if (!existingReceipt) {
-      console.log(`✅ رقم إيصال متاح: ${currentNumber}`)
-      return currentNumber
-    }
-
-    console.log(`⚠️ رقم ${currentNumber} موجود، تجربة ${currentNumber + 1}...`)
-    currentNumber++
-    attempts++
-  }
-
-  throw new Error(`فشل إيجاد رقم إيصال متاح بعد ${MAX_ATTEMPTS} محاولة`)
 }
 
 // POST - ترقية باكدج العضو
@@ -179,15 +156,7 @@ export async function POST(request: Request) {
     })
 
     // 12. الحصول على رقم الإيصال التالي (atomic operation)
-    const counter = await prisma.receiptCounter.upsert({
-      where: { id: 1 },
-      update: { current: { increment: 1 } },
-      create: { id: 1, current: 1001 },
-    })
-
-    const receiptNumber = counter.current
-
-    console.log('✅ رقم الإيصال:', receiptNumber)
+    const receiptNumber = await getNextReceiptNumberDirect(prisma)
 
     // 13. إنشاء تفاصيل الإيصال
     const itemDetails = {

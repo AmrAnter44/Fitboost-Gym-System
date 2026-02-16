@@ -22,8 +22,10 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
       const isDark = savedMode === 'true'
       setIsDarkMode(isDark)
       applyDarkMode(isDark)
+    } else {
+      // اللايت مود هو الافتراضي - تأكد من تطبيقه
+      applyDarkMode(false)
     }
-    // اللايت مود هو الافتراضي - لا نستخدم تفضيلات النظام
   }, [])
 
   // تطبيق Dark Mode على الـ HTML element

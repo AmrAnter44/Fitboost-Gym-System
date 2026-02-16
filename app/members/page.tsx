@@ -16,6 +16,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { fetchMembers, fetchOffers } from '../../lib/api/members'
 import { useToast } from '../../contexts/ToastContext'
 import { MembersSkeleton } from '../../components/LoadingSkeleton'
+import MembersAnalytics from '../../components/MembersAnalytics'
 
 interface Member {
   id: string
@@ -114,7 +115,7 @@ export default function MembersPage() {
   const [searchName, setSearchName] = useState('')
   const [searchPhone, setSearchPhone] = useState('')
 
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'analytics'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [specificDate, setSpecificDate] = useState('')
 
@@ -484,7 +485,7 @@ export default function MembersPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
           <button
             onClick={() => setFilterStatus('all')}
             className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
@@ -535,6 +536,18 @@ export default function MembersPage() {
             <div className="text-2xl mb-1">🔴</div>
             <div className="text-sm">{t('members.expiredMembers')}</div>
             <div className="text-2xl font-bold">{stats.expired}</div>
+          </button>
+
+          <button
+            onClick={() => setFilterStatus('analytics')}
+            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
+              filterStatus === 'analytics'
+                ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-xl border-2 border-purple-400'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500'
+            }`}
+          >
+            <div className="text-2xl mb-1">📈</div>
+            <div className="text-sm">{locale === 'ar' ? 'التحليلات' : 'Analytics'}</div>
           </button>
         </div>
 
@@ -718,6 +731,8 @@ export default function MembersPage() {
 
       {loading ? (
         <div className="text-center py-12 dark:text-white">{t('common.loading')}</div>
+      ) : filterStatus === 'analytics' ? (
+        <MembersAnalytics members={membersData} />
       ) : (
         <>
           {/* Desktop Table - Hidden on mobile/tablet */}
