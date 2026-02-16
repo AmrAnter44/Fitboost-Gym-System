@@ -8,6 +8,7 @@ import {
   serializePaymentMethods
 } from "../../../lib/paymentHelpers";
 import { processPaymentWithPoints } from "../../../lib/paymentProcessor";
+import { getNextReceiptNumber } from "../../../lib/receiptHelpers";
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
     const dayUses = await prisma.dayUseInBody.findMany({
       orderBy: { id: "desc" },
       include: {
-        Receipt: {
+        receipts: {
           select: {
             receiptNumber: true,
             amount: true
@@ -116,13 +117,8 @@ export async function POST(request: Request) {
 
     // ✅ إنشاء DayUse و Receipt في transaction واحدة لضمان الذرية
     const result = await prisma.$transaction(async (tx) => {
-      // ✅ Atomic increment للعداد داخل الـ transaction - thread-safe
-      const counter = await tx.receiptCounter.upsert({
-        where: { id: 1 },
-        update: { current: { increment: 1 } },
-        create: { id: 1, current: 1001 },
-      });
-      const receiptNumber = counter.current;
+      // ✅ الحصول على رقم الإيصال التالي (يضمن عدم التكرار)
+      const receiptNumber = await getNextReceiptNumber(tx);
 
       // إنشاء الإدخال
       const entry = await tx.dayUseInBody.create({
@@ -152,6 +148,8 @@ export async function POST(request: Request) {
           dayUseId: entry.id,
         },
       });
+
+      console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber);
 
       return { entry, receipt };
     });

@@ -10,6 +10,7 @@ import {
 } from '../../../lib/paymentHelpers'
 import { logError } from '../../../lib/errorLogger'
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
+import { getNextReceiptNumberDirect } from '../../../lib/receiptHelpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -375,16 +376,8 @@ export async function POST(request: Request) {
     if (!skipReceipt) {
       // ✅ إنشاء الإيصال فقط إذا لم يتم تفعيل خيار عدم الإنشاء
       try {
-      // ✅ استخدام upsert مع increment لتجنب race condition
-      const counter = await prisma.receiptCounter.upsert({
-        where: { id: 1 },
-        update: { current: { increment: 1 } },
-        create: { id: 1, current: 1001 },
-      })
-
-      const receiptNumber = counter.current
-
-      console.log('✅ رقم الإيصال:', receiptNumber)
+      // ✅ الحصول على رقم الإيصال التالي (يضمن عدم التكرار)
+      const receiptNumber = await getNextReceiptNumberDirect(prisma)
 
       const paidAmount = cleanSubscriptionPrice - cleanRemainingAmount
 

@@ -11,6 +11,7 @@ import {
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
+import { getNextReceiptNumber } from '../../../lib/receiptHelpers'
 // @ts-ignore
 import bwipjs from 'bwip-js'
 
@@ -304,15 +305,7 @@ export async function POST(request: Request) {
 
         console.log('✅ تم إنشاء جلسة GroupClass:', groupClass.classNumber)
 
-        // استخدام upsert لتجنب race condition
-        const counter = await tx.receiptCounter.upsert({
-          where: { id: 1 },
-          update: { current: { increment: 1 } },
-          create: { id: 1, current: 1001 },
-        })
-
-        const receiptNumber = counter.current
-        console.log('🔢 استخدام رقم الإيصال:', receiptNumber)
+        const receiptNumber = await getNextReceiptNumber(tx)
 
         // ✅ معالجة وسائل الدفع المتعددة
         let finalPaymentMethod: string

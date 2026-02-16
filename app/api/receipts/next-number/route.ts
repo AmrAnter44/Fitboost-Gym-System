@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
+import { requirePermission } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    // ✅ التحقق من صلاحية الوصول للإعدادات
+    await requirePermission(req, 'canAccessSettings')
+
     const { startNumber } = await req.json()
 
     if (!startNumber || startNumber < 1) {
@@ -54,8 +58,23 @@ export async function POST(req: Request) {
       message: `تم تحديث رقم الإيصال التالي إلى ${startNumber}`,
       nextNumber: startNumber
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating receipt number:', error)
+
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
+    if (error.message.includes('Forbidden')) {
+      return NextResponse.json(
+        { error: 'ليس لديك صلاحية تعديل إعدادات الإيصالات' },
+        { status: 403 }
+      )
+    }
+
     return NextResponse.json({ error: 'فشل تحديث رقم الإيصال' }, { status: 500 })
   }
 }

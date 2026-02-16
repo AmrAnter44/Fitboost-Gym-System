@@ -47,6 +47,13 @@ export default function SettingsPage() {
   })
   const [loadingServices, setLoadingServices] = useState(false)
 
+  // Numbers Settings State
+  const [nextReceiptNumber, setNextReceiptNumber] = useState(1001)
+  const [nextMemberNumber, setNextMemberNumber] = useState(1001)
+  const [showReceiptNumberEdit, setShowReceiptNumberEdit] = useState(false)
+  const [showMemberNumberEdit, setShowMemberNumberEdit] = useState(false)
+  const [loadingNumbers, setLoadingNumbers] = useState(false)
+
   useEffect(() => {
     // Check if running in Electron
     if (typeof window !== 'undefined') {
@@ -54,6 +61,7 @@ export default function SettingsPage() {
     }
     checkAuth()
     fetchServiceSettings()
+    fetchNumbers()
   }, [])
 
   const fetchServiceSettings = async () => {
@@ -65,6 +73,86 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error fetching service settings:', error)
+    }
+  }
+
+  const fetchNumbers = async () => {
+    try {
+      // Fetch receipt number
+      const receiptResponse = await fetch('/api/receipts/next-number')
+      if (receiptResponse.ok) {
+        const receiptData = await receiptResponse.json()
+        setNextReceiptNumber(receiptData.nextNumber)
+      }
+
+      // Fetch member number
+      const memberResponse = await fetch('/api/members/next-number')
+      if (memberResponse.ok) {
+        const memberData = await memberResponse.json()
+        setNextMemberNumber(memberData.nextNumber)
+      }
+    } catch (error) {
+      console.error('Error fetching numbers:', error)
+    }
+  }
+
+  const handleUpdateReceiptNumber = async () => {
+    if (nextReceiptNumber < 1) {
+      alert(locale === 'ar' ? 'رقم الإيصال غير صحيح' : 'Invalid receipt number')
+      return
+    }
+
+    setLoadingNumbers(true)
+    try {
+      const response = await fetch('/api/receipts/next-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startNumber: nextReceiptNumber })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert(data.message)
+        setShowReceiptNumberEdit(false)
+        fetchNumbers()
+      } else {
+        alert(data.error)
+      }
+    } catch (error) {
+      alert(locale === 'ar' ? 'حدث خطأ في التحديث' : 'Update failed')
+    } finally {
+      setLoadingNumbers(false)
+    }
+  }
+
+  const handleUpdateMemberNumber = async () => {
+    if (nextMemberNumber < 1) {
+      alert(locale === 'ar' ? 'رقم العضوية غير صحيح' : 'Invalid member number')
+      return
+    }
+
+    setLoadingNumbers(true)
+    try {
+      const response = await fetch('/api/members/next-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startNumber: nextMemberNumber })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert(data.message)
+        setShowMemberNumberEdit(false)
+        fetchNumbers()
+      } else {
+        alert(data.error)
+      }
+    } catch (error) {
+      alert(locale === 'ar' ? 'حدث خطأ في التحديث' : 'Update failed')
+    } finally {
+      setLoadingNumbers(false)
     }
   }
 
@@ -585,6 +673,106 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* قسم إعدادات الأرقام */}
+        {user?.role === 'ADMIN' && (
+          <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
+              <span>🔢</span>
+              <span>{locale === 'ar' ? 'إعدادات الأرقام' : 'Numbers Settings'}</span>
+            </h2>
+
+            {/* رقم الإيصال التالي */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-4" dir={direction}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🧾</span>
+                  <div>
+                    <p className="font-bold text-sm dark:text-gray-100">
+                      {locale === 'ar' ? 'رقم الإيصال التالي' : 'Next Receipt Number'}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">#{nextReceiptNumber}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowReceiptNumberEdit(!showReceiptNumberEdit)}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium transition"
+                >
+                  {showReceiptNumberEdit ? `✕ ${locale === 'ar' ? 'إلغاء' : 'Cancel'}` : `✏️ ${locale === 'ar' ? 'تعديل' : 'Edit'}`}
+                </button>
+              </div>
+
+              {showReceiptNumberEdit && (
+                <div className="mt-4 pt-4 border-t dark:border-gray-700 flex gap-3 items-end">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-200">
+                      {locale === 'ar' ? 'الرقم الجديد' : 'New Number'}
+                    </label>
+                    <input
+                      type="number"
+                      value={nextReceiptNumber}
+                      onChange={(e) => setNextReceiptNumber(parseInt(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="1000"
+                    />
+                  </div>
+                  <button
+                    onClick={handleUpdateReceiptNumber}
+                    disabled={loadingNumbers}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition disabled:opacity-50"
+                  >
+                    ✓ {locale === 'ar' ? 'حفظ' : 'Save'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* رقم العضو التالي */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4" dir={direction}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">👤</span>
+                  <div>
+                    <p className="font-bold text-sm dark:text-gray-100">
+                      {locale === 'ar' ? 'رقم العضو التالي' : 'Next Member Number'}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">#{nextMemberNumber}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMemberNumberEdit(!showMemberNumberEdit)}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium transition"
+                >
+                  {showMemberNumberEdit ? `✕ ${locale === 'ar' ? 'إلغاء' : 'Cancel'}` : `✏️ ${locale === 'ar' ? 'تعديل' : 'Edit'}`}
+                </button>
+              </div>
+
+              {showMemberNumberEdit && (
+                <div className="mt-4 pt-4 border-t dark:border-gray-700 flex gap-3 items-end">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-200">
+                      {locale === 'ar' ? 'الرقم الجديد' : 'New Number'}
+                    </label>
+                    <input
+                      type="number"
+                      value={nextMemberNumber}
+                      onChange={(e) => setNextMemberNumber(parseInt(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="1000"
+                    />
+                  </div>
+                  <button
+                    onClick={handleUpdateMemberNumber}
+                    disabled={loadingNumbers}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition disabled:opacity-50"
+                  >
+                    ✓ {locale === 'ar' ? 'حفظ' : 'Save'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* قسم الوضع الداكن / الفاتح */}
         <div className="border-t pt-4 sm:pt-6">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
@@ -610,11 +798,10 @@ export default function SettingsPage() {
                 }`}
               >
                 <span
-                  className={`inline-block h-8 w-8 transform rounded-full bg-white transition-transform shadow-lg ${
-                    direction === 'rtl'
-                      ? (isDarkMode ? 'translate-x-1' : 'translate-x-10')
-                      : (isDarkMode ? 'translate-x-10' : 'translate-x-1')
-                  }`}
+                  className="absolute h-8 w-8 rounded-full bg-white transition-all duration-200 shadow-lg"
+                  style={{
+                    [direction === 'rtl' ? 'right' : 'left']: isDarkMode ? '2.5rem' : '0.25rem'
+                  }}
                 >
                   <span className="flex items-center justify-center h-full text-lg">
                     {isDarkMode ? '🌙' : '☀️'}

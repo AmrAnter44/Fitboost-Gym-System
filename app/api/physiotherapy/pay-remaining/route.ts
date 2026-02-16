@@ -7,6 +7,7 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
+import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,16 +89,11 @@ export async function POST(request: Request) {
         finalPaymentMethod = paymentMethod || 'cash'
       }
 
-      // ✅ استخدام upsert مع increment لتجنب race condition
-      const counter = await prisma.receiptCounter.upsert({
-        where: { id: 1 },
-        update: { current: { increment: 1 } },
-        create: { id: 1, current: 1001 },
-      })
+      const receiptNumber = await getNextReceiptNumberDirect(prisma)
 
       const receipt = await prisma.receipt.create({
         data: {
-          receiptNumber: counter.current,
+          receiptNumber,
           type: 'دفع باقي علاج طبيعي',
           amount: paymentAmount,
           paymentMethod: finalPaymentMethod,

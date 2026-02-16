@@ -29,12 +29,14 @@ if (fs.existsSync('.env') && fs.existsSync('.next/standalone')) {
 }
 
 // Copy database
-const dbSrc = path.join('prisma', 'prisma', 'gym.db');
-const dbDest = path.join('.next', 'standalone', 'prisma', 'prisma');
+const dbSrc = path.join('prisma', 'gym.db');
+const dbDest = path.join('.next', 'standalone', 'prisma');
 if (fs.existsSync(dbSrc)) {
   fs.mkdirSync(dbDest, { recursive: true });
   fs.copyFileSync(dbSrc, path.join(dbDest, 'gym.db'));
-  console.log('✅ Database copied to standalone');
+  console.log('✅ Database copied to standalone:', dbSrc, '->', path.join(dbDest, 'gym.db'));
+} else {
+  console.warn('⚠️ Database not found at:', dbSrc);
 }
 
 // Copy standalone-server.js

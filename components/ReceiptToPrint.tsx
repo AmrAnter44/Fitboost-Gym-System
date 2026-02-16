@@ -270,7 +270,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
             </button>
             <button
               onClick={onClose}
-              className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-medium"
+              className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-medium"
             >
               إغلاق
             </button>
@@ -299,7 +299,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
               <div className="flex items-center gap-3">
                 <span className="text-4xl">📱</span>
                 <div>
-                  <h3 className="text-2xl font-bold">إرسال تفاصيل الإيصال</h3>
+                  <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">إرسال تفاصيل الإيصال</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">إيصال #{receiptNumber}</p>
                 </div>
               </div>
@@ -321,7 +321,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="01xxxxxxxxx"
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-lg"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-lg"
                 dir="ltr"
                 autoFocus
               />
@@ -342,7 +342,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
                   setPhone('')
                 }}
                 disabled={sending}
-                className="px-6 py-3 bg-gray-200 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300"
+                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
               >
                 إلغاء
               </button>

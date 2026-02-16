@@ -1624,9 +1624,9 @@ export default function MemberDetailPage() {
 
           {/* عرض الجلسات المدفوعة */}
           {paidSessionCounts.pt > 0 && (
-            <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-3 mb-3">
+            <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-3 mb-3">
               <p className="text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.paidPTSessions')}</p>
-              <p className="text-2xl font-bold text-orange-600">{paidSessionCounts.pt}</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{paidSessionCounts.pt}</p>
             </div>
           )}
 
@@ -1664,9 +1664,9 @@ export default function MemberDetailPage() {
 
             {/* عرض الجلسات المدفوعة */}
             {paidSessionCounts.nutrition > 0 && (
-              <div className="bg-lime-50 border-2 border-lime-200 rounded-lg p-3 mb-3">
+              <div className="bg-lime-50 dark:bg-lime-900/20 border-2 border-lime-200 dark:border-lime-700 rounded-lg p-3 mb-3">
                 <p className="text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.paidNutritionSessions')}</p>
-                <p className="text-2xl font-bold text-lime-600">{paidSessionCounts.nutrition}</p>
+                <p className="text-2xl font-bold text-lime-600 dark:text-lime-400">{paidSessionCounts.nutrition}</p>
               </div>
             )}
 
@@ -1705,9 +1705,9 @@ export default function MemberDetailPage() {
 
             {/* عرض الجلسات المدفوعة */}
             {paidSessionCounts.physio > 0 && (
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 mb-3">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-3 mb-3">
                 <p className="text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.paidPhysioSessions')}</p>
-                <p className="text-2xl font-bold text-blue-600">{paidSessionCounts.physio}</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{paidSessionCounts.physio}</p>
               </div>
             )}
 
@@ -1746,9 +1746,9 @@ export default function MemberDetailPage() {
 
             {/* عرض الجلسات المدفوعة */}
             {paidSessionCounts.groupClass > 0 && (
-              <div className="bg-fuchsia-50 border-2 border-fuchsia-200 rounded-lg p-3 mb-3">
+              <div className="bg-fuchsia-50 dark:bg-fuchsia-900/20 border-2 border-fuchsia-200 dark:border-fuchsia-700 rounded-lg p-3 mb-3">
                 <p className="text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.paidGroupClassSessions')}</p>
-                <p className="text-2xl font-bold text-fuchsia-600">{paidSessionCounts.groupClass}</p>
+                <p className="text-2xl font-bold text-fuchsia-600 dark:text-fuchsia-400">{paidSessionCounts.groupClass}</p>
               </div>
             )}
 
