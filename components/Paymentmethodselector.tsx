@@ -180,14 +180,14 @@ export default function PaymentMethodSelector({
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-2">
-        {t('members.paymentMethods.label')} {required && <span className="text-red-600">*</span>}
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        {t('members.paymentMethods.label')} {required && <span className="text-red-600 dark:text-red-400">*</span>}
       </label>
 
       {/* رسالة تحذيرية إذا كان allowMultiple مفعّل لكن المبلغ غير محدد */}
       {allowMultiple && (!totalAmount || totalAmount <= 0) && (
-        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 mb-3 text-center">
-          <p className="text-sm text-yellow-800 font-semibold">
+        <div className="bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-3 mb-3 text-center">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200 font-semibold">
             ⚠️ {t('multiPayment.enterAmountFirst') || 'يرجى إدخال المبلغ أولاً لعرض خيارات الدفع'}
           </p>
         </div>
@@ -197,12 +197,12 @@ export default function PaymentMethodSelector({
       {allowMultiple && totalAmount && totalAmount > 0 ? (
         <div className="space-y-4">
           {/* المبلغ الكلي */}
-          <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-300 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-4">
             <div className="flex justify-between items-center">
-              <span className="text-base font-semibold text-primary-900">
+              <span className="text-base font-semibold text-primary-900 dark:text-primary-200">
                 {t('multiPayment.totalAmount')}:
               </span>
-              <span className="text-2xl font-bold text-primary-600">
+              <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">
                 {totalAmount.toFixed(2)} {t('members.egp')}
               </span>
             </div>
@@ -211,22 +211,22 @@ export default function PaymentMethodSelector({
           {/* شريط التقدم */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm font-medium">
-              <span className={paidTotal > totalAmount ? 'text-red-600' : 'text-green-600'}>
+              <span className={paidTotal > totalAmount ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}>
                 {t('multiPayment.paid')}: {paidTotal.toFixed(2)}
               </span>
-              <span className={remaining > 0 ? 'text-orange-600' : 'text-green-600'}>
+              <span className={remaining > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}>
                 {t('multiPayment.remaining')}: {Math.max(0, remaining).toFixed(2)}
               </span>
             </div>
 
-            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
               <div
                 className={`h-full transition-all duration-300 ${
                   paidTotal > totalAmount
-                    ? 'bg-red-500'
+                    ? 'bg-red-500 dark:bg-red-600'
                     : paidTotal === totalAmount
-                    ? 'bg-green-500'
-                    : 'bg-primary-500'
+                    ? 'bg-green-500 dark:bg-green-600'
+                    : 'bg-primary-500 dark:bg-primary-600'
                 }`}
                 style={{ width: `${Math.min((paidTotal / totalAmount) * 100, 100)}%` }}
               />
@@ -271,7 +271,7 @@ export default function PaymentMethodSelector({
                   </button>
 
                   <div
-                    className={`bg-gradient-to-br ${method.gradientColor} border-2 rounded-lg p-3 transition-all hover:shadow-md`}
+                    className={`bg-gradient-to-br ${method.gradientColor} dark:from-gray-800 dark:to-gray-800 border-2 dark:border-gray-600 rounded-lg p-3 transition-all hover:shadow-md`}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">{method.icon}</span>
@@ -288,7 +288,7 @@ export default function PaymentMethodSelector({
                       min="0"
                       max={isPoints ? maxPointsValue : undefined}
                       step="0.01"
-                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-base font-bold focus:border-primary-500 focus:outline-none transition"
+                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-base font-bold focus:border-primary-500 dark:focus:border-primary-400 focus:outline-none transition"
                     />
 
                     {/* معلومات إضافية للنقاط */}
@@ -303,7 +303,7 @@ export default function PaymentMethodSelector({
                           <span className="font-bold">{maxPointsValue.toFixed(2)} {t('members.egp')}</span>
                         </div>
                         {pointsRequired > 0 && (
-                          <div className="flex justify-between text-xs font-bold text-yellow-700 bg-yellow-50 p-1 rounded">
+                          <div className="flex justify-between text-xs font-bold text-yellow-700 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/30 p-1 rounded">
                             <span>{t('multiPayment.pointsToUse') || 'النقاط المطلوبة'}:</span>
                             <span>{pointsRequired} 🏆</span>
                           </div>
@@ -318,14 +318,14 @@ export default function PaymentMethodSelector({
 
           {/* رسائل الخطأ */}
           {errorMessage && (
-            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 text-red-700 text-center font-semibold text-sm">
+            <div className="bg-red-50 dark:bg-red-900/30 border-2 border-red-300 dark:border-red-700 rounded-lg p-3 text-red-700 dark:text-red-200 text-center font-semibold text-sm">
               ⚠️ {errorMessage}
             </div>
           )}
 
           {/* رسالة النجاح */}
           {isValid && !errorMessage && (
-            <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-green-700 text-center font-semibold text-sm">
+            <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg p-3 text-green-700 dark:text-green-200 text-center font-semibold text-sm">
               ✅ المبلغ مطابق! يمكنك المتابعة الآن
             </div>
           )}
@@ -341,13 +341,13 @@ export default function PaymentMethodSelector({
               className={`
                 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all
                 ${selectedSingleMethod === method.value
-                  ? `${method.color} border-2 shadow-md scale-105`
-                  : 'bg-white border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                  ? `${method.color} dark:bg-gray-700 dark:border-primary-500 border-2 shadow-md scale-105`
+                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }
               `}
             >
               <span className="text-3xl">{method.icon}</span>
-              <span className="font-medium text-sm">
+              <span className="font-medium text-sm text-gray-700 dark:text-gray-200">
                 {t(`members.paymentMethods.${method.value}`)}
               </span>
             </button>
