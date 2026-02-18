@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 // GET - جلب كل العروض
 
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية الإعدادات (الأدمن فقط)
-    await requirePermission(request, 'canAccessSettings')
+    const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
     const { name, duration, price, freePTSessions, inBodyScans, invitations, freezeDays, icon, upgradeEligibilityDays } = body
@@ -53,6 +54,13 @@ export async function POST(request: Request) {
         icon: icon || '📅',
         upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null
       }
+    })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'CREATE', resource: 'Offer', resourceId: offer.id,
+      details: { name: offer.name, duration: offer.duration, price: offer.price },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
     return NextResponse.json(offer, { status: 201 })
@@ -81,7 +89,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية الإعدادات (الأدمن فقط)
-    await requirePermission(request, 'canAccessSettings')
+    const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
     const { id, name, duration, price, freePTSessions, inBodyScans, invitations, freezeDays, icon, isActive, upgradeEligibilityDays } = body
@@ -107,6 +115,13 @@ export async function PUT(request: Request) {
         isActive: isActive !== undefined ? isActive : true,
         upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null
       }
+    })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Offer', resourceId: offer.id,
+      details: { name: offer.name, duration: offer.duration, price: offer.price, isActive: offer.isActive },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
     return NextResponse.json(offer)
@@ -135,7 +150,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     // ✅ التحقق من صلاحية الإعدادات (الأدمن فقط)
-    await requirePermission(request, 'canAccessSettings')
+    const user = await requirePermission(request, 'canAccessSettings')
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -147,8 +162,14 @@ export async function DELETE(request: Request) {
       )
     }
 
-    await prisma.offer.delete({
-      where: { id }
+    const offerToDelete = await prisma.offer.findUnique({ where: { id }, select: { name: true, duration: true } })
+    await prisma.offer.delete({ where: { id } })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'Offer', resourceId: id,
+      details: { name: offerToDelete?.name, duration: offerToDelete?.duration },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
     return NextResponse.json({ message: 'تم حذف العرض بنجاح' })

@@ -40,7 +40,7 @@ export default function ConfirmDeleteModal({
         <div className="p-6">
           <p className="text-gray-700 dark:text-gray-200 text-lg mb-4">{message}</p>
           {itemName && (
-            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">العنصر المراد حذفه:</p>
               <p className="text-xl font-bold text-red-700">{itemName}</p>
             </div>

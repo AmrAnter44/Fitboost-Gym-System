@@ -143,6 +143,16 @@ export default function CoachCommissionPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [methodLoaded, setMethodLoaded] = useState(false)
 
+  // حالة مودال التحصيل
+  const [showPayrollModal, setShowPayrollModal] = useState(false)
+  const [payrollCommission, setPayrollCommission] = useState(0)
+  const [payrollSalary, setPayrollSalary] = useState<string>('0')
+  const [payrollCoachName, setPayrollCoachName] = useState('')
+  const [payrollStaffId, setPayrollStaffId] = useState<string | null>(null)
+  const [payrollLoading, setPayrollLoading] = useState(false)
+  const [payrollDeductions, setPayrollDeductions] = useState<Array<{ id: string; amount: number; reason: string }>>([])
+  const [loadingDeductions, setLoadingDeductions] = useState(false)
+
   // أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة)
   const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت', 'PT Day Use']
 
@@ -613,6 +623,70 @@ export default function CoachCommissionPage() {
     }
   }
 
+  // فتح مودال التحصيل
+  const openPayrollModal = async (coachName: string, commission: number) => {
+    const staff = coaches.find(c => c.name === coachName)
+    setPayrollCoachName(coachName)
+    setPayrollCommission(commission)
+    setPayrollSalary(staff?.salary?.toString() || '0')
+    setPayrollStaffId(staff?.id || null)
+    setPayrollDeductions([])
+    setShowPayrollModal(true)
+
+    // جلب الخصومات المعلقة لهذا الكوتش
+    if (staff?.id) {
+      setLoadingDeductions(true)
+      try {
+        const res = await fetch(`/api/staff-deductions?staffId=${staff.id}&isApplied=false`)
+        if (res.ok) {
+          const data = await res.json()
+          setPayrollDeductions(Array.isArray(data) ? data : [])
+        }
+      } catch { /* ignore */ } finally {
+        setLoadingDeductions(false)
+      }
+    }
+  }
+
+  // تأكيد التحصيل وإنشاء مصروف
+  const handleConfirmPayroll = async () => {
+    const salary = parseFloat(payrollSalary) || 0
+    const deductionTotal = payrollDeductions.reduce((sum, d) => sum + d.amount, 0)
+    const total = payrollCommission + salary - deductionTotal
+    setPayrollLoading(true)
+    try {
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'staff_salary',
+          amount: total,
+          description: `تحصيل: ${payrollCoachName}`,
+          notes: `كوميشن: ${payrollCommission.toFixed(2)} + مرتب: ${salary.toFixed(2)}${deductionTotal > 0 ? ` - خصومات: ${deductionTotal.toFixed(2)}` : ''}`,
+          staffId: payrollStaffId
+        })
+      })
+      if (res.ok) {
+        // تطبيق الخصومات المعلقة
+        for (const d of payrollDeductions) {
+          await fetch('/api/staff-deductions', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: d.id, isApplied: true, appliedAt: new Date().toISOString() })
+          })
+        }
+        toast.success(t('pt.commission.payrollSuccess', { name: payrollCoachName }))
+        setShowPayrollModal(false)
+      } else {
+        toast.error(t('pt.commission.payrollFail'))
+      }
+    } catch {
+      toast.error(t('pt.commission.payrollConnectionError'))
+    } finally {
+      setPayrollLoading(false)
+    }
+  }
+
   // دالة حساب التحصيل
   const handleCalculate = async () => {
     if (!selectedCoach) {
@@ -824,7 +898,7 @@ export default function CoachCommissionPage() {
           </div>
 
           {/* Admin Only: Save as Default */}
-          <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 sm:p-4">
+          <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 sm:p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-lg sm:text-xl">⚙️</span>
@@ -943,7 +1017,7 @@ export default function CoachCommissionPage() {
                   <label className="block text-xs sm:text-sm font-bold mb-2 sm:mb-3 text-gray-700 dark:text-gray-200">
                     👤 {t('pt.commission.theCoach')}
                   </label>
-                  <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-300 dark:border-primary-700 rounded-lg text-base sm:text-lg font-bold text-primary-800 dark:text-primary-300 flex items-center gap-2">
+                  <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-300 dark:border-primary-700 rounded-lg text-base sm:text-lg font-bold text-primary-800 dark:text-primary-300 flex items-center gap-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <span>🏋️</span>
                     <span>{selectedCoach}</span>
                   </div>
@@ -979,7 +1053,7 @@ export default function CoachCommissionPage() {
                     step="0.01"
                     value={customIncome}
                     onChange={(e) => setCustomIncome(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition"
+                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     placeholder={t('pt.commission.exampleIncome')}
                   />
                 </div>
@@ -987,7 +1061,7 @@ export default function CoachCommissionPage() {
 
               {/* جدول النسب - فقط في طريقة الإيرادات */}
               {calculationMethod === 'revenue' && (
-                <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5">
+                <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                   <h3 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-gray-100">
                     <span>📊</span>
                     <span>{t('pt.commission.percentageTable')}</span>
@@ -1065,7 +1139,7 @@ export default function CoachCommissionPage() {
               return (
                 <div className="space-y-3 sm:space-y-4">
                   {/* بطاقة الكوتش */}
-                  <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/50 dark:to-teal-900/50 border-2 border-green-200 dark:border-green-700 rounded-xl p-3 sm:p-4">
+                  <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/50 dark:to-teal-900/50 border-2 border-green-200 dark:border-green-700 rounded-xl p-3 sm:p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="text-xl sm:text-2xl">👨‍🏫</div>
                       <div>
@@ -1076,7 +1150,7 @@ export default function CoachCommissionPage() {
                   </div>
 
                   {/* عدد الحصص المستخدمة */}
-                  <div className="bg-gradient-to-br from-blue-50 to-primary-50 dark:from-blue-900/50 dark:to-primary-900/50 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-3 sm:p-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-primary-50 dark:from-blue-900/50 dark:to-primary-900/50 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-3 sm:p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <div className="flex items-center gap-2 sm:gap-3 mb-2">
                       <div className="text-xl sm:text-2xl md:text-3xl">📊</div>
                       <div className="flex-1">
@@ -1088,7 +1162,7 @@ export default function CoachCommissionPage() {
                   </div>
 
                   {/* سعر الحصص */}
-                  <div className="bg-gradient-to-br from-primary-50 to-pink-50 dark:from-primary-900/50 dark:to-pink-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-3 sm:p-4">
+                  <div className="bg-gradient-to-br from-primary-50 to-pink-50 dark:from-primary-900/50 dark:to-pink-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-3 sm:p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <div className="flex items-center gap-2 sm:gap-3 mb-2">
                       <div className="text-xl sm:text-2xl md:text-3xl">💵</div>
                       <div className="flex-1">
@@ -1104,7 +1178,7 @@ export default function CoachCommissionPage() {
                   </div>
 
                   {/* نسبة الكومشن قابلة للتعديل */}
-                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/50 dark:to-amber-900/50 border-2 border-orange-200 dark:border-orange-700 rounded-xl p-3 sm:p-4">
+                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/50 dark:to-amber-900/50 border-2 border-orange-200 dark:border-orange-700 rounded-xl p-3 sm:p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <label className="block text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 mb-2 sm:mb-3">
                       {t('pt.commission.editablePercentage')}
                     </label>
@@ -1146,7 +1220,7 @@ export default function CoachCommissionPage() {
 
                   {/* نصيب الجيم - للأدمن فقط */}
                   {isAdmin && (
-                    <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl p-3 sm:p-4 md:p-5">
+                    <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl p-3 sm:p-4 md:p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                       <div className="flex items-center gap-2 sm:gap-3">
                         <div className="text-xl sm:text-2xl md:text-3xl">🏢</div>
                         <div className="flex-1 min-w-0">
@@ -1181,7 +1255,7 @@ export default function CoachCommissionPage() {
         ) : (
             <div className="space-y-4 sm:space-y-6">
               {/* بطاقة الكوتش */}
-              <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-3 sm:p-4 md:p-5">
+              <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-3 sm:p-4 md:p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
                   <div className="text-xl sm:text-2xl md:text-3xl">👤</div>
                   <div>
@@ -1211,7 +1285,7 @@ export default function CoachCommissionPage() {
                 })
 
                 return coachPTReceipts.length > 0 ? (
-                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/50 dark:to-cyan-900/50 border-2 border-teal-200 dark:border-teal-700 rounded-xl p-3 sm:p-4 md:p-5">
+                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/50 dark:to-cyan-900/50 border-2 border-teal-200 dark:border-teal-700 rounded-xl p-3 sm:p-4 md:p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <h3 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2 dark:text-gray-100">
                       <span className="text-lg sm:text-xl">📊</span>
                       <span>{t('pt.commission.ptReceipts', { count: coachPTReceipts.length.toString() })}</span>
@@ -1283,7 +1357,7 @@ export default function CoachCommissionPage() {
               {coachEarnings && !useCustomIncome && (() => {
                 const coachSignupData = memberSignupCommissions.find(c => c.coachName === result.coachName)
                 return coachSignupData && coachSignupData.count > 0 ? (
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/50 dark:to-emerald-900/50 border-2 border-green-200 dark:border-green-700 rounded-xl p-3 sm:p-4 md:p-5">
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/50 dark:to-emerald-900/50 border-2 border-green-200 dark:border-green-700 rounded-xl p-3 sm:p-4 md:p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <h3 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2 dark:text-gray-100">
                       <span className="text-lg sm:text-xl">💵</span>
                       <span>{t('pt.commission.memberSubscriptions', { count: coachSignupData.count.toString() })}</span>
@@ -1327,7 +1401,7 @@ export default function CoachCommissionPage() {
 
               {/* تفاصيل عمولات PT */}
               {ptCommissions.length > 0 && (
-                <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-3 sm:p-4 md:p-5">
+                <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-3 sm:p-4 md:p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                   <h3 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
                     <span className="text-lg sm:text-xl">💎</span>
                     <span>{t('pt.commission.ptCommissionDetails', { count: ptCommissions.length.toString() })}</span>
@@ -1382,7 +1456,7 @@ export default function CoachCommissionPage() {
               )}
 
               {/* الدخل الشهري */}
-              <div className="bg-gradient-to-br from-cyan-50 to-primary-50 dark:from-cyan-900/50 dark:to-primary-900/50 border-2 border-cyan-200 dark:border-cyan-700 rounded-xl p-3 sm:p-4 md:p-5">
+              <div className="bg-gradient-to-br from-cyan-50 to-primary-50 dark:from-cyan-900/50 dark:to-primary-900/50 border-2 border-cyan-200 dark:border-cyan-700 rounded-xl p-3 sm:p-4 md:p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
                   <div className="text-xl sm:text-2xl md:text-3xl">💵</div>
                   <div className="flex-1 min-w-0">
@@ -1444,7 +1518,7 @@ export default function CoachCommissionPage() {
               </div>
 
               {/* معادلة الحساب */}
-              <div className="bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900/50 dark:to-gray-800/50 border-2 border-slate-300 dark:border-slate-700 rounded-xl p-3 sm:p-4 md:p-5">
+              <div className="bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900/50 dark:to-gray-800/50 border-2 border-slate-300 dark:border-slate-700 rounded-xl p-3 sm:p-4 md:p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <h3 className="font-bold text-center mb-3 text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-200">{t('pt.commission.calculationFormula')}</h3>
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 text-center">
                   {!useCustomIncome && (() => {
@@ -1520,6 +1594,15 @@ export default function CoachCommissionPage() {
                   </div>
                 </div>
               </div>
+
+              {/* زر التحصيل - الطريقة الأولى */}
+              <button
+                onClick={() => openPayrollModal(result.coachName, result.commission)}
+                className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-lg"
+              >
+                <span>💳</span>
+                <span>{t('pt.commission.payroll')}</span>
+              </button>
             </div>
           )}
         </div>
@@ -1528,7 +1611,7 @@ export default function CoachCommissionPage() {
       {/* نتائج الطريقة الثانية: حسب الحصص المستخدمة */}
       {calculationMethod === 'sessions' && (
         <div className="mt-6">
-          <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/50 dark:to-teal-900/50 border-2 border-green-300 dark:border-green-700 rounded-xl shadow-lg p-6">
+          <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/50 dark:to-teal-900/50 border-2 border-green-300 dark:border-green-700 rounded-xl shadow-lg p-6 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
               <span>📊</span>
               <span>{t('pt.commission.commissionBySessions')}</span>
@@ -1597,6 +1680,15 @@ export default function CoachCommissionPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* زر التحصيل - الطريقة الثانية */}
+                    <button
+                      onClick={() => openPayrollModal(coach.coachName, coach.commission)}
+                      className="w-full mt-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold py-2 rounded-lg shadow transition-all flex items-center justify-center gap-2"
+                    >
+                      <span>💳</span>
+                      <span>{t('pt.commission.payroll')}</span>
+                    </button>
 
                     {/* تفاصيل كل PT */}
                     <details className="group">
@@ -1884,6 +1976,84 @@ export default function CoachCommissionPage() {
           </table>
         </div>
       </div>
+
+      {/* مودال التحصيل */}
+      {showPayrollModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-5 rounded-t-2xl">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <span>💳</span>
+                <span>{t('pt.commission.payrollModalTitle', { name: payrollCoachName })}</span>
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-xl p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">{t('pt.commission.commissionLabel')}</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {payrollCommission.toLocaleString(localeString, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('pt.commission.currency')}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{t('pt.commission.salaryLabel')}</label>
+                <input
+                  type="number"
+                  value={payrollSalary}
+                  onChange={e => setPayrollSalary(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-lg font-mono focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:bg-gray-700 dark:text-white"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+
+              {/* الخصومات المعلقة */}
+              {loadingDeductions ? (
+                <div className="text-center text-sm text-gray-400 dark:text-gray-500 py-2">{t('pt.commission.loadingDeductions')}</div>
+              ) : payrollDeductions.length > 0 && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl p-4">
+                  <p className="text-sm font-bold text-red-700 dark:text-red-300 mb-2">
+                    📉 {t('pt.commission.pendingDeductionsTitle', { count: payrollDeductions.length.toString() })}
+                  </p>
+                  <div className="space-y-1">
+                    {payrollDeductions.map(d => (
+                      <div key={d.id} className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
+                        <span>{d.reason}</span>
+                        <span className="font-bold text-red-600 dark:text-red-400">- {d.amount.toLocaleString(localeString)} {t('pt.commission.currency')}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-red-200 dark:border-red-700 mt-2 pt-2 flex justify-between font-bold text-sm">
+                    <span className="text-red-700 dark:text-red-300">{t('pt.commission.totalDeductionsLabel')}</span>
+                    <span className="text-red-600 dark:text-red-400">- {payrollDeductions.reduce((s, d) => s + d.amount, 0).toLocaleString(localeString)} {t('pt.commission.currency')}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-violet-50 dark:bg-violet-900/30 border-2 border-violet-300 dark:border-violet-700 rounded-xl p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">{t('pt.commission.totalLabel')}</p>
+                <p className="text-3xl font-bold text-violet-600 dark:text-violet-400">
+                  {(payrollCommission + (parseFloat(payrollSalary) || 0) - payrollDeductions.reduce((s, d) => s + d.amount, 0)).toLocaleString(localeString, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('pt.commission.currency')}
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleConfirmPayroll}
+                  disabled={payrollLoading}
+                  className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {payrollLoading ? '...' : t('pt.commission.confirmPayroll')}
+                </button>
+                <button
+                  onClick={() => setShowPayrollModal(false)}
+                  className="px-6 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl transition-all"
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Settings Modal */}
       {showSettingsModal && (

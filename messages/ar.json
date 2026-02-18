@@ -56,6 +56,7 @@
     "search": "البحث",
     "offers": "العروض",
     "closing": "التقفيل",
+    "staffDeductions": "خصومات الموظفين",
     "staffAttendance": "حضور موظفين",
     "memberAttendance": "حضور أعضاء",
     "settings": "الإعدادات",
@@ -732,6 +733,7 @@
     "currentPTSessions": "حصص PT الحالية:",
     "currentInBody": "InBody الحالي:",
     "currentInvitations": "الدعوات الحالية:",
+    "currentFreezeDays": "أيام الفريز الحالية",
     "previousExpiry": "تاريخ الانتهاء السابق",
     "previousExpiryDate": "تاريخ الانتهاء السابق:",
     "renewalDetails": "تفاصيل التجديد",
@@ -1349,7 +1351,20 @@
       "saveSettings": "✅ حفظ الإعدادات",
       "savingSettings": "⏳ جاري الحفظ...",
       "cancelSettings": "✕ إلغاء",
-      "orMore": "فأكثر"
+      "orMore": "فأكثر",
+      "payroll": "تحصيل",
+      "payrollModalTitle": "تحصيل: {name}",
+      "commissionLabel": "الكوميشن",
+      "salaryLabel": "المرتب (اختياري)",
+      "totalLabel": "الإجمالي",
+      "loadingDeductions": "جاري تحميل الخصومات...",
+      "pendingDeductionsTitle": "خصومات معلقة ({count})",
+      "totalDeductionsLabel": "إجمالي الخصومات",
+      "confirmPayroll": "تأكيد التحصيل",
+      "payrollSuccess": "تم تسجيل تحصيل {name} بنجاح",
+      "payrollFail": "فشل تسجيل التحصيل",
+      "payrollConnectionError": "خطأ في الاتصال",
+      "settingsButton": "الإعدادات"
     },
     "sessionHistory": {
       "title": "سجل حضور جلسات PT",
@@ -1734,12 +1749,14 @@
     },
     "types": {
       "gymExpense": "مصروف جيم",
-      "staffLoan": "سلفة موظف"
+      "staffLoan": "سلفة موظف",
+      "staffSalary": "مرتبات"
     },
     "filter": {
       "all": "جميع المصروفات",
       "gymExpenses": "مصروفات الجيم",
-      "staffLoans": "سلف الموظفين"
+      "staffLoans": "سلف الموظفين",
+      "staffSalaries": "مرتبات"
     },
     "table": {
       "type": "النوع",
@@ -2411,6 +2428,7 @@
       "date": "التاريخ",
       "gymExpense": "مصروف جيم",
       "staffLoan": "سلفة",
+      "staffSalary": "مرتبات",
       "paid": "مدفوعة",
       "unpaid": "غير مدفوعة"
     },
@@ -3163,7 +3181,20 @@
       "saveSettings": "✅ حفظ الإعدادات",
       "savingSettings": "⏳ جاري الحفظ...",
       "cancelSettings": "✕ إلغاء",
-      "orMore": "فأكثر"
+      "orMore": "فأكثر",
+      "payroll": "تحصيل",
+      "payrollModalTitle": "تحصيل: {name}",
+      "commissionLabel": "الكوميشن",
+      "salaryLabel": "المرتب (اختياري)",
+      "totalLabel": "الإجمالي",
+      "loadingDeductions": "جاري تحميل الخصومات...",
+      "pendingDeductionsTitle": "خصومات معلقة ({count})",
+      "totalDeductionsLabel": "إجمالي الخصومات",
+      "confirmPayroll": "تأكيد التحصيل",
+      "payrollSuccess": "تم تسجيل تحصيل {name} بنجاح",
+      "payrollFail": "فشل تسجيل التحصيل",
+      "payrollConnectionError": "خطأ في الاتصال",
+      "settingsButton": "الإعدادات"
     }
   },
   "nutrition": {
@@ -3543,7 +3574,20 @@
       "saveSettings": "✅ حفظ الإعدادات",
       "savingSettings": "⏳ جاري الحفظ...",
       "cancelSettings": "✕ إلغاء",
-      "orMore": "فأكثر"
+      "orMore": "فأكثر",
+      "payroll": "تحصيل",
+      "payrollModalTitle": "تحصيل: {name}",
+      "commissionLabel": "الكوميشن",
+      "salaryLabel": "المرتب (اختياري)",
+      "totalLabel": "الإجمالي",
+      "loadingDeductions": "جاري تحميل الخصومات...",
+      "pendingDeductionsTitle": "خصومات معلقة ({count})",
+      "totalDeductionsLabel": "إجمالي الخصومات",
+      "confirmPayroll": "تأكيد التحصيل",
+      "payrollSuccess": "تم تسجيل تحصيل {name} بنجاح",
+      "payrollFail": "فشل تسجيل التحصيل",
+      "payrollConnectionError": "خطأ في الاتصال",
+      "settingsButton": "الإعدادات"
     }
   },
   "groupClass": {
@@ -3797,5 +3841,52 @@
     "addFirstPackage": "أضف أول باقة للبدء",
     "selectPackage": "اختر باقة جاهزة",
     "customPackage": "باقة مخصصة"
+  },
+  "deductions": {
+    "title": "خصومات الموظفين",
+    "subtitle": "إدارة الخصومات المعلقة وتتبع المطبقة منها",
+    "addDeduction": "إضافة خصم",
+    "addNew": "إضافة خصم جديد",
+    "staff": "الموظف",
+    "selectStaff": "اختر الموظف",
+    "employee": "موظف",
+    "amount": "مبلغ الخصم",
+    "reason": "سبب الخصم",
+    "reasonPlaceholder": "مثال: تأخير، غياب بدون إذن...",
+    "notesPlaceholder": "ملاحظات إضافية...",
+    "saving": "جاري الحفظ...",
+    "submit": "إضافة الخصم",
+    "allStaff": "جميع الموظفين",
+    "allStatuses": "جميع الحالات",
+    "pending": "معلق",
+    "applied": "مطبق",
+    "pendingDeductions": "خصومات معلقة",
+    "pendingCount": "خصم معلق",
+    "appliedDeductions": "خصومات مطبقة",
+    "appliedCount": "خصم مطبق",
+    "totalDeductions": "إجمالي الخصومات",
+    "totalCount": "خصم إجمالاً",
+    "deductionCount": "خصم",
+    "currency": "جنيه",
+    "noDeductions": "لا توجد خصومات",
+    "noPending": "لا توجد خصومات معلقة",
+    "noApplied": "لا توجد خصومات مطبقة",
+    "noAny": "لم يتم إضافة أي خصومات بعد",
+    "staffCol": "الموظف",
+    "amountCol": "المبلغ",
+    "reasonCol": "السبب",
+    "dateCol": "التاريخ",
+    "statusCol": "الحالة",
+    "actionsCol": "إجراءات",
+    "deleteBtn": "حذف",
+    "appliedOn": "طُبق:",
+    "confirmDelete": "تأكيد الحذف",
+    "confirmDeleteMsg": "هل تريد حذف الخصم:",
+    "confirmDeleteBtn": "نعم، احذف",
+    "addSuccess": "تم إضافة الخصم بنجاح",
+    "addFail": "فشل إضافة الخصم",
+    "deleteSuccess": "تم حذف الخصم بنجاح",
+    "deleteFail": "فشل حذف الخصم",
+    "connectionError": "خطأ في الاتصال"
   }
 }

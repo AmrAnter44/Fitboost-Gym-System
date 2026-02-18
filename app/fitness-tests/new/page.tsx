@@ -198,7 +198,7 @@ function NewFitnessTestContent() {
             </div>
             <button
               onClick={() => router.back()}
-              className="px-6 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 font-bold"
+              className="px-6 py-3 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
             >
               ← رجوع
             </button>
@@ -240,12 +240,12 @@ function NewFitnessTestContent() {
               onChange={(e) =>
                 setFitnessTestForm({ ...fitnessTestForm, testDate: e.target.value })
               }
-              className="w-full px-4 py-3 border-2 rounded-lg text-lg"
+              className="w-full px-4 py-3 border-2 rounded-lg text-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </div>
 
           {/* Section 3: Medical Questions */}
-          <div className="bg-yellow-50 p-6 rounded-lg mb-6">
+          <div className="bg-yellow-50 p-6 rounded-lg mb-6 dark:bg-yellow-900/20">
             <h2 className="font-bold mb-4 text-xl">الأسئلة الطبية</h2>
             <div className="space-y-3">
               {medicalQuestions.map((q) => (
@@ -274,7 +274,7 @@ function NewFitnessTestContent() {
           </div>
 
           {/* Section 4: Free PT Sessions (Read-only Display) */}
-          <div className="bg-orange-50 p-6 rounded-lg mb-6">
+          <div className="bg-orange-50 p-6 rounded-lg mb-6 dark:bg-orange-900/20">
             <div className="flex items-center justify-between">
               <span className="font-bold text-xl">حصص PT المجانية للعضو</span>
               <span className="text-5xl font-bold text-orange-600">
@@ -301,7 +301,7 @@ function NewFitnessTestContent() {
                         },
                       })
                     }
-                    className="w-full px-4 py-3 border-2 rounded-lg"
+                    className="w-full px-4 py-3 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="FAIR">Fair</option>
                     <option value="GOOD">Good</option>
@@ -313,7 +313,7 @@ function NewFitnessTestContent() {
           </div>
 
           {/* Section 6: Exercise Test */}
-          <div className="bg-green-50 p-6 rounded-lg mb-6">
+          <div className="bg-green-50 p-6 rounded-lg mb-6 dark:bg-green-900/20">
             <h2 className="font-bold mb-4 text-xl">اختبار التمارين</h2>
             <div className="space-y-4">
               {exercises.map((ex) => (
@@ -335,7 +335,7 @@ function NewFitnessTestContent() {
                         },
                       })
                     }
-                    className="w-28 px-4 py-3 border-2 rounded-lg text-center"
+                    className="w-28 px-4 py-3 border-2 rounded-lg text-center dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     min="0"
                   />
                   <span className="text-2xl font-bold">×</span>
@@ -355,7 +355,7 @@ function NewFitnessTestContent() {
                         },
                       })
                     }
-                    className="w-28 px-4 py-3 border-2 rounded-lg text-center"
+                    className="w-28 px-4 py-3 border-2 rounded-lg text-center dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     min="0"
                   />
                 </div>
@@ -374,7 +374,7 @@ function NewFitnessTestContent() {
             </button>
             <button
               onClick={() => router.back()}
-              className="px-8 bg-gray-200 py-4 rounded-lg font-bold hover:bg-gray-300"
+              className="px-8 bg-gray-200 dark:bg-gray-700 py-4 rounded-lg font-bold hover:bg-gray-300 dark:hover:bg-gray-600"
             >
               إلغاء
             </button>

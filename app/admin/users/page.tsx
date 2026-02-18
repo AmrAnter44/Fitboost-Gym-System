@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
 import { Permissions, PERMISSION_GROUPS, PERMISSION_LABELS, PERMISSION_ICONS } from '../../../types/permissions'
@@ -286,17 +287,26 @@ export default function AdminUsersPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">👥 إدارة المستخدمين</h1>
           <p className="text-gray-600 dark:text-gray-300">التحكم في حسابات النظام والصلاحيات</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center gap-2"
-        >
-          <span>➕</span>
-          <span>إضافة مستخدم</span>
-        </button>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/audit"
+            className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-5 py-3 rounded-lg font-bold flex items-center gap-2 transition-colors"
+          >
+            <span>📝</span>
+            <span>سجل النشاط</span>
+          </Link>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center gap-2"
+          >
+            <span>➕</span>
+            <span>إضافة مستخدم</span>
+          </button>
+        </div>
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4 mb-6">
         <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-5 rounded-xl shadow-lg">
           <div className="text-3xl font-bold">{stats.total}</div>
           <div className="text-sm opacity-90">إجمالي المستخدمين</div>
@@ -460,7 +470,7 @@ export default function AdminUsersPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
                   الاسم <span className="text-red-600">*</span>

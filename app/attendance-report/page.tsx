@@ -331,7 +331,7 @@ export default function AttendanceReportPage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:border-primary-500 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 transition dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </div>
 
@@ -341,7 +341,7 @@ export default function AttendanceReportPage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:border-primary-500 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 transition dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </div>
 
@@ -350,7 +350,7 @@ export default function AttendanceReportPage() {
             <select
               value={selectedStaff}
               onChange={(e) => setSelectedStaff(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:border-primary-500 transition"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 transition dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             >
               <option value="">{t('attendanceReport.all')}</option>
               {staff.map((s) => (
@@ -417,7 +417,7 @@ export default function AttendanceReportPage() {
               .map(([staffId, stats]) => (
                 <div
                   key={staffId}
-                  className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-600"
+                  className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
@@ -519,7 +519,7 @@ export default function AttendanceReportPage() {
                   {/* الأوقات والساعات */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* وقت الدخول */}
-                    <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4">
+                    <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-2xl">🕐</span>
                         <p className="text-xs font-bold text-primary-700">{t('attendanceReport.checkInTime')}</p>

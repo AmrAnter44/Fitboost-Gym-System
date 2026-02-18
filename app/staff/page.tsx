@@ -587,9 +587,9 @@ const handleScan = async (staffCode: string) => {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-primary-100 to-primary-100 dark:from-primary-900/50 dark:to-primary-900/50 border-b-2 border-primary-200 dark:border-primary-700">
                 <tr>
-                  <th className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200">{t('staff.attendance.number')}</th>
-                  <th className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200">{t('staff.attendance.name')}</th>
-                  <th className="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200">{t('staff.attendance.position')}</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm">{t('staff.attendance.number')}</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm">{t('staff.attendance.name')}</th>
+                  <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-right font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm">{t('staff.attendance.position')}</th>
                   <th className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-200">
                     <div className="flex items-center justify-center gap-2">
                       <span>🕐</span>
@@ -608,7 +608,7 @@ const handleScan = async (staffCode: string) => {
                       <span>ساعات العمل</span>
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-200">{t('staff.attendance.status')}</th>
+                  <th className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-center font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm">{t('staff.attendance.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -629,15 +629,15 @@ const handleScan = async (staffCode: string) => {
 
                   return (
                     <tr key={att.id} className={`border-t border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition ${att.checkOut === null ? 'bg-green-50 dark:bg-green-900/30 border-r-4 border-green-500 dark:border-green-600' : 'bg-white dark:bg-gray-800'}`}>
-                      <td className="px-4 py-4">
-                        <span className="bg-primary-500 dark:bg-primary-600 text-white px-3 py-1 rounded-lg font-bold text-sm">
+                      <td className="px-2 sm:px-4 py-2 sm:py-4">
+                        <span className="bg-primary-500 dark:bg-primary-600 text-white px-2 sm:px-3 py-1 rounded-lg font-bold text-xs sm:text-sm">
                           #{att.staff.staffCode}
                         </span>
                       </td>
-                      <td className="px-4 py-4 font-bold text-gray-800 dark:text-gray-100">{att.staff.name}</td>
-                      <td className="px-4 py-4">
+                      <td className="px-2 sm:px-4 py-2 sm:py-4 font-bold text-gray-800 dark:text-gray-100 text-xs sm:text-sm">{att.staff.name}</td>
+                      <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-4">
                         <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getPositionColor(
+                          className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${getPositionColor(
                             att.staff.position || ''
                           )}`}
                         >
@@ -700,13 +700,13 @@ const handleScan = async (staffCode: string) => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-center">
+                      <td className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-4 text-center">
                         {att.checkOut === null ? (
-                          <span className="px-4 py-2 rounded-full text-sm font-bold bg-green-500 dark:bg-green-600 text-white shadow-lg animate-pulse">
+                          <span className="px-2 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-green-500 dark:bg-green-600 text-white shadow-lg animate-pulse">
                             🟢 {t('staff.attendance.inside')}
                           </span>
                         ) : (
-                          <span className="px-4 py-2 rounded-full text-sm font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                          <span className="px-2 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
                             🔴 {t('staff.attendance.outside')}
                           </span>
                         )}
@@ -731,15 +731,25 @@ const handleScan = async (staffCode: string) => {
           <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900 dark:text-white">👥 {t('staff.title')}</h1>
 
         </div>
-        <button
-          onClick={() => {
-            resetForm()
-            setShowForm(!showForm)
-          }}
-          className="w-full sm:w-auto bg-primary-600 dark:bg-primary-700 text-white px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition transform hover:scale-105 shadow-md"
-        >
-          {showForm ? t('staff.hideForm') : `➕ ${t('staff.addNewStaff')}`}
-        </button>
+        <div className="flex gap-3 w-full sm:w-auto">
+          {hasPermission('canViewDeductions') && (
+            <Link
+              href="/staff-deductions"
+              className="flex-1 sm:flex-none text-center bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 px-5 py-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition font-medium shadow-sm"
+            >
+              📉 {t('nav.staffDeductions')}
+            </Link>
+          )}
+          <button
+            onClick={() => {
+              resetForm()
+              setShowForm(!showForm)
+            }}
+            className="flex-1 sm:flex-none bg-primary-600 dark:bg-primary-700 text-white px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition transform hover:scale-105 shadow-md"
+          >
+            {showForm ? t('staff.hideForm') : `➕ ${t('staff.addNewStaff')}`}
+          </button>
+        </div>
       </div>
 
       {/* نموذج الإضافة/التعديل */}

@@ -1971,7 +1971,7 @@ export default function MemberDetailPage() {
               <button
                 type="button"
                 onClick={() => setConfirmModal(null)}
-                className="flex-1 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
               >
                 ✖️ {t('memberDetails.confirmModal.cancel')}
               </button>
@@ -2001,7 +2001,7 @@ export default function MemberDetailPage() {
               </button>
             </div>
 
-            <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded-lg mb-6">
+            <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded-lg mb-6 dark:bg-yellow-900/20 dark:border-yellow-700">
               <p className="font-bold text-yellow-800">
                 {t('memberDetails.paymentModal.remainingLabel', { amount: member.remainingAmount.toString() })}
               </p>
@@ -2009,7 +2009,7 @@ export default function MemberDetailPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 dark:text-gray-300">
                   {t('memberDetails.paymentModal.amountPaid')} <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -2017,13 +2017,13 @@ export default function MemberDetailPage() {
                   value={paymentData.amount || ''}
                   onChange={(e) => setPaymentData({ ...paymentData, amount: parseInt(e.target.value) || 0 })}
                   max={member.remainingAmount}
-                  className="w-full px-4 py-3 border-2 rounded-lg text-xl focus:outline-none focus:border-primary-500"
+                  className="w-full px-4 py-3 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white text-xl focus:outline-none focus:border-primary-500"
                   placeholder="0"
                   autoFocus
                 />
               </div>
 
-              <div className="bg-gradient-to-br from-green-50 to-primary-50 dark:from-green-900/30 dark:to-primary-900/30 border-2 border-green-200 dark:border-green-700 rounded-xl p-5">
+              <div className="bg-gradient-to-br from-green-50 to-primary-50 dark:from-green-900/30 dark:to-primary-900/30 border-2 border-green-200 dark:border-green-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <PaymentMethodSelector
                   value={paymentData.paymentMethod}
                   onChange={(method) => setPaymentData({ ...paymentData, paymentMethod: method })}
@@ -2035,11 +2035,11 @@ export default function MemberDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">{t('memberDetails.paymentModal.notes')}</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-300">{t('memberDetails.paymentModal.notes')}</label>
                 <textarea
                   value={paymentData.notes}
                   onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-primary-500"
+                  className="w-full px-4 py-3 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-primary-500"
                   rows={3}
                   placeholder={t('memberDetails.paymentModal.notesPlaceholder')}
                 />
@@ -2066,7 +2066,7 @@ export default function MemberDetailPage() {
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
-                  className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300"
+                  className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   {t('memberDetails.confirmModal.cancel')}
                 </button>
@@ -2115,7 +2115,7 @@ export default function MemberDetailPage() {
                   type="text"
                   value={editBasicInfoData.name}
                   onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, name: e.target.value })}
-                  className="w-full px-2 py-1.5 border rounded text-sm"
+                  className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   placeholder={t('memberDetails.editModal.fields.namePlaceholder')}
                 />
               </div>
@@ -2128,7 +2128,7 @@ export default function MemberDetailPage() {
                   type="tel"
                   value={editBasicInfoData.phone}
                   onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, phone: e.target.value })}
-                  className="w-full px-2 py-1.5 border rounded text-sm font-mono"
+                  className="w-full px-2 py-1.5 border rounded text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   placeholder={t('memberDetails.editModal.fields.phonePlaceholder')}
                   dir="ltr"
                 />
@@ -2142,7 +2142,7 @@ export default function MemberDetailPage() {
                   type="number"
                   value={editBasicInfoData.subscriptionPrice || ''}
                   onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, subscriptionPrice: parseInt(e.target.value) || 0 })}
-                  className="w-full px-2 py-1.5 border rounded text-sm"
+                  className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   placeholder="0"
                   min="0"
                 />
@@ -2156,7 +2156,7 @@ export default function MemberDetailPage() {
                   type="date"
                   value={editBasicInfoData.startDate}
                   onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, startDate: e.target.value })}
-                  className="w-full px-2 py-1.5 border rounded text-sm"
+                  className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
@@ -2168,7 +2168,7 @@ export default function MemberDetailPage() {
                   type="date"
                   value={editBasicInfoData.expiryDate}
                   onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, expiryDate: e.target.value })}
-                  className="w-full px-2 py-1.5 border rounded text-sm"
+                  className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
@@ -2183,7 +2183,7 @@ export default function MemberDetailPage() {
                       type="number"
                       value={editBasicInfoData.inBodyScans || ''}
                       onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, inBodyScans: parseInt(e.target.value) || 0 })}
-                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       placeholder="0"
                       min="0"
                     />
@@ -2197,7 +2197,7 @@ export default function MemberDetailPage() {
                       type="number"
                       value={editBasicInfoData.invitations || ''}
                       onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, invitations: parseInt(e.target.value) || 0 })}
-                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       placeholder="0"
                       min="0"
                     />
@@ -2211,7 +2211,7 @@ export default function MemberDetailPage() {
                       type="number"
                       value={editBasicInfoData.freePTSessions || ''}
                       onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freePTSessions: parseInt(e.target.value) || 0 })}
-                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       placeholder="0"
                       min="0"
                     />
@@ -2225,7 +2225,7 @@ export default function MemberDetailPage() {
                       type="number"
                       value={editBasicInfoData.remainingFreezeDays || ''}
                       onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, remainingFreezeDays: parseInt(e.target.value) || 0 })}
-                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       placeholder="0"
                       min="0"
                     />
@@ -2240,7 +2240,7 @@ export default function MemberDetailPage() {
                 <textarea
                   value={editBasicInfoData.notes}
                   onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, notes: e.target.value })}
-                  className="w-full px-2 py-1.5 border rounded text-sm"
+                  className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   placeholder={t('memberDetails.editModal.fields.notesPlaceholder')}
                   rows={2}
                 />
@@ -2259,7 +2259,7 @@ export default function MemberDetailPage() {
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-300 font-bold text-sm"
+                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-sm"
               >
                 {t('memberDetails.editModal.buttons.cancel')}
               </button>
@@ -2398,7 +2398,7 @@ export default function MemberDetailPage() {
               </button>
             </div>
 
-            <div className="bg-cyan-50 border-r-4 border-cyan-500 p-4 rounded-lg mb-4">
+            <div className="bg-cyan-50 border-r-4 border-cyan-500 p-4 rounded-lg mb-4 dark:bg-cyan-900/20 dark:border-cyan-700">
               <p className="text-sm text-cyan-800 mb-2">
                 ❄️ {t('memberDetails.freezeModal.availableFreezeDays')}: <strong className="text-xl">{member.remainingFreezeDays} {t('common.day')}</strong>
               </p>
@@ -2418,7 +2418,7 @@ export default function MemberDetailPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 dark:text-gray-300">
                   {t('memberDetails.freezeModal.freezeDays')} <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -2427,7 +2427,7 @@ export default function MemberDetailPage() {
                   onChange={(e) => setFreezeData({ ...freezeData, days: parseInt(e.target.value) || 0 })}
                   min="1"
                   max={member.remainingFreezeDays}
-                  className="w-full px-4 py-3 border-2 rounded-lg text-xl"
+                  className="w-full px-4 py-3 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white text-xl"
                   placeholder="0"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">
@@ -2464,7 +2464,7 @@ export default function MemberDetailPage() {
                 </button>
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300"
+                  className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   {t('common.cancel')}
                 </button>
@@ -2482,7 +2482,7 @@ export default function MemberDetailPage() {
             <select
               value={selectedCoachId}
               onChange={(e) => setSelectedCoachId(e.target.value)}
-              className="w-full px-4 py-3 border-2 rounded-lg mb-4 text-lg"
+              className="w-full px-4 py-3 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white mb-4 text-lg"
             >
               <option value="">-- اختر المدرب --</option>
               {coaches.map(coach => (
@@ -2527,7 +2527,7 @@ export default function MemberDetailPage() {
               </button>
               <button
                 onClick={() => setActiveModal(null)}
-                className="px-6 bg-gray-200 py-3 rounded-lg"
+                className="px-6 bg-gray-200 dark:bg-gray-700 py-3 rounded-lg"
               >
                 إلغاء
               </button>
@@ -2567,11 +2567,11 @@ export default function MemberDetailPage() {
                 type="date"
                 value={fitnessTestForm.testDate}
                 onChange={(e) => setFitnessTestForm({...fitnessTestForm, testDate: e.target.value})}
-                className="w-full px-4 py-3 border-2 rounded-lg text-lg"
+                className="w-full px-4 py-3 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white text-lg"
               />
             </div>
 
-            <div className="bg-yellow-50 p-4 rounded-lg mb-6">
+            <div className="bg-yellow-50 p-4 rounded-lg mb-6 dark:bg-yellow-900/20">
               <h4 className="font-bold mb-4 text-lg">الأسئلة الطبية</h4>
               <div className="space-y-3">
                 {[
@@ -2608,7 +2608,7 @@ export default function MemberDetailPage() {
               </div>
             </div>
 
-            <div className="bg-orange-50 p-4 rounded-lg mb-6">
+            <div className="bg-orange-50 p-4 rounded-lg mb-6 dark:bg-orange-900/20">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-lg">حصص PT المجانية للعضو</span>
                 <span className="text-4xl font-bold text-orange-600">
@@ -2638,7 +2638,7 @@ export default function MemberDetailPage() {
                         ...fitnessTestForm,
                         flexibility: {...fitnessTestForm.flexibility, [part.key]: e.target.value}
                       })}
-                      className="w-full px-3 py-2 border-2 rounded-lg"
+                      className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     >
                       <option value="FAIR">Fair</option>
                       <option value="GOOD">Good</option>
@@ -2649,7 +2649,7 @@ export default function MemberDetailPage() {
               </div>
             </div>
 
-            <div className="bg-green-50 p-4 rounded-lg mb-6">
+            <div className="bg-green-50 p-4 rounded-lg mb-6 dark:bg-green-900/20">
               <h4 className="font-bold mb-4 text-lg">اختبار التمارين</h4>
               <div className="space-y-4">
                 {[
@@ -2674,7 +2674,7 @@ export default function MemberDetailPage() {
                           [ex.key]: {...fitnessTestForm.exercises[ex.key as keyof ExerciseTestData], sets: parseInt(e.target.value) || 0}
                         }
                       })}
-                      className="w-24 px-3 py-2 border-2 rounded-lg"
+                      className="w-24 px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       min="0"
                     />
                     <span>×</span>
@@ -2689,7 +2689,7 @@ export default function MemberDetailPage() {
                           [ex.key]: {...fitnessTestForm.exercises[ex.key as keyof ExerciseTestData], reps: parseInt(e.target.value) || 0}
                         }
                       })}
-                      className="w-24 px-3 py-2 border-2 rounded-lg"
+                      className="w-24 px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       min="0"
                     />
                   </div>
@@ -2707,7 +2707,7 @@ export default function MemberDetailPage() {
               </button>
               <button
                 onClick={() => setActiveModal(null)}
-                className="px-8 bg-gray-200 py-4 rounded-lg font-bold hover:bg-gray-300"
+                className="px-8 bg-gray-200 dark:bg-gray-700 py-4 rounded-lg font-bold hover:bg-gray-300 dark:hover:bg-gray-600"
               >
                 إلغاء
               </button>
@@ -2743,14 +2743,14 @@ export default function MemberDetailPage() {
                 </div>
               </div>
 
-              <div className="bg-orange-50 p-4 rounded-lg">
+              <div className="bg-orange-50 p-4 rounded-lg dark:bg-orange-900/20">
                 <div className="flex items-center justify-between">
                   <span className="font-bold">حصص PT المجانية</span>
                   <span className="text-3xl font-bold text-orange-600">{fitnessTestData.freePTSessions}</span>
                 </div>
               </div>
 
-              <div className="bg-yellow-50 p-4 rounded-lg">
+              <div className="bg-yellow-50 p-4 rounded-lg dark:bg-yellow-900/20">
                 <h4 className="font-bold mb-3">الحالة الطبية</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   {Object.entries(fitnessTestData.medicalQuestions).map(([key, value]) => (
@@ -2774,7 +2774,7 @@ export default function MemberDetailPage() {
                 </div>
               </div>
 
-              <div className="bg-green-50 p-4 rounded-lg">
+              <div className="bg-green-50 p-4 rounded-lg dark:bg-green-900/20">
                 <h4 className="font-bold mb-3">نتائج التمارين</h4>
                 <div className="space-y-2 text-sm">
                   {Object.entries(fitnessTestData.exercises).map(([key, value]) => (
@@ -3018,7 +3018,7 @@ export default function MemberDetailPage() {
                     return (
                       <div
                         key={receipt.id}
-                        className="bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 dark:border-gray-600 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition"
+                        className="bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 dark:border-gray-600 dark:border-gray-600 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white p-4 hover:shadow-md transition"
                       >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                           <div className="flex-1">
@@ -3147,7 +3147,7 @@ export default function MemberDetailPage() {
                   {pointsHistory.map((entry: any) => (
                     <div
                       key={entry.id}
-                      className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-lg p-4 hover:shadow-md transition"
+                      className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white p-4 hover:shadow-md transition"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -3235,7 +3235,7 @@ export default function MemberDetailPage() {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* الوجه الأمامي */}
-                  <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-300 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-300 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-3xl">🆔</span>
                       <h3 className="text-xl font-bold text-primary-900">{t('memberDetails.idCardModal.frontSide')}</h3>
@@ -3261,7 +3261,7 @@ export default function MemberDetailPage() {
                   </div>
 
                   {/* الوجه الخلفي */}
-                  <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-300 rounded-xl p-4">
+                  <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-300 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-3xl">🔄</span>
                       <h3 className="text-xl font-bold text-primary-900">{t('memberDetails.idCardModal.backSide')}</h3>
@@ -3289,7 +3289,7 @@ export default function MemberDetailPage() {
               )}
 
               {/* Note */}
-              <div className="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+              <div className="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded dark:bg-blue-900/20 dark:border-blue-700">
                 <p className="text-sm text-blue-900">
                   💡 {t('memberDetails.idCardModal.clickToOpen')}
                 </p>

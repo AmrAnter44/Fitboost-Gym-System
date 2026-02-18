@@ -89,7 +89,7 @@ export default function SetupPage() {
                   </div>
                 </div>
 
-                <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded-lg mb-4">
+                <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded-lg mb-4 dark:bg-yellow-900/20 dark:border-yellow-700">
                   <p className="text-sm text-yellow-800">
                     <strong>⚠️ مهم:</strong> احفظ البيانات دي في مكان آمن! وغيّر الباسورد بعد أول تسجيل دخول.
                   </p>

@@ -8,6 +8,7 @@ import { useSuccess } from '../../../../hooks/useSuccess'
 import { usePermissions } from '../../../../hooks/usePermissions'
 import ConfirmDialog from '../../../../components/ConfirmDialog'
 import SuccessDialog from '../../../../components/SuccessDialog'
+import { useDebounce } from '../../../../hooks/useDebounce'
 
 interface PTSessionRecord {
   id: string
@@ -33,6 +34,7 @@ export default function PTSessionHistoryPage() {
   const [sessions, setSessions] = useState<PTSessionRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [filterPTNumber, setFilterPTNumber] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -97,9 +99,9 @@ export default function PTSessionHistoryPage() {
   // فلترة السجلات
   const filteredSessions = sessions.filter(session => {
     const matchesSearch = 
-      session.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.coachName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.ptNumber.toString().includes(searchTerm)
+      session.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.coachName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.ptNumber.toString().includes(debouncedSearchTerm)
     
     const matchesPTNumber = !filterPTNumber || session.ptNumber.toString() === filterPTNumber
     

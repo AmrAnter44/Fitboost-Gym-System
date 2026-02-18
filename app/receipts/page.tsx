@@ -4,19 +4,26 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import nextDynamic from 'next/dynamic'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import PermissionDenied from '../../components/PermissionDenied'
-import ReceiptWhatsApp from '../../components/ReceiptWhatsApp'
-import { ReceiptDetailModal } from '../../components/ReceiptDetailModal'
 import { printReceiptFromData } from '../../lib/printSystem'
 import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
+
+// ✅ Dynamic imports - تحميل عند الحاجة فقط
+const ReceiptWhatsApp = nextDynamic(() => import('../../components/ReceiptWhatsApp'), { ssr: false })
+const ReceiptDetailModal = nextDynamic(
+  () => import('../../components/ReceiptDetailModal').then(m => ({ default: m.ReceiptDetailModal })),
+  { ssr: false, loading: () => <div className="animate-pulse h-40 bg-gray-200 dark:bg-gray-700 rounded-xl" /> }
+)
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel as getPaymentLabel } from '../../lib/paymentHelpers'
 import { useToast } from '../../contexts/ToastContext'
 import { fetchReceipts } from '../../lib/api/receipts'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
+import { useDebounce } from '../../hooks/useDebounce'
 
 interface Receipt {
   id: string
@@ -45,6 +52,7 @@ export default function ReceiptsPage() {
   const { t, direction } = useLanguage()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const toast = useToast()
+  const queryClient = useQueryClient()
 
   // ✅ استخدام useQuery لجلب الإيصالات
   const {
@@ -63,6 +71,7 @@ export default function ReceiptsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterPayment, setFilterPayment] = useState('all')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null)
   const [editingReceipt, setEditingReceipt] = useState<Receipt | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -108,19 +117,19 @@ export default function ReceiptsPage() {
     let filtered = [...receipts]
 
     // فلتر البحث
-    if (searchTerm) {
+    if (debouncedSearchTerm) {
       filtered = filtered.filter(r => {
         try {
           const details = JSON.parse(r.itemDetails)
           return (
-            r.receiptNumber.toString().includes(searchTerm) ||
-            details.memberName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            details.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            details.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            details.memberNumber?.toString().includes(searchTerm) ||
-            details.ptNumber?.toString().includes(searchTerm) ||
-            details.phone?.includes(searchTerm) ||
-            r.staffName?.toLowerCase().includes(searchTerm.toLowerCase())
+            r.receiptNumber.toString().includes(debouncedSearchTerm) ||
+            details.memberName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+            details.clientName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+            details.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+            details.memberNumber?.toString().includes(debouncedSearchTerm) ||
+            details.ptNumber?.toString().includes(debouncedSearchTerm) ||
+            details.phone?.includes(debouncedSearchTerm) ||
+            r.staffName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
           )
         } catch {
           return false
@@ -144,12 +153,12 @@ export default function ReceiptsPage() {
     }
 
     return filtered
-  }, [receipts, searchTerm, filterType, filterPayment])
+  }, [receipts, debouncedSearchTerm, filterType, filterPayment])
 
   // ✅ useEffect منفصل لإعادة ضبط الصفحة عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, filterType, filterPayment])
+  }, [debouncedSearchTerm, filterType, filterPayment])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage)
@@ -278,6 +287,12 @@ export default function ReceiptsPage() {
 
     if (!confirmed) return
 
+    // ✅ Optimistic Update - علّم الإيصال كملغي فوراً
+    const previousData = queryClient.getQueryData<any[]>(['receipts'])
+    queryClient.setQueryData<any[]>(['receipts'], (old) =>
+      old ? old.map(r => r.id === receiptId ? { ...r, isCancelled: true } : r) : old
+    )
+
     try {
       const response = await fetch(`/api/receipts/${receiptId}/cancel`, {
         method: 'POST',
@@ -287,12 +302,14 @@ export default function ReceiptsPage() {
 
       if (response.ok) {
         toast.success('تم إلغاء الإيصال بنجاح')
-        refetchReceipts()
+        queryClient.invalidateQueries({ queryKey: ['receipts'] })
       } else {
+        queryClient.setQueryData(['receipts'], previousData)
         const error = await response.json()
         toast.error(error.error || 'فشل إلغاء الإيصال')
       }
     } catch (error) {
+      queryClient.setQueryData(['receipts'], previousData)
       console.error('Error:', error)
       toast.error('حدث خطأ أثناء إلغاء الإيصال')
     }
@@ -314,6 +331,12 @@ export default function ReceiptsPage() {
 
     if (!confirmed) return
 
+    // ✅ Optimistic Update - احذف الإيصال فوراً
+    const previousData = queryClient.getQueryData<any[]>(['receipts'])
+    queryClient.setQueryData<any[]>(['receipts'], (old) =>
+      old ? old.filter(r => r.id !== receiptId) : old
+    )
+
     try {
       const response = await fetch(`/api/receipts/update?id=${receiptId}`, {
         method: 'DELETE'
@@ -321,12 +344,14 @@ export default function ReceiptsPage() {
 
       if (response.ok) {
         toast.success(t('receipts.delete.success'))
-        refetchReceipts()
+        queryClient.invalidateQueries({ queryKey: ['receipts'] })
       } else {
+        queryClient.setQueryData(['receipts'], previousData)
         const error = await response.json()
         toast.error(error.error || t('receipts.delete.error'))
       }
     } catch (error) {
+      queryClient.setQueryData(['receipts'], previousData)
       console.error('Error:', error)
       toast.error(t('receipts.delete.errorOccurred'))
     }
@@ -358,6 +383,22 @@ export default function ReceiptsPage() {
   const handleSaveEdit = async () => {
     if (!editingReceipt) return
 
+    // ✅ Optimistic Update - حدّث الإيصال فوراً
+    const previousData = queryClient.getQueryData<any[]>(['receipts'])
+    const updatedCreatedAt = editFormData.createdAt ? new Date(editFormData.createdAt).toISOString() : editingReceipt.createdAt
+    queryClient.setQueryData<any[]>(['receipts'], (old) =>
+      old ? old.map(r => r.id === editingReceipt.id ? {
+        ...r,
+        receiptNumber: editFormData.receiptNumber,
+        amount: editFormData.amount,
+        paymentMethod: editFormData.paymentMethod,
+        staffName: editFormData.staffName,
+        createdAt: updatedCreatedAt
+      } : r) : old
+    )
+    setShowEditModal(false)
+    setEditingReceipt(null)
+
     try {
       const response = await fetch('/api/receipts/update', {
         method: 'PUT',
@@ -368,20 +409,22 @@ export default function ReceiptsPage() {
           amount: editFormData.amount,
           paymentMethod: editFormData.paymentMethod,
           staffName: editFormData.staffName,
-          createdAt: editFormData.createdAt ? new Date(editFormData.createdAt).toISOString() : undefined
+          createdAt: updatedCreatedAt
         })
       })
 
       if (response.ok) {
         toast.success(t('receipts.edit.success'))
-        setShowEditModal(false)
-        setEditingReceipt(null)
-        refetchReceipts()
+        queryClient.invalidateQueries({ queryKey: ['receipts'] })
       } else {
+        queryClient.setQueryData(['receipts'], previousData)
+        setShowEditModal(true)
+        setEditingReceipt(editingReceipt)
         const error = await response.json()
         toast.error(error.error || t('receipts.edit.error'))
       }
     } catch (error) {
+      queryClient.setQueryData(['receipts'], previousData)
       console.error('Error:', error)
       toast.error(t('receipts.messages.updateError'))
     }
@@ -469,6 +512,36 @@ export default function ReceiptsPage() {
     }
   }
 
+  // ✅ تصدير CSV للإيصالات
+  const exportReceiptsCSV = () => {
+    const headers = ['رقم الإيصال', 'النوع', 'العميل', 'المبلغ', 'طريقة الدفع', 'الموظف', 'التاريخ', 'ملغي']
+    const rows = filteredReceipts.map(r => {
+      let clientName = ''
+      try {
+        const d = JSON.parse(r.itemDetails)
+        clientName = d.memberName || d.clientName || d.name || ''
+      } catch {}
+      return [
+        r.receiptNumber,
+        r.type,
+        clientName,
+        r.amount,
+        r.paymentMethod,
+        r.staffName || '',
+        new Date(r.createdAt).toLocaleDateString('ar-EG'),
+        r.isCancelled ? 'نعم' : 'لا',
+      ]
+    })
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `receipts_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto p-6" dir={direction}>
@@ -496,6 +569,16 @@ export default function ReceiptsPage() {
             </p>
           )}
         </div>
+        <button
+          onClick={exportReceiptsCSV}
+          title="تصدير CSV"
+          className="flex items-center gap-2 bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 text-sm font-bold shadow"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          CSV
+        </button>
       </div>
 
       {/* Statistics */}
@@ -802,7 +885,7 @@ export default function ReceiptsPage() {
                   )}
 
                   {details.services && details.services.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-semibold">📋 {t('receipts.card.services')}</p>
                       <div className="space-y-1">
                         {details.services.map((service: any, idx: number) => (
@@ -816,7 +899,7 @@ export default function ReceiptsPage() {
                 </div>
 
                 {/* Footer Info */}
-                <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-600">
+                <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                   {receipt.staffName && (
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500 dark:text-gray-400 text-xs">👨‍💼</span>
@@ -839,7 +922,7 @@ export default function ReceiptsPage() {
                 </div>
 
                 {/* Action Buttons - Grid Layout */}
-                <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                   {/* الصف الأول - 3 أزرار */}
                   <ReceiptWhatsApp
                     receipt={receipt}
@@ -1169,7 +1252,7 @@ export default function ReceiptsPage() {
               <button
                 onClick={() => goToPage(1)}
                 disabled={currentPage === 1}
-                className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
+                className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
                 title={t('receipts.pagination.first')}
               >
                 {t('receipts.pagination.first')}
@@ -1178,7 +1261,7 @@ export default function ReceiptsPage() {
               <button
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
+                className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
                 title={t('receipts.pagination.previous')}
               >
                 {t('receipts.pagination.previous')}
@@ -1217,7 +1300,7 @@ export default function ReceiptsPage() {
               <button
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
+                className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
                 title={t('receipts.pagination.next')}
               >
                 {t('receipts.pagination.next')}
@@ -1226,7 +1309,7 @@ export default function ReceiptsPage() {
               <button
                 onClick={() => goToPage(totalPages)}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
+                className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
                 title={t('receipts.pagination.last')}
               >
                 {t('receipts.pagination.last')}

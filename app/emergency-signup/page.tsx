@@ -151,7 +151,7 @@ export default function EmergencySignupPage() {
             />
           </div>
 
-          <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded">
+          <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded dark:bg-yellow-900/20 dark:border-yellow-700">
             <p className="text-sm text-yellow-800">
               <strong>⚠️ تحذير:</strong> سيتم إنشاء حساب أدمن بصلاحيات كاملة. احذف هذه الصفحة فوراً بعد الاستخدام!
             </p>

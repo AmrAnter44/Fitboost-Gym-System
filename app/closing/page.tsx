@@ -1,12 +1,23 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts'
 import { normalizePaymentMethod, isMultiPayment } from '../../lib/paymentHelpers'
 import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
 import { getReceiptTypeTranslationKey, isFloorReceipt, isPTReceipt } from '../../lib/translateReceiptType'
+
+const ClosingCharts = dynamic(() => import('@/components/ClosingCharts'), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="animate-pulse h-[420px] bg-gray-200 dark:bg-gray-700 rounded-lg" />
+      ))}
+    </div>
+  ),
+})
 
 interface DailyData {
   date: string
@@ -667,7 +678,7 @@ export default function ClosingPage() {
             const row = expensesSheet.addRow([
               new Date(expense.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US'),
               new Date(expense.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US'),
-              expense.type === 'gym_expense' ? t('closing.expenses.gymExpense') : t('closing.expenses.staffLoan'),
+              expense.type === 'gym_expense' ? t('closing.expenses.gymExpense') : expense.type === 'staff_salary' ? t('closing.expenses.staffSalary') : t('closing.expenses.staffLoan'),
               expense.description,
               expense.staff ? expense.staff.name : '-',
               expense.amount,
@@ -995,263 +1006,22 @@ export default function ClosingPage() {
                     </div>
                   </div>
 
-                  {/* Revenue & Expenses Trend Chart */}
-                  <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-                    <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.revenueExpensesTrend')}</h3>
-                    <ResponsiveContainer width="100%" height={300} className="sm:!h-[350px] md:!h-[400px]">
-                      <LineChart data={monthlyComparison}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="monthName"
-                          angle={-45}
-                          textAnchor="end"
-                          height={100}
-                          style={{ fontSize: '12px' }}
-                        />
-                        <YAxis style={{ fontSize: '12px' }} />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="totalRevenue"
-                          stroke="#10b981"
-                          strokeWidth={3}
-                          name={t('closing.comparison.revenue')}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="totalExpenses"
-                          stroke="#ef4444"
-                          strokeWidth={3}
-                          name={t('closing.comparison.expenses')}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="netProfit"
-                          stroke={PRIMARY_COLOR}
-                          strokeWidth={3}
-                          name={t('closing.comparison.netProfit')}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Revenue Breakdown Chart */}
-                  <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-                    <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.revenueBreakdown')}</h3>
-                    <ResponsiveContainer width="100%" height={300} className="sm:!h-[350px] md:!h-[400px]">
-                      <BarChart data={monthlyComparison}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="monthName"
-                          angle={-45}
-                          textAnchor="end"
-                          height={100}
-                          style={{ fontSize: '12px' }}
-                        />
-                        <YAxis style={{ fontSize: '12px' }} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="floorRevenue" fill={THEME_COLORS.primary[400]} name={t('closing.comparison.floorRevenue')} />
-                        <Bar dataKey="ptRevenue" fill="#34d399" name={t('closing.comparison.ptRevenue')} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Subscriptions Chart */}
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-                    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.subscriptionsChart')}</h3>
-                    <ResponsiveContainer width="100%" height={400}>
-                      <BarChart data={monthlyComparison}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="monthName"
-                          angle={-45}
-                          textAnchor="end"
-                          height={100}
-                          style={{ fontSize: '12px' }}
-                        />
-                        <YAxis style={{ fontSize: '12px' }} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="memberSubscriptions" fill="#8b5cf6" name={t('closing.comparison.memberSubscriptions')} />
-                        <Bar dataKey="ptSubscriptions" fill="#ec4899" name={t('closing.comparison.ptSubscriptions')} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Payment Methods Distribution (PieChart) */}
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-                    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.paymentMethodsDistribution')}</h3>
-                    <ResponsiveContainer width="100%" height={400}>
-                      <PieChart>
-                        <Pie
-                          data={(() => {
-                            const totalCash = monthlyComparison.reduce((sum, m) => sum + (m.cash || 0), 0)
-                            const totalVisa = monthlyComparison.reduce((sum, m) => sum + (m.visa || 0), 0)
-                            const totalInstapay = monthlyComparison.reduce((sum, m) => sum + (m.instapay || 0), 0)
-                            const totalWallet = monthlyComparison.reduce((sum, m) => sum + (m.wallet || 0), 0)
-                            const totalPoints = monthlyComparison.reduce((sum, m) => sum + (m.points || 0), 0)
-
-                            return [
-                              { name: t('closing.comparison.cash'), value: totalCash, color: THEME_COLORS.primary[500] },
-                              { name: t('closing.comparison.visa'), value: totalVisa, color: '#3b82f6' },
-                              { name: t('closing.comparison.instapay'), value: totalInstapay, color: '#f59e0b' },
-                              { name: t('closing.comparison.wallet'), value: totalWallet, color: '#10b981' },
-                              { name: t('closing.comparison.points'), value: totalPoints, color: '#eab308' }
-                            ].filter(item => item.value > 0)
-                          })()}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                          outerRadius={120}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {(() => {
-                            const totalCash = monthlyComparison.reduce((sum, m) => sum + (m.cash || 0), 0)
-                            const totalVisa = monthlyComparison.reduce((sum, m) => sum + (m.visa || 0), 0)
-                            const totalInstapay = monthlyComparison.reduce((sum, m) => sum + (m.instapay || 0), 0)
-                            const totalWallet = monthlyComparison.reduce((sum, m) => sum + (m.wallet || 0), 0)
-                            const totalPoints = monthlyComparison.reduce((sum, m) => sum + (m.points || 0), 0)
-
-                            const colors = [
-                              THEME_COLORS.primary[500],
-                              '#3b82f6',
-                              '#f59e0b',
-                              '#10b981',
-                              '#eab308'
-                            ]
-
-                            return colors.map((color, index) => <Cell key={`cell-${index}`} fill={color} />)
-                          })()}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Cumulative Growth (AreaChart) */}
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-                    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.cumulativeGrowth')}</h3>
-                    <ResponsiveContainer width="100%" height={400}>
-                      <AreaChart
-                        data={(() => {
-                          let cumulativeRevenue = 0
-                          let cumulativeExpenses = 0
-                          let cumulativeProfit = 0
-
-                          return monthlyComparison.map(month => {
-                            cumulativeRevenue += month.totalRevenue
-                            cumulativeExpenses += month.totalExpenses
-                            cumulativeProfit += month.netProfit
-
-                            return {
-                              ...month,
-                              cumulativeRevenue,
-                              cumulativeExpenses,
-                              cumulativeProfit
-                            }
-                          })
-                        })()}
-                      >
-                        <defs>
-                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
-                          </linearGradient>
-                          <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
-                          </linearGradient>
-                          <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={THEME_COLORS.primary[500]} stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor={THEME_COLORS.primary[500]} stopOpacity={0.1}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="monthName"
-                          angle={-45}
-                          textAnchor="end"
-                          height={100}
-                          style={{ fontSize: '12px' }}
-                        />
-                        <YAxis style={{ fontSize: '12px' }} />
-                        <Tooltip />
-                        <Legend />
-                        <Area
-                          type="monotone"
-                          dataKey="cumulativeRevenue"
-                          stroke="#10b981"
-                          fillOpacity={1}
-                          fill="url(#colorRevenue)"
-                          name={t('closing.comparison.cumulativeRevenue')}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="cumulativeExpenses"
-                          stroke="#ef4444"
-                          fillOpacity={1}
-                          fill="url(#colorExpenses)"
-                          name={t('closing.comparison.cumulativeExpenses')}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="cumulativeProfit"
-                          stroke={THEME_COLORS.primary[500]}
-                          fillOpacity={1}
-                          fill="url(#colorProfit)"
-                          name={t('closing.comparison.cumulativeProfit')}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Performance Radar Chart */}
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-                    <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.performanceRadar')}</h3>
-                    <ResponsiveContainer width="100%" height={500}>
-                      <RadarChart data={monthlyComparison.slice(-6)}>
-                        <PolarGrid />
-                        <PolarAngleAxis dataKey="monthName" style={{ fontSize: '12px' }} />
-                        <PolarRadiusAxis style={{ fontSize: '10px' }} />
-                        <Radar
-                          name={t('closing.comparison.revenue')}
-                          dataKey="totalRevenue"
-                          stroke="#10b981"
-                          fill="#10b981"
-                          fillOpacity={0.6}
-                        />
-                        <Radar
-                          name={t('closing.comparison.subscriptions')}
-                          dataKey="totalSubscriptions"
-                          stroke={THEME_COLORS.primary[500]}
-                          fill={THEME_COLORS.primary[500]}
-                          fillOpacity={0.6}
-                        />
-                        <Legend />
-                        <Tooltip />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <ClosingCharts monthlyComparison={monthlyComparison} />
 
                   {/* Detailed Comparison Table */}
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-x-auto border dark:border-gray-700 hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 hover:border-primary-200 dark:hover:border-primary-700">
                     <h3 className="text-xl font-bold p-6 border-b dark:border-gray-700 text-gray-900 dark:text-gray-100">{t('closing.comparison.detailedTable')}</h3>
-                    <table className="w-full border-collapse text-sm">
+                    <table className="w-full border-collapse text-xs sm:text-sm">
                       <thead>
                         <tr className="bg-gray-200 dark:bg-gray-700">
-                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold dark:text-gray-200">{t('closing.comparison.month')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.floorRevenue')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-green-100 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.ptRevenue')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-yellow-100 dark:bg-yellow-900/50 dark:text-gray-200">{t('closing.comparison.totalRevenue')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-red-100 dark:bg-red-900/50 dark:text-gray-200">{t('closing.comparison.expenses')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-green-200 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.netProfit')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.subscriptions')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center font-bold bg-gray-100 dark:bg-gray-700 dark:text-gray-200">{t('closing.comparison.growth')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold dark:text-gray-200">{t('closing.comparison.month')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.floorRevenue')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-green-100 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.ptRevenue')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-yellow-100 dark:bg-yellow-900/50 dark:text-gray-200">{t('closing.comparison.totalRevenue')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-red-100 dark:bg-red-900/50 dark:text-gray-200">{t('closing.comparison.expenses')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-green-200 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.netProfit')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.subscriptions')}</th>
+                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-gray-100 dark:bg-gray-700 dark:text-gray-200">{t('closing.comparison.growth')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1261,29 +1031,29 @@ export default function ClosingPage() {
 
                           return (
                             <tr key={month.month} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-200 cursor-pointer`}>
-                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-3 font-medium dark:text-gray-200">{month.monthName}</td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600 dark:text-primary-400`}>
+                              <td className="border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 font-medium dark:text-gray-200">{month.monthName}</td>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600 dark:text-primary-400`}>
                                 {month.floorRevenue.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600 dark:text-green-400`}>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600 dark:text-green-400`}>
                                 {month.ptRevenue.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600 dark:text-yellow-400 text-lg`}>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600 dark:text-yellow-400 text-lg`}>
                                 {month.totalRevenue.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600 dark:text-red-400`}>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600 dark:text-red-400`}>
                                 {month.totalExpenses.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700 dark:text-green-400 text-lg`}>
+                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700 dark:text-green-400 text-lg`}>
                                 {month.netProfit.toFixed(0)}
                               </td>
-                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-3 text-center font-bold text-primary-600 dark:text-primary-400">
+                              <td className="border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold text-primary-600 dark:text-primary-400">
                                 {month.totalSubscriptions}
                                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                   {t('closing.comparison.members')}: {month.memberSubscriptions} | PT: {month.ptSubscriptions}
                                 </div>
                               </td>
-                              <td className="border border-gray-300 dark:border-gray-600 px-4 py-3 text-center">
+                              <td className="border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center">
                                 {prevMonth ? (
                                   <span className={`font-bold ${growthPercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                     {growthPercent >= 0 ? '↑' : '↓'} {Math.abs(growthPercent).toFixed(1)}%
@@ -1298,26 +1068,26 @@ export default function ClosingPage() {
                       </tbody>
                       <tfoot>
                         <tr className="bg-yellow-100 dark:bg-yellow-900/50 font-bold">
-                          <td className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center dark:text-gray-200">{t('closing.comparison.total')}</td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700 dark:text-primary-400`}>
+                          <td className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center dark:text-gray-200">{t('closing.comparison.total')}</td>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700 dark:text-primary-400`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.floorRevenue, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 dark:text-green-400`}>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 dark:text-green-400`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.ptRevenue, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 dark:text-yellow-400 text-lg`}>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 dark:text-yellow-400 text-lg`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400`}>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 dark:text-green-400 text-lg`}>
+                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 dark:text-green-400 text-lg`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0).toFixed(0)}
                           </td>
-                          <td className="border border-gray-400 dark:border-gray-600 px-4 py-3 text-center text-primary-700 dark:text-primary-400">
+                          <td className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center text-primary-700 dark:text-primary-400">
                             {monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0)}
                           </td>
-                          <td className="border border-gray-400 dark:border-gray-600 px-4 py-3"></td>
+                          <td className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3"></td>
                         </tr>
                       </tfoot>
                     </table>
@@ -1406,7 +1176,7 @@ export default function ClosingPage() {
           </div>
 
           {/* Payment Methods Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
             <div className="bg-white dark:bg-gray-800 border-2 border-green-300 dark:border-green-700 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
                 <div>
@@ -1643,7 +1413,7 @@ export default function ClosingPage() {
                               </thead>
                               <tbody>
                                 {day.expensesList.map((expense: any) => (
-                                  <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                  <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 dark:bg-red-900/20">
                                     <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
                                       {new Date(expense.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                     </td>
@@ -1651,9 +1421,11 @@ export default function ClosingPage() {
                                       <span className={`px-2 py-1 rounded text-xs ${
                                         expense.type === 'gym_expense'
                                           ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300'
+                                          : expense.type === 'staff_salary'
+                                          ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-300'
                                           : 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300'
                                       }`}>
-                                        {expense.type === 'gym_expense' ? t('closing.expenses.gymExpense') : t('closing.expenses.staffLoan')}
+                                        {expense.type === 'gym_expense' ? t('closing.expenses.gymExpense') : expense.type === 'staff_salary' ? t('closing.expenses.staffSalary') : t('closing.expenses.staffLoan')}
                                       </span>
                                     </td>
                                     <td className="px-3 py-2 dark:text-gray-300">{expense.description}</td>
@@ -1867,7 +1639,7 @@ export default function ClosingPage() {
                                     </thead>
                                     <tbody>
                                       {day.expensesList.map((expense: any) => (
-                                        <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                        <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 dark:bg-red-900/20">
                                           <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
                                             {new Date(expense.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                           </td>

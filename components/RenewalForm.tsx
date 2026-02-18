@@ -228,14 +228,14 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
         <div className="p-4 overflow-y-auto flex-1">
         {successMessage && (
-          <div className="bg-green-100 text-green-800 p-3 rounded-lg text-center font-medium text-sm mb-4">
+          <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 p-3 rounded-lg text-center font-medium text-sm mb-4">
             {successMessage}
           </div>
         )}
 
         {/* قسم العروض */}
-        <div className="bg-gradient-to-br from-primary-50 to-primary-50 border-2 border-primary-200 rounded-xl p-4 mb-4">
-          <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-primary-800">
+        <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-gray-700 dark:to-gray-700 border-2 border-primary-200 dark:border-gray-600 rounded-xl p-4 mb-4">
+          <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-primary-800 dark:text-primary-300">
             <span>🎁</span>
             <span>{t('renewal.availableOffers')}</span>
           </h3>
@@ -253,10 +253,10 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   key={offer.id}
                   type="button"
                   onClick={() => applyOffer(offer)}
-                  className="bg-white dark:bg-gray-800 border-2 border-primary-300 hover:border-primary-500 hover:bg-primary-50 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg group"
+                  className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 hover:border-primary-500 dark:hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-gray-700 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg group"
                 >
                   <div className="text-2xl mb-1">{offer.icon}</div>
-                  <div className="font-bold text-primary-800 mb-1 text-sm">{offer.name}</div>
+                  <div className="font-bold text-primary-800 dark:text-primary-300 mb-1 text-sm">{offer.name}</div>
                   <div className="text-xl font-bold text-green-600 mb-1">{offer.price} {t('renewal.currency')}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-300 space-y-0.5">
                     <div>💪 {offer.freePTSessions} PT</div>
@@ -268,36 +268,36 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
             </div>
           )}
 
-          <div className={`mt-3 bg-primary-100 p-2 rounded ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500`}>
-            <p className="text-xs text-primary-800">
+          <div className={`mt-3 bg-primary-100 dark:bg-primary-900/20 p-2 rounded ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500 dark:border-primary-700`}>
+            <p className="text-xs text-primary-800 dark:text-primary-300">
               <strong>💡 {t('renewal.note')}:</strong> {t('renewal.noteCanEditAfterOffer')}
             </p>
           </div>
         </div>
 
-        <div className={`bg-primary-50 border-primary-500 p-3 rounded-lg mb-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'}`}>
-          <h4 className="font-bold text-primary-900 mb-2 text-sm">{t('renewal.memberInfo')}</h4>
+        <div className={`bg-primary-50 dark:bg-gray-700 border-primary-500 dark:border-primary-600 p-3 rounded-lg mb-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'}`}>
+          <h4 className="font-bold text-primary-900 dark:text-primary-200 mb-2 text-sm">{t('renewal.memberInfo')}</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-            <p className="text-primary-800">
+            <p className="text-primary-800 dark:text-primary-300">
               <strong>{t('renewal.name')}:</strong> {member.name}
             </p>
-            <p className="text-primary-800">
+            <p className="text-primary-800 dark:text-primary-300">
               <strong>{t('renewal.memberNumber')}:</strong> #{member.memberNumber}
             </p>
-            <p className="text-primary-800">
+            <p className="text-primary-800 dark:text-primary-300">
               <strong>{t('renewal.currentPT')}:</strong> {member.freePTSessions || 0}
             </p>
-            <p className="text-primary-800">
+            <p className="text-primary-800 dark:text-primary-300">
               <strong>{t('renewal.currentInBody')}:</strong> {member.inBodyScans || 0}
             </p>
-            <p className="text-primary-800">
+            <p className="text-primary-800 dark:text-primary-300">
               <strong>{t('renewal.currentInvitations')}:</strong> {member.invitations || 0}
             </p>
-            <p className="text-primary-800">
-              <strong>❄️ أيام الفريز الحالية:</strong> {member.remainingFreezeDays || 0}
+            <p className="text-primary-800 dark:text-primary-300">
+              <strong>❄️ {t('renewal.currentFreezeDays')}:</strong> {member.remainingFreezeDays || 0}
             </p>
             {member.expiryDate && (
-              <p className="text-primary-800">
+              <p className="text-primary-800 dark:text-primary-300">
                 <strong>{t('renewal.previousExpiry')}:</strong> {formatDateYMD(member.expiryDate)}
               </p>
             )}
@@ -305,8 +305,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
         </div>
 
         {error && (
-          <div className="bg-red-50 border-r-4 border-red-500 p-3 rounded-lg mb-3">
-            <p className="text-red-700 font-medium text-sm">{error}</p>
+          <div className="bg-red-50 border-r-4 border-red-500 p-3 rounded-lg mb-3 dark:bg-red-900/20 dark:border-red-700">
+            <p className="text-red-700 dark:text-red-300 font-medium text-sm">{error}</p>
           </div>
         )}
 
@@ -322,14 +322,14 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label className="block text-xs font-medium mb-1">
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-200">
                   {t('renewal.subscriptionPrice')} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="number"
                   value={subscriptionPrice}
                   onChange={(e) => setSubscriptionPrice(e.target.value)}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500 text-sm"
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-primary-500 text-sm"
                   placeholder={t('renewal.subscriptionPricePlaceholder')}
                   min="0"
                   required
@@ -337,7 +337,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-200">
                   {t('renewal.staffName')} <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -345,7 +345,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   required
                   value={staffName}
                   readOnly
-                  className="w-full px-3 py-2 border-2 rounded-lg bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-sm"
+                  className="w-full px-3 py-2 border-2 rounded-lg bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 cursor-not-allowed text-sm"
                   placeholder={t('renewal.staffNamePlaceholder')}
                 />
               </div>
@@ -368,7 +368,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   type="number"
                   value={freePTSessions}
                   onChange={(e) => setFreePTSessions(e.target.value)}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500 text-sm"
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-primary-500 text-sm"
                   placeholder="0"
                   min="0"
                 />
@@ -387,7 +387,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   type="number"
                   value={inBodyScans}
                   onChange={(e) => setInBodyScans(e.target.value)}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500 text-sm"
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-primary-500 text-sm"
                   placeholder="0"
                   min="0"
                 />
@@ -406,7 +406,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   type="number"
                   value={invitations}
                   onChange={(e) => setInvitations(e.target.value)}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500 text-sm"
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-primary-500 text-sm"
                   placeholder="0"
                   min="0"
                 />
@@ -425,7 +425,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                   type="number"
                   value={freezeDays}
                   onChange={(e) => setFreezeDays(e.target.value)}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-cyan-500 text-sm"
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-cyan-500 text-sm"
                   placeholder="0"
                   min="0"
                 />
@@ -447,14 +447,14 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-xs font-medium mb-1">
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-200">
                   {t('renewal.startDate')} <span className="text-red-600">*</span> <span className="text-xs text-gray-500 dark:text-gray-400">{t('renewal.dateFormat')}</span>
                 </label>
                 <input
                   type="text"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500 font-mono text-sm"
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-primary-500 font-mono text-sm"
                   placeholder={t('renewal.startDatePlaceholder')}
                   pattern="\d{4}-\d{2}-\d{2}"
                   required
@@ -462,14 +462,14 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-200">
                   {t('renewal.expiryDate')} <span className="text-red-600">*</span> <span className="text-xs text-gray-500 dark:text-gray-400">{t('renewal.dateFormat')}</span>
                 </label>
                 <input
                   type="text"
                   value={expiryDate}
                   onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500 font-mono text-sm"
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-primary-500 font-mono text-sm"
                   placeholder={t('renewal.expiryDatePlaceholder')}
                   pattern="\d{4}-\d{2}-\d{2}"
                   required
@@ -485,7 +485,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                     key={months}
                     type="button"
                     onClick={() => calculateExpiryFromMonths(months)}
-                    className="px-2 py-1 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg text-xs transition font-medium"
+                    className="px-2 py-1 bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-800/40 text-primary-800 dark:text-primary-300 rounded-lg text-xs transition font-medium"
                   >
                     + {months} {months === 1 ? t('renewal.month') : t('renewal.months')}
                   </button>
@@ -494,8 +494,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
             </div>
 
             {duration > 0 && expiryDate && (
-              <div className="bg-primary-50 border-2 border-primary-300 rounded-lg p-2">
-                <p className="text-xs text-primary-800">
+              <div className="bg-primary-50 dark:bg-gray-700 border-2 border-primary-300 dark:border-gray-600 rounded-lg p-2">
+                <p className="text-xs text-primary-800 dark:text-primary-300">
                   ⏱️ <strong>{t('renewal.subscriptionDuration')}:</strong> {duration} {t('renewal.days')}
                   {duration >= 30 &&
                     ` (${Math.floor(duration / 30)} ${Math.floor(duration / 30) === 1 ? t('renewal.month') : t('renewal.months')})`
@@ -524,20 +524,20 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           </div>
 
           <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
               📝 {t('renewal.notes')}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500 text-sm"
+              className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-primary-500 text-sm"
               rows={3}
               placeholder={t('renewal.notesPlaceholder')}
             />
           </div>
           </div>
 
-          <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3">
+          <div className="bg-yellow-50 dark:bg-gray-700 border-2 border-yellow-200 dark:border-gray-600 p-3 rounded-lg">
             <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2 text-sm">
               <span>📊</span>
               <span>{t('renewal.summary')}</span>
@@ -552,11 +552,11 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
                 <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{t('renewal.newSessions')}</p>
                 <p className="font-bold text-lg text-green-600">+{parseInt(freePTSessions) || 0}</p>
               </div>
-              <div className="text-center bg-orange-50 rounded-lg p-2">
+              <div className="text-center bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2">
                 <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{t('renewal.totalAfterRenewal')}</p>
                 <p className="font-bold text-lg text-orange-600">{totalSessions}</p>
               </div>
-              <div className="text-center bg-green-100 rounded-lg p-2">
+              <div className="text-center bg-green-100 dark:bg-green-900/20 rounded-lg p-2">
                 <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">💰 {t('renewal.subscriptionPrice')}</p>
                 <p className="font-bold text-lg text-green-600">{subscriptionPrice || 0} {t('renewal.currency')}</p>
               </div>

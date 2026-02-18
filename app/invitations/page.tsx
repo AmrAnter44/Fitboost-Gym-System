@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateYMD } from '../../lib/dateFormatter'
+import { useDebounce } from '../../hooks/useDebounce'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -26,23 +27,52 @@ export default function InvitationsPage() {
   const { t, direction } = useLanguage()
   const toast = useToast()
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [itemsPerPage, setItemsPerPage] = useState(20)
 
   // Delete confirmation modal
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [invitationToDelete, setInvitationToDelete] = useState<Invitation | null>(null)
-  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  // ✅ Optimistic Delete - حذف الدعوة فوراً من الـ UI
+  const deleteInvitationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/invitations?id=${id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('Delete failed')
+    },
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['invitations'] })
+      const previousData = queryClient.getQueryData<Invitation[]>(['invitations'])
+      queryClient.setQueryData<Invitation[]>(['invitations'], (old) => {
+        if (!old) return old
+        return old.filter(inv => inv.id !== id)
+      })
+      return { previousData }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['invitations'], context.previousData)
+      }
+      toast.error('حدث خطأ أثناء حذف الدعوة')
+    },
+    onSuccess: () => {
+      toast.success('تم حذف الدعوة بنجاح')
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['invitations'] })
+    }
+  })
 
   // Fetch invitations using TanStack Query
   const {
     data: invitations = [],
     isLoading: loading,
     error: invitationsError,
-    refetch: refetchInvitations
   } = useQuery({
     queryKey: ['invitations'],
     queryFn: fetchInvitations,
@@ -68,36 +98,27 @@ export default function InvitationsPage() {
   // إعادة تعيين الصفحة عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, dateFilter])
+  }, [debouncedSearchTerm, dateFilter])
 
   const handleDelete = (invitation: Invitation) => {
     setInvitationToDelete(invitation)
     setShowDeleteModal(true)
   }
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (!invitationToDelete) return
-
-    setDeleteLoading(true)
-    try {
-      await fetch(`/api/invitations?id=${invitationToDelete.id}`, { method: 'DELETE' })
-      refetchInvitations()
-      setShowDeleteModal(false)
-      setInvitationToDelete(null)
-    } catch (error) {
-      console.error('Error deleting invitation:', error)
-    } finally {
-      setDeleteLoading(false)
-    }
+    deleteInvitationMutation.mutate(invitationToDelete.id)
+    setShowDeleteModal(false)
+    setInvitationToDelete(null)
   }
 
   // فلترة النتائج
   const filteredInvitations = invitations.filter(inv => {
     const matchesSearch =
-      inv.guestName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.guestPhone.includes(searchTerm) ||
-      inv.member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.member.memberNumber.toString().includes(searchTerm)
+      inv.guestName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      inv.guestPhone.includes(debouncedSearchTerm) ||
+      inv.member.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      inv.member.memberNumber.toString().includes(debouncedSearchTerm)
 
     const matchesDate = dateFilter
       ? new Date(inv.createdAt).toISOString().split('T')[0] === dateFilter
@@ -177,7 +198,7 @@ export default function InvitationsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('invitations.searchPlaceholder')}
-              className="w-full px-4 py-2 border-2 rounded-lg"
+              className="w-full px-4 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </div>
           <div>
@@ -186,7 +207,7 @@ export default function InvitationsPage() {
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full px-4 py-2 border-2 rounded-lg"
+              className="w-full px-4 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </div>
         </div>
@@ -233,7 +254,7 @@ export default function InvitationsPage() {
                   </div>
                   <button
                     onClick={() => handleDelete(invitation)}
-                    className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50"
+                    className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 dark:bg-red-900/20 dark:text-red-200"
                   >
                     🗑️ {t('invitations.delete')}
                   </button>
@@ -359,7 +380,7 @@ export default function InvitationsPage() {
                 <button
                   onClick={() => goToPage(1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 transition-colors"
                   title={t('invitations.firstPage')}
                 >
                   {t('invitations.firstPage')}
@@ -368,7 +389,7 @@ export default function InvitationsPage() {
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 transition-colors"
                   title={t('invitations.previousPage')}
                 >
                   {t('invitations.previousPage')}
@@ -407,7 +428,7 @@ export default function InvitationsPage() {
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 transition-colors"
                   title={t('invitations.nextPage')}
                 >
                   {t('invitations.nextPage')}
@@ -416,7 +437,7 @@ export default function InvitationsPage() {
                 <button
                   onClick={() => goToPage(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 transition-colors"
                   title={t('invitations.lastPage')}
                 >
                   {t('invitations.lastPage')}
@@ -432,7 +453,7 @@ export default function InvitationsPage() {
                     setItemsPerPage(Number(e.target.value))
                     setCurrentPage(1)
                   }}
-                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -479,7 +500,7 @@ export default function InvitationsPage() {
         title={t('invitations.deleteModal.title')}
         message={t('invitations.deleteModal.message')}
         itemName={invitationToDelete ? `${invitationToDelete.guestName} (${invitationToDelete.guestPhone})` : ''}
-        loading={deleteLoading}
+        loading={deleteInvitationMutation.isPending}
       />
     </div>
   )

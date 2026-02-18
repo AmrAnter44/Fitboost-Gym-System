@@ -20,6 +20,8 @@ import BarcodeInputDetector from './BarcodeInputDetector'
 import UpdateNotification from './UpdateNotification'
 import InstallPrompt from './InstallPrompt'
 import KeyboardShortcuts from './KeyboardShortcuts'
+import Breadcrumb from './Breadcrumb'
+import BackToTop from './BackToTop'
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
@@ -39,10 +41,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                       <UpdateNotification />
                       <InstallPrompt />
                       <Navbar />
+                      <Breadcrumb />
                       <ToastContainer />
                       <SearchModal />
                       <KeyboardShortcuts />
                         <main className="overflow-x-hidden w-full max-w-full">{children}</main>
+                        <BackToTop />
                       </AdminDateProvider>
                     </UpdateProvider>
                   </ToastProvider>

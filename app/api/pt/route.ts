@@ -12,6 +12,7 @@ import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber } from '../../../lib/receiptHelpers'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 // @ts-ignore
 import bwipjs from 'bwip-js'
 
@@ -103,7 +104,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية إنشاء PT
-    await requirePermission(request, 'canCreatePT')
+    const user = await requirePermission(request, 'canCreatePT')
     
     const body = await request.json()
     const {
@@ -439,6 +440,13 @@ export async function POST(request: Request) {
         timeout: 15000, // ⏱️ 15 seconds timeout (increased for SQLite performance)
       })
 
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'CREATE', resource: 'PT', resourceId: pt.id,
+        details: { ptNumber: pt.ptNumber, clientName, coachName, sessionsPurchased },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      })
+
       return NextResponse.json(pt, { status: 201 })
 
     } catch (receiptError: any) {
@@ -480,7 +488,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية تعديل PT
-    await requirePermission(request, 'canEditPT')
+    const user = await requirePermission(request, 'canEditPT')
     
     const body = await request.json()
     const { ptNumber, action, ...data } = body
@@ -499,6 +507,13 @@ export async function PUT(request: Request) {
       const updatedPT = await prisma.pT.update({
         where: { ptNumber: parseInt(ptNumber) },
         data: { sessionsRemaining: pt.sessionsRemaining - 1 },
+      })
+
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'PT', resourceId: updatedPT.id,
+        details: { ptNumber: updatedPT.ptNumber, action: 'use_session', sessionsRemaining: updatedPT.sessionsRemaining },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
       })
 
       return NextResponse.json(updatedPT)
@@ -538,6 +553,13 @@ export async function PUT(request: Request) {
         data: updateData,
       })
 
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'PT', resourceId: pt.id,
+        details: { ptNumber: pt.ptNumber, changes: Object.keys(updateData) },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      })
+
       return NextResponse.json(pt)
     }
   } catch (error: any) {
@@ -565,8 +587,8 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     // ✅ التحقق من صلاحية حذف PT
-    await requirePermission(request, 'canDeletePT')
-    
+    const user = await requirePermission(request, 'canDeletePT')
+
     const { searchParams } = new URL(request.url)
     const ptNumber = searchParams.get('ptNumber')
 
@@ -574,7 +596,16 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'رقم PT مطلوب' }, { status: 400 })
     }
 
+    const ptToDelete = await prisma.pT.findUnique({ where: { ptNumber: parseInt(ptNumber) }, select: { id: true, clientName: true, coachName: true } })
     await prisma.pT.delete({ where: { ptNumber: parseInt(ptNumber) } })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'PT', resourceId: ptToDelete?.id || ptNumber,
+      details: { ptNumber: parseInt(ptNumber), clientName: ptToDelete?.clientName, coachName: ptToDelete?.coachName },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json({ message: 'تم الحذف بنجاح' })
   } catch (error: any) {
     console.error('Error deleting PT:', error)

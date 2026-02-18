@@ -8,6 +8,7 @@ import { useSuccess } from '../../../../hooks/useSuccess'
 import { usePermissions } from '../../../../hooks/usePermissions'
 import ConfirmDialog from '../../../../components/ConfirmDialog'
 import SuccessDialog from '../../../../components/SuccessDialog'
+import { useDebounce } from '../../../../hooks/useDebounce'
 
 interface NutritionSessionRecord {
   id: string
@@ -33,6 +34,7 @@ export default function NutritionSessionHistoryPage() {
   const [sessions, setSessions] = useState<NutritionSessionRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [filterNutritionNumber, setFilterNutritionNumber] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -97,9 +99,9 @@ export default function NutritionSessionHistoryPage() {
   // فلترة السجلات
   const filteredSessions = sessions.filter(session => {
     const matchesSearch =
-      session.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.nutritionistName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.nutritionNumber.toString().includes(searchTerm)
+      session.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.nutritionistName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.nutritionNumber.toString().includes(debouncedSearchTerm)
 
     const matchesNutritionNumber = !filterNutritionNumber || session.nutritionNumber.toString() === filterNutritionNumber
 
@@ -327,7 +329,7 @@ export default function NutritionSessionHistoryPage() {
 
       {/* ملخص بالأسفل */}
       {filteredSessions.length > 0 && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4 dark:bg-green-900/20 dark:border-green-700">
           <p className="text-sm text-gray-700 dark:text-gray-200">
             {t('nutrition.sessionHistory.showing', { count: filteredSessions.length.toString(), total: sessions.length.toString() })}
           </p>

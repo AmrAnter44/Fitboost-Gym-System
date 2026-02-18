@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 // GET - جلب كل الموظفين
 
@@ -113,7 +114,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية إضافة موظف
-    await requirePermission(request, 'canCreateStaff')
+    const user = await requirePermission(request, 'canCreateStaff')
     
     const body = await request.json()
     const { staffCode, name, phone, position, salary, notes } = body
@@ -145,6 +146,13 @@ export async function POST(request: Request) {
       },
     })
 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'CREATE', resource: 'Staff', resourceId: staff.id,
+      details: { staffCode: staff.staffCode, name: staff.name, position: staff.position },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json(staff, { status: 201 })
   } catch (error: any) {
     console.error('Error creating staff:', error)
@@ -171,7 +179,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية تعديل موظف
-    await requirePermission(request, 'canEditStaff')
+    const user = await requirePermission(request, 'canEditStaff')
 
     const body = await request.json()
     const { id, staffCode, name, phone, position, salary, notes, isActive, customPosition } = body
@@ -206,6 +214,13 @@ export async function PUT(request: Request) {
       data: updateData,
     })
 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Staff', resourceId: staff.id,
+      details: { staffCode: staff.staffCode, name: staff.name, changes: Object.keys(updateData) },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json(staff)
   } catch (error: any) {
     console.error('Error updating staff:', error)
@@ -232,8 +247,8 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     // ✅ التحقق من صلاحية حذف موظف
-    await requirePermission(request, 'canDeleteStaff')
-    
+    const user = await requirePermission(request, 'canDeleteStaff')
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -241,7 +256,16 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'رقم الموظف مطلوب' }, { status: 400 })
     }
 
+    const staffToDelete = await prisma.staff.findUnique({ where: { id }, select: { name: true, staffCode: true } })
     await prisma.staff.delete({ where: { id } })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'Staff', resourceId: id,
+      details: { staffCode: staffToDelete?.staffCode, name: staffToDelete?.name },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json({ message: 'تم الحذف بنجاح' })
   } catch (error: any) {
     console.error('Error deleting staff:', error)

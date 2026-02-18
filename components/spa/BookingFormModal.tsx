@@ -143,7 +143,7 @@ export default function BookingFormModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div className="bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded-lg">
+            <div className="bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded-lg dark:bg-red-900/20 dark:border-red-700 dark:text-red-200">
               {error}
             </div>
           )}
@@ -191,7 +191,7 @@ export default function BookingFormModal({
               )}
 
               {selectedMember && (
-                <div className="mt-2 p-3 bg-green-50 border border-green-300 rounded-lg">
+                <div className="mt-2 p-3 bg-green-50 border border-green-300 rounded-lg dark:bg-green-900/20 dark:border-green-700">
                   <div className="flex items-center gap-2">
                     <span className="text-green-600">✓</span>
                     <div>

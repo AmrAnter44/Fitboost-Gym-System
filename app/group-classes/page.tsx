@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -14,6 +14,7 @@ import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
 import { fetchCoaches } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
+import { useDebounce } from '../../hooks/useDebounce'
 
 interface Staff {
   id: string
@@ -46,6 +47,7 @@ export default function GroupClassPage() {
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
+  const queryClient = useQueryClient()
 
   // ✅ استخدام useQuery لجلب جلسات GroupClass
   const {
@@ -84,6 +86,7 @@ export default function GroupClassPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingSession, setEditingSession] = useState<GroupClassSession | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [showQRModal, setShowQRModal] = useState(false)
   const [selectedSession, setSelectedSession] = useState<GroupClassSession | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -370,17 +373,25 @@ export default function GroupClassPage() {
 
     if (!confirmed) return
 
+    // ✅ Optimistic Update
+    const previousData = queryClient.getQueryData<any[]>(['groupClass-sessions'])
+    queryClient.setQueryData<any[]>(['groupClass-sessions'], (old) =>
+      old ? old.filter(s => s.groupClassNumber !== groupClassNumber) : old
+    )
+
     try {
       const response = await fetch(`/api/group-classes?groupClassNumber=${groupClassNumber}`, { method: 'DELETE' })
 
       if (!response.ok) {
         const errorData = await response.json()
+        queryClient.setQueryData(['groupClass-sessions'], previousData)
         throw new Error(errorData.error || t('groupClass.messages.deleteFailed'))
       }
 
       toast.success(t('groupClass.messages.sessionDeleted'))
-      refetchSessions()
+      queryClient.invalidateQueries({ queryKey: ['groupClass-sessions'] })
     } catch (error: any) {
+      queryClient.setQueryData(['groupClass-sessions'], previousData)
       console.error('Error:', error)
       toast.error(`${t('groupClass.messages.deleteFailed')} - ${error.message || ''}`)
     }
@@ -457,10 +468,10 @@ export default function GroupClassPage() {
   const filteredSessions = sessions.filter((session) => {
     // البحث النصي
     const matchesSearch =
-      session.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.instructorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.groupClassNumber.toString().includes(searchTerm) ||
-      session.phone.includes(searchTerm)
+      session.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.instructorName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.groupClassNumber.toString().includes(debouncedSearchTerm) ||
+      session.phone.includes(debouncedSearchTerm)
 
     // فلتر الحالة
     let matchesStatus = true
@@ -647,7 +658,7 @@ export default function GroupClassPage() {
                         key={pkg.id}
                         type="button"
                         onClick={() => applyPackage(pkg)}
-                        className="bg-gradient-to-br from-fuchsia-50 to-pink-100 dark:from-fuchsia-900/50 dark:to-pink-900/50 hover:from-fuchsia-100 hover:to-pink-200 dark:hover:from-fuchsia-800/50 dark:hover:to-pink-800/50 border-2 border-fuchsia-400 dark:border-fuchsia-700 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg"
+                        className="bg-gradient-to-br from-fuchsia-50 to-pink-100 dark:from-fuchsia-900/50 dark:to-pink-900/50 hover:from-fuchsia-100 hover:to-pink-200 dark:hover:from-fuchsia-800/50 dark:hover:to-pink-800/50 border-2 border-fuchsia-400 dark:border-fuchsia-700 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       >
                         <div className="text-center">
                           <div className="text-2xl mb-1">👥</div>
@@ -1121,7 +1132,7 @@ export default function GroupClassPage() {
                     </div>
 
                     {/* Price Info */}
-                    <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-2.5">
+                    <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-2.5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                       <div className="flex items-center gap-1 mb-1">
                         <span className="text-sm">💵</span>
                         <span className="text-xs text-primary-700 font-semibold">{t('groupClass.total')}</span>
@@ -1133,7 +1144,7 @@ export default function GroupClassPage() {
 
                     {/* Remaining Amount */}
                     {(session.remainingAmount || 0) > 0 && (
-                      <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-2.5">
+                      <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-2.5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                         <div className="flex items-center gap-1 mb-1">
                           <span className="text-sm">⚠️</span>
                           <span className="text-xs text-orange-700 font-semibold">{t('groupClass.remainingAmountLabel')}</span>
@@ -1254,7 +1265,7 @@ export default function GroupClassPage() {
 
             <div className="space-y-4">
               {/* معلومات الاشتراك */}
-              <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-200 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-600 dark:text-gray-300">{t('groupClass.classNumber')}:</span>
@@ -1434,7 +1445,7 @@ export default function GroupClassPage() {
 
             <div className="space-y-4">
               {/* معلومات الاشتراك */}
-              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-300">{t('groupClass.classNumber')}:</span>
@@ -1474,7 +1485,7 @@ export default function GroupClassPage() {
                       paymentAmount: parseFloat(e.target.value) || 0
                     })
                   }
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
                 <div className="flex gap-2 mt-2">
                   <button
@@ -1520,7 +1531,7 @@ export default function GroupClassPage() {
 
               {/* المبلغ المتبقي بعد الدفع */}
               {paymentFormData.paymentAmount > 0 && (
-                <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-3">
+                <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-primary-700 font-semibold">
                       {t('groupClass.paymentModal.remainingAfterPayment')}
@@ -1539,7 +1550,7 @@ export default function GroupClassPage() {
                     setShowPaymentModal(false)
                     setPaymentSession(null)
                   }}
-                  className="bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                  className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
                 >
                   {t('groupClass.deleteConfirm.cancel')}
                 </button>
@@ -1553,7 +1564,7 @@ export default function GroupClassPage() {
               </div>
 
               {/* ملاحظة */}
-              <div className="bg-orange-50 border-r-4 border-orange-500 p-3 rounded">
+              <div className="bg-orange-50 border-r-4 border-orange-500 p-3 rounded dark:bg-orange-900/20 dark:border-orange-700">
                 <p className="text-xs text-orange-800">
                   {t('groupClass.paymentModal.note')}
                 </p>

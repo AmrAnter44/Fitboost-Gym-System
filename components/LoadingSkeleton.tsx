@@ -88,18 +88,18 @@ export function DashboardSkeleton() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
-        <div className="animate-pulse bg-gray-200 h-10 w-64 rounded mb-2"></div>
-        <div className="animate-pulse bg-gray-200 h-4 w-48 rounded"></div>
+        <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-10 w-64 rounded mb-2"></div>
+        <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-4 w-48 rounded"></div>
       </div>
       <LoadingSkeleton type="stats" />
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border-2 border-gray-200 dark:border-gray-600">
-          <div className="animate-pulse bg-gray-200 h-6 w-48 rounded mb-4"></div>
-          <div className="animate-pulse bg-gray-200 h-64 rounded"></div>
+          <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-6 w-48 rounded mb-4"></div>
+          <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-64 rounded"></div>
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border-2 border-gray-200 dark:border-gray-600">
-          <div className="animate-pulse bg-gray-200 h-6 w-48 rounded mb-4"></div>
-          <div className="animate-pulse bg-gray-200 h-64 rounded"></div>
+          <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-6 w-48 rounded mb-4"></div>
+          <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-64 rounded"></div>
         </div>
       </div>
     </div>
@@ -110,8 +110,8 @@ export function MembersSkeleton() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6 flex justify-between items-center">
-        <div className="animate-pulse bg-gray-200 h-8 w-48 rounded"></div>
-        <div className="animate-pulse bg-gray-200 h-10 w-32 rounded-lg"></div>
+        <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-8 w-48 rounded"></div>
+        <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-10 w-32 rounded-lg"></div>
       </div>
       <LoadingSkeleton type="stats" count={5} />
       <div className="mt-6">

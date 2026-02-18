@@ -106,7 +106,7 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
                       type="date"
                       value={customDate}
                       onChange={(e) => setCustomDate(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono focus:border-primary-500 focus:outline-none"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono focus:border-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
 
@@ -118,7 +118,7 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
                       type="time"
                       value={customTime}
                       onChange={(e) => setCustomTime(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono focus:border-primary-500 focus:outline-none"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono focus:border-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                 </div>
@@ -134,7 +134,7 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
                   🔄 تعيين التاريخ والوقت الحالي
                 </button>
 
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded dark:bg-yellow-900/20 dark:border-yellow-700">
                   <p className="text-sm text-yellow-800">
                     <strong>💡 ملاحظة:</strong> التاريخ المخصص: {customDate} الساعة {customTime}
                   </p>
@@ -146,7 +146,7 @@ export default function AdminDateOverride({ isAdmin, onDateChange }: AdminDateOv
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:text-gray-100 rounded-lg font-semibold transition"
+                className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-lg font-semibold transition"
               >
                 إغلاق
               </button>

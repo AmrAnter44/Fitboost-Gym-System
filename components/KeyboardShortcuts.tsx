@@ -110,7 +110,7 @@ export default function KeyboardShortcuts() {
           </div>
         </div>
 
-        <div className="mt-4 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
+        <div className="mt-4 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white">
           <p className="text-sm text-blue-800">
             💡 <strong>نصيحة:</strong> اضغط <kbd className="px-2 py-0.5 bg-white dark:bg-gray-800 border border-blue-300 rounded text-xs font-mono">Shift + ?</kbd> في أي وقت لعرض هذه القائمة
           </p>

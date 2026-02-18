@@ -47,6 +47,12 @@ export default function SettingsPage() {
   })
   const [loadingServices, setLoadingServices] = useState(false)
 
+  // Database Restore State
+  const [dbInfo, setDbInfo] = useState<any>(null)
+  const [dbUploading, setDbUploading] = useState(false)
+  const [dbUploadResult, setDbUploadResult] = useState<{ success?: string; error?: string } | null>(null)
+  const dbFileRef = useRef<HTMLInputElement>(null)
+
   // Numbers Settings State
   const [nextReceiptNumber, setNextReceiptNumber] = useState(1001)
   const [nextMemberNumber, setNextMemberNumber] = useState(1001)
@@ -62,6 +68,7 @@ export default function SettingsPage() {
     checkAuth()
     fetchServiceSettings()
     fetchNumbers()
+    fetchDbInfo()
   }, [])
 
   const fetchServiceSettings = async () => {
@@ -93,6 +100,38 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error fetching numbers:', error)
+    }
+  }
+
+  const fetchDbInfo = async () => {
+    try {
+      const res = await fetch('/api/settings/restore-db')
+      if (res.ok) setDbInfo(await res.json())
+    } catch {}
+  }
+
+  const handleDbUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setDbUploading(true)
+    setDbUploadResult(null)
+    try {
+      const formData = new FormData()
+      formData.append('database', file)
+      const res = await fetch('/api/settings/restore-db', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setDbUploadResult({ success: `✅ ${data.message} — حجم الملف: ${data.fileSize} — ${data.migrate}` })
+        fetchDbInfo()
+      } else {
+        setDbUploadResult({ error: data.error || 'حدث خطأ غير متوقع' })
+      }
+    } catch (err: any) {
+      setDbUploadResult({ error: err.message })
+    } finally {
+      setDbUploading(false)
+      if (dbFileRef.current) dbFileRef.current.value = ''
     }
   }
 
@@ -989,7 +1028,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Info Message */}
-            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-300 dark:border-primary-600 rounded-xl text-primary-800 dark:text-primary-200 text-xs sm:text-sm">
+            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-300 dark:border-primary-600 rounded-xl text-primary-800 dark:text-primary-200 text-xs sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <div className="font-bold mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
                 <span>💡</span>
                 <span>{locale === 'ar' ? 'كيفية إعداد الباركود سكانر:' : 'How to Setup Barcode Scanner:'}</span>
@@ -1538,6 +1577,101 @@ export default function SettingsPage() {
                 />
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Database Restore */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl sm:text-4xl">🗄️</span>
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold">استعادة قاعدة البيانات</h3>
+                <p className="text-sm text-orange-50">رفع ملف gym.db قديم واستعادته بأمان</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6 space-y-4">
+            {/* Current DB Info */}
+            {dbInfo && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                  <span>📊</span> قاعدة البيانات الحالية
+                </h4>
+                <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                  <p>📁 المسار: <span className="font-mono text-xs break-all">{dbInfo.dbPath}</span></p>
+                  <p>💾 الحجم: <span className="font-semibold">{dbInfo.size}</span></p>
+                  {dbInfo.lastModified && <p>🕐 آخر تعديل: <span className="font-semibold">{dbInfo.lastModified}</span></p>}
+                </div>
+              </div>
+            )}
+
+            {/* Upload Section */}
+            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-2xl">⬆️</span>
+                <h4 className="font-bold text-gray-800 dark:text-gray-100">رفع ملف قاعدة بيانات</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                ارفع ملف <span className="font-mono font-bold">.db</span> — سيتم التحقق منه، عمل نسخة احتياطية من الحالي، وتطبيق التحديثات تلقائيًا.
+              </p>
+
+              <input
+                ref={dbFileRef}
+                type="file"
+                accept=".db"
+                className="hidden"
+                onChange={handleDbUpload}
+              />
+
+              <button
+                onClick={() => dbFileRef.current?.click()}
+                disabled={dbUploading}
+                className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+              >
+                {dbUploading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                    جاري الاستعادة...
+                  </>
+                ) : (
+                  <>⬆️ اختر ملف قاعدة البيانات</>
+                )}
+              </button>
+
+              {/* Result Message */}
+              {dbUploadResult && (
+                <div className={`mt-3 p-3 rounded-lg text-sm font-medium ${
+                  dbUploadResult.success
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                    : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
+                }`}>
+                  {dbUploadResult.success || dbUploadResult.error}
+                </div>
+              )}
+            </div>
+
+            {/* Backups List */}
+            {dbInfo?.backups?.length > 0 && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                  <span>🗂️</span> النسخ الاحتياطية الأخيرة
+                </h4>
+                <ul className="space-y-1">
+                  {dbInfo.backups.map((backup: any) => (
+                    <li key={backup.name} className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 py-1 border-b border-blue-100 dark:border-blue-800 last:border-0">
+                      <span className="font-mono text-xs truncate flex-1">{backup.name}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{backup.size}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{backup.date}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 

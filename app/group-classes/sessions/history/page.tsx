@@ -8,6 +8,7 @@ import { useSuccess } from '../../../../hooks/useSuccess'
 import { usePermissions } from '../../../../hooks/usePermissions'
 import ConfirmDialog from '../../../../components/ConfirmDialog'
 import SuccessDialog from '../../../../components/SuccessDialog'
+import { useDebounce } from '../../../../hooks/useDebounce'
 
 interface GroupClassSessionRecord {
   id: string
@@ -33,6 +34,7 @@ export default function GroupClassSessionHistoryPage() {
   const [sessions, setSessions] = useState<GroupClassSessionRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [filterGroupClassNumber, setFilterGroupClassNumber] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -97,9 +99,9 @@ export default function GroupClassSessionHistoryPage() {
   // فلترة السجلات
   const filteredSessions = sessions.filter(session => {
     const matchesSearch =
-      session.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.instructorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.groupClassNumber.toString().includes(searchTerm)
+      session.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.instructorName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.groupClassNumber.toString().includes(debouncedSearchTerm)
 
     const matchesGroupClassNumber = !filterGroupClassNumber || session.groupClassNumber.toString() === filterGroupClassNumber
 

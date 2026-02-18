@@ -61,7 +61,7 @@ function PhysiotherapyRenewContent() {
   if (!physioNumber) {
     return (
       <div className="container mx-auto p-6 text-center" dir="rtl">
-        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-8">
+        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-8 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
           <div className="text-6xl mb-4">❌</div>
           <h2 className="text-2xl font-bold mb-2">رقم Physiotherapy غير محدد</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">يرجى تحديد رقم Physiotherapy للتجديد</p>
@@ -88,7 +88,7 @@ function PhysiotherapyRenewContent() {
   if (error || !session) {
     return (
       <div className="container mx-auto p-6 text-center" dir="rtl">
-        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-8">
+        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-8 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
           <div className="text-6xl mb-4">❌</div>
           <h2 className="text-2xl font-bold mb-2">{error || 'جلسة العلاج الطبيعي غير موجودة'}</h2>
           <button

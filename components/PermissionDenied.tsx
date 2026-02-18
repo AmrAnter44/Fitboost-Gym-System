@@ -48,7 +48,7 @@ export default function PermissionDenied({
           </p>
 
           {/* Description */}
-          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-6">
+          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-6 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <p className="text-sm text-red-800">
               إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع المسؤول للحصول على الصلاحيات المناسبة.
             </p>
@@ -67,7 +67,7 @@ export default function PermissionDenied({
             
             <button
               onClick={() => router.push('/')}
-              className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-bold"
+              className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-bold"
             >
               🏠 العودة للصفحة الرئيسية
             </button>
