@@ -442,7 +442,7 @@ export async function POST(request: Request) {
 
       createAuditLog({
         userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
-        action: 'CREATE', resource: 'PT', resourceId: pt.id,
+        action: 'CREATE', resource: 'PT', resourceId: String(pt.ptNumber),
         details: { ptNumber: pt.ptNumber, clientName, coachName, sessionsPurchased },
         ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
       })
