@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -14,6 +14,7 @@ import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
 import { fetchCoaches } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
+import { useDebounce } from '../../hooks/useDebounce'
 
 interface Staff {
   id: string
@@ -46,6 +47,7 @@ export default function NutritionPage() {
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
+  const queryClient = useQueryClient()
 
   // ✅ استخدام useQuery لجلب جلسات Nutrition
   const {
@@ -84,6 +86,7 @@ export default function NutritionPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingSession, setEditingSession] = useState<NutritionSession | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [showQRModal, setShowQRModal] = useState(false)
   const [selectedSession, setSelectedSession] = useState<NutritionSession | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -371,17 +374,25 @@ export default function NutritionPage() {
 
     if (!confirmed) return
 
+    // ✅ Optimistic Update - احذف فوراً من الـ UI
+    const previousData = queryClient.getQueryData<any[]>(['nutrition-sessions'])
+    queryClient.setQueryData<any[]>(['nutrition-sessions'], (old) =>
+      old ? old.filter(s => s.nutritionNumber !== nutritionNumber) : old
+    )
+
     try {
       const response = await fetch(`/api/nutrition?nutritionNumber=${nutritionNumber}`, { method: 'DELETE' })
 
       if (!response.ok) {
         const errorData = await response.json()
+        queryClient.setQueryData(['nutrition-sessions'], previousData) // rollback
         throw new Error(errorData.error || t('nutrition.messages.deleteFailed'))
       }
 
       toast.success(t('nutrition.messages.sessionDeleted'))
-      refetchSessions()
+      queryClient.invalidateQueries({ queryKey: ['nutrition-sessions'] })
     } catch (error: any) {
+      queryClient.setQueryData(['nutrition-sessions'], previousData) // rollback
       console.error('Error:', error)
       toast.error(`${t('nutrition.messages.deleteFailed')} - ${error.message || ''}`)
     }
@@ -458,10 +469,10 @@ export default function NutritionPage() {
   const filteredSessions = sessions.filter((session) => {
     // البحث النصي
     const matchesSearch =
-      session.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.nutritionistName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.nutritionNumber.toString().includes(searchTerm) ||
-      session.phone.includes(searchTerm)
+      session.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.nutritionistName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.nutritionNumber.toString().includes(debouncedSearchTerm) ||
+      session.phone.includes(debouncedSearchTerm)
 
     // فلتر أخصائي التغذية
     const matchesCoach = filterCoach === '' || session.nutritionistName === filterCoach
@@ -697,7 +708,7 @@ export default function NutritionPage() {
                         key={pkg.id}
                         type="button"
                         onClick={() => applyPackage(pkg)}
-                        className="bg-gradient-to-br from-lime-50 to-green-100 dark:from-lime-900/50 dark:to-green-900/50 hover:from-lime-100 hover:to-green-200 dark:hover:from-lime-800/50 dark:hover:to-green-800/50 border-2 border-lime-400 dark:border-lime-700 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg"
+                        className="bg-gradient-to-br from-lime-50 to-green-100 dark:from-lime-900/50 dark:to-green-900/50 hover:from-lime-100 hover:to-green-200 dark:hover:from-lime-800/50 dark:hover:to-green-800/50 border-2 border-lime-400 dark:border-lime-700 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       >
                         <div className="text-center">
                           <div className="text-2xl mb-1">🥗</div>
@@ -1322,7 +1333,7 @@ export default function NutritionPage() {
 
             <div className="space-y-4">
               {/* معلومات الاشتراك */}
-              <div className="bg-gradient-to-r from-green-50 to-green-50 border-2 border-green-200 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-green-50 to-green-50 border-2 border-green-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-600 dark:text-gray-300">{t('nutrition.nutritionNumber')}:</span>
@@ -1473,7 +1484,7 @@ export default function NutritionPage() {
                 </button>
               </div>
 
-              <div className="bg-green-50 border-r-4 border-green-500 p-3 rounded">
+              <div className="bg-green-50 border-r-4 border-green-500 p-3 rounded dark:bg-green-900/20 dark:border-green-700">
                 <p className="text-xs text-green-800">
                   {t('nutrition.barcodeModal.note')}
                 </p>
@@ -1502,7 +1513,7 @@ export default function NutritionPage() {
 
             <div className="space-y-4">
               {/* معلومات الاشتراك */}
-              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-300">{t('nutrition.nutritionNumber')}:</span>
@@ -1542,7 +1553,7 @@ export default function NutritionPage() {
                       paymentAmount: parseFloat(e.target.value) || 0
                     })
                   }
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
                 <div className="flex gap-2 mt-2">
                   <button
@@ -1588,7 +1599,7 @@ export default function NutritionPage() {
 
               {/* المبلغ المتبقي بعد الدفع */}
               {paymentFormData.paymentAmount > 0 && (
-                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-green-700 font-semibold">
                       {t('nutrition.paymentModal.remainingAfterPayment')}
@@ -1607,7 +1618,7 @@ export default function NutritionPage() {
                     setShowPaymentModal(false)
                     setPaymentSession(null)
                   }}
-                  className="bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                  className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
                 >
                   {t('nutrition.deleteConfirm.cancel')}
                 </button>
@@ -1621,7 +1632,7 @@ export default function NutritionPage() {
               </div>
 
               {/* ملاحظة */}
-              <div className="bg-orange-50 border-r-4 border-orange-500 p-3 rounded">
+              <div className="bg-orange-50 border-r-4 border-orange-500 p-3 rounded dark:bg-orange-900/20 dark:border-orange-700">
                 <p className="text-xs text-orange-800">
                   {t('nutrition.paymentModal.note')}
                 </p>

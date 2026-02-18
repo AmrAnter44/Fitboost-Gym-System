@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useDebounce } from '../../hooks/useDebounce'
 
 interface PTData {
   ptNumber: number
@@ -31,6 +32,7 @@ export default function CoachDashboard() {
   const [myPTs, setMyPTs] = useState<PTData[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [user, setUser] = useState<any>(null)
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [activeTab, setActiveTab] = useState<'active' | 'expired'>('active')
 
   useEffect(() => {
@@ -106,7 +108,7 @@ export default function CoachDashboard() {
   const currentPTs = activeTab === 'active' ? activePTs : expiredPTs
 
   const filteredPTs = currentPTs.filter((pt) => {
-    const searchLower = searchTerm.toLowerCase()
+    const searchLower = debouncedSearchTerm.toLowerCase()
     return (
       pt.clientName.toLowerCase().includes(searchLower) ||
       pt.phone?.toLowerCase().includes(searchLower) ||
@@ -178,7 +180,7 @@ export default function CoachDashboard() {
               placeholder="🔍 ابحث عن عضو (الاسم، الهاتف، رقم PT)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-6 py-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-lg focus:border-primary-500 focus:outline-none"
+              className="w-full px-6 py-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-lg focus:border-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </div>
         </div>
@@ -260,7 +262,7 @@ export default function CoachDashboard() {
                         <span>الحصص المستخدمة: {usedSessions} / {pt.sessionsPurchased}</span>
                         <span>{Math.round(progressPercentage)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all ${
                             progressPercentage >= 80 ? 'bg-red-500' :
@@ -300,7 +302,7 @@ export default function CoachDashboard() {
 
                     {/* Remaining Amount */}
                     {pt.remainingAmount !== null && pt.remainingAmount > 0 && (
-                      <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-2 mb-3">
+                      <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-2 mb-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                         <p className="text-xs text-yellow-800 font-bold">
                           💰 المبلغ المتبقي: {pt.remainingAmount} ج.م
                         </p>

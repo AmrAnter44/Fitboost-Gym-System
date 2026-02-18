@@ -59,7 +59,7 @@ export default function ExpensesPage() {
 
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [filterType, setFilterType] = useState<'all' | 'gym_expense' | 'staff_loan'>('all')
+  const [filterType, setFilterType] = useState<'all' | 'gym_expense' | 'staff_loan' | 'staff_salary'>('all')
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; expenseId: string | null; expenseName: string }>({
     show: false,
     expenseId: null,
@@ -71,7 +71,7 @@ export default function ExpensesPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
   const [formData, setFormData] = useState({
-    type: 'gym_expense' as 'gym_expense' | 'staff_loan',
+    type: 'gym_expense' as 'gym_expense' | 'staff_loan' | 'staff_salary',
     amount: 0,
     description: '',
     notes: '',
@@ -297,13 +297,15 @@ export default function ExpensesPage() {
   }
 
   const getTypeLabel = (type: string) => {
-    return type === 'gym_expense' ? t('expenses.types.gymExpense') : t('expenses.types.staffLoan')
+    if (type === 'gym_expense') return t('expenses.types.gymExpense')
+    if (type === 'staff_salary') return t('expenses.types.staffSalary')
+    return t('expenses.types.staffLoan')
   }
 
   const getTypeColor = (type: string) => {
-    return type === 'gym_expense'
-      ? 'bg-orange-100 text-orange-800'
-      : 'bg-primary-100 text-primary-800'
+    if (type === 'gym_expense') return 'bg-orange-100 text-orange-800'
+    if (type === 'staff_salary') return 'bg-violet-100 text-violet-800'
+    return 'bg-primary-100 text-primary-800'
   }
 
   // ✅ التحقق من الصلاحيات
@@ -358,7 +360,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" dir={direction}>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" dir={direction}>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
           <div className="flex items-center justify-between">
             <div>
@@ -397,6 +399,19 @@ export default function ExpensesPage() {
             <div className="text-4xl">💵</div>
           </div>
         </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">{t('expenses.types.staffSalary')}</p>
+              <p className="text-3xl font-bold text-violet-600">
+                {currentMonthExpenses.filter(e => e.type === 'staff_salary').reduce((sum, e) => sum + e.amount, 0)} {t('members.egp')}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📅 {t('expenses.stats.currentMonth')}</p>
+            </div>
+            <div className="text-4xl">💳</div>
+          </div>
+        </div>
       </div>
 
       {/* Form */}
@@ -420,6 +435,7 @@ export default function ExpensesPage() {
                 >
                   <option value="gym_expense">{t('expenses.types.gymExpense')}</option>
                   <option value="staff_loan">{t('expenses.types.staffLoan')}</option>
+                  <option value="staff_salary">{t('expenses.types.staffSalary')}</option>
                 </select>
               </div>
 
@@ -529,6 +545,7 @@ export default function ExpensesPage() {
           <option value="all">{t('expenses.filter.all')}</option>
           <option value="gym_expense">{t('expenses.filter.gymExpenses')}</option>
           <option value="staff_loan">{t('expenses.filter.staffLoans')}</option>
+          <option value="staff_salary">{t('expenses.filter.staffSalaries')}</option>
         </select>
       </div>
 
@@ -741,7 +758,7 @@ export default function ExpensesPage() {
               <div className="flex gap-3">
                 <button
                   onClick={cancelDelete}
-                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-300 transition font-bold"
+                  className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition font-bold"
                 >
                   ✕ {t('expenses.deleteModal.cancel')}
                 </button>

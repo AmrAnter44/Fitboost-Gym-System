@@ -1,13 +1,20 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import dynamic from 'next/dynamic'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { fetchVisitors, fetchFollowUps } from '../../lib/api/visitors'
 import { fetchMembers } from '../../lib/api/members'
+import { useDebounce } from '../../hooks/useDebounce'
+
+const VirtualVisitorList = dynamic(() => import('../../components/VirtualVisitorList'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-lg" />,
+})
 
 interface Visitor {
   id: string
@@ -40,12 +47,16 @@ export default function VisitorsPage() {
   const router = useRouter()
   const { t, direction } = useLanguage()
   const toast = useToast()
+  const queryClient = useQueryClient()
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [monthFilter, setMonthFilter] = useState('all')
+
+  // ✅ Debounced search - تأخير البحث لتقليل API requests
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
   // Fetch visitors with filters
   const {
@@ -54,8 +65,8 @@ export default function VisitorsPage() {
     error: visitorsError,
     refetch: refetchVisitors
   } = useQuery({
-    queryKey: ['visitors', searchTerm, statusFilter, sourceFilter],
-    queryFn: () => fetchVisitors({ searchTerm, statusFilter, sourceFilter }),
+    queryKey: ['visitors', debouncedSearchTerm, statusFilter, sourceFilter],
+    queryFn: () => fetchVisitors({ searchTerm: debouncedSearchTerm, statusFilter, sourceFilter }),
     retry: 1,
     staleTime: 2 * 60 * 1000,
   })
@@ -88,7 +99,74 @@ export default function VisitorsPage() {
   // Delete confirmation modal
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [visitorToDelete, setVisitorToDelete] = useState<Visitor | null>(null)
-  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<Visitor | null>(null)
+  const [undoSecondsLeft, setUndoSecondsLeft] = useState(0)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const undoCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // ✅ Optimistic Delete - حذف الزائر فوراً من الـ UI
+  const deleteVisitorMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/visitors?id=${id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('Delete failed')
+    },
+    onMutate: async (id: string) => {
+      const queryKey = ['visitors', debouncedSearchTerm, statusFilter, sourceFilter]
+      await queryClient.cancelQueries({ queryKey })
+      const previousData = queryClient.getQueryData(queryKey)
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return old
+        return { ...old, visitors: old.visitors.filter((v: Visitor) => v.id !== id) }
+      })
+      return { previousData, queryKey }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(context.queryKey, context.previousData)
+      }
+      toast.error(t('visitors.messages.deleteError'))
+    },
+    onSuccess: () => {
+      toast.success(t('visitors.messages.deleteSuccess'))
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['visitors'] })
+    }
+  })
+
+  // ✅ Optimistic Status Update - تحديث الحالة فوراً
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const response = await fetch('/api/visitors', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      })
+      if (!response.ok) throw new Error('Update failed')
+    },
+    onMutate: async ({ id, status }) => {
+      const queryKey = ['visitors', debouncedSearchTerm, statusFilter, sourceFilter]
+      await queryClient.cancelQueries({ queryKey })
+      const previousData = queryClient.getQueryData(queryKey)
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return old
+        return { ...old, visitors: old.visitors.map((v: Visitor) => v.id === id ? { ...v, status } : v) }
+      })
+      return { previousData, queryKey }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(context.queryKey, context.previousData)
+      }
+      toast.error(t('visitors.messages.statusUpdateError'))
+    },
+    onSuccess: () => {
+      toast.success(t('visitors.messages.statusUpdateSuccess'))
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['visitors'] })
+    }
+  })
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -175,7 +253,7 @@ export default function VisitorsPage() {
   // إعادة تعيين الصفحة عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, statusFilter, sourceFilter, monthFilter])
+  }, [debouncedSearchTerm, statusFilter, sourceFilter, monthFilter])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -206,42 +284,93 @@ export default function VisitorsPage() {
     }
   }
 
-  const handleUpdateStatus = async (id: string, newStatus: string) => {
-    try {
-      await fetch('/api/visitors', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status: newStatus }),
-      })
-      refetchVisitors()
-      toast.success(t('visitors.messages.statusUpdateSuccess'))
-    } catch (error) {
-      console.error('Error updating status:', error)
-      toast.error(t('visitors.messages.statusUpdateError'))
-    }
+  // ✅ تصدير CSV للزوار
+  const exportVisitorsCSV = () => {
+    const headers = ['الاسم', 'الهاتف', 'المصدر', 'الاهتمام', 'الحالة', 'الملاحظات', 'تاريخ الإضافة']
+    const rows = filteredVisitors.map(v => [
+      v.name,
+      v.phone,
+      v.source,
+      v.interestedIn || '',
+      v.status,
+      v.notes || '',
+      new Date(v.createdAt).toLocaleDateString('ar-EG'),
+    ])
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `visitors_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleUpdateStatus = (id: string, newStatus: string) => {
+    updateStatusMutation.mutate({ id, status: newStatus })
   }
 
   const handleDelete = (visitor: Visitor) => {
-    setVisitorToDelete(visitor)
-    setShowDeleteModal(true)
+    // Clear any existing pending delete
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    if (undoCountdownRef.current) clearInterval(undoCountdownRef.current)
+
+    // Optimistically remove from UI
+    const queryKey = ['visitors', debouncedSearchTerm, statusFilter, sourceFilter]
+    const previousData = queryClient.getQueryData(queryKey)
+    queryClient.setQueryData(queryKey, (old: any) => {
+      if (!old) return old
+      return { ...old, visitors: old.visitors.filter((v: Visitor) => v.id !== visitor.id) }
+    })
+
+    // Show undo banner
+    setPendingDelete(visitor)
+    setUndoSecondsLeft(5)
+
+    // Countdown
+    undoCountdownRef.current = setInterval(() => {
+      setUndoSecondsLeft(s => {
+        if (s <= 1) {
+          if (undoCountdownRef.current) clearInterval(undoCountdownRef.current)
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+
+    // Schedule actual delete after 5s
+    deleteTimerRef.current = setTimeout(async () => {
+      setPendingDelete(null)
+      try {
+        const response = await fetch(`/api/visitors?id=${visitor.id}`, { method: 'DELETE' })
+        if (!response.ok) {
+          // Restore on failure
+          queryClient.setQueryData(queryKey, previousData)
+          toast.error(t('visitors.messages.deleteError'))
+        } else {
+          queryClient.invalidateQueries({ queryKey: ['visitors'] })
+        }
+      } catch {
+        queryClient.setQueryData(queryKey, previousData)
+        toast.error(t('visitors.messages.deleteError'))
+      }
+    }, 5000)
   }
 
-  const confirmDelete = async () => {
-    if (!visitorToDelete) return
+  const handleUndoDelete = () => {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    if (undoCountdownRef.current) clearInterval(undoCountdownRef.current)
+    // Restore the visitor by re-fetching
+    queryClient.invalidateQueries({ queryKey: ['visitors'] })
+    setPendingDelete(null)
+    setUndoSecondsLeft(0)
+  }
 
-    setDeleteLoading(true)
-    try {
-      await fetch(`/api/visitors?id=${visitorToDelete.id}`, { method: 'DELETE' })
-      refetchVisitors()
-      toast.success(t('visitors.messages.deleteSuccess'))
-      setShowDeleteModal(false)
-      setVisitorToDelete(null)
-    } catch (error) {
-      console.error('Error deleting visitor:', error)
-      toast.error(t('visitors.messages.deleteError'))
-    } finally {
-      setDeleteLoading(false)
-    }
+  const confirmDelete = () => {
+    if (!visitorToDelete) return
+    deleteVisitorMutation.mutate(visitorToDelete.id)
+    setShowDeleteModal(false)
+    setVisitorToDelete(null)
   }
 
   const openHistoryModal = (visitor: Visitor) => {
@@ -336,6 +465,19 @@ export default function VisitorsPage() {
 
   return (
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
+      {/* Undo Delete Banner */}
+      {pendingDelete && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 dark:bg-gray-700 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-600 animate-fade-in">
+          <span className="text-sm">🗑️ تم حذف <strong>{pendingDelete.name}</strong></span>
+          <button
+            onClick={handleUndoDelete}
+            className="bg-primary-500 hover:bg-primary-400 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            ↩️ تراجع ({undoSecondsLeft}s)
+          </button>
+        </div>
+      )}
+
       {/* Header with Stats */}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
@@ -343,12 +485,24 @@ export default function VisitorsPage() {
             <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">{t('visitors.title')}</h1>
             <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base">{t('visitors.subtitle')}</p>
           </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="w-full sm:w-auto bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700"
-          >
-            {showForm ? t('visitors.hideForm') : `➕ ${t('visitors.addVisitor')}`}
-          </button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button
+              onClick={exportVisitorsCSV}
+              title="تصدير CSV"
+              className="flex items-center gap-2 bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 text-sm font-bold shadow flex-shrink-0"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              CSV
+            </button>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="flex-1 sm:flex-none bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700"
+            >
+              {showForm ? t('visitors.hideForm') : `➕ ${t('visitors.addVisitor')}`}
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -536,167 +690,19 @@ export default function VisitorsPage() {
         </div>
       ) : (
         <>
-          {/* Cards للموبايل */}
-          <div className="lg:hidden space-y-4">
-            {currentVisitors.map((visitor) => (
-              <div
-                key={visitor.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-r-4 border-green-500 overflow-hidden"
-              >
-                {/* Actions في الأعلى */}
-                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 flex justify-between items-center border-b dark:border-gray-600">
-                  <div className="flex gap-2 flex-wrap">
-                    {visitor.status === 'subscribed' ? (
-                      <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded text-xs font-bold">
-                        ✅ مشترك
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => openQuickFollowUp(visitor)}
-                        className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs font-medium px-2 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
-                      >
-                        ➕ {t('visitors.actions.followUp')}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => openHistoryModal(visitor)}
-                      className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs font-medium px-2 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
-                    >
-                      📋 {t('visitors.actions.history')}
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => handleDelete(visitor)}
-                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs font-bold px-2 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
-                  >
-                    🗑️ {t('visitors.actions.delete')}
-                  </button>
-                </div>
-
-                {/* محتوى الكارت */}
-                <div className="p-4 space-y-3">
-                  {/* الاسم */}
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">{visitor.name}</h3>
-                  </div>
-
-                  {/* رقم الهاتف */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📱</span>
-                    <a
-                      href={`https://wa.me/20${visitor.phone}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg font-medium text-xs sm:text-sm bg-green-500 hover:bg-green-600 text-white transition-colors"
-                    >
-                      <span>💬</span>
-                      <span className="font-mono">{visitor.phone}</span>
-                    </a>
-                  </div>
-
-                  {/* المصدر */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📂</span>
-                    <span className="text-gray-700 dark:text-gray-200 text-sm">{getSourceLabel(visitor.source)}</span>
-                  </div>
-
-                  {/* مهتم بـ */}
-                  {visitor.interestedIn && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">💡</span>
-                      <span className="text-gray-700 dark:text-gray-200 text-sm">{visitor.interestedIn}</span>
-                    </div>
-                  )}
-
-                  {/* الحالة */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">📊</span>
-                    <select
-                      value={visitor.status}
-                      onChange={(e) => handleUpdateStatus(visitor.id, e.target.value)}
-                      className="text-xs px-2 py-1 rounded border dark:border-gray-600 dark:bg-gray-700 dark:text-white flex-1"
-                    >
-                      <option value="pending">{t('visitors.status.pending')}</option>
-                      <option value="contacted">{t('visitors.status.contacted')}</option>
-                      <option value="subscribed">{t('visitors.status.subscribed')}</option>
-                      <option value="rejected">{t('visitors.status.rejected')}</option>
-                    </select>
-                  </div>
-
-                  {/* تاريخ الزيارة */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📅</span>
-                    <span className="text-gray-700 dark:text-gray-200 text-sm">
-                      {new Date(visitor.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
-                    </span>
-                  </div>
-
-                  {/* الملاحظات */}
-                  {visitor.notes && (
-                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        <span className="font-semibold">📝 {t('visitors.table.notes')}:</span> {visitor.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* Pagination للموبايل */}
-            {filteredVisitors.length > 0 && totalPages > 1 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 space-y-3">
-                <div className="text-sm text-gray-600 dark:text-gray-300 text-center">
-                  {t('visitors.pagination.showing', {
-                    start: (startIndex + 1).toString(),
-                    end: Math.min(endIndex, filteredVisitors.length).toString(),
-                    total: filteredVisitors.length.toString()
-                  })}
-                </div>
-
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-gray-700 hover:bg-gray-200"
-                  >
-                    {t('visitors.pagination.previous')}
-                  </button>
-
-                  <span className="px-3 py-1 bg-primary-600 text-white rounded-lg text-sm font-medium">
-                    {currentPage} / {totalPages}
-                  </span>
-
-                  <button
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-gray-700 hover:bg-gray-200"
-                  >
-                    {t('visitors.pagination.next')}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-center gap-2 text-sm">
-                  <label className="text-gray-600 dark:text-gray-300">{t('visitors.pagination.itemsPerPage')}:</label>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value))
-                      setCurrentPage(1)
-                    }}
-                    className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-1"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
+          {/* Cards للموبايل (Virtualized) */}
+          <div className="lg:hidden">
+            <VirtualVisitorList
+              visitors={filteredVisitors}
+              onFollowUp={openQuickFollowUp}
+              onHistory={openHistoryModal}
+              onDelete={handleDelete}
+              onUpdateStatus={handleUpdateStatus}
+              t={t}
+              direction={direction}
+            />
             {filteredVisitors.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                 <div className="text-5xl mb-3">🚶</div>
                 {monthFilter !== 'all' ? (
                   <>
@@ -827,7 +833,7 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
                     title={t('visitors.pagination.firstPage')}
                   >
                     {t('visitors.pagination.first')}
@@ -836,7 +842,7 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
                     title={t('visitors.pagination.previousPage')}
                   >
                     {t('visitors.pagination.previous')}
@@ -875,7 +881,7 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
                     title={t('visitors.pagination.nextPage')}
                   >
                     {t('visitors.pagination.next')}
@@ -884,7 +890,7 @@ export default function VisitorsPage() {
                   <button
                     onClick={() => goToPage(totalPages)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
                     title={t('visitors.pagination.lastPage')}
                   >
                     {t('visitors.pagination.last')}
@@ -1038,7 +1044,7 @@ export default function VisitorsPage() {
         title={t('visitors.deleteModal.title')}
         message={t('visitors.deleteModal.message')}
         itemName={visitorToDelete ? `${visitorToDelete.name} (${visitorToDelete.phone})` : ''}
-        loading={deleteLoading}
+        loading={deleteVisitorMutation.isPending}
       />
     </div>
   )

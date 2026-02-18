@@ -7,6 +7,7 @@ import { usePermissions } from '../hooks/usePermissions'
 import type { Permissions } from '../types/permissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useSearch } from '../contexts/SearchContext'
+import NotificationsCenter from './NotificationsCenter'
 import { useUpdate } from '../contexts/UpdateContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 
@@ -185,6 +186,7 @@ export default function Navbar() {
                         {/* Menu Items */}
                         <div className="py-2">
                           {user.role === 'ADMIN' && (
+                            <>
                             <Link
                               href="/admin/users"
                               onClick={() => setShowUserMenu(false)}
@@ -195,6 +197,17 @@ export default function Navbar() {
                               <span>👥</span>
                               <span>{t('auth.manageUsers')}</span>
                             </Link>
+                            <Link
+                              href="/admin/audit"
+                              onClick={() => setShowUserMenu(false)}
+                              className={`px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700 transition-all flex items-center gap-2 ${
+                                locale === 'ar' ? 'hover:translate-x-1' : 'hover:-translate-x-1'
+                              }`}
+                            >
+                              <span>📝</span>
+                              <span>{locale === 'ar' ? 'سجل النشاط' : 'Activity Log'}</span>
+                            </Link>
+                            </>
                           )}
 
                           {/* Separator before logout */}
@@ -215,6 +228,9 @@ export default function Navbar() {
                   )}
                 </div>
               )}
+
+              {/* Notifications Center */}
+              <NotificationsCenter />
 
               {/* Quick Search Button */}
               <button
@@ -300,7 +316,7 @@ export default function Navbar() {
                     <Link
                       href="/admin/users"
                       onClick={() => setShowDrawer(false)}
-                      className="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition mb-2"
+                      className="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition mb-2"
                     >
                       <span>👥</span>
                       <span className="text-sm">{t('auth.manageUsers')}</span>

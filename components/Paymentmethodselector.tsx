@@ -197,7 +197,7 @@ export default function PaymentMethodSelector({
       {allowMultiple && totalAmount && totalAmount > 0 ? (
         <div className="space-y-4">
           {/* المبلغ الكلي */}
-          <div className="bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <div className="flex justify-between items-center">
               <span className="text-base font-semibold text-primary-900 dark:text-primary-200">
                 {t('multiPayment.totalAmount')}:

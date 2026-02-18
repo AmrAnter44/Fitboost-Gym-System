@@ -303,7 +303,7 @@ export default function SpaBookingsPage() {
                 </thead>
                 <tbody>
                   {bookings.map((booking: SpaBooking) => (
-                    <tr key={booking.id} className="border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <tr key={booking.id} className="border-b border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900 dark:text-white">{booking.memberName}</div>
                         <div className="text-sm text-gray-600 dark:text-gray-300">{booking.memberPhone}</div>
@@ -327,7 +327,7 @@ export default function SpaBookingsPage() {
                             booking.status !== 'completed' && (
                               <button
                                 onClick={() => handleCancelBooking(booking)}
-                                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 px-3 py-1 rounded transition-colors"
+                                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 px-3 py-1 rounded transition-colors dark:bg-red-900/20"
                               >
                                 {t('spa.cancel')}
                               </button>

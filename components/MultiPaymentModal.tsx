@@ -122,7 +122,7 @@ export default function MultiPaymentModal({
         {/* Body */}
         <div className="p-6 space-y-6">
           {/* المبلغ الكلي */}
-          <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-300 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-300 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-primary-900">
                 {t('multiPayment.totalAmount')}:
@@ -144,7 +144,7 @@ export default function MultiPaymentModal({
               </span>
             </div>
 
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
               <div
                 className={`h-full transition-all duration-300 ${
                   paidTotal > totalAmount
@@ -177,7 +177,7 @@ export default function MultiPaymentModal({
                   placeholder="0"
                   min="0"
                   step="0.01"
-                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-bold focus:border-primary-500 focus:outline-none transition"
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-bold focus:border-primary-500 focus:outline-none transition dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
             ))}
@@ -185,14 +185,14 @@ export default function MultiPaymentModal({
 
           {/* رسائل الخطأ */}
           {errorMessage && (
-            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 text-red-700 text-center font-semibold">
+            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 text-red-700 text-center font-semibold dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               ⚠️ {errorMessage}
             </div>
           )}
 
           {/* رسالة النجاح */}
           {isValid && !errorMessage && (
-            <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-green-700 text-center font-semibold">
+            <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-green-700 text-center font-semibold dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               ✅ المبلغ مطابق! يمكنك التأكيد الآن
             </div>
           )}
@@ -203,7 +203,7 @@ export default function MultiPaymentModal({
           <button
             type="button"
             onClick={handleCancel}
-            className="px-6 py-3 bg-gray-200 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 transition font-semibold"
+            className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold"
           >
             {t('multiPayment.cancel')}
           </button>

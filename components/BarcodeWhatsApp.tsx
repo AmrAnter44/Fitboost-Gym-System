@@ -57,6 +57,11 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
       if (data.barcode) {
         setBarcodeImage(data.barcode)
         setShowBarcodeModal(true)
+        // Auto-download to Downloads folder
+        const a = document.createElement('a')
+        a.href = data.barcode
+        a.download = `barcode-${memberNumber}.png`
+        a.click()
       } else {
         setToast({ message: t('barcode.errorGenerating'), type: 'error' })
       }
@@ -154,7 +159,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
               </button>
             </div>
 
-            <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 mb-6 text-center">
+            <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 mb-6 text-center dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <p className="text-sm text-primary-600 mb-2">{t('barcode.member')}</p>
               <p className="text-xl font-bold text-primary-800">{memberName}</p>
               <p className="text-3xl font-bold text-primary-600 mt-2">#{memberNumber}</p>
@@ -205,7 +210,7 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
 
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
               >
                 {t('barcode.close')}
               </button>

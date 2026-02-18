@@ -98,6 +98,12 @@ export interface Permissions {
   canEditSpaBooking: boolean
   canCancelSpaBooking: boolean
   canViewSpaReports: boolean
+
+  // صلاحيات خصومات الموظفين
+  canViewDeductions: boolean
+  canCreateDeduction: boolean
+  canEditDeduction: boolean
+  canDeleteDeduction: boolean
 }
 
 /**
@@ -219,6 +225,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditSpaBooking: true,
     canCancelSpaBooking: true,
     canViewSpaReports: true,
+    canViewDeductions: true,
+    canCreateDeduction: true,
+    canEditDeduction: true,
+    canDeleteDeduction: true,
   },
   MANAGER: {
     canViewMembers: true,
@@ -281,6 +291,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditSpaBooking: true,
     canCancelSpaBooking: true,
     canViewSpaReports: true,
+    canViewDeductions: true,
+    canCreateDeduction: true,
+    canEditDeduction: true,
+    canDeleteDeduction: false,
   },
   STAFF: {
     canViewMembers: true,
@@ -343,6 +357,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditSpaBooking: false,
     canCancelSpaBooking: false,
     canViewSpaReports: false,
+    canViewDeductions: false,
+    canCreateDeduction: false,
+    canEditDeduction: false,
+    canDeleteDeduction: false,
   },
   COACH: {
     // الكوتش يرى فقط حصصه الخاصة
@@ -406,6 +424,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditSpaBooking: false,
     canCancelSpaBooking: false,
     canViewSpaReports: false,
+    canViewDeductions: false,
+    canCreateDeduction: false,
+    canEditDeduction: false,
+    canDeleteDeduction: false,
   },
 }
 
@@ -473,6 +495,10 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditSpaBooking: 'تعديل حجز SPA',
   canCancelSpaBooking: 'إلغاء حجز SPA',
   canViewSpaReports: 'عرض تقارير SPA',
+  canViewDeductions: 'عرض الخصومات',
+  canCreateDeduction: 'إضافة خصم',
+  canEditDeduction: 'تعديل خصم',
+  canDeleteDeduction: 'حذف خصم',
 }
 
 /**
@@ -614,6 +640,15 @@ export const PERMISSION_GROUPS = {
       'canViewSpaReports',
     ] as Array<keyof Permissions>,
   },
+  deductions: {
+    label: '📉 خصومات الموظفين',
+    permissions: [
+      'canViewDeductions',
+      'canCreateDeduction',
+      'canEditDeduction',
+      'canDeleteDeduction',
+    ] as Array<keyof Permissions>,
+  },
 }
 
 /**
@@ -680,6 +715,10 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canEditSpaBooking: '✏️',
   canCancelSpaBooking: '❌',
   canViewSpaReports: '📊',
+  canViewDeductions: '👁️',
+  canCreateDeduction: '➕',
+  canEditDeduction: '✏️',
+  canDeleteDeduction: '🗑️',
 }
 
 /**

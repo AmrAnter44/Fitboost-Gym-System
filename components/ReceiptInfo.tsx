@@ -8,7 +8,7 @@ interface ReceiptInfoProps {
 
 export function ReceiptInfo({ receiptNumber, memberNumber, amount }: ReceiptInfoProps) {
   return (
-    <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-6 shadow-lg">
+    <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-6 shadow-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* رقم الإيصال */}
         <div className="text-center">

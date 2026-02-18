@@ -378,7 +378,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
   return (
     <form onSubmit={handleSubmit} className="space-y-3" dir={direction}>
       {/* قسم العروض */}
-      <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-4">
+      <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
         <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-primary-800 dark:text-primary-200">
           <span>🎁</span>
           <span>{t('members.form.availableOffers')}</span>

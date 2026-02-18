@@ -371,7 +371,7 @@ export default function MemberDetailPage() {
         </div>
         <button
           onClick={() => router.push('/members')}
-          className="bg-gray-200 text-gray-700 dark:text-gray-200 px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-300 text-sm sm:text-base w-full sm:w-auto"
+          className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 text-sm sm:text-base w-full sm:w-auto"
         >
           ← {t('memberDetails.back')}
         </button>
@@ -500,7 +500,7 @@ export default function MemberDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
           <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-            <div className="bg-primary-100 p-2 sm:p-3 rounded-full">
+            <div className="bg-primary-100 dark:bg-primary-900/30 p-2 sm:p-3 rounded-full">
               <span className="text-2xl sm:text-3xl">📷</span>
             </div>
             <div>
@@ -519,7 +519,7 @@ export default function MemberDetailPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
           <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-            <div className="bg-primary-100 p-2 sm:p-3 rounded-full">
+            <div className="bg-primary-100 dark:bg-primary-900/30 p-2 sm:p-3 rounded-full">
               <span className="text-2xl sm:text-3xl">✏️</span>
             </div>
             <div>
@@ -599,7 +599,7 @@ export default function MemberDetailPage() {
             <button
               type="button"
               onClick={() => setActiveModal(null)}
-              className="w-full mt-4 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300"
+              className="w-full mt-4 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
             >
               {t('common.close')}
             </button>
@@ -700,7 +700,7 @@ export default function MemberDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold">💰 دفع المبلغ المتبقي</h3>
+              <h3 className="text-2xl font-bold dark:text-gray-100">💰 دفع المبلغ المتبقي</h3>
               <button
                 onClick={() => setActiveModal(null)}
                 className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl"
@@ -709,15 +709,15 @@ export default function MemberDetailPage() {
               </button>
             </div>
 
-            <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded-lg mb-6">
-              <p className="font-bold text-yellow-800">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border-r-4 border-yellow-500 dark:border-yellow-600 p-4 rounded-lg mb-6">
+              <p className="font-bold text-yellow-800 dark:text-yellow-200">
                 المبلغ المتبقي: {member.remainingAmount} ج.م
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 dark:text-gray-300">
                   المبلغ المدفوع <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -725,12 +725,12 @@ export default function MemberDetailPage() {
                   value={paymentData.amount}
                   onChange={(e) => setPaymentData({ ...paymentData, amount: parseFloat(e.target.value) || 0 })}
                   max={member.remainingAmount}
-                  className="w-full px-4 py-3 border-2 rounded-lg text-xl"
+                  className="w-full px-4 py-3 border-2 dark:border-gray-600 rounded-lg text-xl dark:bg-gray-700 dark:text-white"
                   placeholder="0"
                 />
               </div>
 
-              <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-5">
+              <div className="bg-gradient-to-br from-green-50 to-primary-50 dark:from-green-900/20 dark:to-primary-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <PaymentMethodSelector
                   value={paymentData.paymentMethod}
                   onChange={(method) => setPaymentData({ ...paymentData, paymentMethod: method })}
@@ -744,20 +744,20 @@ export default function MemberDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">ملاحظات</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-300">ملاحظات</label>
                 <textarea
                   value={paymentData.notes}
                   onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg"
+                  className="w-full px-4 py-3 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   rows={3}
                   placeholder="ملاحظات إضافية..."
                 />
               </div>
 
-              <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
-                <div className="flex justify-between text-lg">
+              <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-lg p-4">
+                <div className="flex justify-between text-lg dark:text-gray-200">
                   <span>المتبقي بعد الدفع:</span>
-                  <span className="font-bold text-green-600">
+                  <span className="font-bold text-green-600 dark:text-green-400">
                     {(member.remainingAmount - paymentData.amount).toFixed(0)} ج.م
                   </span>
                 </div>
@@ -773,7 +773,7 @@ export default function MemberDetailPage() {
                 </button>
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300"
+                  className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   إلغاء
                 </button>
@@ -787,7 +787,7 @@ export default function MemberDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold">❄️ تجميد الاشتراك</h3>
+              <h3 className="text-2xl font-bold dark:text-gray-100">❄️ تجميد الاشتراك</h3>
               <button
                 onClick={() => setActiveModal(null)}
                 className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl"
@@ -796,19 +796,19 @@ export default function MemberDetailPage() {
               </button>
             </div>
 
-            <div className="bg-cyan-50 border-r-4 border-cyan-500 p-4 rounded-lg mb-4">
-              <p className="text-sm text-cyan-800 mb-2">
+            <div className="bg-cyan-50 dark:bg-cyan-900/20 border-r-4 border-cyan-500 dark:border-cyan-600 p-4 rounded-lg mb-4">
+              <p className="text-sm text-cyan-800 dark:text-cyan-200 mb-2">
                 ❄️ أيام الفريز المتاحة: <strong className="text-xl">{member.remainingFreezeDays} يوم</strong>
               </p>
-              <p className="text-xs text-cyan-600">يمكنك استخدام أيام الفريز على دفعات</p>
+              <p className="text-xs text-cyan-600 dark:text-cyan-400">يمكنك استخدام أيام الفريز على دفعات</p>
             </div>
 
-            <div className="bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg mb-6">
-              <p className="text-sm text-primary-800 mb-2">
+            <div className="bg-primary-50 dark:bg-primary-900/20 border-r-4 border-primary-500 dark:border-primary-600 p-4 rounded-lg mb-6">
+              <p className="text-sm text-primary-800 dark:text-primary-200 mb-2">
                 تاريخ الانتهاء الحالي: <strong>{formatDateYMD(member.expiryDate)}</strong>
               </p>
               {daysRemaining !== null && (
-                <p className="text-sm text-primary-800">
+                <p className="text-sm text-primary-800 dark:text-primary-200">
                   الأيام المتبقية: <strong>{daysRemaining > 0 ? daysRemaining : 0} يوم</strong>
                 </p>
               )}
@@ -816,7 +816,7 @@ export default function MemberDetailPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 dark:text-gray-300">
                   عدد أيام التجميد <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -825,7 +825,7 @@ export default function MemberDetailPage() {
                   onChange={(e) => setFreezeData({ ...freezeData, days: parseInt(e.target.value) || 0 })}
                   min="1"
                   max={member.remainingFreezeDays}
-                  className="w-full px-4 py-3 border-2 rounded-lg text-xl"
+                  className="w-full px-4 py-3 border-2 dark:border-gray-600 rounded-lg text-xl dark:bg-gray-700 dark:text-white"
                   placeholder="0"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -834,18 +834,18 @@ export default function MemberDetailPage() {
               </div>
 
               {freezeData.days > 0 && member.expiryDate && (
-                <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
-                  <p className="text-sm text-green-800 mb-2">
+                <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-lg p-4">
+                  <p className="text-sm text-green-800 dark:text-green-200 mb-2">
                     📅 التاريخ الجديد للانتهاء:
                   </p>
-                  <p className="text-xl font-bold text-green-600">
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">
                     {formatDateYMD(new Date(new Date(member.expiryDate).getTime() + freezeData.days * 24 * 60 * 60 * 1000))}
                   </p>
-                  <div className="mt-3 pt-3 border-t border-green-300">
-                    <p className="text-xs text-green-700">
+                  <div className="mt-3 pt-3 border-t border-green-300 dark:border-green-700">
+                    <p className="text-xs text-green-700 dark:text-green-300">
                       ✅ سيتم تجميد الاشتراك لمدة {freezeData.days} يوم
                     </p>
-                    <p className="text-xs text-green-700">
+                    <p className="text-xs text-green-700 dark:text-green-300">
                       ❄️ الرصيد المتبقي: {member.remainingFreezeDays - freezeData.days} يوم
                     </p>
                   </div>
@@ -862,7 +862,7 @@ export default function MemberDetailPage() {
                 </button>
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300"
+                  className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   إلغاء
                 </button>
@@ -875,79 +875,79 @@ export default function MemberDetailPage() {
       {activeModal === 'edit' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-1">
           <div className="bg-white dark:bg-gray-800 rounded shadow-2xl max-w-[99vw] w-full p-1.5">
-            <div className="flex justify-between items-center mb-0.5 bg-white dark:bg-gray-800 pb-0.5 border-b">
-              <h3 className="text-xs font-bold">✏️ #{member.memberNumber}</h3>
+            <div className="flex justify-between items-center mb-0.5 bg-white dark:bg-gray-800 pb-0.5 border-b dark:border-gray-700">
+              <h3 className="text-xs font-bold dark:text-gray-100">✏️ #{member.memberNumber}</h3>
               <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-lg leading-none">×</button>
             </div>
 
             <div className="grid grid-cols-5 md:grid-cols-10 gap-1">
               <div>
-                <label className="block text-[8px] mb-0">الاسم</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">الاسم</label>
                 <input type="text" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0">الهاتف</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">الهاتف</label>
                 <input type="text" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0">السعر</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">السعر</label>
                 <input type="number" value={editData.subscriptionPrice} onChange={(e) => setEditData({ ...editData, subscriptionPrice: parseInt(e.target.value) || 0 })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" min="0" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" min="0" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0">البداية</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">البداية</label>
                 <input type="date" value={editData.startDate} onChange={(e) => setEditData({ ...editData, startDate: e.target.value })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0">الانتهاء</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">الانتهاء</label>
                 <input type="date" value={editData.expiryDate} onChange={(e) => setEditData({ ...editData, expiryDate: e.target.value })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0">❄️ فريز</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">❄️ فريز</label>
                 <input type="number" value={editData.remainingFreezeDays} onChange={(e) => setEditData({ ...editData, remainingFreezeDays: parseInt(e.target.value) || 0 })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" min="0" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" min="0" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0">⚖️ InBody</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">⚖️ InBody</label>
                 <input type="number" value={editData.inBodyScans} onChange={(e) => setEditData({ ...editData, inBodyScans: parseInt(e.target.value) || 0 })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" min="0" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" min="0" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0">🎟️ دعوات</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">🎟️ دعوات</label>
                 <input type="number" value={editData.invitations} onChange={(e) => setEditData({ ...editData, invitations: parseInt(e.target.value) || 0 })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" min="0" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" min="0" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0">💪 PT</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">💪 PT</label>
                 <input type="number" value={editData.freePTSessions} onChange={(e) => setEditData({ ...editData, freePTSessions: parseInt(e.target.value) || 0 })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" min="0" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" min="0" />
               </div>
 
               <div>
-                <label className="block text-[8px] mb-0">📝 ملاحظات</label>
+                <label className="block text-[8px] mb-0 dark:text-gray-300">📝 ملاحظات</label>
                 <input type="text" value={editData.notes} onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
-                  className="w-full px-1 py-0.5 border rounded text-[10px]" />
+                  className="w-full px-1 py-0.5 border dark:border-gray-600 rounded text-[10px] dark:bg-gray-700 dark:text-white" />
               </div>
             </div>
 
-            <div className="flex gap-1 mt-1 pt-1 border-t bg-white dark:bg-gray-800">
+            <div className="flex gap-1 mt-1 pt-1 border-t dark:border-gray-700 bg-white dark:bg-gray-800">
               <button onClick={handleEdit} disabled={loading || !editData.name || !editData.phone}
                 className="flex-1 bg-primary-600 text-white py-1 rounded hover:bg-primary-700 disabled:bg-gray-400 font-bold text-[10px]">
                 {loading ? 'حفظ...' : '✅ حفظ'}
               </button>
-              <button onClick={() => setActiveModal(null)} className="px-2 bg-gray-200 text-gray-700 dark:text-gray-200 py-1 rounded hover:bg-gray-300 text-[10px]">
+              <button onClick={() => setActiveModal(null)} className="px-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-[10px]">
                 إلغاء
               </button>
             </div>

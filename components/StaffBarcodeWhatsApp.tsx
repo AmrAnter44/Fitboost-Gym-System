@@ -155,7 +155,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
               </button>
             </div>
 
-            <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 mb-6 text-center">
+            <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 mb-6 text-center dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <p className="text-sm text-primary-600 mb-2">الموظف</p>
               <p className="text-xl font-bold text-primary-800">{staffName}</p>
               <p className="text-3xl font-bold text-primary-600 mt-2">
@@ -206,7 +206,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
 
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-bold"
+                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
               >
                 إغلاق
               </button>

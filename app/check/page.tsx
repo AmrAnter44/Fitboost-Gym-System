@@ -178,7 +178,7 @@ export default function CheckMembershipPage() {
             </label>
 
             {error && (
-              <div className="mb-4 p-4 bg-red-50 border-2 border-red-500 rounded-xl animate-shake">
+              <div className="mb-4 p-4 bg-red-50 border-2 border-red-500 rounded-xl animate-shake dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <p className="text-red-700 font-bold text-center">{error}</p>
               </div>
             )}
@@ -289,7 +289,7 @@ export default function CheckMembershipPage() {
                   setMemberNumber('')
                   inputRef.current?.focus()
                 }}
-                className="px-6 py-3 bg-gray-200 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-300 font-bold transition"
+                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 font-bold transition"
               >
                 {t('attendance.searchAnother')}
               </button>

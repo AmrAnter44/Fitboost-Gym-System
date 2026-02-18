@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '../../../../contexts/ToastContext'
 import { usePermissions } from '../../../../hooks/usePermissions'
 import PermissionDenied from '../../../../components/PermissionDenied'
+import { useDebounce } from '../../../../hooks/useDebounce'
 
 interface NutritionSession {
   nutritionNumber: number
@@ -22,6 +23,7 @@ export default function RegisterNutritionSessionPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [generatedQRCode, setGeneratedQRCode] = useState<string | null>(null)
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
   const [showQRModal, setShowQRModal] = useState(false)
@@ -125,9 +127,9 @@ export default function RegisterNutritionSessionPage() {
 
   // فلترة الجلسات حسب البحث
   const filteredSessions = sessions.filter(nutrition =>
-    nutrition.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    nutrition.nutritionNumber.toString().includes(searchTerm) ||
-    nutrition.phone.includes(searchTerm)
+    nutrition.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    nutrition.nutritionNumber.toString().includes(debouncedSearchTerm) ||
+    nutrition.phone.includes(debouncedSearchTerm)
   )
 
   const selectedNutrition = sessions.find(nutrition => nutrition.nutritionNumber.toString() === formData.nutritionNumber)
@@ -236,7 +238,7 @@ export default function RegisterNutritionSessionPage() {
               />
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-50 dark:from-green-900/20 dark:to-green-800/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-5">
+            <div className="bg-gradient-to-br from-green-50 to-green-50 dark:from-green-900/20 dark:to-green-800/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                 <span>📅</span>
                 <span>تاريخ ووقت الجلسة</span>
@@ -332,7 +334,7 @@ export default function RegisterNutritionSessionPage() {
               </div>
 
               {/* QR Code Display */}
-              <div className="bg-gradient-to-br from-green-50 to-green-50 dark:from-green-900/20 dark:to-green-800/20 border-2 border-green-300 dark:border-green-600 rounded-xl p-6 mb-4">
+              <div className="bg-gradient-to-br from-green-50 to-green-50 dark:from-green-900/20 dark:to-green-800/20 border-2 border-green-300 dark:border-green-600 rounded-xl p-6 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 {/* QR Code Image */}
                 {qrCodeImage && (
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 flex justify-center">

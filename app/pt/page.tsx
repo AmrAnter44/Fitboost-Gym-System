@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -14,6 +14,7 @@ import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
 import { fetchPTSessions, fetchCoaches } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
+import { useDebounce } from '../../hooks/useDebounce'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
 
 interface Staff {
@@ -47,6 +48,7 @@ export default function PTPage() {
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
+  const queryClient = useQueryClient()
 
   // ✅ استخدام useQuery لجلب جلسات PT
   const {
@@ -77,6 +79,7 @@ export default function PTPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingSession, setEditingSession] = useState<PTSession | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [showQRModal, setShowQRModal] = useState(false)
   const [selectedSession, setSelectedSession] = useState<PTSession | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -356,17 +359,25 @@ export default function PTPage() {
 
     if (!confirmed) return
 
+    // ✅ Optimistic Update
+    const previousData = queryClient.getQueryData<any[]>(['pt-sessions'])
+    queryClient.setQueryData<any[]>(['pt-sessions'], (old) =>
+      old ? old.filter(s => s.ptNumber !== ptNumber) : old
+    )
+
     try {
       const response = await fetch(`/api/pt?ptNumber=${ptNumber}`, { method: 'DELETE' })
 
       if (!response.ok) {
         const errorData = await response.json()
+        queryClient.setQueryData(['pt-sessions'], previousData)
         throw new Error(errorData.error || t('pt.messages.deleteFailed'))
       }
 
       toast.success(t('pt.messages.sessionDeleted'))
-      refetchSessions()
+      queryClient.invalidateQueries({ queryKey: ['pt-sessions'] })
     } catch (error: any) {
+      queryClient.setQueryData(['pt-sessions'], previousData)
       console.error('Error:', error)
       toast.error(`${t('pt.messages.deleteFailed')} - ${error.message || ''}`)
     }
@@ -443,10 +454,10 @@ export default function PTPage() {
   const filteredSessions = sessions.filter((session) => {
     // البحث النصي
     const matchesSearch =
-      session.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.coachName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.ptNumber.toString().includes(searchTerm) ||
-      session.phone.includes(searchTerm)
+      session.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.coachName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.ptNumber.toString().includes(debouncedSearchTerm) ||
+      session.phone.includes(debouncedSearchTerm)
 
     // فلتر المدرب
     const matchesCoach = filterCoach === '' || session.coachName === filterCoach
@@ -496,7 +507,7 @@ export default function PTPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="mb-6">
-          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4"></div>
           <LoadingSkeleton type="stats" />
         </div>
         <LoadingSkeleton type="table" count={8} />
@@ -695,7 +706,7 @@ export default function PTPage() {
                         key={pkg.id}
                         type="button"
                         onClick={() => applyPackage(pkg)}
-                        className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-900/30 hover:from-primary-100 hover:to-primary-200 dark:hover:from-primary-800/40 dark:hover:to-primary-800/40 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg"
+                        className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-900/30 hover:from-primary-100 hover:to-primary-200 dark:hover:from-primary-800/40 dark:hover:to-primary-800/40 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       >
                         <div className="text-center">
                           <div className="text-2xl mb-1">💪</div>
@@ -854,7 +865,7 @@ export default function PTPage() {
             </div>
 
             {formData.sessionsPurchased > 0 && formData.totalPrice > 0 && (
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">{t('pt.finalTotal')}</span>
                   <span className="text-2xl font-bold text-green-600">
@@ -1385,7 +1396,7 @@ export default function PTPage() {
 
             <div className="space-y-4">
               {/* معلومات الاشتراك */}
-              <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-200 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-600 dark:text-gray-300">{t('pt.ptNumber')}:</span>
@@ -1567,7 +1578,7 @@ export default function PTPage() {
               {/* العمود الأيسر - معلومات الاشتراك */}
               <div className="space-y-3">
                 {/* معلومات الاشتراك */}
-                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-3">
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-300">{t('pt.ptNumber')}:</span>
@@ -1592,7 +1603,7 @@ export default function PTPage() {
 
                 {/* المبلغ المتبقي بعد الدفع */}
                 {paymentFormData.paymentAmount > 0 && (
-                  <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-3">
+                  <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-primary-700 font-semibold">
                         {t('pt.paymentModal.remainingAfterPayment')}
@@ -1624,7 +1635,7 @@ export default function PTPage() {
                         paymentAmount: parseFloat(e.target.value) || 0
                       })
                     }
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold"
+                    className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                   <div className="flex gap-2 mt-2">
                     <button

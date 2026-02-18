@@ -1,13 +1,20 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import nextDynamic from 'next/dynamic'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
-import FollowUpForm from './FollowUpForm'
-import SalesDashboard from './SalesDashboard'
-import MessageTemplateManager, { MessageTemplate } from './MessageTemplateManager'
+import type { MessageTemplate } from './MessageTemplateManager'
+
+// ✅ Dynamic imports - تحميل عند الحاجة فقط
+const FollowUpForm = nextDynamic(() => import('./FollowUpForm'), { ssr: false })
+const SalesDashboard = nextDynamic(() => import('./SalesDashboard'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+})
+const MessageTemplateManager = nextDynamic(() => import('./MessageTemplateManager'), { ssr: false })
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useRouter } from 'next/navigation'
@@ -19,6 +26,7 @@ import {
   fetchInvitationsData,
   deleteFollowUp
 } from '@/lib/api/followups'
+import { useDebounce } from '../../hooks/useDebounce'
 
 interface Visitor {
   id: string
@@ -45,6 +53,7 @@ interface Member {
   name: string
   expiryDate?: string
   isActive: boolean
+  birthDate?: string
 }
 
 export default function FollowUpsPage() {
@@ -52,6 +61,7 @@ export default function FollowUpsPage() {
   const { t, direction } = useLanguage()
   const toast = useToast()
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const [showForm, setShowForm] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
@@ -129,14 +139,25 @@ export default function FollowUpsPage() {
 
   const loading = loadingFollowUps
 
-  // Delete mutation
+  // ✅ Delete mutation مع Optimistic Update
   const deleteMutation = useMutation({
     mutationFn: deleteFollowUp,
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['followups'] })
+      const previousData = queryClient.getQueryData<any[]>(['followups'])
+      queryClient.setQueryData<any[]>(['followups'], (old) =>
+        old ? old.filter(fu => fu.id !== id) : old
+      )
+      return { previousData }
+    },
     onSuccess: () => {
       toast.success(t('followups.messages.deleteSuccess'))
-      refetchFollowUps()
+      queryClient.invalidateQueries({ queryKey: ['followups'] })
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['followups'], context.previousData)
+      }
       toast.error(error.message || t('followups.messages.deleteError'))
     }
   })
@@ -161,6 +182,7 @@ export default function FollowUpsPage() {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [resultFilter, setResultFilter] = useState('all')
   const [contactedFilter, setContactedFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
@@ -504,10 +526,10 @@ export default function FollowUpsPage() {
     return allFollowUps
       .filter(fu => {
         const matchesSearch =
-          fu.visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          fu.visitor.phone.includes(searchTerm) ||
-          fu.notes.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (fu.salesName && fu.salesName.toLowerCase().includes(searchTerm.toLowerCase()))
+          fu.visitor.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          fu.visitor.phone.includes(debouncedSearchTerm) ||
+          fu.notes.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          (fu.salesName && fu.salesName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
 
         const matchesResult = resultFilter === 'all' || fu.result === resultFilter
         const matchesContacted = contactedFilter === 'all' ||
@@ -563,12 +585,12 @@ export default function FollowUpsPage() {
         const priorityOrder: {[key: string]: number} = { overdue: 0, today: 1, upcoming: 2, none: 3 }
         return priorityOrder[aPriority] - priorityOrder[bPriority]
       })
-  }, [allFollowUps, searchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, isVisitorAMember, getFollowUpPriority, user])
+  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, isVisitorAMember, getFollowUpPriority, user])
 
   // إعادة تعيين الصفحة للأولى عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter])
+  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredFollowUps.length / itemsPerPage)
@@ -664,6 +686,24 @@ export default function FollowUpsPage() {
     // بسيط: أي شخص رقمه موجود في الأعضاء النشطين
     subscribedAndHidden: allFollowUps.filter(fu => isVisitorAMember(fu.visitor.phone)).length
   }
+
+  // 🎂 أعضاء عيد ميلادهم اليوم
+  const birthdayMembers = useMemo(() => {
+    const today = new Date()
+    const todayDay = today.getDate()
+    const todayMonth = today.getMonth() + 1
+    return (allMembersData as Member[])
+      .filter(m => {
+        if (!m.birthDate) return false
+        const bd = new Date(m.birthDate)
+        return bd.getDate() === todayDay && (bd.getMonth() + 1) === todayMonth
+      })
+      .map(m => {
+        const birthYear = new Date(m.birthDate!).getFullYear()
+        const age = today.getFullYear() - birthYear
+        return { ...m, age }
+      })
+  }, [allMembersData])
 
   // ✅ قائمة المتحولين لأعضاء - مبسط ومحسّن: أي شخص رقمه موجود في الأعضاء النشطين
   // يشمل: زوار، دعوات، أعضاء منتهيين، أعضاء قريبين من الانتهاء - كلهم بنفس المنطق
@@ -780,8 +820,41 @@ export default function FollowUpsPage() {
           </button>
         </div>
 
+        {/* 🎂 أعضاء عيد ميلادهم اليوم */}
+        {birthdayMembers.length > 0 && (
+          <div className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 border-2 border-pink-300 dark:border-pink-600 rounded-xl p-3 sm:p-4 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            <h3 className="font-bold text-pink-900 dark:text-pink-100 mb-3 flex items-center gap-2 text-sm sm:text-base">
+              <span className="text-xl">🎂</span>
+              <span>{direction === 'rtl' ? 'أعياد ميلاد اليوم' : "Today's Birthdays"}</span>
+              <span className="bg-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">{birthdayMembers.length}</span>
+            </h3>
+            <div className="flex flex-wrap gap-3">
+              {birthdayMembers.map(m => (
+                <a
+                  key={m.id}
+                  href={`https://wa.me/20${m.phone.startsWith('0') ? m.phone.substring(1) : m.phone}?text=${encodeURIComponent(`🎂 كل سنة وانت طيب ${m.name}! 🎉`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-white dark:bg-gray-800 border-2 border-pink-300 dark:border-pink-600 rounded-xl px-3 py-2 hover:shadow-md transition-all hover:scale-105"
+                >
+                  <div className="w-9 h-9 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                    {m.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-800 dark:text-gray-100 text-sm">{m.name}</p>
+                    <p className="text-xs text-pink-600 dark:text-pink-400 font-semibold">
+                      🎉 {direction === 'rtl' ? `${m.age} سنة` : `${m.age} years old`}
+                    </p>
+                  </div>
+                  <span className="text-green-500 text-base mr-1">💬</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Filter for Expiring Days */}
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-300 dark:border-yellow-600 rounded-xl p-3 sm:p-4 mb-4">
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-300 dark:border-yellow-600 rounded-xl p-3 sm:p-4 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             <div className="flex-1 w-full sm:w-auto">
               <label className="block text-xs sm:text-sm font-bold text-yellow-900 dark:text-yellow-100 mb-2">
@@ -808,7 +881,7 @@ export default function FollowUpsPage() {
 
         {/* 🎯 Quick Personal Filters */}
         {user?.name && (
-          <div className="bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-300 dark:border-primary-600 rounded-xl p-3 sm:p-4 mb-4">
+          <div className="bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-300 dark:border-primary-600 rounded-xl p-3 sm:p-4 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <h3 className="font-bold text-primary-900 dark:text-primary-100 mb-3 flex items-center gap-2 text-sm sm:text-base">
               <span>🎯</span>
               <span>{t('followups.quickFilters.title')} - {user.name}</span>
@@ -907,7 +980,7 @@ export default function FollowUpsPage() {
 
         {/* 🏆 Sales Leaderboard */}
         {salesStats.length > 0 && (
-          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-2 border-amber-300 dark:border-amber-600 rounded-xl p-4 sm:p-6 mb-6">
+          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-2 border-amber-300 dark:border-amber-600 rounded-xl p-4 sm:p-6 mb-6 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <h3 className="font-bold text-amber-900 dark:text-amber-100 mb-4 flex items-center gap-2 text-lg sm:text-xl">
               <span>🏆</span>
               <span>{t('followups.analytics.leaderboard.title')}</span>
@@ -1780,7 +1853,7 @@ export default function FollowUpsPage() {
 
       {/* Recently Converted Section */}
       {convertedMembers.length > 0 && viewMode === 'list' && (
-        <div className="mt-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-300 dark:border-emerald-600 rounded-xl p-4 sm:p-6">
+        <div className="mt-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-300 dark:border-emerald-600 rounded-xl p-4 sm:p-6 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
           <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-4 flex items-center gap-2 text-lg sm:text-xl">
             <span>🎉</span>
             <span>تحولوا لأعضاء / جددوا الاشتراك</span>

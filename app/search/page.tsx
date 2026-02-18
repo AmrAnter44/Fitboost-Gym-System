@@ -709,7 +709,7 @@ export default function SearchPage() {
           <div className="mb-3 sm:mb-4">
             {/* 🆕 رسالة الخطأ */}
             {attendanceMessage && (
-              <div className="mb-2 sm:mb-3 p-2 sm:p-3 rounded-lg border-2 bg-red-50 border-red-500 animate-slideDown">
+              <div className="mb-2 sm:mb-3 p-2 sm:p-3 rounded-lg border-2 bg-red-50 border-red-500 animate-slideDown dark:bg-red-900/20 dark:border-red-700">
                 <p className="text-sm sm:text-base font-bold text-red-700">
                   {attendanceMessage.text}
                 </p>
@@ -831,7 +831,7 @@ export default function SearchPage() {
 
               <div className="space-y-3 sm:space-y-4">
                 {results.map((result, index) => (
-                  <div key={index} className="border-2 border-primary-200 dark:border-primary-700 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition">
+                  <div key={index} className="border-2 border-primary-200 dark:border-primary-700 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     {result.type === 'member' && (
                       <div>
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-3">
@@ -905,7 +905,7 @@ export default function SearchPage() {
                         </div>
 
                         {(result.data.startDate || result.data.expiryDate) && (
-                          <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 dark:from-primary-900/30 dark:to-yellow-900/30 border-2 border-primary-300 dark:border-primary-700 rounded p-2 sm:p-3">
+                          <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 dark:from-primary-900/30 dark:to-yellow-900/30 border-2 border-primary-300 dark:border-primary-700 rounded p-2 sm:p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {result.data.startDate && (
                                 <div>
@@ -972,7 +972,7 @@ export default function SearchPage() {
 
                         {/* عرض الخدمات المجانية المتبقية */}
                         {result.data.isActive && (result.data.invitations > 0 || result.data.freePTSessions > 0 || (settings.inBodyEnabled && result.data.inBodyScans > 0) || (settings.nutritionEnabled && result.data.freeNutritionSessions > 0) || (settings.physiotherapyEnabled && result.data.freePhysioSessions > 0) || (settings.groupClassEnabled && result.data.freeGroupClassSessions > 0)) && (
-                          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 border-2 border-primary-400 dark:border-primary-700 rounded-xl p-4">
+                          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 border-2 border-primary-400 dark:border-primary-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                             <div className="flex items-center gap-2 mb-3">
                               <span className="text-2xl">🎁</span>
                               <p className="text-sm sm:text-base font-bold text-primary-800 dark:text-primary-300">{t('search.freeServicesRemaining')}</p>
@@ -1109,7 +1109,7 @@ export default function SearchPage() {
 
                         {/* نظام النقاط */}
                         {settings.pointsEnabled && result.data.points > 0 && (
-                          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border-2 border-amber-400 dark:border-amber-700 rounded-xl p-4">
+                          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border-2 border-amber-400 dark:border-amber-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <span className="text-3xl">⭐</span>

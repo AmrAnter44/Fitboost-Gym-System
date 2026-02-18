@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 // GET - جلب كل المصروفات
 
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
      * إضافة مصروف جديد
      * @permission canCreateExpense - صلاحية إنشاء مصروفات جديدة
      */
-    await requirePermission(request, 'canCreateExpense')
+    const user = await requirePermission(request, 'canCreateExpense')
 
     const body = await request.json()
     const { type, amount, description, notes, staffId, customCreatedAt } = body
@@ -135,6 +136,13 @@ export async function POST(request: Request) {
       }
     })
 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'CREATE', resource: 'Expense', resourceId: expense.id,
+      details: { type: expense.type, amount: expense.amount, description: expense.description },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json(expense, { status: 201 })
   } catch (error: any) {
     console.error('Error creating expense:', error)
@@ -161,7 +169,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية تعديل المصروف
-    await requirePermission(request, 'canEditExpense')
+    const user = await requirePermission(request, 'canEditExpense')
 
     const body = await request.json()
     const { id, description, createdAt, isPaid } = body
@@ -180,6 +188,13 @@ export async function PUT(request: Request) {
       include: {
         staff: true
       }
+    })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Expense', resourceId: expense.id,
+      details: { type: expense.type, changes: Object.keys(updateData) },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
     return NextResponse.json(expense)
@@ -211,8 +226,8 @@ export async function DELETE(request: Request) {
      * حذف مصروف
      * @permission canDeleteExpense - صلاحية حذف المصروفات
      */
-    await requirePermission(request, 'canDeleteExpense')
-    
+    const user = await requirePermission(request, 'canDeleteExpense')
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -220,7 +235,16 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'رقم المصروف مطلوب' }, { status: 400 })
     }
 
+    const expenseToDelete = await prisma.expense.findUnique({ where: { id }, select: { type: true, amount: true, description: true } })
     await prisma.expense.delete({ where: { id } })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'Expense', resourceId: id,
+      details: { type: expenseToDelete?.type, amount: expenseToDelete?.amount, description: expenseToDelete?.description },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json({ message: 'تم الحذف بنجاح' })
   } catch (error: any) {
     console.error('Error deleting expense:', error)

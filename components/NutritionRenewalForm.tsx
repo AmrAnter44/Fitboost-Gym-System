@@ -261,7 +261,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
           )}
 
           {/* Packages Section */}
-          <div className="bg-gradient-to-br from-lime-50 to-green-100 border-2 border-lime-400 rounded-xl p-4 mb-4">
+          <div className="bg-gradient-to-br from-lime-50 to-green-100 border-2 border-lime-400 rounded-xl p-4 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-green-800">
               <span>⚡</span>
               <span>{t('packages.selectPackage')}</span>
@@ -297,7 +297,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
             )}
           </div>
 
-          <div className="bg-green-50 border-l-4 border-r-4 border-green-500 p-3 rounded-lg mb-4">
+          <div className="bg-green-50 border-l-4 border-r-4 border-green-500 p-3 rounded-lg mb-4 dark:bg-green-900/20 dark:border-green-700">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <p className="text-xs text-gray-600 dark:text-gray-300">{t('nutrition.renewal.nutritionNumber')}</p>
@@ -326,7 +326,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-4">
+            <div className="bg-gradient-to-br from-green-50 to-primary-50 border-2 border-green-200 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                 <span>📋</span>
                 <span>{t('nutrition.renewal.renewalData')}</span>
@@ -341,7 +341,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm"
                     placeholder={t('nutrition.phonePlaceholder')}
                   />
                 </div>
@@ -356,7 +356,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
                     min="1"
                     value={formData.sessionsPurchased}
                     onChange={(e) => setFormData({ ...formData, sessionsPurchased: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border-2 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm"
                     placeholder={t('nutrition.sessionsPlaceholder')}
                   />
                 </div>
@@ -376,7 +376,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
                         required
                         value={formData.nutritionistName}
                         onChange={(e) => setFormData({ ...formData, nutritionistName: e.target.value })}
-                        className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                        className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm"
                         placeholder={t('nutrition.nutritionistNamePlaceholder')}
                       />
                       <p className="text-xs text-amber-600">
@@ -412,7 +412,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
                     min="0"
                     value={formData.totalPrice}
                     onChange={(e) => setFormData({ ...formData, totalPrice: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border-2 border-green-400 rounded-lg text-sm font-bold"
+                    className="w-full px-3 py-2 border-2 border-green-400 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm font-bold"
                     placeholder="0.00"
                   />
                 </div>
@@ -420,7 +420,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-green-50 to-pink-50 border-2 border-green-200 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-green-50 to-pink-50 border-2 border-green-200 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                   <span>📅</span>
                   <span>{t('nutrition.renewal.newSubscriptionPeriod')}</span>
@@ -436,7 +436,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
                       required
                       value={formData.startDate}
                       onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                      className="w-full px-3 py-2 border-2 rounded-lg font-mono text-sm"
+                      className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white font-mono text-sm"
                       placeholder={t('nutrition.startDatePlaceholder')}
                       pattern="\d{4}-\d{2}-\d{2}"
                     />
@@ -451,7 +451,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
                       required
                       value={formData.expiryDate}
                       onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                      className="w-full px-3 py-2 border-2 rounded-lg font-mono text-sm"
+                      className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white font-mono text-sm"
                       placeholder={t('nutrition.expiryDatePlaceholder')}
                       pattern="\d{4}-\d{2}-\d{2}"
                     />
@@ -497,7 +497,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
               </div>
 
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-green-50 to-green-50 border-2 border-green-200 rounded-xl p-4">
+                <div className="bg-gradient-to-br from-green-50 to-green-50 border-2 border-green-200 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                   <PaymentMethodSelector
                     value={formData.paymentMethod}
                     onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
@@ -510,14 +510,14 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
                   />
                 </div>
 
-                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-4">
+                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                   <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                     <span>📊</span>
                     <span>{t('nutrition.renewal.summary')}</span>
                   </h3>
 
                   <div className="space-y-2">
-                    <div className="bg-green-50 border-l-4 border-r-4 border-green-400 p-2 rounded">
+                    <div className="bg-green-50 border-l-4 border-r-4 border-green-400 p-2 rounded dark:bg-green-900/20 dark:border-green-700">
                       <p className="text-xs text-green-800">
                         ⚠️ {t('nutrition.renewal.replacementWarning', {
                           sessionsRemaining: session.sessionsRemaining.toString()
@@ -551,7 +551,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="px-6 bg-gray-200 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium text-base"
+                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-medium text-base"
               >
                 {t('nutrition.cancelButton')}
               </button>

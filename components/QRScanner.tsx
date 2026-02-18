@@ -234,7 +234,7 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
                 stopScanner()
                 setSelectedCamera(e.target.value)
               }}
-              className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500"
+              className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             >
               {cameras.map((camera) => (
                 <option key={camera.id} value={camera.id}>
@@ -311,7 +311,7 @@ export default function QRScanner({ onScan, onError, isScanning, onClose }: QRSc
             stopScanner()
             onClose()
           }}
-          className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 font-medium"
+          className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium"
         >
           إلغاء
         </button>

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requireAdmin } from '../../../../lib/auth'
 import bcrypt from 'bcryptjs'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 // GET - جلب جميع المستخدمين
 
@@ -50,8 +51,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // التحقق من أن المستخدم Admin
-    await requireAdmin(request)
-    
+    const adminUser = await requireAdmin(request)
+
     const body = await request.json()
     const { name, email, password, role, staffId, permissions } = body
 
@@ -160,9 +161,16 @@ export async function POST(request: Request) {
       }
     })
     
+    createAuditLog({
+      userId: adminUser.userId, userEmail: adminUser.email, userName: adminUser.name, userRole: adminUser.role,
+      action: 'CREATE', resource: 'User', resourceId: user.id,
+      details: { name: user.name, email: user.email, role: user.role },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     // إرجاع المستخدم بدون كلمة المرور
     const { password: _, ...userWithoutPassword } = user
-    
+
     return NextResponse.json(userWithoutPassword, { status: 201 })
     
   } catch (error: any) {

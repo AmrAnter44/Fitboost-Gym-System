@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 // تحديث إيصال موجود
 
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية تعديل الإيصالات
-    await requirePermission(request, 'canEditReceipts')
+    const user = await requirePermission(request, 'canEditReceipts')
     
     const {
       receiptId,
@@ -60,7 +61,14 @@ export async function PUT(request: Request) {
       }
     })
 
-    return NextResponse.json({ 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Receipt', resourceId: updatedReceipt.id,
+      details: { receiptNumber: updatedReceipt.receiptNumber, amount: updatedReceipt.amount },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json({
       success: true,
       receipt: updatedReceipt,
       message: 'تم تحديث الإيصال بنجاح'
@@ -93,7 +101,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     // ✅ التحقق من صلاحية حذف الإيصالات
-    await requirePermission(request, 'canDeleteReceipts')
+    const user = await requirePermission(request, 'canDeleteReceipts')
     
     const { searchParams } = new URL(request.url)
     const receiptId = searchParams.get('id')
@@ -116,7 +124,14 @@ export async function DELETE(request: Request) {
       where: { id: receiptId }
     })
 
-    return NextResponse.json({ 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'Receipt', resourceId: receiptId,
+      details: { receiptNumber: existingReceipt.receiptNumber, amount: existingReceipt.amount, type: existingReceipt.type },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json({
       success: true,
       message: 'تم حذف الإيصال بنجاح'
     })

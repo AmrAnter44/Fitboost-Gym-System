@@ -11,6 +11,7 @@ import {
 import { logError } from '../../../lib/errorLogger'
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { getNextReceiptNumberDirect } from '../../../lib/receiptHelpers'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
 
@@ -135,7 +136,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية إضافة عضو
-    await requirePermission(request, 'canCreateMembers')
+    const user = await requirePermission(request, 'canCreateMembers')
     
     const body = await request.json()
     const {
@@ -297,6 +298,14 @@ export async function POST(request: Request) {
     })
 
     console.log('✅ تم إنشاء العضو:', member.id, 'رقم العضوية:', member.memberNumber)
+
+    // 📝 Audit log
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'CREATE', resource: 'Member', resourceId: member.id,
+      details: { memberNumber: member.memberNumber, name: member.name, phone: member.phone },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
 
     // تحديث MemberCounter بعد الحفظ الناجح
     if (cleanMemberNumber !== null) {
@@ -540,7 +549,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية تعديل عضو
-    await requirePermission(request, 'canEditMembers')
+    const user = await requirePermission(request, 'canEditMembers')
     
     const body = await request.json()
     const { id, profileImage, idCardFront, idCardBack, ...data } = body
@@ -604,6 +613,14 @@ export async function PUT(request: Request) {
       data: updateData,
     })
 
+    // 📝 Audit log
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Member', resourceId: member.id,
+      details: { memberNumber: member.memberNumber, name: member.name, changes: Object.keys(updateData) },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json(member)
   } catch (error: any) {
     console.error('Error updating member:', error)
@@ -643,8 +660,8 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     // ✅ التحقق من صلاحية حذف عضو
-    await requirePermission(request, 'canDeleteMembers')
-    
+    const user = await requirePermission(request, 'canDeleteMembers')
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -652,7 +669,17 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'رقم العضو مطلوب' }, { status: 400 })
     }
 
+    const memberToDelete = await prisma.member.findUnique({ where: { id }, select: { name: true, memberNumber: true } })
     await prisma.member.delete({ where: { id } })
+
+    // 📝 Audit log
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'Member', resourceId: id,
+      details: { memberNumber: memberToDelete?.memberNumber, name: memberToDelete?.name },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json({ message: 'تم الحذف بنجاح' })
   } catch (error: any) {
     console.error('Error deleting member:', error)

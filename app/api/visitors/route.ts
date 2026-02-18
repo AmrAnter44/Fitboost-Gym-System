@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { verifyAuth, requirePermission } from '../../../lib/auth'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 // GET - جلب جميع الزوار مع فلترة وبحث
 
@@ -148,6 +149,13 @@ export async function POST(request: Request) {
       },
     })
 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'CREATE', resource: 'Visitor', resourceId: visitor.id,
+      details: { name: visitor.name, phone: visitor.phone, source: visitor.source },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json(visitor, { status: 201 })
   } catch (error) {
     console.error('POST Error:', error)
@@ -218,6 +226,13 @@ export async function PUT(request: Request) {
       data: updateData,
     })
 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Visitor', resourceId: visitor.id,
+      details: { name: visitor.name, changes: Object.keys(updateData) },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json(visitor)
   } catch (error) {
     console.error('PUT Error:', error)
@@ -261,7 +276,14 @@ export async function DELETE(request: Request) {
     // حذف الزائر
     await prisma.visitor.delete({ where: { id } })
 
-    return NextResponse.json({ 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'Visitor', resourceId: id,
+      details: { name: existingVisitor.name, phone: existingVisitor.phone },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json({
       message: 'تم الحذف بنجاح',
       deletedVisitor: {
         id: existingVisitor.id,

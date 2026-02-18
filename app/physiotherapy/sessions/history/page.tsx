@@ -8,6 +8,7 @@ import { useSuccess } from '../../../../hooks/useSuccess'
 import { usePermissions } from '../../../../hooks/usePermissions'
 import ConfirmDialog from '../../../../components/ConfirmDialog'
 import SuccessDialog from '../../../../components/SuccessDialog'
+import { useDebounce } from '../../../../hooks/useDebounce'
 
 interface PhysiotherapySessionRecord {
   id: string
@@ -33,6 +34,7 @@ export default function PhysiotherapySessionHistoryPage() {
   const [sessions, setSessions] = useState<PhysiotherapySessionRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [filterPhysiotherapyNumber, setFilterPhysiotherapyNumber] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -97,9 +99,9 @@ export default function PhysiotherapySessionHistoryPage() {
   // فلترة السجلات
   const filteredSessions = sessions.filter(session => {
     const matchesSearch =
-      session.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.therapistName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.physioNumber.toString().includes(searchTerm)
+      session.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.therapistName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      session.physioNumber.toString().includes(debouncedSearchTerm)
 
     const matchesPhysiotherapyNumber = !filterPhysiotherapyNumber || session.physioNumber.toString() === filterPhysiotherapyNumber
 
@@ -327,7 +329,7 @@ export default function PhysiotherapySessionHistoryPage() {
 
       {/* ملخص بالأسفل */}
       {filteredSessions.length > 0 && (
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-900/20 dark:border-blue-700">
           <p className="text-sm text-gray-700 dark:text-gray-200">
             {t('physiotherapy.sessionHistory.showing', { count: filteredSessions.length.toString(), total: sessions.length.toString() })}
           </p>

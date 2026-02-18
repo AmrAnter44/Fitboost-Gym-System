@@ -75,7 +75,7 @@ export default function PhysiotherapyCheckInPage() {
           </div>
 
           {/* Session Details */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-50 border-2 border-blue-300 rounded-2xl p-6 mb-6 text-right">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-50 border-2 border-blue-300 rounded-2xl p-6 mb-6 text-right dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <h3 className="text-lg font-bold text-blue-800 mb-4 text-center">
               تفاصيل الجلسة
             </h3>
@@ -126,14 +126,14 @@ export default function PhysiotherapyCheckInPage() {
             </button>
             <button
               onClick={() => router.push('/')}
-              className="w-full bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-xl hover:bg-gray-300 font-medium"
+              className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 font-medium"
             >
               العودة للصفحة الرئيسية
             </button>
           </div>
 
           {/* Motivational Message */}
-          <div className="mt-6 bg-yellow-50 border-r-4 border-yellow-400 p-4 rounded-lg">
+          <div className="mt-6 bg-yellow-50 border-r-4 border-yellow-400 p-4 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-700">
             <p className="text-sm text-yellow-800">
               <strong>🥗 نصيحة:</strong> استمر في متابعة نظامك الغذائي واستمتع بجلستك!
             </p>
@@ -171,7 +171,7 @@ export default function PhysiotherapyCheckInPage() {
               value={qrCode}
               onChange={(e) => setQrCode(e.target.value)}
               placeholder="أدخل رقم Physiotherapy أو امسح Barcode..."
-              className="w-full px-4 py-4 border-2 border-blue-300 rounded-xl focus:outline-none focus:border-blue-500 font-mono text-lg"
+              className="w-full px-4 py-4 border-2 border-blue-300 rounded-xl focus:outline-none focus:border-blue-500 font-mono text-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               autoFocus
               disabled={loading}
             />
@@ -182,7 +182,7 @@ export default function PhysiotherapyCheckInPage() {
 
           {/* Character Counter */}
           {qrCode && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <p className="text-xs text-blue-700 mb-2">
                 الكود المدخل ({qrCode.length}):
               </p>
@@ -214,7 +214,7 @@ export default function PhysiotherapyCheckInPage() {
         </form>
 
         {/* Security Notice */}
-        <div className="mt-6 bg-blue-50 border-r-4 border-blue-500 p-4 rounded-lg">
+        <div className="mt-6 bg-blue-50 border-r-4 border-blue-500 p-4 rounded-lg dark:bg-blue-900/20 dark:border-blue-700">
           <p className="text-xs text-blue-800">
             <strong>🔒 ملاحظة أمنية:</strong> QR Code الخاص بك فريد وآمن.
             لا تشاركه مع أي شخص آخر. كل QR Code يستخدم مرة واحدة فقط.

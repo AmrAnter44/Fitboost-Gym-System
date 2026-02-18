@@ -320,7 +320,7 @@ export default function DayUsePage() {
             </div>
 
             {/* قسم طريقة الدفع */}
-            <div className="bg-gradient-to-br from-green-50 to-primary-50 dark:from-green-900/30 dark:to-primary-900/30 border-2 border-green-200 dark:border-green-700 rounded-xl p-5">
+            <div className="bg-gradient-to-br from-green-50 to-primary-50 dark:from-green-900/30 dark:to-primary-900/30 border-2 border-green-200 dark:border-green-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <PaymentMethodSelector
                 value={formData.paymentMethod}
                 onChange={(method) => setFormData({ ...formData, paymentMethod: method })}

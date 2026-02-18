@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '../../../../contexts/ToastContext'
 import { usePermissions } from '../../../../hooks/usePermissions'
 import PermissionDenied from '../../../../components/PermissionDenied'
+import { useDebounce } from '../../../../hooks/useDebounce'
 
 interface PhysiotherapySession {
   physioNumber: number
@@ -22,6 +23,7 @@ export default function RegisterPhysiotherapySessionPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [generatedQRCode, setGeneratedQRCode] = useState<string | null>(null)
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
   const [showQRModal, setShowQRModal] = useState(false)
@@ -125,9 +127,9 @@ export default function RegisterPhysiotherapySessionPage() {
 
   // فلترة الجلسات حسب البحث
   const filteredSessions = sessions.filter(physiotherapy =>
-    physiotherapy.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    physiotherapy.physioNumber.toString().includes(searchTerm) ||
-    physiotherapy.phone.includes(searchTerm)
+    physiotherapy.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    physiotherapy.physioNumber.toString().includes(debouncedSearchTerm) ||
+    physiotherapy.phone.includes(debouncedSearchTerm)
   )
 
   const selectedPhysiotherapy = sessions.find(physiotherapy => physiotherapy.physioNumber.toString() === formData.physioNumber)
@@ -236,7 +238,7 @@ export default function RegisterPhysiotherapySessionPage() {
               />
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-5">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                 <span>📅</span>
                 <span>تاريخ ووقت الجلسة</span>
@@ -332,7 +334,7 @@ export default function RegisterPhysiotherapySessionPage() {
               </div>
 
               {/* QR Code Display */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-300 dark:border-blue-700 rounded-xl p-6 mb-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-300 dark:border-blue-700 rounded-xl p-6 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 {/* QR Code Image */}
                 {qrCodeImage && (
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 flex justify-center">

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -11,6 +11,35 @@ export interface ToastMessage {
   duration?: number
 }
 
+export interface Notification {
+  id: string
+  message: string
+  type: ToastType
+  timestamp: number
+  read: boolean
+}
+
+const NOTIFICATIONS_KEY = 'xgym_notifications'
+const MAX_NOTIFICATIONS = 50
+
+function loadNotifications(): Notification[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(NOTIFICATIONS_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveNotifications(notifications: Notification[]) {
+  try {
+    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifications))
+  } catch {
+    // ignore storage errors
+  }
+}
+
 interface ToastContextType {
   toasts: ToastMessage[]
   addToast: (message: string, type?: ToastType, duration?: number) => void
@@ -19,12 +48,25 @@ interface ToastContextType {
   error: (message: string, duration?: number) => void
   warning: (message: string, duration?: number) => void
   info: (message: string, duration?: number) => void
+  // Persistent notifications
+  notifications: Notification[]
+  unreadCount: number
+  markAllRead: () => void
+  clearNotifications: () => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+
+  // Load notifications from localStorage on mount
+  useEffect(() => {
+    setNotifications(loadNotifications())
+  }, [])
+
+  const unreadCount = notifications.filter((n) => !n.read).length
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
@@ -36,7 +78,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
     setToasts((prev) => [...prev, newToast])
 
-    // Auto remove after duration
+    // Also save to persistent notifications
+    const newNotification: Notification = {
+      id,
+      message,
+      type,
+      timestamp: Date.now(),
+      read: false,
+    }
+    setNotifications((prev) => {
+      const updated = [newNotification, ...prev].slice(0, MAX_NOTIFICATIONS)
+      saveNotifications(updated)
+      return updated
+    })
+
+    // Auto remove toast after duration
     if (duration > 0) {
       setTimeout(() => {
         removeToast(id)
@@ -60,8 +116,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     addToast(message, 'info', duration)
   }, [addToast])
 
+  const markAllRead = useCallback(() => {
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }))
+      saveNotifications(updated)
+      return updated
+    })
+  }, [])
+
+  const clearNotifications = useCallback(() => {
+    setNotifications([])
+    saveNotifications([])
+  }, [])
+
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, success, error, warning, info }}>
+    <ToastContext.Provider value={{
+      toasts, addToast, removeToast, success, error, warning, info,
+      notifications, unreadCount, markAllRead, clearNotifications,
+    }}>
       {children}
     </ToastContext.Provider>
   )

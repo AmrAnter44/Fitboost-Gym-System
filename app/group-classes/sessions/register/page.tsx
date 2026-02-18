@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '../../../../contexts/ToastContext'
 import { usePermissions } from '../../../../hooks/usePermissions'
 import PermissionDenied from '../../../../components/PermissionDenied'
+import { useDebounce } from '../../../../hooks/useDebounce'
 
 interface GroupClassSession {
   groupClassNumber: number
@@ -22,6 +23,7 @@ export default function RegisterGroupClassSessionPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [generatedQRCode, setGeneratedQRCode] = useState<string | null>(null)
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
   const [showQRModal, setShowQRModal] = useState(false)
@@ -125,9 +127,9 @@ export default function RegisterGroupClassSessionPage() {
 
   // فلترة الجلسات حسب البحث
   const filteredSessions = sessions.filter(groupClass =>
-    groupClass.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    groupClass.groupClassNumber.toString().includes(searchTerm) ||
-    groupClass.phone.includes(searchTerm)
+    groupClass.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    groupClass.groupClassNumber.toString().includes(debouncedSearchTerm) ||
+    groupClass.phone.includes(debouncedSearchTerm)
   )
 
   const selectedGroupClass = sessions.find(groupClass => groupClass.groupClassNumber.toString() === formData.groupClassNumber)
@@ -236,7 +238,7 @@ export default function RegisterGroupClassSessionPage() {
               />
             </div>
 
-            <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5">
+            <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                 <span>📅</span>
                 <span>تاريخ ووقت الجلسة</span>
@@ -332,7 +334,7 @@ export default function RegisterGroupClassSessionPage() {
               </div>
 
               {/* QR Code Display */}
-              <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-300 dark:border-primary-600 rounded-xl p-6 mb-4">
+              <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-2 border-primary-300 dark:border-primary-600 rounded-xl p-6 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 {/* QR Code Image */}
                 {qrCodeImage && (
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 flex justify-center">

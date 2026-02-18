@@ -330,7 +330,7 @@ export default function MessageTemplateManager({
               {formData.message && (
                 <div>
                   <label className="block text-sm font-bold mb-2">{t('followups.templates.form.preview')}</label>
-                  <div className="bg-green-50 border border-green-300 rounded-lg p-4">
+                  <div className="bg-green-50 border border-green-300 rounded-lg p-4 dark:bg-green-900/20 dark:border-green-700">
                     <p className="text-sm whitespace-pre-line" dir="rtl">
                       {replaceVariables(formData.message)}
                     </p>
