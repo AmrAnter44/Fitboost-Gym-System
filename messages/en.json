@@ -1357,7 +1357,8 @@
       "payrollSuccess": "Collection for {name} recorded successfully",
       "payrollFail": "Failed to record collection",
       "payrollConnectionError": "Connection error",
-      "settingsButton": "Settings"
+      "settingsButton": "Settings",
+      "lastPayroll": "Last collection"
     },
     "sessionHistory": {
       "title": "PT Session Attendance Log",
@@ -3201,7 +3202,8 @@
       "payrollSuccess": "Collection for {name} recorded successfully",
       "payrollFail": "Failed to record collection",
       "payrollConnectionError": "Connection error",
-      "settingsButton": "Settings"
+      "settingsButton": "Settings",
+      "lastPayroll": "Last collection"
     }
   },
   "nutrition": {
@@ -3587,7 +3589,8 @@
       "payrollSuccess": "Collection for {name} recorded successfully",
       "payrollFail": "Failed to record collection",
       "payrollConnectionError": "Connection error",
-      "settingsButton": "Settings"
+      "settingsButton": "Settings",
+      "lastPayroll": "Last collection"
     }
   },
   "groupClass": {

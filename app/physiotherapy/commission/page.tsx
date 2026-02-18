@@ -152,6 +152,7 @@ export default function PhysiotherapyCommissionPage() {
   const [payrollLoading, setPayrollLoading] = useState(false)
   const [payrollDeductions, setPayrollDeductions] = useState<Array<{ id: string; amount: number; reason: string }>>([])
   const [loadingDeductions, setLoadingDeductions] = useState(false)
+  const [lastPayrollDates, setLastPayrollDates] = useState<Record<string, string>>({})
 
   // أنواع إيصالات العلاج الطبيعي المدعومة (جميع الأنواع الحالية والقديمة)
   const PT_RECEIPT_TYPES = [
@@ -182,7 +183,24 @@ export default function PhysiotherapyCommissionPage() {
     fetchCommissionSettings()
     fetchCurrentUser()
     fetchDefaultCalculationMethod()
+    fetchLastPayrollDates()
   }, [])
+
+  const fetchLastPayrollDates = async () => {
+    try {
+      const res = await fetch('/api/expenses?type=staff_salary')
+      if (res.ok) {
+        const expenses = await res.json()
+        const dates: Record<string, string> = {}
+        for (const exp of expenses) {
+          if (exp.staffId && !dates[exp.staffId]) {
+            dates[exp.staffId] = exp.createdAt
+          }
+        }
+        setLastPayrollDates(dates)
+      }
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     fetchMemberSignupCommissions()
@@ -713,6 +731,7 @@ export default function PhysiotherapyCommissionPage() {
         }
         toast.success(t('physiotherapy.commission.payrollSuccess', { name: payrollCoachName }))
         setShowPayrollModal(false)
+        fetchLastPayrollDates()
       } else {
         toast.error(t('physiotherapy.commission.payrollFail'))
       }
@@ -1632,13 +1651,26 @@ export default function PhysiotherapyCommissionPage() {
               </div>
 
               {/* زر التحصيل - الطريقة الأولى */}
-              <button
-                onClick={() => openPayrollModal(result.therapistName, result.commission)}
-                className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-lg"
-              >
-                <span>💳</span>
-                <span>{t('physiotherapy.commission.payroll')}</span>
-              </button>
+              {(() => {
+                const staff = coaches.find(c => c.name === result.therapistName)
+                const lastDate = staff && lastPayrollDates[staff.id]
+                return (
+                  <div>
+                    <button
+                      onClick={() => openPayrollModal(result.therapistName, result.commission)}
+                      className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-lg"
+                    >
+                      <span>💳</span>
+                      <span>{t('physiotherapy.commission.payroll')}</span>
+                    </button>
+                    {lastDate && (
+                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-1">
+                        {t('physiotherapy.commission.lastPayroll')}: {new Date(lastDate).toLocaleDateString(localeString, { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           )}
         </div>
@@ -1718,13 +1750,26 @@ export default function PhysiotherapyCommissionPage() {
                     </div>
 
                     {/* زر التحصيل - الطريقة الثانية */}
-                    <button
-                      onClick={() => openPayrollModal(coach.therapistName, coach.commission)}
-                      className="w-full mt-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold py-2 rounded-lg shadow transition-all flex items-center justify-center gap-2"
-                    >
-                      <span>💳</span>
-                      <span>{t('physiotherapy.commission.payroll')}</span>
-                    </button>
+                    {(() => {
+                      const staff = coaches.find(c => c.name === coach.therapistName)
+                      const lastDate = staff && lastPayrollDates[staff.id]
+                      return (
+                        <div className="mt-2">
+                          <button
+                            onClick={() => openPayrollModal(coach.therapistName, coach.commission)}
+                            className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold py-2 rounded-lg shadow transition-all flex items-center justify-center gap-2"
+                          >
+                            <span>💳</span>
+                            <span>{t('physiotherapy.commission.payroll')}</span>
+                          </button>
+                          {lastDate && (
+                            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-1">
+                              {t('physiotherapy.commission.lastPayroll')}: {new Date(lastDate).toLocaleDateString(localeString, { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })()}
 
                     {/* تفاصيل كل جلسة علاج طبيعي */}
                     <details className="group">

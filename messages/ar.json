@@ -1364,7 +1364,8 @@
       "payrollSuccess": "تم تسجيل تحصيل {name} بنجاح",
       "payrollFail": "فشل تسجيل التحصيل",
       "payrollConnectionError": "خطأ في الاتصال",
-      "settingsButton": "الإعدادات"
+      "settingsButton": "الإعدادات",
+      "lastPayroll": "آخر تحصيل"
     },
     "sessionHistory": {
       "title": "سجل حضور جلسات PT",
@@ -3194,7 +3195,8 @@
       "payrollSuccess": "تم تسجيل تحصيل {name} بنجاح",
       "payrollFail": "فشل تسجيل التحصيل",
       "payrollConnectionError": "خطأ في الاتصال",
-      "settingsButton": "الإعدادات"
+      "settingsButton": "الإعدادات",
+      "lastPayroll": "آخر تحصيل"
     }
   },
   "nutrition": {
@@ -3587,7 +3589,8 @@
       "payrollSuccess": "تم تسجيل تحصيل {name} بنجاح",
       "payrollFail": "فشل تسجيل التحصيل",
       "payrollConnectionError": "خطأ في الاتصال",
-      "settingsButton": "الإعدادات"
+      "settingsButton": "الإعدادات",
+      "lastPayroll": "آخر تحصيل"
     }
   },
   "groupClass": {
