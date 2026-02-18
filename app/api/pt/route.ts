@@ -596,7 +596,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'رقم PT مطلوب' }, { status: 400 })
     }
 
-    const ptToDelete = await prisma.pT.findUnique({ where: { ptNumber: parseInt(ptNumber) }, select: { id: true, clientName: true, coachName: true } })
+    const ptToDelete = await prisma.pT.findUnique({ where: { ptNumber: parseInt(ptNumber) }, select: { ptNumber: true, clientName: true, coachName: true } })
     await prisma.pT.delete({ where: { ptNumber: parseInt(ptNumber) } })
 
     createAuditLog({
