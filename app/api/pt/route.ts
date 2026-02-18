@@ -511,7 +511,7 @@ export async function PUT(request: Request) {
 
       createAuditLog({
         userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
-        action: 'UPDATE', resource: 'PT', resourceId: updatedPT.id,
+        action: 'UPDATE', resource: 'PT', resourceId: String(updatedPT.ptNumber),
         details: { ptNumber: updatedPT.ptNumber, action: 'use_session', sessionsRemaining: updatedPT.sessionsRemaining },
         ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
       })
@@ -555,7 +555,7 @@ export async function PUT(request: Request) {
 
       createAuditLog({
         userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
-        action: 'UPDATE', resource: 'PT', resourceId: pt.id,
+        action: 'UPDATE', resource: 'PT', resourceId: String(pt.ptNumber),
         details: { ptNumber: pt.ptNumber, changes: Object.keys(updateData) },
         ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
       })
@@ -601,7 +601,7 @@ export async function DELETE(request: Request) {
 
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
-      action: 'DELETE', resource: 'PT', resourceId: ptToDelete?.id || ptNumber,
+      action: 'DELETE', resource: 'PT', resourceId: String(ptToDelete?.ptNumber ?? ptNumber),
       details: { ptNumber: parseInt(ptNumber), clientName: ptToDelete?.clientName, coachName: ptToDelete?.coachName },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
