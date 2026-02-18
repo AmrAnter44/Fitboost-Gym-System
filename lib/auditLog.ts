@@ -35,6 +35,7 @@ export type AuditResource =
   | 'Offer'
   | 'Auth'
   | 'System'
+  | 'StaffDeduction'
 
 export type AuditStatus = 'success' | 'failure' | 'warning'
 
