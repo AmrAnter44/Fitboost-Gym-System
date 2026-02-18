@@ -200,7 +200,7 @@ export default function VirtualVisitorList({
         t,
         direction,
         dynamicRowHeight,
-      }}
+      } as any}
       rowCount={visitors.length}
       rowHeight={dynamicRowHeight}
       style={{ height: 'calc(100vh - 280px)', minHeight: 400 }}

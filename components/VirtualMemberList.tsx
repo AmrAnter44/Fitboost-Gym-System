@@ -270,7 +270,7 @@ export default function VirtualMemberList({
         locale,
         direction,
         dynamicRowHeight,
-      }}
+      } as any}
       rowCount={members.length}
       rowHeight={dynamicRowHeight}
       style={{ height: 'calc(100vh - 280px)', minHeight: 400 }}
