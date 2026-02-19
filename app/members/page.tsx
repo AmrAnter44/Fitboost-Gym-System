@@ -947,7 +947,7 @@ export default function MembersPage() {
                         <td className="px-4 py-3">
                           <span className={`px-3 py-1.5 rounded-lg text-sm font-bold inline-flex items-center gap-1.5 shadow-sm ${
                             member.isFrozen
-                              ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-300'
+                              ? 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
                               : isExpiringSoon
                                 ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300'
                                 : member.isActive && !isExpired
@@ -955,7 +955,7 @@ export default function MembersPage() {
                                   : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
                           }`}>
                             {member.isFrozen
-                              ? <><span className="text-lg">❄️</span> {locale === 'ar' ? 'مجمد' : 'Frozen'}{member.freezeUntil ? <span className="text-xs font-normal ms-1 opacity-80">{locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}</span> : null}</>
+                              ? <><span className="text-lg">❄️</span> {locale === 'ar' ? 'مجمد' : 'Frozen'}{member.freezeUntil ? <span className="text-xs font-normal ms-1 text-blue-600 dark:text-blue-400">{locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}</span> : null}</>
                               : isExpiringSoon
                                 ? <><span className="text-lg">🟡</span> {locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'}</>
                                 : member.isActive && !isExpired

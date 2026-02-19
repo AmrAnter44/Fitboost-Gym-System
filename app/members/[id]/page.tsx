@@ -1493,7 +1493,7 @@ export default function MemberDetailPage() {
                   <>
                     ❄️ {locale === 'ar' ? 'مجمد' : 'Frozen'}
                     {member.freezeRequests?.[0]?.endDate && (
-                      <span className="block text-sm font-normal opacity-80">
+                      <span className="block text-sm font-normal text-white/90">
                         {locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeRequests[0].endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                     )}
