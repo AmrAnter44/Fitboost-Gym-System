@@ -2397,7 +2397,7 @@ export default function MemberDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold">❄️ {t('memberDetails.freezeModal.title')}</h3>
+              <h3 className="text-2xl font-bold dark:text-gray-100">❄️ {t('memberDetails.freezeModal.title')}</h3>
               <button
                 onClick={() => setActiveModal(null)}
                 className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl"
@@ -2406,19 +2406,19 @@ export default function MemberDetailPage() {
               </button>
             </div>
 
-            <div className="bg-cyan-50 border-r-4 border-cyan-500 p-4 rounded-lg mb-4 dark:bg-cyan-900/20 dark:border-cyan-700">
-              <p className="text-sm text-cyan-800 mb-2">
+            <div className="bg-cyan-50 dark:bg-cyan-900/20 border-r-4 border-cyan-500 dark:border-cyan-700 p-4 rounded-lg mb-4">
+              <p className="text-sm text-cyan-800 dark:text-cyan-300 mb-2">
                 ❄️ {t('memberDetails.freezeModal.availableFreezeDays')}: <strong className="text-xl">{member.remainingFreezeDays} {t('common.day')}</strong>
               </p>
-              <p className="text-xs text-cyan-600">{t('memberDetails.freezeModal.canUseInBatches')}</p>
+              <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('memberDetails.freezeModal.canUseInBatches')}</p>
             </div>
 
-            <div className="bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg mb-6">
-              <p className="text-sm text-primary-800 mb-2">
+            <div className="bg-primary-50 dark:bg-primary-900/20 border-r-4 border-primary-500 dark:border-primary-700 p-4 rounded-lg mb-6">
+              <p className="text-sm text-primary-800 dark:text-primary-300 mb-2">
                 {t('memberDetails.freezeModal.currentExpiryDate')}: <strong>{formatDateYMD(member.expiryDate)}</strong>
               </p>
               {daysRemaining !== null && (
-                <p className="text-sm text-primary-800">
+                <p className="text-sm text-primary-800 dark:text-primary-300">
                   {t('memberDetails.freezeModal.remainingDays')}: <strong>{daysRemaining > 0 ? daysRemaining : 0} {t('common.day')}</strong>
                 </p>
               )}
@@ -2445,17 +2445,17 @@ export default function MemberDetailPage() {
 
               {freezeData.days > 0 && member.expiryDate && (
                 <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg p-4">
-                  <p className="text-sm text-green-800 mb-2">
+                  <p className="text-sm text-green-800 dark:text-green-300 mb-2">
                     📅 {t('memberDetails.freezeModal.newExpiryDate')}:
                   </p>
-                  <p className="text-xl font-bold text-green-600">
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">
                     {formatDateYMD(new Date(new Date(member.expiryDate).getTime() + freezeData.days * 24 * 60 * 60 * 1000))}
                   </p>
-                  <div className="mt-3 pt-3 border-t border-green-300">
-                    <p className="text-xs text-green-700">
+                  <div className="mt-3 pt-3 border-t border-green-300 dark:border-green-700">
+                    <p className="text-xs text-green-700 dark:text-green-400">
                       ✅ {t('memberDetails.freezeModal.willFreeze')} {freezeData.days} {t('common.day')}
                     </p>
-                    <p className="text-xs text-green-700">
+                    <p className="text-xs text-green-700 dark:text-green-400">
                       ❄️ {t('memberDetails.freezeModal.remainingBalance')}: {member.remainingFreezeDays - freezeData.days} {t('common.day')}
                     </p>
                   </div>

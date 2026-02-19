@@ -899,7 +899,7 @@ export default function ReceiptsPage() {
                 </div>
 
                 {/* Footer Info */}
-                <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-600">
                   {receipt.staffName && (
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500 dark:text-gray-400 text-xs">👨‍💼</span>
@@ -922,7 +922,7 @@ export default function ReceiptsPage() {
                 </div>
 
                 {/* Action Buttons - Grid Layout */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
                   {/* الصف الأول - 3 أزرار */}
                   <ReceiptWhatsApp
                     receipt={receipt}
