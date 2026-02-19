@@ -26,7 +26,6 @@ export async function POST(request: Request) {
       }
     })
 
-    console.log(`🔧 وجدنا ${membersToFix.length} أعضاء يحتاجون لتصحيح الحالة`)
 
     // تحديث جميع هؤلاء الأعضاء
     const updateResult = await prisma.member.updateMany({
@@ -41,7 +40,6 @@ export async function POST(request: Request) {
       }
     })
 
-    console.log(`✅ تم تصحيح حالة ${updateResult.count} عضو`)
 
     return NextResponse.json({
       success: true,

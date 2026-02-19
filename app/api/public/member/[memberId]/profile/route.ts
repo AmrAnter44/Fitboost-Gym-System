@@ -1,12 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { apiCache, CACHE_TTL } from '@/lib/cache';
+import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ memberId: string }> }
 ) {
+  // Rate limit: 60 requests/minute per IP
+  const rl = checkRateLimit(getClientIdentifier(request), {
+    id: 'public-profile',
+    limit: 60,
+    windowMs: 60_000,
+  })
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'طلبات كثيرة جداً، حاول بعد قليل' },
+      { status: 429 }
+    )
+  }
+
   try {
     const { memberId } = await params;
+
+    // Serve from cache (30s TTL — profile data is mostly static)
+    const cacheKey = `profile:${memberId}`
+    const cached = apiCache.get<object>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached, { headers: { 'X-Cache': 'HIT' } })
+    }
 
     const member = await prisma.member.findUnique({
       where: { id: memberId },
@@ -84,14 +106,18 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({
+    const result = {
       member: {
         ...member,
         remainingDays,
         status,
         subscriptionType,
       },
-    });
+    }
+
+    apiCache.set(cacheKey, result, CACHE_TTL.PROFILE)
+
+    return NextResponse.json(result, { headers: { 'X-Cache': 'MISS' } })
   } catch (error) {
     console.error('Get member profile error:', error);
     return NextResponse.json(

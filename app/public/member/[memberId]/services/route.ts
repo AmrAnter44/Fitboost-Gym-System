@@ -113,7 +113,6 @@ export async function GET(
     let coachOnline = false;
 
     if (ptService?.coachName) {
-      console.log('🔍 Checking coach status for:', ptService.coachName);
 
       // Find Staff by name (since coachUserId is null)
       const staffRecord = await prisma.staff.findFirst({
@@ -129,7 +128,6 @@ export async function GET(
         },
       });
 
-      console.log('👤 Staff record:', staffRecord);
 
       if (staffRecord) {
         // Get coach's latest attendance record using Staff ID
@@ -146,7 +144,6 @@ export async function GET(
           },
         });
 
-        console.log('📊 Latest attendance:', latestAttendance);
 
         // Consider coach online if checked in within last 12 hours and no checkout
         if (latestAttendance) {
@@ -158,21 +155,14 @@ export async function GET(
           const checkedInRecently = timeDiff < twelveHoursInMs;
           const notCheckedOut = !latestAttendance.checkOut;
 
-          console.log('⏰ Time since check-in (ms):', timeDiff);
-          console.log('✅ Checked in recently:', checkedInRecently);
-          console.log('🚪 Not checked out:', notCheckedOut);
 
           coachOnline = checkedInRecently && notCheckedOut;
 
-          console.log('🎯 Coach online status:', coachOnline);
         } else {
-          console.log('⚠️ No attendance records found');
         }
       } else {
-        console.log('⚠️ No staff record found with name:', ptService.coachName);
       }
     } else {
-      console.log('⚠️ No coachName found for PT service');
     }
 
     return NextResponse.json({

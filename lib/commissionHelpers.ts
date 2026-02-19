@@ -43,7 +43,6 @@ export async function createPTCommission(
       }
     })
 
-    console.log(`✅ تم إنشاء عمولة PT: ${commission} ج.م (${percentage}% من ${amount} ج.م)`)
     return commissionRecord
   } catch (error) {
     console.error('❌ خطأ في إنشاء سجل العمولة:', error)

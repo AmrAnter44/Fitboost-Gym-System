@@ -53,20 +53,16 @@ export async function processPaymentWithPoints(
     if (!finalMemberId) {
       // البحث برقم العضوية فقط
       if (memberNumber) {
-        console.log(`🔍 PaymentProcessor: البحث عن عضو برقم العضوية: ${memberNumber}`)
         const member = await prisma.member.findUnique({
           where: { memberNumber: typeof memberNumber === 'string' ? parseInt(memberNumber) : memberNumber },
           select: { id: true, name: true, points: true }
         })
 
         if (member) {
-          console.log(`✅ PaymentProcessor: تم العثور على العضو برقم العضوية: ${member.name} (نقاط: ${member.points})`)
           finalMemberId = member.id
         } else {
-          console.log(`❌ PaymentProcessor: لم يتم العثور على عضو برقم العضوية: ${memberNumber}`)
         }
       } else {
-        console.log(`⚠️ PaymentProcessor: لا يوجد memberNumber أو memberId للبحث`)
       }
     }
 

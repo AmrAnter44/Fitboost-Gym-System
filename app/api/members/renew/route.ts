@@ -37,17 +37,6 @@ export async function POST(request: Request) {
       staffName
     } = body
 
-    console.log('🔄 تجديد اشتراك عضو:', { 
-      memberId, 
-      subscriptionPrice, 
-      freePTSessions, 
-      inBodyScans, 
-      invitations, 
-      startDate, 
-      expiryDate, 
-      paymentMethod,
-      staffName
-    })
 
     // جلب بيانات العضو
     const member = await prisma.member.findUnique({
@@ -78,10 +67,6 @@ export async function POST(request: Request) {
     const additionalFreezeDays = remainingFreezeDays || 0
     const totalFreezeDays = currentFreezeDays + additionalFreezeDays
 
-    console.log('💪 حصص PT: الحالية =', currentFreePT, '+ الإضافية =', additionalFreePT, '= الإجمالي =', totalFreePT)
-    console.log('⚖️ InBody: الحالي =', currentInBody, '+ الإضافي =', additionalInBody, '= الإجمالي =', totalInBody)
-    console.log('🎟️ Invitations: الحالية =', currentInvitations, '+ الإضافية =', additionalInvitations, '= الإجمالي =', totalInvitations)
-    console.log('❄️ Freeze Days: الحالية =', currentFreezeDays, '+ الإضافية =', additionalFreezeDays, '= الإجمالي =', totalFreezeDays)
 
     // تحديث بيانات العضو
     const updatedMember = await prisma.member.update({
@@ -100,7 +85,6 @@ export async function POST(request: Request) {
       },
     })
 
-    console.log('✅ تم تحديث بيانات العضو - PT:', updatedMember.freePTSessions, 'InBody:', updatedMember.inBodyScans, 'Invitations:', updatedMember.invitations)
 
     // إنشاء إيصال التجديد
     try {
@@ -176,7 +160,6 @@ export async function POST(request: Request) {
         },
       })
 
-      console.log('✅ تم إنشاء إيصال التجديد:', receipt.receiptNumber)
 
       // خصم النقاط إذا تم استخدامها في الدفع
       const pointsResult = await processPaymentWithPoints(
@@ -204,7 +187,6 @@ export async function POST(request: Request) {
         )
 
         if (pointsResult.pointsEarned && pointsResult.pointsEarned > 0) {
-          console.log(`✅ تمت إضافة ${pointsResult.pointsEarned} نقطة مكافأة للعضو`)
         }
       } catch (pointsError) {
         console.error('Error adding reward points:', pointsError)

@@ -717,7 +717,6 @@ export default function ClosingPage() {
       link.click()
       window.URL.revokeObjectURL(url)
 
-      console.log('✅', t('closing.excel.success'))
 
     } catch (error) {
       console.error('❌ خطأ في التصدير:', error)

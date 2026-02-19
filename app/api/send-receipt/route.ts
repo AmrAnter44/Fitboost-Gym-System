@@ -9,8 +9,6 @@ export async function POST(req: Request) {
     const { phone, message } = await req.json();
 
     // هنا ممكن تضيف أي Integration مع خدمة WhatsApp رسمية أو خارجيّة
-    console.log("Send WhatsApp to:", phone);
-    console.log("Message:", message);
 
     return NextResponse.json({ success: true });
   } catch (err) {

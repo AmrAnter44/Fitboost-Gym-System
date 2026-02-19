@@ -275,7 +275,6 @@ export default function SettingsPage() {
       if (selectedScanner && selectedScannerFingerprint?.deviceName) {
         const deviceName = selectedScannerFingerprint.deviceName
         ;(window as any).electron.setCurrentDeviceName(deviceName)
-        console.log('📤 Restored device name in Electron:', deviceName)
       }
     }
   }, [selectedScanner, selectedScannerFingerprint])
@@ -289,7 +288,6 @@ export default function SettingsPage() {
 
     // Listen for update available
     electron.onUpdateAvailable?.((info: any) => {
-      console.log('✅ Update available:', info)
       // لا نعرض updateInfo في الصفحة، سيتم عرضه فقط في toast
       setIsCheckingUpdates(false)
       // عرض رسالة نجاح بدلاً من updateInfo
@@ -299,7 +297,6 @@ export default function SettingsPage() {
 
     // Listen for no update
     electron.onUpdateNotAvailable?.((info: any) => {
-      console.log('ℹ️ No updates available')
       setShowUpdateSuccess(true)
       setIsCheckingUpdates(false)
       setTimeout(() => setShowUpdateSuccess(false), 4000)
@@ -362,14 +359,10 @@ export default function SettingsPage() {
         }
       ]
 
-      console.log('📋 Setting initial devices:', basicOptions)
-      console.log('💾 Current selectedScanner from context:', selectedScanner)
-      console.log('🔑 Current selectedScannerFingerprint:', selectedScannerFingerprint)
 
       // ✅ إذا كان فيه جهاز محفوظ ومش موجود في القائمة، نضيفه
       if (selectedScanner && selectedScanner !== 'keyboard-wedge-scanner') {
         const savedDeviceLabel = selectedScannerFingerprint?.deviceName || selectedScanner
-        console.log('➕ Adding saved device to initial list:', savedDeviceLabel)
         basicOptions.push({
           id: selectedScanner,
           label: `📱 ${savedDeviceLabel}`,
@@ -436,10 +429,8 @@ export default function SettingsPage() {
       // 2. استخدام Electron API للكشف عن أجهزة HID
       if (typeof window !== 'undefined' && (window as any).electron?.detectHIDDevices) {
         try {
-          console.log('🔍 Using Electron HID API to detect devices...')
 
           const hidDevices = await (window as any).electron.detectHIDDevices()
-          console.log('📱 HID Devices found:', hidDevices.length)
 
           // إضافة الأجهزة المكتشفة
           hidDevices.forEach((device: any) => {
@@ -451,12 +442,9 @@ export default function SettingsPage() {
             })
           })
 
-          console.log('✅ Devices detected successfully via Electron')
         } catch (error: any) {
-          console.log('⚠️ Could not get HID devices from Electron:', error)
         }
       } else {
-        console.log('ℹ️ Not running in Electron, using basic options only')
       }
 
       // 3. قراءة أجهزة الميديا (كاميرات، ميكروفونات)
@@ -476,13 +464,11 @@ export default function SettingsPage() {
           }
         })
       } catch (error) {
-        console.log('⚠️ Could not get media devices:', error)
       }
 
       // 4. تعيين الأجهزة المكتشفة
       setDevices(allDevices)
 
-      console.log('✅ Total devices detected:', allDevices.length)
     } catch (error) {
       console.error('❌ Error detecting devices:', error)
       // في حالة الخطأ، نضيف الخيار الافتراضي على الأقل
@@ -503,24 +489,20 @@ export default function SettingsPage() {
   // ✅ Auto-match saved device when devices list changes
   useEffect(() => {
     if (devices.length === 0) {
-      console.log('⏳ No devices loaded yet, waiting...')
       return
     }
 
     // If we already have a selected scanner and it exists in the list, we're good
     if (selectedScanner && devices.some(d => d.id === selectedScanner)) {
-      console.log('✅ Current device is valid:', selectedScanner)
       return
     }
 
     // If we don't have a saved fingerprint or scanner, nothing to restore
     if (!selectedScannerFingerprint && !selectedScanner) {
-      console.log('ℹ️ No saved device found')
       return
     }
 
     // Try to find device by fingerprint or ID
-    console.log('🔍 Trying to restore saved device:', { selectedScanner, selectedScannerFingerprint })
 
     let matchedDevice = null
 
@@ -528,7 +510,6 @@ export default function SettingsPage() {
     if (selectedScanner) {
       matchedDevice = devices.find(d => d.id === selectedScanner)
       if (matchedDevice) {
-        console.log('🎯 Matched by exact ID:', selectedScanner)
       }
     }
 
@@ -541,7 +522,6 @@ export default function SettingsPage() {
         const match = deviceVendorId === selectedScannerFingerprint.vendorId &&
                deviceProductId === selectedScannerFingerprint.productId
         if (match) {
-          console.log('🎯 Matched by VID/PID:', deviceVendorId, deviceProductId)
         }
         return match
       })
@@ -553,18 +533,14 @@ export default function SettingsPage() {
         const match = d.label === selectedScannerFingerprint.deviceName ||
                       d.id === selectedScannerFingerprint.deviceName
         if (match) {
-          console.log('🎯 Matched by device name:', d.label)
         }
         return match
       })
     }
 
     if (matchedDevice) {
-      console.log('✅ Restored saved device:', matchedDevice.id, matchedDevice.label)
       // Don't call setSelectedScanner here - it's already in state, just verify it matches
     } else {
-      console.log('⚠️ Could not find saved device in list')
-      console.log('📋 Available devices:', devices.map(d => ({ id: d.id, label: d.label, kind: d.kind })))
     }
   }, [devices])
 
@@ -598,13 +574,11 @@ export default function SettingsPage() {
       }
 
       setSelectedScanner(deviceId, fingerprint)
-      console.log('💾 Saving device:', { deviceId, fingerprint })
 
       // ✅ Send device name to Electron main process for logging
       if (typeof window !== 'undefined' && (window as any).electron?.setCurrentDeviceName) {
         const nameToSend = device?.label || deviceId
         ;(window as any).electron.setCurrentDeviceName(nameToSend)
-        console.log('📤 Sent device name to Electron:', nameToSend)
       }
     }
   }

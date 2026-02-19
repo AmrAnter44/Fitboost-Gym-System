@@ -170,7 +170,6 @@ export default function NutritionCommissionPage() {
     'Nutrition Day Use'
   ]
 
-  console.log('🔵 NUTRITION_RECEIPT_TYPES configured:', NUTRITION_RECEIPT_TYPES)
 
   // تحديد الفترة الزمنية (أول يوم في الشهر الحالي إلى آخر يوم)
   const today = new Date()
@@ -210,9 +209,6 @@ export default function NutritionCommissionPage() {
 
   // مراقبة تغيير طريقة الحساب
   useEffect(() => {
-    console.log('🔄 calculationMethod changed to:', calculationMethod)
-    console.log('📊 methodLoaded:', methodLoaded)
-    console.log('👤 isAdmin:', isAdmin)
   }, [calculationMethod, methodLoaded, isAdmin])
 
   // اختيار الكوتش تلقائياً
@@ -222,13 +218,11 @@ export default function NutritionCommissionPage() {
       if (currentUser.role === 'COACH' && currentUser.staffId) {
         const coachStaff = coaches.find((c: Staff) => c.id === currentUser.staffId)
         if (coachStaff) {
-          console.log('✅ Auto-selecting coach for COACH user:', coachStaff.name)
           setSelectedCoach(coachStaff.name)
         }
       }
       // إذا كان هناك كوتش واحد فقط (حالة Admin مع كوتش واحد)
       else if (coaches.length === 1) {
-        console.log('✅ Auto-selecting single coach:', coaches[0].name)
         setSelectedCoach(coaches[0].name)
       }
     }
@@ -250,7 +244,6 @@ export default function NutritionCommissionPage() {
           }
         }
 
-        console.log('📊 نتائج الكومشن بناءً على الحصص:', results)
       } catch (error) {
         console.error('❌ خطأ في حساب الكومشن:', error)
       } finally {
@@ -303,7 +296,6 @@ export default function NutritionCommissionPage() {
       if (response.ok) {
         const data = await response.json()
         setMemberSignupCommissions(data)
-        console.log('💰 عمولات تسجيل الأعضاء:', data)
       }
     } catch (error) {
       console.error('Error fetching member signup commissions:', error)
@@ -355,7 +347,6 @@ export default function NutritionCommissionPage() {
           tier4Rate: data.tier4Rate,
           tier5Rate: data.tier5Rate
         })
-        console.log('⚙️ تم تحميل إعدادات الكومشن:', data)
       }
     } catch (error) {
       console.error('Error fetching commission settings:', error)
@@ -394,16 +385,12 @@ export default function NutritionCommissionPage() {
   // جلب معلومات المستخدم الحالي
   const fetchCurrentUser = async () => {
     try {
-      console.log('👤 Fetching current user...')
       const response = await fetch('/api/auth/me')
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ User fetched:', data.user)
-        console.log('👔 User role:', data.user.role)
         setCurrentUser(data.user)
         const isAdminUser = data.user.role === 'ADMIN'
         setIsAdmin(isAdminUser)
-        console.log('🔐 isAdmin set to:', isAdminUser)
       }
     } catch (error) {
       console.error('Error fetching current user:', error)
@@ -413,21 +400,13 @@ export default function NutritionCommissionPage() {
   // جلب طريقة الحساب الافتراضية
   const fetchDefaultCalculationMethod = async () => {
     try {
-      console.log('🔄 Fetching default calculation method...')
       const response = await fetch('/api/settings/commission')
-      console.log('📡 API Response status:', response.status)
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ Default method received from API:', JSON.stringify(data))
-        console.log('🔍 defaultCommissionMethod value:', data.defaultCommissionMethod)
-        console.log('🔍 Type of defaultCommissionMethod:', typeof data.defaultCommissionMethod)
 
         if (data.defaultCommissionMethod) {
-          console.log('📊 About to set calculation method to:', data.defaultCommissionMethod)
           setCalculationMethod(data.defaultCommissionMethod)
-          console.log('✔️ setCalculationMethod called with:', data.defaultCommissionMethod)
         } else {
-          console.log('⚠️ No defaultCommissionMethod in response, using default "revenue"')
           // إذا لم يكن هناك إعداد، استخدم القيمة الافتراضية
           setCalculationMethod('revenue')
         }
@@ -443,7 +422,6 @@ export default function NutritionCommissionPage() {
       // في حالة الخطأ، استخدم القيمة الافتراضية
       setCalculationMethod('revenue')
     } finally {
-      console.log('🏁 Setting methodLoaded to true')
       setMethodLoaded(true)
     }
   }
@@ -461,7 +439,6 @@ export default function NutritionCommissionPage() {
     }
 
     try {
-      console.log('💾 Saving default calculation method:', method)
       const response = await fetch('/api/settings/commission', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -470,7 +447,6 @@ export default function NutritionCommissionPage() {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('✅ Method saved successfully:', result)
         toast.success(t('nutrition.commission.defaultMethodSavedSuccess'))
       } else {
         const data = await response.json()
@@ -519,7 +495,6 @@ export default function NutritionCommissionPage() {
       return true
     })
 
-    console.log('📊 عدد جلسات التغذية بعد الفلترة:', filteredNutritions.length)
 
     // 2. تجميع حسب الكوتش
     const coachMap = new Map<string, NutritionSessionsData[]>()
@@ -570,13 +545,6 @@ export default function NutritionCommissionPage() {
         details: nutritionList
       })
 
-      console.log(`✅ كوتش ${nutritionistName}:`, {
-        nutritionCount: nutritionList.length,
-        totalUsedSessions,
-        totalSessionsValue,
-        percentage,
-        commission
-      })
     }
 
     return results.sort((a, b) => b.commission - a.commission)
@@ -589,15 +557,12 @@ export default function NutritionCommissionPage() {
     end.setHours(23, 59, 59, 999)
 
     // حساب الإيرادات من إيصالات التغذية (جميع الأنواع)
-    console.log('🔵 Starting to filter receipts for nutritionist:', nutritionistName)
-    console.log('🔵 Total receipts to check:', receipts.length)
 
     const nutritionReceipts = receipts.filter((receipt) => {
       // فلترة إيصالات التغذية فقط
       const isNutritionType = NUTRITION_RECEIPT_TYPES.includes(receipt.type)
       if (!isNutritionType) {
         if (receipt.type.includes('nutrition') || receipt.type.includes('تغذية')) {
-          console.log('⚠️ Receipt type not in allowed list:', receipt.type)
         }
         return false
       }
@@ -614,15 +579,6 @@ export default function NutritionCommissionPage() {
         const requestedName = (nutritionistName || '').trim()
         const matches = storedName === requestedName
         if (isNutritionType && receipt.type === 'nutritionRenewal') {
-          console.log('🔵 Found nutritionRenewal receipt:', {
-            receiptNumber: receipt.receiptNumber,
-            type: receipt.type,
-            nutritionistName: details.nutritionistName,
-            storedNameTrimmed: storedName,
-            requestedNutritionist: nutritionistName,
-            requestedNameTrimmed: requestedName,
-            matches: matches
-          })
         }
         return matches
       } catch {
@@ -630,8 +586,6 @@ export default function NutritionCommissionPage() {
       }
     })
 
-    console.log('💰 إيصالات التغذية للأخصائي', nutritionistName, ':', nutritionReceipts.length, 'إيصال')
-    console.log('🔵 Receipt types found:', nutritionReceipts.map(r => r.type))
 
     // حساب الإيرادات من الإيصالات (المبالغ الفعلية المدفوعة)
     const nutritionRevenue = nutritionReceipts.reduce((sum, receipt) => sum + receipt.amount, 0)
@@ -640,11 +594,6 @@ export default function NutritionCommissionPage() {
     const coachSignupCommissions = memberSignupCommissions.find(c => c.nutritionistName === nutritionistName)
     const signupRevenue = coachSignupCommissions?.totalAmount || 0
 
-    console.log('💵 إيرادات الكوتش', nutritionistName, ':', {
-      nutritionRevenue,
-      signupRevenue,
-      total: nutritionRevenue + signupRevenue
-    })
 
     // إجمالي الإيرادات = التغذية + تسجيل الأعضاء
     const totalRevenue = nutritionRevenue + signupRevenue
@@ -799,14 +748,6 @@ export default function NutritionCommissionPage() {
     const recalculatedCommission = (totalIncome * averagePercentage) / 100
     const gymShare = totalIncome - recalculatedCommission
 
-    console.log('💰 نتيجة الحساب:', {
-      nutritionistName: selectedCoach,
-      monthlyIncome: totalIncome,
-      percentage: averagePercentage,
-      commission: recalculatedCommission,
-      gymShare: gymShare,
-      oldCommission: totalCommission,
-    })
 
     setResult({
       nutritionistName: selectedCoach,

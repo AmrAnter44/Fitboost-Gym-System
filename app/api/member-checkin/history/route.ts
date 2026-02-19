@@ -86,12 +86,6 @@ export async function GET(request: Request) {
         .map(([date, count]) => ({ date, count }))
         .sort((a, b) => a.date.localeCompare(b.date))
 
-      console.log('📊 إحصائيات يومية:', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        totalDays: formattedDailyStats.length,
-        totalCheckIns: formattedDailyStats.reduce((sum, s) => sum + s.count, 0)
-      })
 
       // الأعضاء الأكثر زيارة
       const topMembers = await prisma.memberCheckIn.groupBy({

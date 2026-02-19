@@ -61,7 +61,6 @@ export async function sendPushNotification(
       }
     }
 
-    console.log('✅ Push notification sent successfully to:', pushToken);
     return { success: true };
   } catch (error) {
     console.error('Error sending push notification:', error);

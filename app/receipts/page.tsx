@@ -492,8 +492,6 @@ export default function ReceiptsPage() {
       if (typeof window !== 'undefined' && (window as any).electron?.openWhatsAppWithPDF) {
         const pdfPath = pdfResult && typeof pdfResult === 'object' ? pdfResult.filePath : undefined
         if (pdfPath) {
-          console.log('📱 Opening WhatsApp with PDF from Electron:', pdfPath)
-          console.log('📞 Phone number:', formattedPhone)
           await (window as any).electron.openWhatsAppWithPDF(message, pdfPath, formattedPhone)
           toast.success('تم فتح واتساب - اسحب ملف PDF من المجلد المفتوح إلى واتساب ✅')
         } else {

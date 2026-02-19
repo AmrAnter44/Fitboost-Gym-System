@@ -37,7 +37,6 @@ export async function POST(request: Request) {
     // حساب سعر الحصة الواحدة من السعر الإجمالي
     const pricePerSession = sessionsPurchased > 0 ? totalPrice / sessionsPurchased : 0
 
-    console.log('🔄 تجديد جلسات Nutrition:', { nutritionNumber, sessionsPurchased, totalPrice, pricePerSession })
 
     // التحقق من وجود جلسة Nutrition
     const existingNutrition = await prisma.nutrition.findUnique({
@@ -82,9 +81,7 @@ export async function POST(request: Request) {
       },
     })
 
-    console.log('✅ تم تحديث جلسة Nutrition:', updatedNutrition.nutritionNumber)
     if (oldRemainingAmount > 0) {
-      console.log(`💰 تم إرجاع المبلغ المتبقي: ${oldRemainingAmount} ج.م`)
     }
 
     // إنشاء إيصال للتجديد باستخدام Transaction
@@ -121,7 +118,6 @@ export async function POST(request: Request) {
         }
 
         // إنشاء الإيصال
-        console.log('🔵 Creating renewal receipt with type:', RECEIPT_TYPES.NUTRITION_RENEWAL)
         const receipt = await tx.receipt.create({
           data: {
             receiptNumber: receiptNumber,
@@ -148,7 +144,6 @@ export async function POST(request: Request) {
             ptNumber: updatedNutrition.nutritionNumber,
           },
         })
-        console.log('✅ Receipt created successfully:', { receiptNumber: receipt.receiptNumber, type: receipt.type, nutritionistName: nutritionistName || existingNutrition.nutritionistName })
 
         // خصم النقاط إذا تم استخدامها في الدفع
         const pointsResult = await processPaymentWithPoints(
@@ -185,10 +180,8 @@ export async function POST(request: Request) {
               )
 
               if (rewardResult.success && rewardResult.pointsEarned && rewardResult.pointsEarned > 0) {
-                console.log(`✅ تمت إضافة ${rewardResult.pointsEarned} نقطة مكافأة للعضو ${member.name}`)
               }
             } else {
-              console.log(`⚠️ لم يُعثر على عضو برقم العضوية: ${memberNumber}`)
             }
           } catch (rewardError) {
             console.error('⚠️ فشل إضافة نقاط المكافأة (غير حرج):', rewardError)
@@ -227,7 +220,6 @@ export async function POST(request: Request) {
         return receipt
       })
 
-      console.log('✅ تم إنشاء إيصال التجديد بنجاح:', result.receiptNumber)
 
       return NextResponse.json({
         nutrition: updatedNutrition,

@@ -32,7 +32,6 @@ export async function GET(request: Request) {
       )
     }
 
-    console.log('🔍 جلب الأوقات المتاحة:', { date, serviceType })
 
     // توليد الأوقات المتاحة (من 9 صباحاً إلى 8 مساءً كل ساعة)
     const timeSlots = []
@@ -60,7 +59,6 @@ export async function GET(request: Request) {
       })
     }
 
-    console.log('✅ تم توليد', timeSlots.length, 'وقت متاح')
 
     return NextResponse.json(timeSlots, { status: 200 })
   } catch (error: any) {

@@ -22,7 +22,6 @@ export async function generateArabicPDF(
   receiptNumber: number,
   options?: PDFOptions
 ): Promise<{ blob: Blob | null; url: string | null; filePath: string | null }> {
-  console.log('🚀 generateArabicPDF started - NEW VERSION')
   try {
     // ✅ Dynamic imports للمكتبات اللي بتستخدم DOM APIs
     const [{ default: jsPDF }, { default: domtoimage }] = await Promise.all([
@@ -139,29 +138,21 @@ export async function generateArabicPDF(
 
     // 9. تحميل أو إرجاع
     let savedFilePath: string | null = null
-    console.log('📥 autoDownload check:', options?.autoDownload !== false)
     if (options?.autoDownload !== false) {
-      console.log('✅ Electron API available:', !!(window as any).electron?.savePDFToDocuments)
       // ✅ التحقق من Electron
       if (typeof window !== 'undefined' && (window as any).electron?.savePDFToDocuments) {
         try {
           // ✅ استخدام arraybuffer مباشرة
           const arrayBuffer = pdf.output('arraybuffer')
-          console.log('📊 ArrayBuffer size:', arrayBuffer.byteLength)
 
           // تحويل ArrayBuffer إلى Array من الأرقام (أكثر موثوقية عبر IPC)
           const bytes = new Uint8Array(arrayBuffer)
           const byteArray = Array.from(bytes)
-          console.log('📏 ByteArray length:', byteArray.length)
-          console.log('🔍 First 10 bytes:', byteArray.slice(0, 10))
 
-          console.log('📤 Calling Electron savePDFToDocuments...')
           const result = await (window as any).electron.savePDFToDocuments(fileName, byteArray)
-          console.log('📥 Result:', result)
 
           if (result.success) {
             savedFilePath = result.filePath
-            console.log('✅ PDF saved to:', savedFilePath)
           } else {
             console.error('❌ Electron save failed:', result.error)
             // Fallback للتحميل العادي

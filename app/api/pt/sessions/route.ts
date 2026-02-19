@@ -97,7 +97,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { ptNumber, sessionDate, notes } = body
 
-    console.log('📝 تسجيل حضور جلسة PT:', { ptNumber, sessionDate })
 
     // التحقق من وجود جلسة PT
     const pt = await prisma.pT.findUnique({
@@ -137,7 +136,6 @@ export async function POST(request: Request) {
       data: { sessionsRemaining: pt.sessionsRemaining - 1 }
     })
 
-    console.log(`✅ تم تسجيل الجلسة بنجاح (الحصص المتبقية: ${pt.sessionsRemaining - 1})`)
 
     return NextResponse.json({
       ...session,

@@ -208,9 +208,6 @@ export default function PhysiotherapyCommissionPage() {
 
   // مراقبة تغيير طريقة الحساب
   useEffect(() => {
-    console.log('🔄 calculationMethod changed to:', calculationMethod)
-    console.log('📊 methodLoaded:', methodLoaded)
-    console.log('👤 isAdmin:', isAdmin)
   }, [calculationMethod, methodLoaded, isAdmin])
 
   // اختيار الكوتش تلقائياً
@@ -220,13 +217,11 @@ export default function PhysiotherapyCommissionPage() {
       if (currentUser.role === 'COACH' && currentUser.staffId) {
         const coachStaff = coaches.find((c: Staff) => c.id === currentUser.staffId)
         if (coachStaff) {
-          console.log('✅ Auto-selecting coach for COACH user:', coachStaff.name)
           setSelectedCoach(coachStaff.name)
         }
       }
       // إذا كان هناك كوتش واحد فقط (حالة Admin مع كوتش واحد)
       else if (coaches.length === 1) {
-        console.log('✅ Auto-selecting single coach:', coaches[0].name)
         setSelectedCoach(coaches[0].name)
       }
     }
@@ -248,7 +243,6 @@ export default function PhysiotherapyCommissionPage() {
           }
         }
 
-        console.log('📊 نتائج الكومشن بناءً على الحصص:', results)
       } catch (error) {
         console.error('❌ خطأ في حساب الكومشن:', error)
       } finally {
@@ -301,7 +295,6 @@ export default function PhysiotherapyCommissionPage() {
       if (response.ok) {
         const data = await response.json()
         setMemberSignupCommissions(data)
-        console.log('💰 عمولات تسجيل الأعضاء:', data)
       }
     } catch (error) {
       console.error('Error fetching member signup commissions:', error)
@@ -353,7 +346,6 @@ export default function PhysiotherapyCommissionPage() {
           tier4Rate: data.tier4Rate,
           tier5Rate: data.tier5Rate
         })
-        console.log('⚙️ تم تحميل إعدادات الكومشن:', data)
       }
     } catch (error) {
       console.error('Error fetching commission settings:', error)
@@ -392,16 +384,12 @@ export default function PhysiotherapyCommissionPage() {
   // جلب معلومات المستخدم الحالي
   const fetchCurrentUser = async () => {
     try {
-      console.log('👤 Fetching current user...')
       const response = await fetch('/api/auth/me')
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ User fetched:', data.user)
-        console.log('👔 User role:', data.user.role)
         setCurrentUser(data.user)
         const isAdminUser = data.user.role === 'ADMIN'
         setIsAdmin(isAdminUser)
-        console.log('🔐 isAdmin set to:', isAdminUser)
       }
     } catch (error) {
       console.error('Error fetching current user:', error)
@@ -411,21 +399,13 @@ export default function PhysiotherapyCommissionPage() {
   // جلب طريقة الحساب الافتراضية
   const fetchDefaultCalculationMethod = async () => {
     try {
-      console.log('🔄 Fetching default calculation method...')
       const response = await fetch('/api/settings/commission')
-      console.log('📡 API Response status:', response.status)
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ Default method received from API:', JSON.stringify(data))
-        console.log('🔍 defaultCommissionMethod value:', data.defaultCommissionMethod)
-        console.log('🔍 Type of defaultCommissionMethod:', typeof data.defaultCommissionMethod)
 
         if (data.defaultCommissionMethod) {
-          console.log('📊 About to set calculation method to:', data.defaultCommissionMethod)
           setCalculationMethod(data.defaultCommissionMethod)
-          console.log('✔️ setCalculationMethod called with:', data.defaultCommissionMethod)
         } else {
-          console.log('⚠️ No defaultCommissionMethod in response, using default "revenue"')
           // إذا لم يكن هناك إعداد، استخدم القيمة الافتراضية
           setCalculationMethod('revenue')
         }
@@ -441,7 +421,6 @@ export default function PhysiotherapyCommissionPage() {
       // في حالة الخطأ، استخدم القيمة الافتراضية
       setCalculationMethod('revenue')
     } finally {
-      console.log('🏁 Setting methodLoaded to true')
       setMethodLoaded(true)
     }
   }
@@ -459,7 +438,6 @@ export default function PhysiotherapyCommissionPage() {
     }
 
     try {
-      console.log('💾 Saving default calculation method:', method)
       const response = await fetch('/api/settings/commission', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -468,7 +446,6 @@ export default function PhysiotherapyCommissionPage() {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('✅ Method saved successfully:', result)
         toast.success(t('physiotherapy.commission.defaultMethodSavedSuccess'))
       } else {
         const data = await response.json()
@@ -517,7 +494,6 @@ export default function PhysiotherapyCommissionPage() {
       return true
     })
 
-    console.log('📊 عدد جلسات العلاج الطبيعي بعد الفلترة:', filteredPts.length)
 
     // 2. تجميع حسب المعالج
     const coachMap = new Map<string, PTSessionsData[]>()
@@ -568,13 +544,6 @@ export default function PhysiotherapyCommissionPage() {
         details: ptList
       })
 
-      console.log(`✅ كوتش ${therapistName}:`, {
-        ptCount: ptList.length,
-        totalUsedSessions,
-        totalSessionsValue,
-        percentage,
-        commission
-      })
     }
 
     return results.sort((a, b) => b.commission - a.commission)
@@ -587,15 +556,12 @@ export default function PhysiotherapyCommissionPage() {
     end.setHours(23, 59, 59, 999)
 
     // حساب الإيرادات من إيصالات العلاج الطبيعي (جميع الأنواع)
-    console.log('🔵 Starting to filter receipts for therapist:', therapistName)
-    console.log('🔵 Total receipts to check:', receipts.length)
 
     const ptReceipts = receipts.filter((receipt) => {
       // فلترة إيصالات العلاج الطبيعي فقط
       const isPTType = PT_RECEIPT_TYPES.includes(receipt.type)
       if (!isPTType) {
         if (receipt.type.includes('physiotherapy') || receipt.type.includes('علاج طبيعي')) {
-          console.log('⚠️ Receipt type not in allowed list:', receipt.type)
         }
         return false
       }
@@ -612,15 +578,6 @@ export default function PhysiotherapyCommissionPage() {
         const requestedName = (therapistName || '').trim()
         const matches = storedName === requestedName
         if (isPTType && receipt.type === 'physiotherapyRenewal') {
-          console.log('🔵 Found physiotherapyRenewal receipt:', {
-            receiptNumber: receipt.receiptNumber,
-            type: receipt.type,
-            therapistName: details.therapistName,
-            storedNameTrimmed: storedName,
-            requestedTherapist: therapistName,
-            requestedNameTrimmed: requestedName,
-            matches: matches
-          })
         }
         return matches
       } catch {
@@ -628,8 +585,6 @@ export default function PhysiotherapyCommissionPage() {
       }
     })
 
-    console.log('💰 إيصالات العلاج الطبيعي للمعالج', therapistName, ':', ptReceipts.length, 'إيصال')
-    console.log('🔵 Receipt types found:', ptReceipts.map(r => r.type))
 
     // حساب الإيرادات من الإيصالات (المبالغ الفعلية المدفوعة)
     const ptRevenue = ptReceipts.reduce((sum, receipt) => sum + receipt.amount, 0)
@@ -638,11 +593,6 @@ export default function PhysiotherapyCommissionPage() {
     const coachSignupCommissions = memberSignupCommissions.find(c => c.therapistName === therapistName)
     const signupRevenue = coachSignupCommissions?.totalAmount || 0
 
-    console.log('💵 إيرادات المعالج', therapistName, ':', {
-      ptRevenue,
-      signupRevenue,
-      total: ptRevenue + signupRevenue
-    })
 
     // إجمالي الإيرادات = العلاج الطبيعي + تسجيل الأعضاء
     const totalRevenue = ptRevenue + signupRevenue
@@ -797,14 +747,6 @@ export default function PhysiotherapyCommissionPage() {
     const recalculatedCommission = (totalIncome * averagePercentage) / 100
     const gymShare = totalIncome - recalculatedCommission
 
-    console.log('💰 نتيجة الحساب:', {
-      therapistName: selectedCoach,
-      monthlyIncome: totalIncome,
-      percentage: averagePercentage,
-      commission: recalculatedCommission,
-      gymShare: gymShare,
-      oldCommission: totalCommission,
-    })
 
     setResult({
       therapistName: selectedCoach,

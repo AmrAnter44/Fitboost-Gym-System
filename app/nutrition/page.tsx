@@ -174,12 +174,10 @@ export default function NutritionPage() {
         let response
         // البحث برقم العضوية أولاً (الأدق)
         if (formData.memberNumber) {
-          console.log('🔍 البحث عن نقاط العضو برقم العضوية:', formData.memberNumber)
           response = await fetch(`/api/members?memberNumber=${formData.memberNumber}`)
         }
         // البحث بالهاتف كـ fallback (قد يكون غير دقيق)
         else if (formData.phone) {
-          console.log('⚠️ البحث عن نقاط العضو بالهاتف (قد يكون غير دقيق):', formData.phone)
           response = await fetch(`/api/members?phone=${encodeURIComponent(formData.phone)}`)
         }
 
@@ -189,7 +187,6 @@ export default function NutritionPage() {
             setMemberPoints(members[0].points || 0)
             setMemberNumber(members[0].memberNumber || null)
             setFormData(prev => ({ ...prev, memberNumber: members[0].memberNumber || null }))
-            console.log('✅ نقاط العضو:', members[0].points)
           } else {
             setMemberPoints(0)
             setMemberNumber(null)

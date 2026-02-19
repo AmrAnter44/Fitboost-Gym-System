@@ -107,13 +107,6 @@ export async function POST(request: Request) {
     // ✅ استخدام الاسم من جدول Staff إذا كان المستخدم موظف
     const displayName = user.staff?.name || user.name
 
-    console.log('✅ تسجيل دخول:', {
-      email: user.email,
-      role: user.role,
-      userTableName: user.name,
-      staffTableName: user.staff?.name,
-      displayName: displayName
-    })
 
     // إنشاء JWT token
     const token = jwt.sign(

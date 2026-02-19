@@ -302,9 +302,7 @@ export default function SearchPage() {
       const data = await response.json()
 
       if (response.ok && !data.alreadyCheckedIn) {
-        console.log('✅ تم تسجيل دخول العضو:', data.message)
       } else if (data.alreadyCheckedIn) {
-        console.log('ℹ️ العضو مسجل دخول بالفعل')
         playWarningSound()
         setAttendanceMessage({
           type: 'error',

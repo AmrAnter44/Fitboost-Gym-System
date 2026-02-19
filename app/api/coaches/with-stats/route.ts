@@ -74,7 +74,6 @@ export async function GET(request: Request) {
       lastCheckIn: coach.attendance.length > 0 ? coach.attendance[0].checkIn : null
     }))
 
-    console.log('📋 Found coaches with stats:', formattedCoaches.length)
     return NextResponse.json(formattedCoaches)
   } catch (error) {
     console.error('Error fetching coaches with stats:', error)

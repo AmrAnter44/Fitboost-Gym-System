@@ -24,7 +24,6 @@ export async function validateLicense(): Promise<{ isValid: boolean; errorMessag
                                process.env.NEXT_PUBLIC_APP_URL?.includes('system.xgym.website')
 
     if (isProductionDomain) {
-      console.log('✅ Running on production domain - license is valid')
 
       // Still update cache
       const now = new Date()
@@ -49,7 +48,6 @@ export async function validateLicense(): Promise<{ isValid: boolean; errorMessag
     }
 
     // Always try to fetch fresh license data from GitHub first
-    console.log('🌐 Fetching license from GitHub:', LICENSE_URL)
     const response = await fetch(LICENSE_URL, {
       cache: 'no-store',
       headers: {
@@ -62,13 +60,11 @@ export async function validateLicense(): Promise<{ isValid: boolean; errorMessag
     }
 
     const licenseData: LicenseFile = await response.json()
-    console.log('📄 License data received:', licenseData)
 
     // Validate signature
     const isValid = licenseData.sig === EXPECTED_SIGNATURE
     const errorMessage = isValid ? null : 'رخصة التشغيل غير صالحة - التوقيع غير متطابق'
 
-    console.log(isValid ? '✅ License is VALID' : '❌ License is INVALID')
 
     // Update cache in database
     const now = new Date()
@@ -100,7 +96,6 @@ export async function validateLicense(): Promise<{ isValid: boolean; errorMessag
     })
 
     if (cached) {
-      console.log('⚠️ GitHub unreachable - using last cached validation from:', cached.lastCheckedAt)
       return {
         isValid: cached.isValid,
         errorMessage: cached.errorMessage || undefined
@@ -108,7 +103,6 @@ export async function validateLicense(): Promise<{ isValid: boolean; errorMessag
     }
 
     // No cache exists and fetch failed - default to valid on first run
-    console.log('⚠️ First run with no GitHub access - defaulting to VALID')
     const defaultValidation = { isValid: true, errorMessage: undefined }
 
     try {
@@ -184,5 +178,4 @@ export async function requireValidLicense(): Promise<void> {
     throw new Error(errorMsg)
   }
 
-  console.log('✅ License check passed')
 }

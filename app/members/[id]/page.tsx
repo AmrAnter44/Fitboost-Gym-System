@@ -306,8 +306,6 @@ export default function MemberDetailPage() {
           remainingAmount: parseInt(foundMember.remainingAmount?.toString() || '0')
         }
 
-        console.log('Member data:', memberWithDefaults)
-        console.log('Coach data:', memberWithDefaults.coach)
         setMember(memberWithDefaults)
 
         // جلب آخر إيصال للعضو
@@ -445,7 +443,6 @@ export default function MemberDetailPage() {
       if (response.ok) {
         const coaches = await response.json()
         setCoaches(coaches)
-        console.log('Fetched coaches:', coaches)
       } else {
         console.error('Failed to fetch coaches:', response.status)
         setCoaches([])
@@ -538,12 +535,6 @@ export default function MemberDetailPage() {
       const totalPhysioSessions = memberPhysio.reduce((sum, p) => sum + (p.sessionsRemaining || 0), 0)
       const totalGroupClassSessions = memberClasses.reduce((sum, c) => sum + (c.sessionsRemaining || 0), 0)
 
-      console.log('📊 Paid sessions totals:', {
-        pt: totalPTSessions,
-        nutrition: totalNutritionSessions,
-        physio: totalPhysioSessions,
-        groupClass: totalGroupClassSessions
-      })
 
       setPaidSessionCounts({
         pt: totalPTSessions,
@@ -1208,8 +1199,6 @@ export default function MemberDetailPage() {
   }
 
   const handleOpenFitnessTest = async () => {
-    console.log('handleOpenFitnessTest called')
-    console.log('fitnessTestExists:', fitnessTestExists)
 
     if (fitnessTestExists) {
       setActiveModal('view-fitness-test')
@@ -1217,14 +1206,11 @@ export default function MemberDetailPage() {
       // Auto-select coach if current user is coach
       try {
         const userStr = localStorage.getItem('user')
-        console.log('User from localStorage:', userStr)
 
         if (userStr) {
           const user = JSON.parse(userStr)
-          console.log('Parsed user:', user)
 
           if (user.role === 'COACH' && user.staffId) {
-            console.log('Opening form directly for coach')
             router.push(`/fitness-tests/new?memberId=${memberId}&coachId=${user.staffId}`)
             return
           }
@@ -1234,7 +1220,6 @@ export default function MemberDetailPage() {
       }
 
       // Default: show coach selection modal
-      console.log('Fetching coaches and opening selection modal')
       await fetchCoaches()
       setActiveModal('fitness-test-coach-select')
     }

@@ -97,7 +97,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { groupClassNumber, sessionDate, notes } = body
 
-    console.log('📝 تسجيل حضور جلسة جروب كلاسيس:', { groupClassNumber, sessionDate })
 
     // التحقق من وجود جلسة GroupClass
     const groupClass = await prisma.groupClass.findUnique({
@@ -137,7 +136,6 @@ export async function POST(request: Request) {
       data: { sessionsRemaining: groupClass.sessionsRemaining - 1 }
     })
 
-    console.log(`✅ تم تسجيل الجلسة بنجاح (الحصص المتبقية: ${groupClass.sessionsRemaining - 1})`)
 
     return NextResponse.json({
       ...session,

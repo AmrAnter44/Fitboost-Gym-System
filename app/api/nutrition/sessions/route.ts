@@ -97,7 +97,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { nutritionNumber, sessionDate, notes } = body
 
-    console.log('📝 تسجيل حضور جلسة تغذية:', { nutritionNumber, sessionDate })
 
     // التحقق من وجود جلسة Nutrition
     const nutrition = await prisma.nutrition.findUnique({
@@ -137,7 +136,6 @@ export async function POST(request: Request) {
       data: { sessionsRemaining: nutrition.sessionsRemaining - 1 }
     })
 
-    console.log(`✅ تم تسجيل الجلسة بنجاح (الحصص المتبقية: ${nutrition.sessionsRemaining - 1})`)
 
     return NextResponse.json({
       ...session,

@@ -37,12 +37,6 @@ export async function POST(request: Request) {
       staffName
     } = body
 
-    console.log('🚀 ترقية باكدج عضو:', {
-      memberId,
-      newOfferId,
-      paymentMethod,
-      staffName
-    })
 
     // 1. جلب بيانات العضو
     const member = await prisma.member.findUnique({
@@ -104,22 +98,11 @@ export async function POST(request: Request) {
     // 8. حساب مبلغ الترقية (السعر الجديد - السعر القديم الكامل)
     const upgradeAmount = newOffer.price - member.subscriptionPrice
 
-    console.log('💰 حساب الترقية:', {
-      oldPrice: member.subscriptionPrice,
-      newPrice: newOffer.price,
-      upgradeAmount
-    })
 
     // 9. حساب تاريخ النهاية الجديد (من تاريخ البداية الأصلي)
     const newExpiryDate = new Date(member.startDate)
     newExpiryDate.setDate(newExpiryDate.getDate() + newOffer.duration)
 
-    console.log('📅 التواريخ:', {
-      startDate: formatDateYMD(member.startDate),
-      oldExpiryDate: formatDateYMD(member.expiryDate),
-      newExpiryDate: formatDateYMD(newExpiryDate),
-      duration: newOffer.duration
-    })
 
     // 10. حفظ بيانات الباكدج القديم للإيصال
     const oldPackageData = {
@@ -147,13 +130,6 @@ export async function POST(request: Request) {
       }
     })
 
-    console.log('✅ تم تحديث بيانات العضو:', {
-      newPrice: updatedMember.subscriptionPrice,
-      newPT: updatedMember.freePTSessions,
-      newInBody: updatedMember.inBodyScans,
-      newInvitations: updatedMember.invitations,
-      newExpiry: formatDateYMD(updatedMember.expiryDate)
-    })
 
     // 12. الحصول على رقم الإيصال التالي (atomic operation)
     const receiptNumber = await getNextReceiptNumberDirect(prisma)
@@ -216,7 +192,6 @@ export async function POST(request: Request) {
       }
     })
 
-    console.log('🧾 تم إنشاء إيصال الترقية:', receiptNumber)
 
     // إضافة نقاط مكافأة على الدفع
     try {
@@ -227,7 +202,6 @@ export async function POST(request: Request) {
       )
 
       if (pointsResult.pointsEarned && pointsResult.pointsEarned > 0) {
-        console.log(`✅ تمت إضافة ${pointsResult.pointsEarned} نقطة مكافأة للعضو`)
       }
     } catch (pointsError) {
       console.error('Error adding reward points:', pointsError)

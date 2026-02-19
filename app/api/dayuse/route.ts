@@ -149,7 +149,6 @@ export async function POST(request: Request) {
         },
       });
 
-      console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber);
 
       return { entry, receipt };
     });
@@ -212,7 +211,6 @@ export async function POST(request: Request) {
       console.error("⚠️ تحذير: فشل إنشاء الزائر من الدعوة:", visitorError);
     }
 
-    console.log('✅ تم إنشاء DayUse و إيصال:', { entryId: entry.id, receiptNumber: receipt.receiptNumber });
 
     return NextResponse.json({
       ...entry,

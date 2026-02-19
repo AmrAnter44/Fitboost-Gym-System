@@ -92,7 +92,6 @@ export async function generateUniqueQRCode(
     const exists = await checkExists(qrCode)
 
     if (!exists) {
-      console.log(`✅ تم توليد QR code فريد بعد ${attempts + 1} محاولة`)
       return qrCode
     }
 

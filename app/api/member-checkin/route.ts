@@ -75,12 +75,6 @@ export async function POST(request: Request) {
 
     // إنشاء تسجيل دخول جديد
 
-    console.log('📍 تسجيل حضور جديد:', {
-      memberId,
-      memberName: member.name,
-      checkInTime: now.toISOString(),
-      localTime: now.toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })
-    })
 
     const checkIn = await prisma.memberCheckIn.create({
       data: {

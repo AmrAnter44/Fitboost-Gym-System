@@ -94,7 +94,6 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log('✅ تم إنشاء إيصال تجديد للـ DayUse:', receiptNumber);
 
     // خصم النقاط إذا تم استخدامها في الدفع
     const pointsResult = await processPaymentWithPoints(

@@ -27,7 +27,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const instructorUserIdParam = searchParams.get('instructorUserId')
 
-    console.log('🔍 GroupClass API GET - User:', user.userId, 'Role:', user.role, 'Query instructorUserId:', instructorUserIdParam)
 
     // فلترة البيانات حسب الدور
     let whereClause: any = {}
@@ -51,18 +50,14 @@ export async function GET(request: Request) {
             { instructorName: instructorStaff.name }
           ]
         }
-        console.log('👤 Coach accessing own GroupClasses - userId:', user.userId, 'name:', instructorStaff.name)
       } else {
         whereClause = { instructorUserId: user.userId }
-        console.log('👤 Coach accessing own GroupClasses - userId only:', user.userId)
       }
     } else if (instructorUserIdParam) {
       // إذا تم تمرير instructorUserId في الـ query، فلتر بناءً عليه
       whereClause = { instructorUserId: instructorUserIdParam }
-      console.log('🔎 Filtering by instructorUserId from query:', instructorUserIdParam)
     }
 
-    console.log('📋 Where clause:', JSON.stringify(whereClause))
 
     const groupClassSessions = await prisma.groupClass.findMany({
       where: whereClause,
@@ -76,7 +71,6 @@ export async function GET(request: Request) {
       }
     })
 
-    console.log('✅ Found', groupClassSessions.length, 'GroupClass records')
     return NextResponse.json(groupClassSessions)
   } catch (error: any) {
     console.error('Error fetching GroupClass sessions:', error)
@@ -124,7 +118,6 @@ export async function POST(request: Request) {
     // حساب سعر الحصة الواحدة من السعر الإجمالي
     const pricePerSession = sessionsPurchased > 0 ? totalPrice / sessionsPurchased : 0
 
-    console.log('📝 إضافة جلسة GroupClass جديدة:', { classNumber, clientName, sessionsPurchased, totalPrice, pricePerSession })
 
     // ✅ التحقق من الحقول المطلوبة
     if (!clientName || clientName.trim() === '') {
@@ -194,7 +187,6 @@ export async function POST(request: Request) {
 
       if (instructorStaff && instructorStaff.user) {
         instructorUserId = instructorStaff.user.id
-        console.log(`✅ تم ربط المدرب ${instructorName} بـ userId: ${instructorUserId}`)
       } else {
         console.warn(`⚠️ لم يتم العثور على حساب مستخدم للمدرب: ${instructorName}`)
       }
@@ -215,7 +207,6 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`🔢 تم توليد Barcode عشوائي (16 رقم): ${barcodeText}`)
 
     // توليد Barcode كصورة
     let qrCodeImage = ''
@@ -230,7 +221,6 @@ export async function POST(request: Request) {
 
       const base64 = png.toString('base64')
       qrCodeImage = `data:image/png;base64,${base64}`
-      console.log('✅ تم توليد Barcode كصورة')
     } catch (barcodeError) {
       console.error('❌ فشل توليد صورة Barcode:', barcodeError)
     }
@@ -269,7 +259,6 @@ export async function POST(request: Request) {
           if (!existing) {
             found = true
             groupClassData.classNumber = availableNumber
-            console.log(`✅ تم العثور على رقم Day Use متاح: ${availableNumber}`)
           } else {
             availableNumber-- // جرب الرقم التالي (-2, -3, ...)
           }
@@ -303,7 +292,6 @@ export async function POST(request: Request) {
           data: groupClassData,
         })
 
-        console.log('✅ تم إنشاء جلسة GroupClass:', groupClass.classNumber)
 
         const receiptNumber = await getNextReceiptNumber(tx)
 
@@ -348,7 +336,6 @@ export async function POST(request: Request) {
           },
         })
 
-        console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber)
 
         // خصم النقاط إذا تم استخدامها في الدفع
         const pointsResult = await processPaymentWithPoints(
@@ -368,20 +355,12 @@ export async function POST(request: Request) {
         // حساب المبلغ الفعلي المدفوع (بدون النقاط المستخدمة)
         const actualAmountPaid = getActualAmountPaid(finalPaymentMethod, paidAmount)
 
-        console.log('🎁 GroupClass Points reward check:', {
-          actualAmountPaid,
-          paidAmount,
-          memberNumber,
-          phone,
-          finalPaymentMethod: typeof finalPaymentMethod === 'string' ? finalPaymentMethod : 'array'
-        })
 
         if (actualAmountPaid > 0 && (memberNumber || phone)) {
           try {
             // البحث عن العضو برقم العضوية أولاً، ثم بالهاتف
             let member = null
             if (memberNumber) {
-              console.log(`🔍 GroupClass: البحث عن عضو برقم العضوية: ${memberNumber}`)
               member = await tx.member.findUnique({
                 where: { memberNumber: parseInt(memberNumber) },
                 select: { id: true, name: true }
@@ -390,7 +369,6 @@ export async function POST(request: Request) {
 
             // إذا لم يُعثر على العضو برقم العضوية، نبحث بالهاتف
             if (!member && phone) {
-              console.log(`🔍 GroupClass: البحث عن عضو بالهاتف: ${phone}`)
               member = await tx.member.findFirst({
                 where: { phone: phone },
                 select: { id: true, name: true }
@@ -398,7 +376,6 @@ export async function POST(request: Request) {
             }
 
             if (member) {
-              console.log(`👤 GroupClass: تم العثور على العضو: ${member.name} (${member.id})`)
               const rewardResult = await addPointsForPayment(
                 member.id,
                 Number(actualAmountPaid),
@@ -407,19 +384,15 @@ export async function POST(request: Request) {
               )
 
               if (rewardResult.success && rewardResult.pointsEarned && rewardResult.pointsEarned > 0) {
-                console.log(`✅ GroupClass: تمت إضافة ${rewardResult.pointsEarned} نقطة مكافأة للعضو ${member.name}`)
               } else {
-                console.log(`⚠️ GroupClass: لم تُضف نقاط:`, rewardResult)
               }
             } else {
-              console.log(`⚠️ GroupClass: لم يُعثر على عضو برقم ${memberNumber} أو هاتف ${phone}`)
             }
           } catch (rewardError) {
             console.error('⚠️ GroupClass: فشل إضافة نقاط المكافأة (غير حرج):', rewardError)
             // لا نفشل العملية إذا فشلت المكافأة
           }
         } else {
-          console.log(`⚠️ GroupClass: لم يتم إضافة نقاط: actualAmountPaid=${actualAmountPaid}, memberNumber=${memberNumber}, phone=${phone}`)
         }
 
         // ✅ إنشاء سجل عمولة للمدرب (إذا كان لديه حساب)

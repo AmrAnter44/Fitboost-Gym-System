@@ -32,7 +32,6 @@ export async function getNextReceiptNumber(tx: any): Promise<number> {
     })
   }
 
-  console.log('🔢 استخدام رقم الإيصال:', receiptNumber)
 
   return receiptNumber
 }
@@ -69,7 +68,6 @@ export async function getNextReceiptNumberDirect(prisma: any): Promise<number> {
     })
   }
 
-  console.log('🔢 استخدام رقم الإيصال:', receiptNumber)
 
   return receiptNumber
 }

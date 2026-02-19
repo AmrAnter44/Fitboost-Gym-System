@@ -42,7 +42,6 @@ export async function GET(request: Request) {
       position: coach.position,
     }))
 
-    console.log('📋 Found coaches:', formattedCoaches.length, formattedCoaches)
     return NextResponse.json(formattedCoaches)
   } catch (error) {
     console.error('Error fetching coaches:', error)

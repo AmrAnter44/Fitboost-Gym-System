@@ -27,11 +27,9 @@ async function getNextAvailableReceiptNumber(startingNumber: number): Promise<nu
     })
     
     if (!existingReceipt) {
-      console.log(`✅ رقم إيصال متاح: ${currentNumber}`)
       return currentNumber
     }
     
-    console.log(`⚠️ رقم ${currentNumber} موجود، تجربة ${currentNumber + 1}...`)
     currentNumber++
     attempts++
   }
@@ -51,35 +49,29 @@ export async function GET(request: Request) {
 
     // ✅ البحث برقم العضوية (الأولوية الأولى)
     if (memberNumber) {
-      console.log('🔍 البحث عن عضو برقم العضوية:', memberNumber)
       const member = await prisma.member.findUnique({
         where: { memberNumber: parseInt(memberNumber) },
         include: { receipts: true }
       })
 
       if (member) {
-        console.log('✅ تم العثور على العضو:', member.name)
         return NextResponse.json([member], { status: 200 })
       } else {
-        console.log('❌ لم يتم العثور على عضو برقم:', memberNumber)
         return NextResponse.json([], { status: 200 })
       }
     }
 
     // ⚠️ البحث بالهاتف (غير موصى به - قد يكون هناك عضوين بنفس الرقم)
     if (phone) {
-      console.log('🔍 البحث عن أعضاء بالهاتف:', phone)
       const members = await prisma.member.findMany({
         where: { phone },
         include: { receipts: true },
         orderBy: { memberNumber: 'desc' }
       })
-      console.log('✅ تم العثور على', members.length, 'عضو بنفس الهاتف')
       return NextResponse.json(members, { status: 200 })
     }
 
     // جلب كل الأعضاء
-    console.log('🔍 بدء جلب كل الأعضاء...')
     const members = await prisma.member.findMany({
       orderBy: { memberNumber: 'desc' },
       include: {
@@ -93,7 +85,6 @@ export async function GET(request: Request) {
       }
     })
 
-    console.log('✅ تم جلب', members.length, 'عضو')
 
     if (!Array.isArray(members)) {
       console.error('❌ Prisma لم يرجع array:', typeof members)
@@ -175,14 +166,6 @@ export async function POST(request: Request) {
       coachId  // 👨‍🏫 معرف الكوتش (اختياري)
     } = body
 
-    console.log('📝 إضافة عضو جديد:', {
-      memberNumber,
-      name,
-      profileImage,
-      isOther,
-      staffName: staffName || '(غير محدد)',
-      coachId: coachId || 'لا يوجد'  // 👨‍🏫 معرف الكوتش
-    })
 
     // ✅ التحقق من الحقول المطلوبة
     if (!name || name.trim() === '') {
@@ -224,7 +207,6 @@ export async function POST(request: Request) {
     
     if (isOther === true) {
       cleanMemberNumber = null
-      console.log('✅ عضو Other (بدون رقم عضوية)')
     } else {
       if (!memberNumber) {
         return NextResponse.json(
@@ -233,7 +215,6 @@ export async function POST(request: Request) {
         )
       }
       cleanMemberNumber = parseInt(memberNumber.toString())
-      console.log('✅ عضو عادي برقم:', cleanMemberNumber)
     }
     
     const cleanInBodyScans = parseInt((inBodyScans || 0).toString())
@@ -298,14 +279,12 @@ export async function POST(request: Request) {
     // إذا كان هناك تاريخ مخصص من الأدمن، استخدمه
     if (customCreatedAt) {
       memberData.createdAt = new Date(customCreatedAt)
-      console.log('⏰ استخدام تاريخ مخصص للعضو:', new Date(customCreatedAt))
     }
 
     const member = await prisma.member.create({
       data: memberData,
     })
 
-    console.log('✅ تم إنشاء العضو:', member.id, 'رقم العضوية:', member.memberNumber)
 
     // 📝 Audit log
     createAuditLog({
@@ -324,16 +303,13 @@ export async function POST(request: Request) {
           await prisma.memberCounter.create({
             data: { id: 1, current: cleanMemberNumber + 1 }
           })
-          console.log('📊 تم إنشاء MemberCounter بقيمة:', cleanMemberNumber + 1)
         } else {
           if (cleanMemberNumber >= counter.current) {
             await prisma.memberCounter.update({
               where: { id: 1 },
               data: { current: cleanMemberNumber + 1 }
             })
-            console.log('🔄 تم تحديث MemberCounter إلى:', cleanMemberNumber + 1)
           } else {
-            console.log('ℹ️ المحتوى الحالي للـ Counter أعلى، لا داعي للتحديث')
           }
         }
       } catch (counterError) {
@@ -370,7 +346,6 @@ export async function POST(request: Request) {
           data: commissionData,
         })
 
-        console.log('✅ تم إنشاء عمولة:', commission.id, 'مبلغ:', commission.amount, 'جنيه للكوتش')
       } catch (commissionError) {
         console.error('⚠️ خطأ في إنشاء العمولة (غير حرج):', commissionError)
 
@@ -452,7 +427,6 @@ export async function POST(request: Request) {
       // إذا كان هناك تاريخ مخصص من الأدمن، استخدمه للإيصال أيضاً
       if (customCreatedAt) {
         receiptData.createdAt = new Date(customCreatedAt)
-        console.log('⏰ استخدام تاريخ مخصص للإيصال:', new Date(customCreatedAt))
       }
 
       // 🔒 License validation check
@@ -462,7 +436,6 @@ export async function POST(request: Request) {
         data: receiptData,
       })
 
-      console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber)
 
       // خصم النقاط إذا تم استخدامها في الدفع
       const pointsResult = await processPaymentWithPoints(
@@ -510,7 +483,6 @@ export async function POST(request: Request) {
       }
     }
     } else {
-      console.log('🚫 تم تخطي إنشاء الإيصال (skipReceipt = true)')
     }
 
     return NextResponse.json({

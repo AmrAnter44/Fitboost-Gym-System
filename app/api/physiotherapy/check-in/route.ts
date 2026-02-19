@@ -18,7 +18,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { qrCode } = body
 
-    console.log('🔍 محاولة تسجيل حضور بـ Barcode')
 
     // التحقق من وجود Barcode/رقم Physiotherapy
     if (!qrCode || typeof qrCode !== 'string') {
@@ -77,7 +76,6 @@ export async function POST(request: Request) {
       data: { sessionsRemaining: physiotherapy.sessionsRemaining - 1 }
     })
 
-    console.log(`✅ تم تسجيل حضور ${physiotherapy.clientName} بنجاح (Self Check-In) - Physiotherapy #${physiotherapy.physioNumber}`)
 
     return NextResponse.json({
       success: true,

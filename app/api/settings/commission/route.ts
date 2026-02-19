@@ -65,7 +65,6 @@ export async function GET(request: Request) {
     }
 
     const settings = readSettings()
-    console.log('📖 Commission settings fetched:', settings)
 
     return NextResponse.json(settings)
   } catch (error: any) {

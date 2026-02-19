@@ -15,12 +15,10 @@ export async function openWhatsApp(url: string): Promise<boolean> {
   try {
     // Check if running in Electron
     if (typeof window !== 'undefined' && (window as any).electron?.openExternal) {
-      console.log('🖥️ Running in Electron, using shell.openExternal');
       const result = await (window as any).electron.openExternal(url);
       return result.success !== false;
     } else {
       // Running in regular browser
-      console.log('🌐 Running in browser, using window.open');
       window.open(url, '_blank');
       return true;
     }

@@ -47,7 +47,6 @@ export async function POST(request: Request) {
     if (isElectron && process.env.UPLOADS_PATH) {
       // في Electron: استخدام مسار userData/uploads
       uploadsDir = path.join(process.env.UPLOADS_PATH, 'members')
-      console.log('📁 Using Electron uploads path:', uploadsDir)
     } else {
       // في Web: استخدام public/uploads
       uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'members')

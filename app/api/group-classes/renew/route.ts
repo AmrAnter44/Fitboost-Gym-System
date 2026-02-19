@@ -37,7 +37,6 @@ export async function POST(request: Request) {
     // حساب سعر الحصة الواحدة من السعر الإجمالي
     const pricePerSession = sessionsPurchased > 0 ? totalPrice / sessionsPurchased : 0
 
-    console.log('🔄 تجديد جلسات GroupClass:', { classNumber, sessionsPurchased, totalPrice, pricePerSession })
 
     // التحقق من وجود جلسة GroupClass
     const existingGroupClass = await prisma.groupClass.findUnique({
@@ -82,9 +81,7 @@ export async function POST(request: Request) {
       },
     })
 
-    console.log('✅ تم تحديث جلسة GroupClass:', updatedGroupClass.classNumber)
     if (oldRemainingAmount > 0) {
-      console.log(`💰 تم إرجاع المبلغ المتبقي: ${oldRemainingAmount} ج.م`)
     }
 
     // إنشاء إيصال للتجديد باستخدام Transaction
@@ -183,10 +180,8 @@ export async function POST(request: Request) {
               )
 
               if (rewardResult.success && rewardResult.pointsEarned && rewardResult.pointsEarned > 0) {
-                console.log(`✅ تمت إضافة ${rewardResult.pointsEarned} نقطة مكافأة للعضو ${member.name}`)
               }
             } else {
-              console.log(`⚠️ لم يُعثر على عضو برقم العضوية: ${memberNumber}`)
             }
           } catch (rewardError) {
             console.error('⚠️ فشل إضافة نقاط المكافأة (غير حرج):', rewardError)
@@ -225,7 +220,6 @@ export async function POST(request: Request) {
         return receipt
       })
 
-      console.log('✅ تم إنشاء إيصال التجديد بنجاح:', result.receiptNumber)
 
       return NextResponse.json({
         groupClass: updatedGroupClass,

@@ -37,7 +37,6 @@ export async function GET(request: Request) {
         })
         if (staff?.name) {
           displayName = staff.name
-          console.log(`✅ تم استخدام اسم الموظف من Staff: ${displayName}`)
         }
       } catch (error) {
         console.error('⚠️ خطأ في جلب اسم الموظف من Staff:', error)

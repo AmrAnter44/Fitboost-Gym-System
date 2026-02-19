@@ -11,7 +11,6 @@ export async function GET(request: Request) {
     // ✅ التحقق من صلاحية عرض الأعضاء (لأن هذا جزء من إضافة عضو)
     await requirePermission(request, 'canViewMembers')
     
-    console.log('🔍 قراءة رقم العضوية التالي...')
     
     // ✅ نقرأ من MemberCounter
     let counter = await prisma.memberCounter.findUnique({ 
@@ -20,13 +19,11 @@ export async function GET(request: Request) {
     
     // لو مفيش counter، نعمل واحد
     if (!counter) {
-      console.log('📊 إنشاء MemberCounter لأول مرة')
       counter = await prisma.memberCounter.create({
         data: { id: 1, current: 1001 }
       })
     }
 
-    console.log('📊 الرقم الحالي من Counter:', counter.current)
 
     // ✅ نتحقق إن الرقم متاح (بدون تحديث)
     let nextNumber = counter.current
@@ -40,12 +37,10 @@ export async function GET(request: Request) {
 
       if (!existingMember) {
         // ✅ الرقم متاح
-        console.log(`✅ رقم متاح: ${nextNumber}`)
         break
       }
 
       // الرقم مستخدم، نجرب التالي
-      console.log(`⚠️ رقم ${nextNumber} موجود، تجربة ${nextNumber + 1}...`)
       nextNumber++
       attempts++
     }
@@ -146,7 +141,6 @@ export async function POST(request: Request) {
       create: { id: 1, current: parsedNumber }
     })
 
-    console.log('✅ تم تحديث MemberCounter إلى:', parsedNumber)
 
     return NextResponse.json({ 
       success: true,

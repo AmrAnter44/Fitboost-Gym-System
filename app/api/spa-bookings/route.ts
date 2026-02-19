@@ -21,13 +21,6 @@ export async function GET(request: Request) {
     const endDate = searchParams.get('endDate')
     const search = searchParams.get('search')
 
-    console.log('🔍 جلب حجوزات SPA مع الفلاتر:', {
-      status,
-      serviceType,
-      startDate,
-      endDate,
-      search
-    })
 
     // بناء الـ where clause
     const where: any = {}
@@ -73,7 +66,6 @@ export async function GET(request: Request) {
       ]
     })
 
-    console.log('✅ تم جلب', bookings.length, 'حجز SPA')
 
     return NextResponse.json(bookings, { status: 200 })
   } catch (error: any) {
@@ -127,14 +119,6 @@ export async function POST(request: Request) {
       notes
     } = body
 
-    console.log('📝 إنشاء حجز SPA جديد:', {
-      memberId,
-      serviceType,
-      bookingDate,
-      bookingTime,
-      duration,
-      createdBy: currentUser.name
-    })
 
     // التحقق من الحقول المطلوبة
     if (!memberId || !serviceType || !bookingDate || !bookingTime || !duration) {
@@ -233,7 +217,6 @@ export async function POST(request: Request) {
       }
     })
 
-    console.log('✅ تم إنشاء حجز SPA:', booking.id)
 
     return NextResponse.json(booking, { status: 201 })
   } catch (error: any) {

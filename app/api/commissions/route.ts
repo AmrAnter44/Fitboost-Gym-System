@@ -23,7 +23,6 @@ export async function GET(request: Request) {
     // إذا كان المستخدم COACH، فلتر بناءً على staffId الخاص به
     if (user.role === 'COACH' && user.staffId) {
       where.staffId = user.staffId
-      console.log('🏋️ Filtering commissions for COACH staffId:', user.staffId)
     } else if (staffId) {
       // إذا كان Admin وأرسل staffId في query params
       where.staffId = staffId

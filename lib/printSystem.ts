@@ -489,14 +489,12 @@ export async function printReceipt(
 
   // ✅ حالة 1: طباعة فقط (بدون PDF)
   if (options?.printOnly) {
-    console.log('📄 طباعة فقط (بدون PDF)')
     printReceiptTraditional(receiptHTML)
     return
   }
 
   // ✅ حالة 2: PDF فقط (بدون طباعة)
   if (options?.pdfOnly) {
-    console.log('💾 PDF فقط (بدون طباعة)')
     try {
       const result = await printAndSaveArabicPDF(receiptHTML, data.receiptNumber, {
         skipPrint: true,
@@ -513,12 +511,10 @@ export async function printReceipt(
 
   // ✅ حالة 3: تخطي الاثنين (للاستخدام الداخلي)
   if (options?.skipBoth) {
-    console.log('⏭️ تخطي الطباعة والـ PDF')
     return
   }
 
   // ✅ حالة 4 (الافتراضي): طباعة + PDF معاً
-  console.log('📄💾 طباعة + PDF')
   try {
     const result = await printAndSaveArabicPDF(receiptHTML, data.receiptNumber, {
       skipPrint: false,  // طباعة

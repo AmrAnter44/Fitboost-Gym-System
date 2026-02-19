@@ -34,7 +34,6 @@ export async function POST(request: Request) {
     // حساب سعر الحصة الواحدة من السعر الإجمالي
     const pricePerSession = sessionsPurchased > 0 ? totalPrice / sessionsPurchased : 0
 
-    console.log('🔄 تجديد جلسات PT:', { ptNumber, sessionsPurchased, totalPrice, pricePerSession })
 
     // التحقق من وجود جلسة PT
     const existingPT = await prisma.pT.findUnique({
@@ -79,9 +78,7 @@ export async function POST(request: Request) {
       },
     })
 
-    console.log('✅ تم تحديث جلسة PT:', updatedPT.ptNumber)
     if (oldRemainingAmount > 0) {
-      console.log(`💰 تم إرجاع المبلغ المتبقي: ${oldRemainingAmount} ج.م`)
     }
 
     // إنشاء إيصال للتجديد باستخدام Transaction
@@ -190,7 +187,6 @@ export async function POST(request: Request) {
         return receipt
       })
 
-      console.log('✅ تم إنشاء إيصال التجديد بنجاح:', result.receiptNumber)
 
       return NextResponse.json({
         pt: updatedPT,

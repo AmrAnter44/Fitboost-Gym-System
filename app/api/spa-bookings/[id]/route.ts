@@ -18,7 +18,6 @@ export async function GET(
 
     const { id } = params
 
-    console.log('🔍 جلب حجز SPA:', id)
 
     const booking = await prisma.spaBooking.findUnique({
       where: { id },
@@ -49,7 +48,6 @@ export async function GET(
       )
     }
 
-    console.log('✅ تم جلب الحجز:', booking.id)
 
     return NextResponse.json(booking, { status: 200 })
   } catch (error: any) {
@@ -100,7 +98,6 @@ export async function PUT(
     const body = await request.json()
     const { status, bookingDate, bookingTime, duration, notes, serviceType } = body
 
-    console.log('✏️ تحديث حجز SPA:', id, body)
 
     // التحقق من وجود الحجز
     const existingBooking = await prisma.spaBooking.findUnique({
@@ -175,7 +172,6 @@ export async function PUT(
       }
     })
 
-    console.log('✅ تم تحديث الحجز:', booking.id)
 
     return NextResponse.json(booking, { status: 200 })
   } catch (error: any) {
@@ -224,7 +220,6 @@ export async function DELETE(
 
     const { id } = params
 
-    console.log('🗑️ إلغاء حجز SPA:', id)
 
     // التحقق من وجود الحجز
     const existingBooking = await prisma.spaBooking.findUnique({
@@ -244,7 +239,6 @@ export async function DELETE(
       data: { status: 'cancelled' }
     })
 
-    console.log('✅ تم إلغاء الحجز:', id)
 
     return NextResponse.json(
       { success: true, message: 'تم إلغاء الحجز بنجاح' },

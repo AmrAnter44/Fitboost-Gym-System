@@ -50,7 +50,6 @@ export default function CoachDashboard() {
       }
 
       const data = await response.json()
-      console.log('User data:', data.user)
       setUser(data.user)
 
       // Check if user is COACH
@@ -75,14 +74,11 @@ export default function CoachDashboard() {
     try {
       setLoading(true)
 
-      console.log('🔍 Fetching PTs for coach userId:', userId)
 
       // Fetch PTs for this coach - API will automatically filter by user.userId from token
       const response = await fetch('/api/pt')
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ PTs fetched:', data.length, 'records')
-        console.log('PTs data:', data)
         setMyPTs(data)
       } else {
         console.error('❌ Failed to fetch PTs:', response.status)

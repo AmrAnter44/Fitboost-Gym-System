@@ -33,7 +33,6 @@ export async function POST(
       select: { id: true, name: true, pushToken: true },
     });
 
-    console.log(`✅ Push token saved for member ${member.name}:`, pushToken);
 
     return NextResponse.json({
       success: true,

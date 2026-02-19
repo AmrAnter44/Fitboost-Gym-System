@@ -11,7 +11,6 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST() {
   try {
-    console.log('🔄 Manual license validation requested')
 
     // Force fresh validation (no cache)
     const result = await validateLicense()

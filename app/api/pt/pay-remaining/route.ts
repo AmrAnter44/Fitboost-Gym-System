@@ -67,7 +67,6 @@ export async function POST(request: Request) {
       data: { remainingAmount: newRemainingAmount }
     })
 
-    console.log(`✅ تم تحديث PT #${ptNumber}: الباقي من ${currentRemaining} إلى ${newRemainingAmount}`)
 
     // إنشاء إيصال للدفعة
     try {
@@ -111,7 +110,6 @@ export async function POST(request: Request) {
         },
       })
 
-      console.log('✅ تم إنشاء إيصال الدفع:', receipt.receiptNumber)
 
       // ✅ إنشاء سجل عمولة للكوتش
       try {

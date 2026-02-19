@@ -21,13 +21,6 @@ export async function GET(request: Request) {
     const endOfDay = new Date(targetDate)
     endOfDay.setHours(23, 59, 59, 999)
 
-    console.log('📊 جلب إحصائيات:', {
-      date: targetDate.toISOString().split('T')[0],
-      startOfDay: startOfDay.toISOString(),
-      endOfDay: endOfDay.toISOString(),
-      localStart: startOfDay.toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' }),
-      localEnd: endOfDay.toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })
-    })
 
     // عدد الأعضاء الذين سجلوا دخول اليوم
     const todayCheckIns = await prisma.memberCheckIn.count({

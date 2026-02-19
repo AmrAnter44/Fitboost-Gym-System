@@ -16,7 +16,6 @@ function ensureLogDirectory(): void {
   try {
     if (!fs.existsSync(LOG_DIR)) {
       fs.mkdirSync(LOG_DIR, { recursive: true })
-      console.log('✅ Created logs directory:', LOG_DIR)
     }
   } catch (error) {
     console.error('⚠️ Cannot create logs directory:', error)
@@ -193,7 +192,6 @@ export function cleanupOldLogs(daysToKeep: number = DAYS_TO_KEEP): {
       const newContent = recentEntries.join('---\n') + (recentEntries.length > 0 ? '---\n' : '')
       fs.writeFileSync(LOG_FILE, newContent, 'utf8')
 
-      console.log(`✅ Cleaned up ${removedCount} old log entries (kept ${recentEntries.length})`)
 
       return {
         success: true,

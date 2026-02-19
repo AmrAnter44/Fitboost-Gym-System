@@ -15,7 +15,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { memberId, freezeDays } = body
 
-    console.log('❄️ طلب تجميد اشتراك:', { memberId, freezeDays })
 
     // 1. التحقق من البيانات المطلوبة
     if (!memberId || !freezeDays) {
@@ -68,13 +67,6 @@ export async function POST(request: Request) {
     // 7. حساب الرصيد المتبقي بعد الفريز
     const newRemainingFreezeDays = member.remainingFreezeDays - daysToFreeze
 
-    console.log('📅 تفاصيل الفريز:', {
-      oldExpiryDate: currentExpiryDate.toISOString().split('T')[0],
-      newExpiryDate: newExpiryDate.toISOString().split('T')[0],
-      daysAdded: daysToFreeze,
-      oldFreezeDays: member.remainingFreezeDays,
-      newFreezeDays: newRemainingFreezeDays
-    })
 
     // 8. تحديث بيانات العضو وتسجيل طلب التجميد
     const freezeStartDate = new Date()
@@ -103,7 +95,6 @@ export async function POST(request: Request) {
       })
     ])
 
-    console.log('✅ تم تجميد الاشتراك بنجاح')
 
     // 9. إرجاع النتيجة
     return NextResponse.json({
@@ -151,7 +142,6 @@ export async function PUT(request: Request) {
     const body = await request.json()
     const { memberId } = body
 
-    console.log('🔥 طلب إلغاء تجميد اشتراك:', { memberId })
 
     // 1. التحقق من البيانات المطلوبة
     if (!memberId) {
@@ -192,7 +182,6 @@ export async function PUT(request: Request) {
       }
     })
 
-    console.log('✅ تم إلغاء تجميد الاشتراك بنجاح')
 
     // 5. إرجاع النتيجة
     return NextResponse.json({

@@ -12,7 +12,6 @@ export function clearAuthCookies() {
     document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
   })
 
-  console.log('🧹 Auth cookies cleared')
 }
 
 /**
@@ -27,7 +26,6 @@ export async function handleAuthError(response: Response) {
       // Check if server indicates we should clear cookies
       if (data.clearCookies) {
         clearAuthCookies()
-        console.log('🔄 Redirecting to login after clearing cookies...')
 
         // Small delay to ensure cookies are cleared
         if (typeof window !== 'undefined') {

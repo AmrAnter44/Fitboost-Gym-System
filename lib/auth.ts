@@ -26,7 +26,6 @@ export async function verifyAuth(request: Request): Promise<UserPayload | null> 
     // قراءة الـ cookie من headers مباشرة (أكثر موثوقية)
     const cookieHeader = request.headers.get('cookie')
     if (!cookieHeader) {
-      console.log('❌ No cookie header found')
       return null
     }
 
@@ -35,18 +34,15 @@ export async function verifyAuth(request: Request): Promise<UserPayload | null> 
     const authCookie = cookies.find(c => c.startsWith('auth-token='))
 
     if (!authCookie) {
-      console.log('❌ No auth-token cookie found')
       return null
     }
 
     const token = authCookie.split('=')[1]
     if (!token) {
-      console.log('❌ Empty auth-token')
       return null
     }
 
     const decoded = jwt.verify(token, getJWTSecret()) as UserPayload
-    console.log('✅ Auth verified for user:', decoded.email)
     return decoded
   } catch (error) {
     console.error('❌ Auth verification error:', error)

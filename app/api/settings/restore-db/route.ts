@@ -56,7 +56,6 @@ export async function POST(request: Request) {
     // نسخ احتياطي للـ database الحالية
     if (fs.existsSync(dbPath)) {
       fs.copyFileSync(dbPath, backupPath)
-      console.log('✅ تم عمل backup:', path.basename(backupPath))
     }
 
     // قطع الاتصال بـ Prisma قبل استبدال الملف
@@ -64,7 +63,6 @@ export async function POST(request: Request) {
 
     // كتابة الـ database الجديدة
     fs.writeFileSync(dbPath, buffer)
-    console.log('✅ تم كتابة قاعدة البيانات الجديدة:', dbPath)
 
     // حذف ملفات WAL و SHM القديمة إن وجدت
     const walPath = `${dbPath}-wal`
@@ -82,7 +80,6 @@ export async function POST(request: Request) {
         encoding: 'utf8',
         stdio: 'pipe'
       }) as string
-      console.log('✅ Prisma migrate deploy ناجح:', migrateOutput)
     } catch (migrateError: any) {
       console.warn('⚠️ Prisma migrate warning (غير حرج):', migrateError.message)
       migrateOutput = migrateError.message

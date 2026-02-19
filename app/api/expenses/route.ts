@@ -126,7 +126,6 @@ export async function POST(request: Request) {
     // ✅ إضافة التاريخ المخصص إذا كان موجوداً
     if (customCreatedAt) {
       expenseData.createdAt = new Date(customCreatedAt)
-      console.log('⏰ استخدام تاريخ مخصص للمصروف:', new Date(customCreatedAt))
     }
 
     const expense = await prisma.expense.create({

@@ -13,7 +13,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { memberId, serviceType } = body
 
-    console.log('📝 Deducting paid service:', { memberId, serviceType })
 
     if (!memberId || !serviceType) {
       return NextResponse.json(
@@ -81,7 +80,6 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log(`✅ Successfully deducted paid ${serviceName} session for ${member.name}`)
 
     return NextResponse.json({
       success: true,
@@ -143,7 +141,6 @@ async function deductFromPTSubscription(phone: string) {
 
   // الخصم من أقدم اشتراك
   const targetPT = activePTs[0]
-  console.log(`🎯 Deducting from PT #${targetPT.ptNumber} (${targetPT.sessionsRemaining} sessions remaining)`)
 
   const updated = await prisma.pT.update({
     where: { ptNumber: targetPT.ptNumber },
@@ -181,7 +178,6 @@ async function deductFromNutritionSubscription(phone: string) {
   }
 
   const target = activeNutrition[0]
-  console.log(`🎯 Deducting from Nutrition #${target.nutritionNumber} (${target.sessionsRemaining} sessions remaining)`)
 
   const updated = await prisma.nutrition.update({
     where: { nutritionNumber: target.nutritionNumber },
@@ -219,7 +215,6 @@ async function deductFromPhysioSubscription(phone: string) {
   }
 
   const target = activePhysio[0]
-  console.log(`🎯 Deducting from Physiotherapy #${target.physioNumber} (${target.sessionsRemaining} sessions remaining)`)
 
   const updated = await prisma.physiotherapy.update({
     where: { physioNumber: target.physioNumber },
@@ -257,7 +252,6 @@ async function deductFromGroupClassSubscription(phone: string) {
   }
 
   const target = activeClasses[0]
-  console.log(`🎯 Deducting from GroupClass #${target.classNumber} (${target.sessionsRemaining} sessions remaining)`)
 
   const updated = await prisma.groupClass.update({
     where: { classNumber: target.classNumber },

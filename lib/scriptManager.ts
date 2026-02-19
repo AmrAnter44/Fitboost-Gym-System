@@ -76,7 +76,6 @@ async function createScriptExecutionsTable(): Promise<void> {
       error TEXT
     )
   `)
-  console.log('✅ تم إنشاء جدول script_executions')
 }
 
 /**
@@ -91,11 +90,9 @@ export async function runScript(
     const alreadyExecuted = await isScriptExecuted(scriptName)
 
     if (alreadyExecuted) {
-      console.log(`✅ السكريبت "${scriptName}" تم تنفيذه مسبقاً، تخطي...`)
       return { success: true }
     }
 
-    console.log(`🚀 تنفيذ السكريبت: ${scriptName}`)
 
     // تنفيذ السكريبت
     await scriptFunction()
@@ -103,7 +100,6 @@ export async function runScript(
     // تسجيل النجاح
     await markScriptAsExecuted(scriptName, true)
 
-    console.log(`✅ تم تنفيذ السكريبت "${scriptName}" بنجاح`)
     return { success: true }
   } catch (error) {
     const errorMessage = (error as Error).message
@@ -149,7 +145,6 @@ export async function resetScript(scriptName: string): Promise<void> {
       `DELETE FROM script_executions WHERE scriptName = ?`,
       scriptName
     )
-    console.log(`✅ تم إعادة تعيين السكريبت "${scriptName}"`)
   } catch (error) {
     console.error('❌ خطأ في إعادة تعيين السكريبت:', error)
   }

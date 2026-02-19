@@ -41,7 +41,6 @@ export async function GET(request: Request) {
     // إذا كان المستخدم COACH، فلتر بناءً على staffId
     if (user.role === 'COACH' && user.staffId) {
       whereClause.staffId = user.staffId
-      console.log('🏋️ Filtering commissions for COACH staffId:', user.staffId)
     }
 
     // جلب العمولات من نوع member_signup في الفترة المحددة
@@ -92,11 +91,6 @@ export async function GET(request: Request) {
     // تحويل الـ object لـ array
     const result = Object.values(coachCommissions).sort((a: any, b: any) => b.totalAmount - a.totalAmount)
 
-    console.log('💰 عمولات تسجيل الأعضاء:', {
-      period: `${startDate} إلى ${endDate}`,
-      totalCommissions: commissions.length,
-      coaches: result.length
-    })
 
     return NextResponse.json(result)
   } catch (error) {

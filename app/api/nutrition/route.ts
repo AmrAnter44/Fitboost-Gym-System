@@ -27,7 +27,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const coachUserIdParam = searchParams.get('coachUserId')
 
-    console.log('🔍 Nutrition API GET - User:', user.userId, 'Role:', user.role, 'Query coachUserId:', coachUserIdParam)
 
     // فلترة البيانات حسب الدور
     let whereClause: any = {}
@@ -51,18 +50,14 @@ export async function GET(request: Request) {
             { nutritionistName: nutritionistStaff.name }
           ]
         }
-        console.log('👤 Coach accessing own Nutritions - userId:', user.userId, 'name:', nutritionistStaff.name)
       } else {
         whereClause = { coachUserId: user.userId }
-        console.log('👤 Coach accessing own Nutritions - userId only:', user.userId)
       }
     } else if (coachUserIdParam) {
       // إذا تم تمرير coachUserId في الـ query، فلتر بناءً عليه
       whereClause = { coachUserId: coachUserIdParam }
-      console.log('🔎 Filtering by coachUserId from query:', coachUserIdParam)
     }
 
-    console.log('📋 Where clause:', JSON.stringify(whereClause))
 
     const nutritionSessions = await prisma.nutrition.findMany({
       where: whereClause,
@@ -76,7 +71,6 @@ export async function GET(request: Request) {
       }
     })
 
-    console.log('✅ Found', nutritionSessions.length, 'Nutrition records')
     return NextResponse.json(nutritionSessions)
   } catch (error: any) {
     console.error('Error fetching Nutrition sessions:', error)
@@ -121,19 +115,10 @@ export async function POST(request: Request) {
       staffName
     } = body
 
-    console.log('📝 Nutrition POST request:', {
-      clientName,
-      phone,
-      memberNumber,
-      totalPrice,
-      remainingAmount,
-      paidAmount: totalPrice - (remainingAmount || 0)
-    })
 
     // حساب سعر الحصة الواحدة من السعر الإجمالي
     const pricePerSession = sessionsPurchased > 0 ? totalPrice / sessionsPurchased : 0
 
-    console.log('📝 إضافة جلسة Nutrition جديدة:', { nutritionNumber, clientName, sessionsPurchased, totalPrice, pricePerSession })
 
     // ✅ التحقق من الحقول المطلوبة
     if (!clientName || clientName.trim() === '') {
@@ -210,7 +195,6 @@ export async function POST(request: Request) {
 
       if (nutritionistStaff && nutritionistStaff.user) {
         coachUserId = nutritionistStaff.user.id
-        console.log(`✅ تم ربط أخصائي التغذية ${nutritionistName} بـ userId: ${coachUserId}`)
       } else {
         console.warn(`⚠️ لم يتم العثور على حساب مستخدم لأخصائي التغذية: ${nutritionistName}`)
       }
@@ -231,7 +215,6 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`🔢 تم توليد Barcode عشوائي (16 رقم): ${barcodeText}`)
 
     // توليد Barcode كصورة
     let qrCodeImage = ''
@@ -246,7 +229,6 @@ export async function POST(request: Request) {
 
       const base64 = png.toString('base64')
       qrCodeImage = `data:image/png;base64,${base64}`
-      console.log('✅ تم توليد Barcode كصورة')
     } catch (barcodeError) {
       console.error('❌ فشل توليد صورة Barcode:', barcodeError)
     }
@@ -285,7 +267,6 @@ export async function POST(request: Request) {
           if (!existing) {
             found = true
             nutritionData.nutritionNumber = availableNumber
-            console.log(`✅ تم العثور على رقم Day Use متاح: ${availableNumber}`)
           } else {
             availableNumber-- // جرب الرقم التالي (-2, -3, ...)
           }
@@ -319,7 +300,6 @@ export async function POST(request: Request) {
           data: nutritionData,
         })
 
-        console.log('✅ تم إنشاء جلسة Nutrition:', nutrition.nutritionNumber)
 
         const receiptNumber = await getNextReceiptNumber(tx)
 
@@ -364,7 +344,6 @@ export async function POST(request: Request) {
           },
         })
 
-        console.log('✅ تم إنشاء الإيصال:', receipt.receiptNumber)
 
         // خصم النقاط إذا تم استخدامها في الدفع
         const pointsResult = await processPaymentWithPoints(
@@ -384,20 +363,12 @@ export async function POST(request: Request) {
         // حساب المبلغ الفعلي المدفوع (بدون النقاط المستخدمة)
         const actualAmountPaid = getActualAmountPaid(finalPaymentMethod, paidAmount)
 
-        console.log('🎁 Points reward check:', {
-          actualAmountPaid,
-          paidAmount,
-          memberNumber,
-          phone,
-          finalPaymentMethod: typeof finalPaymentMethod === 'string' ? finalPaymentMethod : 'array'
-        })
 
         if (actualAmountPaid > 0 && (memberNumber || phone)) {
           try {
             // البحث عن العضو برقم العضوية أولاً، ثم بالهاتف
             let member = null
             if (memberNumber) {
-              console.log(`🔍 البحث عن عضو برقم العضوية: ${memberNumber}`)
               member = await tx.member.findUnique({
                 where: { memberNumber: parseInt(memberNumber) },
                 select: { id: true, name: true }
@@ -406,7 +377,6 @@ export async function POST(request: Request) {
 
             // إذا لم يُعثر على العضو برقم العضوية، نبحث بالهاتف
             if (!member && phone) {
-              console.log(`🔍 البحث عن عضو بالهاتف: ${phone}`)
               member = await tx.member.findFirst({
                 where: { phone: phone },
                 select: { id: true, name: true }
@@ -414,7 +384,6 @@ export async function POST(request: Request) {
             }
 
             if (member) {
-              console.log(`👤 تم العثور على العضو: ${member.name} (${member.id})`)
               const rewardResult = await addPointsForPayment(
                 member.id,
                 Number(actualAmountPaid),
@@ -423,19 +392,15 @@ export async function POST(request: Request) {
               )
 
               if (rewardResult.success && rewardResult.pointsEarned && rewardResult.pointsEarned > 0) {
-                console.log(`✅ تمت إضافة ${rewardResult.pointsEarned} نقطة مكافأة للعضو ${member.name}`)
               } else {
-                console.log(`⚠️ لم تُضف نقاط:`, rewardResult)
               }
             } else {
-              console.log(`❌ لم يُعثر على عضو بالرقم ${memberNumber} أو الهاتف ${phone}`)
             }
           } catch (rewardError) {
             console.error('⚠️ فشل إضافة نقاط المكافأة (غير حرج):', rewardError)
             // لا نفشل العملية إذا فشلت المكافأة
           }
         } else {
-          console.log(`⏭️ تخطي إضافة النقاط: actualAmountPaid=${actualAmountPaid}, memberNumber=${memberNumber}, phone=${phone}`)
         }
 
         // ✅ إنشاء سجل عمولة لأخصائي التغذية (إذا كان لديه حساب)
