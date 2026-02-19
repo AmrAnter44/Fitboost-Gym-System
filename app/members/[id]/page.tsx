@@ -39,6 +39,7 @@ interface Member {
   notes?: string
   isActive: boolean
   isFrozen: boolean
+  freezeRequests?: { endDate: string }[]
   profileImage?: string
   idCardFront?: string
   idCardBack?: string
@@ -1488,11 +1489,18 @@ export default function MemberDetailPage() {
             <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
               <p className="text-sm opacity-90">{t('memberDetails.status')}</p>
               <p className="text-lg font-bold">
-                {member.isFrozen
-                  ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
-                  : member.isActive && !isExpired
-                    ? `✅ ${t('memberDetails.active')}`
-                    : `❌ ${t('memberDetails.expired')}`
+                {member.isFrozen ? (
+                  <>
+                    ❄️ {locale === 'ar' ? 'مجمد' : 'Frozen'}
+                    {member.freezeRequests?.[0]?.endDate && (
+                      <span className="block text-sm font-normal opacity-80">
+                        {locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeRequests[0].endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                  </>
+                ) : member.isActive && !isExpired
+                  ? `✅ ${t('memberDetails.active')}`
+                  : `❌ ${t('memberDetails.expired')}`
                 }
               </p>
             </div>

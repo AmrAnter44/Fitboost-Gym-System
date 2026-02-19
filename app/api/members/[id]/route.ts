@@ -32,6 +32,12 @@ export async function GET(
             name: true,
             staffCode: true
           }
+        },
+        freezeRequests: {
+          where: { status: 'approved' },
+          orderBy: { endDate: 'desc' },
+          take: 1,
+          select: { endDate: true }
         }
       }
     })
