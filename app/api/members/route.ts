@@ -82,7 +82,15 @@ export async function GET(request: Request) {
     console.log('🔍 بدء جلب كل الأعضاء...')
     const members = await prisma.member.findMany({
       orderBy: { memberNumber: 'desc' },
-      include: { receipts: true }
+      include: {
+        receipts: true,
+        freezeRequests: {
+          where: { status: 'approved' },
+          orderBy: { endDate: 'desc' },
+          take: 1,
+          select: { endDate: true }
+        }
+      }
     })
 
     console.log('✅ تم جلب', members.length, 'عضو')

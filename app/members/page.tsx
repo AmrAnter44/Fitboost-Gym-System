@@ -49,6 +49,7 @@ interface Member {
   notes?: string
   isActive: boolean
   isFrozen: boolean
+  freezeUntil?: string
   startDate?: string
   expiryDate?: string
   createdAt: string
@@ -141,7 +142,10 @@ export default function MembersPage() {
   // استخدام useMemo بدل useState للـ filteredMembers لتجنب infinite loop
   // ✅ استخدام الـ debounced values لتحسين الأداء
   const filteredMembers = useMemo(() => {
-    let filtered = membersData
+    let filtered = membersData.map((m: any) => ({
+      ...m,
+      freezeUntil: m.isFrozen && m.freezeRequests?.[0]?.endDate ? m.freezeRequests[0].endDate : undefined
+    }))
 
     if (debouncedSearchId || debouncedSearchName || debouncedSearchPhone) {
       filtered = filtered.filter((member) => {

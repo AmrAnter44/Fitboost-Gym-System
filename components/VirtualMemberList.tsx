@@ -16,6 +16,7 @@ interface Member {
   remainingAmount: number
   isActive: boolean
   isFrozen: boolean
+  freezeUntil?: string
   startDate?: string
   expiryDate?: string
 }
@@ -95,7 +96,7 @@ const MemberCardRow = ({
                     : 'bg-red-500 dark:bg-red-600 text-white'
               }`}>
                 {member.isFrozen
-                  ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                  ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}${member.freezeUntil ? ` ${locale === 'ar' ? 'لحد' : 'until'} ${new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}` : ''}`
                   : member.isActive && !isExpired
                     ? `✓ ${t('members.active')}`
                     : `✕ ${t('members.expired')}`
