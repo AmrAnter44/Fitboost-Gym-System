@@ -1489,21 +1489,22 @@ export default function MemberDetailPage() {
             <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
               <p className="text-sm opacity-90">{t('memberDetails.status')}</p>
               <p className="text-lg font-bold">
-                {member.isFrozen ? (
-                  <>
-                    ❄️ {locale === 'ar' ? 'مجمد' : 'Frozen'}
-                    {member.freezeRequests?.[0]?.endDate && (
-                      <span className="block text-sm font-normal text-white/90">
-                        {locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeRequests[0].endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                    )}
-                  </>
-                ) : member.isActive && !isExpired
-                  ? `✅ ${t('memberDetails.active')}`
-                  : `❌ ${t('memberDetails.expired')}`
+                {member.isFrozen
+                  ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                  : member.isActive && !isExpired
+                    ? `✅ ${t('memberDetails.active')}`
+                    : `❌ ${t('memberDetails.expired')}`
                 }
               </p>
             </div>
+            {member.isFrozen && member.freezeRequests?.[0]?.endDate && (
+              <div className="bg-cyan-500/30 dark:bg-cyan-900/40 border border-cyan-300/50 dark:border-cyan-700 rounded-lg p-4">
+                <p className="text-sm opacity-90">❄️ {locale === 'ar' ? 'ينتهي التجميد' : 'Freeze ends'}</p>
+                <p className="text-lg font-bold text-white">
+                  {new Date(member.freezeRequests[0].endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+            )}
             <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
               <p className="text-sm opacity-90">{t('common.startDate')}</p>
               <p className="text-lg font-mono">
