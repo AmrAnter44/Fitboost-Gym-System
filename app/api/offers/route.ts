@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { name, duration, price, freePTSessions, inBodyScans, invitations, freezeDays, icon, upgradeEligibilityDays } = body
+    const { name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, icon, upgradeEligibilityDays } = body
 
     // التحقق من البيانات المطلوبة
     if (!name || !duration || price === undefined) {
@@ -48,6 +48,12 @@ export async function POST(request: Request) {
         duration: parseInt(duration),
         price: parseFloat(price),
         freePTSessions: parseInt(freePTSessions) || 0,
+        freeNutritionSessions: parseInt(freeNutritionSessions) || 0,
+        freePhysioSessions: parseInt(freePhysioSessions) || 0,
+        freeGroupClassSessions: parseInt(freeGroupClassSessions) || 0,
+        nutritionPrice: parseFloat(nutritionPrice) || 0,
+        physioPrice: parseFloat(physioPrice) || 0,
+        groupClassPrice: parseFloat(groupClassPrice) || 0,
         inBodyScans: parseInt(inBodyScans) || 0,
         invitations: parseInt(invitations) || 0,
         freezeDays: parseInt(freezeDays) || 0,
@@ -92,7 +98,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { id, name, duration, price, freePTSessions, inBodyScans, invitations, freezeDays, icon, isActive, upgradeEligibilityDays } = body
+    const { id, name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, icon, isActive, upgradeEligibilityDays } = body
 
     if (!id) {
       return NextResponse.json(
@@ -108,6 +114,12 @@ export async function PUT(request: Request) {
         duration: parseInt(duration),
         price: parseFloat(price),
         freePTSessions: parseInt(freePTSessions) || 0,
+        freeNutritionSessions: parseInt(freeNutritionSessions) || 0,
+        freePhysioSessions: parseInt(freePhysioSessions) || 0,
+        freeGroupClassSessions: parseInt(freeGroupClassSessions) || 0,
+        nutritionPrice: parseFloat(nutritionPrice) || 0,
+        physioPrice: parseFloat(physioPrice) || 0,
+        groupClassPrice: parseFloat(groupClassPrice) || 0,
         inBodyScans: parseInt(inBodyScans) || 0,
         invitations: parseInt(invitations) || 0,
         freezeDays: parseInt(freezeDays) || 0,
