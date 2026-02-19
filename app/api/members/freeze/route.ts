@@ -76,16 +76,32 @@ export async function POST(request: Request) {
       newFreezeDays: newRemainingFreezeDays
     })
 
-    // 8. تحديث بيانات العضو
-    const updatedMember = await prisma.member.update({
-      where: { id: memberId },
-      data: {
-        expiryDate: newExpiryDate,
-        remainingFreezeDays: newRemainingFreezeDays,
-        isFrozen: true,
-        isActive: true // تفعيل العضوية لأن التاريخ الجديد في المستقبل
-      }
-    })
+    // 8. تحديث بيانات العضو وتسجيل طلب التجميد
+    const freezeStartDate = new Date()
+    const freezeEndDate = new Date(freezeStartDate)
+    freezeEndDate.setDate(freezeEndDate.getDate() + daysToFreeze)
+
+    const [updatedMember] = await Promise.all([
+      prisma.member.update({
+        where: { id: memberId },
+        data: {
+          expiryDate: newExpiryDate,
+          remainingFreezeDays: newRemainingFreezeDays,
+          isFrozen: true,
+          isActive: true
+        }
+      }),
+      prisma.freezeRequest.create({
+        data: {
+          memberId,
+          startDate: freezeStartDate,
+          endDate: freezeEndDate,
+          days: daysToFreeze,
+          status: 'approved',
+          reason: 'تجميد مباشر'
+        }
+      })
+    ])
 
     console.log('✅ تم تجميد الاشتراك بنجاح')
 

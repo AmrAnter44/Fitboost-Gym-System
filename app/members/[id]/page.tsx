@@ -1497,11 +1497,14 @@ export default function MemberDetailPage() {
                 }
               </p>
             </div>
-            {member.isFrozen && member.expiryDate && (
+            {member.isFrozen && (
               <div className="bg-cyan-500/30 dark:bg-cyan-900/40 border border-cyan-300/50 dark:border-cyan-700 rounded-lg p-4">
-                <p className="text-sm opacity-90">❄️ {locale === 'ar' ? 'الاشتراك ممتد لحد' : 'Extended to'}</p>
+                <p className="text-sm opacity-90">❄️ {locale === 'ar' ? 'التجميد ينتهي' : 'Freeze ends'}</p>
                 <p className="text-lg font-bold text-white font-mono">
-                  {new Date(member.expiryDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {member.freezeRequests?.[0]?.endDate
+                    ? new Date(member.freezeRequests[0].endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : locale === 'ar' ? 'يدوي' : 'Manual'
+                  }
                 </p>
               </div>
             )}
