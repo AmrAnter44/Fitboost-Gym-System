@@ -3015,7 +3015,7 @@ export default function MemberDetailPage() {
                 </div>
               ) : memberReceipts.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 text-xl">
+                  <p className="text-gray-500 dark:text-gray-400 text-xl">
                     {locale === 'ar' ? 'لا توجد إيصالات' : 'No receipts found'}
                   </p>
                 </div>
@@ -3026,18 +3026,18 @@ export default function MemberDetailPage() {
                     return (
                       <div
                         key={receipt.id}
-                        className="bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 dark:border-gray-600 dark:border-gray-600 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white p-4 hover:shadow-md transition"
+                        className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-750 border-2 border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition"
                       >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
+                              <span className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-sm font-bold">
                                 #{receipt.receiptNumber}
                               </span>
                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                                 receipt.isCancelled
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-green-100 text-green-700'
+                                  ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+                                  : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
                               }`}>
                                 {receipt.isCancelled
                                   ? (locale === 'ar' ? '❌ ملغي' : '❌ Cancelled')
@@ -3047,12 +3047,12 @@ export default function MemberDetailPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-sm">
                               <div>
-                                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
-                                <span className="font-bold text-green-600 mr-2">{receipt.amount} {t('memberDetails.egp')}</span>
+                                <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
+                                <span className="font-bold text-green-600 dark:text-green-400 mr-2">{receipt.amount} {t('memberDetails.egp')}</span>
                               </div>
                               <div>
-                                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الطريقة:' : 'Method:'}</span>
-                                <span className="font-semibold mr-2">
+                                <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الطريقة:' : 'Method:'}</span>
+                                <span className="font-semibold dark:text-gray-200 mr-2">
                                   {receipt.paymentMethod === 'cash' ? (locale === 'ar' ? 'كاش 💵' : 'Cash 💵')
                                     : receipt.paymentMethod === 'visa' ? (locale === 'ar' ? 'فيزا 💳' : 'Visa 💳')
                                     : receipt.paymentMethod === 'instapay' ? (locale === 'ar' ? 'إنستاباي 📱' : 'Instapay 📱')
@@ -3062,13 +3062,13 @@ export default function MemberDetailPage() {
                               </div>
                               {itemDetails.packageType && (
                                 <div>
-                                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الباقة:' : 'Package:'}</span>
-                                  <span className="font-semibold mr-2">{itemDetails.packageType}</span>
+                                  <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الباقة:' : 'Package:'}</span>
+                                  <span className="font-semibold dark:text-gray-200 mr-2">{itemDetails.packageType}</span>
                                 </div>
                               )}
                               <div>
-                                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'التاريخ:' : 'Date:'}</span>
-                                <span className="font-mono text-xs mr-2">
+                                <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'التاريخ:' : 'Date:'}</span>
+                                <span className="font-mono text-xs dark:text-gray-200 mr-2">
                                   {new Date(receipt.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
                                     year: 'numeric',
                                     month: 'short',
@@ -3080,7 +3080,7 @@ export default function MemberDetailPage() {
                               </div>
                             </div>
                             {itemDetails.startDate && itemDetails.expiryDate && (
-                              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 dark:border-gray-600">
+                              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                                 <div className="text-xs text-gray-600 dark:text-gray-300">
                                   <span className="font-semibold">{locale === 'ar' ? 'الفترة:' : 'Period:'}</span>
                                   <span className="font-mono mr-2">
@@ -3103,7 +3103,7 @@ export default function MemberDetailPage() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t flex justify-between items-center">
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-between items-center">
               <div className="text-sm text-gray-600 dark:text-gray-300">
                 {locale === 'ar' ? 'إجمالي الإيصالات:' : 'Total Receipts:'} <span className="font-bold">{memberReceipts.length}</span>
               </div>
@@ -3147,7 +3147,7 @@ export default function MemberDetailPage() {
               ) : pointsHistory.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">🏆</div>
-                  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 text-xl">{t('memberDetails.noPointsHistory')}</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xl">{t('memberDetails.noPointsHistory')}</p>
                   <p className="text-gray-400 dark:text-gray-500 dark:text-gray-400 text-sm mt-2">{t('memberDetails.pointsWillAppear')}</p>
                 </div>
               ) : (
