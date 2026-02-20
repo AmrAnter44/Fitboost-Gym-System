@@ -16,6 +16,7 @@ interface Member {
   remainingAmount: number
   isActive: boolean
   isFrozen: boolean
+  isBanned: boolean
   freezeUntil?: string
   startDate?: string
   expiryDate?: string
@@ -62,6 +63,7 @@ const MemberCardRow = ({
   const isExpired = member.expiryDate ? new Date(member.expiryDate) < new Date() : false
   const daysRemaining = calculateRemainingDays(member.expiryDate)
   const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
+  const isBanned = member.isBanned
 
   return (
     <div style={{ ...style, paddingBottom: 12 }} {...ariaAttributes}>
@@ -69,7 +71,11 @@ const MemberCardRow = ({
         ref={ref}
         data-react-window-index={index}
         onMouseEnter={() => onPrefetch(member.id)}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 border-gray-200 dark:border-gray-600 hover:shadow-lg dark:hover:shadow-2xl transition"
+        className={`rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg dark:hover:shadow-2xl transition ${
+          isBanned
+            ? 'bg-red-50 dark:bg-red-900/20 border-red-400 dark:border-red-600'
+            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600'
+        }`}
         dir={direction}
       >
         {/* Header with Image and Member Number */}
@@ -89,17 +95,21 @@ const MemberCardRow = ({
             <div className="flex-1 min-w-0">
               <div className="text-xl font-bold text-white mb-1">#{member.memberNumber}</div>
               <div className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                member.isFrozen
-                  ? 'bg-primary-400 dark:bg-primary-500 text-white'
-                  : member.isActive && !isExpired
-                    ? 'bg-green-500 dark:bg-green-600 text-white'
-                    : 'bg-red-500 dark:bg-red-600 text-white'
+                member.isBanned
+                  ? 'bg-gray-900 text-white'
+                  : member.isFrozen
+                    ? 'bg-primary-400 dark:bg-primary-500 text-white'
+                    : member.isActive && !isExpired
+                      ? 'bg-green-500 dark:bg-green-600 text-white'
+                      : 'bg-red-500 dark:bg-red-600 text-white'
               }`}>
-                {member.isFrozen
-                  ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}${member.freezeUntil ? ` ${locale === 'ar' ? 'لحد' : 'until'} ${new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}` : ''}`
-                  : member.isActive && !isExpired
-                    ? `✓ ${t('members.active')}`
-                    : `✕ ${t('members.expired')}`
+                {member.isBanned
+                  ? `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
+                  : member.isFrozen
+                    ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}${member.freezeUntil ? ` ${locale === 'ar' ? 'لحد' : 'until'} ${new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}` : ''}`
+                    : member.isActive && !isExpired
+                      ? `✓ ${t('members.active')}`
+                      : `✕ ${t('members.expired')}`
                 }
               </div>
             </div>
@@ -114,7 +124,14 @@ const MemberCardRow = ({
               <span className="text-base">👤</span>
               <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">{t('members.name')}</span>
             </div>
-            <div className="text-base font-bold text-gray-800 dark:text-gray-100">{member.name}</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-base font-bold text-gray-800 dark:text-gray-100">{member.name}</span>
+              {isBanned && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-600">
+                  🚫 {locale === 'ar' ? 'محظور' : 'Banned'}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Phone */}

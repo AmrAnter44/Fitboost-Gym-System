@@ -29,6 +29,14 @@ export async function POST(request: Request) {
       )
     }
 
+    // التحقق من أن العضو غير محظور
+    if (member.isBanned) {
+      return NextResponse.json(
+        { error: 'هذا العضو محظور 🚫' },
+        { status: 403 }
+      )
+    }
+
     if (!member.isActive) {
       return NextResponse.json(
         { error: 'اشتراك العضو منتهي' },

@@ -85,6 +85,20 @@ export default function GroupClassPage() {
 
   const [showForm, setShowForm] = useState(false)
   const [editingSession, setEditingSession] = useState<GroupClassSession | null>(null)
+
+  // ── Schedule Modal ──────────────────────────────────────────────────────────
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [schedules, setSchedules] = useState<any[]>([])
+  const [loadingSchedules, setLoadingSchedules] = useState(false)
+  const [scheduleForm, setScheduleForm] = useState({
+    dayOfWeek: 0,
+    startTime: '09:00',
+    className: '',
+    coachName: '',
+    duration: 60,
+  })
+  const [editingSchedule, setEditingSchedule] = useState<any | null>(null)
+  const [savingSchedule, setSavingSchedule] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [showQRModal, setShowQRModal] = useState(false)
@@ -497,6 +511,83 @@ export default function GroupClassPage() {
     return matchesSearch && matchesStatus && matchesSessions && matchesType
   })
 
+  // ── Schedule helpers ────────────────────────────────────────────────────────
+  const DAY_NAMES_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+
+  const fetchSchedules = async () => {
+    setLoadingSchedules(true)
+    try {
+      const res = await fetch('/api/group-classes/schedule')
+      if (res.ok) setSchedules(await res.json())
+    } catch {
+      toast.error('فشل تحميل المواعيد')
+    } finally {
+      setLoadingSchedules(false)
+    }
+  }
+
+  const openScheduleModal = () => {
+    setShowScheduleModal(true)
+    fetchSchedules()
+  }
+
+  const resetScheduleForm = () => {
+    setScheduleForm({ dayOfWeek: 0, startTime: '09:00', className: '', coachName: '', duration: 60 })
+    setEditingSchedule(null)
+  }
+
+  const handleSaveSchedule = async () => {
+    if (!scheduleForm.className.trim() || !scheduleForm.coachName.trim() || !scheduleForm.startTime) {
+      toast.error('يرجى تعبئة اسم الكلاس والكوتش والوقت')
+      return
+    }
+    setSavingSchedule(true)
+    try {
+      const url = editingSchedule
+        ? `/api/group-classes/schedule/${editingSchedule.id}`
+        : '/api/group-classes/schedule'
+      const method = editingSchedule ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scheduleForm),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        toast.error(err.error || 'فشل الحفظ')
+        return
+      }
+      toast.success(editingSchedule ? 'تم تعديل الموعد' : 'تم إضافة الموعد')
+      resetScheduleForm()
+      fetchSchedules()
+    } catch {
+      toast.error('حدث خطأ')
+    } finally {
+      setSavingSchedule(false)
+    }
+  }
+
+  const handleDeleteSchedule = async (id: string) => {
+    const confirmed = await confirm({
+      title: 'حذف الموعد',
+      message: 'هل أنت متأكد من حذف هذا الموعد؟',
+      confirmText: 'حذف',
+      type: 'danger',
+    })
+    if (!confirmed) return
+    try {
+      const res = await fetch(`/api/group-classes/schedule/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('تم حذف الموعد')
+        setSchedules(prev => prev.filter(s => s.id !== id))
+      } else {
+        toast.error('فشل الحذف')
+      }
+    } catch {
+      toast.error('حدث خطأ')
+    }
+  }
+
   // ✅ التحقق من الصلاحيات
   if (permissionsLoading) {
     return (
@@ -530,15 +621,24 @@ export default function GroupClassPage() {
             <span>{t('groupClass.attendanceLog')}</span>
           </button>
           {!isCoach && (
-            <button
-              onClick={() => {
-                resetForm()
-                setShowForm(!showForm)
-              }}
-              className="w-full sm:w-auto bg-primary-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-primary-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
-            >
-              {showForm ? t('groupClass.hideForm') : `➕ ${t('groupClass.addNewSession')}`}
-            </button>
+            <>
+              <button
+                onClick={openScheduleModal}
+                className="w-full sm:w-auto bg-purple-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-purple-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
+                <span>📅</span>
+                <span>مواعيد الكلاسيس</span>
+              </button>
+              <button
+                onClick={() => {
+                  resetForm()
+                  setShowForm(!showForm)
+                }}
+                className="w-full sm:w-auto bg-primary-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-primary-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
+                {showForm ? t('groupClass.hideForm') : `➕ ${t('groupClass.addNewSession')}`}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -1565,6 +1665,155 @@ export default function GroupClassPage() {
                 <p className="text-xs text-orange-800">
                   {t('groupClass.paymentModal.note')}
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Schedule Modal ─────────────────────────────────────────────────── */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <h2 className="text-2xl font-bold dark:text-white">📅 مواعيد الجروب كلاسيس</h2>
+              <button
+                onClick={() => { setShowScheduleModal(false); resetScheduleForm() }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none"
+              >✕</button>
+            </div>
+
+            <div className="p-6">
+              {/* Add / Edit Form */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-6">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">
+                  {editingSchedule ? '✏️ تعديل موعد' : '➕ إضافة موعد جديد'}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">اليوم</label>
+                    <select
+                      value={scheduleForm.dayOfWeek}
+                      onChange={e => setScheduleForm(p => ({ ...p, dayOfWeek: Number(e.target.value) }))}
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      {DAY_NAMES_AR.map((day, i) => (
+                        <option key={i} value={i}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">الوقت</label>
+                    <input
+                      type="time"
+                      value={scheduleForm.startTime}
+                      onChange={e => setScheduleForm(p => ({ ...p, startTime: e.target.value }))}
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">اسم الكلاس</label>
+                    <input
+                      type="text"
+                      placeholder="مثال: زومبا، يوجا، كروسفيت"
+                      value={scheduleForm.className}
+                      onChange={e => setScheduleForm(p => ({ ...p, className: e.target.value }))}
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">اسم الكوتش</label>
+                    <input
+                      type="text"
+                      placeholder="اسم المدرب"
+                      value={scheduleForm.coachName}
+                      onChange={e => setScheduleForm(p => ({ ...p, coachName: e.target.value }))}
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">المدة (دقيقة)</label>
+                    <input
+                      type="number"
+                      min={15}
+                      max={180}
+                      value={scheduleForm.duration}
+                      onChange={e => setScheduleForm(p => ({ ...p, duration: Number(e.target.value) }))}
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={handleSaveSchedule}
+                    disabled={savingSchedule}
+                    className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 transition font-medium"
+                  >
+                    {savingSchedule ? 'جاري الحفظ...' : editingSchedule ? 'حفظ التعديلات' : 'إضافة الموعد'}
+                  </button>
+                  {editingSchedule && (
+                    <button
+                      onClick={resetScheduleForm}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300"
+                    >إلغاء</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Schedule List */}
+              <div>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">المواعيد الحالية</h3>
+                {loadingSchedules ? (
+                  <div className="text-center py-8 text-gray-500">جاري التحميل...</div>
+                ) : schedules.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+                    <div className="text-4xl mb-2">📋</div>
+                    <p>لا توجد مواعيد محددة بعد</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {DAY_NAMES_AR.map((dayName, dayIdx) => {
+                      const daySchedules = schedules.filter(s => s.dayOfWeek === dayIdx)
+                      if (daySchedules.length === 0) return null
+                      return (
+                        <div key={dayIdx}>
+                          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 mt-3">{dayName}</p>
+                          {daySchedules.map(s => (
+                            <div key={s.id} className="flex items-center justify-between bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 mb-1">
+                              <div className="flex items-center gap-3">
+                                <span className="text-purple-600 dark:text-purple-400 font-mono font-bold text-sm">{s.startTime}</span>
+                                <div>
+                                  <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{s.className}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">👤 {s.coachName} · ⏱ {s.duration} د</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingSchedule(s)
+                                    setScheduleForm({
+                                      dayOfWeek: s.dayOfWeek,
+                                      startTime: s.startTime,
+                                      className: s.className,
+                                      coachName: s.coachName,
+                                      duration: s.duration,
+                                    })
+                                  }}
+                                  className="text-blue-500 hover:text-blue-700 text-sm px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+                                >✏️</button>
+                                <button
+                                  onClick={() => handleDeleteSchedule(s.id)}
+                                  className="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                                >🗑️</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>

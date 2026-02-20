@@ -27,6 +27,9 @@ export async function POST(request: Request) {
       subscriptionPrice,
       remainingAmount,
       freePTSessions,
+      freeNutritionSessions,
+      freePhysioSessions,
+      freeGroupClassSessions,
       inBodyScans,
       invitations,
       remainingFreezeDays,
@@ -45,6 +48,21 @@ export async function POST(request: Request) {
 
     if (!member) {
       return NextResponse.json({ error: 'العضو غير موجود' }, { status: 404 })
+    }
+
+    // التحقق من الحظر
+    {
+      const phone = member.phone?.trim() || null
+      const nationalId = (member as any).nationalId?.trim() || null
+      if (phone || nationalId) {
+        const bannedResults = await prisma.$queryRawUnsafe<Array<{id: string}>>(
+          `SELECT id FROM BannedMember WHERE (phone IS NOT NULL AND phone = ?) OR (nationalId IS NOT NULL AND nationalId = ?) LIMIT 1`,
+          phone, nationalId
+        )
+        if (bannedResults[0]) {
+          return NextResponse.json({ error: 'هذا العضو محظور ولا يمكن تجديد اشتراكه' }, { status: 403 })
+        }
+      }
     }
 
     // حساب حصص PT الجديدة (الحالية + الإضافية)
@@ -67,6 +85,21 @@ export async function POST(request: Request) {
     const additionalFreezeDays = remainingFreezeDays || 0
     const totalFreezeDays = currentFreezeDays + additionalFreezeDays
 
+    // حساب Nutrition Sessions الجديد (الحالي + الإضافي)
+    const currentNutritionSessions = member.freeNutritionSessions || 0
+    const additionalNutritionSessions = freeNutritionSessions || 0
+    const totalNutritionSessions = currentNutritionSessions + additionalNutritionSessions
+
+    // حساب Physio Sessions الجديد (الحالي + الإضافي)
+    const currentPhysioSessions = member.freePhysioSessions || 0
+    const additionalPhysioSessions = freePhysioSessions || 0
+    const totalPhysioSessions = currentPhysioSessions + additionalPhysioSessions
+
+    // حساب Group Class Sessions الجديد (الحالي + الإضافي)
+    const currentGroupClassSessions = member.freeGroupClassSessions || 0
+    const additionalGroupClassSessions = freeGroupClassSessions || 0
+    const totalGroupClassSessions = currentGroupClassSessions + additionalGroupClassSessions
+
 
     // تحديث بيانات العضو
     const updatedMember = await prisma.member.update({
@@ -75,6 +108,9 @@ export async function POST(request: Request) {
         subscriptionPrice,
         remainingAmount: remainingAmount || 0,
         freePTSessions: totalFreePT,
+        freeNutritionSessions: totalNutritionSessions,
+        freePhysioSessions: totalPhysioSessions,
+        freeGroupClassSessions: totalGroupClassSessions,
         inBodyScans: totalInBody,
         invitations: totalInvitations,
         remainingFreezeDays: totalFreezeDays,
@@ -136,6 +172,18 @@ export async function POST(request: Request) {
             freePTSessions: additionalFreePT,
             previousFreePTSessions: currentFreePT,
             totalFreePTSessions: totalFreePT,
+            // حصص التغذية في الإيصال
+            freeNutritionSessions: additionalNutritionSessions,
+            previousNutritionSessions: currentNutritionSessions,
+            totalNutritionSessions: totalNutritionSessions,
+            // حصص العلاج الطبيعي في الإيصال
+            freePhysioSessions: additionalPhysioSessions,
+            previousPhysioSessions: currentPhysioSessions,
+            totalPhysioSessions: totalPhysioSessions,
+            // حصص الكلاس الجماعي في الإيصال
+            freeGroupClassSessions: additionalGroupClassSessions,
+            previousGroupClassSessions: currentGroupClassSessions,
+            totalGroupClassSessions: totalGroupClassSessions,
             // InBody في الإيصال
             inBodyScans: additionalInBody,
             previousInBodyScans: currentInBody,

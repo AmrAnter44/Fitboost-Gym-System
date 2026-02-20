@@ -39,6 +39,7 @@ interface Member {
   notes?: string
   isActive: boolean
   isFrozen: boolean
+  isBanned: boolean
   freezeRequests?: { endDate: string }[]
   profileImage?: string
   idCardFront?: string
@@ -1198,6 +1199,44 @@ export default function MemberDetailPage() {
     })
   }
 
+  const [banReason, setBanReason] = useState('')
+
+  const handleBan = () => {
+    if (!member) return
+    setBanReason('')
+    setActiveModal('ban')
+  }
+
+  const handleConfirmBan = async () => {
+    if (!member) return
+    if (!banReason.trim()) return
+    setActiveModal(null)
+    setLoading(true)
+    try {
+      const res = await fetch('/api/banned-members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: member.name,
+          phone: member.phone || null,
+          nationalId: (member as any).nationalId || null,
+          reason: banReason.trim(),
+          notes: `#${member.memberNumber}`
+        })
+      })
+      if (res.ok) {
+        toast.success(locale === 'ar' ? 'تم إضافة العضو لقائمة المحظورين' : 'Member added to banned list')
+      } else {
+        const err = await res.json()
+        toast.error(err.error || (locale === 'ar' ? 'فشل الحظر' : 'Ban failed'))
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleOpenFitnessTest = async () => {
 
     if (fitnessTestExists) {
@@ -1298,6 +1337,21 @@ export default function MemberDetailPage() {
         </button>
       </div>
 
+
+      {/* بانر الحظر */}
+      {member?.isBanned && (
+        <div className="bg-red-600 dark:bg-red-800 text-white rounded-xl shadow-lg p-5 mb-6 border-2 border-red-400 dark:border-red-600">
+          <div className="flex items-center gap-4">
+            <span className="text-4xl">🚫</span>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold">{locale === 'ar' ? 'هذا العضو محظور' : 'This Member is Banned'}</h2>
+            </div>
+            <div className="text-sm bg-red-700 dark:bg-red-900 px-3 py-1.5 rounded-lg font-bold border border-red-500">
+              {locale === 'ar' ? 'لا يمكن الاشتراك' : 'Cannot Subscribe'}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white rounded-2xl shadow-2xl p-8 mb-6">
         {/* صورة العضو */}
@@ -1474,11 +1528,13 @@ export default function MemberDetailPage() {
             <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
               <p className="text-sm opacity-90">{t('memberDetails.status')}</p>
               <p className="text-lg font-bold">
-                {member.isFrozen
-                  ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
-                  : member.isActive && !isExpired
-                    ? `✅ ${t('memberDetails.active')}`
-                    : `❌ ${t('memberDetails.expired')}`
+                {member.isBanned
+                  ? `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
+                  : member.isFrozen
+                    ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                    : member.isActive && !isExpired
+                      ? `✅ ${t('memberDetails.active')}`
+                      : `❌ ${t('memberDetails.expired')}`
                 }
               </p>
             </div>
@@ -1891,13 +1947,19 @@ export default function MemberDetailPage() {
                 <p className="text-sm text-orange-700 dark:text-orange-300">{t('upgrade.upgradeDescription')}</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowUpgradeForm(true)}
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-lg hover:from-orange-700 hover:to-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg transition-all"
-            >
-              🚀 {t('upgrade.upgradePackage')}
-            </button>
+            {member?.isBanned ? (
+              <div className="w-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-3 rounded-lg font-bold text-lg text-center border-2 border-red-300 dark:border-red-700">
+                🚫 {locale === 'ar' ? 'محظور - لا يمكن الترقية' : 'Banned - Cannot Upgrade'}
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowUpgradeForm(true)}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-lg hover:from-orange-700 hover:to-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg transition-all"
+              >
+                🚀 {t('upgrade.upgradePackage')}
+              </button>
+            )}
           </div>
         )}
 
@@ -1913,13 +1975,19 @@ export default function MemberDetailPage() {
                 <p className="text-sm text-green-700 dark:text-green-300">{t('renewall.subtitle')}</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowRenewalForm(true)}
-              disabled={loading}
-              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg"
-            >
-              🔄 {t('renewall.renewButton')}
-            </button>
+            {member?.isBanned ? (
+              <div className="w-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-3 rounded-lg font-bold text-lg text-center border-2 border-red-300 dark:border-red-700">
+                🚫 {locale === 'ar' ? 'محظور - لا يمكن التجديد' : 'Banned - Cannot Renew'}
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowRenewalForm(true)}
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg"
+              >
+                🔄 {t('renewall.renewButton')}
+              </button>
+            )}
           </div>
         )}
 
@@ -1941,6 +2009,28 @@ export default function MemberDetailPage() {
             🗑️ {t('memberDetails.deleteModal.deleteButton')}
           </button>
         </div>
+
+        {/* بطاقة الحظر */}
+        {hasPermission('canManageBannedMembers') && (
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-950 dark:to-gray-900 border-2 border-gray-700 dark:border-gray-600 rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-gray-700 p-3 rounded-full">
+                <span className="text-3xl">🚫</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">{locale === 'ar' ? 'حظر العضو' : 'Ban Member'}</h3>
+                <p className="text-sm text-gray-400">{locale === 'ar' ? 'إضافة رقم هاتفه/رقمه القومي لقائمة المحظورين' : 'Add phone/national ID to banned list'}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleBan}
+              disabled={loading}
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg border border-gray-600 transition-colors"
+            >
+              🚫 {locale === 'ar' ? 'إضافة للمحظورين' : 'Add to Banned List'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Confirmation Modal */}
@@ -2466,6 +2556,55 @@ export default function MemberDetailPage() {
                   {t('common.cancel')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ban Modal */}
+      {activeModal === 'ban' && member && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="bg-gray-800 p-3 rounded-full">
+                <span className="text-3xl">🚫</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  {locale === 'ar' ? 'حظر العضو' : 'Ban Member'}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{member.name} - #{member.memberNumber}</p>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                {locale === 'ar' ? 'سبب الحظر' : 'Ban Reason'} <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={banReason}
+                onChange={e => setBanReason(e.target.value)}
+                autoFocus
+                rows={3}
+                className="w-full px-4 py-3 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-red-500 resize-none text-sm"
+                placeholder={locale === 'ar' ? 'أدخل سبب الحظر...' : 'Enter ban reason...'}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmBan}
+                disabled={!banReason.trim() || loading}
+                className="flex-1 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
+              >
+                🚫 {locale === 'ar' ? 'تأكيد الحظر' : 'Confirm Ban'}
+              </button>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="px-6 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 rounded-xl font-medium transition-colors"
+              >
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
             </div>
           </div>
         </div>

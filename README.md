@@ -1,4 +1,4 @@
-# 🏋️ X Gym Management System
+# 🏋️ FitBoost Management System
 
 نظام إدارة شامل للجيم.
 

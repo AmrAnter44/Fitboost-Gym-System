@@ -30,32 +30,42 @@ export async function GET(
       return NextResponse.json(cached, { headers: { 'X-Cache': 'HIT' } })
     }
 
-    const member = await prisma.member.findUnique({
-      where: { id: memberId },
-      select: {
-        id: true,
-        memberNumber: true,
-        name: true,
-        phone: true,
-        profileImage: true,
-        subscriptionPrice: true,
-        startDate: true,
-        expiryDate: true,
-        isActive: true,
-        isFrozen: true,
-        inBodyScans: true,
-        invitations: true,
-        freePTSessions: true,
-        remainingFreezeDays: true,
-        _count: {
-          select: {
-            receipts: true,
-            checkIns: true,
-            spaBookings: true,
+    const [member, settings] = await Promise.all([
+      prisma.member.findUnique({
+        where: { id: memberId },
+        select: {
+          id: true,
+          memberNumber: true,
+          name: true,
+          phone: true,
+          profileImage: true,
+          subscriptionPrice: true,
+          startDate: true,
+          expiryDate: true,
+          isActive: true,
+          isFrozen: true,
+          inBodyScans: true,
+          invitations: true,
+          freePTSessions: true,
+          freeNutritionSessions: true,
+          freePhysioSessions: true,
+          freeGroupClassSessions: true,
+          remainingFreezeDays: true,
+          points: true,
+          _count: {
+            select: {
+              receipts: true,
+              checkIns: true,
+              spaBookings: true,
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.systemSettings.findUnique({
+        where: { id: 'singleton' },
+        select: { pointsValueInEGP: true },
+      }),
+    ]);
 
     if (!member) {
       return NextResponse.json(
@@ -106,12 +116,16 @@ export async function GET(
       }
     }
 
+    const pointsValueInEGP = settings?.pointsValueInEGP ?? 0.1
+    const pointsValue = Math.round((member.points ?? 0) * pointsValueInEGP * 100) / 100
+
     const result = {
       member: {
         ...member,
         remainingDays,
         status,
         subscriptionType,
+        pointsValue,
       },
     }
 

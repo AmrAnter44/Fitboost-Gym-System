@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
+export const revalidate = 0
 
 export async function GET(
   request: NextRequest,
@@ -24,12 +24,11 @@ export async function GET(
         memberNumber: parseInt(memberNumber)
       },
       select: {
-        // ✅ معلومات آمنة فقط - بدون معلومات حساسة
         name: true,
         memberNumber: true,
         isActive: true,
         expiryDate: true,
-        // ❌ لا نرجع: phone, subscriptionPrice, remainingAmount, staffName, notes
+        isBanned: true,
       }
     })
 
@@ -38,6 +37,24 @@ export async function GET(
         { error: '🚨 رقم العضوية غير موجود' },
         { status: 404 }
       )
+    }
+
+    // التحقق من الحظر مباشرة من حقل isBanned
+    if (member.isBanned) {
+      return NextResponse.json({
+        name: member.name,
+        memberNumber: member.memberNumber,
+        status: 'banned',
+        message: '🚫 هذا العضو محظور',
+        banReason: null,
+        bannedBy: null,
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
     }
 
     // حساب الأيام المتبقية
@@ -67,7 +84,6 @@ export async function GET(
       message = member.isActive ? '✅ اشتراكك نشط' : '🚨 اشتراكك منتهي'
     }
 
-    // ✅ إرجاع معلومات آمنة فقط
     return NextResponse.json({
       name: member.name,
       memberNumber: member.memberNumber,
@@ -76,6 +92,12 @@ export async function GET(
       expiryDate: member.expiryDate,
       remainingDays: remainingDays,
       isActive: member.isActive
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     })
 
   } catch (error) {

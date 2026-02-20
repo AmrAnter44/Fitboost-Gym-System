@@ -98,6 +98,53 @@ export default function CheckMembershipPage() {
     }
   }
 
+  const playBannedHornSound = () => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      }
+      const ctx = audioContextRef.current
+      // زمارة طويلة مزعجة تخينة - صوت منخفض ثقيل (7 ثواني)
+      const hornPattern = [
+        { freq: 90, time: 0,    dur: 0.7 },
+        { freq: 65, time: 0.8,  dur: 0.7 },
+        { freq: 90, time: 1.6,  dur: 0.7 },
+        { freq: 65, time: 2.4,  dur: 0.7 },
+        { freq: 90, time: 3.2,  dur: 0.7 },
+        { freq: 65, time: 4.0,  dur: 0.7 },
+        { freq: 90, time: 4.8,  dur: 0.7 },
+        { freq: 50, time: 5.6,  dur: 1.2 },  // نهاية طويلة تخينة جداً
+      ]
+      hornPattern.forEach(({ freq, time, dur }) => {
+        // أول oscillator - sawtooth
+        const osc1 = ctx.createOscillator()
+        const gain1 = ctx.createGain()
+        osc1.connect(gain1)
+        gain1.connect(ctx.destination)
+        osc1.type = 'sawtooth'
+        osc1.frequency.setValueAtTime(freq, ctx.currentTime + time)
+        gain1.gain.setValueAtTime(1.0, ctx.currentTime + time)
+        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + dur)
+        osc1.start(ctx.currentTime + time)
+        osc1.stop(ctx.currentTime + time + dur)
+
+        // تاني oscillator - square لصوت أتخن
+        const osc2 = ctx.createOscillator()
+        const gain2 = ctx.createGain()
+        osc2.connect(gain2)
+        gain2.connect(ctx.destination)
+        osc2.type = 'square'
+        osc2.frequency.setValueAtTime(freq * 0.5, ctx.currentTime + time) // octave lower
+        gain2.gain.setValueAtTime(0.5, ctx.currentTime + time)
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + dur)
+        osc2.start(ctx.currentTime + time)
+        osc2.stop(ctx.currentTime + time + dur)
+      })
+    } catch (error) {
+      console.error('Error playing banned horn sound:', error)
+    }
+  }
+
   const handleCheck = async () => {
     if (!memberNumber.trim()) {
       playAlarmSound()
@@ -117,7 +164,9 @@ export default function CheckMembershipPage() {
         setResult(data)
 
         // تشغيل الصوت المناسب
-        if (data.status === 'active') {
+        if (data.status === 'banned') {
+          playBannedHornSound()
+        } else if (data.status === 'active') {
           playSuccessSound()
         } else if (data.status === 'warning') {
           playWarningSound()
@@ -211,13 +260,45 @@ export default function CheckMembershipPage() {
 
         {/* Result */}
         {result && (
-          <div className={`bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border-4 animate-slideIn ${
-            result.status === 'active'
-              ? 'border-green-500'
+          <div className={`rounded-2xl shadow-2xl p-6 sm:p-8 border-4 animate-slideIn ${
+            result.status === 'banned'
+              ? 'border-red-900 banned-pulse'
+              : result.status === 'active'
+              ? 'bg-white border-green-500'
               : result.status === 'warning'
-              ? 'border-yellow-500'
-              : 'border-red-500'
+              ? 'bg-white border-yellow-500'
+              : 'bg-white border-red-500'
           }`}>
+            {/* شاشة الحظر */}
+            {result.status === 'banned' ? (
+              <div className="text-center text-white">
+                <div className="text-7xl sm:text-8xl md:text-9xl mb-4 animate-bounce">🚫</div>
+                <h3 className="text-3xl sm:text-4xl md:text-5xl font-black mb-3">{result.name}</h3>
+                <p className="text-lg sm:text-xl mb-4 opacity-90">
+                  {t('attendance.membershipNumber')}: <span className="font-bold">#{result.memberNumber}</span>
+                </p>
+                <div className="bg-red-900 rounded-xl px-6 py-4 mb-4 border-2 border-red-400">
+                  <p className="text-2xl sm:text-3xl font-black">{result.message}</p>
+                </div>
+                {result.banReason && (
+                  <div className="bg-red-800/80 rounded-xl px-5 py-3 mb-3">
+                    <p className="text-base sm:text-lg">
+                      <span className="font-bold">السبب: </span>{result.banReason}
+                    </p>
+                  </div>
+                )}
+                {result.bannedBy && (
+                  <p className="text-sm opacity-70">بواسطة: {result.bannedBy}</p>
+                )}
+                <button
+                  onClick={() => { setResult(null); setError(''); setMemberNumber(''); inputRef.current?.focus() }}
+                  className="mt-6 px-6 py-3 bg-white text-red-700 rounded-xl font-black text-lg hover:bg-red-50 transition"
+                >
+                  {t('attendance.searchAnother')}
+                </button>
+              </div>
+            ) : (
+              <>
             <div className="text-center mb-6">
               <div className="text-6xl sm:text-7xl md:text-8xl mb-4">
                 {result.status === 'active' ? '✅' : result.status === 'warning' ? '⚠️' : '🚨'}
@@ -294,6 +375,8 @@ export default function CheckMembershipPage() {
                 {t('attendance.searchAnother')}
               </button>
             </div>
+            </>
+            )}
           </div>
         )}
 
@@ -328,6 +411,15 @@ export default function CheckMembershipPage() {
 
         .animate-shake {
           animation: shake 0.4s ease-out;
+        }
+
+        @keyframes bannedPulse {
+          0%, 100% { background-color: #b91c1c; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+          50% { background-color: #7f1d1d; box-shadow: 0 0 0 20px rgba(220, 38, 38, 0); }
+        }
+
+        .banned-pulse {
+          animation: bannedPulse 1s ease-in-out infinite;
         }
       `}</style>
     </div>

@@ -10,6 +10,7 @@ import {
 } from '../../../lib/paymentHelpers'
 import { logError } from '../../../lib/errorLogger'
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
+import { addPointsForPayment } from '../../../lib/points'
 import { getNextReceiptNumberDirect } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
@@ -70,6 +71,31 @@ export async function GET(request: Request) {
       })
       return NextResponse.json(members, { status: 200 })
     }
+
+    // ✅ إلغاء تجميد الأعضاء الذين انتهت مدة تجميدهم تلقائياً
+    const now = new Date()
+    // لو اشتراكهم لسه ساري → isActive: true
+    await prisma.member.updateMany({
+      where: {
+        isFrozen: true,
+        expiryDate: { gt: now },
+        freezeRequests: {
+          some: { status: 'approved', endDate: { lte: now } }
+        }
+      },
+      data: { isFrozen: false, isActive: true }
+    })
+    // لو اشتراكهم انتهى برضو → isActive: false
+    await prisma.member.updateMany({
+      where: {
+        isFrozen: true,
+        expiryDate: { lte: now },
+        freezeRequests: {
+          some: { status: 'approved', endDate: { lte: now } }
+        }
+      },
+      data: { isFrozen: false, isActive: false }
+    })
 
     // جلب كل الأعضاء
     const members = await prisma.member.findMany({
@@ -152,6 +178,9 @@ export async function POST(request: Request) {
       inBodyScans,
       invitations,
       freePTSessions,
+      freeNutritionSessions,
+      freePhysioSessions,
+      freeGroupClassSessions,
       remainingFreezeDays,
       subscriptionPrice,
       remainingAmount,
@@ -220,6 +249,9 @@ export async function POST(request: Request) {
     const cleanInBodyScans = parseInt((inBodyScans || 0).toString())
     const cleanInvitations = parseInt((invitations || 0).toString())
     const cleanFreePTSessions = parseInt((freePTSessions || 0).toString())
+    const cleanFreeNutritionSessions = parseInt((freeNutritionSessions || 0).toString())
+    const cleanFreePhysioSessions = parseInt((freePhysioSessions || 0).toString())
+    const cleanFreeGroupClassSessions = parseInt((freeGroupClassSessions || 0).toString())
     const cleanRemainingFreezeDays = parseInt((remainingFreezeDays || 0).toString())
     const cleanSubscriptionPrice = parseInt(subscriptionPrice.toString())
     const cleanRemainingAmount = parseInt((remainingAmount || 0).toString())
@@ -267,6 +299,9 @@ export async function POST(request: Request) {
       inBodyScans: cleanInBodyScans,
       invitations: cleanInvitations,
       freePTSessions: cleanFreePTSessions,
+      freeNutritionSessions: cleanFreeNutritionSessions,
+      freePhysioSessions: cleanFreePhysioSessions,
+      freeGroupClassSessions: cleanFreeGroupClassSessions,
       remainingFreezeDays: cleanRemainingFreezeDays,
       subscriptionPrice: cleanSubscriptionPrice,
       remainingAmount: cleanRemainingAmount,
@@ -452,6 +487,18 @@ export async function POST(request: Request) {
           { error: pointsResult.message || 'فشل خصم النقاط' },
           { status: 400 }
         )
+      }
+
+      // إضافة نقاط مكافأة على الدفع
+      try {
+        await addPointsForPayment(
+          member.id,
+          paidAmount,
+          `مكافأة اشتراك جديد - ${name}`
+        )
+      } catch (pointsError) {
+        console.error('Error adding reward points:', pointsError)
+        // لا نوقف العملية إذا فشلت إضافة النقاط
       }
 
       receiptData = {

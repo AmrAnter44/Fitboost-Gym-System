@@ -17,7 +17,7 @@ import LicenseLockedScreen from './LicenseLockedScreen'
 import ToastContainer from './ToastContainer'
 import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
-import UpdateNotification from './UpdateNotification'
+// import UpdateNotification from './UpdateNotification' // ✅ تم تعطيل نظام التحديثات
 import InstallPrompt from './InstallPrompt'
 import KeyboardShortcuts from './KeyboardShortcuts'
 import Breadcrumb from './Breadcrumb'
@@ -38,7 +38,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                       <LicenseLockedScreen />
                       <PreventInputScroll />
                       <BarcodeInputDetector />
-                      <UpdateNotification />
+                      {/* <UpdateNotification /> */} {/* ✅ تم تعطيل نظام التحديثات */}
                       <InstallPrompt />
                       <Navbar />
                       <Breadcrumb />

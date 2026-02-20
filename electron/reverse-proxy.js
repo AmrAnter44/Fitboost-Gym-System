@@ -1,4 +1,4 @@
-// Reverse Proxy Server for X Gym
+// Reverse Proxy Server for FitBoost
 // Routes requests based on domain name to appropriate Next.js servers
 
 const http = require('http');

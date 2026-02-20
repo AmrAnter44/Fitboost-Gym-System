@@ -1,4 +1,4 @@
-// Simple Proxy Server for X Gym
+// Simple Proxy Server for FitBoost
 // This replaces Caddy with a simple Node.js proxy
 
 const http = require('http');
@@ -26,7 +26,7 @@ const server = http.createServer((req, res) => {
 const PORT = 80;
 server.listen(PORT, () => {
   console.log('╔════════════════════════════════════════╗');
-  console.log('║   X Gym Proxy Server Running           ║');
+  console.log('║   FitBoost Proxy Server Running           ║');
   console.log('╚════════════════════════════════════════╝');
   console.log('');
   console.log('📌 Listening on port:', PORT);

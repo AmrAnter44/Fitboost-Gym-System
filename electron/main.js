@@ -1093,7 +1093,7 @@ process.on('uncaughtException', error => {
 
 app.on('before-quit', async () => {
   // Clean up on quit
-  console.log('🛑 Shutting down X Gym...');
+  console.log('🛑 Shutting down FitBoost...');
 
   // Stop reverse proxy
   await stopReverseProxy();

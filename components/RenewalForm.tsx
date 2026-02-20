@@ -61,6 +61,9 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const { settings } = useServiceSettings()
   const [subscriptionPrice, setSubscriptionPrice] = useState('')
   const [freePTSessions, setFreePTSessions] = useState('0')
+  const [freeNutritionSessions, setFreeNutritionSessions] = useState('0')
+  const [freePhysioSessions, setFreePhysioSessions] = useState('0')
+  const [freeGroupClassSessions, setFreeGroupClassSessions] = useState('0')
   const [inBodyScans, setInBodyScans] = useState('0')
   const [invitations, setInvitations] = useState('0')
   const [freezeDays, setFreezeDays] = useState('0')
@@ -122,6 +125,9 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
     setSubscriptionPrice(offer.price.toString())
     setFreePTSessions(offer.freePTSessions.toString())
+    setFreeNutritionSessions((offer.freeNutritionSessions || 0).toString())
+    setFreePhysioSessions((offer.freePhysioSessions || 0).toString())
+    setFreeGroupClassSessions((offer.freeGroupClassSessions || 0).toString())
     setInBodyScans(offer.inBodyScans.toString())
     setInvitations(offer.invitations.toString())
     setFreezeDays(offer.freezeDays.toString())
@@ -162,6 +168,9 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           subscriptionPrice: parseInt(subscriptionPrice),
           remainingAmount: 0,
           freePTSessions: parseInt(freePTSessions) || 0,
+          freeNutritionSessions: parseInt(freeNutritionSessions) || 0,
+          freePhysioSessions: parseInt(freePhysioSessions) || 0,
+          freeGroupClassSessions: parseInt(freeGroupClassSessions) || 0,
           inBodyScans: parseInt(inBodyScans) || 0,
           invitations: parseInt(invitations) || 0,
           remainingFreezeDays: parseInt(freezeDays) || 0,

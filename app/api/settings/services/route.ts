@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission, verifyAuth } from '../../../../lib/auth'
+import { apiCache } from '../../../../lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,6 +105,9 @@ export async function PUT(request: Request) {
         updatedBy: user.userId
       }
     })
+
+    // Invalidate public settings cache so mobile apps pick up the change immediately
+    apiCache.delete('public:settings')
 
     return NextResponse.json(settings)
   } catch (error: any) {

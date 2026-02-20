@@ -8,7 +8,7 @@ import type { Permissions } from '../types/permissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useSearch } from '../contexts/SearchContext'
 import NotificationsCenter from './NotificationsCenter'
-import { useUpdate } from '../contexts/UpdateContext'
+// import { useUpdate } from '../contexts/UpdateContext' // ✅ تم تعطيل نظام التحديثات
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 
 export default function Navbar() {
@@ -16,7 +16,7 @@ export default function Navbar() {
   const { openSearch } = useSearch()
   const { hasPermission, user, loading } = usePermissions()
   const { t, locale } = useLanguage()
-  const { updateAvailable } = useUpdate()
+  // const { updateAvailable } = useUpdate() // ✅ تم تعطيل نظام التحديثات
   const { settings, loading: settingsLoading } = useServiceSettings()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
@@ -131,10 +131,10 @@ export default function Navbar() {
                 >
                   <span className="text-base xl:text-lg drop-shadow">{link.icon}</span>
                   <span className="text-sm xl:text-base font-bold whitespace-nowrap">{link.label}</span>
-                  {/* Update badge for Settings */}
-                  {link.href === '/settings' && updateAvailable && (
+                  {/* Update badge disabled - نظام التحديثات معطل */}
+                  {/* {link.href === '/settings' && updateAvailable && (
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-primary-700 dark:border-gray-900 animate-pulse"></span>
-                  )}
+                  )} */}
                 </Link>
               ))}
             </div>
@@ -290,10 +290,10 @@ export default function Navbar() {
                 >
                   <span className="text-2xl drop-shadow">{link.icon}</span>
                   <span className="text-base">{link.label}</span>
-                  {/* Update badge for Settings */}
-                  {link.href === '/settings' && updateAvailable && (
+                  {/* Update badge disabled - نظام التحديثات معطل */}
+                  {/* {link.href === '/settings' && updateAvailable && (
                     <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></span>
-                  )}
+                  )} */}
                 </Link>
               ))}
             </div>

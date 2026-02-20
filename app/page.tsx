@@ -53,9 +53,11 @@ export default function HomePage() {
   const [revenueChartData, setRevenueChartData] = useState<any[]>([])
   const [attendanceChartData, setAttendanceChartData] = useState<any[]>([])
   const [receiptsData, setReceiptsData] = useState<any[]>([])
+  const [todayClasses, setTodayClasses] = useState<any[]>([])
 
   useEffect(() => {
     checkAuth()
+    fetchTodayClasses()
   }, [])
 
   // إعادة تحميل البيانات عند تغيير اللغة
@@ -238,6 +240,18 @@ export default function HomePage() {
     }
   }
 
+  const fetchTodayClasses = async () => {
+    try {
+      const res = await fetch('/api/group-classes/schedule?today=true')
+      if (res.ok) {
+        const data = await res.json()
+        setTodayClasses(Array.isArray(data) ? data : [])
+      }
+    } catch {
+      // non-fatal — dashboard works without schedule data
+    }
+  }
+
   const handleLogout = async () => {
     if (!confirm(t('dashboard.confirmLogout'))) return
 
@@ -361,6 +375,38 @@ export default function HomePage() {
             </div>
           </div>
         )}
+
+      {/* 📅 كلاسيس اليوم — تظهر فقط لو في كلاسيس */}
+      {todayClasses.length > 0 && (
+        <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 border-2 border-purple-200 dark:border-purple-700 rounded-2xl p-5 mb-6 shadow-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-2xl">📅</span>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">كلاسيس اليوم</h2>
+            <span className="bg-purple-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{todayClasses.length}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {todayClasses
+              .sort((a, b) => a.startTime.localeCompare(b.startTime))
+              .map((cls) => (
+                <div
+                  key={cls.id}
+                  className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-purple-100 dark:border-purple-800 flex items-center gap-3"
+                >
+                  <div className="bg-purple-100 dark:bg-purple-900/50 p-3 rounded-full shrink-0">
+                    <span className="text-2xl">👥</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{cls.className}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">👤 {cls.coachName}</p>
+                    <p className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                      🕐 {cls.startTime} · ⏱ {cls.duration} د
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* إجمالي الأعضاء */}

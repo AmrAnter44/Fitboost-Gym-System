@@ -244,11 +244,64 @@ export default function SearchModal() {
     }
   }
 
+  const playBannedHornSound = () => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      }
+      const ctx = audioContextRef.current
+      // زمارة طويلة مزعجة تخينة - صوت منخفض ثقيل (7 ثواني)
+      const hornPattern = [
+        { freq: 90, time: 0,    dur: 0.7 },
+        { freq: 65, time: 0.8,  dur: 0.7 },
+        { freq: 90, time: 1.6,  dur: 0.7 },
+        { freq: 65, time: 2.4,  dur: 0.7 },
+        { freq: 90, time: 3.2,  dur: 0.7 },
+        { freq: 65, time: 4.0,  dur: 0.7 },
+        { freq: 90, time: 4.8,  dur: 0.7 },
+        { freq: 50, time: 5.6,  dur: 1.2 },  // نهاية طويلة تخينة جداً
+      ]
+      hornPattern.forEach(({ freq, time, dur }) => {
+        // أول oscillator - sawtooth
+        const osc1 = ctx.createOscillator()
+        const gain1 = ctx.createGain()
+        osc1.connect(gain1)
+        gain1.connect(ctx.destination)
+        osc1.type = 'sawtooth'
+        osc1.frequency.setValueAtTime(freq, ctx.currentTime + time)
+        gain1.gain.setValueAtTime(1.0, ctx.currentTime + time)
+        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + dur)
+        osc1.start(ctx.currentTime + time)
+        osc1.stop(ctx.currentTime + time + dur)
+
+        // تاني oscillator - square لصوت أتخن
+        const osc2 = ctx.createOscillator()
+        const gain2 = ctx.createGain()
+        osc2.connect(gain2)
+        gain2.connect(ctx.destination)
+        osc2.type = 'square'
+        osc2.frequency.setValueAtTime(freq * 0.5, ctx.currentTime + time) // octave lower
+        gain2.gain.setValueAtTime(0.5, ctx.currentTime + time)
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + dur)
+        osc2.start(ctx.currentTime + time)
+        osc2.stop(ctx.currentTime + time + dur)
+      })
+    } catch (error) {
+      console.error('Error playing banned horn sound:', error)
+    }
+  }
+
   const checkMemberStatusAndPlaySound = (member: any) => {
+    const isBanned = member.isBanned
     const isActive = member.isActive
     const isFrozen = member.isFrozen
     const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
     const today = new Date()
+
+    if (isBanned) {
+      playBannedHornSound()
+      return 'banned'
+    }
 
     if (isFrozen) {
       playFreezeSound()
@@ -293,6 +346,24 @@ export default function SearchModal() {
         setAttendanceMessage({
           type: 'error',
           text: data.error || 'تم تسجيل الحضور مسبقاً اليوم ✅'
+        })
+        setTimeout(() => setAttendanceMessage(null), 4000)
+      } else if (response.status === 403) {
+        // عضو محظور
+        console.log('🚫 عضو محظور')
+        playBannedHornSound()
+        setAttendanceMessage({
+          type: 'error',
+          text: data.error || 'هذا العضو محظور 🚫'
+        })
+        setTimeout(() => setAttendanceMessage(null), 5000)
+      } else if (!response.ok) {
+        // أخطاء أخرى (منتهي، مجمد، إلخ)
+        console.log('❌ خطأ:', data.error)
+        playAlarmSound()
+        setAttendanceMessage({
+          type: 'error',
+          text: data.error || 'حدث خطأ'
         })
         setTimeout(() => setAttendanceMessage(null), 4000)
       }
@@ -397,7 +468,7 @@ export default function SearchModal() {
       if (foundResults.length > 0) {
         const member = foundResults[0].data
 
-        if (member.isActive) {
+        if (member.isActive && !member.isBanned) {
           handleMemberCheckIn(member.id)
         }
 
@@ -491,7 +562,7 @@ export default function SearchModal() {
       setLastSearchTime(new Date())
 
       if (foundResults.length > 0) {
-        if (foundResults[0].type === 'member' && foundResults[0].data.isActive) {
+        if (foundResults[0].type === 'member' && foundResults[0].data.isActive && !foundResults[0].data.isBanned) {
           handleMemberCheckIn(foundResults[0].data.id)
         }
 
@@ -891,17 +962,21 @@ export default function SearchModal() {
                                   <div className="bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
                                     <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.status')}</p>
                                     <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold ${
-                                      result.data.isFrozen
-                                        ? 'bg-primary-500 text-white'
-                                        : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-red-500 text-white animate-pulse'
+                                      result.data.isBanned
+                                        ? 'bg-gray-900 text-white'
+                                        : result.data.isFrozen
+                                          ? 'bg-primary-500 text-white'
+                                          : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
+                                          ? 'bg-green-500 text-white'
+                                          : 'bg-red-500 text-white animate-pulse'
                                     }`}>
-                                      {result.data.isFrozen
-                                        ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
-                                        : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
-                                          ? `✅ ${t('search.active')}`
-                                          : `🚨 ${t('search.expired')}`
+                                      {result.data.isBanned
+                                        ? `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
+                                        : result.data.isFrozen
+                                          ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                                          : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
+                                            ? `✅ ${t('search.active')}`
+                                            : `🚨 ${t('search.expired')}`
                                       }
                                     </span>
                                   </div>

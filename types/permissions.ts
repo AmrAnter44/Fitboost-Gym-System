@@ -104,6 +104,9 @@ export interface Permissions {
   canCreateDeduction: boolean
   canEditDeduction: boolean
   canDeleteDeduction: boolean
+
+  // صلاحيات المحظورين
+  canManageBannedMembers: boolean
 }
 
 /**
@@ -229,6 +232,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateDeduction: true,
     canEditDeduction: true,
     canDeleteDeduction: true,
+    canManageBannedMembers: true,
   },
   MANAGER: {
     canViewMembers: true,
@@ -295,6 +299,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateDeduction: true,
     canEditDeduction: true,
     canDeleteDeduction: false,
+    canManageBannedMembers: true,
   },
   STAFF: {
     canViewMembers: true,
@@ -361,6 +366,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateDeduction: false,
     canEditDeduction: false,
     canDeleteDeduction: false,
+    canManageBannedMembers: false,
   },
   COACH: {
     // الكوتش يرى فقط حصصه الخاصة
@@ -428,6 +434,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateDeduction: false,
     canEditDeduction: false,
     canDeleteDeduction: false,
+    canManageBannedMembers: false,
   },
 }
 
@@ -499,6 +506,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canCreateDeduction: 'إضافة خصم',
   canEditDeduction: 'تعديل خصم',
   canDeleteDeduction: 'حذف خصم',
+  canManageBannedMembers: 'إدارة المحظورين',
 }
 
 /**
@@ -649,6 +657,12 @@ export const PERMISSION_GROUPS = {
       'canDeleteDeduction',
     ] as Array<keyof Permissions>,
   },
+  bannedMembers: {
+    label: '🚫 المحظورون',
+    permissions: [
+      'canManageBannedMembers',
+    ] as Array<keyof Permissions>,
+  },
 }
 
 /**
@@ -719,6 +733,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canCreateDeduction: '➕',
   canEditDeduction: '✏️',
   canDeleteDeduction: '🗑️',
+  canManageBannedMembers: '🚫',
 }
 
 /**

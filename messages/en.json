@@ -107,7 +107,7 @@
     "loggingIn": "Logging in...",
     "loginFailed": "Login failed",
     "connectionError": "Connection error occurred",
-    "gymSystem": "Gym Management System",
+    "gymSystem": "FitBoost System",
     "welcome": "Welcome {name}",
     "welcomeMessage": "Comprehensive and fast system for managing all gym operations"
   },

@@ -1,7 +1,7 @@
 {
-  "name": "gym-management",
+  "name": "fitboost-system",
   "version": "5.6.2",
-  "description": "gym system",
+  "description": "FitBoost - Professional Gym Management System",
   "private": true,
   "main": "electron/main.js",
   "author": "Amr Anter",

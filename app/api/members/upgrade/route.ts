@@ -47,6 +47,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'العضو غير موجود' }, { status: 404 })
     }
 
+    // التحقق من الحظر
+    {
+      const phone = member.phone?.trim() || null
+      const nationalId = (member as any).nationalId?.trim() || null
+      if (phone || nationalId) {
+        const bannedResults = await prisma.$queryRawUnsafe<Array<{id: string}>>(
+          `SELECT id FROM BannedMember WHERE (phone IS NOT NULL AND phone = ?) OR (nationalId IS NOT NULL AND nationalId = ?) LIMIT 1`,
+          phone, nationalId
+        )
+        if (bannedResults[0]) {
+          return NextResponse.json({ error: 'هذا العضو محظور ولا يمكن ترقية اشتراكه' }, { status: 403 })
+        }
+      }
+    }
+
     // 2. التحقق من وجود اشتراك نشط
     if (!member.startDate || !member.expiryDate) {
       return NextResponse.json({
@@ -108,6 +123,9 @@ export async function POST(request: Request) {
     const oldPackageData = {
       oldPackagePrice: member.subscriptionPrice,
       oldFreePTSessions: member.freePTSessions,
+      oldNutritionSessions: member.freeNutritionSessions,
+      oldPhysioSessions: member.freePhysioSessions,
+      oldGroupClassSessions: member.freeGroupClassSessions,
       oldInBodyScans: member.inBodyScans,
       oldInvitations: member.invitations,
       oldFreezeDays: member.remainingFreezeDays,
@@ -119,10 +137,13 @@ export async function POST(request: Request) {
       where: { id: memberId },
       data: {
         subscriptionPrice: newOffer.price,
-        freePTSessions: newOffer.freePTSessions,      // REPLACE
-        inBodyScans: newOffer.inBodyScans,            // REPLACE
-        invitations: newOffer.invitations,            // REPLACE
-        remainingFreezeDays: newOffer.freezeDays,     // REPLACE
+        freePTSessions: newOffer.freePTSessions,           // REPLACE
+        freeNutritionSessions: newOffer.freeNutritionSessions, // REPLACE
+        freePhysioSessions: newOffer.freePhysioSessions,   // REPLACE
+        freeGroupClassSessions: newOffer.freeGroupClassSessions, // REPLACE
+        inBodyScans: newOffer.inBodyScans,                 // REPLACE
+        invitations: newOffer.invitations,                 // REPLACE
+        remainingFreezeDays: newOffer.freezeDays,          // REPLACE
         expiryDate: newExpiryDate,
         // startDate يبقى كما هو - لا يتغير
         remainingAmount: 0,                            // الترقية يجب دفعها كاملة
@@ -147,6 +168,9 @@ export async function POST(request: Request) {
       newPackageName: newOffer.name,
       newPackagePrice: newOffer.price,
       newFreePTSessions: newOffer.freePTSessions,
+      newNutritionSessions: newOffer.freeNutritionSessions,
+      newPhysioSessions: newOffer.freePhysioSessions,
+      newGroupClassSessions: newOffer.freeGroupClassSessions,
       newInBodyScans: newOffer.inBodyScans,
       newInvitations: newOffer.invitations,
       newFreezeDays: newOffer.freezeDays,

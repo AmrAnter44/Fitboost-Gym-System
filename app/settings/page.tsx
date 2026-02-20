@@ -1147,9 +1147,8 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Update notifications removed - now shown only in toast via UpdateNotification component */}
-
-          {/* Main update check card */}
+          {/* ✅ تم تعطيل نظام التحديثات - Update system disabled */}
+          {/*
           <div className="bg-gradient-to-br from-primary-50 to-cyan-50 dark:from-primary-900/20 dark:to-cyan-900/20 rounded-xl p-4 sm:p-6 border-2 border-primary-200 dark:border-primary-700">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div className="flex-1">
@@ -1188,6 +1187,7 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+          */}
         </div>
         )}
 

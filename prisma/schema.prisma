@@ -36,6 +36,7 @@ model Member {
   pushToken         String?      // Expo push notification token
   isActive          Boolean      @default(true)
   isFrozen          Boolean      @default(false)
+  isBanned          Boolean      @default(false)
   startDate         DateTime?
   expiryDate        DateTime?
   coachId           String?
@@ -818,4 +819,36 @@ model PointsHistory {
   @@index([memberId])
   @@index([createdAt])
   @@index([action])
+}
+
+// جدول مواعيد الجروب كلاسيس الأسبوعية
+model ClassSchedule {
+  id          String   @id @default(cuid())
+  dayOfWeek   Int      // 0=الأحد, 1=الاثنين, 2=الثلاثاء, 3=الأربعاء, 4=الخميس, 5=الجمعة, 6=السبت
+  startTime   String   // "HH:mm" e.g. "09:00"
+  className   String   // نوع الكلاس e.g. "زومبا", "يوجا", "كروسفيت"
+  coachName   String   // اسم الكوتش
+  duration    Int      @default(60) // المدة بالدقائق
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dayOfWeek])
+  @@index([isActive])
+}
+
+// قائمة المحظورين
+model BannedMember {
+  id         String   @id @default(cuid())
+  name       String?
+  phone      String?
+  nationalId String?
+  reason     String?
+  notes      String?
+  bannedBy   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([phone])
+  @@index([nationalId])
 }

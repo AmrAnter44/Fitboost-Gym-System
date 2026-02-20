@@ -49,6 +49,7 @@ interface Member {
   notes?: string
   isActive: boolean
   isFrozen: boolean
+  isBanned: boolean
   freezeUntil?: string
   startDate?: string
   expiryDate?: string
@@ -115,7 +116,7 @@ export default function MembersPage() {
   const debouncedSearchName = useDebounce(searchName, 300)
   const debouncedSearchPhone = useDebounce(searchPhone, 300)
 
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'analytics'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'analytics' | 'banned'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [specificDate, setSpecificDate] = useState('')
 
@@ -136,6 +137,14 @@ export default function MembersPage() {
 
   // WhatsApp جماعي
   const [showBulkWA, setShowBulkWA] = useState(false)
+
+  // المحظورون
+  const [bannedMembers, setBannedMembers] = useState<any[]>([])
+  const [bannedLoading, setBannedLoading] = useState(false)
+  const [showAddBanModal, setShowAddBanModal] = useState(false)
+  const [banForm, setBanForm] = useState({ name: '', phone: '', nationalId: '', reason: '', notes: '' })
+  const [banSubmitting, setBanSubmitting] = useState(false)
+  const [banError, setBanError] = useState('')
   const [bulkWAMessage, setBulkWAMessage] = useState('السلام عليكم {name}، اشتراكك في الجيم انتهى أو قارب على الانتهاء. تواصل معنا لتجديد اشتراكك. 💪')
   const [bulkWASent, setBulkWASent] = useState(0)
 
@@ -221,6 +230,19 @@ export default function MembersPage() {
 
     return filtered
   }, [debouncedSearchId, debouncedSearchName, debouncedSearchPhone, filterStatus, filterPackage, specificDate, membersData])
+
+  // ✅ جلب المحظورين عند التحميل (لو عنده صلاحية)
+  useEffect(() => {
+    if (!permissionsLoading && hasPermission('canManageBannedMembers')) {
+      fetchBannedMembers()
+    }
+  }, [permissionsLoading])
+
+  // ✅ Set سريع للبحث عن المحظورين بالهاتف
+  const bannedPhones = useMemo(
+    () => new Set(bannedMembers.map(b => b.phone).filter(Boolean)),
+    [bannedMembers]
+  )
 
   // ✅ معالجة أخطاء الأعضاء
   useEffect(() => {
@@ -446,6 +468,56 @@ export default function MembersPage() {
     }).length
   }
 
+  // ✅ جلب المحظورين
+  const fetchBannedMembers = async () => {
+    setBannedLoading(true)
+    try {
+      const res = await fetch('/api/banned-members')
+      const data = await res.json()
+      setBannedMembers(Array.isArray(data) ? data : [])
+    } catch {
+      setBannedMembers([])
+    } finally {
+      setBannedLoading(false)
+    }
+  }
+
+  const handleAddBan = async () => {
+    if (!banForm.phone && !banForm.nationalId) {
+      setBanError('يجب إدخال رقم الهاتف أو الرقم القومي على الأقل')
+      return
+    }
+    setBanSubmitting(true)
+    setBanError('')
+    try {
+      const res = await fetch('/api/banned-members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(banForm)
+      })
+      if (res.ok) {
+        setBanForm({ name: '', phone: '', nationalId: '', reason: '', notes: '' })
+        setShowAddBanModal(false)
+        fetchBannedMembers()
+      } else {
+        const err = await res.json()
+        setBanError(err.error || 'فشل الإضافة')
+      }
+    } catch {
+      setBanError('خطأ في الاتصال')
+    } finally {
+      setBanSubmitting(false)
+    }
+  }
+
+  const handleRemoveBan = async (id: string) => {
+    if (!confirm('هل تريد إزالة هذا الشخص من قائمة المحظورين؟')) return
+    try {
+      await fetch(`/api/banned-members?id=${id}`, { method: 'DELETE' })
+      fetchBannedMembers()
+    } catch {}
+  }
+
   // ✅ WhatsApp جماعي
   const sendBulkWhatsApp = () => {
     setBulkWASent(0)
@@ -630,6 +702,21 @@ export default function MembersPage() {
             <div className="text-2xl mb-1">📈</div>
             <div className="text-sm">{locale === 'ar' ? 'التحليلات' : 'Analytics'}</div>
           </button>
+
+          {hasPermission('canManageBannedMembers') && (
+            <button
+              onClick={() => { setFilterStatus('banned'); fetchBannedMembers() }}
+              className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
+                filterStatus === 'banned'
+                  ? 'bg-gradient-to-br from-red-700 to-red-800 text-white shadow-xl border-2 border-red-600'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500'
+              }`}
+            >
+              <div className="text-2xl mb-1">🚫</div>
+              <div className="text-sm">{locale === 'ar' ? 'المحظورون' : 'Banned'}</div>
+              <div className="text-2xl font-bold">{bannedMembers.length || ''}</div>
+            </button>
+          )}
         </div>
 
         <div className="border-t dark:border-gray-700 pt-4 mt-4">
@@ -877,6 +964,142 @@ export default function MembersPage() {
 
       {loading ? (
         <div className="text-center py-12 dark:text-white">{t('common.loading')}</div>
+      ) : filterStatus === 'banned' ? (
+        /* ===== قسم المحظورين ===== */
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6" dir={direction}>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
+              <span>🚫</span>
+              <span>{locale === 'ar' ? 'قائمة المحظورين' : 'Banned Members List'}</span>
+            </h2>
+            <button
+              onClick={() => { setBanError(''); setShowAddBanModal(true) }}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <span>＋</span>
+              <span>{locale === 'ar' ? 'إضافة محظور' : 'Add Ban'}</span>
+            </button>
+          </div>
+
+          {bannedLoading ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t('common.loading')}</div>
+          ) : bannedMembers.length === 0 ? (
+            <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+              <div className="text-5xl mb-3">✅</div>
+              <p className="text-lg font-medium">{locale === 'ar' ? 'لا يوجد محظورون' : 'No banned members'}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" dir={direction}>
+                <thead className="bg-red-50 dark:bg-red-900/20">
+                  <tr>
+                    <th className="px-4 py-3 text-right text-red-700 dark:text-red-400 font-bold">#</th>
+                    <th className="px-4 py-3 text-right text-red-700 dark:text-red-400 font-bold">{locale === 'ar' ? 'الاسم' : 'Name'}</th>
+                    <th className="px-4 py-3 text-right text-red-700 dark:text-red-400 font-bold">{locale === 'ar' ? 'رقم الهاتف' : 'Phone'}</th>
+                    <th className="px-4 py-3 text-right text-red-700 dark:text-red-400 font-bold">{locale === 'ar' ? 'الرقم القومي' : 'National ID'}</th>
+                    <th className="px-4 py-3 text-right text-red-700 dark:text-red-400 font-bold">{locale === 'ar' ? 'السبب' : 'Reason'}</th>
+                    <th className="px-4 py-3 text-right text-red-700 dark:text-red-400 font-bold">{locale === 'ar' ? 'بواسطة' : 'By'}</th>
+                    <th className="px-4 py-3 text-right text-red-700 dark:text-red-400 font-bold">{locale === 'ar' ? 'التاريخ' : 'Date'}</th>
+                    <th className="px-4 py-3 text-right text-red-700 dark:text-red-400 font-bold">{locale === 'ar' ? 'إجراء' : 'Action'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bannedMembers.map((ban, idx) => (
+                    <tr key={ban.id} className="border-t dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/10">
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{idx + 1}</td>
+                      <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-100">{ban.name || '-'}</td>
+                      <td className="px-4 py-3 font-mono text-gray-700 dark:text-gray-200">{ban.phone || '-'}</td>
+                      <td className="px-4 py-3 font-mono text-gray-700 dark:text-gray-200">{ban.nationalId || '-'}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{ban.reason || '-'}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{ban.bannedBy || '-'}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
+                        {new Date(ban.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleRemoveBan(ban.id)}
+                          className="bg-gray-200 hover:bg-red-100 dark:bg-gray-700 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-bold px-3 py-1 rounded-lg text-xs transition-colors"
+                        >
+                          🗑️ {locale === 'ar' ? 'إزالة' : 'Remove'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Modal إضافة محظور */}
+          {showAddBanModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <span>🚫</span>
+                    <span>{locale === 'ar' ? 'إضافة محظور جديد' : 'Add New Ban'}</span>
+                  </h3>
+                  <button onClick={() => setShowAddBanModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+                </div>
+
+                {banError && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 p-3 rounded-lg mb-4 text-sm">
+                    {banError}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{locale === 'ar' ? 'الاسم' : 'Name'}</label>
+                    <input type="text" value={banForm.name} onChange={e => setBanForm(f => ({ ...f, name: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-red-500 text-sm"
+                      placeholder={locale === 'ar' ? 'اسم الشخص (اختياري)' : 'Name (optional)'} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{locale === 'ar' ? 'رقم الهاتف' : 'Phone'}</label>
+                    <input type="text" value={banForm.phone} onChange={e => setBanForm(f => ({ ...f, phone: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-red-500 text-sm font-mono"
+                      placeholder="01xxxxxxxxx" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{locale === 'ar' ? 'الرقم القومي' : 'National ID'}</label>
+                    <input type="text" value={banForm.nationalId} onChange={e => setBanForm(f => ({ ...f, nationalId: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-red-500 text-sm font-mono"
+                      placeholder="xxxxxxxxxxxxxxx" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{locale === 'ar' ? 'سبب الحظر' : 'Reason'} <span className="text-red-500">*</span></label>
+                    <input type="text" value={banForm.reason} onChange={e => setBanForm(f => ({ ...f, reason: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-red-500 text-sm"
+                      placeholder={locale === 'ar' ? 'سبب الحظر' : 'Ban reason'} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{locale === 'ar' ? 'ملاحظات' : 'Notes'}</label>
+                    <textarea value={banForm.notes} onChange={e => setBanForm(f => ({ ...f, notes: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-red-500 text-sm resize-none"
+                      rows={2} placeholder={locale === 'ar' ? 'ملاحظات إضافية...' : 'Additional notes...'} />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={handleAddBan}
+                    disabled={banSubmitting}
+                    className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
+                  >
+                    {banSubmitting ? '...' : `🚫 ${locale === 'ar' ? 'إضافة للقائمة' : 'Add to List'}`}
+                  </button>
+                  <button
+                    onClick={() => setShowAddBanModal(false)}
+                    className="px-6 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 rounded-xl font-medium transition-colors"
+                  >
+                    {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       ) : filterStatus === 'analytics' ? (
         <MembersAnalytics members={membersData} />
       ) : (
@@ -905,8 +1128,9 @@ export default function MembersPage() {
                     const daysRemaining = calculateRemainingDays(member.expiryDate)
                     const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
 
+                    const isBanned = member.isBanned
                     return (
-                      <tr key={member.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700/50">
+                      <tr key={member.id} className={`border-t dark:border-gray-700 ${isBanned ? 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50' : 'hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-700/50'}`}>
                         <td className="px-4 py-3">
                           <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 dark:bg-gray-700">
                             {member.profileImage ? (
@@ -927,7 +1151,16 @@ export default function MembersPage() {
                         </td>
 
                         <td className="px-4 py-3 font-bold text-primary-600">#{member.memberNumber}</td>
-                        <td className="px-4 py-3">{member.name}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span>{member.name}</span>
+                            {member.isBanned && (
+                              <span className="bg-gray-900 text-white text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                                🚫 {locale === 'ar' ? 'محظور' : 'Banned'}
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           <a
                             href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
@@ -946,21 +1179,25 @@ export default function MembersPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-3 py-1.5 rounded-lg text-sm font-bold inline-flex items-center gap-1.5 shadow-sm ${
-                            member.isFrozen
-                              ? 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
-                              : isExpiringSoon
-                                ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300'
-                                : member.isActive && !isExpired
-                                  ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300'
-                                  : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
+                            member.isBanned
+                              ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border border-gray-700'
+                              : member.isFrozen
+                                ? 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                                : isExpiringSoon
+                                  ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300'
+                                  : member.isActive && !isExpired
+                                    ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300'
+                                    : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
                           }`}>
-                            {member.isFrozen
-                              ? <><span className="text-lg">❄️</span> {locale === 'ar' ? 'مجمد' : 'Frozen'}{member.freezeUntil ? <span className="text-xs font-normal ms-1 text-blue-600 dark:text-blue-400">{locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}</span> : null}</>
-                              : isExpiringSoon
-                                ? <><span className="text-lg">🟡</span> {locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'}</>
-                                : member.isActive && !isExpired
-                                  ? <><span className="text-lg">🟢</span> {t('members.active')}</>
-                                  : <><span className="text-lg">🔴</span> {t('members.expired')}</>
+                            {member.isBanned
+                              ? <><span className="text-lg">🚫</span> {locale === 'ar' ? 'محظور' : 'Banned'}</>
+                              : member.isFrozen
+                                ? <><span className="text-lg">❄️</span> {locale === 'ar' ? 'مجمد' : 'Frozen'}{member.freezeUntil ? <span className="text-xs font-normal ms-1 text-blue-600 dark:text-blue-400">{locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}</span> : null}</>
+                                : isExpiringSoon
+                                  ? <><span className="text-lg">🟡</span> {locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'}</>
+                                  : member.isActive && !isExpired
+                                    ? <><span className="text-lg">🟢</span> {t('members.active')}</>
+                                    : <><span className="text-lg">🔴</span> {t('members.expired')}</>
                             }
                           </span>
                         </td>
