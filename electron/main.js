@@ -205,12 +205,8 @@ async function startProductionServer() {
     const possiblePaths = [
       // في حالة Production - داخل app.asar.unpacked
       path.join(process.resourcesPath, 'app.asar.unpacked', '.next', 'standalone'),
-      // في حالة Production - داخل app.asar (fallback)
-      path.join(app.getAppPath(), '.next', 'standalone'),
       // في حالة development
-      path.join(process.cwd(), '.next', 'standalone'),
-      // fallback
-      process.cwd()
+      path.join(process.cwd(), '.next', 'standalone')
     ];
 
     let appPath = null;
@@ -223,118 +219,58 @@ async function startProductionServer() {
       if (fs.existsSync(serverPath)) {
         appPath = testPath;
         serverFile = serverPath;
-        console.log('✓ Found server at:', serverPath);
+        console.log('✓ Found standalone server at:', serverPath);
         break;
       }
     }
 
-    // إذا مش لاقيين standalone، نستخدم npx next start
     if (!serverFile) {
-      console.log('Standalone not found, using npx next start');
-      appPath = possiblePaths.find(p => fs.existsSync(path.join(p, 'package.json')));
-      if (!appPath) throw new Error('Next.js files not found');
-
-      // استخدام المسار الدائم لقاعدة البيانات
-      const dbPath = getDatabasePath();
-      const DATABASE_URL = `file:${dbPath}`;
-
-      // إنشاء مسار دائم للصور المرفوعة
-      const userDataPath = app.getPath('userData');
-      const uploadsPath = path.join(userDataPath, 'uploads');
-      if (!fs.existsSync(uploadsPath)) {
-        fs.mkdirSync(uploadsPath, { recursive: true });
-        console.log('📁 Created uploads directory:', uploadsPath);
-      }
-
-      serverProcess = spawn('npx', ['next', 'start', '-p', '4001', '-H', '0.0.0.0'], {
-        cwd: appPath,
-        env: {
-          ...process.env,
-          NODE_ENV: 'production',
-          PORT: '4001',
-          HOSTNAME: '0.0.0.0',
-          DATABASE_URL: DATABASE_URL,
-          UPLOADS_PATH: uploadsPath
-        },
-        shell: true,
-        stdio: 'pipe'
-      });
-    } else {
-      // تشغيل standalone server.js
-      console.log('Starting standalone server with custom public folder support');
-
-      // التحقق من وجود مجلد public
-      const publicPath = path.join(appPath, 'public');
-      if (fs.existsSync(publicPath)) {
-        console.log('✓ Public folder found at:', publicPath);
-      } else {
-        console.warn('⚠️ Public folder NOT found at:', publicPath);
-      }
-
-      // استخدام المسار الدائم لقاعدة البيانات
-      const dbPath = getDatabasePath();
-      const DATABASE_URL = `file:${dbPath}`;
-
-      // إنشاء مسار دائم للصور المرفوعة
-      const userDataPath = app.getPath('userData');
-      const uploadsPath = path.join(userDataPath, 'uploads');
-      if (!fs.existsSync(uploadsPath)) {
-        fs.mkdirSync(uploadsPath, { recursive: true });
-        console.log('📁 Created uploads directory:', uploadsPath);
-      }
-
-      console.log('App path:', appPath);
-      console.log('Database URL:', DATABASE_URL);
-      console.log('Uploads path:', uploadsPath);
-
-      // استخدام custom server wrapper للـ public folder support
-      // في production، الـ standalone-server.js موجود في app.asar.unpacked
-      let customServerPath = path.join(__dirname, 'standalone-server.js');
-
-      // في production، دايماً استخدم unpacked version
-      if (!isDev) {
-        // في production، __dirname = app.asar/electron
-        // محتاجين نروح لـ app.asar.unpacked/electron
-        const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
-        customServerPath = path.join(unpackedPath, 'standalone-server.js');
-        console.log('Looking for custom server in unpacked:', customServerPath);
-      }
-
-      const useCustomServer = fs.existsSync(customServerPath);
-
-      if (useCustomServer) {
-        console.log('✓ Using custom server with public folder support');
-        console.log('Custom server path:', customServerPath);
-        serverProcess = spawn('node', [customServerPath, appPath], {
-          cwd: appPath,
-          env: {
-            ...process.env,
-            NODE_ENV: 'production',
-            PORT: '4001',
-            HOSTNAME: '0.0.0.0',
-            DATABASE_URL: DATABASE_URL,
-            UPLOADS_PATH: uploadsPath
-          },
-          shell: false,
-          stdio: 'pipe'
-        });
-      } else {
-        console.warn('⚠️ Custom server not found, using default server.js');
-        serverProcess = spawn('node', [serverFile], {
-          cwd: appPath,
-          env: {
-            ...process.env,
-            NODE_ENV: 'production',
-            PORT: '4001',
-            HOSTNAME: '0.0.0.0',
-            DATABASE_URL: DATABASE_URL,
-            UPLOADS_PATH: uploadsPath
-          },
-          shell: false,
-          stdio: 'pipe'
-        });
-      }
+      throw new Error('Standalone server.js not found!');
     }
+
+    // استخدام المسار الدائم لقاعدة البيانات
+    const DATABASE_URL = `file:${dbPath}`;
+
+    // إنشاء مسار دائم للصور المرفوعة
+    const userDataPath = app.getPath('userData');
+    const uploadsPath = path.join(userDataPath, 'uploads');
+    if (!fs.existsSync(uploadsPath)) {
+      fs.mkdirSync(uploadsPath, { recursive: true });
+      console.log('📁 Created uploads directory:', uploadsPath);
+    }
+
+    console.log('App path:', appPath);
+    console.log('Database URL:', DATABASE_URL);
+    console.log('Uploads path:', uploadsPath);
+    console.log('Starting standalone Next.js server...');
+
+    // Use server-wrapper.js to properly set up module resolution
+    // In production, wrapper is copied to standalone directory
+    const wrapperPath = path.join(appPath, 'server-wrapper.js');
+
+    console.log('Using server wrapper:', wrapperPath);
+
+    // Verify wrapper exists
+    if (!fs.existsSync(wrapperPath)) {
+      throw new Error('server-wrapper.js not found at: ' + wrapperPath);
+    }
+
+    // Use Electron's Node.js (which has access to bundled modules)
+    // but run wrapper which will set up NODE_PATH correctly
+    serverProcess = spawn(process.execPath, [wrapperPath, appPath], {
+      cwd: appPath,
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        PORT: '4001',
+        HOSTNAME: '0.0.0.0',
+        DATABASE_URL: DATABASE_URL,
+        UPLOADS_PATH: uploadsPath,
+        ELECTRON_RUN_AS_NODE: '1' // Run Electron as Node.js, not as Electron app
+      },
+      shell: false,
+      stdio: 'pipe'
+    });
 
     serverProcess.stdout.on('data', data => console.log(`Next: ${data}`));
     serverProcess.stderr.on('data', data => console.error(`Next ERR: ${data}`));

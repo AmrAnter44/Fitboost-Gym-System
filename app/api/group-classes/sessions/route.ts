@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // تسجيل جلسة جديدة (بدون حضور)
+    // تسجيل جلسة جديدة مع الحضور
     const session = await prisma.groupClassSession.create({
       data: {
         classNumber: parseInt(groupClassNumber),
@@ -126,7 +126,9 @@ export async function POST(request: Request) {
         instructorName: groupClass.instructorName,
         sessionDate: new Date(sessionDate),
         notes: notes || null,
-        attended: false
+        attended: true,
+        attendedAt: new Date(),
+        attendedBy: 'Staff Registration'
       }
     })
 

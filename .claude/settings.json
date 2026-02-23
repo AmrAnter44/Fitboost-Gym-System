@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xattr:*)",
+      "Bash(chmod:*)",
+      "Bash(node scripts/setup-database.js:*)",
+      "Bash(test:*)",
+      "Bash(node:*)",
+      "Bash(wait)",
+      "Read(//Users/amranter200444/Downloads/Gyms/More/Fitboost-System/**)",
+      "Bash(electron-builder:*)",
+      "Bash(tee:*)",
+      "Bash(BUILD_SUMMARY.md:*)",
+      "Bash(INFINITE_LOOP_FIX.md:*)",
+      "Bash(__NEW_LINE_12756d712be40eaa__ cat INFINITE_LOOP_FIX.md)",
+      "Bash(FIX_SUMMARY.txt:*)",
+      "Bash(__NEW_LINE_3e94cdb5c9ea01cf__ cat FIX_SUMMARY.txt)",
+      "Bash(PRISMA_FIX.md:*)",
+      "Bash(__NEW_LINE_98344069ec8814f3__ cat PRISMA_FIX.md)",
+      "Bash(FINAL_FIX_SUMMARY.md:*)",
+      "Bash(__NEW_LINE_a3437d16beed21d7__ cat FINAL_FIX_SUMMARY.md)",
+      "Bash(reset-admin-password.js:*)",
+      "Bash(__NEW_LINE_ffed7889cfabdc6f__ node reset-admin-password.js)",
+      "Bash(npx playwright install chromium)"
+    ],
+    "additionalDirectories": [
+      "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next"
+    ]
+  }
+}

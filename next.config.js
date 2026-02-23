@@ -14,7 +14,7 @@ const nextConfig = {
   // React strict mode
   reactStrictMode: true,
 
-  // Allowed domains for external access
+  // Allowed domains for external access + Security Headers
   async headers() {
     return [
       {
@@ -31,6 +31,27 @@ const nextConfig = {
           {
             key: 'Access-Control-Allow-Headers',
             value: 'Content-Type, Authorization'
+          },
+          // 🔒 Security Headers
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff' // منع MIME type sniffing
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY' // منع Clickjacking
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block' // حماية من XSS في المتصفحات القديمة
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin' // حماية الـ privacy
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()' // منع الوصول للكاميرا/ميكروفون
           }
         ]
       }

@@ -54,10 +54,12 @@ export default function HomePage() {
   const [attendanceChartData, setAttendanceChartData] = useState<any[]>([])
   const [receiptsData, setReceiptsData] = useState<any[]>([])
   const [todayClasses, setTodayClasses] = useState<any[]>([])
+  const [classBookings, setClassBookings] = useState<any[]>([])
 
   useEffect(() => {
     checkAuth()
     fetchTodayClasses()
+    fetchClassBookings()
   }, [])
 
   // إعادة تحميل البيانات عند تغيير اللغة
@@ -252,6 +254,19 @@ export default function HomePage() {
     }
   }
 
+  const fetchClassBookings = async () => {
+    try {
+      const res = await fetch('/api/class-bookings/today')
+      if (res.ok) {
+        const data = await res.json()
+        setClassBookings(Array.isArray(data.bookings) ? data.bookings : [])
+      }
+    } catch (error) {
+      console.error('Error fetching class bookings:', error)
+      setClassBookings([])
+    }
+  }
+
   const handleLogout = async () => {
     if (!confirm(t('dashboard.confirmLogout'))) return
 
@@ -405,6 +420,63 @@ export default function HomePage() {
                 </div>
               ))}
           </div>
+        </div>
+      )}
+
+      {/* 🎫 حجوزات الكلاس اليوم */}
+      {(todayClasses.length > 0 || classBookings.length > 0) && (
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl p-5 mb-6 shadow-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-2xl">🎫</span>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">حجوزات الكلاس اليوم</h2>
+            <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{classBookings.length}</span>
+          </div>
+
+          {classBookings.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center">
+              <div className="text-5xl mb-3">📭</div>
+              <p className="text-gray-600 dark:text-gray-400 font-semibold">لا توجد حجوزات حتى الآن</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {classBookings.map((booking) => (
+                <div
+                  key={booking.id}
+                  className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-emerald-100 dark:border-emerald-800"
+                >
+                  <div className="flex items-center gap-3 mb-3 pb-3 border-b border-emerald-100 dark:border-emerald-800">
+                    <div className="bg-emerald-100 dark:bg-emerald-900/50 p-3 rounded-full shrink-0">
+                      <span className="text-2xl">✅</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900 dark:text-gray-100 truncate">
+                        {booking.member?.name || 'عضو محذوف'}
+                      </p>
+                      <p className="text-sm text-emerald-700 dark:text-emerald-300 font-semibold">
+                        #{booking.member?.memberNumber || 'N/A'}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        📞 {booking.member?.phone || '-'}
+                      </p>
+                    </div>
+                  </div>
+                  {booking.class && (
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg p-3">
+                      <p className="text-sm font-bold text-purple-900 dark:text-purple-200 mb-1">
+                        🏋️ {booking.class.className}
+                      </p>
+                      <p className="text-xs text-purple-700 dark:text-purple-300">
+                        👤 {booking.class.coachName}
+                      </p>
+                      <p className="text-xs text-purple-600 dark:text-purple-400 font-semibold mt-1">
+                        🕐 {booking.class.startTime}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

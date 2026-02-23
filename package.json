@@ -6,21 +6,39 @@
   "main": "electron/main.js",
   "author": "Amr Anter",
   "scripts": {
+    "predev": "node scripts/auto-sync-database.js",
     "dev": "node server.js",
     "dev:turbo": "node --max-old-space-size=4096 node_modules/next/dist/bin/next dev --turbo -p 4001 -H 0.0.0.0",
     "dev:default": "next dev -p 4001 -H 0.0.0.0",
     "build": "prisma generate && next build && npm run postbuild",
     "postbuild": "node postbuild.js",
+    "prestart": "node scripts/production-sync-database.js",
     "start": "next start -p 4001 -H 0.0.0.0",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:optimize": "node optimize-database.js",
     "db:studio": "prisma studio",
+    "db:setup": "node scripts/setup-database.js",
+    "db:fix": "bash scripts/quick-fix-db.sh",
+    "db:migrate": "bash scripts/migrate-old-db.sh",
+    "db:backup": "cp prisma/gym.db prisma/gym.db.backup.$(date +%Y%m%d_%H%M%S)",
+    "db:validate": "prisma validate && prisma db execute --stdin <<< 'SELECT COUNT(*) FROM sqlite_master;'",
+    "db:sync": "node scripts/production-sync-database.js",
+    "db:deploy": "prisma migrate deploy",
     "generate:pwa-icons": "node generate-pwa-icons.js",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:4001 --timeout 180000 --interval 1000 --httpTimeout 10000 && electron . --enable-features=WebRTC --enable-usermedia-screen-capturing\"",
     "electron:dev:alt": "concurrently \"npm run dev\" \"node start-electron.js\"",
-    "electron:build": "electron-builder --publish never",
-    "electron:build:win": "electron-builder --win --x64 --publish never"
+    "prebuild:electron": "npm run build",
+    "build:electron": "npm run prebuild:electron && node preelectron-build.js && electron-builder --publish never",
+    "build:electron:win": "npm run prebuild:electron && node preelectron-build.js && electron-builder --win --x64 --publish never",
+    "build:production": "node scripts/build-production.js",
+    "electron:build": "npm run build:electron",
+    "electron:build:win": "npm run build:electron:win",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
@@ -61,6 +79,7 @@
     "uiohook-napi": "^1.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.0.0",
@@ -85,31 +104,32 @@
     "files": [
       "electron/**/*",
       ".next/standalone/**/*",
-      "!.next/standalone/node_modules",
       ".next/static/**/*",
       "build/**/*",
       "prisma/**/*",
+      "!prisma/gym.db-*",
+      "!prisma/*.backup*",
+      "!prisma/*.corrupted*",
       "package.json"
     ],
     "asarUnpack": [
       ".next/standalone/**/*",
-      "!.next/standalone/node_modules",
+      ".next/standalone/node_modules/**/*",
       "node_modules/uiohook-napi/**/*",
       "node_modules/better-sqlite3/**/*",
-      "node_modules/node-hid/**/*",
-      "electron/standalone-server.js"
+      "node_modules/node-hid/**/*"
     ],
     "extraResources": [
       {
+        "from": "prisma/gym.db",
+        "to": "seed-database/gym.db"
+      },
+      {
         "from": ".next/standalone/node_modules",
-        "to": "app.asar.unpacked/.next/standalone/node_modules",
+        "to": "standalone-modules",
         "filter": [
           "**/*"
         ]
-      },
-      {
-        "from": "prisma/gym.db",
-        "to": "seed-database/gym.db"
       }
     ],
     "win": {

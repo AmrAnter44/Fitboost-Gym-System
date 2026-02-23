@@ -1,0 +1,844 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - link "Home" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img "Home" [ref=e7]
+      - generic [ref=e8]:
+        - link "👥 الأعضاء" [ref=e9] [cursor=pointer]:
+          - /url: /members
+          - generic [ref=e10]: 👥
+          - generic [ref=e11]: الأعضاء
+        - link "💪 حصص مخصصة" [ref=e12] [cursor=pointer]:
+          - /url: /pt
+          - generic [ref=e13]: 💪
+          - generic [ref=e14]: حصص مخصصة
+        - link "🥗 التغذية" [ref=e15] [cursor=pointer]:
+          - /url: /nutrition
+          - generic [ref=e16]: 🥗
+          - generic [ref=e17]: التغذية
+        - link "🏥 علاج طبيعي" [ref=e18] [cursor=pointer]:
+          - /url: /physiotherapy
+          - generic [ref=e19]: 🏥
+          - generic [ref=e20]: علاج طبيعي
+        - link "👥 جروب كلاسيس" [ref=e21] [cursor=pointer]:
+          - /url: /group-classes
+          - generic [ref=e22]: 👥
+          - generic [ref=e23]: جروب كلاسيس
+        - link "📊 يوم استخدام" [ref=e24] [cursor=pointer]:
+          - /url: /dayuse
+          - generic [ref=e25]: 📊
+          - generic [ref=e26]: يوم استخدام
+        - link "👷 الموظفين" [ref=e27] [cursor=pointer]:
+          - /url: /staff
+          - generic [ref=e28]: 👷
+          - generic [ref=e29]: الموظفين
+        - link "🧾 الإيصالات" [ref=e30] [cursor=pointer]:
+          - /url: /receipts
+          - generic [ref=e31]: 🧾
+          - generic [ref=e32]: الإيصالات
+        - link "💸 المصروفات" [ref=e33] [cursor=pointer]:
+          - /url: /expenses
+          - generic [ref=e34]: 💸
+          - generic [ref=e35]: المصروفات
+        - link "🚶 الزوار" [ref=e36] [cursor=pointer]:
+          - /url: /visitors
+          - generic [ref=e37]: 🚶
+          - generic [ref=e38]: الزوار
+        - link "📝 المتابعات" [ref=e39] [cursor=pointer]:
+          - /url: /followups
+          - generic [ref=e40]: 📝
+          - generic [ref=e41]: المتابعات
+        - link "💆 حجوزات SPA" [ref=e42] [cursor=pointer]:
+          - /url: /spa-bookings
+          - generic [ref=e43]: 💆
+          - generic [ref=e44]: حجوزات SPA
+        - link "💰 التقفيل" [ref=e45] [cursor=pointer]:
+          - /url: /closing
+          - generic [ref=e46]: 💰
+          - generic [ref=e47]: التقفيل
+        - link "⚙️ الإعدادات" [ref=e48] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e49]: ⚙️
+          - generic [ref=e50]: الإعدادات
+      - generic [ref=e51]:
+        - button "A" [ref=e53] [cursor=pointer]:
+          - generic [ref=e54]: A
+        - button "🔔" [ref=e56] [cursor=pointer]:
+          - generic [ref=e57]: 🔔
+        - button "🔍" [ref=e58] [cursor=pointer]:
+          - generic [ref=e59]: 🔍
+  - navigation "breadcrumb" [ref=e60]:
+    - list [ref=e61]:
+      - listitem [ref=e62]:
+        - link "الرئيسية" [ref=e63] [cursor=pointer]:
+          - /url: /
+          - img [ref=e64]
+          - text: الرئيسية
+      - listitem [ref=e66]:
+        - img [ref=e67]
+        - generic [ref=e69]: الأعضاء
+  - main [ref=e70]:
+    - generic [ref=e71]:
+      - generic [ref=e72]:
+        - heading "إدارة الأعضاء" [level=1] [ref=e73]
+        - generic [ref=e74]:
+          - link "🏋️ حضور أعضاء" [ref=e75] [cursor=pointer]:
+            - /url: /member-attendance
+            - generic [ref=e76]: 🏋️
+            - generic [ref=e77]: حضور أعضاء
+          - button "CSV" [ref=e78] [cursor=pointer]:
+            - img [ref=e79]
+            - text: CSV
+          - button "إضافة عضو جديد" [ref=e81] [cursor=pointer]
+      - generic [ref=e82]:
+        - heading "🎯 فلاتر سريعة" [level=3] [ref=e84]:
+          - generic [ref=e85]: 🎯
+          - generic [ref=e86]: فلاتر سريعة
+        - generic [ref=e87]:
+          - button "📊 الكل 1570" [ref=e88] [cursor=pointer]:
+            - generic [ref=e89]: 📊
+            - generic [ref=e90]: الكل
+            - generic [ref=e91]: "1570"
+          - button "🟢 نشط 590" [ref=e92] [cursor=pointer]:
+            - generic [ref=e93]: 🟢
+            - generic [ref=e94]: نشط
+            - generic [ref=e95]: "590"
+          - button "🟡 ينتهي قريباً (7 أيام) 40" [ref=e96] [cursor=pointer]:
+            - generic [ref=e97]: 🟡
+            - generic [ref=e98]: ينتهي قريباً (7 أيام)
+            - generic [ref=e99]: "40"
+          - button "🔴 منتهي الاشتراك 980" [ref=e100] [cursor=pointer]:
+            - generic [ref=e101]: 🔴
+            - generic [ref=e102]: منتهي الاشتراك
+            - generic [ref=e103]: "980"
+          - button "📈 التحليلات" [ref=e104] [cursor=pointer]:
+            - generic [ref=e105]: 📈
+            - generic [ref=e106]: التحليلات
+          - button "🚫 المحظورون" [ref=e107] [cursor=pointer]:
+            - generic [ref=e108]: 🚫
+            - generic [ref=e109]: المحظورون
+        - generic [ref=e110]:
+          - heading "📦 فلترة حسب الباقة" [level=4] [ref=e111]:
+            - generic [ref=e112]: 📦
+            - generic [ref=e113]: فلترة حسب الباقة
+          - generic [ref=e114]:
+            - button "الكل 1570" [ref=e115] [cursor=pointer]:
+              - generic [ref=e116]: الكل
+              - generic [ref=e117]: "1570"
+            - button "شهر 356" [ref=e118] [cursor=pointer]:
+              - generic [ref=e119]: شهر
+              - generic [ref=e120]: "356"
+            - button "3 شهور 392" [ref=e121] [cursor=pointer]:
+              - generic [ref=e122]: 3 شهور
+              - generic [ref=e123]: "392"
+            - button "6 شهور 197" [ref=e124] [cursor=pointer]:
+              - generic [ref=e125]: 6 شهور
+              - generic [ref=e126]: "197"
+            - button "سنة 99" [ref=e127] [cursor=pointer]:
+              - generic [ref=e128]: سنة
+              - generic [ref=e129]: "99"
+        - generic [ref=e130]:
+          - generic [ref=e131]: 📅 فلتر حسب تاريخ انتهاء معين
+          - textbox [ref=e133]
+      - generic [ref=e134]:
+        - heading "🔍 بحث مباشر" [level=3] [ref=e136]:
+          - generic [ref=e137]: 🔍
+          - generic [ref=e138]: بحث مباشر
+        - generic [ref=e139]:
+          - generic [ref=e140]:
+            - generic [ref=e141]: رقم العضوية (ID)
+            - textbox "ابحث برقم العضوية..." [ref=e142]
+          - generic [ref=e143]:
+            - generic [ref=e144]: الاسم
+            - textbox "ابحث بالاسم..." [ref=e145]
+          - generic [ref=e146]:
+            - generic [ref=e147]: رقم الهاتف
+            - textbox "ابحث برقم الهاتف..." [ref=e148]
+      - generic [ref=e149]:
+        - table [ref=e151]:
+          - rowgroup [ref=e152]:
+            - row "الصورة ID الاسم رقم الهاتف السعر الباقة الحالة تاريخ البداية تاريخ الانتهاء إجراءات" [ref=e153]:
+              - columnheader "الصورة" [ref=e154]
+              - columnheader "ID" [ref=e155]
+              - columnheader "الاسم" [ref=e156]
+              - columnheader "رقم الهاتف" [ref=e157]
+              - columnheader "السعر" [ref=e158]
+              - columnheader "الباقة" [ref=e159]
+              - columnheader "الحالة" [ref=e160]
+              - columnheader "تاريخ البداية" [ref=e161]
+              - columnheader "تاريخ الانتهاء" [ref=e162]
+              - columnheader "إجراءات" [ref=e163]
+          - rowgroup [ref=e164]:
+            - 'row "شريف مدير محمود #1686 شريف مدير محمود 01221334908 800 ج.م شهر 🟢 نشط 2026-02-18 2026-03-18 باقي 24 يوم 👁️ عرض التفاصيل" [ref=e165]':
+              - cell "شريف مدير محمود" [ref=e166]:
+                - img "شريف مدير محمود" [ref=e168]
+              - cell "#1686" [ref=e169]
+              - cell "شريف مدير محمود" [ref=e170]:
+                - generic [ref=e172]: شريف مدير محمود
+              - cell "01221334908" [ref=e173]:
+                - link "01221334908" [ref=e174] [cursor=pointer]:
+                  - /url: https://wa.me/+201221334908
+              - cell "800 ج.م" [ref=e175]
+              - cell "شهر" [ref=e176]
+              - cell "🟢 نشط" [ref=e177]:
+                - generic [ref=e178]:
+                  - generic [ref=e179]: 🟢
+                  - text: نشط
+              - cell "2026-02-18" [ref=e180]
+              - cell "2026-03-18 باقي 24 يوم" [ref=e181]:
+                - generic [ref=e182]:
+                  - text: 2026-03-18
+                  - paragraph [ref=e183]: باقي 24 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e184]:
+                - button "👁️ عرض التفاصيل" [ref=e185] [cursor=pointer]
+            - row "#1685 ساره اكرم يوسف 01282232550 1500 ج.م 4 شهور 🟢 نشط 2026-02-15 2026-06-15 باقي 113 يوم 👁️ عرض التفاصيل" [ref=e186]:
+              - cell [ref=e187]:
+                - img [ref=e190]
+              - cell "#1685" [ref=e192]
+              - cell "ساره اكرم يوسف" [ref=e193]:
+                - generic [ref=e195]: ساره اكرم يوسف
+              - cell "01282232550" [ref=e196]:
+                - link "01282232550" [ref=e197] [cursor=pointer]:
+                  - /url: https://wa.me/+201282232550
+              - cell "1500 ج.م" [ref=e198]
+              - cell "4 شهور" [ref=e199]
+              - cell "🟢 نشط" [ref=e200]:
+                - generic [ref=e201]:
+                  - generic [ref=e202]: 🟢
+                  - text: نشط
+              - cell "2026-02-15" [ref=e203]
+              - cell "2026-06-15 باقي 113 يوم" [ref=e204]:
+                - generic [ref=e205]:
+                  - text: 2026-06-15
+                  - paragraph [ref=e206]: باقي 113 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e207]:
+                - button "👁️ عرض التفاصيل" [ref=e208] [cursor=pointer]
+            - row "#1684 عبدالرحمن خميس 01144074228 1500 ج.م 4 شهور 🟢 نشط 2026-02-15 2026-06-15 باقي 113 يوم 👁️ عرض التفاصيل" [ref=e209]:
+              - cell [ref=e210]:
+                - img [ref=e213]
+              - cell "#1684" [ref=e215]
+              - cell "عبدالرحمن خميس" [ref=e216]:
+                - generic [ref=e218]: عبدالرحمن خميس
+              - cell "01144074228" [ref=e219]:
+                - link "01144074228" [ref=e220] [cursor=pointer]:
+                  - /url: https://wa.me/+201144074228
+              - cell "1500 ج.م" [ref=e221]
+              - cell "4 شهور" [ref=e222]
+              - cell "🟢 نشط" [ref=e223]:
+                - generic [ref=e224]:
+                  - generic [ref=e225]: 🟢
+                  - text: نشط
+              - cell "2026-02-15" [ref=e226]
+              - cell "2026-06-15 باقي 113 يوم" [ref=e227]:
+                - generic [ref=e228]:
+                  - text: 2026-06-15
+                  - paragraph [ref=e229]: باقي 113 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e230]:
+                - button "👁️ عرض التفاصيل" [ref=e231] [cursor=pointer]
+            - row "#1683 زياد احمد فكرى 01101637908 1500 ج.م 4 شهور 🟢 نشط 2026-02-14 2026-06-14 باقي 112 يوم 👁️ عرض التفاصيل" [ref=e232]:
+              - cell [ref=e233]:
+                - img [ref=e236]
+              - cell "#1683" [ref=e238]
+              - cell "زياد احمد فكرى" [ref=e239]:
+                - generic [ref=e241]: زياد احمد فكرى
+              - cell "01101637908" [ref=e242]:
+                - link "01101637908" [ref=e243] [cursor=pointer]:
+                  - /url: https://wa.me/+201101637908
+              - cell "1500 ج.م" [ref=e244]
+              - cell "4 شهور" [ref=e245]
+              - cell "🟢 نشط" [ref=e246]:
+                - generic [ref=e247]:
+                  - generic [ref=e248]: 🟢
+                  - text: نشط
+              - cell "2026-02-14" [ref=e249]
+              - cell "2026-06-14 باقي 112 يوم" [ref=e250]:
+                - generic [ref=e251]:
+                  - text: 2026-06-14
+                  - paragraph [ref=e252]: باقي 112 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e253]:
+                - button "👁️ عرض التفاصيل" [ref=e254] [cursor=pointer]
+            - 'row "عمر رامى احمد #1682 عمر رامى احمد 01033438488 550 ج.م أسبوعين 🟡 ينتهي قريباً 2026-02-13 2026-02-28 ⚠️ باقي 6 يوم 👁️ عرض التفاصيل" [ref=e255]':
+              - cell "عمر رامى احمد" [ref=e256]:
+                - img "عمر رامى احمد" [ref=e258]
+              - cell "#1682" [ref=e259]
+              - cell "عمر رامى احمد" [ref=e260]:
+                - generic [ref=e262]: عمر رامى احمد
+              - cell "01033438488" [ref=e263]:
+                - link "01033438488" [ref=e264] [cursor=pointer]:
+                  - /url: https://wa.me/+201033438488
+              - cell "550 ج.م" [ref=e265]
+              - cell "أسبوعين" [ref=e266]
+              - cell "🟡 ينتهي قريباً" [ref=e267]:
+                - generic [ref=e268]:
+                  - generic [ref=e269]: 🟡
+                  - text: ينتهي قريباً
+              - cell "2026-02-13" [ref=e270]
+              - cell "2026-02-28 ⚠️ باقي 6 يوم" [ref=e271]:
+                - generic [ref=e272]:
+                  - text: 2026-02-28
+                  - paragraph [ref=e273]: ⚠️ باقي 6 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e274]:
+                - button "👁️ عرض التفاصيل" [ref=e275] [cursor=pointer]
+            - 'row "ياسين حسن #1681 ياسين حسن 01067689996 1500 ج.م 4 شهور 🟢 نشط 2026-02-11 2026-06-11 باقي 109 يوم 👁️ عرض التفاصيل" [ref=e276]':
+              - cell "ياسين حسن" [ref=e277]:
+                - img "ياسين حسن" [ref=e279]
+              - cell "#1681" [ref=e280]
+              - cell "ياسين حسن" [ref=e281]:
+                - generic [ref=e283]: ياسين حسن
+              - cell "01067689996" [ref=e284]:
+                - link "01067689996" [ref=e285] [cursor=pointer]:
+                  - /url: https://wa.me/+201067689996
+              - cell "1500 ج.م" [ref=e286]
+              - cell "4 شهور" [ref=e287]
+              - cell "🟢 نشط" [ref=e288]:
+                - generic [ref=e289]:
+                  - generic [ref=e290]: 🟢
+                  - text: نشط
+              - cell "2026-02-11" [ref=e291]
+              - cell "2026-06-11 باقي 109 يوم" [ref=e292]:
+                - generic [ref=e293]:
+                  - text: 2026-06-11
+                  - paragraph [ref=e294]: باقي 109 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e295]:
+                - button "👁️ عرض التفاصيل" [ref=e296] [cursor=pointer]
+            - 'row "شادي خالد #1680 شادي خالد 01557667409 1500 ج.م 4 شهور 🟢 نشط 2026-02-11 2026-06-11 باقي 109 يوم 👁️ عرض التفاصيل" [ref=e297]':
+              - cell "شادي خالد" [ref=e298]:
+                - img "شادي خالد" [ref=e300]
+              - cell "#1680" [ref=e301]
+              - cell "شادي خالد" [ref=e302]:
+                - generic [ref=e304]: شادي خالد
+              - cell "01557667409" [ref=e305]:
+                - link "01557667409" [ref=e306] [cursor=pointer]:
+                  - /url: https://wa.me/+201557667409
+              - cell "1500 ج.م" [ref=e307]
+              - cell "4 شهور" [ref=e308]
+              - cell "🟢 نشط" [ref=e309]:
+                - generic [ref=e310]:
+                  - generic [ref=e311]: 🟢
+                  - text: نشط
+              - cell "2026-02-11" [ref=e312]
+              - cell "2026-06-11 باقي 109 يوم" [ref=e313]:
+                - generic [ref=e314]:
+                  - text: 2026-06-11
+                  - paragraph [ref=e315]: باقي 109 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e316]:
+                - button "👁️ عرض التفاصيل" [ref=e317] [cursor=pointer]
+            - row "#1679 اسامه عبد الغني 01029319336 1500 ج.م 4 شهور 🟢 نشط 2026-02-10 2026-06-10 باقي 108 يوم 👁️ عرض التفاصيل" [ref=e318]:
+              - cell [ref=e319]:
+                - img [ref=e322]
+              - cell "#1679" [ref=e324]
+              - cell "اسامه عبد الغني" [ref=e325]:
+                - generic [ref=e327]: اسامه عبد الغني
+              - cell "01029319336" [ref=e328]:
+                - link "01029319336" [ref=e329] [cursor=pointer]:
+                  - /url: https://wa.me/+201029319336
+              - cell "1500 ج.م" [ref=e330]
+              - cell "4 شهور" [ref=e331]
+              - cell "🟢 نشط" [ref=e332]:
+                - generic [ref=e333]:
+                  - generic [ref=e334]: 🟢
+                  - text: نشط
+              - cell "2026-02-10" [ref=e335]
+              - cell "2026-06-10 باقي 108 يوم" [ref=e336]:
+                - generic [ref=e337]:
+                  - text: 2026-06-10
+                  - paragraph [ref=e338]: باقي 108 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e339]:
+                - button "👁️ عرض التفاصيل" [ref=e340] [cursor=pointer]
+            - row "#1678 احمد حسام عبدالحافظ 01009198757 1000 ج.م 4 شهور 🟢 نشط 2026-02-10 2026-06-10 باقي 108 يوم 👁️ عرض التفاصيل" [ref=e341]:
+              - cell [ref=e342]:
+                - img [ref=e345]
+              - cell "#1678" [ref=e347]
+              - cell "احمد حسام عبدالحافظ" [ref=e348]:
+                - generic [ref=e350]: احمد حسام عبدالحافظ
+              - cell "01009198757" [ref=e351]:
+                - link "01009198757" [ref=e352] [cursor=pointer]:
+                  - /url: https://wa.me/+201009198757
+              - cell "1000 ج.م" [ref=e353]
+              - cell "4 شهور" [ref=e354]
+              - cell "🟢 نشط" [ref=e355]:
+                - generic [ref=e356]:
+                  - generic [ref=e357]: 🟢
+                  - text: نشط
+              - cell "2026-02-10" [ref=e358]
+              - cell "2026-06-10 باقي 108 يوم" [ref=e359]:
+                - generic [ref=e360]:
+                  - text: 2026-06-10
+                  - paragraph [ref=e361]: باقي 108 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e362]:
+                - button "👁️ عرض التفاصيل" [ref=e363] [cursor=pointer]
+            - row "#1677 محمد نوح مصطفى 01146694942 800 ج.م شهر 🟢 نشط 2026-02-09 2026-03-11 باقي 17 يوم 👁️ عرض التفاصيل" [ref=e364]:
+              - cell [ref=e365]:
+                - img [ref=e368]
+              - cell "#1677" [ref=e370]
+              - cell "محمد نوح مصطفى" [ref=e371]:
+                - generic [ref=e373]: محمد نوح مصطفى
+              - cell "01146694942" [ref=e374]:
+                - link "01146694942" [ref=e375] [cursor=pointer]:
+                  - /url: https://wa.me/+201146694942
+              - cell "800 ج.م" [ref=e376]
+              - cell "شهر" [ref=e377]
+              - cell "🟢 نشط" [ref=e378]:
+                - generic [ref=e379]:
+                  - generic [ref=e380]: 🟢
+                  - text: نشط
+              - cell "2026-02-09" [ref=e381]
+              - cell "2026-03-11 باقي 17 يوم" [ref=e382]:
+                - generic [ref=e383]:
+                  - text: 2026-03-11
+                  - paragraph [ref=e384]: باقي 17 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e385]:
+                - button "👁️ عرض التفاصيل" [ref=e386] [cursor=pointer]
+            - row "#1676 ياسين ياسر 01008341176 1500 ج.م 4 شهور 🟢 نشط 2026-02-09 2026-06-09 باقي 107 يوم 👁️ عرض التفاصيل" [ref=e387]:
+              - cell [ref=e388]:
+                - img [ref=e391]
+              - cell "#1676" [ref=e393]
+              - cell "ياسين ياسر" [ref=e394]:
+                - generic [ref=e396]: ياسين ياسر
+              - cell "01008341176" [ref=e397]:
+                - link "01008341176" [ref=e398] [cursor=pointer]:
+                  - /url: https://wa.me/+201008341176
+              - cell "1500 ج.م" [ref=e399]
+              - cell "4 شهور" [ref=e400]
+              - cell "🟢 نشط" [ref=e401]:
+                - generic [ref=e402]:
+                  - generic [ref=e403]: 🟢
+                  - text: نشط
+              - cell "2026-02-09" [ref=e404]
+              - cell "2026-06-09 باقي 107 يوم" [ref=e405]:
+                - generic [ref=e406]:
+                  - text: 2026-06-09
+                  - paragraph [ref=e407]: باقي 107 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e408]:
+                - button "👁️ عرض التفاصيل" [ref=e409] [cursor=pointer]
+            - row "#1675 ايمن صادق 01515312149 1500 ج.م 4 شهور 🟢 نشط 2026-02-09 2026-06-09 باقي 107 يوم 👁️ عرض التفاصيل" [ref=e410]:
+              - cell [ref=e411]:
+                - img [ref=e414]
+              - cell "#1675" [ref=e416]
+              - cell "ايمن صادق" [ref=e417]:
+                - generic [ref=e419]: ايمن صادق
+              - cell "01515312149" [ref=e420]:
+                - link "01515312149" [ref=e421] [cursor=pointer]:
+                  - /url: https://wa.me/+201515312149
+              - cell "1500 ج.م" [ref=e422]
+              - cell "4 شهور" [ref=e423]
+              - cell "🟢 نشط" [ref=e424]:
+                - generic [ref=e425]:
+                  - generic [ref=e426]: 🟢
+                  - text: نشط
+              - cell "2026-02-09" [ref=e427]
+              - cell "2026-06-09 باقي 107 يوم" [ref=e428]:
+                - generic [ref=e429]:
+                  - text: 2026-06-09
+                  - paragraph [ref=e430]: باقي 107 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e431]:
+                - button "👁️ عرض التفاصيل" [ref=e432] [cursor=pointer]
+            - row "#1674 ايمن عبد الغني 01500386064 1500 ج.م 4 شهور 🟢 نشط 2026-02-09 2026-06-09 باقي 107 يوم 👁️ عرض التفاصيل" [ref=e433]:
+              - cell [ref=e434]:
+                - img [ref=e437]
+              - cell "#1674" [ref=e439]
+              - cell "ايمن عبد الغني" [ref=e440]:
+                - generic [ref=e442]: ايمن عبد الغني
+              - cell "01500386064" [ref=e443]:
+                - link "01500386064" [ref=e444] [cursor=pointer]:
+                  - /url: https://wa.me/+201500386064
+              - cell "1500 ج.م" [ref=e445]
+              - cell "4 شهور" [ref=e446]
+              - cell "🟢 نشط" [ref=e447]:
+                - generic [ref=e448]:
+                  - generic [ref=e449]: 🟢
+                  - text: نشط
+              - cell "2026-02-09" [ref=e450]
+              - cell "2026-06-09 باقي 107 يوم" [ref=e451]:
+                - generic [ref=e452]:
+                  - text: 2026-06-09
+                  - paragraph [ref=e453]: باقي 107 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e454]:
+                - button "👁️ عرض التفاصيل" [ref=e455] [cursor=pointer]
+            - row "#1673 نور الدين محمد حسين 01012959393 1500 ج.م 4 شهور 🟢 نشط 2026-02-09 2026-06-09 باقي 107 يوم 👁️ عرض التفاصيل" [ref=e456]:
+              - cell [ref=e457]:
+                - img [ref=e460]
+              - cell "#1673" [ref=e462]
+              - cell "نور الدين محمد حسين" [ref=e463]:
+                - generic [ref=e465]: نور الدين محمد حسين
+              - cell "01012959393" [ref=e466]:
+                - link "01012959393" [ref=e467] [cursor=pointer]:
+                  - /url: https://wa.me/+201012959393
+              - cell "1500 ج.م" [ref=e468]
+              - cell "4 شهور" [ref=e469]
+              - cell "🟢 نشط" [ref=e470]:
+                - generic [ref=e471]:
+                  - generic [ref=e472]: 🟢
+                  - text: نشط
+              - cell "2026-02-09" [ref=e473]
+              - cell "2026-06-09 باقي 107 يوم" [ref=e474]:
+                - generic [ref=e475]:
+                  - text: 2026-06-09
+                  - paragraph [ref=e476]: باقي 107 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e477]:
+                - button "👁️ عرض التفاصيل" [ref=e478] [cursor=pointer]
+            - row "#1672 عبدالرحمن محمد 01146623394 1500 ج.م 4 شهور 🟢 نشط 2026-02-09 2026-06-09 باقي 107 يوم 👁️ عرض التفاصيل" [ref=e479]:
+              - cell [ref=e480]:
+                - img [ref=e483]
+              - cell "#1672" [ref=e485]
+              - cell "عبدالرحمن محمد" [ref=e486]:
+                - generic [ref=e488]: عبدالرحمن محمد
+              - cell "01146623394" [ref=e489]:
+                - link "01146623394" [ref=e490] [cursor=pointer]:
+                  - /url: https://wa.me/+201146623394
+              - cell "1500 ج.م" [ref=e491]
+              - cell "4 شهور" [ref=e492]
+              - cell "🟢 نشط" [ref=e493]:
+                - generic [ref=e494]:
+                  - generic [ref=e495]: 🟢
+                  - text: نشط
+              - cell "2026-02-09" [ref=e496]
+              - cell "2026-06-09 باقي 107 يوم" [ref=e497]:
+                - generic [ref=e498]:
+                  - text: 2026-06-09
+                  - paragraph [ref=e499]: باقي 107 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e500]:
+                - button "👁️ عرض التفاصيل" [ref=e501] [cursor=pointer]
+            - 'row "حبيب #1671 حبيب 01554780317 1500 ج.م 4 شهور 🟢 نشط 2026-02-08 2026-06-08 باقي 106 يوم 👁️ عرض التفاصيل" [ref=e502]':
+              - cell "حبيب" [ref=e503]:
+                - img "حبيب" [ref=e505]
+              - cell "#1671" [ref=e506]
+              - cell "حبيب" [ref=e507]:
+                - generic [ref=e509]: حبيب
+              - cell "01554780317" [ref=e510]:
+                - link "01554780317" [ref=e511] [cursor=pointer]:
+                  - /url: https://wa.me/+201554780317
+              - cell "1500 ج.م" [ref=e512]
+              - cell "4 شهور" [ref=e513]
+              - cell "🟢 نشط" [ref=e514]:
+                - generic [ref=e515]:
+                  - generic [ref=e516]: 🟢
+                  - text: نشط
+              - cell "2026-02-08" [ref=e517]
+              - cell "2026-06-08 باقي 106 يوم" [ref=e518]:
+                - generic [ref=e519]:
+                  - text: 2026-06-08
+                  - paragraph [ref=e520]: باقي 106 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e521]:
+                - button "👁️ عرض التفاصيل" [ref=e522] [cursor=pointer]
+            - 'row "اسامه محمد #1670 اسامه محمد 01140378073 2000 ج.م 6 شهور 🟢 نشط 2026-02-08 2026-08-07 باقي 166 يوم 👁️ عرض التفاصيل" [ref=e523]':
+              - cell "اسامه محمد" [ref=e524]:
+                - img "اسامه محمد" [ref=e526]
+              - cell "#1670" [ref=e527]
+              - cell "اسامه محمد" [ref=e528]:
+                - generic [ref=e530]: اسامه محمد
+              - cell "01140378073" [ref=e531]:
+                - link "01140378073" [ref=e532] [cursor=pointer]:
+                  - /url: https://wa.me/+201140378073
+              - cell "2000 ج.م" [ref=e533]
+              - cell "6 شهور" [ref=e534]
+              - cell "🟢 نشط" [ref=e535]:
+                - generic [ref=e536]:
+                  - generic [ref=e537]: 🟢
+                  - text: نشط
+              - cell "2026-02-08" [ref=e538]
+              - cell "2026-08-07 باقي 166 يوم" [ref=e539]:
+                - generic [ref=e540]:
+                  - text: 2026-08-07
+                  - paragraph [ref=e541]: باقي 166 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e542]:
+                - button "👁️ عرض التفاصيل" [ref=e543] [cursor=pointer]
+            - row "#1669 عمر حمدي سعد 01024415138 2800 ج.م 6 شهور 🟢 نشط 2026-02-08 2026-08-07 باقي 166 يوم 👁️ عرض التفاصيل" [ref=e544]:
+              - cell [ref=e545]:
+                - img [ref=e548]
+              - cell "#1669" [ref=e550]
+              - cell "عمر حمدي سعد" [ref=e551]:
+                - generic [ref=e553]: عمر حمدي سعد
+              - cell "01024415138" [ref=e554]:
+                - link "01024415138" [ref=e555] [cursor=pointer]:
+                  - /url: https://wa.me/+201024415138
+              - cell "2800 ج.م" [ref=e556]
+              - cell "6 شهور" [ref=e557]
+              - cell "🟢 نشط" [ref=e558]:
+                - generic [ref=e559]:
+                  - generic [ref=e560]: 🟢
+                  - text: نشط
+              - cell "2026-02-08" [ref=e561]
+              - cell "2026-08-07 باقي 166 يوم" [ref=e562]:
+                - generic [ref=e563]:
+                  - text: 2026-08-07
+                  - paragraph [ref=e564]: باقي 166 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e565]:
+                - button "👁️ عرض التفاصيل" [ref=e566] [cursor=pointer]
+            - 'row "عمرو خليل محمد #1668 عمرو خليل محمد 01120461615 2000 ج.م 6 شهور 🟢 نشط 2026-02-08 2026-08-07 باقي 166 يوم 👁️ عرض التفاصيل" [ref=e567]':
+              - cell "عمرو خليل محمد" [ref=e568]:
+                - img "عمرو خليل محمد" [ref=e570]
+              - cell "#1668" [ref=e571]
+              - cell "عمرو خليل محمد" [ref=e572]:
+                - generic [ref=e574]: عمرو خليل محمد
+              - cell "01120461615" [ref=e575]:
+                - link "01120461615" [ref=e576] [cursor=pointer]:
+                  - /url: https://wa.me/+201120461615
+              - cell "2000 ج.م" [ref=e577]
+              - cell "6 شهور" [ref=e578]
+              - cell "🟢 نشط" [ref=e579]:
+                - generic [ref=e580]:
+                  - generic [ref=e581]: 🟢
+                  - text: نشط
+              - cell "2026-02-08" [ref=e582]
+              - cell "2026-08-07 باقي 166 يوم" [ref=e583]:
+                - generic [ref=e584]:
+                  - text: 2026-08-07
+                  - paragraph [ref=e585]: باقي 166 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e586]:
+                - button "👁️ عرض التفاصيل" [ref=e587] [cursor=pointer]
+            - row "#1667 احمد اسامه 01063569435 1500 ج.م 4 شهور 🟢 نشط 2026-02-07 2026-06-07 باقي 105 يوم 👁️ عرض التفاصيل" [ref=e588]:
+              - cell [ref=e589]:
+                - img [ref=e592]
+              - cell "#1667" [ref=e594]
+              - cell "احمد اسامه" [ref=e595]:
+                - generic [ref=e597]: احمد اسامه
+              - cell "01063569435" [ref=e598]:
+                - link "01063569435" [ref=e599] [cursor=pointer]:
+                  - /url: https://wa.me/+201063569435
+              - cell "1500 ج.م" [ref=e600]
+              - cell "4 شهور" [ref=e601]
+              - cell "🟢 نشط" [ref=e602]:
+                - generic [ref=e603]:
+                  - generic [ref=e604]: 🟢
+                  - text: نشط
+              - cell "2026-02-07" [ref=e605]
+              - cell "2026-06-07 باقي 105 يوم" [ref=e606]:
+                - generic [ref=e607]:
+                  - text: 2026-06-07
+                  - paragraph [ref=e608]: باقي 105 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e609]:
+                - button "👁️ عرض التفاصيل" [ref=e610] [cursor=pointer]
+            - row "#1666 عبدالرحمن سمير عبدالكريم 01007327982 1500 ج.م 4 شهور 🟢 نشط 2026-02-07 2026-06-07 باقي 105 يوم 👁️ عرض التفاصيل" [ref=e611]:
+              - cell [ref=e612]:
+                - img [ref=e615]
+              - cell "#1666" [ref=e617]
+              - cell "عبدالرحمن سمير عبدالكريم" [ref=e618]:
+                - generic [ref=e620]: عبدالرحمن سمير عبدالكريم
+              - cell "01007327982" [ref=e621]:
+                - link "01007327982" [ref=e622] [cursor=pointer]:
+                  - /url: https://wa.me/+201007327982
+              - cell "1500 ج.م" [ref=e623]
+              - cell "4 شهور" [ref=e624]
+              - cell "🟢 نشط" [ref=e625]:
+                - generic [ref=e626]:
+                  - generic [ref=e627]: 🟢
+                  - text: نشط
+              - cell "2026-02-07" [ref=e628]
+              - cell "2026-06-07 باقي 105 يوم" [ref=e629]:
+                - generic [ref=e630]:
+                  - text: 2026-06-07
+                  - paragraph [ref=e631]: باقي 105 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e632]:
+                - button "👁️ عرض التفاصيل" [ref=e633] [cursor=pointer]
+            - row "#1664 مهند مصطفي 01210045328 1800 ج.م 4 شهور 🟢 نشط 2026-02-07 2026-06-07 باقي 105 يوم 👁️ عرض التفاصيل" [ref=e634]:
+              - cell [ref=e635]:
+                - img [ref=e638]
+              - cell "#1664" [ref=e640]
+              - cell "مهند مصطفي" [ref=e641]:
+                - generic [ref=e643]: مهند مصطفي
+              - cell "01210045328" [ref=e644]:
+                - link "01210045328" [ref=e645] [cursor=pointer]:
+                  - /url: https://wa.me/+201210045328
+              - cell "1800 ج.م" [ref=e646]
+              - cell "4 شهور" [ref=e647]
+              - cell "🟢 نشط" [ref=e648]:
+                - generic [ref=e649]:
+                  - generic [ref=e650]: 🟢
+                  - text: نشط
+              - cell "2026-02-07" [ref=e651]
+              - cell "2026-06-07 باقي 105 يوم" [ref=e652]:
+                - generic [ref=e653]:
+                  - text: 2026-06-07
+                  - paragraph [ref=e654]: باقي 105 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e655]:
+                - button "👁️ عرض التفاصيل" [ref=e656] [cursor=pointer]
+            - row "#1663 بدر اسعد 01010227521 1800 ج.م 4 شهور 🟢 نشط 2026-02-06 2026-06-06 باقي 104 يوم 👁️ عرض التفاصيل" [ref=e657]:
+              - cell [ref=e658]:
+                - img [ref=e661]
+              - cell "#1663" [ref=e663]
+              - cell "بدر اسعد" [ref=e664]:
+                - generic [ref=e666]: بدر اسعد
+              - cell "01010227521" [ref=e667]:
+                - link "01010227521" [ref=e668] [cursor=pointer]:
+                  - /url: https://wa.me/+201010227521
+              - cell "1800 ج.م" [ref=e669]
+              - cell "4 شهور" [ref=e670]
+              - cell "🟢 نشط" [ref=e671]:
+                - generic [ref=e672]:
+                  - generic [ref=e673]: 🟢
+                  - text: نشط
+              - cell "2026-02-06" [ref=e674]
+              - cell "2026-06-06 باقي 104 يوم" [ref=e675]:
+                - generic [ref=e676]:
+                  - text: 2026-06-06
+                  - paragraph [ref=e677]: باقي 104 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e678]:
+                - button "👁️ عرض التفاصيل" [ref=e679] [cursor=pointer]
+            - row "#1662 عبدالوهاب امجد 0111473007 800 ج.م شهر 🟢 نشط 2026-02-05 2026-03-07 باقي 13 يوم 👁️ عرض التفاصيل" [ref=e680]:
+              - cell [ref=e681]:
+                - img [ref=e684]
+              - cell "#1662" [ref=e686]
+              - cell "عبدالوهاب امجد" [ref=e687]:
+                - generic [ref=e689]: عبدالوهاب امجد
+              - cell "0111473007" [ref=e690]:
+                - link "0111473007" [ref=e691] [cursor=pointer]:
+                  - /url: https://wa.me/+20111473007
+              - cell "800 ج.م" [ref=e692]
+              - cell "شهر" [ref=e693]
+              - cell "🟢 نشط" [ref=e694]:
+                - generic [ref=e695]:
+                  - generic [ref=e696]: 🟢
+                  - text: نشط
+              - cell "2026-02-05" [ref=e697]
+              - cell "2026-03-07 باقي 13 يوم" [ref=e698]:
+                - generic [ref=e699]:
+                  - text: 2026-03-07
+                  - paragraph [ref=e700]: باقي 13 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e701]:
+                - button "👁️ عرض التفاصيل" [ref=e702] [cursor=pointer]
+            - row "#1661 عبدالوهاب امجد 01114733007 1800 ج.م 4 شهور 🟢 نشط 2026-02-05 2026-06-05 باقي 103 يوم 👁️ عرض التفاصيل" [ref=e703]:
+              - cell [ref=e704]:
+                - img [ref=e707]
+              - cell "#1661" [ref=e709]
+              - cell "عبدالوهاب امجد" [ref=e710]:
+                - generic [ref=e712]: عبدالوهاب امجد
+              - cell "01114733007" [ref=e713]:
+                - link "01114733007" [ref=e714] [cursor=pointer]:
+                  - /url: https://wa.me/+201114733007
+              - cell "1800 ج.م" [ref=e715]
+              - cell "4 شهور" [ref=e716]
+              - cell "🟢 نشط" [ref=e717]:
+                - generic [ref=e718]:
+                  - generic [ref=e719]: 🟢
+                  - text: نشط
+              - cell "2026-02-05" [ref=e720]
+              - cell "2026-06-05 باقي 103 يوم" [ref=e721]:
+                - generic [ref=e722]:
+                  - text: 2026-06-05
+                  - paragraph [ref=e723]: باقي 103 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e724]:
+                - button "👁️ عرض التفاصيل" [ref=e725] [cursor=pointer]
+            - row "#1660 اسلام ايمن 01155779366 600 ج.م شهر 🟢 نشط 2026-02-04 2026-03-06 باقي 12 يوم 👁️ عرض التفاصيل" [ref=e726]:
+              - cell [ref=e727]:
+                - img [ref=e730]
+              - cell "#1660" [ref=e732]
+              - cell "اسلام ايمن" [ref=e733]:
+                - generic [ref=e735]: اسلام ايمن
+              - cell "01155779366" [ref=e736]:
+                - link "01155779366" [ref=e737] [cursor=pointer]:
+                  - /url: https://wa.me/+201155779366
+              - cell "600 ج.م" [ref=e738]
+              - cell "شهر" [ref=e739]
+              - cell "🟢 نشط" [ref=e740]:
+                - generic [ref=e741]:
+                  - generic [ref=e742]: 🟢
+                  - text: نشط
+              - cell "2026-02-04" [ref=e743]
+              - cell "2026-03-06 باقي 12 يوم" [ref=e744]:
+                - generic [ref=e745]:
+                  - text: 2026-03-06
+                  - paragraph [ref=e746]: باقي 12 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e747]:
+                - button "👁️ عرض التفاصيل" [ref=e748] [cursor=pointer]
+            - row "#1659 احمد ناصر 0105092888 600 ج.م شهر 🟢 نشط 2026-02-04 2026-03-06 باقي 12 يوم 👁️ عرض التفاصيل" [ref=e749]:
+              - cell [ref=e750]:
+                - img [ref=e753]
+              - cell "#1659" [ref=e755]
+              - cell "احمد ناصر" [ref=e756]:
+                - generic [ref=e758]: احمد ناصر
+              - cell "0105092888" [ref=e759]:
+                - link "0105092888" [ref=e760] [cursor=pointer]:
+                  - /url: https://wa.me/+20105092888
+              - cell "600 ج.م" [ref=e761]
+              - cell "شهر" [ref=e762]
+              - cell "🟢 نشط" [ref=e763]:
+                - generic [ref=e764]:
+                  - generic [ref=e765]: 🟢
+                  - text: نشط
+              - cell "2026-02-04" [ref=e766]
+              - cell "2026-03-06 باقي 12 يوم" [ref=e767]:
+                - generic [ref=e768]:
+                  - text: 2026-03-06
+                  - paragraph [ref=e769]: باقي 12 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e770]:
+                - button "👁️ عرض التفاصيل" [ref=e771] [cursor=pointer]
+            - row "#1658 عبد الرحمن خالد محمد 01204353724 1800 ج.م 4 شهور 🟢 نشط 2026-02-04 2026-06-04 باقي 102 يوم 👁️ عرض التفاصيل" [ref=e772]:
+              - cell [ref=e773]:
+                - img [ref=e776]
+              - cell "#1658" [ref=e778]
+              - cell "عبد الرحمن خالد محمد" [ref=e779]:
+                - generic [ref=e781]: عبد الرحمن خالد محمد
+              - cell "01204353724" [ref=e782]:
+                - link "01204353724" [ref=e783] [cursor=pointer]:
+                  - /url: https://wa.me/+201204353724
+              - cell "1800 ج.م" [ref=e784]
+              - cell "4 شهور" [ref=e785]
+              - cell "🟢 نشط" [ref=e786]:
+                - generic [ref=e787]:
+                  - generic [ref=e788]: 🟢
+                  - text: نشط
+              - cell "2026-02-04" [ref=e789]
+              - cell "2026-06-04 باقي 102 يوم" [ref=e790]:
+                - generic [ref=e791]:
+                  - text: 2026-06-04
+                  - paragraph [ref=e792]: باقي 102 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e793]:
+                - button "👁️ عرض التفاصيل" [ref=e794] [cursor=pointer]
+            - row "#1657 عليا محمود 01030301817 800 ج.م شهر 🟢 نشط 2026-02-04 2026-03-06 باقي 12 يوم 👁️ عرض التفاصيل" [ref=e795]:
+              - cell [ref=e796]:
+                - img [ref=e799]
+              - cell "#1657" [ref=e801]
+              - cell "عليا محمود" [ref=e802]:
+                - generic [ref=e804]: عليا محمود
+              - cell "01030301817" [ref=e805]:
+                - link "01030301817" [ref=e806] [cursor=pointer]:
+                  - /url: https://wa.me/+201030301817
+              - cell "800 ج.م" [ref=e807]
+              - cell "شهر" [ref=e808]
+              - cell "🟢 نشط" [ref=e809]:
+                - generic [ref=e810]:
+                  - generic [ref=e811]: 🟢
+                  - text: نشط
+              - cell "2026-02-04" [ref=e812]
+              - cell "2026-03-06 باقي 12 يوم" [ref=e813]:
+                - generic [ref=e814]:
+                  - text: 2026-03-06
+                  - paragraph [ref=e815]: باقي 12 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e816]:
+                - button "👁️ عرض التفاصيل" [ref=e817] [cursor=pointer]
+            - row "#1656 احمد محمود عز 01550154992 800 ج.م شهر 🟢 نشط 2026-02-02 2026-03-04 باقي 10 يوم 👁️ عرض التفاصيل" [ref=e818]:
+              - cell [ref=e819]:
+                - img [ref=e822]
+              - cell "#1656" [ref=e824]
+              - cell "احمد محمود عز" [ref=e825]:
+                - generic [ref=e827]: احمد محمود عز
+              - cell "01550154992" [ref=e828]:
+                - link "01550154992" [ref=e829] [cursor=pointer]:
+                  - /url: https://wa.me/+201550154992
+              - cell "800 ج.م" [ref=e830]
+              - cell "شهر" [ref=e831]
+              - cell "🟢 نشط" [ref=e832]:
+                - generic [ref=e833]:
+                  - generic [ref=e834]: 🟢
+                  - text: نشط
+              - cell "2026-02-02" [ref=e835]
+              - cell "2026-03-04 باقي 10 يوم" [ref=e836]:
+                - generic [ref=e837]:
+                  - text: 2026-03-04
+                  - paragraph [ref=e838]: باقي 10 يوم
+              - cell "👁️ عرض التفاصيل" [ref=e839]:
+                - button "👁️ عرض التفاصيل" [ref=e840] [cursor=pointer]
+        - generic [ref=e843]: جاري تحميل المزيد... (30 من 1570)
+  - button "Back to top" [ref=e844] [cursor=pointer]:
+    - img [ref=e845]
+  - generic [ref=e847]:
+    - img [ref=e849]
+    - button "Open Tanstack query devtools" [ref=e897] [cursor=pointer]:
+      - img [ref=e898]
+  - alert [ref=e946]
+```

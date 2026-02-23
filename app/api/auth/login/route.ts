@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://') ?? false, // ✅ Only secure on HTTPS sites
-      sameSite: 'lax',
+      sameSite: 'strict', // ✅ حماية أقوى من CSRF attacks
       path: '/',
       maxAge: 60 * 60 * 24 * 7 // 7 days
     })

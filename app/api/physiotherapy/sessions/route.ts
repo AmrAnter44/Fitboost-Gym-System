@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // تسجيل جلسة جديدة (بدون حضور)
+    // تسجيل جلسة جديدة مع الحضور
     const session = await prisma.physiotherapySession.create({
       data: {
         physioNumber: parseInt(physioNumber),
@@ -126,7 +126,9 @@ export async function POST(request: Request) {
         therapistName: physiotherapy.therapistName,
         sessionDate: new Date(sessionDate),
         notes: notes || null,
-        attended: false
+        attended: true,
+        attendedAt: new Date(),
+        attendedBy: 'Staff Registration'
       }
     })
 

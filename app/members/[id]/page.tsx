@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { ReceiptToPrint } from '../../../components/ReceiptToPrint'
 import PaymentMethodSelector from '../../../components/Paymentmethodselector'
 import RenewalForm from '../../../components/RenewalForm'
@@ -146,6 +147,7 @@ export default function MemberDetailPage() {
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
+  const queryClient = useQueryClient()
 
   const [member, setMember] = useState<Member | null>(null)
   const [loading, setLoading] = useState(true)
@@ -896,6 +898,8 @@ export default function MemberDetailPage() {
             toast.success(t('memberDetails.paidPTUsed', { remaining: result.remainingSessions }))
             fetchPTSubscription()
             fetchServiceSubscriptions()
+            // تحديث cache الـ PT في جميع الصفحات
+            queryClient.invalidateQueries({ queryKey: ['pt-sessions'] })
           } else {
             toast.error(result.error || t('memberDetails.paidSessionDeductionFailed'))
           }
@@ -936,6 +940,8 @@ export default function MemberDetailPage() {
           if (response.ok) {
             toast.success(t('memberDetails.paidNutritionUsed', { remaining: result.remainingSessions }))
             fetchServiceSubscriptions()
+            // تحديث cache الـ Nutrition في جميع الصفحات
+            queryClient.invalidateQueries({ queryKey: ['nutrition-sessions'] })
           } else {
             toast.error(result.error || t('memberDetails.paidSessionDeductionFailed'))
           }
@@ -976,6 +982,8 @@ export default function MemberDetailPage() {
           if (response.ok) {
             toast.success(t('memberDetails.paidPhysioUsed', { remaining: result.remainingSessions }))
             fetchServiceSubscriptions()
+            // تحديث cache الـ Physiotherapy في جميع الصفحات
+            queryClient.invalidateQueries({ queryKey: ['physiotherapy-sessions'] })
           } else {
             toast.error(result.error || t('memberDetails.paidSessionDeductionFailed'))
           }
@@ -1016,6 +1024,8 @@ export default function MemberDetailPage() {
           if (response.ok) {
             toast.success(t('memberDetails.paidGroupClassUsed', { remaining: result.remainingSessions }))
             fetchServiceSubscriptions()
+            // تحديث cache الـ Group Classes في جميع الصفحات
+            queryClient.invalidateQueries({ queryKey: ['groupClass-sessions'] })
           } else {
             toast.error(result.error || t('memberDetails.paidSessionDeductionFailed'))
           }
