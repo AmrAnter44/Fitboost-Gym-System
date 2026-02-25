@@ -1,163 +1,180 @@
+import { createFreshSupabaseClient } from './supabase'
 import { prisma } from './prisma'
-import { EXTERNAL_LINKS } from './config'
 
-// Expected signature from GitHub
-const EXPECTED_SIGNATURE = 'c78d317d35241b1dae62099a4f69b046d6x5435b'
-
-// GitHub raw URL for license file (from centralized config)
-const LICENSE_URL = EXTERNAL_LINKS.github.license
-
-interface LicenseFile {
-  enabled: boolean
-  sig: string
+interface LicenseValidation {
+  valid: boolean
+  message: string
 }
 
 /**
- * Validates license by fetching from GitHub and comparing signature
- * Always tries to fetch from GitHub first (no cache check)
- * Falls back to cached validation if GitHub is unreachable
+ * Validates license by checking Supabase database
+ * Fetches branch data and checks system_license field
+ *
+ * ⚠️ TEMPORARILY DISABLED - Always returns valid: true
  */
-export async function validateLicense(): Promise<{ isValid: boolean; errorMessage?: string }> {
+export async function validateLicense(): Promise<LicenseValidation> {
+  // ⚠️ نظام الترخيص معطل مؤقتاً - النظام مفتوح دائماً
+  console.log('⚠️ [LICENSE] System check DISABLED - Always returning valid: true')
+  return {
+    valid: true,
+    message: 'نظام الترخيص معطل مؤقتاً - النظام مفتوح'
+  }
+
+  /* ===== ORIGINAL CODE (COMMENTED OUT) =====
   try {
-    // Skip GitHub validation for production domain (always valid)
-    const isProductionDomain = process.env.NEXT_PUBLIC_DOMAIN === 'system.xgym.website' ||
-                               process.env.NEXT_PUBLIC_APP_URL?.includes('system.xgym.website')
+    // جلب السجل من قاعدة البيانات المحلية
+    const localLicense = await prisma.supabaseLicense.findFirst({
+      orderBy: { updatedAt: 'desc' }
+    })
 
-    if (isProductionDomain) {
+    // إذا لم يتم اختيار صالة وفرع بعد (first run)
+    // ✅ نسمح للنظام بالعمل حتى يتم الاختيار
+    if (!localLicense) {
+      return {
+        valid: true, // ✅ السماح بالعمل
+        message: 'لم يتم اختيار الصالة والفرع بعد - يرجى الاختيار من الإعدادات'
+      }
+    }
 
-      // Still update cache
-      const now = new Date()
-      await prisma.licenseValidation.upsert({
-        where: { id: 'singleton' },
-        update: {
-          isValid: true,
-          lastCheckedAt: now,
-          errorMessage: null,
-          signature: EXPECTED_SIGNATURE
-        },
-        create: {
-          id: 'singleton',
-          isValid: true,
-          lastCheckedAt: now,
-          errorMessage: null,
-          signature: EXPECTED_SIGNATURE
+    // فحص الترخيص من Supabase
+    try {
+      const checkTimestamp = new Date().toISOString()
+      console.log('🔍 [LICENSE] ===== START CHECK =====')
+      console.log('🔍 [LICENSE] Timestamp:', checkTimestamp)
+      console.log('🔍 [LICENSE] Checking branch:', {
+        branchId: localLicense.branchId,
+        branchName: localLicense.branchName,
+        cachedSystemLicense: localLicense.systemLicense,
+        lastChecked: localLicense.lastChecked
+      })
+
+      // ✅ إنشاء fresh Supabase client لتجنب caching
+      const supabase = createFreshSupabaseClient()
+      console.log('✅ [LICENSE] Created fresh Supabase client (no cache)')
+
+      const { data, error } = await supabase
+        .from('branches')
+        .select('system_license')
+        .eq('id', localLicense.branchId)
+        .single()
+
+      console.log('📡 [LICENSE] Supabase response:', {
+        data,
+        error,
+        timestamp: new Date().toISOString()
+      })
+
+      if (error) {
+        // ⚠️ خطأ في الاتصال أو الفرع غير موجود
+        // نسمح بالعمل عشان ميقفلش بالغلط (ممكن يكون مفيش انترنت)
+        console.warn('⚠️ [LICENSE] Error - allowing system to work:', error.message)
+        return {
+          valid: true, // ✅ السماح بالعمل لو مفيش اتصال
+          message: 'لم يتم التحقق من الترخيص - لا يوجد اتصال بالإنترنت'
+        }
+      }
+
+      // التحقق من قيمة system_license
+      const isValid = data.system_license === true ||
+                     data.system_license === 'true' ||
+                     data.system_license === 'active'
+
+      console.log('✅ [LICENSE] Validation result:', {
+        system_license: data.system_license,
+        type: typeof data.system_license,
+        isValid,
+        willLock: !isValid
+      })
+
+      const message = isValid
+        ? 'الترخيص صالح'
+        : 'الترخيص غير صالح - النظام معطل'
+
+      // ✅ تحديث lastChecked في قاعدة البيانات
+      const updateTimestamp = new Date()
+      console.log('💾 [LICENSE] Updating local DB with systemLicense =', String(data.system_license))
+
+      const updatedLicense = await prisma.supabaseLicense.update({
+        where: { id: localLicense.id },
+        data: {
+          lastChecked: updateTimestamp,
+          systemLicense: String(data.system_license)
         }
       })
 
-      return { isValid: true }
-    }
+      console.log('💾 [LICENSE] Local DB updated:', {
+        id: updatedLicense.id,
+        systemLicense: updatedLicense.systemLicense,
+        lastChecked: updatedLicense.lastChecked
+      })
 
-    // Always try to fetch fresh license data from GitHub first
-    const response = await fetch(LICENSE_URL, {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache'
+      console.log(isValid ? '✅ [LICENSE] System UNLOCKED =====' : '🔒 [LICENSE] System LOCKED =====')
+
+      return { valid: isValid, message }
+
+    } catch (supabaseError) {
+      // ⚠️ خطأ غير متوقع - نسمح بالعمل عشان ميقفلش بالغلط
+      console.warn('⚠️ Unexpected error checking license:', supabaseError)
+      return {
+        valid: true, // ✅ السماح بالعمل
+        message: 'لم يتم التحقق من الترخيص - خطأ في الاتصال'
       }
-    })
-
-    if (!response.ok) {
-      throw new Error(`GitHub fetch failed: ${response.status} ${response.statusText}`)
     }
-
-    const licenseData: LicenseFile = await response.json()
-
-    // Validate signature
-    const isValid = licenseData.sig === EXPECTED_SIGNATURE
-    const errorMessage = isValid ? null : 'رخصة التشغيل غير صالحة - التوقيع غير متطابق'
-
-
-    // Update cache in database
-    const now = new Date()
-    await prisma.licenseValidation.upsert({
-      where: { id: 'singleton' },
-      update: {
-        isValid,
-        lastCheckedAt: now,
-        errorMessage,
-        signature: licenseData.sig
-      },
-      create: {
-        id: 'singleton',
-        isValid,
-        lastCheckedAt: now,
-        errorMessage,
-        signature: licenseData.sig
-      }
-    })
-
-    return { isValid, errorMessage: errorMessage || undefined }
 
   } catch (error) {
     console.error('❌ License validation error:', error)
-
-    // If fetch failed, try to use cached validation (offline support)
-    const cached = await prisma.licenseValidation.findUnique({
-      where: { id: 'singleton' }
-    })
-
-    if (cached) {
-      return {
-        isValid: cached.isValid,
-        errorMessage: cached.errorMessage || undefined
-      }
+    return {
+      valid: false,
+      message: 'خطأ في فحص الترخيص - يرجى المحاولة مرة أخرى'
     }
-
-    // No cache exists and fetch failed - default to valid on first run
-    const defaultValidation = { isValid: true, errorMessage: undefined }
-
-    try {
-      await prisma.licenseValidation.create({
-        data: {
-          id: 'singleton',
-          isValid: true,
-          lastCheckedAt: new Date(),
-          errorMessage: 'Default validation - no GitHub access on first run'
-        }
-      })
-    } catch (dbError) {
-      console.error('Failed to create default cache:', dbError)
-    }
-
-    return defaultValidation
   }
+  ===== END COMMENTED CODE ===== */
 }
 
 /**
- * Gets cached license status from database (fast read, no GitHub call)
- * Used for client-side polling
+ * Gets cached license status from local database (fast read, no Supabase call)
+ * Used for client-side display
  */
 export async function getCachedLicenseStatus(): Promise<{
-  isValid: boolean
+  valid: boolean
   lastChecked: Date | null
-  signature: string | null
+  gymName: string | null
+  branchName: string | null
+  message: string | null
 }> {
   try {
-    const cached = await prisma.licenseValidation.findUnique({
-      where: { id: 'singleton' }
+    const localLicense = await prisma.supabaseLicense.findFirst({
+      orderBy: { updatedAt: 'desc' }
     })
 
-    if (cached) {
+    if (!localLicense) {
       return {
-        isValid: cached.isValid,
-        lastChecked: cached.lastCheckedAt,
-        signature: cached.signature
+        valid: true, // ✅ السماح بالعمل قبل اختيار الصالة والفرع
+        lastChecked: null,
+        gymName: null,
+        branchName: null,
+        message: 'لم يتم اختيار الصالة والفرع'
       }
     }
 
-    // No cache - trigger validation
-    const result = await validateLicense()
+    const isValid = localLicense.systemLicense === 'true' ||
+                   localLicense.systemLicense === 'active'
+
     return {
-      isValid: result.isValid,
-      lastChecked: new Date(),
-      signature: null
+      valid: isValid,
+      lastChecked: localLicense.lastChecked,
+      gymName: localLicense.gymName,
+      branchName: localLicense.branchName,
+      message: localLicense.licenseMessage
     }
   } catch (error) {
     console.error('Error getting cached license status:', error)
-    // Default to valid if can't read cache
     return {
-      isValid: true,
+      valid: false,
       lastChecked: null,
-      signature: null
+      gymName: null,
+      branchName: null,
+      message: 'خطأ في قراءة حالة الترخيص'
     }
   }
 }
@@ -166,16 +183,16 @@ export async function getCachedLicenseStatus(): Promise<{
  * Server-side guard function for API routes
  * Throws error if license is invalid, blocking the request
  *
+ * ⚠️ هذه الدالة تقفل النظام بالكامل إذا كان الترخيص غير صالح
+ *
  * Usage in API routes:
  * await requireValidLicense()
  */
 export async function requireValidLicense(): Promise<void> {
   const result = await validateLicense()
 
-  if (!result.isValid) {
-    const errorMsg = result.errorMessage || 'رخصة التشغيل غير صالحة'
-    console.error('🚫 License check FAILED -', errorMsg)
-    throw new Error(errorMsg)
+  if (!result.valid) {
+    console.error('🚫 License check FAILED -', result.message)
+    throw new Error(result.message)
   }
-
 }

@@ -16,8 +16,8 @@ export async function POST() {
     const result = await validateLicense()
 
     return NextResponse.json({
-      isValid: result.isValid,
-      errorMessage: result.errorMessage,
+      isValid: result.valid,
+      message: result.message,
       timestamp: new Date().toISOString()
     })
   } catch (error) {
@@ -25,7 +25,7 @@ export async function POST() {
 
     return NextResponse.json({
       isValid: false,
-      errorMessage: 'فشل فحص الرخصة',
+      message: 'فشل فحص الرخصة',
       timestamp: new Date().toISOString()
     }, { status: 500 })
   }

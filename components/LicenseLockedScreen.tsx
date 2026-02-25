@@ -7,15 +7,25 @@ export default function LicenseLockedScreen() {
   const { isValid, isLoading } = useLicense()
   const [isChecking, setIsChecking] = useState(false)
 
+  console.log('🔴 [LicenseLockedScreen] Component render:', {
+    isValid,
+    isLoading,
+    timestamp: new Date().toISOString()
+  })
+
   // Don't show anything while loading
   if (isLoading) {
+    console.log('🔴 [LicenseLockedScreen] Hiding (isLoading = true)')
     return null
   }
 
   // Only show lock screen if license is invalid
   if (isValid) {
+    console.log('🔴 [LicenseLockedScreen] Hiding (isValid = true)')
     return null
   }
+
+  console.log('🔴 [LicenseLockedScreen] ===== SHOWING LOCK SCREEN =====')
 
   // Function to manually check license
   const handleRecheck = async () => {
