@@ -3,7 +3,7 @@
 /**
  * الأدوار المتاحة في النظام
  */
-export type UserRole = 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
+export type UserRole = 'OWNER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
 
 /**
  * صلاحيات المستخدم
@@ -167,6 +167,73 @@ export interface PermissionError {
  * إعدادات الصلاحيات الافتراضية حسب الدور
  */
 export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
+  OWNER: {
+    canViewMembers: true,
+    canCreateMembers: true,
+    canEditMembers: true,
+    canDeleteMembers: true,
+    canViewPT: true,
+    canCreatePT: true,
+    canEditPT: true,
+    canDeletePT: true,
+    canRegisterPTAttendance: true,
+    canViewGroupClass: true,
+    canCreateGroupClass: true,
+    canEditGroupClass: true,
+    canDeleteGroupClass: true,
+    canRegisterClassAttendance: true,
+    canViewNutrition: true,
+    canCreateNutrition: true,
+    canEditNutrition: true,
+    canDeleteNutrition: true,
+    canRegisterNutritionAttendance: true,
+    canViewPhysiotherapy: true,
+    canCreatePhysiotherapy: true,
+    canEditPhysiotherapy: true,
+    canDeletePhysiotherapy: true,
+    canRegisterPhysioAttendance: true,
+    canViewStaff: true,
+    canCreateStaff: true,
+    canEditStaff: true,
+    canDeleteStaff: true,
+    canViewReceipts: true,
+    canEditReceipts: true,
+    canDeleteReceipts: true,
+    canViewExpenses: true,
+    canCreateExpense: true,
+    canEditExpense: true,
+    canDeleteExpense: true,
+    canViewVisitors: true,
+    canCreateVisitor: true,
+    canEditVisitor: true,
+    canDeleteVisitor: true,
+    canViewFollowUps: true,
+    canCreateFollowUp: true,
+    canEditFollowUp: true,
+    canDeleteFollowUp: true,
+    canViewDayUse: true,
+    canCreateDayUse: true,
+    canEditDayUse: true,
+    canDeleteDayUse: true,
+    canViewReports: true,
+    canViewFinancials: true,
+    canViewAttendance: true,
+    canAccessClosing: true,
+    canAccessSettings: true,
+    canAccessAdmin: true,
+    canCreateFitnessTest: true,
+    canViewFitnessTests: true,
+    canViewSpaBookings: true,
+    canCreateSpaBooking: true,
+    canEditSpaBooking: true,
+    canCancelSpaBooking: true,
+    canViewSpaReports: true,
+    canViewDeductions: true,
+    canCreateDeduction: true,
+    canEditDeduction: true,
+    canDeleteDeduction: true,
+    canManageBannedMembers: true,
+  },
   ADMIN: {
     canViewMembers: true,
     canCreateMembers: true,
@@ -751,12 +818,12 @@ export function hasPermission(
   permission: keyof Permissions,
   role?: UserRole
 ): boolean {
-  // Admin له كل الصلاحيات
-  if (role === 'ADMIN') return true
-  
+  // Owner والـ Admin لهم كل الصلاحيات
+  if (role === 'OWNER' || role === 'ADMIN') return true
+
   // إذا لم تكن هناك صلاحيات
   if (!permissions) return false
-  
+
   return permissions[permission]
 }
 
@@ -768,12 +835,12 @@ export function hasAnyPermission(
   permissionList: Array<keyof Permissions>,
   role?: UserRole
 ): boolean {
-  // Admin له كل الصلاحيات
-  if (role === 'ADMIN') return true
-  
+  // Owner والـ Admin لهم كل الصلاحيات
+  if (role === 'OWNER' || role === 'ADMIN') return true
+
   // إذا لم تكن هناك صلاحيات
   if (!permissions) return false
-  
+
   return permissionList.some(perm => permissions[perm])
 }
 
@@ -785,11 +852,11 @@ export function hasAllPermissions(
   permissionList: Array<keyof Permissions>,
   role?: UserRole
 ): boolean {
-  // Admin له كل الصلاحيات
-  if (role === 'ADMIN') return true
-  
+  // Owner والـ Admin لهم كل الصلاحيات
+  if (role === 'OWNER' || role === 'ADMIN') return true
+
   // إذا لم تكن هناك صلاحيات
   if (!permissions) return false
-  
+
   return permissionList.every(perm => permissions[perm])
 }

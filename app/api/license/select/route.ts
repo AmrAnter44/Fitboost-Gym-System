@@ -1,42 +1,33 @@
 import { NextResponse } from 'next/server'
+import { verifyAuth } from '../../../../lib/auth'
 import { prisma } from '../../../../lib/prisma'
-import { requirePermission } from '../../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
 
-// POST - حفظ اختيار الصالة والفرع
 export async function POST(request: Request) {
   try {
-    // ✅ التحقق من أن المستخدم هو OWNER
-    const user = await requirePermission(request, 'canAccessSettings')
+    const user = await verifyAuth(request)
 
+    // فقط OWNER يمكنه الوصول
     if (user.role !== 'OWNER') {
       return NextResponse.json(
-        { error: 'هذه العملية متاحة فقط لمالك النظام (OWNER)' },
+        { error: 'غير مصرح' },
         { status: 403 }
       )
     }
 
     const body = await request.json()
-    const {
-      gymId,
-      gymName,
-      branchId,
-      branchName,
-      systemLicense,
-      licenseMessage
-    } = body
+    const { gymId, gymName, branchId, branchName, systemLicense } = body
 
-    // التحقق من البيانات المطلوبة
-    if (!gymId || !gymName || !branchId || !branchName) {
+    if (!gymId || !branchId) {
       return NextResponse.json(
-        { error: 'جميع البيانات مطلوبة (gymId, gymName, branchId, branchName)' },
+        { error: 'بيانات ناقصة' },
         { status: 400 }
       )
     }
 
-    // حذف السجل القديم (إن وجد)
+    // حذف السجل القديم
     await prisma.supabaseLicense.deleteMany({})
 
     // إنشاء سجل جديد
@@ -46,52 +37,33 @@ export async function POST(request: Request) {
         gymName,
         branchId,
         branchName,
-        systemLicense: String(systemLicense),
-        licenseMessage: licenseMessage || null,
+        systemLicense: systemLicense?.toString() || 'false',
         lastChecked: new Date()
       }
     })
 
-    // ✅ تسجيل في Audit Log
-    createAuditLog({
+    // تسجيل في audit log
+    await createAuditLog({
       userId: user.userId,
-      userEmail: user.email,
-      userName: user.name,
-      userRole: user.role,
       action: 'UPDATE',
-      resource: 'License',
+      resource: 'System',
       resourceId: license.id,
       details: {
-        operation: 'SelectGymAndBranch',
-        gymId,
+        action: 'license_selected',
         gymName,
-        branchId,
         branchName,
-        systemLicense: String(systemLicense)
+        gymId,
+        branchId
       },
       ipAddress: getIpAddress(request),
-      userAgent: getUserAgent(request),
-      status: 'success'
+      userAgent: getUserAgent(request)
     })
 
-    return NextResponse.json({
-      success: true,
-      license,
-      message: 'تم حفظ الترخيص بنجاح'
-    })
-
-  } catch (error: any) {
-    console.error('❌ خطأ في حفظ الترخيص:', error)
-
-    if (error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'يجب تسجيل الدخول أولاً' },
-        { status: 401 }
-      )
-    }
-
+    return NextResponse.json({ license })
+  } catch (error) {
+    console.error('Select license error:', error)
     return NextResponse.json(
-      { error: 'فشل في حفظ الترخيص' },
+      { error: 'خطأ في الخادم' },
       { status: 500 }
     )
   }

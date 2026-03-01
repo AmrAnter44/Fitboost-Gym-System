@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,7 +50,7 @@ export async function GET(request: Request) {
 // POST - إضافة باقة جديدة
 export async function POST(request: Request) {
   try {
-    await requirePermission(request, 'canAccessSettings')
+    const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
     const { name, serviceType, sessions, price } = body
@@ -78,6 +79,13 @@ export async function POST(request: Request) {
       }
     })
 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'CREATE', resource: 'System', resourceId: package_.id,
+      details: { type: 'Package', packageName: package_.name, serviceType: package_.serviceType, sessions: package_.sessions, price: package_.price },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json(package_)
   } catch (error: any) {
     console.error('Error creating package:', error)
@@ -103,7 +111,7 @@ export async function POST(request: Request) {
 // PUT - تحديث باقة
 export async function PUT(request: Request) {
   try {
-    await requirePermission(request, 'canAccessSettings')
+    const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
     const { id, name, sessions, price, isActive } = body
@@ -123,6 +131,13 @@ export async function PUT(request: Request) {
         price: price ? parseFloat(price) : undefined,
         isActive: isActive !== undefined ? isActive : undefined
       }
+    })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'System', resourceId: id,
+      details: { type: 'Package', changes: { name, sessions, price, isActive } },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
     return NextResponse.json(package_)
@@ -150,7 +165,7 @@ export async function PUT(request: Request) {
 // DELETE - حذف باقة (soft delete)
 export async function DELETE(request: Request) {
   try {
-    await requirePermission(request, 'canAccessSettings')
+    const user = await requirePermission(request, 'canAccessSettings')
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -163,9 +178,16 @@ export async function DELETE(request: Request) {
     }
 
     // Soft delete
-    await prisma.servicePackage.update({
+    const deletedPackage = await prisma.servicePackage.update({
       where: { id },
       data: { isActive: false }
+    })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'System', resourceId: id,
+      details: { type: 'Package', packageName: deletedPackage.name, serviceType: deletedPackage.serviceType },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
     return NextResponse.json({ message: 'تم حذف الباقة بنجاح' })

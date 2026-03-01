@@ -867,3 +867,19 @@ model ClassBooking {
   @@index([classScheduleId])
   @@unique([memberId, classScheduleId, bookingDate])
 }
+
+// نظام الترخيص من Supabase
+model SupabaseLicense {
+  id             String   @id @default(cuid())
+  gymId          String
+  gymName        String
+  branchId       String
+  branchName     String
+  systemLicense  String   // 'true', 'false', 'active'
+  licenseMessage String?
+  lastChecked    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([branchId])
+}

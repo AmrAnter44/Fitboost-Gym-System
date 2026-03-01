@@ -563,7 +563,7 @@ export default function ReceiptsPage() {
           <p className="text-gray-600 dark:text-gray-300">{t('receipts.subtitle')}</p>
           {user && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              👤 {user.name} - {user.role === 'ADMIN' ? '👑 مدير' : user.role === 'MANAGER' ? '📊 مشرف' : '👷 موظف'}
+              👤 {user.name} - {user.role === 'OWNER' ? '👑 مالك' : user.role === 'ADMIN' ? '👑 مدير' : user.role === 'MANAGER' ? '📊 مشرف' : '👷 موظف'}
             </p>
           )}
         </div>

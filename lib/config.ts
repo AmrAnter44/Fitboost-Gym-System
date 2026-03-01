@@ -6,7 +6,6 @@
  * يمكن تعديلها من خلال environment variables أو القيم الافتراضية
  *
  * Environment Variables:
- * - NEXT_PUBLIC_GITHUB_LICENSE_URL: رابط ملف الترخيص
  * - NEXT_PUBLIC_GITHUB_REPO_URL: رابط المستودع الرئيسي
  * - NEXT_PUBLIC_GITHUB_RELEASES_URL: رابط صفحة الإصدارات
  * - NEXT_PUBLIC_SUPPORT_WHATSAPP: رابط الدعم عبر واتساب
@@ -15,12 +14,6 @@
 
 export const EXTERNAL_LINKS = {
   github: {
-    /**
-     * رابط ملف الترخيص على GitHub
-     * يُستخدم للتحقق من صلاحية التطبيق
-     */
-    license: process.env.NEXT_PUBLIC_GITHUB_LICENSE_URL || 'https://raw.githubusercontent.com/AmrAnter44/systems-lock/main/xgym.json',
-
     /**
      * رابط المستودع الرئيسي على GitHub
      * يُستخدم للوصول إلى الكود المصدري

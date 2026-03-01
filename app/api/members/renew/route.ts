@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
-import { requireValidLicense } from '../../../../lib/license'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -12,6 +11,7 @@ import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../../lib/points'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
 import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية إضافة/إنشاء الأعضاء (تشمل التجديد)
-    await requirePermission(request, 'canCreateMembers')
+    const user = await requirePermission(request, 'canCreateMembers')
     
     const body = await request.json()
     const {
@@ -136,9 +136,6 @@ export async function POST(request: Request) {
         subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
       }
 
-      // 🔒 License validation check
-      await requireValidLicense()
-
       // ✅ معالجة وسائل الدفع المتعددة
       let finalPaymentMethod: string
       if (Array.isArray(paymentMethod)) {
@@ -240,6 +237,13 @@ export async function POST(request: Request) {
         console.error('Error adding reward points:', pointsError)
         // لا نوقف العملية إذا فشلت إضافة النقاط
       }
+
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'Member', resourceId: member.id,
+        details: { operation: 'Renew', memberNumber: member.memberNumber, memberName: member.name, subscriptionPrice, paidAmount, remainingAmount, receiptNumber: receipt.receiptNumber },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      })
 
       return NextResponse.json({
         member: updatedMember,

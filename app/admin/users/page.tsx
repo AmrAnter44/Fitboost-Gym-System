@@ -12,7 +12,7 @@ interface User {
   id: string
   name: string
   email: string
-  role: 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
+  role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
   isActive: boolean
   createdAt: string
   permissions?: Permissions
@@ -46,7 +46,7 @@ export default function AdminUsersPage() {
     name: '',
     email: '',
     password: '',
-    role: 'STAFF' as 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH',
+    role: 'STAFF' as 'ADMIN' | 'OWNER' | 'MANAGER' | 'STAFF' | 'COACH',
     staffId: ''
   })
   const [newUserPermissions, setNewUserPermissions] = useState<Partial<Permissions>>({})
@@ -63,6 +63,14 @@ export default function AdminUsersPage() {
     message: string
     onConfirm: () => void
   } | null>(null)
+
+  // State للـ Modal تغيير كلمة المرور
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [changingPasswordUser, setChangingPasswordUser] = useState<User | null>(null)
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    ownerPassword: ''
+  })
 
   useEffect(() => {
     fetchUsers()
@@ -231,15 +239,47 @@ export default function AdminUsersPage() {
   }
 
   const handleResetPassword = (user: User) => {
-    setConfirmAction({
-      title: '🔑 إعادة تعيين كلمة المرور',
-      message: `سيتم إرسال رابط إعادة تعيين كلمة المرور إلى "${user.email}"`,
-      onConfirm: async () => {
-        setShowConfirmModal(false)
-        toast.success('تم إرسال رابط إعادة التعيين')
+    setChangingPasswordUser(user)
+    setPasswordData({ newPassword: '', ownerPassword: '' })
+    setShowChangePasswordModal(true)
+  }
+
+  const handleChangePassword = async () => {
+    if (!changingPasswordUser) return
+
+    if (!passwordData.newPassword || passwordData.newPassword.length < 6) {
+      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+      return
+    }
+
+    if (!passwordData.ownerPassword) {
+      toast.error('يرجى إدخال كلمة مرور الـ Owner للتأكيد')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users/${changingPasswordUser.id}/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newPassword: passwordData.newPassword,
+          ownerPassword: passwordData.ownerPassword
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success(data.message || 'تم تغيير كلمة المرور بنجاح')
+        setShowChangePasswordModal(false)
+        setPasswordData({ newPassword: '', ownerPassword: '' })
+      } else {
+        toast.error(data.error || 'فشل تغيير كلمة المرور')
       }
-    })
-    setShowConfirmModal(true)
+    } catch (error) {
+      console.error('Error changing password:', error)
+      toast.error('حدث خطأ أثناء تغيير كلمة المرور')
+    }
   }
 
   const getRoleBadge = (role: string) => {
@@ -265,7 +305,7 @@ export default function AdminUsersPage() {
   const stats = {
     total: users.length,
     active: users.filter(u => u.isActive).length,
-    admins: users.filter(u => u.role === 'ADMIN').length,
+    admins: users.filter(u => u.role === 'ADMIN' || u.role === 'OWNER').length,
     managers: users.filter(u => u.role === 'MANAGER').length,
     staff: users.filter(u => u.role === 'STAFF').length,
     coaches: users.filter(u => u.role === 'COACH').length
@@ -565,10 +605,10 @@ export default function AdminUsersPage() {
                   <span>الصلاحيات</span>
                 </h3>
 
-                {newUserData.role === 'ADMIN' && (
+                {(newUserData.role === 'ADMIN' || newUserData.role === 'OWNER') && (
                   <div className="bg-yellow-50 dark:bg-yellow-900/30 border-r-4 border-yellow-500 dark:border-yellow-700 p-2 rounded mb-2">
                     <p className="text-xs text-yellow-800 dark:text-yellow-300">
-                      <strong>👑 مدير:</strong> المدراء لديهم صلاحيات كاملة تلقائياً ولا يمكن تقييد صلاحياتهم.
+                      <strong>👑 {newUserData.role === 'OWNER' ? 'مالك' : 'مدير'}:</strong> لديهم صلاحيات كاملة تلقائياً ولا يمكن تقييد صلاحياتهم.
                     </p>
                   </div>
                 )}
@@ -600,7 +640,7 @@ export default function AdminUsersPage() {
                                 type="checkbox"
                                 checked={newUserPermissions[permission] || false}
                                 onChange={(e) => setNewUserPermissions({ ...newUserPermissions, [permission]: e.target.checked })}
-                                disabled={newUserData.role === 'ADMIN'}
+                                disabled={newUserData.role === 'ADMIN' || newUserData.role === 'OWNER'}
                                 className="w-3 h-3"
                               />
                               <span className="text-xs">
@@ -652,10 +692,10 @@ export default function AdminUsersPage() {
               </button>
             </div>
 
-            {editingUser.role === 'ADMIN' && (
+            {(editingUser.role === 'ADMIN' || editingUser.role === 'OWNER') && (
               <div className="bg-yellow-50 dark:bg-yellow-900/30 border-r-4 border-yellow-500 dark:border-yellow-700 p-4 rounded mb-6">
                 <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                  <strong>👑 مدير:</strong> المدراء لديهم صلاحيات كاملة تلقائياً ولا يمكن تقييد صلاحياتهم.
+                  <strong>👑 {editingUser.role === 'OWNER' ? 'مالك' : 'مدير'}:</strong> لديهم صلاحيات كاملة تلقائياً ولا يمكن تقييد صلاحياتهم.
                 </p>
               </div>
             )}
@@ -687,7 +727,7 @@ export default function AdminUsersPage() {
                             type="checkbox"
                             checked={permissions[permission] || false}
                             onChange={(e) => setPermissions({ ...permissions, [permission]: e.target.checked })}
-                            disabled={editingUser.role === 'ADMIN'}
+                            disabled={editingUser.role === 'ADMIN' || editingUser.role === 'OWNER'}
                             className="w-4 h-4"
                           />
                           <span className="text-sm">
@@ -704,7 +744,7 @@ export default function AdminUsersPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSavePermissions}
-                disabled={loading || editingUser.role === 'ADMIN'}
+                disabled={loading || editingUser.role === 'ADMIN' || editingUser.role === 'OWNER'}
                 className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
               >
                 {loading ? 'جاري الحفظ...' : '✅ حفظ الصلاحيات'}
@@ -739,6 +779,88 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setShowConfirmModal(false)}
+                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: تغيير كلمة المرور */}
+      {showChangePasswordModal && changingPasswordUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                🔑 تغيير كلمة المرور
+              </h2>
+              <button
+                onClick={() => {
+                  setShowChangePasswordModal(false)
+                  setPasswordData({ newPassword: '', ownerPassword: '' })
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-3xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                <strong>المستخدم:</strong> {changingPasswordUser.name} ({changingPasswordUser.email})
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+                  كلمة المرور الجديدة <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-gray-100"
+                  placeholder="أدخل كلمة المرور الجديدة"
+                  minLength={6}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  6 أحرف على الأقل
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+                  كلمة مرور الـ Owner (للتأكيد) <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={passwordData.ownerPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, ownerPassword: e.target.value })}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-gray-100"
+                  placeholder="أدخل كلمة مرورك (Owner)"
+                />
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  🔒 يجب إدخال كلمة مرور الـ Owner للتأكيد
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleChangePassword}
+                disabled={loading}
+                className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
+              >
+                {loading ? 'جاري التغيير...' : '✅ تغيير كلمة المرور'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowChangePasswordModal(false)
+                  setPasswordData({ newPassword: '', ownerPassword: '' })
+                }}
                 className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
               >
                 إلغاء

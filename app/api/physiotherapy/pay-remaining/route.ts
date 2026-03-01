@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
-import { requireValidLicense } from '../../../../lib/license'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
 import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية إنشاء Physiotherapy (تشمل دفع الباقي)
-    await requirePermission(request, 'canCreatePhysiotherapy')
+    const user = await requirePermission(request, 'canCreatePhysiotherapy')
 
     const body = await request.json()
     const {
@@ -70,9 +70,6 @@ export async function POST(request: Request) {
 
     // إنشاء إيصال للدفعة
     try {
-      // 🔒 License validation check
-      await requireValidLicense()
-
       // ✅ معالجة وسائل الدفع المتعددة
       let finalPaymentMethod: string
       if (Array.isArray(paymentMethod)) {
@@ -132,6 +129,13 @@ export async function POST(request: Request) {
       } catch (commissionError) {
         console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
       }
+
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'Physiotherapy', resourceId: physiotherapy.physioNumber.toString(),
+        details: { operation: 'PayRemaining', physioNumber, clientName: physiotherapy.clientName, paymentAmount, previousRemaining: currentRemaining, newRemaining: newRemainingAmount, receiptNumber: receipt.receiptNumber },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      })
 
       return NextResponse.json({
         success: true,

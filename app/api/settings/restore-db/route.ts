@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin } from '../../../../lib/auth'
+import { requirePermission } from '../../../../lib/auth'
 import { prisma } from '../../../../lib/prisma'
 import fs from 'fs'
 import path from 'path'
@@ -20,7 +20,7 @@ function getDbPath(): string {
 // رفع وتحديث قاعدة البيانات
 export async function POST(request: Request) {
   try {
-    await requireAdmin(request)
+    await requirePermission(request, 'canAccessSettings')
 
     const formData = await request.formData()
     const file = formData.get('database') as File
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
 // جلب معلومات قاعدة البيانات الحالية
 export async function GET(request: Request) {
   try {
-    await requireAdmin(request)
+    await requirePermission(request, 'canAccessSettings')
 
     const dbPath = getDbPath()
     const stats = fs.existsSync(dbPath) ? fs.statSync(dbPath) : null
@@ -143,6 +143,16 @@ export async function GET(request: Request) {
       backups
     })
   } catch (error: any) {
+    console.error('❌ خطأ في restore-db GET:', error)
+
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
+    }
+
+    if (error.message?.includes('Forbidden')) {
+      return NextResponse.json({ error: 'ليس لديك صلاحية الوصول للإعدادات' }, { status: 403 })
+    }
+
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

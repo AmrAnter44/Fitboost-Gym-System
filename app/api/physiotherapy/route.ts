@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
-import { requireValidLicense } from '../../../lib/license'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -12,6 +11,7 @@ import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber } from '../../../lib/receiptHelpers'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 // @ts-ignore
 import bwipjs from 'bwip-js'
 
@@ -97,7 +97,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية إنشاء Physiotherapy
-    await requirePermission(request, 'canCreatePhysiotherapy')
+    const user = await requirePermission(request, 'canCreatePhysiotherapy')
 
     const body = await request.json()
     const {
@@ -278,9 +278,6 @@ export async function POST(request: Request) {
 
     // إنشاء إيصال باستخدام Transaction
     try {
-      // 🔒 License validation check
-      await requireValidLicense()
-
       const totalAmount = sessionsPurchased * pricePerSession
       const paidAmount = totalAmount - (remainingAmount || 0)
 
@@ -425,6 +422,13 @@ export async function POST(request: Request) {
         timeout: 15000, // ⏱️ 15 seconds timeout (increased for SQLite performance)
       })
 
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'CREATE', resource: 'Physiotherapy', resourceId: physiotherapy.physioNumber.toString(),
+        details: { physioNumber: physiotherapy.physioNumber, clientName, phone, sessionsPurchased, therapistName, totalPrice: sessionsPurchased * pricePerSession, paidAmount: (sessionsPurchased * pricePerSession) - (remainingAmount || 0) },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      })
+
       return NextResponse.json(physiotherapy, { status: 201 })
 
     } catch (receiptError: any) {
@@ -466,7 +470,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // ✅ التحقق من صلاحية تعديل Physiotherapy
-    await requirePermission(request, 'canEditPhysiotherapy')
+    const user = await requirePermission(request, 'canEditPhysiotherapy')
 
     const body = await request.json()
     const { physioNumber, action, ...data } = body
@@ -485,6 +489,13 @@ export async function PUT(request: Request) {
       const updatedPhysiotherapy = await prisma.physiotherapy.update({
         where: { physioNumber: parseInt(physioNumber) },
         data: { sessionsRemaining: physiotherapy.sessionsRemaining - 1 },
+      })
+
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'Physiotherapy', resourceId: physiotherapy.physioNumber.toString(),
+        details: { operation: 'UseSession', physioNumber, clientName: physiotherapy.clientName, sessionsRemaining: updatedPhysiotherapy.sessionsRemaining },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
       })
 
       return NextResponse.json(updatedPhysiotherapy)
@@ -524,6 +535,13 @@ export async function PUT(request: Request) {
         data: updateData,
       })
 
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'UPDATE', resource: 'Physiotherapy', resourceId: physiotherapy.physioNumber.toString(),
+        details: { operation: 'Update', physioNumber, clientName: physiotherapy.clientName, updatedFields: Object.keys(updateData) },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      })
+
       return NextResponse.json(physiotherapy)
     }
   } catch (error: any) {
@@ -551,7 +569,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     // ✅ التحقق من صلاحية حذف Physiotherapy
-    await requirePermission(request, 'canDeletePhysiotherapy')
+    const user = await requirePermission(request, 'canDeletePhysiotherapy')
 
     const { searchParams } = new URL(request.url)
     const physioNumber = searchParams.get('physioNumber')
@@ -560,7 +578,23 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'رقم Physiotherapy مطلوب' }, { status: 400 })
     }
 
+    const physiotherapy = await prisma.physiotherapy.findUnique({
+      where: { physioNumber: parseInt(physioNumber) }
+    })
+
+    if (!physiotherapy) {
+      return NextResponse.json({ error: 'جلسة Physiotherapy غير موجودة' }, { status: 404 })
+    }
+
     await prisma.physiotherapy.delete({ where: { physioNumber: parseInt(physioNumber) } })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'Physiotherapy', resourceId: physiotherapy.physioNumber.toString(),
+      details: { physioNumber, clientName: physiotherapy.clientName, therapistName: physiotherapy.therapistName },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
     return NextResponse.json({ message: 'تم الحذف بنجاح' })
   } catch (error: any) {
     console.error('Error deleting Physiotherapy:', error)

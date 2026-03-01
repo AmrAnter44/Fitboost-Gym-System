@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
-import { requireValidLicense } from '../../../lib/license'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -12,6 +11,7 @@ import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber } from '../../../lib/receiptHelpers'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 // @ts-ignore
 import bwipjs from 'bwip-js'
 
@@ -97,7 +97,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية إنشاء Nutrition
-    await requirePermission(request, 'canCreateNutrition')
+    const user = await requirePermission(request, 'canCreateNutrition')
 
     const body = await request.json()
     const {
@@ -279,9 +279,6 @@ export async function POST(request: Request) {
 
     // إنشاء إيصال باستخدام Transaction
     try {
-      // 🔒 License validation check
-      await requireValidLicense()
-
       const totalAmount = sessionsPurchased * pricePerSession
       const paidAmount = totalAmount - (remainingAmount || 0)
 
@@ -424,6 +421,13 @@ export async function POST(request: Request) {
         return nutrition
       }, {
         timeout: 15000, // ⏱️ 15 seconds timeout (increased for SQLite performance)
+      })
+
+      createAuditLog({
+        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+        action: 'CREATE', resource: 'System', resourceId: String(nutrition.nutritionNumber),
+        details: { type: 'Nutrition', nutritionNumber: nutrition.nutritionNumber, clientName, sessionsPurchased, totalPrice: sessionsPurchased * pricePerSession, paidAmount: (sessionsPurchased * pricePerSession) - (remainingAmount || 0) },
+        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
       })
 
       return NextResponse.json(nutrition, { status: 201 })

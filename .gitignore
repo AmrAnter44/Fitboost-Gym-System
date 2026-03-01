@@ -13,8 +13,7 @@ release/
 *.tsbuildinfo
 
 # Environment files
-.env*
-!.env.example
+
 
 # Database files
 # prisma/gym.db  ← نحتفظ بها في git للـ seed database

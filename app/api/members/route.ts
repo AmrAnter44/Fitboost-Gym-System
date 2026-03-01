@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
-import { requireValidLicense } from '../../../lib/license'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -463,9 +462,6 @@ export async function POST(request: Request) {
       if (customCreatedAt) {
         receiptData.createdAt = new Date(customCreatedAt)
       }
-
-      // 🔒 License validation check
-      await requireValidLicense()
 
       const receipt = await prisma.receipt.create({
         data: receiptData,

@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { formatDateYMD } from '../../../../lib/dateFormatter'
-import { requireValidLicense } from '../../../../lib/license'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -11,6 +10,7 @@ import {
 } from '../../../../lib/paymentHelpers'
 import { addPointsForPayment } from '../../../../lib/points'
 import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +27,7 @@ function calculateDaysBetween(date1Str: string | Date, date2Str: string | Date):
 export async function POST(request: Request) {
   try {
     // التحقق من صلاحية إضافة/إنشاء الأعضاء (تشمل التجديد والترقية)
-    await requirePermission(request, 'canCreateMembers')
+    const user = await requirePermission(request, 'canCreateMembers')
 
     const body = await request.json()
     const {
@@ -201,9 +201,6 @@ export async function POST(request: Request) {
     }
 
     // 15. إنشاء الإيصال
-    // 🔒 License validation check
-    await requireValidLicense()
-
     const receipt = await prisma.receipt.create({
       data: {
         receiptNumber,
@@ -231,6 +228,13 @@ export async function POST(request: Request) {
       console.error('Error adding reward points:', pointsError)
       // لا نوقف العملية إذا فشلت إضافة النقاط
     }
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Member', resourceId: member.id,
+      details: { operation: 'Upgrade', memberNumber: member.memberNumber, memberName: member.name, oldPackagePrice: oldPackageData.oldPackagePrice, newPackagePrice: newOffer.price, upgradeAmount, receiptNumber },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
 
     // 16. إرجاع النتيجة
     return NextResponse.json({

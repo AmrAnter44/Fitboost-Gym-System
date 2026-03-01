@@ -25,6 +25,8 @@ export default function SettingsPage() {
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false)
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [isElectron, setIsElectron] = useState(false)
+  const [updatingPrisma, setUpdatingPrisma] = useState(false)
+  const [prismaMessage, setPrismaMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Auto-detection states
   const [isDetecting, setIsDetecting] = useState(false)
@@ -55,10 +57,19 @@ export default function SettingsPage() {
 
   // Numbers Settings State
   const [nextReceiptNumber, setNextReceiptNumber] = useState(1001)
+
   const [nextMemberNumber, setNextMemberNumber] = useState(1001)
   const [showReceiptNumberEdit, setShowReceiptNumberEdit] = useState(false)
   const [showMemberNumberEdit, setShowMemberNumberEdit] = useState(false)
   const [loadingNumbers, setLoadingNumbers] = useState(false)
+
+  // License States
+  const [gyms, setGyms] = useState<any[]>([])
+  const [selectedGymId, setSelectedGymId] = useState('')
+  const [branches, setBranches] = useState<any[]>([])
+  const [selectedBranchId, setSelectedBranchId] = useState('')
+  const [currentLicense, setCurrentLicense] = useState<any>(null)
+  const [licenseLoading, setLicenseLoading] = useState(false)
 
   useEffect(() => {
     // Check if running in Electron
@@ -70,6 +81,107 @@ export default function SettingsPage() {
     fetchNumbers()
     fetchDbInfo()
   }, [])
+
+  // Load license data for OWNER
+  useEffect(() => {
+    if (user?.role === 'OWNER') {
+      loadGyms()
+      loadCurrentLicense()
+    }
+  }, [user])
+
+  // License Functions
+  const loadGyms = async () => {
+    try {
+      const response = await fetch('/api/license/gyms')
+      if (response.ok) {
+        const data = await response.json()
+        setGyms(data.gyms || [])
+      }
+    } catch (error) {
+      console.error('Failed to load gyms:', error)
+    }
+  }
+
+  const loadCurrentLicense = async () => {
+    try {
+      const response = await fetch('/api/license/current')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.license) {
+          setCurrentLicense(data.license)
+          setSelectedGymId(data.license.gymId)
+          setSelectedBranchId(data.license.branchId)
+          if (data.license.gymId) {
+            loadBranches(data.license.gymId)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load current license:', error)
+    }
+  }
+
+  const loadBranches = async (gymId: string) => {
+    try {
+      const response = await fetch(`/api/license/branches?gymId=${gymId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setBranches(data.branches || [])
+      }
+    } catch (error) {
+      console.error('Failed to load branches:', error)
+    }
+  }
+
+  const handleGymChange = async (gymId: string) => {
+    setSelectedGymId(gymId)
+    setSelectedBranchId('')
+    setBranches([])
+    if (gymId) {
+      await loadBranches(gymId)
+    }
+  }
+
+  const handleSaveLicense = async () => {
+    if (!selectedGymId || !selectedBranchId) {
+      alert('يرجى اختيار الصالة والفرع')
+      return
+    }
+
+    setLicenseLoading(true)
+    try {
+      const selectedGym = gyms.find(g => g.id === selectedGymId)
+      const selectedBranch = branches.find(b => b.id === selectedBranchId)
+
+      const response = await fetch('/api/license/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gymId: selectedGymId,
+          gymName: selectedGym?.name_ar || '',
+          branchId: selectedBranchId,
+          branchName: selectedBranch?.name_ar || '',
+          systemLicense: selectedBranch?.system_license
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentLicense(data.license)
+        alert('✅ تم حفظ الترخيص بنجاح')
+        // إعادة تحميل الصفحة لتفعيل الترخيص
+        window.location.reload()
+      } else {
+        alert('❌ فشل في حفظ الترخيص')
+      }
+    } catch (error) {
+      console.error('Save license error:', error)
+      alert('❌ حدث خطأ')
+    } finally {
+      setLicenseLoading(false)
+    }
+  }
 
   const fetchServiceSettings = async () => {
     try {
@@ -108,6 +220,46 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/restore-db')
       if (res.ok) setDbInfo(await res.json())
     } catch {}
+  }
+
+  // تحديث Prisma (db push + generate)
+  const handleUpdatePrisma = async () => {
+    if (!confirm('⚠️ هل تريد تطبيق التغييرات على قاعدة البيانات وتحديث Prisma Client؟\n\nسيتم تطبيق آخر التحديثات من schema.prisma')) {
+      return
+    }
+
+    setUpdatingPrisma(true)
+    setPrismaMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/prisma-update', {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setPrismaMessage({
+          type: 'success',
+          text: '✅ تم تحديث Prisma بنجاح!\n\n📦 تم تطبيق التغييرات على قاعدة البيانات\n⚙️ تم توليد Prisma Client\n\n💡 يُنصح بإعادة تشغيل السيرفر للحصول على أفضل أداء.'
+        })
+
+        // إخفاء الرسالة بعد 10 ثواني
+        setTimeout(() => setPrismaMessage(null), 10000)
+      } else {
+        setPrismaMessage({
+          type: 'error',
+          text: data.message || 'فشل تحديث Prisma'
+        })
+      }
+    } catch (error) {
+      setPrismaMessage({
+        type: 'error',
+        text: 'حدث خطأ أثناء تحديث Prisma'
+      })
+    } finally {
+      setUpdatingPrisma(false)
+    }
   }
 
   const handleDbUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -392,9 +544,12 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json()
 
-        // التحقق من أن المستخدم Admin
-        if (data.user.role !== 'ADMIN') {
-          // سيتم redirect مباشرة دون عرض رسالة لأن الصفحة محمية
+        // التحقق من صلاحية الوصول للإعدادات
+        const hasAccess = data.user.role === 'ADMIN' ||
+                         data.user.role === 'OWNER' ||
+                         data.user.permissions?.canAccessSettings === true
+
+        if (!hasAccess) {
           router.push('/')
           return
         }
@@ -596,7 +751,7 @@ export default function SettingsPage() {
         </div>
 
         {/* قسم إدارة المستخدمين */}
-        {user?.role === 'ADMIN' && (
+        {(user?.role === 'ADMIN' || user?.role === 'OWNER') && (
           <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
               <span>👑</span>
@@ -687,7 +842,7 @@ export default function SettingsPage() {
         )}
 
         {/* قسم إعدادات الأرقام */}
-        {user?.role === 'ADMIN' && (
+        {user?.role === 'OWNER' && (
           <div className="border-t pt-4 sm:pt-6 mb-4 sm:mb-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
               <span>🔢</span>
@@ -889,7 +1044,7 @@ export default function SettingsPage() {
         </div>
 
         {/* قسم إعدادات الباركود سكانر - Electron only */}
-        {isElectron && (
+        {false && isElectron && (
         <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
             <span>📷</span>
@@ -1100,95 +1255,74 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* قسم التحديثات - Electron only */}
-        {isElectron && (
-        <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
-            <span>🔄</span>
-            <span>{locale === 'ar' ? 'التحديثات' : 'Updates'}</span>
-          </h2>
+        {/* تحديث Prisma */}
+        {user?.role === 'OWNER' && (
+          <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
+              <span>🔄</span>
+              <span>{locale === 'ar' ? 'تحديث Prisma' : 'Update Prisma'}</span>
+            </h2>
 
-          {/* Error notification */}
-          {updateError && (
-            <div className="mb-3 sm:mb-4 bg-gradient-to-br from-red-500 to-red-600 text-white p-3 sm:p-4 rounded-xl shadow-lg animate-slideDown border border-red-400">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xl sm:text-2xl">❌</span>
-                <div className="flex-1">
-                  <p className="font-bold text-sm sm:text-base">{locale === 'ar' ? 'خطأ في التحديث' : 'Update Error'}</p>
-                  <p className="text-xs sm:text-sm opacity-90">{updateError}</p>
+            {/* رسالة Prisma */}
+            {prismaMessage && (
+              <div
+                className={`mb-3 sm:mb-4 p-3 sm:p-4 rounded-xl shadow-lg animate-slideDown border ${
+                  prismaMessage.type === 'success'
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-emerald-400'
+                    : 'bg-gradient-to-br from-red-500 to-red-600 text-white border-red-400'
+                }`}
+              >
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <span className="text-xl sm:text-2xl">{prismaMessage.type === 'success' ? '✅' : '❌'}</span>
+                  <div className="flex-1">
+                    <p className="text-sm sm:text-base whitespace-pre-line">{prismaMessage.text}</p>
+                  </div>
+                  <button
+                    onClick={() => setPrismaMessage(null)}
+                    className="text-white/70 hover:text-white transition-colors text-lg sm:text-xl"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  onClick={() => setUpdateError(null)}
-                  className="text-white/70 hover:text-white transition-colors text-lg sm:text-xl"
-                >
-                  ✕
-                </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Success notification - up to date */}
-          {showUpdateSuccess && (
-            <div className="mb-3 sm:mb-4 bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-3 sm:p-4 rounded-xl shadow-lg animate-slideDown border border-emerald-400">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-2xl sm:text-3xl">✨</span>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-50 dark:from-purple-900/20 dark:to-purple-900/20 rounded-xl p-4 sm:p-6 border-2 border-purple-200 dark:border-purple-700">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex-1">
-                  <p className="font-bold text-base sm:text-lg">
-                    {locale === 'ar' ? 'أنت تستخدم أحدث إصدار! 🎉' : 'You\'re up to date! 🎉'}
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2">
+                    {locale === 'ar' ? 'تحديث قاعدة البيانات' : 'Update Database'}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                    {locale === 'ar'
+                      ? 'تطبيق آخر التحديثات من schema.prisma وتوليد Prisma Client'
+                      : 'Apply latest schema.prisma changes and generate Prisma Client'}
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowUpdateSuccess(false)}
-                  className="text-white/70 hover:text-white transition-colors text-lg sm:text-xl"
+                  onClick={handleUpdatePrisma}
+                  disabled={updatingPrisma}
+                  className={`w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-sm sm:text-base ${
+                    updatingPrisma
+                      ? 'opacity-70 cursor-not-allowed'
+                      : 'hover:from-purple-700 hover:to-purple-700 hover:scale-105 active:scale-95'
+                  }`}
                 >
-                  ✕
+                  {updatingPrisma ? (
+                    <>
+                      <span className="inline-block animate-spin">⏳</span>
+                      <span>{locale === 'ar' ? 'جاري التحديث...' : 'Updating...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🔄</span>
+                      <span>{locale === 'ar' ? 'تحديث Prisma' : 'Update Prisma'}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-          )}
-
-          {/* ✅ تم تعطيل نظام التحديثات - Update system disabled */}
-          {/*
-          <div className="bg-gradient-to-br from-primary-50 to-cyan-50 dark:from-primary-900/20 dark:to-cyan-900/20 rounded-xl p-4 sm:p-6 border-2 border-primary-200 dark:border-primary-700">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-              <div className="flex-1">
-                <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2 flex items-center gap-2">
-                  <span>⬇️</span>
-                  <span>{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1 sm:mb-2">
-                  {locale === 'ar'
-                    ? 'تحقق من وجود تحديثات جديدة للتطبيق'
-                    : 'Check if new updates are available'}
-                </p>
-              </div>
-              <button
-                onClick={handleCheckForUpdates}
-                disabled={isCheckingUpdates}
-                className={`w-full sm:w-auto bg-gradient-to-r from-primary-600 to-cyan-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-sm sm:text-base ${
-                  isCheckingUpdates
-                    ? 'opacity-70 cursor-not-allowed'
-                    : 'hover:from-primary-700 hover:to-cyan-700 hover:scale-105 active:scale-95'
-                }`}
-              >
-                {isCheckingUpdates ? (
-                  <>
-                    <span className="inline-block animate-spin">⏳</span>
-                    <span className="hidden sm:inline">{locale === 'ar' ? 'جاري التحقق...' : 'Checking...'}</span>
-                    <span className="sm:hidden">{locale === 'ar' ? 'جاري...' : 'Checking...'}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>🔍</span>
-                    <span className="hidden sm:inline">{locale === 'ar' ? 'التحقق من التحديثات' : 'Check for Updates'}</span>
-                    <span className="sm:hidden">{locale === 'ar' ? 'تحقق' : 'Check'}</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
-          */}
-        </div>
         )}
 
         {/* قسم الدعم الفني */}
@@ -1227,6 +1361,7 @@ export default function SettingsPage() {
         </div>
 
         {/* قسم إدارة الخدمات */}
+        {user?.role === 'OWNER' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
           <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
             🔧 {t('settings.servicesManagement')}
@@ -1367,8 +1502,115 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        )}
+
+        {/* License Section - OWNER ONLY */}
+        {user?.role === 'OWNER' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">🔒</span>
+              <div>
+                <h3 className="text-xl font-bold">إدارة الترخيص</h3>
+                <p className="text-sm text-blue-50">اختر الصالة والفرع للتحقق من الترخيص</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Current License Status */}
+            {currentLicense && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-3">
+                  الترخيص الحالي
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-300">الصالة:</span>
+                    <span className="font-bold text-gray-800 dark:text-gray-100">{currentLicense.gymName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-300">الفرع:</span>
+                    <span className="font-bold text-gray-800 dark:text-gray-100">{currentLicense.branchName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-300">الحالة:</span>
+                    <span className={`font-bold ${
+                      currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active'
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active'
+                        ? '✓ نشط'
+                        : '✗ غير نشط'}
+                    </span>
+                  </div>
+                  {currentLicense.lastChecked && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">آخر فحص:</span>
+                      <span className="text-gray-800 dark:text-gray-100">
+                        {new Date(currentLicense.lastChecked).toLocaleString('ar-EG')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Gym Selection */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+                اختر الصالة الرياضية
+              </label>
+              <select
+                value={selectedGymId}
+                onChange={(e) => handleGymChange(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              >
+                <option value="">اختر الصالة</option>
+                {gyms.map((gym) => (
+                  <option key={gym.id} value={gym.id}>
+                    {gym.name_ar}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Branch Selection */}
+            {selectedGymId && (
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+                  اختر الفرع
+                </label>
+                <select
+                  value={selectedBranchId}
+                  onChange={(e) => setSelectedBranchId(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                >
+                  <option value="">اختر الفرع</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name_ar} - {branch.system_license === true || branch.system_license === 'true' || branch.system_license === 'active' ? '✓ نشط' : '✗ غير نشط'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Save Button */}
+            <button
+              onClick={handleSaveLicense}
+              disabled={licenseLoading || !selectedGymId || !selectedBranchId}
+              className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-lg transition-colors"
+            >
+              {licenseLoading ? 'جاري الحفظ...' : 'حفظ الاختيار'}
+            </button>
+          </div>
+        </div>
+        )}
 
         {/* Points System Management */}
+        {user?.role === 'OWNER' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
           <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-4 sm:p-6">
             <div className="flex items-center gap-3">
@@ -1495,8 +1737,10 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+        )}
 
         {/* Website Settings */}
+        {user?.role === 'OWNER' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
           <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-4 sm:p-6">
             <div className="flex items-center gap-3">
@@ -1553,8 +1797,10 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Database Restore */}
+        {user?.role === 'OWNER' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
           <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 sm:p-6">
             <div className="flex items-center gap-3">
@@ -1648,6 +1894,7 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+        )}
 
         {/* Powered by FitBoost */}
         <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">

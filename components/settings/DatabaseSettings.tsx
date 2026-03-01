@@ -33,9 +33,47 @@ export default function DatabaseSettings() {
   const [importing, setImporting] = useState(false);
   const [creatingBackup, setCreatingBackup] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [updatingPrisma, setUpdatingPrisma] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [dbInfo, setDbInfo] = useState<DatabaseInfo | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // تحديث Prisma (db push + generate)
+  const handleUpdatePrisma = async () => {
+    if (!confirm('⚠️ هل تريد تطبيق التغييرات على قاعدة البيانات وتحديث Prisma Client؟\n\nسيتم تطبيق آخر التحديثات من schema.prisma')) {
+      return;
+    }
+
+    setUpdatingPrisma(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/admin/prisma-update', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage({
+          type: 'success',
+          text: '✅ تم تحديث Prisma بنجاح!\n\n📦 تم تطبيق التغييرات على قاعدة البيانات\n⚙️ تم توليد Prisma Client\n\n💡 يُنصح بإعادة تشغيل السيرفر للحصول على أفضل أداء.'
+        });
+      } else {
+        setMessage({
+          type: 'error',
+          text: data.message || 'فشل تحديث Prisma'
+        });
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: 'حدث خطأ أثناء تحديث Prisma'
+      });
+    } finally {
+      setUpdatingPrisma(false);
+    }
+  };
 
   // فحص سلامة الداتابيز
   const handleValidateDatabase = async () => {
@@ -207,7 +245,7 @@ export default function DatabaseSettings() {
         )}
 
         {/* الأزرار الرئيسية */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* فحص السلامة */}
           <button
             onClick={handleValidateDatabase}
@@ -240,6 +278,24 @@ export default function DatabaseSettings() {
             ) : (
               <>
                 💾 إنشاء نسخة احتياطية
+              </>
+            )}
+          </button>
+
+          {/* تحديث Prisma */}
+          <button
+            onClick={handleUpdatePrisma}
+            disabled={updatingPrisma}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {updatingPrisma ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                جاري التحديث...
+              </>
+            ) : (
+              <>
+                🔄 تحديث Prisma
               </>
             )}
           </button>

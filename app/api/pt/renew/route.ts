@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { requireValidLicense } from '../../../../lib/license'
 import { requirePermission } from '../../../../lib/auth'
 import {
   type PaymentMethod,
@@ -83,9 +82,6 @@ export async function POST(request: Request) {
 
     // إنشاء إيصال للتجديد باستخدام Transaction
     try {
-      // 🔒 License validation check
-      await requireValidLicense()
-
       // التأكد من وجود totalPrice، وإلا احسبها
       const totalAmount = totalPrice !== undefined && totalPrice !== null && totalPrice > 0
         ? Number(totalPrice)

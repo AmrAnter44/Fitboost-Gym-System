@@ -19,7 +19,7 @@ export async function POST(
     }
 
     // فقط المدربين يمكنهم إنشاء اختبارات اللياقة
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (user.role !== 'COACH' && user.role !== 'ADMIN' && user.role !== 'OWNER') {
       return NextResponse.json(
         { error: 'Only coaches can create fitness tests' },
         { status: 403 }
@@ -158,8 +158,8 @@ export async function GET(
       )
     }
 
-    // فحص الصلاحيات: فقط المدرب الذي أنشأه أو ADMIN/MANAGER يمكنهم المشاهدة
-    if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+    // فحص الصلاحيات: فقط المدرب الذي أنشأه أو ADMIN/MANAGER/OWNER يمكنهم المشاهدة
+    if (user.role !== 'ADMIN' && user.role !== 'MANAGER' && user.role !== 'OWNER') {
       if (fitnessTest.coachUserId !== user.userId) {
         return NextResponse.json(
           { error: 'You do not have permission to view this test' },

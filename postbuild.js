@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 console.log('\n========================================');
-console.log('  Post-Build Script v1.2.0');
+console.log('  Post-Build Script v1.3.0');
 console.log('========================================\n');
 
 // Copy static files to standalone

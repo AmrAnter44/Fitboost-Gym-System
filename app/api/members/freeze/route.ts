@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 // POST - تجميد اشتراك عضو (استخدام الفريز)
 
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   try {
     // التحقق من صلاحية تعديل الأعضاء
-    await requirePermission(request, 'canEditMembers')
+    const user = await requirePermission(request, 'canEditMembers')
 
     const body = await request.json()
     const { memberId, freezeDays } = body
@@ -95,6 +96,12 @@ export async function POST(request: Request) {
       })
     ])
 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Member', resourceId: member.id,
+      details: { operation: 'Freeze', memberNumber: member.memberNumber, memberName: member.name, freezeDays: daysToFreeze, oldExpiryDate: currentExpiryDate.toISOString().split('T')[0], newExpiryDate: newExpiryDate.toISOString().split('T')[0] },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
 
     // 9. إرجاع النتيجة
     return NextResponse.json({
@@ -137,7 +144,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // التحقق من صلاحية تعديل الأعضاء
-    await requirePermission(request, 'canEditMembers')
+    const user = await requirePermission(request, 'canEditMembers')
 
     const body = await request.json()
     const { memberId } = body
@@ -182,6 +189,12 @@ export async function PUT(request: Request) {
       }
     })
 
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Member', resourceId: member.id,
+      details: { operation: 'Unfreeze', memberNumber: member.memberNumber, memberName: member.name },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
 
     // 5. إرجاع النتيجة
     return NextResponse.json({

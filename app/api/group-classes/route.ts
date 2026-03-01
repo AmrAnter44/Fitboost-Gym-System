@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
-import { requireValidLicense } from '../../../lib/license'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -271,9 +270,6 @@ export async function POST(request: Request) {
 
     // إنشاء إيصال باستخدام Transaction
     try {
-      // 🔒 License validation check
-      await requireValidLicense()
-
       const totalAmount = sessionsPurchased * pricePerSession
       const paidAmount = totalAmount - (remainingAmount || 0)
 

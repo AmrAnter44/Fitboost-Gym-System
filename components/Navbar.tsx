@@ -35,7 +35,7 @@ export default function Navbar() {
     { href: '/followups', label: t('nav.followups'), icon: '📝', permission: 'canViewFollowUps' as keyof Permissions, roleRequired: null },
     { href: '/spa-bookings', label: t('nav.spaBookings'), icon: '💆', permission: 'canViewSpaBookings' as keyof Permissions, roleRequired: null, enabled: settings.spaEnabled },
     { href: '/closing', label: t('nav.closing'), icon: '💰', permission: 'canAccessClosing' as keyof Permissions, roleRequired: null },
-    { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: null, roleRequired: null },
+    { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: 'canAccessSettings' as keyof Permissions, roleRequired: null },
   ]
 
   // Filter links based on permissions, role, and enabled status
@@ -96,13 +96,13 @@ export default function Navbar() {
               {user?.role !== 'COACH' && (
                 <Link
                   href="/"
-                  className="logo-breathing block"
+                  className="logo-breathing block w-12 h-12 sm:w-14 sm:h-14"
                   title={t('nav.home')}
                 >
                   <img
                     src="/assets/icon.svg"
                     alt="Home"
-                    className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-2xl"
+                    className="w-full h-full object-contain drop-shadow-2xl"
                   />
                 </Link>
               )}
@@ -185,7 +185,7 @@ export default function Navbar() {
 
                         {/* Menu Items */}
                         <div className="py-2">
-                          {user.role === 'ADMIN' && (
+                          {(user.role === 'ADMIN' || user.role === 'OWNER') && (
                             <>
                             <Link
                               href="/admin/users"
@@ -312,7 +312,7 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  {user.role === 'ADMIN' && (
+                  {(user.role === 'ADMIN' || user.role === 'OWNER') && (
                     <Link
                       href="/admin/users"
                       onClick={() => setShowDrawer(false)}
@@ -359,11 +359,11 @@ export default function Navbar() {
         @keyframes logoBreathing {
           0%, 100% {
             transform: scale(1);
-            filter: drop-shadow(0 0 8px rgba(var(--color-primary-rgb), 0.3));
+            filter: drop-shadow(0 0 15px rgba(var(--color-primary-rgb), 0.6));
           }
           50% {
             transform: scale(1.1);
-            filter: drop-shadow(0 0 20px rgba(var(--color-primary-rgb), 0.6));
+            filter: drop-shadow(0 0 30px rgba(var(--color-primary-rgb), 0.9));
           }
         }
 
@@ -376,7 +376,7 @@ export default function Navbar() {
         .logo-breathing:hover {
           animation: none;
           transform: scale(1.15) rotate(5deg);
-          filter: drop-shadow(0 0 25px rgba(var(--color-primary-rgb), 0.8));
+          filter: drop-shadow(0 0 35px rgba(var(--color-primary-rgb), 1));
         }
 
         .logo-breathing:active {

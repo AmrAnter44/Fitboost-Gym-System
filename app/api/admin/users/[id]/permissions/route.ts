@@ -28,10 +28,10 @@ export async function PUT(
       )
     }
     
-    // لا يمكن تعديل صلاحيات Admin
-    if (user.role === 'ADMIN') {
+    // لا يمكن تعديل صلاحيات Admin أو Owner
+    if (user.role === 'ADMIN' || user.role === 'OWNER') {
       return NextResponse.json(
-        { error: 'لا يمكن تعديل صلاحيات المدير' },
+        { error: 'لا يمكن تعديل صلاحيات المدير أو المالك' },
         { status: 400 }
       )
     }

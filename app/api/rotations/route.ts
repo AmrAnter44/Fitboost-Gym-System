@@ -60,8 +60,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // فقط ADMIN يمكنه إنشاء مناوبات
-    if (user.role !== 'ADMIN') {
+    // فقط ADMIN و OWNER يمكنهم إنشاء مناوبات
+    if (user.role !== 'ADMIN' && user.role !== 'OWNER') {
       return NextResponse.json(
         { error: 'Only admins can create rotations' },
         { status: 403 }
@@ -98,7 +98,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (user.role !== 'ADMIN') {
+    if (user.role !== 'ADMIN' && user.role !== 'OWNER') {
       return NextResponse.json(
         { error: 'Only admins can delete rotations' },
         { status: 403 }

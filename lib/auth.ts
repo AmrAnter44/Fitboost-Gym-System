@@ -15,7 +15,7 @@ export interface UserPayload {
   userId: string
   name: string
   email: string
-  role: 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
+  role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
   staffId?: string | null
   permissions?: Permissions
 }
@@ -54,42 +54,42 @@ export async function verifyAuth(request: Request): Promise<UserPayload | null> 
   }
 }
 
-// ✅ التحقق من أن المستخدم Admin
+// ✅ التحقق من أن المستخدم Admin أو Owner
 export async function requireAdmin(request: Request): Promise<UserPayload> {
   const user = await verifyAuth(request)
-  
+
   if (!user) {
     throw new Error('Unauthorized')
   }
-  
-  if (user.role !== 'ADMIN') {
+
+  if (user.role !== 'ADMIN' && user.role !== 'OWNER') {
     throw new Error('Forbidden: Admin access required')
   }
-  
+
   return user
 }
 
 // ✅ التحقق من صلاحية معينة
 export async function requirePermission(
-  request: Request, 
+  request: Request,
   permission: keyof UserPayload['permissions']
 ): Promise<UserPayload> {
   const user = await verifyAuth(request)
-  
+
   if (!user) {
     throw new Error('Unauthorized')
   }
-  
-  // الـ Admin عنده كل الصلاحيات
-  if (user.role === 'ADMIN') {
+
+  // الـ Owner والـ Admin عندهم كل الصلاحيات
+  if (user.role === 'OWNER' || user.role === 'ADMIN') {
     return user
   }
-  
+
   // التحقق من الصلاحية المطلوبة
   if (!user.permissions || !user.permissions[permission]) {
     throw new Error(`Forbidden: Missing permission '${permission}'`)
   }
-  
+
   return user
 }
 
@@ -99,25 +99,25 @@ export async function requireAnyPermission(
   permissions: Array<keyof UserPayload['permissions']>
 ): Promise<UserPayload> {
   const user = await verifyAuth(request)
-  
+
   if (!user) {
     throw new Error('Unauthorized')
   }
-  
-  // الـ Admin عنده كل الصلاحيات
-  if (user.role === 'ADMIN') {
+
+  // الـ Owner والـ Admin عندهم كل الصلاحيات
+  if (user.role === 'OWNER' || user.role === 'ADMIN') {
     return user
   }
-  
+
   // التحقق من أي صلاحية من القائمة
   const hasPermission = permissions.some(
     perm => user.permissions?.[perm]
   )
-  
+
   if (!hasPermission) {
     throw new Error(`Forbidden: Missing required permissions`)
   }
-  
+
   return user
 }
 
@@ -127,24 +127,24 @@ export async function requireAllPermissions(
   permissions: Array<keyof UserPayload['permissions']>
 ): Promise<UserPayload> {
   const user = await verifyAuth(request)
-  
+
   if (!user) {
     throw new Error('Unauthorized')
   }
-  
-  // الـ Admin عنده كل الصلاحيات
-  if (user.role === 'ADMIN') {
+
+  // الـ Owner والـ Admin عندهم كل الصلاحيات
+  if (user.role === 'OWNER' || user.role === 'ADMIN') {
     return user
   }
-  
+
   // التحقق من كل الصلاحيات
   const hasAllPermissions = permissions.every(
     perm => user.permissions?.[perm]
   )
-  
+
   if (!hasAllPermissions) {
     throw new Error(`Forbidden: Missing required permissions`)
   }
-  
+
   return user
 }

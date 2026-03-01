@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
-import { requireValidLicense } from "../../../../lib/license";
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -57,9 +56,6 @@ export async function POST(req: Request) {
         : serviceType === "LockerRental"
         ? "تأجير لوجر"
         : serviceType;
-
-    // 🔒 License validation check
-    await requireValidLicense();
 
     // ✅ معالجة وسائل الدفع المتعددة
     let finalPaymentMethod: string

@@ -388,7 +388,7 @@ export default function PhysiotherapyCommissionPage() {
       if (response.ok) {
         const data = await response.json()
         setCurrentUser(data.user)
-        const isAdminUser = data.user.role === 'ADMIN'
+        const isAdminUser = data.user.role === 'ADMIN' || data.user.role === 'OWNER'
         setIsAdmin(isAdminUser)
       }
     } catch (error) {

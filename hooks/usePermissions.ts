@@ -9,7 +9,7 @@ export interface User {
   id?: string
   name: string
   email: string
-  role: 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
+  role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
 }
 
 // استخدام نفس interface الـ Permissions من types/permissions.ts
@@ -44,7 +44,7 @@ export function usePermissions() {
           user: data.user,
           permissions: data.user.permissions || null,
           loading: false,
-          isAdmin: data.user.role === 'ADMIN'
+          isAdmin: data.user.role === 'OWNER' || data.user.role === 'ADMIN'
         })
       } else {
         setAuthState({

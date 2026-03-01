@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     // البحث بالاسم أو رقم الهاتف
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search } }, // SQLite doesn't support mode: 'insensitive'
         { phone: { contains: search } },
       ]
     }

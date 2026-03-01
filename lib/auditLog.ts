@@ -36,6 +36,9 @@ export type AuditResource =
   | 'Auth'
   | 'System'
   | 'StaffDeduction'
+  | 'GroupClass'
+  | 'Nutrition'
+  | 'Physiotherapy'
 
 export type AuditStatus = 'success' | 'failure' | 'warning'
 
@@ -411,8 +414,8 @@ export async function getAuditLogs(options: {
   // User search by name or email
   if (options.userSearch) {
     where.OR = [
-      { userName: { contains: options.userSearch, mode: 'insensitive' } },
-      { userEmail: { contains: options.userSearch, mode: 'insensitive' } }
+      { userName: { contains: options.userSearch } }, // SQLite doesn't support mode: 'insensitive'
+      { userEmail: { contains: options.userSearch } }
     ]
   }
 

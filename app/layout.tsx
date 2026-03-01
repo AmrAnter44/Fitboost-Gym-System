@@ -1,12 +1,20 @@
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import ClientLayout from '../components/ClientLayout'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
+  themeColor: '#ff9915',
+}
 
 export const metadata: Metadata = {
   title: 'نظام إدارة الصالة الرياضية - Gym System',
   description: 'نظام شامل لإدارة صالات الرياضة مع البحث السريع',
   manifest: '/manifest.json',
-  themeColor: '#000000',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -74,13 +82,6 @@ export const metadata: Metadata = {
       },
     ],
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-    viewportFit: 'cover',
-  },
   applicationName: 'Gym System',
   keywords: ['gym', 'fitness', 'management', 'صالة رياضية', 'إدارة', 'جيم'],
   icons: {
@@ -90,14 +91,10 @@ export const metadata: Metadata = {
       { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-      { url: '/apple-touch-icon-120x120.png', sizes: '120x120', type: 'image/png' },
-      { url: '/apple-touch-icon-152x152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/apple-touch-icon-167x167.png', sizes: '167x167', type: 'image/png' },
       { url: '/apple-touch-icon-180x180.png', sizes: '180x180', type: 'image/png' },
     ],
     other: [
-      { rel: 'mask-icon', url: '/icon.svg', color: '#000000' },
+      { rel: 'mask-icon', url: '/icon.svg', color: '#ff9915' },
     ],
   },
 }
@@ -113,10 +110,7 @@ export default function RootLayout({
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
 
         {/* PWA Icons - iOS */}
-        <link rel="apple-touch-icon" href="/icon.svg" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icon.svg" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icon.svg" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/icon.svg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
 
         {/* iOS Splash Screens - handled in metadata */}
 
@@ -127,7 +121,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Gym System" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="msapplication-TileColor" content="#ff9915" />
         <meta name="msapplication-tap-highlight" content="no" />
 
         {/* PWA Display Mode */}
@@ -138,7 +132,6 @@ export default function RootLayout({
 
         {/* Chrome Android */}
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#000000" />
 
         {/* Local Cairo Font */}
         <link rel="stylesheet" href="/fonts/cairo.css" />
