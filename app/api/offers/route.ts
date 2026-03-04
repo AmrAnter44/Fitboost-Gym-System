@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, icon, upgradeEligibilityDays } = body
+    const { name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, upgradeEligibilityDays, upgradePoints } = body
 
     // التحقق من البيانات المطلوبة
     if (!name || !duration || price === undefined) {
@@ -57,8 +57,10 @@ export async function POST(request: Request) {
         inBodyScans: parseInt(inBodyScans) || 0,
         invitations: parseInt(invitations) || 0,
         freezeDays: parseInt(freezeDays) || 0,
+        ptCommission: parseFloat(ptCommission) || 0,
         icon: icon || '📅',
-        upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null
+        upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null,
+        upgradePoints: parseInt(upgradePoints) || 0
       }
     })
 
@@ -98,7 +100,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { id, name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, icon, isActive, upgradeEligibilityDays } = body
+    const { id, name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, isActive, upgradeEligibilityDays, upgradePoints } = body
 
     if (!id) {
       return NextResponse.json(
@@ -123,9 +125,11 @@ export async function PUT(request: Request) {
         inBodyScans: parseInt(inBodyScans) || 0,
         invitations: parseInt(invitations) || 0,
         freezeDays: parseInt(freezeDays) || 0,
+        ptCommission: parseFloat(ptCommission) || 0,
         icon: icon || '📅',
         isActive: isActive !== undefined ? isActive : true,
-        upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null
+        upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null,
+        upgradePoints: upgradePoints !== undefined ? parseInt(upgradePoints) || 0 : 0
       }
     })
 

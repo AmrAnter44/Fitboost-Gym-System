@@ -45,12 +45,16 @@ model Member {
   invitationRecords    Invitation[]
   receipts             Receipt[]
   checkIns             MemberCheckIn[]
-  fitnessTest          FitnessTest?
-  fitnessTestRequests  FitnessTestRequest[]
   spaBookings          SpaBooking[]
   freezeRequests       FreezeRequest[]
   pointsHistory        PointsHistory[]
   coach                Staff?       @relation("CoachMembers", fields: [coachId], references: [id], onDelete: SetNull)
+
+  // Free Session Relations
+  ptSessions              PTSession[]
+  nutritionSessions       NutritionSession[]
+  physiotherapySessions   PhysiotherapySession[]
+  groupClassSessions      GroupClassSession[]
 
   @@index([coachId])
 }
@@ -91,21 +95,30 @@ model PT {
 }
 
 model PTSession {
-  id          String    @id @default(cuid())
-  ptNumber    Int
-  clientName  String
-  coachName   String
-  sessionDate DateTime
-  notes       String?
-  createdAt   DateTime  @default(now())
-  attended    Boolean   @default(false)
-  attendedAt  DateTime?
-  attendedBy  String?
-  pt          PT        @relation(fields: [ptNumber], references: [ptNumber], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  ptNumber      Int
+  clientName    String
+  coachName     String
+  sessionDate   DateTime
+  notes         String?
+  createdAt     DateTime  @default(now())
+  attended      Boolean   @default(false)
+  attendedAt    DateTime?
+  attendedBy    String?
+  pt            PT        @relation(fields: [ptNumber], references: [ptNumber], onDelete: Cascade)
+
+  // Free Session Tracking
+  isFreeSession         Boolean   @default(false)
+  memberId              String?
+  member                Member?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?   // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
 
   @@index([ptNumber])
   @@index([sessionDate])
   @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
 }
 
 model DayUseInBody {
@@ -221,9 +234,11 @@ model Offer {
   inBodyScans             Int      @default(0)
   invitations             Int      @default(0)
   freezeDays              Int      @default(0)
+  ptCommission            Float?   @default(0)   // عمولة الكوتش لهذه الباقة
   icon                    String   @default("📅")
   isActive                Boolean  @default(true)
   upgradeEligibilityDays  Int?     @default(7)
+  upgradePoints           Int      @default(0)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 }
@@ -242,8 +257,6 @@ model Staff {
   attendance          Attendance[]
   expenses            Expense[]
   user                User?
-  fitnessTests        FitnessTest[]
-  fitnessTestRequests FitnessTestRequest[] @relation("FitnessTestRequests")
   rotations           Rotation[]
   commissions         Commission[]
   members             Member[]       @relation("CoachMembers")
@@ -394,8 +407,6 @@ model Permission {
   canAccessClosing        Boolean @default(false)
   canAccessSettings       Boolean @default(false)
   canAccessAdmin          Boolean @default(false)
-  canCreateFitnessTest    Boolean @default(false)
-  canViewFitnessTests     Boolean @default(false)
   canViewSpaBookings      Boolean @default(false)
   canCreateSpaBooking     Boolean @default(false)
   canEditSpaBooking       Boolean @default(false)
@@ -416,58 +427,6 @@ model ActivityLog {
 
   @@index([userId])
   @@index([createdAt])
-}
-
-model FitnessTest {
-  id                String    @id @default(cuid())
-  memberId          String    @unique
-  coachId           String
-  coachUserId       String
-  testDate          DateTime
-
-  medFirstTimeGym              Boolean   @default(false)
-  medInDietPlan                Boolean   @default(false)
-  medHernia                    Boolean   @default(false)
-  medFamilyHeartHistory        Boolean   @default(false)
-  medHeartProblem              Boolean   @default(false)
-  medBackPain                  Boolean   @default(false)
-  medSurgery                   Boolean   @default(false)
-  medBreathingProblems         Boolean   @default(false)
-  medBloodPressure             Boolean   @default(false)
-  medKneeProblem               Boolean   @default(false)
-  medDiabetes                  Boolean   @default(false)
-  medSmoker                    Boolean   @default(false)
-  medHighCholesterol           Boolean   @default(false)
-
-  flexibilityData  String
-  exerciseData     String
-
-  createdAt        DateTime  @default(now())
-  createdBy        String
-
-  member           Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  coach            Staff     @relation(fields: [coachId], references: [id])
-
-  @@index([memberId])
-  @@index([coachUserId])
-}
-
-model FitnessTestRequest {
-  id           String   @id @default(cuid())
-  memberId     String
-  coachId      String
-  status       String   @default("pending") // pending, completed, cancelled
-  requestedBy  String
-  requestedAt  DateTime @default(now())
-  completedAt  DateTime?
-  notes        String?
-
-  member       Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  coach        Staff    @relation("FitnessTestRequests", fields: [coachId], references: [id])
-
-  @@index([coachId])
-  @@index([status])
-  @@index([memberId])
 }
 
 model Rotation {
@@ -550,6 +509,68 @@ model ActiveSession {
   @@index([isActive])
   @@index([loginAt])
   @@index([lastActivityAt])
+}
+
+// 🐛 Error Tracking System
+model ErrorLog {
+  id                String    @id @default(cuid())
+
+  // معلومات الخطأ
+  errorType         String    // FRONTEND, BACKEND_API, DATABASE, AUTHENTICATION, UNKNOWN
+  errorCategory     String?   // PRISMA_ERROR, VALIDATION_ERROR, NETWORK_ERROR, JWT_ERROR, etc.
+  severity          String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+
+  // رسائل الخطأ
+  message           String
+  sanitizedMessage  String?
+  errorCode         String?
+  stackTrace        String?
+
+  // السياق
+  endpoint          String?
+  httpMethod        String?
+  statusCode        Int?
+
+  // المستخدم
+  userId            String?
+  userEmail         String?
+  userName          String?
+  userRole          String?
+  staffId           String?
+
+  // الطلب
+  requestBody       String?   // JSON string
+  requestHeaders    String?   // JSON string
+  ipAddress         String?
+  userAgent         String?
+
+  // إضافي
+  additionalContext String?   // JSON string
+  browserInfo       String?   // JSON string
+
+  // النظام
+  environment       String    @default("production")
+  appVersion        String?
+
+  // التوقيت
+  createdAt         DateTime  @default(now())
+  resolvedAt        DateTime?
+  isResolved        Boolean   @default(false)
+
+  // Sync مع Supabase
+  syncedToSupabase  Boolean   @default(false)
+  supabaseId        String?   // UUID from Supabase
+  syncAttempts      Int       @default(0)
+  lastSyncAttempt   DateTime?
+
+  @@index([errorType])
+  @@index([severity])
+  @@index([createdAt])
+  @@index([endpoint])
+  @@index([userId])
+  @@index([isResolved])
+  @@index([syncedToSupabase])
+  @@index([errorCategory])
 }
 
 // 💆 SPA Booking System
@@ -679,9 +700,18 @@ model NutritionSession {
   attendedBy      String?
   nutrition       Nutrition   @relation(fields: [nutritionNumber], references: [nutritionNumber], onDelete: Cascade)
 
+  // Free Session Tracking
+  isFreeSession         Boolean     @default(false)
+  memberId              String?
+  member                Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?     // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
+
   @@index([nutritionNumber])
   @@index([sessionDate])
   @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
 }
 
 // ===== العلاج الطبيعي (Physiotherapy) =====
@@ -723,9 +753,18 @@ model PhysiotherapySession {
   attendedBy    String?
   physiotherapy Physiotherapy  @relation(fields: [physioNumber], references: [physioNumber], onDelete: Cascade)
 
+  // Free Session Tracking
+  isFreeSession         Boolean        @default(false)
+  memberId              String?
+  member                Member?        @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?        // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
+
   @@index([physioNumber])
   @@index([sessionDate])
   @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
 }
 
 // ===== جروب كلاسيس (Group Classes) =====
@@ -767,9 +806,18 @@ model GroupClassSession {
   attendedBy     String?
   groupClass     GroupClass  @relation(fields: [classNumber], references: [classNumber], onDelete: Cascade)
 
+  // Free Session Tracking
+  isFreeSession         Boolean     @default(false)
+  memberId              String?
+  member                Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?     // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
+
   @@index([classNumber])
   @@index([sessionDate])
   @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
 }
 
 // نظام إعدادات الخدمات
@@ -783,24 +831,38 @@ model SystemSettings {
   pointsEnabled         Boolean  @default(true)
   pointsPerCheckIn      Int      @default(1)
   pointsPerInvitation   Int      @default(2)
+  pointsPerReferral     Int      @default(0)    // نقاط إحالة عضو جديد
   pointsPerEGPSpent     Float    @default(0.1)  // نقاط لكل جنيه يتم دفعه
   pointsValueInEGP      Float    @default(0.1)
   websiteUrl            String?  @default("https://www.xgym.website")  // رابط الموقع الإلكتروني
   showWebsiteOnReceipts Boolean  @default(false)  // عرض رابط الموقع في الإيصالات
+
+  // إعدادات الجلسات المجانية
+  trackFreeSessionsCost       Boolean  @default(false)  // تفعيل/تعطيل احتساب تكلفة الجلسات المجانية
+  freePTSessionPrice          Float    @default(0)     // سعر جلسة PT المجانية
+  freeNutritionSessionPrice   Float    @default(0)     // سعر جلسة التغذية المجانية
+  freePhysioSessionPrice      Float    @default(0)     // سعر جلسة العلاج الطبيعي المجانية
+  freeGroupClassSessionPrice  Float    @default(0)     // سعر جلسة الجروب كلاسيس المجانية
+
+  // إعدادات عمولة PT/الكوتش
+  ptCommissionEnabled         Boolean  @default(true)   // تفعيل/تعطيل عمولة الكوتش عند إضافة عضو
+  ptCommissionAmount          Float    @default(50)     // مبلغ العمولة (جنيه)
+
   updatedAt             DateTime @updatedAt
   updatedBy             String?
 }
 
 // باقات الخدمات
 model ServicePackage {
-  id          String   @id @default(cuid())
-  name        String
-  serviceType String   // 'PT', 'Nutrition', 'Physiotherapy', 'GroupClass'
-  sessions    Int
-  price       Float
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  serviceType  String   // 'PT', 'Nutrition', 'Physiotherapy', 'GroupClass'
+  sessions     Int
+  price        Float
+  ptCommission Float?   @default(0)  // 💰 عمولة الكوتش لهذه الباقة (0 = استخدام الإعدادات الافتراضية)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([serviceType])
   @@index([isActive])

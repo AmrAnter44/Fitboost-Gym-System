@@ -40,34 +40,49 @@ export async function GET(request: Request) {
               instructorName: true,
               phone: true
             }
+          },
+          member: {
+            select: {
+              name: true,
+              memberNumber: true,
+              phone: true
+            }
           }
         }
       })
       return NextResponse.json(sessions)
     } else {
-      // فلترة حسب الدور
-      const whereClause = user.role === 'COACH'
-        ? {
-            groupClass: {
-              instructorUserId: user.userId  // المدرب يرى سجلات عملائه فقط
-            }
-          }
-        : {}  // الأدمن يرى الكل
-
-      // جلب جميع سجلات الحضور
+      // جلب جميع الجلسات (المدفوعة والمجانية)
       const sessions = await prisma.groupClassSession.findMany({
-        where: whereClause,
         orderBy: { sessionDate: 'desc' },
         include: {
           groupClass: {
             select: {
               clientName: true,
               instructorName: true,
+              phone: true,
+              instructorUserId: true
+            }
+          },
+          member: {
+            select: {
+              name: true,
+              memberNumber: true,
               phone: true
             }
           }
         }
       })
+
+      // فلترة حسب الدور إذا كان كوتش/مدرب
+      if (user.role === 'COACH') {
+        const filteredSessions = sessions.filter(session => {
+          if (session.isFreeSession) return true // الجلسات المجانية متاحة للجميع
+          return session.groupClass?.instructorUserId === user.userId // الجلسات المدفوعة الخاصة به فقط
+        })
+        return NextResponse.json(filteredSessions)
+      }
+
       return NextResponse.json(sessions)
     }
   } catch (error: any) {

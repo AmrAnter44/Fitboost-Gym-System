@@ -18,11 +18,18 @@ interface NutritionSessionRecord {
   sessionDate: string
   notes: string | null
   createdAt: string
-  nutrition: {
+  isFreeSession?: boolean
+  memberId?: string | null
+  nutrition?: {
     clientName: string
     nutritionistName: string
     phone: string
-  }
+  } | null
+  member?: {
+    name: string
+    memberNumber: number
+    phone: string
+  } | null
 }
 
 export default function NutritionSessionHistoryPage() {
@@ -268,7 +275,16 @@ export default function NutritionSessionHistoryPage() {
                       className={`border-t hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 ${isToday ? 'bg-green-50' : ''}`}
                     >
                       <td className="px-4 py-3">
-                        {session.nutritionNumber < 0 ? (
+                        {session.isFreeSession ? (
+                          <div className="flex items-center gap-2">
+                            <span className="bg-gradient-to-r from-lime-500 to-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                              🎁 مجاني
+                            </span>
+                            {session.member && (
+                              <span className="text-xs text-gray-500">#{session.member.memberNumber}</span>
+                            )}
+                          </div>
+                        ) : session.nutritionNumber < 0 ? (
                           <span className="font-bold text-green-600">🏃 Day Use</span>
                         ) : (
                           <span className="font-bold text-green-600">#{session.nutritionNumber}</span>
@@ -277,7 +293,9 @@ export default function NutritionSessionHistoryPage() {
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-semibold">{session.clientName}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">{session.nutrition.phone}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {session.isFreeSession && session.member ? session.member.phone : session.nutrition?.phone || '-'}
+                          </p>
                         </div>
                       </td>
                       <td className="px-4 py-3">{session.nutritionistName}</td>

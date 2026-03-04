@@ -30,13 +30,6 @@ export async function GET(request: Request) {
         name: true,
         phone: true,
         freePTSessions: true,
-        fitnessTest: {
-          select: {
-            id: true,
-            createdAt: true,
-            coachId: true,
-          },
-        },
       },
     })
 

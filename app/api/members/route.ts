@@ -9,7 +9,7 @@ import {
 } from '../../../lib/paymentHelpers'
 import { logError } from '../../../lib/errorLogger'
 import { processPaymentWithPoints } from '../../../lib/paymentProcessor'
-import { addPointsForPayment } from '../../../lib/points'
+import { addPointsForPayment, addPoints } from '../../../lib/points'
 import { getNextReceiptNumberDirect } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
@@ -161,7 +161,12 @@ export async function POST(request: Request) {
   try {
     // ✅ التحقق من صلاحية إضافة عضو
     const user = await requirePermission(request, 'canCreateMembers')
-    
+
+    // 🔧 جلب إعدادات النظام (للتحقق من تفعيل عمولة الكوتش)
+    const systemSettings = await prisma.systemSettings.findUnique({
+      where: { id: 'singleton' }
+    })
+
     const body = await request.json()
     const {
       memberNumber,
@@ -191,7 +196,9 @@ export async function POST(request: Request) {
       isOther,
       customCreatedAt,
       skipReceipt,  // ✅ خيار عدم إنشاء إيصال
-      coachId  // 👨‍🏫 معرف الكوتش (اختياري)
+      coachId,  // 👨‍🏫 معرف الكوتش (اختياري)
+      ptCommissionAmount,  // 💰 عمولة الكوتش من الباقة (اختياري)
+      referralMemberNumber  // 👥 رقم العضو المُحيل (اختياري)
     } = body
 
 
@@ -274,13 +281,31 @@ export async function POST(request: Request) {
     if (startDate && expiryDate) {
       const start = new Date(startDate)
       const end = new Date(expiryDate)
-      
+
       if (end <= start) {
         return NextResponse.json(
           { error: 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية' },
           { status: 400 }
         )
       }
+    }
+
+    // 👥 التحقق من رقم العضو المُحيل إذا تم إدخاله
+    let referrerId = null
+    if (referralMemberNumber && referralMemberNumber.trim() !== '') {
+      const referrer = await prisma.member.findUnique({
+        where: { memberNumber: parseInt(referralMemberNumber.trim()) }
+      })
+
+      if (!referrer) {
+        return NextResponse.json(
+          { error: 'رقم العضو المُحيل غير موجود' },
+          { status: 400 }
+        )
+      }
+
+      referrerId = referrer.id
+      console.log(`✅ تم العثور على العضو المُحيل: ${referrer.name} (${referrer.memberNumber})`)
     }
 
     // إنشاء العضو
@@ -360,13 +385,21 @@ export async function POST(request: Request) {
       }
     }
 
-    // 👨‍🏫 إنشاء عمولة للكوتش إذا تم اختياره
-    if (coachId) {
+    // 👨‍🏫 إنشاء عمولة للكوتش إذا تم اختياره وكانت العمولة مفعلة
+    const ptCommissionEnabled = systemSettings?.ptCommissionEnabled ?? true
+    const defaultPtCommissionAmount = systemSettings?.ptCommissionAmount ?? 50
+
+    // استخدام عمولة الباقة إذا كانت موجودة، وإلا استخدام المبلغ الافتراضي من الإعدادات
+    const finalCommissionAmount = ptCommissionAmount && ptCommissionAmount > 0
+      ? ptCommissionAmount
+      : defaultPtCommissionAmount
+
+    if (coachId && ptCommissionEnabled) {
       try {
         const commissionData: any = {
           staffId: coachId,
           memberId: member.id,
-          amount: 50,
+          amount: finalCommissionAmount,
           type: 'member_signup',
           description: `عمولة تسجيل عضو جديد: ${name} (#${cleanMemberNumber || 'Other'})`,
         }
@@ -526,6 +559,33 @@ export async function POST(request: Request) {
       }
     }
     } else {
+    }
+
+    // 👥 منح نقاط الإحالة للعضو المُحيل
+    if (referrerId) {
+      try {
+        // جلب إعدادات النظام
+        const settings = await prisma.systemSettings.findFirst()
+
+        if (settings && settings.pointsPerReferral > 0) {
+          const referrer = await prisma.member.findUnique({
+            where: { id: referrerId },
+            select: { name: true, memberNumber: true }
+          })
+
+          await addPoints(
+            referrerId,
+            settings.pointsPerReferral,
+            'invitation',
+            `مكافأة إحالة عضو جديد: ${member.name} - ${settings.pointsPerReferral} نقطة`
+          )
+
+          console.log(`✅ تم منح ${settings.pointsPerReferral} نقطة إحالة للعضو ${referrer?.name} (${referrer?.memberNumber})`)
+        }
+      } catch (pointsError) {
+        console.error('Error adding referral points:', pointsError)
+        // لا نوقف عملية التسجيل إذا فشلت إضافة النقاط
+      }
     }
 
     return NextResponse.json({

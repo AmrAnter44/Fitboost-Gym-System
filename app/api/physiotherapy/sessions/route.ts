@@ -40,34 +40,49 @@ export async function GET(request: Request) {
               therapistName: true,
               phone: true
             }
+          },
+          member: {
+            select: {
+              name: true,
+              memberNumber: true,
+              phone: true
+            }
           }
         }
       })
       return NextResponse.json(sessions)
     } else {
-      // فلترة حسب الدور
-      const whereClause = user.role === 'COACH'
-        ? {
-            physiotherapy: {
-              therapistUserId: user.userId  // أخصائي العلاج الطبيعي يرى سجلات عملائه فقط
-            }
-          }
-        : {}  // الأدمن يرى الكل
-
-      // جلب جميع سجلات الحضور
+      // جلب جميع الجلسات (المدفوعة والمجانية)
       const sessions = await prisma.physiotherapySession.findMany({
-        where: whereClause,
         orderBy: { sessionDate: 'desc' },
         include: {
           physiotherapy: {
             select: {
               clientName: true,
               therapistName: true,
+              phone: true,
+              therapistUserId: true
+            }
+          },
+          member: {
+            select: {
+              name: true,
+              memberNumber: true,
               phone: true
             }
           }
         }
       })
+
+      // فلترة حسب الدور إذا كان كوتش/أخصائي
+      if (user.role === 'COACH') {
+        const filteredSessions = sessions.filter(session => {
+          if (session.isFreeSession) return true // الجلسات المجانية متاحة للجميع
+          return session.physiotherapy?.therapistUserId === user.userId // الجلسات المدفوعة الخاصة به فقط
+        })
+        return NextResponse.json(filteredSessions)
+      }
+
       return NextResponse.json(sessions)
     }
   } catch (error: any) {

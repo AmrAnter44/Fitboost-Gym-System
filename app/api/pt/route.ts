@@ -111,7 +111,8 @@ export async function POST(request: Request) {
       startDate,
       expiryDate,
       paymentMethod,
-      staffName
+      staffName,
+      ptCommissionAmount  // 💰 عمولة الكوتش من الباقة (اختياري)
     } = body
 
     // حساب سعر الحصة الواحدة من السعر الإجمالي
@@ -174,7 +175,7 @@ export async function POST(request: Request) {
     if (startDate && expiryDate) {
       const start = new Date(startDate)
       const end = new Date(expiryDate)
-      
+
       if (end <= start) {
         return NextResponse.json(
           { error: 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية' },
@@ -182,6 +183,11 @@ export async function POST(request: Request) {
         )
       }
     }
+
+    // 💰 جلب إعدادات العمولة من الـ System Settings
+    const systemSettings = await prisma.systemSettings.findUnique({
+      where: { id: 'singleton' }
+    })
 
     // البحث عن الكوتش بالاسم لربط coachUserId
     let coachUserId = null
@@ -355,17 +361,32 @@ export async function POST(request: Request) {
           throw new Error(pointsResult.message || 'فشل خصم النقاط')
         }
 
-        // ✅ إنشاء سجل عمولة للكوتش (إذا كان لديه حساب)
-        if (coachUserId && paidAmount > 0) {
+        // 💰 إنشاء سجل عمولة للكوتش (إذا كان لديه حساب) باستخدام نظام العمولة الثابت
+        const ptCommissionEnabled = systemSettings?.ptCommissionEnabled ?? true
+        const defaultPtCommissionAmount = systemSettings?.ptCommissionAmount ?? 50
+
+        if (coachUserId && paidAmount > 0 && ptCommissionEnabled) {
           try {
-            const { createPTCommission } = await import('../../../lib/commissionHelpers')
-            await createPTCommission(
-              tx, // استخدام tx بدلاً من prisma داخل transaction
-              coachUserId,
-              Number(paidAmount),
-              `عمولة برايفت جديد - ${clientName} (#${pt.ptNumber})`,
-              pt.ptNumber
-            )
+            // 🎯 Smart fallback للعمولة: عمولة الباقة → عمولة الإعدادات → 50 جنيه
+            const finalCommissionAmount =
+              ptCommissionAmount && ptCommissionAmount > 0
+                ? ptCommissionAmount  // من الباقة
+                : defaultPtCommissionAmount  // من الإعدادات أو 50 fallback
+
+            await tx.commission.create({
+              data: {
+                staffId: coachUserId,
+                amount: finalCommissionAmount,
+                type: 'pt_signup',  // نوع جديد للتمييز عن pt_payment (النسبة المئوية القديمة)
+                description: `عمولة برايفت جديد - ${clientName} (#${pt.ptNumber})`,
+                notes: JSON.stringify({
+                  ptNumber: pt.ptNumber,
+                  clientName,
+                  commissionAmount: finalCommissionAmount,
+                  source: ptCommissionAmount && ptCommissionAmount > 0 ? 'package' : 'settings'  // مصدر العمولة
+                })
+              }
+            })
           } catch (commissionError) {
             console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
             // لا نفشل العملية إذا فشلت العمولة

@@ -89,8 +89,6 @@ export interface Permissions {
   canAccessAdmin: boolean
 
   // صلاحيات اختبار اللياقة
-  canCreateFitnessTest: boolean
-  canViewFitnessTests: boolean
 
   // صلاحيات SPA
   canViewSpaBookings: boolean
@@ -221,8 +219,6 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: true,
     canAccessSettings: true,
     canAccessAdmin: true,
-    canCreateFitnessTest: true,
-    canViewFitnessTests: true,
     canViewSpaBookings: true,
     canCreateSpaBooking: true,
     canEditSpaBooking: true,
@@ -288,8 +284,6 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: true,
     canAccessSettings: true,
     canAccessAdmin: true,
-    canCreateFitnessTest: true,
-    canViewFitnessTests: true,
     canViewSpaBookings: true,
     canCreateSpaBooking: true,
     canEditSpaBooking: true,
@@ -355,8 +349,6 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: true,
     canAccessSettings: false,
     canAccessAdmin: false,
-    canCreateFitnessTest: false,
-    canViewFitnessTests: true,
     canViewSpaBookings: true,
     canCreateSpaBooking: true,
     canEditSpaBooking: true,
@@ -422,8 +414,6 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: false,
     canAccessSettings: false,
     canAccessAdmin: false,
-    canCreateFitnessTest: false,
-    canViewFitnessTests: false,
     canViewSpaBookings: true,
     canCreateSpaBooking: true,
     canEditSpaBooking: false,
@@ -490,8 +480,6 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: false,
     canAccessSettings: false,
     canAccessAdmin: false,
-    canCreateFitnessTest: true,
-    canViewFitnessTests: true,
     canViewSpaBookings: false,
     canCreateSpaBooking: false,
     canEditSpaBooking: false,
@@ -562,8 +550,6 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canAccessClosing: 'الوصول للتقفيل',
   canAccessSettings: 'الوصول للإعدادات',
   canAccessAdmin: 'الوصول للوحة الإدارة',
-  canCreateFitnessTest: 'إنشاء اختبار لياقة',
-  canViewFitnessTests: 'عرض اختبارات اللياقة',
   canViewSpaBookings: 'عرض حجوزات SPA',
   canCreateSpaBooking: 'إنشاء حجز SPA',
   canEditSpaBooking: 'تعديل حجز SPA',
@@ -698,13 +684,6 @@ export const PERMISSION_GROUPS = {
       'canAccessAdmin',
     ] as Array<keyof Permissions>,
   },
-  fitnessTests: {
-    label: '📋 اختبارات اللياقة',
-    permissions: [
-      'canCreateFitnessTest',
-      'canViewFitnessTests',
-    ] as Array<keyof Permissions>,
-  },
   spa: {
     label: '💆 SPA Bookings',
     permissions: [
@@ -789,8 +768,6 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canAccessClosing: '🔒',
   canAccessSettings: '⚙️',
   canAccessAdmin: '👨‍💼',
-  canCreateFitnessTest: '➕',
-  canViewFitnessTests: '👁️',
   canViewSpaBookings: '👁️',
   canCreateSpaBooking: '➕',
   canEditSpaBooking: '✏️',

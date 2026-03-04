@@ -51,6 +51,9 @@ export async function GET(request: Request) {
                 }
               },
               orderBy: { checkIn: 'desc' }
+            },
+            deductions: {
+              orderBy: { createdAt: 'desc' }
             }
           }
         })
@@ -85,6 +88,10 @@ export async function GET(request: Request) {
             }
           },
           orderBy: { checkIn: 'desc' }
+        },
+        // ✅ جلب الخصومات
+        deductions: {
+          orderBy: { createdAt: 'desc' }
         }
       }
     })

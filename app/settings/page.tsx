@@ -44,8 +44,16 @@ export default function SettingsPage() {
     pointsEnabled: false,
     pointsPerCheckIn: 0,
     pointsPerInvitation: 0,
+    pointsPerReferral: 0,
     pointsPerEGPSpent: 0,
-    pointsValueInEGP: 0
+    pointsValueInEGP: 0,
+    trackFreeSessionsCost: false,
+    freePTSessionPrice: 0,
+    freeNutritionSessionPrice: 0,
+    freePhysioSessionPrice: 0,
+    freeGroupClassSessionPrice: 0,
+    ptCommissionEnabled: true,
+    ptCommissionAmount: 50
   })
   const [loadingServices, setLoadingServices] = useState(false)
 
@@ -347,7 +355,7 @@ export default function SettingsPage() {
     }
   }
 
-  const toggleService = async (serviceName: 'nutrition' | 'physiotherapy' | 'groupClass' | 'spa' | 'inBody' | 'points') => {
+  const toggleService = async (serviceName: 'nutrition' | 'physiotherapy' | 'groupClass' | 'spa' | 'inBody' | 'points' | 'ptCommission') => {
     setLoadingServices(true)
     try {
       const newSettings = {
@@ -373,7 +381,31 @@ export default function SettingsPage() {
     }
   }
 
-  const updatePointsSettings = async (setting: 'pointsPerCheckIn' | 'pointsPerInvitation' | 'pointsPerEGPSpent' | 'pointsValueInEGP', value: number) => {
+  const updatePTCommissionAmount = async (value: number) => {
+    setLoadingServices(true)
+    try {
+      const newSettings = {
+        ...serviceSettings,
+        ptCommissionAmount: value
+      }
+
+      const response = await fetch('/api/settings/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      })
+
+      if (response.ok) {
+        setServiceSettings(newSettings)
+      }
+    } catch (error) {
+      console.error('Error updating PT commission amount:', error)
+    } finally {
+      setLoadingServices(false)
+    }
+  }
+
+  const updatePointsSettings = async (setting: 'pointsPerCheckIn' | 'pointsPerInvitation' | 'pointsPerReferral' | 'pointsPerEGPSpent' | 'pointsValueInEGP', value: number) => {
     setLoadingServices(true)
     try {
       const newSettings = {
@@ -1500,9 +1532,64 @@ export default function SettingsPage() {
                 />
               </button>
             </div>
+
+            {/* PT Commission Toggle */}
+            <div className="space-y-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">👨‍🏫</span>
+                  <div>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-100">عمولة الكوتش عند إضافة عضو</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">تفعيل إضافة عمولة تلقائية للكوتش عند تسجيل عضو جديد</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleService('ptCommission')}
+                  disabled={loadingServices}
+                  className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                    serviceSettings.ptCommissionEnabled ? 'bg-purple-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                      serviceSettings.ptCommissionEnabled
+                        ? 'end-1'
+                        : 'start-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Amount Input - Only show when enabled */}
+              {serviceSettings.ptCommissionEnabled && (
+                <div className="flex items-center gap-3 pt-2 border-t border-purple-200 dark:border-purple-700">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
+                    💰 مبلغ العمولة:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="10"
+                    value={serviceSettings.ptCommissionAmount}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0
+                      setServiceSettings({ ...serviceSettings, ptCommissionAmount: value })
+                    }}
+                    onBlur={(e) => {
+                      const value = parseFloat(e.target.value) || 0
+                      updatePTCommissionAmount(value)
+                    }}
+                    disabled={loadingServices}
+                    className="flex-1 px-3 py-2 border-2 border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 text-center font-bold"
+                  />
+                  <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">جنيه</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         )}
+
 
         {/* License Section - OWNER ONLY */}
         {user?.role === 'OWNER' && (
@@ -1690,6 +1777,26 @@ export default function SettingsPage() {
                     className="w-full p-2 border-2 border-primary-300 dark:border-primary-700 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none"
                   />
                   <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{t('settings.pointsPerInvitationDesc')}</p>
+                </div>
+
+                {/* Points per Referral */}
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">👥</span>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.pointsPerReferral')}</h4>
+                    </div>
+                    <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{serviceSettings.pointsPerReferral}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={serviceSettings.pointsPerReferral}
+                    onChange={(e) => updatePointsSettings('pointsPerReferral', parseInt(e.target.value) || 0)}
+                    className="w-full p-2 border-2 border-purple-300 dark:border-purple-700 dark:bg-gray-700 dark:text-white rounded-lg focus:border-purple-500 focus:outline-none"
+                  />
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{t('settings.pointsPerReferralHelp')}</p>
                 </div>
 
                 {/* Points per EGP Spent */}

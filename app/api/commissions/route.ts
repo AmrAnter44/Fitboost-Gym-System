@@ -20,12 +20,32 @@ export async function GET(request: Request) {
     const where: any = {}
     if (type) where.type = type
 
+    // جلب جميع الـ staff IDs الموجودة فعلياً
+    const existingStaffIds = await prisma.staff.findMany({
+      select: { id: true }
+    }).then(staff => staff.map(s => s.id))
+
     // إذا كان المستخدم COACH، فلتر بناءً على staffId الخاص به
     if (user.role === 'COACH' && user.staffId) {
-      where.staffId = user.staffId
+      // تأكد من أن staffId موجود في القائمة
+      if (existingStaffIds.includes(user.staffId)) {
+        where.staffId = user.staffId
+      } else {
+        // إذا كان staff الخاص بالمستخدم محذوف، أرجع قائمة فارغة
+        return NextResponse.json([])
+      }
     } else if (staffId) {
       // إذا كان Admin وأرسل staffId في query params
-      where.staffId = staffId
+      if (existingStaffIds.includes(staffId)) {
+        where.staffId = staffId
+      } else {
+        return NextResponse.json([])
+      }
+    } else {
+      // إذا لم يكن هناك filter محدد، فلتر فقط الموظفين الموجودين
+      where.staffId = {
+        in: existingStaffIds
+      }
     }
 
     const commissions = await prisma.commission.findMany({

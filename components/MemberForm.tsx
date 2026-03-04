@@ -32,6 +32,11 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
   const [offers, setOffers] = useState<any[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 👥 Referral validation states
+  const [referrerInfo, setReferrerInfo] = useState<{ name: string; memberNumber: number } | null>(null)
+  const [referrerLoading, setReferrerLoading] = useState(false)
+  const [referrerError, setReferrerError] = useState<string | null>(null)
+
   const [formData, setFormData] = useState({
     memberNumber: '',
     name: '',
@@ -58,7 +63,9 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
     staffName: user?.name || '',
     isOther: false,
     skipReceipt: false,  // ✅ خيار عدم إنشاء إيصال
-    coachId: null as string | null  // 👨‍🏫 معرف الكوتش
+    coachId: null as string | null,  // 👨‍🏫 معرف الكوتش
+    ptCommissionAmount: null as number | null,  // 💰 عمولة الكوتش من الباقة (null = استخدام الافتراضي من الإعدادات)
+    referralMemberNumber: ''  // 👥 رقم العضو المُحيل
   })
 
   useEffect(() => {
@@ -124,6 +131,48 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       setFormData(prev => ({ ...prev, staffName: user.name }))
     }
   }, [user])
+
+  // 👥 Validate referral member number
+  useEffect(() => {
+    const validateReferrer = async () => {
+      const memberNumber = formData.referralMemberNumber.trim()
+
+      // Reset states if empty
+      if (!memberNumber) {
+        setReferrerInfo(null)
+        setReferrerError(null)
+        setReferrerLoading(false)
+        return
+      }
+
+      setReferrerLoading(true)
+      setReferrerError(null)
+
+      try {
+        const response = await fetch(`/api/members?memberNumber=${memberNumber}`)
+        const data = await response.json()
+
+        if (response.ok && data.length > 0) {
+          const member = data[0]
+          setReferrerInfo({ name: member.name, memberNumber: member.memberNumber })
+          setReferrerError(null)
+        } else {
+          setReferrerInfo(null)
+          setReferrerError(t('members.referrerNotFound') || 'رقم العضو غير موجود')
+        }
+      } catch (error) {
+        console.error('Error validating referrer:', error)
+        setReferrerInfo(null)
+        setReferrerError(t('members.referrerValidationError') || 'خطأ في التحقق من رقم العضو')
+      } finally {
+        setReferrerLoading(false)
+      }
+    }
+
+    // Debounce the validation
+    const timeoutId = setTimeout(validateReferrer, 500)
+    return () => clearTimeout(timeoutId)
+  }, [formData.referralMemberNumber, t])
 
   const handleOtherChange = (checked: boolean) => {
     console.log('🔄 تغيير Other:', checked)
@@ -269,7 +318,9 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       subscriptionPrice: parseInt(formData.subscriptionPrice.toString()),
       staffName: user?.name || '',
       customCreatedAt: customCreatedAt ? customCreatedAt.toISOString() : null,
-      coachId: formData.coachId  // 👨‍🏫 إرسال معرف الكوتش
+      coachId: formData.coachId,  // 👨‍🏫 إرسال معرف الكوتش
+      ptCommissionAmount: formData.ptCommissionAmount,  // 💰 عمولة الباقة (null أو رقم)
+      referralMemberNumber: formData.referralMemberNumber  // 👥 رقم العضو المُحيل
     }
 
     console.log('📤 إرسال البيانات:', {
@@ -377,6 +428,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       inBodyScans: offer.inBodyScans,
       invitations: offer.invitations,
       remainingFreezeDays: offer.freezeDays,
+      ptCommissionAmount: offer.ptCommission || null,  // 💰 حفظ عمولة الباقة
       startDate,
       expiryDate: formatDateYMD(expiryDate)
     }))
@@ -472,6 +524,66 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
             </p>
           )}
         </div>
+
+        {/* 👥 حقل رقم العضو المُحيل - يظهر فقط إذا كان نظام النقاط مفعّل */}
+        {settings?.pointsEnabled && settings?.pointsPerReferral > 0 && (
+          <div>
+            <label className="block text-xs font-medium mb-1">
+              👥 {t('members.referralMemberNumber')}
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.referralMemberNumber}
+                onChange={(e) => setFormData({ ...formData, referralMemberNumber: e.target.value })}
+                className={`w-full px-3 py-2 border-2 rounded-lg text-sm dark:bg-gray-700 dark:text-white ${
+                  referrerInfo
+                    ? 'border-green-500 dark:border-green-600'
+                    : referrerError
+                    ? 'border-red-500 dark:border-red-600'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
+                placeholder={t('members.referralMemberNumberPlaceholder')}
+                dir="ltr"
+              />
+              {referrerLoading && (
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin h-4 w-4 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+                </div>
+              )}
+            </div>
+
+            {/* Display referrer name in green when found */}
+            {referrerInfo && (
+              <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
+                <p className="text-sm font-bold text-green-700 dark:text-green-400 flex items-center gap-2">
+                  <span>✅</span>
+                  <span>{referrerInfo.name} (#{referrerInfo.memberNumber})</span>
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  {t('members.referrerWillReceive')} {settings.pointsPerReferral} {t('members.pointsLabel')}
+                </p>
+              </div>
+            )}
+
+            {/* Display error message in red when member not found */}
+            {referrerError && formData.referralMemberNumber.trim() !== '' && (
+              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+                <p className="text-sm font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
+                  <span>❌</span>
+                  <span>{referrerError}</span>
+                </p>
+              </div>
+            )}
+
+            {/* Display help text when no validation result */}
+            {!referrerInfo && !referrerError && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {t('members.referralMemberNumberHelp')} ({settings.pointsPerReferral} {t('members.pointsLabel')})
+              </p>
+            )}
+          </div>
+        )}
 
         {nextReceiptNumber && (
           <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-2 mb-3">
@@ -576,12 +688,14 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         </div>
       </div>
 
-      {/* 👨‍🏫 اختيار الكوتش */}
-      <CoachSelector
-        value={formData.coachId}
-        onChange={(coachId) => setFormData({ ...formData, coachId })}
-        required={false}
-      />
+      {/* 👨‍🏫 اختيار الكوتش - يظهر فقط إذا كانت العمولة مفعلة */}
+      {settings.ptCommissionEnabled && (
+        <CoachSelector
+          value={formData.coachId}
+          onChange={(coachId) => setFormData({ ...formData, coachId })}
+          required={false}
+        />
+      )}
 
       <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-3">
         <ImageUpload
@@ -722,7 +836,8 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
         )}
       </div>
 
-      <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-3">
+      {/* Additional Services section - Hidden as per user request */}
+      {/* <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-3">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
           <span>🎁</span>
           <span>{t('members.form.additionalServices')}</span>
@@ -773,7 +888,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
             />
           </div>
         </div>
-      </div>
+      </div> */}
       </div>
 
       <div className="bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg p-3">

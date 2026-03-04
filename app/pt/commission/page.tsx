@@ -93,6 +93,8 @@ interface SessionBasedCommission {
   coachUserId: string
   totalUsedSessions: number
   totalSessionsValue: number
+  paidSessionsValue: number      // ✅ قيمة الجلسات المدفوعة فقط
+  freeSessionsValue: number       // ✅ قيمة الجلسات المجانية
   percentage: number
   commission: number
   gymShare: number
@@ -106,6 +108,7 @@ export default function CoachCommissionPage() {
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
   const [coaches, setCoaches] = useState<Staff[]>([])
   const [ptSessions, setPtSessions] = useState<PTSession[]>([])
+  const [ptAttendanceRecords, setPtAttendanceRecords] = useState<any[]>([])  // ✅ سجلات الحضور الفعلية
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [selectedCoach, setSelectedCoach] = useState<string>('')
   const [customIncome, setCustomIncome] = useState<string>('')
@@ -115,6 +118,7 @@ export default function CoachCommissionPage() {
   const [coachEarnings, setCoachEarnings] = useState<CoachEarnings | null>(null)
   const [memberSignupCommissions, setMemberSignupCommissions] = useState<MemberSignupCommission[]>([])
   const [ptCommissions, setPtCommissions] = useState<PTCommission[]>([])
+  const [fixedCommissions, setFixedCommissions] = useState<{member_signup: number, pt_signup: number}>({member_signup: 0, pt_signup: 0})  // 💰 العمولات الثابتة
 
   // إعدادات الكومشن
   const [showSettingsModal, setShowSettingsModal] = useState(false)
@@ -157,6 +161,14 @@ export default function CoachCommissionPage() {
   // أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة)
   const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت', 'PT Day Use']
 
+  // إعدادات الجلسات المجانية
+  const [freeSessionsSettings, setFreeSessionsSettings] = useState({
+    trackFreeSessionsCost: false,
+    freePTSessionPrice: 0
+  })
+  const [freeSessions, setFreeSessions] = useState<any[]>([])
+  const [loadingFreeSessionsSettings, setLoadingFreeSessionsSettings] = useState(false)
+
   // تحديد الفترة الزمنية (أول يوم في الشهر الحالي إلى آخر يوم)
   const today = new Date()
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -171,6 +183,8 @@ export default function CoachCommissionPage() {
     fetchCurrentUser()
     fetchDefaultCalculationMethod()
     fetchLastPayrollDates()
+    fetchFreeSessionsSettings()
+    fetchFreeSessions()
   }, [])
 
   const fetchLastPayrollDates = async () => {
@@ -192,6 +206,13 @@ export default function CoachCommissionPage() {
   useEffect(() => {
     fetchMemberSignupCommissions()
   }, [dateFrom, dateTo])
+
+  // 💰 جلب العمولات الثابتة عند تغيير الكوتش أو الفترة الزمنية
+  useEffect(() => {
+    if (selectedCoach) {
+      fetchFixedCommissions(selectedCoach)
+    }
+  }, [selectedCoach, dateFrom, dateTo])
 
   // مراقبة تغيير طريقة الحساب
   useEffect(() => {
@@ -244,7 +265,9 @@ export default function CoachCommissionPage() {
       const coachData = sessionCommissions.find(c => c.coachName === selectedCoach)
       if (coachData) {
         const percentage = parseFloat(customSessionPercentage) || 0
-        const commission = (coachData.totalSessionsValue * percentage) / 100
+        // ✅ النسبة على الجلسات المدفوعة فقط + الجلسات المجانية كاملة
+        const paidCommission = (coachData.paidSessionsValue * percentage) / 100
+        const commission = paidCommission + coachData.freeSessionsValue
         setCalculatedSessionCommission(commission)
       }
     }
@@ -260,10 +283,21 @@ export default function CoachCommissionPage() {
       )
       setCoaches(activeCoaches)
 
-      // جلب جلسات PT
+      // جلب جلسات PT (الاشتراكات)
       const ptResponse = await fetch('/api/pt')
       const ptData: PTSession[] = await ptResponse.json()
       setPtSessions(ptData)
+
+      // ✅ جلب سجلات الحضور الفعلية (attendance records)
+      const attendanceResponse = await fetch('/api/pt/sessions')
+      if (attendanceResponse.ok) {
+        const attendanceData = await attendanceResponse.json()
+        // تصفية فقط الجلسات المدفوعة (غير المجانية) واللي تم حضورها
+        const paidAttendedSessions = attendanceData.filter((session: any) =>
+          !session.isFreeSession && session.attended
+        )
+        setPtAttendanceRecords(paidAttendedSessions)
+      }
 
       // جلب الإيصالات
       const receiptsResponse = await fetch('/api/receipts')
@@ -276,6 +310,40 @@ export default function CoachCommissionPage() {
     }
   }
 
+  const fetchFreeSessionsSettings = async () => {
+    try {
+      setLoadingFreeSessionsSettings(true)
+      const response = await fetch('/api/settings/services')
+      if (response.ok) {
+        const data = await response.json()
+        setFreeSessionsSettings({
+          trackFreeSessionsCost: data.trackFreeSessionsCost || false,
+          freePTSessionPrice: data.freePTSessionPrice || 0
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching free sessions settings:', error)
+    } finally {
+      setLoadingFreeSessionsSettings(false)
+    }
+  }
+
+  const fetchFreeSessions = async () => {
+    try {
+      const response = await fetch('/api/pt/sessions')
+      if (response.ok) {
+        const data = await response.json()
+        // فلترة الجلسات المجانية فقط (واللي لم يتم تحصيلها)
+        const freePTSessions = data.filter((session: any) =>
+          session.isFreeSession === true && !session.collectedInExpenseId
+        )
+        setFreeSessions(freePTSessions)
+      }
+    } catch (error) {
+      console.error('Error fetching free sessions:', error)
+    }
+  }
+
   const fetchMemberSignupCommissions = async () => {
     try {
       const response = await fetch(`/api/commissions/member-signups?startDate=${dateFrom}&endDate=${dateTo}`)
@@ -285,6 +353,43 @@ export default function CoachCommissionPage() {
       }
     } catch (error) {
       console.error('Error fetching member signup commissions:', error)
+    }
+  }
+
+  // 💰 جلب العمولات الثابتة (member_signup + pt_signup) للكوتش المختار
+  const fetchFixedCommissions = async (coachName: string) => {
+    try {
+      const response = await fetch('/api/commissions')
+      if (!response.ok) return
+
+      const allCommissions = await response.json()
+
+      // فلترة حسب الكوتش والفترة الزمنية
+      const start = new Date(dateFrom)
+      const end = new Date(dateTo)
+      end.setHours(23, 59, 59, 999)
+
+      const filtered = allCommissions.filter((c: any) => {
+        if (c.staff?.name !== coachName) return false
+        const commissionDate = new Date(c.createdAt)
+        return commissionDate >= start && commissionDate <= end
+      })
+
+      // جمع العمولات حسب النوع
+      const memberSignupTotal = filtered
+        .filter((c: any) => c.type === 'member_signup')
+        .reduce((sum: number, c: any) => sum + c.amount, 0)
+
+      const ptSignupTotal = filtered
+        .filter((c: any) => c.type === 'pt_signup')
+        .reduce((sum: number, c: any) => sum + c.amount, 0)
+
+      setFixedCommissions({
+        member_signup: memberSignupTotal,
+        pt_signup: ptSignupTotal
+      })
+    } catch (error) {
+      console.error('Error fetching fixed commissions:', error)
     }
   }
 
@@ -343,13 +448,24 @@ export default function CoachCommissionPage() {
   const handleSaveSettings = async () => {
     setSavingSettings(true)
     try {
-      const response = await fetch('/api/commission-settings', {
+      // حفظ إعدادات الكوميشن
+      const commissionResponse = await fetch('/api/commission-settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(commissionSettings)
       })
 
-      if (response.ok) {
+      // حفظ إعدادات الجلسات المجانية
+      const freeSessionsResponse = await fetch('/api/settings/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trackFreeSessionsCost: freeSessionsSettings.trackFreeSessionsCost,
+          freePTSessionPrice: freeSessionsSettings.freePTSessionPrice
+        })
+      })
+
+      if (commissionResponse.ok && freeSessionsResponse.ok) {
         toast.success(t('pt.commission.settingsSavedSuccess'))
         setShowSettingsModal(false)
         // إعادة الحساب إذا كان هناك كوتش محدد
@@ -357,7 +473,7 @@ export default function CoachCommissionPage() {
           handleCalculate()
         }
       } else {
-        const data = await response.json()
+        const data = await commissionResponse.json()
         toast.error(data.error || t('pt.commission.defaultMethodSavedError'))
       }
     } catch (error) {
@@ -482,48 +598,87 @@ export default function CoachCommissionPage() {
     })
 
 
-    // 2. تجميع حسب الكوتش
+    // 2. تجميع حسب الكوتش بناءً على سجلات الحضور الفعلية
     const coachMap = new Map<string, PTSessionsData[]>()
 
     for (const pt of filteredPts) {
-      const usedSessions = pt.sessionsPurchased - pt.sessionsRemaining
+      // ✅ حساب الجلسات المستخدمة من سجلات الحضور في الفترة المحددة فقط
+      const attendedSessionsInPeriod = ptAttendanceRecords.filter(record =>
+        record.ptNumber === pt.ptNumber &&
+        record.attendedAt &&
+        new Date(record.attendedAt) >= start &&
+        new Date(record.attendedAt) <= end
+      )
+
+      const usedSessions = attendedSessionsInPeriod.length
       const sessionValue = usedSessions * pt.pricePerSession
 
-      const data: PTSessionsData = {
-        ptNumber: pt.ptNumber,
-        clientName: pt.clientName,
-        coachName: pt.coachName,
-        coachUserId: null, // لا يوجد في PTSession الحالية
-        sessionsPurchased: pt.sessionsPurchased,
-        sessionsRemaining: pt.sessionsRemaining,
-        pricePerSession: pt.pricePerSession,
-        usedSessions,
-        sessionValue
-      }
+      // فقط إضافة PT إذا كان لديه جلسات في الفترة المحددة
+      if (usedSessions > 0) {
+        const data: PTSessionsData = {
+          ptNumber: pt.ptNumber,
+          clientName: pt.clientName,
+          coachName: pt.coachName,
+          coachUserId: null,
+          sessionsPurchased: pt.sessionsPurchased,
+          sessionsRemaining: pt.sessionsRemaining,
+          pricePerSession: pt.pricePerSession,
+          usedSessions,
+          sessionValue
+        }
 
-      const key = pt.coachName
-      if (!coachMap.has(key)) {
-        coachMap.set(key, [])
+        const key = pt.coachName
+        if (!coachMap.has(key)) {
+          coachMap.set(key, [])
+        }
+        coachMap.get(key)!.push(data)
       }
-      coachMap.get(key)!.push(data)
     }
 
-    // 3. حساب الكومشن لكل كوتش
+    // 3. حساب الكومشن لكل كوتش (مع إضافة الجلسات المجانية)
     const results: SessionBasedCommission[] = []
 
     for (const [coachName, ptList] of coachMap.entries()) {
       const totalUsedSessions = ptList.reduce((sum, pt) => sum + pt.usedSessions, 0)
-      const totalSessionsValue = ptList.reduce((sum, pt) => sum + pt.sessionValue, 0)
+      const paidSessionsValue = ptList.reduce((sum, pt) => sum + pt.sessionValue, 0)
 
-      const percentage = calculatePercentage(totalSessionsValue)
-      const commission = (totalSessionsValue * percentage) / 100
-      const gymShare = totalSessionsValue - commission
+      // ✅ حساب قيمة الجلسات المجانية (تُضاف كاملة للعمولة بدون نسبة)
+      let freeSessionsValue = 0
+      if (freeSessionsSettings.trackFreeSessionsCost && freeSessionsSettings.freePTSessionPrice > 0) {
+        const coachFreeSessions = freeSessions.filter((session: any) => {
+          // تصفية حسب اسم الكوتش
+          const sessionCoachName = session.coachName || session.attendedBy || ''
+          if (sessionCoachName !== coachName) return false
+
+          // تصفية حسب التاريخ
+          const sessionDate = new Date(session.sessionDate || session.attendedAt)
+          return sessionDate >= start && sessionDate <= end
+        })
+
+        const freeSessionsCount = coachFreeSessions.length
+        freeSessionsValue = freeSessionsCount * freeSessionsSettings.freePTSessionPrice
+      }
+
+      // حساب النسبة على الجلسات المدفوعة فقط
+      const percentage = calculatePercentage(paidSessionsValue)
+
+      // العمولة = (جلسات مدفوعة × نسبة%) + جلسات مجانية (100%)
+      const paidCommission = (paidSessionsValue * percentage) / 100
+      const commission = paidCommission + freeSessionsValue
+
+      // نصيب الجيم من الجلسات المدفوعة فقط
+      const gymShare = paidSessionsValue - paidCommission
+
+      // الإجمالي للعرض فقط
+      const totalSessionsValue = paidSessionsValue + freeSessionsValue
 
       results.push({
         coachName,
         coachUserId: '', // لا يوجد في البيانات الحالية
         totalUsedSessions,
         totalSessionsValue,
+        paidSessionsValue,      // ✅ قيمة الجلسات المدفوعة فقط
+        freeSessionsValue,      // ✅ قيمة الجلسات المجانية
         percentage,
         commission,
         gymShare,
@@ -534,6 +689,32 @@ export default function CoachCommissionPage() {
     }
 
     return results.sort((a, b) => b.commission - a.commission)
+  }
+
+  // دالة حساب تفاصيل الجلسات المجانية للكوتش
+  const getFreeSessionsDetails = (coachName: string) => {
+    if (!freeSessionsSettings.trackFreeSessionsCost || freeSessionsSettings.freePTSessionPrice <= 0) {
+      return { count: 0, value: 0, sessions: [] }
+    }
+
+    const start = new Date(dateFrom)
+    const end = new Date(dateTo)
+    end.setHours(23, 59, 59, 999)
+
+    const coachFreeSessions = freeSessions.filter((session: any) => {
+      // تصفية حسب اسم الكوتش
+      const sessionCoachName = session.coachName || session.attendedBy || ''
+      if (sessionCoachName !== coachName) return false
+
+      // تصفية حسب التاريخ
+      const sessionDate = new Date(session.sessionDate || session.attendedAt)
+      return sessionDate >= start && sessionDate <= end
+    })
+
+    const count = coachFreeSessions.length
+    const value = count * freeSessionsSettings.freePTSessionPrice
+
+    return { count, value, sessions: coachFreeSessions }
   }
 
   // دالة حساب أرباح الكوتش من PT (من الإيصالات - الطريقة الصحيحة)
@@ -607,25 +788,73 @@ export default function CoachCommissionPage() {
   // فتح مودال التحصيل
   const openPayrollModal = async (coachName: string, commission: number) => {
     const staff = coaches.find(c => c.name === coachName)
-    setPayrollCoachName(coachName)
-    setPayrollCommission(commission)
-    setPayrollSalary(staff?.salary?.toString() || '0')
-    setPayrollStaffId(staff?.id || null)
-    setPayrollDeductions([])
-    setShowPayrollModal(true)
 
-    // جلب الخصومات المعلقة لهذا الكوتش
-    if (staff?.id) {
-      setLoadingDeductions(true)
-      try {
-        const res = await fetch(`/api/staff-deductions?staffId=${staff.id}&isApplied=false`)
-        if (res.ok) {
-          const data = await res.json()
-          setPayrollDeductions(Array.isArray(data) ? data : [])
+    // 💰 جلب العمولات الثابتة للكوتش المحدد (وليس الكوتش المختار في dropdown)
+    try {
+      const response = await fetch('/api/commissions')
+      let coachFixedCommissions = { member_signup: 0, pt_signup: 0 }
+
+      if (response.ok) {
+        const allCommissions = await response.json()
+
+        // فلترة حسب الكوتش والفترة الزمنية
+        const start = new Date(dateFrom)
+        const end = new Date(dateTo)
+        end.setHours(23, 59, 59, 999)
+
+        const filtered = allCommissions.filter((c: any) => {
+          if (c.staff?.name !== coachName) return false
+          const commissionDate = new Date(c.createdAt)
+          return commissionDate >= start && commissionDate <= end
+        })
+
+        // جمع العمولات حسب النوع
+        const memberSignupTotal = filtered
+          .filter((c: any) => c.type === 'member_signup')
+          .reduce((sum: number, c: any) => sum + c.amount, 0)
+
+        const ptSignupTotal = filtered
+          .filter((c: any) => c.type === 'pt_signup')
+          .reduce((sum: number, c: any) => sum + c.amount, 0)
+
+        coachFixedCommissions = {
+          member_signup: memberSignupTotal,
+          pt_signup: ptSignupTotal
         }
-      } catch { /* ignore */ } finally {
-        setLoadingDeductions(false)
       }
+
+      const fixedCommissionsTotal = coachFixedCommissions.member_signup + coachFixedCommissions.pt_signup
+      const totalCommission = commission + fixedCommissionsTotal
+
+      setPayrollCoachName(coachName)
+      setPayrollCommission(totalCommission)  // 💰 العمولة الإجمالية (جلسات + ثابتة)
+      setPayrollSalary(staff?.salary?.toString() || '0')
+      setPayrollStaffId(staff?.id || null)
+      setPayrollDeductions([])
+      setShowPayrollModal(true)
+
+      // جلب الخصومات المعلقة لهذا الكوتش
+      if (staff?.id) {
+        setLoadingDeductions(true)
+        try {
+          const res = await fetch(`/api/staff-deductions?staffId=${staff.id}&isApplied=false`)
+          if (res.ok) {
+            const data = await res.json()
+            setPayrollDeductions(Array.isArray(data) ? data : [])
+          }
+        } catch { /* ignore */ } finally {
+          setLoadingDeductions(false)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching fixed commissions:', error)
+      // في حالة فشل جلب العمولات الثابتة، نستخدم عمولة الجلسات فقط
+      setPayrollCoachName(coachName)
+      setPayrollCommission(commission)
+      setPayrollSalary(staff?.salary?.toString() || '0')
+      setPayrollStaffId(staff?.id || null)
+      setPayrollDeductions([])
+      setShowPayrollModal(true)
     }
   }
 
@@ -648,6 +877,9 @@ export default function CoachCommissionPage() {
         })
       })
       if (res.ok) {
+        const expenseData = await res.json()
+        const expenseId = expenseData.id
+
         // تطبيق الخصومات المعلقة
         for (const d of payrollDeductions) {
           await fetch('/api/staff-deductions', {
@@ -656,6 +888,27 @@ export default function CoachCommissionPage() {
             body: JSON.stringify({ id: d.id, isApplied: true, appliedAt: new Date().toISOString() })
           })
         }
+
+        // تحديد الجلسات المجانية كمحصلة
+        if (expenseId && freeSessionsSettings.trackFreeSessionsCost) {
+          try {
+            await fetch('/api/sessions/mark-collected', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                serviceType: 'PT',
+                coachName: payrollCoachName,
+                startDate: dateFrom,
+                endDate: dateTo,
+                expenseId
+              })
+            })
+          } catch (error) {
+            console.error('Error marking free sessions as collected:', error)
+            // لا نوقف العملية إذا فشل تحديث الجلسات المجانية
+          }
+        }
+
         toast.success(t('pt.commission.payrollSuccess', { name: payrollCoachName }))
         setShowPayrollModal(false)
         fetchLastPayrollDates()
@@ -819,79 +1072,8 @@ export default function CoachCommissionPage() {
         </div>
       </div>
 
-      {/* Calculation Method Selection - Admin Only */}
-      {isAdmin ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
-          <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
-            {t('pt.commission.calculationMethodLabel')}
-          </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={() => setCalculationMethod('revenue')}
-              className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
-                calculationMethod === 'revenue'
-                  ? 'bg-primary-600 text-white shadow-lg sm:scale-105'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xl sm:text-2xl">💰</span>
-                <span className="text-sm sm:text-base">{t('pt.commission.byRevenue')}</span>
-              </div>
-              <p className="text-xs mt-1 opacity-80">
-                {t('pt.commission.byRevenueDesc')}
-              </p>
-            </button>
-            <button
-              onClick={() => setCalculationMethod('sessions')}
-              className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
-                calculationMethod === 'sessions'
-                  ? 'bg-green-600 text-white shadow-lg sm:scale-105'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xl sm:text-2xl">📊</span>
-                <span className="text-sm sm:text-base">{t('pt.commission.bySessions')}</span>
-              </div>
-              <p className="text-xs mt-1 opacity-80">
-                {t('pt.commission.bySessionsDesc')}
-              </p>
-            </button>
-          </div>
-
-          {/* Info Box */}
-          <div className="mt-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-500 dark:border-blue-600 p-3 rounded">
-            <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300">
-              <strong>{t('pt.commission.methodDifferenceTitle')}</strong>
-            </p>
-            <ul className="list-disc list-inside text-xs text-blue-700 dark:text-blue-400 mt-2 space-y-1">
-              <li><strong>{t('pt.commission.byRevenue')}:</strong> {t('pt.commission.byRevenueFullDesc')}</li>
-              <li><strong>{t('pt.commission.bySessions')}:</strong> {t('pt.commission.bySessionsFullDesc')}</li>
-            </ul>
-          </div>
-
-          {/* Admin Only: Save as Default */}
-          <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 sm:p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg sm:text-xl">⚙️</span>
-                <div>
-                  <p className="text-xs sm:text-sm font-bold text-primary-900 dark:text-primary-300">{t('pt.commission.adminSettings')}</p>
-                  <p className="text-xs text-primary-700 dark:text-primary-400 hidden sm:block">{t('pt.commission.saveCurrentMethodAsDefault')}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => saveDefaultCalculationMethod(calculationMethod)}
-                className="bg-primary-600 hover:bg-primary-700 text-white px-3 sm:px-4 py-2 rounded-lg font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2 w-full sm:w-auto justify-center"
-              >
-                <span>💾</span>
-                <span>{t('pt.commission.saveAsDefault')}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
+      {/* Calculation Method - Coach View (read-only) */}
+      {!isAdmin && (
         /* Coach View - Show current method only (read-only) */
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
           <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
@@ -1151,6 +1333,44 @@ export default function CoachCommissionPage() {
                     </div>
                   </div>
 
+                  {/* تفاصيل الجلسات المجانية */}
+                  {(() => {
+                    const freeSessionsDetails = getFreeSessionsDetails(coachData.coachName)
+                    if (freeSessionsDetails.count > 0) {
+                      return (
+                        <div className="bg-gradient-to-br from-orange-50 to-pink-50 dark:from-orange-900/30 dark:to-pink-900/30 border-2 border-orange-300 dark:border-orange-600 rounded-xl p-3 sm:p-4">
+                          <div className="flex items-start gap-2 sm:gap-3">
+                            <div className="text-xl sm:text-2xl md:text-3xl">🎁</div>
+                            <div className="flex-1">
+                              <p className="text-xs sm:text-sm font-bold text-orange-700 dark:text-orange-300 mb-2">
+                                تفاصيل الجلسات المجانية
+                              </p>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-gray-600 dark:text-gray-300">عدد الجلسات:</span>
+                                  <span className="font-bold text-orange-600 dark:text-orange-400">{freeSessionsDetails.count}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-gray-600 dark:text-gray-300">سعر الجلسة:</span>
+                                  <span className="font-bold text-orange-600 dark:text-orange-400">
+                                    {freeSessionsSettings.freePTSessionPrice.toLocaleString(localeString)} ج.م
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t border-orange-200 dark:border-orange-700">
+                                  <span className="text-xs font-bold text-gray-700 dark:text-gray-200">القيمة الإجمالية:</span>
+                                  <span className="text-lg font-black text-orange-700 dark:text-orange-300">
+                                    {freeSessionsDetails.value.toLocaleString(localeString)} ج.م
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
+
                   {/* نسبة الكومشن قابلة للتعديل */}
                   <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/50 dark:to-amber-900/50 border-2 border-orange-200 dark:border-orange-700 rounded-xl p-3 sm:p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <label className="block text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 mb-2 sm:mb-3">
@@ -1186,7 +1406,8 @@ export default function CoachCommissionPage() {
                           })} ج.م
                         </p>
                         <p className="text-white/70 text-xs mt-1 break-words">
-                          = {coachData.totalSessionsValue.toLocaleString(localeString)} × {customSessionPercentage}%
+                          = {coachData.paidSessionsValue.toLocaleString(localeString)} × {customSessionPercentage}%
+                          {coachData.freeSessionsValue > 0 && ` + ${coachData.freeSessionsValue.toLocaleString(localeString)} (مجاني)`}
                         </p>
                       </div>
                     </div>
@@ -1472,7 +1693,7 @@ export default function CoachCommissionPage() {
                     <p className="text-white/90 text-xs sm:text-sm">{t('pt.commission.coachDue')}</p>
                     <div className="flex items-baseline gap-2 flex-wrap">
                       <p className="text-2xl sm:text-3xl font-bold font-mono break-words">
-                        {result.commission.toLocaleString(localeString, {
+                        {(result.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
@@ -1516,21 +1737,41 @@ export default function CoachCommissionPage() {
                     const signupRevenue = coachSignupData?.totalAmount || 0
                     const ptCommission = (ptRevenue * result.percentage) / 100
 
-                    if (signupRevenue > 0) {
+                    if (signupRevenue > 0 || fixedCommissions.member_signup > 0 || fixedCommissions.pt_signup > 0) {
                       return (
                         <div className="space-y-2">
+                          {/* عمولة الجلسات (نسبة مئوية) */}
                           <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
                             <span className="font-bold text-teal-600">{ptRevenue.toLocaleString(localeString)}</span> (PT) ×
                             <span className="font-bold text-primary-600"> {result.percentage}%</span> =
                             <span className="font-bold text-green-600"> {ptCommission.toLocaleString(localeString)}</span>
                           </p>
-                          <p className="text-base sm:text-lg font-bold text-gray-500 dark:text-gray-400">+</p>
-                          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
-                            <span className="font-bold text-green-600">{signupRevenue.toLocaleString(localeString)}</span> ({t('pt.commission.signupCommissions')})
-                          </p>
+
+                          {/* عمولات تسجيل الأعضاء (ثابتة) */}
+                          {(signupRevenue > 0 || fixedCommissions.member_signup > 0) && (
+                            <>
+                              <p className="text-base sm:text-lg font-bold text-gray-500 dark:text-gray-400">+</p>
+                              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
+                                <span className="font-bold text-purple-600">{fixedCommissions.member_signup.toLocaleString(localeString)}</span>
+                                <span className="text-gray-500 dark:text-gray-400"> (عمولة تسجيل أعضاء)</span>
+                              </p>
+                            </>
+                          )}
+
+                          {/* عمولات PT signup (ثابتة) */}
+                          {fixedCommissions.pt_signup > 0 && (
+                            <>
+                              <p className="text-base sm:text-lg font-bold text-gray-500 dark:text-gray-400">+</p>
+                              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
+                                <span className="font-bold text-indigo-600">{fixedCommissions.pt_signup.toLocaleString(localeString)}</span>
+                                <span className="text-gray-500 dark:text-gray-400"> (عمولة اشتراكات PT)</span>
+                              </p>
+                            </>
+                          )}
+
                           <div className="border-t-2 border-gray-300 dark:border-gray-600 pt-2 mt-2">
                             <p className="text-base sm:text-lg font-bold break-words">
-                              {t('pt.commission.total')} = <span className="text-green-600">{result.commission.toLocaleString(localeString, {
+                              {t('pt.commission.total')} = <span className="text-green-600">{(result.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString, {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}</span> {t('pt.commission.egp')}
@@ -1543,7 +1784,7 @@ export default function CoachCommissionPage() {
                         <p className="text-sm sm:text-base md:text-lg break-words">
                           {result.monthlyIncome.toLocaleString(localeString)} × {result.percentage}% ={' '}
                           <span className="font-bold text-green-600">
-                            {result.commission.toLocaleString(localeString, {
+                            {(result.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}
@@ -1634,7 +1875,7 @@ export default function CoachCommissionPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-3xl font-bold text-green-600">
-                          {coach.commission.toLocaleString(localeString, {
+                          {(coach.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                           })} {t('pt.commission.egp')}
@@ -1654,7 +1895,7 @@ export default function CoachCommissionPage() {
                       <div className="bg-green-50 dark:bg-green-900/50 rounded-lg p-3 text-center">
                         <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{t('pt.commission.coachCommission')}</p>
                         <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                          {coach.commission.toLocaleString(localeString)} {t('pt.commission.egp')}
+                          {(coach.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString)} {t('pt.commission.egp')}
                         </p>
                       </div>
                       {/* نصيب الجيم - للأدمن فقط */}
@@ -1667,6 +1908,28 @@ export default function CoachCommissionPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* 💰 العمولات الثابتة */}
+                    {(fixedCommissions.member_signup > 0 || fixedCommissions.pt_signup > 0) && (
+                      <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-dashed">
+                        {fixedCommissions.member_signup > 0 && (
+                          <div className="bg-purple-50 dark:bg-purple-900/50 rounded-lg p-3 text-center">
+                            <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">عمولة تسجيل أعضاء</p>
+                            <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                              {fixedCommissions.member_signup.toLocaleString(localeString)} {t('pt.commission.egp')}
+                            </p>
+                          </div>
+                        )}
+                        {fixedCommissions.pt_signup > 0 && (
+                          <div className="bg-indigo-50 dark:bg-indigo-900/50 rounded-lg p-3 text-center">
+                            <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">عمولة اشتراكات PT</p>
+                            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-300">
+                              {fixedCommissions.pt_signup.toLocaleString(localeString)} {t('pt.commission.egp')}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* زر التحصيل - الطريقة الثانية */}
                     {(() => {
@@ -2057,7 +2320,7 @@ export default function CoachCommissionPage() {
 
       {/* Settings Modal */}
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-gradient-to-r from-gray-700 to-gray-600 text-white p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
@@ -2086,7 +2349,73 @@ export default function CoachCommissionPage() {
                 </p>
               </div>
 
-              {/* حدود الدخل الشهري */}
+              {/* طريقة حساب الكوميشن */}
+              <div className="mb-8">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <span>📐</span>
+                  {t('pt.commission.calculationMethodLabel')}
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setCalculationMethod('revenue')}
+                    className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
+                      calculationMethod === 'revenue'
+                        ? 'bg-primary-600 text-white shadow-lg sm:scale-105'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-xl sm:text-2xl">💰</span>
+                      <span className="text-sm sm:text-base">{t('pt.commission.byRevenue')}</span>
+                    </div>
+                    <p className="text-xs mt-1 opacity-80">
+                      {t('pt.commission.byRevenueDesc')}
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setCalculationMethod('sessions')}
+                    className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
+                      calculationMethod === 'sessions'
+                        ? 'bg-green-600 text-white shadow-lg sm:scale-105'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-xl sm:text-2xl">📊</span>
+                      <span className="text-sm sm:text-base">{t('pt.commission.bySessions')}</span>
+                    </div>
+                    <p className="text-xs mt-1 opacity-80">
+                      {t('pt.commission.bySessionsDesc')}
+                    </p>
+                  </button>
+                </div>
+
+                {/* Info Box */}
+                <div className="mt-4 bg-amber-50 dark:bg-amber-900/50 border-l-4 border-amber-500 dark:border-amber-600 p-3 rounded">
+                  <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300">
+                    <strong>{t('pt.commission.methodDifferenceTitle')}</strong>
+                  </p>
+                  <ul className="list-disc list-inside text-xs text-amber-700 dark:text-amber-400 mt-2 space-y-1">
+                    <li><strong>{t('pt.commission.byRevenue')}:</strong> {t('pt.commission.byRevenueFullDesc')}</li>
+                    <li><strong>{t('pt.commission.bySessions')}:</strong> {t('pt.commission.bySessionsFullDesc')}</li>
+                  </ul>
+                </div>
+
+                {/* Save as Default */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => saveDefaultCalculationMethod(calculationMethod)}
+                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                  >
+                    <span>💾</span>
+                    <span>{t('pt.commission.saveAsDefault')}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* حدود الدخل الشهري - يظهر فقط عند اختيار "نسبة من الدخل" */}
+              {calculationMethod === 'revenue' && (
+              <>
               <div className="mb-8">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                   <span>💰</span>
@@ -2238,6 +2567,71 @@ export default function CoachCommissionPage() {
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('pt.commission.orMoreAmount', { amount: commissionSettings.tier4Limit.toLocaleString(localeString) })} {t('pt.commission.currency')}</p>
                   </div>
+                </div>
+              </div>
+              </>
+              )}
+
+              {/* إعدادات الجلسات المجانية */}
+              <div className="mb-6">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <span>💪</span>
+                  إعدادات جلسات PT المجانية
+                </h3>
+
+                {/* Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-700 mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">📊</span>
+                    <div>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100">احتساب تكلفة الجلسات المجانية</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">تفعيل/تعطيل حساب تكلفة جلسات PT المجانية في التحصيل</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setFreeSessionsSettings(prev => ({
+                        ...prev,
+                        trackFreeSessionsCost: !prev.trackFreeSessionsCost
+                      }))
+                    }}
+                    className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                      freeSessionsSettings.trackFreeSessionsCost ? 'bg-orange-500' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                        freeSessionsSettings.trackFreeSessionsCost ? 'end-1' : 'start-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Price Input */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-2xl">💪</span>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-100">سعر جلسة PT المجانية</h4>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={freeSessionsSettings.freePTSessionPrice}
+                      onChange={(e) => setFreeSessionsSettings(prev => ({
+                        ...prev,
+                        freePTSessionPrice: parseFloat(e.target.value) || 0
+                      }))}
+                      disabled={!freeSessionsSettings.trackFreeSessionsCost}
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="0.00"
+                    />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">ج.م</span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    💡 هذا السعر يُستخدم لحساب قيمة جلسات PT المجانية في التحصيل
+                  </p>
                 </div>
               </div>
 

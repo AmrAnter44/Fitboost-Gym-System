@@ -62,11 +62,16 @@ export default function NotificationsCenter() {
 
   // Mark all read when opening
   const handleOpen = () => {
-    setOpen((prev) => {
-      if (!prev && unreadCount > 0) markAllRead()
-      return !prev
-    })
+    setOpen((prev) => !prev)
   }
+
+  // Mark all as read when panel opens
+  useEffect(() => {
+    if (open && unreadCount > 0) {
+      markAllRead()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   const isRtl = locale === 'ar'
 

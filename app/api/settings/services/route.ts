@@ -33,10 +33,13 @@ export async function GET(request: Request) {
           pointsEnabled: true,
           pointsPerCheckIn: 1,
           pointsPerInvitation: 2,
+          pointsPerReferral: 0,
           pointsValueInEGP: 0.1,
           pointsPerEGPSpent: 0.1,
           websiteUrl: 'https://www.xgym.website',
-          showWebsiteOnReceipts: false
+          showWebsiteOnReceipts: false,
+          ptCommissionEnabled: true,
+          ptCommissionAmount: 50
         }
       })
     }
@@ -63,46 +66,41 @@ export async function GET(request: Request) {
   }
 }
 
-// PUT - تحديث إعدادات الخدمات
-export async function PUT(request: Request) {
+// PUT/POST - تحديث إعدادات الخدمات
+async function updateSettings(request: Request) {
   try {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { nutritionEnabled, physiotherapyEnabled, groupClassEnabled, spaEnabled, inBodyEnabled, pointsEnabled, pointsPerCheckIn, pointsPerInvitation, pointsValueInEGP, pointsPerEGPSpent, websiteUrl, showWebsiteOnReceipts } = body
+
+    // تحديث جميع الحقول الموجودة في الطلب
+    const updateData: any = {}
+    const validFields = [
+      'nutritionEnabled', 'physiotherapyEnabled', 'groupClassEnabled',
+      'spaEnabled', 'inBodyEnabled', 'pointsEnabled',
+      'pointsPerCheckIn', 'pointsPerInvitation', 'pointsPerReferral',
+      'pointsValueInEGP', 'pointsPerEGPSpent',
+      'websiteUrl', 'showWebsiteOnReceipts',
+      'trackFreeSessionsCost', 'freePTSessionPrice',
+      'freeNutritionSessionPrice', 'freePhysioSessionPrice',
+      'freeGroupClassSessionPrice',
+      'ptCommissionEnabled', 'ptCommissionAmount'
+    ]
+
+    validFields.forEach(field => {
+      if (field in body) {
+        updateData[field] = body[field]
+      }
+    })
+
+    updateData.updatedBy = user.userId
 
     const settings = await prisma.systemSettings.upsert({
       where: { id: 'singleton' },
-      update: {
-        nutritionEnabled,
-        physiotherapyEnabled,
-        groupClassEnabled,
-        spaEnabled,
-        inBodyEnabled,
-        pointsEnabled,
-        pointsPerCheckIn,
-        pointsPerInvitation,
-        pointsValueInEGP,
-        pointsPerEGPSpent,
-        websiteUrl,
-        showWebsiteOnReceipts,
-        updatedBy: user.userId
-      },
+      update: updateData,
       create: {
         id: 'singleton',
-        nutritionEnabled,
-        physiotherapyEnabled,
-        groupClassEnabled,
-        spaEnabled,
-        inBodyEnabled,
-        pointsEnabled,
-        pointsPerCheckIn,
-        pointsPerInvitation,
-        pointsValueInEGP,
-        pointsPerEGPSpent,
-        websiteUrl,
-        showWebsiteOnReceipts,
-        updatedBy: user.userId
+        ...updateData
       }
     })
 
@@ -130,3 +128,6 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'فشل تحديث إعدادات الخدمات' }, { status: 500 })
   }
 }
+
+export const PUT = updateSettings
+export const POST = updateSettings

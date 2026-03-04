@@ -40,34 +40,51 @@ export async function GET(request: Request) {
               coachName: true,
               phone: true
             }
+          },
+          member: {
+            select: {
+              name: true,
+              memberNumber: true,
+              phone: true
+            }
           }
         }
       })
       return NextResponse.json(sessions)
     } else {
-      // فلترة حسب الدور
-      const whereClause = user.role === 'COACH'
-        ? {
-            pt: {
-              coachUserId: user.userId  // الكوتش يرى سجلات عملائه فقط
-            }
-          }
-        : {}  // الأدمن يرى الكل
-
-      // جلب جميع سجلات الحضور
+      // جلب جميع الجلسات (المدفوعة والمجانية)
       const sessions = await prisma.pTSession.findMany({
-        where: whereClause,
         orderBy: { sessionDate: 'desc' },
         include: {
           pt: {
             select: {
               clientName: true,
               coachName: true,
+              phone: true,
+              coachUserId: true
+            }
+          },
+          member: {
+            select: {
+              name: true,
+              memberNumber: true,
               phone: true
             }
           }
         }
       })
+
+      // فلترة حسب الدور إذا كان كوتش
+      if (user.role === 'COACH') {
+        // الكوتش يرى فقط جلسات عملائه المدفوعة (التي لها pt.coachUserId)
+        // الجلسات المجانية متاحة للجميع
+        const filteredSessions = sessions.filter(session => {
+          if (session.isFreeSession) return true // الجلسات المجانية متاحة للكوتش
+          return session.pt?.coachUserId === user.userId // الجلسات المدفوعة الخاصة به فقط
+        })
+        return NextResponse.json(filteredSessions)
+      }
+
       return NextResponse.json(sessions)
     }
   } catch (error: any) {

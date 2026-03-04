@@ -37,6 +37,7 @@ interface Offer {
   invitations: number
   icon: string
   upgradeEligibilityDays?: number | null
+  upgradePoints?: number
 }
 
 interface UpgradeFormProps {

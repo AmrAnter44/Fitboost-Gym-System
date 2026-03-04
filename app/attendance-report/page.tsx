@@ -324,27 +324,7 @@ export default function AttendanceReportPage() {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200 dark:border-gray-600">
         <h3 className="text-xl font-bold mb-4">🔍 {t('attendanceReport.searchFilters')}</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-bold mb-2">{t('attendanceReport.dateFrom')}</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 transition dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold mb-2">{t('attendanceReport.dateTo')}</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 transition dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
+        <div className="max-w-md">
           <div>
             <label className="block text-sm font-bold mb-2">{t('attendanceReport.staff')}</label>
             <select

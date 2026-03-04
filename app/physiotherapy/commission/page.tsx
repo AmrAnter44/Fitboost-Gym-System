@@ -93,6 +93,8 @@ interface SessionBasedCommission {
   coachUserId: string
   totalUsedSessions: number
   totalSessionsValue: number
+  paidSessionsValue: number      // ✅ قيمة الجلسات المدفوعة فقط
+  freeSessionsValue: number       // ✅ قيمة الجلسات المجانية
   percentage: number
   commission: number
   gymShare: number
@@ -106,6 +108,7 @@ export default function PhysiotherapyCommissionPage() {
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
   const [coaches, setCoaches] = useState<Staff[]>([])
   const [ptSessions, setPtSessions] = useState<PhysiotherapySession[]>([])
+  const [physioAttendanceRecords, setPhysioAttendanceRecords] = useState<any[]>([])  // ✅ سجلات الحضور
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [selectedCoach, setSelectedCoach] = useState<string>('')
   const [customIncome, setCustomIncome] = useState<string>('')
@@ -170,6 +173,14 @@ export default function PhysiotherapyCommissionPage() {
     'Physiotherapy Day Use'
   ]
 
+  // إعدادات الجلسات المجانية
+  const [freeSessionsSettings, setFreeSessionsSettings] = useState({
+    trackFreeSessionsCost: false,
+    freePhysioSessionPrice: 0
+  })
+  const [freeSessions, setFreeSessions] = useState<any[]>([])
+  const [loadingFreeSessionsSettings, setLoadingFreeSessionsSettings] = useState(false)
+
   // تحديد الفترة الزمنية (أول يوم في الشهر الحالي إلى آخر يوم)
   const today = new Date()
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -184,6 +195,8 @@ export default function PhysiotherapyCommissionPage() {
     fetchCurrentUser()
     fetchDefaultCalculationMethod()
     fetchLastPayrollDates()
+    fetchFreeSessionsSettings()
+    fetchFreeSessions()
   }, [])
 
   const fetchLastPayrollDates = async () => {
@@ -257,7 +270,9 @@ export default function PhysiotherapyCommissionPage() {
       const coachData = sessionCommissions.find(c => c.therapistName === selectedCoach)
       if (coachData) {
         const percentage = parseFloat(customSessionPercentage) || 0
-        const commission = (coachData.totalSessionsValue * percentage) / 100
+        // ✅ النسبة على الجلسات المدفوعة فقط + الجلسات المجانية كاملة
+        const paidCommission = (coachData.paidSessionsValue * percentage) / 100
+        const commission = paidCommission + coachData.freeSessionsValue
         setCalculatedSessionCommission(commission)
       }
     }
@@ -273,10 +288,20 @@ export default function PhysiotherapyCommissionPage() {
       )
       setCoaches(activeCoaches)
 
-      // جلب جلسات العلاج الطبيعي
+      // جلب جلسات العلاج الطبيعي (الاشتراكات)
       const ptResponse = await fetch('/api/physiotherapy')
       const ptData: PhysiotherapySession[] = await ptResponse.json()
       setPtSessions(ptData)
+
+      // ✅ جلب سجلات الحضور الفعلية
+      const attendanceResponse = await fetch('/api/physiotherapy/sessions')
+      if (attendanceResponse.ok) {
+        const attendanceData = await attendanceResponse.json()
+        const paidAttendedSessions = attendanceData.filter((session: any) =>
+          !session.isFreeSession && session.attended
+        )
+        setPhysioAttendanceRecords(paidAttendedSessions)
+      }
 
       // جلب الإيصالات
       const receiptsResponse = await fetch('/api/receipts')
@@ -286,6 +311,40 @@ export default function PhysiotherapyCommissionPage() {
       console.error('Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchFreeSessionsSettings = async () => {
+    try {
+      setLoadingFreeSessionsSettings(true)
+      const response = await fetch('/api/settings/services')
+      if (response.ok) {
+        const data = await response.json()
+        setFreeSessionsSettings({
+          trackFreeSessionsCost: data.trackFreeSessionsCost || false,
+          freePhysioSessionPrice: data.freePhysioSessionPrice || 0
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching free sessions settings:', error)
+    } finally {
+      setLoadingFreeSessionsSettings(false)
+    }
+  }
+
+  const fetchFreeSessions = async () => {
+    try {
+      const response = await fetch('/api/physiotherapy/sessions')
+      if (response.ok) {
+        const data = await response.json()
+        // فلترة الجلسات المجانية فقط (واللي لم يتم تحصيلها)
+        const freePhysioSessions = data.filter((session: any) =>
+          session.isFreeSession === true && !session.collectedInExpenseId
+        )
+        setFreeSessions(freePhysioSessions)
+      }
+    } catch (error) {
+      console.error('Error fetching free sessions:', error)
     }
   }
 
@@ -356,13 +415,24 @@ export default function PhysiotherapyCommissionPage() {
   const handleSaveSettings = async () => {
     setSavingSettings(true)
     try {
-      const response = await fetch('/api/commission-settings', {
+      // حفظ إعدادات الكوميشن
+      const commissionResponse = await fetch('/api/commission-settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(commissionSettings)
       })
 
-      if (response.ok) {
+      // حفظ إعدادات الجلسات المجانية
+      const freeSessionsResponse = await fetch('/api/settings/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trackFreeSessionsCost: freeSessionsSettings.trackFreeSessionsCost,
+          freePhysioSessionPrice: freeSessionsSettings.freePhysioSessionPrice
+        })
+      })
+
+      if (commissionResponse.ok && freeSessionsResponse.ok) {
         toast.success(t('physiotherapy.commission.settingsSavedSuccess'))
         setShowSettingsModal(false)
         // إعادة الحساب إذا كان هناك كوتش محدد
@@ -370,7 +440,7 @@ export default function PhysiotherapyCommissionPage() {
           handleCalculate()
         }
       } else {
-        const data = await response.json()
+        const data = await commissionResponse.json()
         toast.error(data.error || t('physiotherapy.commission.defaultMethodSavedError'))
       }
     } catch (error) {
@@ -495,30 +565,41 @@ export default function PhysiotherapyCommissionPage() {
     })
 
 
-    // 2. تجميع حسب المعالج
+    // 2. تجميع حسب المعالج بناءً على سجلات الحضور الفعلية
     const coachMap = new Map<string, PTSessionsData[]>()
 
     for (const pt of filteredPts) {
-      const usedSessions = pt.sessionsPurchased - pt.sessionsRemaining
+      // ✅ حساب الجلسات المستخدمة من سجلات الحضور في الفترة المحددة فقط
+      const attendedSessionsInPeriod = physioAttendanceRecords.filter(record =>
+        record.physioNumber === pt.physioNumber &&
+        record.attendedAt &&
+        new Date(record.attendedAt) >= start &&
+        new Date(record.attendedAt) <= end
+      )
+
+      const usedSessions = attendedSessionsInPeriod.length
       const sessionValue = usedSessions * pt.pricePerSession
 
-      const data: PTSessionsData = {
-        physioNumber: pt.physioNumber,
-        clientName: pt.clientName,
-        therapistName: pt.therapistName,
-        coachUserId: null, // لا يوجد في PTSession الحالية
-        sessionsPurchased: pt.sessionsPurchased,
-        sessionsRemaining: pt.sessionsRemaining,
-        pricePerSession: pt.pricePerSession,
-        usedSessions,
-        sessionValue
-      }
+      // فقط إضافة إذا كان لديه جلسات في الفترة
+      if (usedSessions > 0) {
+        const data: PTSessionsData = {
+          physioNumber: pt.physioNumber,
+          clientName: pt.clientName,
+          therapistName: pt.therapistName,
+          coachUserId: null,
+          sessionsPurchased: pt.sessionsPurchased,
+          sessionsRemaining: pt.sessionsRemaining,
+          pricePerSession: pt.pricePerSession,
+          usedSessions,
+          sessionValue
+        }
 
-      const key = pt.therapistName
-      if (!coachMap.has(key)) {
-        coachMap.set(key, [])
+        const key = pt.therapistName
+        if (!coachMap.has(key)) {
+          coachMap.set(key, [])
+        }
+        coachMap.get(key)!.push(data)
       }
-      coachMap.get(key)!.push(data)
     }
 
     // 3. حساب الكومشن لكل كوتش
@@ -526,17 +607,45 @@ export default function PhysiotherapyCommissionPage() {
 
     for (const [therapistName, ptList] of coachMap.entries()) {
       const totalUsedSessions = ptList.reduce((sum, pt) => sum + pt.usedSessions, 0)
-      const totalSessionsValue = ptList.reduce((sum, pt) => sum + pt.sessionValue, 0)
+      const paidSessionsValue = ptList.reduce((sum, pt) => sum + pt.sessionValue, 0)
 
-      const percentage = calculatePercentage(totalSessionsValue)
-      const commission = (totalSessionsValue * percentage) / 100
-      const gymShare = totalSessionsValue - commission
+      // ✅ حساب قيمة الجلسات المجانية (تُضاف كاملة للعمولة بدون نسبة)
+      let freeSessionsValue = 0
+      if (freeSessionsSettings.trackFreeSessionsCost && freeSessionsSettings.freePhysioSessionPrice > 0) {
+        const therapistFreeSessions = freeSessions.filter((session: any) => {
+          // تصفية حسب اسم المعالج
+          const sessionTherapistName = session.therapistName || session.attendedBy || ''
+          if (sessionTherapistName !== therapistName) return false
+
+          // تصفية حسب التاريخ
+          const sessionDate = new Date(session.sessionDate || session.attendedAt)
+          return sessionDate >= start && sessionDate <= end
+        })
+
+        const freeSessionsCount = therapistFreeSessions.length
+        freeSessionsValue = freeSessionsCount * freeSessionsSettings.freePhysioSessionPrice
+      }
+
+      // حساب النسبة على الجلسات المدفوعة فقط
+      const percentage = calculatePercentage(paidSessionsValue)
+
+      // العمولة = (جلسات مدفوعة × نسبة%) + جلسات مجانية (100%)
+      const paidCommission = (paidSessionsValue * percentage) / 100
+      const commission = paidCommission + freeSessionsValue
+
+      // نصيب الجيم من الجلسات المدفوعة فقط
+      const gymShare = paidSessionsValue - paidCommission
+
+      // الإجمالي للعرض فقط
+      const totalSessionsValue = paidSessionsValue + freeSessionsValue
 
       results.push({
         therapistName,
         coachUserId: '', // لا يوجد في البيانات الحالية
         totalUsedSessions,
         totalSessionsValue,
+        paidSessionsValue,      // ✅ قيمة الجلسات المدفوعة فقط
+        freeSessionsValue,      // ✅ قيمة الجلسات المجانية
         percentage,
         commission,
         gymShare,
@@ -547,6 +656,32 @@ export default function PhysiotherapyCommissionPage() {
     }
 
     return results.sort((a, b) => b.commission - a.commission)
+  }
+
+  // دالة حساب تفاصيل الجلسات المجانية للمعالج
+  const getFreeSessionsDetails = (therapistName: string) => {
+    if (!freeSessionsSettings.trackFreeSessionsCost || freeSessionsSettings.freePhysioSessionPrice <= 0) {
+      return { count: 0, value: 0, sessions: [] }
+    }
+
+    const start = new Date(dateFrom)
+    const end = new Date(dateTo)
+    end.setHours(23, 59, 59, 999)
+
+    const therapistFreeSessions = freeSessions.filter((session: any) => {
+      // تصفية حسب اسم المعالج
+      const sessionTherapistName = session.therapistName || session.attendedBy || ''
+      if (sessionTherapistName !== therapistName) return false
+
+      // تصفية حسب التاريخ
+      const sessionDate = new Date(session.sessionDate || session.attendedAt)
+      return sessionDate >= start && sessionDate <= end
+    })
+
+    const count = therapistFreeSessions.length
+    const value = count * freeSessionsSettings.freePhysioSessionPrice
+
+    return { count, value, sessions: therapistFreeSessions }
   }
 
   // دالة حساب أرباح المعالج من العلاج الطبيعي (من الإيصالات - الطريقة الصحيحة)
@@ -672,6 +807,9 @@ export default function PhysiotherapyCommissionPage() {
         })
       })
       if (res.ok) {
+        const expenseData = await res.json()
+        const expenseId = expenseData.id
+
         for (const d of payrollDeductions) {
           await fetch('/api/staff-deductions', {
             method: 'PUT',
@@ -679,6 +817,26 @@ export default function PhysiotherapyCommissionPage() {
             body: JSON.stringify({ id: d.id, isApplied: true, appliedAt: new Date().toISOString() })
           })
         }
+
+        // تحديد الجلسات المجانية كمحصلة
+        if (expenseId && freeSessionsSettings.trackFreeSessionsCost) {
+          try {
+            await fetch('/api/sessions/mark-collected', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                serviceType: 'Physiotherapy',
+                coachName: payrollCoachName,
+                startDate: dateFrom,
+                endDate: dateTo,
+                expenseId
+              })
+            })
+          } catch (error) {
+            console.error('Error marking free sessions as collected:', error)
+          }
+        }
+
         toast.success(t('physiotherapy.commission.payrollSuccess', { name: payrollCoachName }))
         setShowPayrollModal(false)
         fetchLastPayrollDates()
@@ -842,79 +1000,8 @@ export default function PhysiotherapyCommissionPage() {
         </div>
       </div>
 
-      {/* Calculation Method Selection - Admin Only */}
-      {isAdmin ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
-          <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
-            {t('physiotherapy.commission.calculationMethodLabel')}
-          </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={() => setCalculationMethod('revenue')}
-              className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
-                calculationMethod === 'revenue'
-                  ? 'bg-primary-600 text-white shadow-lg sm:scale-105'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xl sm:text-2xl">💰</span>
-                <span className="text-sm sm:text-base">{t('physiotherapy.commission.byRevenue')}</span>
-              </div>
-              <p className="text-xs mt-1 opacity-80">
-                {t('physiotherapy.commission.byRevenueDesc')}
-              </p>
-            </button>
-            <button
-              onClick={() => setCalculationMethod('sessions')}
-              className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
-                calculationMethod === 'sessions'
-                  ? 'bg-green-600 text-white shadow-lg sm:scale-105'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xl sm:text-2xl">📊</span>
-                <span className="text-sm sm:text-base">{t('physiotherapy.commission.bySessions')}</span>
-              </div>
-              <p className="text-xs mt-1 opacity-80">
-                {t('physiotherapy.commission.bySessionsDesc')}
-              </p>
-            </button>
-          </div>
-
-          {/* Info Box */}
-          <div className="mt-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-500 dark:border-blue-600 p-3 rounded">
-            <p className="text-xs sm:text-sm text-blue-800">
-              <strong>{t('physiotherapy.commission.methodDifferenceTitle')}</strong>
-            </p>
-            <ul className="list-disc list-inside text-xs text-blue-700 mt-2 space-y-1">
-              <li><strong>{t('physiotherapy.commission.byRevenue')}:</strong> {t('physiotherapy.commission.byRevenueFullDesc')}</li>
-              <li><strong>{t('physiotherapy.commission.bySessions')}:</strong> {t('physiotherapy.commission.bySessionsFullDesc')}</li>
-            </ul>
-          </div>
-
-          {/* Admin Only: Save as Default */}
-          <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 sm:p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg sm:text-xl">⚙️</span>
-                <div>
-                  <p className="text-xs sm:text-sm font-bold text-primary-900 dark:text-primary-300">{t('physiotherapy.commission.adminSettings')}</p>
-                  <p className="text-xs text-primary-700 hidden sm:block">{t('physiotherapy.commission.saveCurrentMethodAsDefault')}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => saveDefaultCalculationMethod(calculationMethod)}
-                className="bg-primary-600 hover:bg-primary-700 text-white px-3 sm:px-4 py-2 rounded-lg font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2 w-full sm:w-auto justify-center"
-              >
-                <span>💾</span>
-                <span>{t('physiotherapy.commission.saveAsDefault')}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
+      {/* Calculation Method - Coach View (read-only) */}
+      {!isAdmin && (
         /* Coach View - Show current method only (read-only) */
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
           <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
@@ -1174,6 +1261,44 @@ export default function PhysiotherapyCommissionPage() {
                     </div>
                   </div>
 
+                  {/* تفاصيل الجلسات المجانية */}
+                  {(() => {
+                    const freeSessionsDetails = getFreeSessionsDetails(coachData.therapistName)
+                    if (freeSessionsDetails.count > 0) {
+                      return (
+                        <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 border-2 border-cyan-300 dark:border-cyan-600 rounded-xl p-3 sm:p-4">
+                          <div className="flex items-start gap-2 sm:gap-3">
+                            <div className="text-xl sm:text-2xl md:text-3xl">🎁</div>
+                            <div className="flex-1">
+                              <p className="text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-300 mb-2">
+                                تفاصيل الجلسات المجانية
+                              </p>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-gray-600 dark:text-gray-300">عدد الجلسات:</span>
+                                  <span className="font-bold text-cyan-600 dark:text-cyan-400">{freeSessionsDetails.count}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-gray-600 dark:text-gray-300">سعر الجلسة:</span>
+                                  <span className="font-bold text-cyan-600 dark:text-cyan-400">
+                                    {freeSessionsSettings.freePhysioSessionPrice.toLocaleString(localeString)} ج.م
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t border-cyan-200 dark:border-cyan-700">
+                                  <span className="text-xs font-bold text-gray-700 dark:text-gray-200">القيمة الإجمالية:</span>
+                                  <span className="text-lg font-black text-cyan-700 dark:text-cyan-300">
+                                    {freeSessionsDetails.value.toLocaleString(localeString)} ج.م
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
+
                   {/* نسبة الكومشن قابلة للتعديل */}
                   <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/50 dark:to-amber-900/50 border-2 border-orange-200 dark:border-orange-700 rounded-xl p-3 sm:p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <label className="block text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 mb-2 sm:mb-3">
@@ -1209,7 +1334,8 @@ export default function PhysiotherapyCommissionPage() {
                           })} ج.م
                         </p>
                         <p className="text-white/70 text-xs mt-1 break-words">
-                          = {coachData.totalSessionsValue.toLocaleString(localeString)} × {customSessionPercentage}%
+                          = {coachData.paidSessionsValue.toLocaleString(localeString)} × {customSessionPercentage}%
+                          {coachData.freeSessionsValue > 0 && ` + ${coachData.freeSessionsValue.toLocaleString(localeString)} (مجاني)`}
                         </p>
                       </div>
                     </div>
@@ -2076,7 +2202,7 @@ export default function PhysiotherapyCommissionPage() {
 
       {/* Settings Modal */}
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-gradient-to-r from-gray-700 to-gray-600 text-white p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
@@ -2105,7 +2231,71 @@ export default function PhysiotherapyCommissionPage() {
                 </p>
               </div>
 
-              {/* حدود الدخل الشهري */}
+              {/* طريقة حساب الكوميشن */}
+              <div className="mb-8">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <span>📐</span>
+                  {t('physiotherapy.commission.calculationMethodLabel')}
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setCalculationMethod('revenue')}
+                    className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
+                      calculationMethod === 'revenue'
+                        ? 'bg-primary-600 text-white shadow-lg sm:scale-105'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-xl sm:text-2xl">💰</span>
+                      <span className="text-sm sm:text-base">{t('physiotherapy.commission.byRevenue')}</span>
+                    </div>
+                    <p className="text-xs mt-1 opacity-80">
+                      {t('physiotherapy.commission.byRevenueDesc')}
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setCalculationMethod('sessions')}
+                    className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all ${
+                      calculationMethod === 'sessions'
+                        ? 'bg-green-600 text-white shadow-lg sm:scale-105'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-xl sm:text-2xl">📊</span>
+                      <span className="text-sm sm:text-base">{t('physiotherapy.commission.bySessions')}</span>
+                    </div>
+                    <p className="text-xs mt-1 opacity-80">
+                      {t('physiotherapy.commission.bySessionsDesc')}
+                    </p>
+                  </button>
+                </div>
+
+                <div className="mt-4 bg-amber-50 dark:bg-amber-900/50 border-l-4 border-amber-500 dark:border-amber-600 p-3 rounded">
+                  <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300">
+                    <strong>{t('physiotherapy.commission.methodDifferenceTitle')}</strong>
+                  </p>
+                  <ul className="list-disc list-inside text-xs text-amber-700 dark:text-amber-400 mt-2 space-y-1">
+                    <li><strong>{t('physiotherapy.commission.byRevenue')}:</strong> {t('physiotherapy.commission.byRevenueFullDesc')}</li>
+                    <li><strong>{t('physiotherapy.commission.bySessions')}:</strong> {t('physiotherapy.commission.bySessionsFullDesc')}</li>
+                  </ul>
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => saveDefaultCalculationMethod(calculationMethod)}
+                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                  >
+                    <span>💾</span>
+                    <span>{t('physiotherapy.commission.saveAsDefault')}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* حدود الدخل الشهري - يظهر فقط عند اختيار "نسبة من الدخل" */}
+              {calculationMethod === 'revenue' && (
+              <>
               <div className="mb-8">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                   <span>💰</span>
@@ -2257,6 +2447,71 @@ export default function PhysiotherapyCommissionPage() {
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{t('physiotherapy.commission.orMoreAmount', { amount: commissionSettings.tier4Limit.toLocaleString(localeString) })} {t('physiotherapy.commission.currency')}</p>
                   </div>
+                </div>
+              </div>
+              </>
+              )}
+
+              {/* إعدادات الجلسات المجانية */}
+              <div className="mb-6">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <span>🏥</span>
+                  إعدادات جلسات العلاج الطبيعي المجانية
+                </h3>
+
+                {/* Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-700 mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">📊</span>
+                    <div>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-100">احتساب تكلفة الجلسات المجانية</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">تفعيل/تعطيل حساب تكلفة جلسات العلاج الطبيعي المجانية في التحصيل</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setFreeSessionsSettings(prev => ({
+                        ...prev,
+                        trackFreeSessionsCost: !prev.trackFreeSessionsCost
+                      }))
+                    }}
+                    className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                      freeSessionsSettings.trackFreeSessionsCost ? 'bg-orange-500' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                        freeSessionsSettings.trackFreeSessionsCost ? 'end-1' : 'start-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Price Input */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-2xl">🏥</span>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-100">سعر جلسة العلاج الطبيعي المجانية</h4>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={freeSessionsSettings.freePhysioSessionPrice}
+                      onChange={(e) => setFreeSessionsSettings(prev => ({
+                        ...prev,
+                        freePhysioSessionPrice: parseFloat(e.target.value) || 0
+                      }))}
+                      disabled={!freeSessionsSettings.trackFreeSessionsCost}
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="0.00"
+                    />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">ج.م</span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    💡 هذا السعر يُستخدم لحساب قيمة جلسات العلاج الطبيعي المجانية في التحصيل
+                  </p>
                 </div>
               </div>
 

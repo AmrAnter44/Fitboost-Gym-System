@@ -13,10 +13,10 @@ import { formatDateYMD, calculateRemainingDays } from '../../../lib/dateFormatte
 import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
 import type { PaymentMethod } from '../../../lib/paymentHelpers'
-import { FlexibilityAssessment, ExerciseTestData, MedicalQuestions, FitnessTestData } from '../../../types/fitness-test'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
 import { useServiceSettings } from '../../../contexts/ServiceSettingsContext'
+import FreeSessionModal from '../../../components/FreeSessionModal'
 
 interface Member {
   id: string
@@ -230,9 +230,18 @@ export default function MemberDetailPage() {
 
   const [activeModal, setActiveModal] = useState<string | null>(null)
 
+  // Free Session Modals
+  const [freeSessionModal, setFreeSessionModal] = useState<{
+    isOpen: boolean
+    serviceType: 'PT' | 'Nutrition' | 'Physiotherapy' | 'GroupClass' | null
+  }>({
+    isOpen: false,
+    serviceType: null
+  })
+
   // Fitness Test
   const [fitnessTestExists, setFitnessTestExists] = useState(false)
-  const [fitnessTestData, setFitnessTestData] = useState<FitnessTestData | null>(null)
+  const [fitnessTestData, setFitnessTestData] = useState<any>(null)
   const [coaches, setCoaches] = useState<any[]>([])
   const [selectedCoachId, setSelectedCoachId] = useState<string>('')
 
@@ -252,7 +261,7 @@ export default function MemberDetailPage() {
       diabetes: false,
       smoker: false,
       highCholesterol: false,
-    } as MedicalQuestions,
+    } as any,
     flexibility: {
       shoulder: 'FAIR',
       hip: 'FAIR',
@@ -262,7 +271,7 @@ export default function MemberDetailPage() {
       scapula: 'FAIR',
       knee: 'FAIR',
       ankle: 'FAIR',
-    } as FlexibilityAssessment,
+    } as any,
     exercises: {
       pushup: { sets: 0, reps: 0 },
       situp: { sets: 0, reps: 0 },
@@ -271,7 +280,7 @@ export default function MemberDetailPage() {
       plank: { sets: 0, reps: 0 },
       legpress: { sets: 0, reps: 0 },
       chestpress: { sets: 0, reps: 0 },
-    } as ExerciseTestData,
+    } as any,
   })
 
   // سجل الحضور
@@ -553,7 +562,7 @@ export default function MemberDetailPage() {
   useEffect(() => {
     fetchMember()
     fetchAttendanceHistory()
-    fetchFitnessTest()
+    // fetchFitnessTest() // Disabled - fitness test feature removed
   }, [memberId])
 
   useEffect(() => {
@@ -729,33 +738,9 @@ export default function MemberDetailPage() {
       return
     }
 
-    setConfirmModal({
-      show: true,
-      title: `💪 ${t('memberDetails.useFreePT')}`,
-      message: t('memberDetails.confirmUseFreePT'),
-      onConfirm: async () => {
-        setConfirmModal(null)
-        setLoading(true)
-        try {
-          const response = await fetch('/api/members', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: member.id,
-              freePTSessions: (member.freePTSessions ?? 0) - 1
-            })
-          })
-
-          if (response.ok) {
-            toast.success(t('memberDetails.freePTUsed'))
-            fetchMember()
-          }
-        } catch (error) {
-          toast.error(t('memberDetails.error'))
-        } finally {
-          setLoading(false)
-        }
-      }
+    setFreeSessionModal({
+      isOpen: true,
+      serviceType: 'PT'
     })
   }
 
@@ -765,33 +750,9 @@ export default function MemberDetailPage() {
       return
     }
 
-    setConfirmModal({
-      show: true,
-      title: `🥗 استخدام جلسة تغذية`,
-      message: 'هل أنت متأكد من استخدام جلسة تغذية مجانية؟',
-      onConfirm: async () => {
-        setConfirmModal(null)
-        setLoading(true)
-        try {
-          const response = await fetch('/api/members', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: member.id,
-              freeNutritionSessions: (member.freeNutritionSessions ?? 0) - 1
-            })
-          })
-
-          if (response.ok) {
-            toast.success('تم استخدام جلسة تغذية بنجاح')
-            fetchMember()
-          }
-        } catch (error) {
-          toast.error(t('memberDetails.error'))
-        } finally {
-          setLoading(false)
-        }
-      }
+    setFreeSessionModal({
+      isOpen: true,
+      serviceType: 'Nutrition'
     })
   }
 
@@ -801,33 +762,9 @@ export default function MemberDetailPage() {
       return
     }
 
-    setConfirmModal({
-      show: true,
-      title: `🏥 استخدام جلسة علاج`,
-      message: 'هل أنت متأكد من استخدام جلسة علاج طبيعي مجانية؟',
-      onConfirm: async () => {
-        setConfirmModal(null)
-        setLoading(true)
-        try {
-          const response = await fetch('/api/members', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: member.id,
-              freePhysioSessions: (member.freePhysioSessions ?? 0) - 1
-            })
-          })
-
-          if (response.ok) {
-            toast.success('تم استخدام جلسة علاج طبيعي بنجاح')
-            fetchMember()
-          }
-        } catch (error) {
-          toast.error(t('memberDetails.error'))
-        } finally {
-          setLoading(false)
-        }
-      }
+    setFreeSessionModal({
+      isOpen: true,
+      serviceType: 'Physiotherapy'
     })
   }
 
@@ -837,33 +774,9 @@ export default function MemberDetailPage() {
       return
     }
 
-    setConfirmModal({
-      show: true,
-      title: `👥 استخدام جلسة جروب كلاسيس`,
-      message: 'هل أنت متأكد من استخدام جلسة جروب كلاسيس مجانية؟',
-      onConfirm: async () => {
-        setConfirmModal(null)
-        setLoading(true)
-        try {
-          const response = await fetch('/api/members', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: member.id,
-              freeGroupClassSessions: (member.freeGroupClassSessions ?? 0) - 1
-            })
-          })
-
-          if (response.ok) {
-            toast.success('تم استخدام جلسة جروب كلاسيس بنجاح')
-            fetchMember()
-          }
-        } catch (error) {
-          toast.error(t('memberDetails.error'))
-        } finally {
-          setLoading(false)
-        }
-      }
+    setFreeSessionModal({
+      isOpen: true,
+      serviceType: 'GroupClass'
     })
   }
 
@@ -2738,7 +2651,7 @@ export default function MemberDetailPage() {
                   <label key={q.key} className="flex items-center gap-3 cursor-pointer hover:bg-yellow-100 p-2 rounded">
                     <input
                       type="checkbox"
-                      checked={fitnessTestForm.medicalQuestions[q.key as keyof MedicalQuestions]}
+                      checked={fitnessTestForm.medicalQuestions[q.key as any]}
                       onChange={(e) => setFitnessTestForm({
                         ...fitnessTestForm,
                         medicalQuestions: {
@@ -2779,7 +2692,7 @@ export default function MemberDetailPage() {
                   <div key={part.key}>
                     <label className="block font-medium mb-2">{part.label}</label>
                     <select
-                      value={fitnessTestForm.flexibility[part.key as keyof FlexibilityAssessment]}
+                      value={fitnessTestForm.flexibility[part.key as any]}
                       onChange={(e) => setFitnessTestForm({
                         ...fitnessTestForm,
                         flexibility: {...fitnessTestForm.flexibility, [part.key]: e.target.value}
@@ -2812,12 +2725,12 @@ export default function MemberDetailPage() {
                     <input
                       type="number"
                       placeholder="Sets"
-                      value={fitnessTestForm.exercises[ex.key as keyof ExerciseTestData].sets}
+                      value={fitnessTestForm.exercises[ex.key as any].sets}
                       onChange={(e) => setFitnessTestForm({
                         ...fitnessTestForm,
                         exercises: {
                           ...fitnessTestForm.exercises,
-                          [ex.key]: {...fitnessTestForm.exercises[ex.key as keyof ExerciseTestData], sets: parseInt(e.target.value) || 0}
+                          [ex.key]: {...fitnessTestForm.exercises[ex.key as any], sets: parseInt(e.target.value) || 0}
                         }
                       })}
                       className="w-24 px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
@@ -2827,12 +2740,12 @@ export default function MemberDetailPage() {
                     <input
                       type="number"
                       placeholder="Reps"
-                      value={fitnessTestForm.exercises[ex.key as keyof ExerciseTestData].reps}
+                      value={fitnessTestForm.exercises[ex.key as any].reps}
                       onChange={(e) => setFitnessTestForm({
                         ...fitnessTestForm,
                         exercises: {
                           ...fitnessTestForm.exercises,
-                          [ex.key]: {...fitnessTestForm.exercises[ex.key as keyof ExerciseTestData], reps: parseInt(e.target.value) || 0}
+                          [ex.key]: {...fitnessTestForm.exercises[ex.key as any], reps: parseInt(e.target.value) || 0}
                         }
                       })}
                       className="w-24 px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
@@ -2914,7 +2827,7 @@ export default function MemberDetailPage() {
                   {Object.entries(fitnessTestData.flexibility).map(([key, value]) => (
                     <div key={key} className="bg-white dark:bg-gray-800 p-2 rounded">
                       <p className="text-gray-600 dark:text-gray-300 text-xs">{key}</p>
-                      <p className="font-bold">{value}</p>
+                      <p className="font-bold">{String(value)}</p>
                     </div>
                   ))}
                 </div>
@@ -2923,7 +2836,7 @@ export default function MemberDetailPage() {
               <div className="bg-green-50 p-4 rounded-lg dark:bg-green-900/20">
                 <h4 className="font-bold mb-3">نتائج التمارين</h4>
                 <div className="space-y-2 text-sm">
-                  {Object.entries(fitnessTestData.exercises).map(([key, value]) => (
+                  {Object.entries(fitnessTestData.exercises).map(([key, value]: [string, any]) => (
                     <div key={key} className="flex justify-between bg-white dark:bg-gray-800 p-2 rounded">
                       <span className="font-medium">{key}</span>
                       <span className="font-bold text-green-600">{value.sets} × {value.reps}</span>
@@ -3453,6 +3366,26 @@ export default function MemberDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Free Session Modal */}
+      {member && freeSessionModal.isOpen && freeSessionModal.serviceType && (
+        <FreeSessionModal
+          isOpen={freeSessionModal.isOpen}
+          serviceType={freeSessionModal.serviceType}
+          memberName={member.name}
+          memberId={member.id}
+          remainingSessions={
+            freeSessionModal.serviceType === 'PT' ? member.freePTSessions :
+            freeSessionModal.serviceType === 'Nutrition' ? member.freeNutritionSessions :
+            freeSessionModal.serviceType === 'Physiotherapy' ? member.freePhysioSessions :
+            member.freeGroupClassSessions
+          }
+          onClose={() => setFreeSessionModal({ isOpen: false, serviceType: null })}
+          onSuccess={() => {
+            fetchMember()
+          }}
+        />
       )}
     </div>
   )

@@ -13,6 +13,40 @@ import { useToast } from '../../contexts/ToastContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { fetchStaff } from '../../lib/api/staff'
 
+interface StaffDeduction {
+  id: string
+  staffId: string
+  amount: number
+  reason: string
+  notes?: string
+  isApplied: boolean
+  appliedAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface Expense {
+  id: string
+  type: string
+  amount: number
+  description: string
+  notes?: string
+  staffId?: string
+  isPaid: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+interface Attendance {
+  id: string
+  staffId: string
+  checkIn: string
+  checkOut: string | null
+  duration: number | null
+  notes: string | null
+  createdAt: string
+}
+
 interface Staff {
   id: string
   staffCode: string  // ✅ الرقم مع s في البداية (مثل s001, s022)
@@ -23,17 +57,9 @@ interface Staff {
   notes?: string
   isActive: boolean
   createdAt: string
-}
-
-interface Attendance {
-  id: string
-  staffId: string
-  staff: Staff
-  checkIn: string
-  checkOut: string | null
-  duration: number | null
-  notes: string | null
-  createdAt: string
+  expenses?: Expense[]
+  attendance?: Attendance[]
+  deductions?: StaffDeduction[]
 }
 
 // Map Arabic position values to translation keys
@@ -1062,6 +1088,27 @@ const handleScan = async (staffCode: string) => {
                     </span>
                   </div>
 
+                  {/* الخصومات */}
+                  {staffMember.deductions && staffMember.deductions.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 dark:text-gray-400 text-sm">📉</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600 dark:text-red-400 font-semibold text-sm">
+                          {staffMember.deductions.filter(d => !d.isApplied).length > 0 && (
+                            <span className="bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 px-2 py-1 rounded-lg text-xs">
+                              {staffMember.deductions.filter(d => !d.isApplied).length} خصم معلق
+                            </span>
+                          )}
+                          {staffMember.deductions.filter(d => d.isApplied).length > 0 && (
+                            <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-lg text-xs mr-1">
+                              {staffMember.deductions.filter(d => d.isApplied).length} مطبق
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* الحالة */}
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500 dark:text-gray-400 text-sm">📊</span>
@@ -1100,6 +1147,7 @@ const handleScan = async (staffCode: string) => {
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.phone')}</th>
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.position')}</th>
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.salary')}</th>
+                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">📉 الخصومات</th>
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.status')}</th>
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.actions')}</th>
                   </tr>
@@ -1140,6 +1188,24 @@ const handleScan = async (staffCode: string) => {
                       </td>
                       <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
                         {staffMember.salary ? `${staffMember.salary} ج.م` : '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {staffMember.deductions && staffMember.deductions.length > 0 ? (
+                          <div className="flex items-center gap-2">
+                            {staffMember.deductions.filter(d => !d.isApplied).length > 0 && (
+                              <span className="bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 px-2 py-1 rounded-lg text-xs font-semibold">
+                                {staffMember.deductions.filter(d => !d.isApplied).length} معلق
+                              </span>
+                            )}
+                            {staffMember.deductions.filter(d => d.isApplied).length > 0 && (
+                              <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-lg text-xs font-semibold">
+                                {staffMember.deductions.filter(d => d.isApplied).length} مطبق
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <button

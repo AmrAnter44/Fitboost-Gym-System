@@ -83,7 +83,8 @@
     "admin": "👑 Admin",
     "manager": "📊 Manager",
     "staff": "👷 Staff",
-    "coach": "🏋️ Coach"
+    "coach": "🏋️ Coach",
+    "owner": "👨‍💼 Owner"
   },
   "positions": {
     "trainer": "Trainer",
@@ -200,6 +201,13 @@
     "previousPage": "Previous",
     "pageXOfY": "Page {current} of {total}",
     "permissionDeniedViewMembers": "You don't have permission to view members",
+    "referralMemberNumber": "Referrer Member Number (Optional)",
+    "referralMemberNumberPlaceholder": "Enter existing member number",
+    "referralMemberNumberHelp": "If there is a member who referred this new member, they will receive",
+    "referrerNotFound": "Member number not found",
+    "referrerValidationError": "Error validating member number",
+    "referrerWillReceive": "Will receive",
+    "pointsLabel": "points",
     "paymentMethods": {
       "label": "Payment Method",
       "selectedMethod": "Selected Method:",
@@ -352,6 +360,8 @@
     "pointsPerCheckInDesc": "Number of points members earn when checking in",
     "pointsPerInvitation": "Points per Invitation",
     "pointsPerInvitationDesc": "Number of points members earn when using an invitation",
+    "pointsPerReferral": "Points per Referral",
+    "pointsPerReferralHelp": "Number of points members earn when referring a new member to the gym",
     "pointsPerEGPSpent": "Points per EGP Spent",
     "pointsPerEGPSpentDesc": "Number of points members earn for each EGP spent (e.g., 0.1 = 10 EGP = 1 point)",
     "pointsValueInEGP": "Points Value in EGP",

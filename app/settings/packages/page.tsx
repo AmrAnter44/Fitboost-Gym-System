@@ -12,6 +12,7 @@ interface ServicePackage {
   serviceType: string
   sessions: number
   price: number
+  ptCommission?: number  // 💰 عمولة الكوتش لهذه الباقة
   isActive: boolean
 }
 
@@ -30,7 +31,8 @@ export default function PackagesManagementPage() {
     name: '',
     serviceType: 'PT',
     sessions: '',
-    price: ''
+    price: '',
+    ptCommission: ''  // 💰 عمولة الكوتش
   })
 
   useEffect(() => {
@@ -94,7 +96,8 @@ export default function PackagesManagementPage() {
       name: pkg.name,
       serviceType: pkg.serviceType,
       sessions: pkg.sessions.toString(),
-      price: pkg.price.toString()
+      price: pkg.price.toString(),
+      ptCommission: pkg.ptCommission?.toString() || '0'  // 💰 عمولة الكوتش
     })
     setShowForm(true)
   }
@@ -124,7 +127,8 @@ export default function PackagesManagementPage() {
       name: '',
       serviceType: 'PT',
       sessions: '',
-      price: ''
+      price: '',
+      ptCommission: ''  // 💰 عمولة الكوتش
     })
     setEditingPackage(null)
     setShowForm(false)
@@ -262,6 +266,29 @@ export default function PackagesManagementPage() {
               />
             </div>
 
+            {/* 💰 عمولة الكوتش - فقط لباقات PT */}
+            {formData.serviceType === 'PT' && (
+              <div className="md:col-span-2">
+                <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                  👨‍🏫 عمولة الكوتش (جنيه)
+                </label>
+                <input
+                  type="number"
+                  value={formData.ptCommission}
+                  onChange={(e) => setFormData({ ...formData, ptCommission: e.target.value })}
+                  className="w-full p-3 border-2 border-purple-300 dark:border-purple-600 rounded-lg focus:border-purple-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                  placeholder="0"
+                  min="0"
+                  step="10"
+                />
+                <p className="text-sm text-purple-600 dark:text-purple-400 mt-2">
+                  💰 مبلغ العمولة للكوتش عند اشتراك عضو بهذه الباقة
+                  <br />
+                  <span className="text-gray-500 dark:text-gray-400">(0 = استخدام المبلغ الافتراضي من الإعدادات: {settings.ptCommissionAmount || 50} ج.م)</span>
+                </p>
+              </div>
+            )}
+
             <div className="md:col-span-2 flex gap-3">
               <button
                 type="submit"
@@ -313,6 +340,12 @@ export default function PackagesManagementPage() {
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           {pkg.sessions} {t('packages.sessions')}
                         </p>
+                        {/* 💰 عمولة الكوتش - فقط لباقات PT */}
+                        {pkg.serviceType === 'PT' && pkg.ptCommission !== undefined && pkg.ptCommission > 0 && (
+                          <div className="mt-2 inline-block bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded text-xs font-bold">
+                            👨‍🏫 عمولة: {pkg.ptCommission} ج.م
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">

@@ -8,7 +8,7 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
-import { addPointsForPayment } from '../../../../lib/points'
+import { addPointsForPayment, addPoints } from '../../../../lib/points'
 import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
@@ -213,6 +213,21 @@ export async function POST(request: Request) {
       }
     })
 
+    // إضافة نقاط الترقية إذا كانت محددة في العرض
+    if (newOffer.upgradePoints && newOffer.upgradePoints > 0) {
+      try {
+        await addPoints(
+          member.id,
+          newOffer.upgradePoints,
+          'payment',
+          `مكافأة ترقية إلى باقة ${newOffer.name} - ${newOffer.upgradePoints} نقطة`
+        )
+        console.log(`✅ تم إضافة ${newOffer.upgradePoints} نقطة ترقية للعضو ${member.name}`)
+      } catch (pointsError) {
+        console.error('Error adding upgrade points:', pointsError)
+        // لا نوقف العملية إذا فشلت إضافة نقاط الترقية
+      }
+    }
 
     // إضافة نقاط مكافأة على الدفع
     try {

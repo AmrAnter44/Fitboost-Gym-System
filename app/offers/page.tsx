@@ -19,9 +19,11 @@ interface Offer {
   inBodyScans: number
   invitations: number
   freezeDays: number
+  ptCommission?: number
   icon: string
   isActive: boolean
   upgradeEligibilityDays?: number | null
+  upgradePoints?: number
   createdAt: string
   updatedAt: string
 }
@@ -82,8 +84,10 @@ export default function OffersPage() {
     inBodyScans: '',
     invitations: '',
     freezeDays: '',
+    ptCommission: '',
     icon: '📅',
-    upgradeEligibilityDays: '7'
+    upgradeEligibilityDays: '7',
+    upgradePoints: '0'
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,8 +140,10 @@ export default function OffersPage() {
       inBodyScans: offer.inBodyScans.toString(),
       invitations: offer.invitations.toString(),
       freezeDays: offer.freezeDays.toString(),
+      ptCommission: offer.ptCommission?.toString() || '0',
       icon: offer.icon,
-      upgradeEligibilityDays: offer.upgradeEligibilityDays?.toString() || '7'
+      upgradeEligibilityDays: offer.upgradeEligibilityDays?.toString() || '7',
+      upgradePoints: offer.upgradePoints?.toString() || '0'
     })
     setShowForm(true)
   }
@@ -213,8 +219,10 @@ export default function OffersPage() {
       inBodyScans: '',
       invitations: '',
       freezeDays: '',
+      ptCommission: '',
       icon: '📅',
-      upgradeEligibilityDays: '7'
+      upgradeEligibilityDays: '7',
+      upgradePoints: '0'
     })
     setEditingOffer(null)
     setShowForm(false)
@@ -390,6 +398,20 @@ export default function OffersPage() {
                 </div>
 
                 <div>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">👨‍🏫 عمولة الكوتش (جنيه)</label>
+                  <input
+                    type="number"
+                    value={formData.ptCommission}
+                    onChange={(e) => setFormData({ ...formData, ptCommission: e.target.value })}
+                    className="w-full p-3 border-2 border-purple-300 dark:border-purple-600 rounded-lg focus:border-purple-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                    placeholder="0"
+                    min="0"
+                    step="10"
+                  />
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">💰 مبلغ العمولة للكوتش عند اشتراك عضو بهذه الباقة (0 = استخدام المبلغ الافتراضي من الإعدادات)</p>
+                </div>
+
+                <div>
                   <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.upgradeEligibilityDays')}</label>
                   <input
                     type="number"
@@ -400,6 +422,23 @@ export default function OffersPage() {
                     min="0"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('offers.upgradeEligibilityDaysHelp')}</p>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                    🎁 {t('offers.upgradePoints')}
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.upgradePoints}
+                    onChange={(e) => setFormData({ ...formData, upgradePoints: e.target.value })}
+                    className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                    placeholder="0"
+                    min="0"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t('offers.upgradePointsHelp')}
+                  </p>
                 </div>
 
                 <div className="md:col-span-2">
@@ -524,6 +563,12 @@ export default function OffersPage() {
                       <span className="text-gray-600 dark:text-gray-300">❄️ أيام الفريز</span>
                       <span className="font-bold text-primary-600 dark:text-primary-400">{offer.freezeDays}</span>
                     </div>
+                    {offer.ptCommission !== undefined && offer.ptCommission > 0 && (
+                      <div className="flex justify-between items-center text-sm bg-purple-50 dark:bg-purple-900/20 p-2 rounded">
+                        <span className="text-purple-700 dark:text-purple-300">👨‍🏫 عمولة الكوتش</span>
+                        <span className="font-bold text-purple-600 dark:text-purple-400">{offer.ptCommission} ج.م</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                       <span className="text-gray-600 dark:text-gray-300">{t('offers.upgradeWindow')}</span>
                       <span className="font-bold text-primary-600 dark:text-primary-400">
@@ -533,6 +578,14 @@ export default function OffersPage() {
                         }
                       </span>
                     </div>
+                    {offer.upgradePoints && offer.upgradePoints > 0 && (
+                      <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                        <span className="text-gray-600 dark:text-gray-300">🎁 {t('offers.upgradePointsReward')}</span>
+                        <span className="font-bold text-green-600 dark:text-green-400">
+                          {offer.upgradePoints} {t('offers.pointsLabel')}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2">

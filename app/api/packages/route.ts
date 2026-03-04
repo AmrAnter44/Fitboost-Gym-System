@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { name, serviceType, sessions, price } = body
+    const { name, serviceType, sessions, price, ptCommission } = body
 
     // التحقق من البيانات
     if (!name || !serviceType || !sessions || !price) {
@@ -75,7 +75,8 @@ export async function POST(request: Request) {
         name,
         serviceType,
         sessions: parseInt(sessions),
-        price: parseFloat(price)
+        price: parseFloat(price),
+        ptCommission: ptCommission ? parseFloat(ptCommission) : 0  // 💰 عمولة الكوتش
       }
     })
 
@@ -114,7 +115,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { id, name, sessions, price, isActive } = body
+    const { id, name, sessions, price, ptCommission, isActive } = body
 
     if (!id) {
       return NextResponse.json(
@@ -129,6 +130,7 @@ export async function PUT(request: Request) {
         name,
         sessions: sessions ? parseInt(sessions) : undefined,
         price: price ? parseFloat(price) : undefined,
+        ptCommission: ptCommission !== undefined ? parseFloat(ptCommission) : undefined,  // 💰 عمولة الكوتش
         isActive: isActive !== undefined ? isActive : undefined
       }
     })

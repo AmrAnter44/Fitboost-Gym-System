@@ -18,11 +18,18 @@ interface PhysiotherapySessionRecord {
   sessionDate: string
   notes: string | null
   createdAt: string
-  physiotherapy: {
+  isFreeSession?: boolean
+  memberId?: string | null
+  physiotherapy?: {
     clientName: string
     therapistName: string
     phone: string
-  }
+  } | null
+  member?: {
+    name: string
+    memberNumber: number
+    phone: string
+  } | null
 }
 
 export default function PhysiotherapySessionHistoryPage() {
@@ -268,7 +275,16 @@ export default function PhysiotherapySessionHistoryPage() {
                       className={`border-t hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 ${isToday ? 'bg-blue-50' : ''}`}
                     >
                       <td className="px-4 py-3">
-                        {session.physioNumber < 0 ? (
+                        {session.isFreeSession ? (
+                          <div className="flex items-center gap-2">
+                            <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                              🎁 مجاني
+                            </span>
+                            {session.member && (
+                              <span className="text-xs text-gray-500">#{session.member.memberNumber}</span>
+                            )}
+                          </div>
+                        ) : session.physioNumber < 0 ? (
                           <span className="font-bold text-blue-600">🏃 Day Use</span>
                         ) : (
                           <span className="font-bold text-blue-600">#{session.physioNumber}</span>
@@ -277,7 +293,9 @@ export default function PhysiotherapySessionHistoryPage() {
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-semibold">{session.clientName}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">{session.physiotherapy.phone}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {session.isFreeSession && session.member ? session.member.phone : session.physiotherapy?.phone || '-'}
+                          </p>
                         </div>
                       </td>
                       <td className="px-4 py-3">{session.therapistName}</td>

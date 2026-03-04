@@ -85,7 +85,8 @@
     "admin": "👑 مدير",
     "manager": "📊 مشرف",
     "staff": "👷 موظف",
-    "coach": "🏋️ كوتش"
+    "coach": "🏋️ كوتش",
+    "owner": "👨‍💼 مالك"
   },
   "positions": {
     "trainer": "مدرب",
@@ -202,6 +203,13 @@
     "previousPage": "السابقة",
     "pageXOfY": "الصفحة {current} من {total}",
     "permissionDeniedViewMembers": "ليس لديك صلاحية عرض الأعضاء",
+    "referralMemberNumber": "رقم العضو المُحيل (اختياري)",
+    "referralMemberNumberPlaceholder": "أدخل رقم عضو موجود",
+    "referralMemberNumberHelp": "إذا كان هناك عضو أحال هذا العضو الجديد، سيحصل على",
+    "referrerNotFound": "رقم العضو غير موجود",
+    "referrerValidationError": "خطأ في التحقق من رقم العضو",
+    "referrerWillReceive": "سيحصل على",
+    "pointsLabel": "نقطة",
     "paymentMethods": {
       "label": "طريقة الدفع",
       "selectedMethod": "الطريقة المختارة:",
@@ -354,6 +362,8 @@
     "pointsPerCheckInDesc": "عدد النقاط التي يحصل عليها العضو عند تسجيل الحضور",
     "pointsPerInvitation": "نقاط استخدام الدعوة",
     "pointsPerInvitationDesc": "عدد النقاط التي يحصل عليها العضو عند استخدام دعوة",
+    "pointsPerReferral": "نقاط إحالة عضو جديد",
+    "pointsPerReferralHelp": "عدد النقاط التي يحصل عليها العضو عند إحالة عضو جديد للنادي",
     "pointsPerEGPSpent": "نقاط لكل جنيه يتم دفعه",
     "pointsPerEGPSpentDesc": "عدد النقاط التي يحصل عليها العضو مقابل كل جنيه يدفعه (مثال: 0.1 = 10 جنيه = 1 نقطة)",
     "pointsValueInEGP": "قيمة النقطة بالجنيه المصري",
@@ -2509,6 +2519,10 @@
     "upgradeEligibilityDaysHelp": "عدد الأيام من بداية الاشتراك التي يمكن فيها الترقية (اتركه فارغاً لمنع الترقية)",
     "upgradeWindow": "فترة الترقية",
     "noUpgrade": "غير قابل للترقية",
+    "upgradePoints": "نقاط الترقية",
+    "upgradePointsHelp": "عدد النقاط التي يحصل عليها العضو عند الترقية لهذا العرض (إضافية على نقاط الدفع)",
+    "upgradePointsReward": "مكافأة الترقية",
+    "pointsLabel": "نقطة",
     "deleteConfirmTitle": "حذف العرض",
     "deleteConfirmMessage": "هل أنت متأكد من حذف عرض \"{name}\"؟\nلا يمكن التراجع عن هذا الإجراء!",
     "confirmDelete": "نعم، احذف",

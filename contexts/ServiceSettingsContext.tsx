@@ -11,8 +11,11 @@ interface ServiceSettings {
   pointsEnabled: boolean
   pointsPerCheckIn: number
   pointsPerInvitation: number
+  pointsPerReferral: number
   pointsPerEGPSpent: number
   pointsValueInEGP: number
+  ptCommissionEnabled: boolean
+  ptCommissionAmount: number
 }
 
 interface ServiceSettingsContextType {
@@ -33,8 +36,11 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     pointsEnabled: true,
     pointsPerCheckIn: 1,
     pointsPerInvitation: 2,
+    pointsPerReferral: 0,
     pointsPerEGPSpent: 0.1,
-    pointsValueInEGP: 0.1
+    pointsValueInEGP: 0.1,
+    ptCommissionEnabled: true,
+    ptCommissionAmount: 50
   })
   const [loading, setLoading] = useState(true)
 
@@ -52,8 +58,11 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
           pointsEnabled: data.pointsEnabled,
           pointsPerCheckIn: data.pointsPerCheckIn,
           pointsPerInvitation: data.pointsPerInvitation,
+          pointsPerReferral: data.pointsPerReferral || 0,
           pointsPerEGPSpent: data.pointsPerEGPSpent,
-          pointsValueInEGP: data.pointsValueInEGP
+          pointsValueInEGP: data.pointsValueInEGP,
+          ptCommissionEnabled: data.ptCommissionEnabled ?? true,
+          ptCommissionAmount: data.ptCommissionAmount ?? 50
         })
       }
     } catch (error) {

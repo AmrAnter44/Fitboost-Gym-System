@@ -116,6 +116,7 @@ export default function PTPage() {
     expiryDate: string
     paymentMethod: string | PaymentMethod[]
     staffName: string
+    ptCommissionAmount: number | null  // 💰 عمولة الكوتش من الباقة
   }>({
     ptNumber: '',
     clientName: '',
@@ -129,6 +130,7 @@ export default function PTPage() {
     expiryDate: '',
     paymentMethod: 'cash',
     staffName: user?.name || '',
+    ptCommissionAmount: null,  // 💰 عمولة الكوتش من الباقة
   })
 
   // ✅ معالجة أخطاء جلسات PT
@@ -219,7 +221,8 @@ export default function PTPage() {
       ...prev,
       sessionsPurchased: pkg.sessions,
       sessionsRemaining: pkg.sessions,
-      totalPrice: pkg.price
+      totalPrice: pkg.price,
+      ptCommissionAmount: pkg.ptCommission || null  // 💰 حفظ عمولة الباقة
     }))
     toast.success(`تم تطبيق باقة: ${pkg.name}`)
   }
@@ -272,6 +275,7 @@ export default function PTPage() {
       expiryDate: '',
       paymentMethod: 'cash',
       staffName: user?.name || '',
+      ptCommissionAmount: null,  // 💰 عمولة الكوتش من الباقة
     })
     setEditingSession(null)
     setShowForm(false)

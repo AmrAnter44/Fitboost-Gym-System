@@ -22,40 +22,43 @@ import KeyboardShortcuts from './KeyboardShortcuts'
 import Breadcrumb from './Breadcrumb'
 import BackToTop from './BackToTop'
 import LicenseLockedScreen from './LicenseLockedScreen'
+import ErrorTrackingProvider from './ErrorTrackingProvider'
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <QueryProvider>
-      <DarkModeProvider>
-        <LanguageProvider>
-          <ServiceSettingsProvider>
-            <DeviceSettingsProvider>
-              <SearchProvider>
-                <ToastProvider>
-                  <UpdateProvider>
-                    <AdminDateProvider>
-                      <LicenseProvider>
-                        <PreventInputScroll />
-                        <BarcodeInputDetector />
-                        {/* <UpdateNotification /> */} {/* ✅ تم تعطيل نظام التحديثات */}
-                        <InstallPrompt />
-                        <LicenseLockedScreen />
-                        <Navbar />
-                        <Breadcrumb />
-                        <ToastContainer />
-                        <SearchModal />
-                        <KeyboardShortcuts />
-                        <main className="overflow-x-hidden w-full max-w-full">{children}</main>
-                        <BackToTop />
-                      </LicenseProvider>
-                    </AdminDateProvider>
-                  </UpdateProvider>
-                </ToastProvider>
-              </SearchProvider>
-            </DeviceSettingsProvider>
-          </ServiceSettingsProvider>
-        </LanguageProvider>
-      </DarkModeProvider>
-    </QueryProvider>
+    <ErrorTrackingProvider>
+      <QueryProvider>
+        <DarkModeProvider>
+          <LanguageProvider>
+            <ServiceSettingsProvider>
+              <DeviceSettingsProvider>
+                <SearchProvider>
+                  <ToastProvider>
+                    <UpdateProvider>
+                      <AdminDateProvider>
+                        <LicenseProvider>
+                          <PreventInputScroll />
+                          <BarcodeInputDetector />
+                          {/* <UpdateNotification /> */} {/* ✅ تم تعطيل نظام التحديثات */}
+                          <InstallPrompt />
+                          <LicenseLockedScreen />
+                          <Navbar />
+                          <Breadcrumb />
+                          <ToastContainer />
+                          <SearchModal />
+                          <KeyboardShortcuts />
+                          <main className="overflow-x-hidden w-full max-w-full">{children}</main>
+                          <BackToTop />
+                        </LicenseProvider>
+                      </AdminDateProvider>
+                    </UpdateProvider>
+                  </ToastProvider>
+                </SearchProvider>
+              </DeviceSettingsProvider>
+            </ServiceSettingsProvider>
+          </LanguageProvider>
+        </DarkModeProvider>
+      </QueryProvider>
+    </ErrorTrackingProvider>
   )
 }

@@ -573,11 +573,10 @@ export default function ClosingPage() {
         fgColor: { argb: 'FFD3D3D3' }
       }
 
-      mainSheet.addRow([t('closing.stats.totalRevenue'), totals.totalRevenue])
       mainSheet.addRow([t('closing.stats.totalExpenses'), totals.expenses])
       mainSheet.addRow([t('closing.stats.netProfit'), totals.netProfit])
       mainSheet.addRow([t('closing.stats.numberOfDays'), dailyData.length])
-      mainSheet.addRow([t('closing.stats.dailyAverage'), dailyData.length > 0 ? Math.round(totals.totalRevenue / dailyData.length) : 0])
+      mainSheet.addRow([t('closing.stats.dailyAverage'), dailyData.length > 0 ? Math.round(totals.totalPayments / dailyData.length) : 0])
 
       mainSheet.addRow([])
       const paymentTitle = mainSheet.addRow([t('closing.paymentMethods.title')])
@@ -966,16 +965,7 @@ export default function ClosingPage() {
               {/* Summary Cards for Comparison */}
               {monthlyComparison.length > 0 && (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
-                      <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalRevenue')}</p>
-                      <p className="text-2xl sm:text-3xl font-bold">
-                        {monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0).toFixed(0)}
-                      </p>
-                      <p className="text-[10px] sm:text-xs opacity-75 mt-2">
-                        {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0) / monthlyComparison.length).toFixed(0)}
-                      </p>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     <div className="bg-gradient-to-br from-red-500 to-red-600 dark:from-red-700 dark:to-red-800 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
                       <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalExpenses')}</p>
                       <p className="text-2xl sm:text-3xl font-bold">
@@ -1016,7 +1006,6 @@ export default function ClosingPage() {
                           <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold dark:text-gray-200">{t('closing.comparison.month')}</th>
                           <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.floorRevenue')}</th>
                           <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-green-100 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.ptRevenue')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-yellow-100 dark:bg-yellow-900/50 dark:text-gray-200">{t('closing.comparison.totalRevenue')}</th>
                           <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-red-100 dark:bg-red-900/50 dark:text-gray-200">{t('closing.comparison.expenses')}</th>
                           <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-green-200 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.netProfit')}</th>
                           <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.subscriptions')}</th>
@@ -1026,7 +1015,7 @@ export default function ClosingPage() {
                       <tbody>
                         {monthlyComparison.map((month, index) => {
                           const prevMonth = index > 0 ? monthlyComparison[index - 1] : null
-                          const growthPercent = prevMonth ? ((month.totalRevenue - prevMonth.totalRevenue) / prevMonth.totalRevenue * 100) : 0
+                          const growthPercent = prevMonth ? ((month.netProfit - prevMonth.netProfit) / prevMonth.netProfit * 100) : 0
 
                           return (
                             <tr key={month.month} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-200 cursor-pointer`}>
@@ -1036,9 +1025,6 @@ export default function ClosingPage() {
                               </td>
                               <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600 dark:text-green-400`}>
                                 {month.ptRevenue.toFixed(0)}
-                              </td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600 dark:text-yellow-400 text-lg`}>
-                                {month.totalRevenue.toFixed(0)}
                               </td>
                               <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600 dark:text-red-400`}>
                                 {month.totalExpenses.toFixed(0)}
@@ -1074,9 +1060,6 @@ export default function ClosingPage() {
                           <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 dark:text-green-400`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.ptRevenue, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 dark:text-yellow-400 text-lg`}>
-                            {monthlyComparison.reduce((sum, m) => sum + m.totalRevenue, 0).toFixed(0)}
-                          </td>
                           <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400`}>
                             {monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0).toFixed(0)}
                           </td>
@@ -1101,28 +1084,28 @@ export default function ClosingPage() {
                           <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm hover:bg-white/30 dark:hover:bg-gray-800/40 transition-all duration-300 cursor-pointer">
                             <p className="text-sm opacity-90">{t('closing.comparison.bestMonth')}</p>
                             <p className="text-2xl font-bold mt-2">
-                              {monthlyComparison.reduce((best, m) => m.totalRevenue > best.totalRevenue ? m : best).monthName}
+                              {monthlyComparison.reduce((best, m) => m.netProfit > best.netProfit ? m : best).monthName}
                             </p>
                             <p className="text-sm opacity-75 mt-1">
-                              {monthlyComparison.reduce((best, m) => m.totalRevenue > best.totalRevenue ? m : best).totalRevenue.toFixed(0)} {t('closing.currency')}
+                              {monthlyComparison.reduce((best, m) => m.netProfit > best.netProfit ? m : best).netProfit.toFixed(0)} {t('closing.currency')}
                             </p>
                           </div>
                           <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm hover:bg-white/30 dark:hover:bg-gray-800/40 transition-all duration-300 cursor-pointer">
                             <p className="text-sm opacity-90">{t('closing.comparison.worstMonth')}</p>
                             <p className="text-2xl font-bold mt-2">
-                              {monthlyComparison.reduce((worst, m) => m.totalRevenue < worst.totalRevenue ? m : worst).monthName}
+                              {monthlyComparison.reduce((worst, m) => m.netProfit < worst.netProfit ? m : worst).monthName}
                             </p>
                             <p className="text-sm opacity-75 mt-1">
-                              {monthlyComparison.reduce((worst, m) => m.totalRevenue < worst.totalRevenue ? m : worst).totalRevenue.toFixed(0)} {t('closing.currency')}
+                              {monthlyComparison.reduce((worst, m) => m.netProfit < worst.netProfit ? m : worst).netProfit.toFixed(0)} {t('closing.currency')}
                             </p>
                           </div>
                           <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm hover:bg-white/30 dark:hover:bg-gray-800/40 transition-all duration-300 cursor-pointer">
                             <p className="text-sm opacity-90">{t('closing.comparison.trend')}</p>
                             <p className="text-2xl font-bold mt-2">
                               {monthlyComparison.length > 1 &&
-                                monthlyComparison[monthlyComparison.length - 1].totalRevenue > monthlyComparison[0].totalRevenue
+                                monthlyComparison[monthlyComparison.length - 1].netProfit > monthlyComparison[0].netProfit
                                 ? `↗ ${t('closing.comparison.growing')}`
-                                : monthlyComparison[monthlyComparison.length - 1].totalRevenue < monthlyComparison[0].totalRevenue
+                                : monthlyComparison[monthlyComparison.length - 1].netProfit < monthlyComparison[0].netProfit
                                 ? `↘ ${t('closing.comparison.declining')}`
                                 : `→ ${t('closing.comparison.stable')}`
                               }
@@ -1145,11 +1128,7 @@ export default function ClosingPage() {
           ) : (
             <>
               {/* Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
-            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
-              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalRevenue')}</p>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.totalRevenue.toFixed(0)}</p>
-            </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
             <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
               <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalExpenses')}</p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.expenses.toFixed(0)}</p>
@@ -1169,7 +1148,7 @@ export default function ClosingPage() {
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
               <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.dailyAverage')}</p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold">
-                {dailyData.length > 0 ? (totals.totalRevenue / dailyData.length).toFixed(0) : 0}
+                {dailyData.length > 0 ? (totals.totalPayments / dailyData.length).toFixed(0) : 0}
               </p>
             </div>
           </div>

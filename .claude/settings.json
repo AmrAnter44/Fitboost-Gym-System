@@ -42,10 +42,14 @@
       "Bash(./DELETE_LICENSE_SYSTEM.sh)",
       "Bash(/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/LICENSE_SYSTEM_REMOVED.md:*)",
       "Bash(npm uninstall @supabase/supabase-js)",
-      "Read(//dev/**)"
+      "Read(//dev/**)",
+      "Bash(npx tsc --noEmit components/MemberForm.tsx)"
     ],
     "additionalDirectories": [
-      "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next"
+      "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",
+      "/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/app/api/members/[id]/fitness-test",
+      "/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/app/members/[id]",
+      "/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/lib"
     ]
   }
 }

@@ -120,6 +120,30 @@ export default function StaffDeductionsPage() {
     }
   }
 
+  const handleApply = async (deductionId: string) => {
+    try {
+      const res = await fetch('/api/staff-deductions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: deductionId,
+          isApplied: true,
+          appliedAt: new Date().toISOString()
+        })
+      })
+      if (res.ok) {
+        setSuccessMsg('تم تطبيق الخصم بنجاح ✅')
+        fetchDeductions()
+        setTimeout(() => setSuccessMsg(''), 3000)
+      } else {
+        const data = await res.json()
+        setErrorMsg(data.error || 'فشل تطبيق الخصم')
+      }
+    } catch {
+      setErrorMsg(t('deductions.connectionError'))
+    }
+  }
+
   const handleDelete = async () => {
     if (!deleteConfirm.id) return
     try {
@@ -355,13 +379,25 @@ export default function StaffDeductionsPage() {
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${d.isApplied ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'}`}>
                     {d.isApplied ? `✅ ${t('deductions.applied')}` : `⏳ ${t('deductions.pending')}`}
                   </span>
-                  {!d.isApplied && hasPermission('canDeleteDeduction') && (
-                    <button
-                      onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
-                      className="text-red-500 hover:text-red-700 dark:hover:text-red-400 text-sm font-bold transition"
-                    >
-                      🗑️ {t('deductions.deleteBtn')}
-                    </button>
+                  {!d.isApplied && (
+                    <div className="flex gap-2">
+                      {hasPermission('canEditDeduction') && (
+                        <button
+                          onClick={() => handleApply(d.id)}
+                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-bold transition"
+                        >
+                          ✅ تطبيق
+                        </button>
+                      )}
+                      {hasPermission('canDeleteDeduction') && (
+                        <button
+                          onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold transition"
+                        >
+                          🗑️ حذف
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="p-4 space-y-2">
@@ -422,13 +458,27 @@ export default function StaffDeductionsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {!d.isApplied && hasPermission('canDeleteDeduction') && (
-                        <button
-                          onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
-                          className="text-red-500 hover:text-red-700 dark:hover:text-red-400 font-bold text-sm transition"
-                        >
-                          🗑️ {t('deductions.deleteBtn')}
-                        </button>
+                      {!d.isApplied ? (
+                        <div className="flex gap-2 justify-center">
+                          {hasPermission('canEditDeduction') && (
+                            <button
+                              onClick={() => handleApply(d.id)}
+                              className="bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white px-3 py-1 rounded-lg font-bold text-sm transition"
+                            >
+                              ✅ تطبيق
+                            </button>
+                          )}
+                          {hasPermission('canDeleteDeduction') && (
+                            <button
+                              onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
+                              className="bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white px-3 py-1 rounded-lg font-bold text-sm transition"
+                            >
+                              🗑️ حذف
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>
                       )}
                     </td>
                   </tr>
