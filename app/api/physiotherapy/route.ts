@@ -112,7 +112,8 @@ export async function POST(request: Request) {
       startDate,
       expiryDate,
       paymentMethod,
-      staffName
+      staffName,
+      referralCoachId
     } = body
 
     // حساب سعر الحصة الواحدة من السعر الإجمالي
@@ -276,6 +277,14 @@ export async function POST(request: Request) {
       }
     }
 
+    // الحصول على إعدادات Referral
+    const systemSettings = await prisma.systemSettings.findUnique({
+      where: { id: 'singleton' }
+    })
+
+    const physioReferralEnabled = systemSettings?.physioReferralEnabled ?? false
+    const physioReferralPercentage = systemSettings?.physioReferralPercentage ?? 0
+
     // إنشاء إيصال باستخدام Transaction
     try {
       const totalAmount = sessionsPurchased * pricePerSession
@@ -412,6 +421,27 @@ export async function POST(request: Request) {
             )
           } catch (commissionError) {
             console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
+            // لا نفشل العملية إذا فشلت العمولة
+          }
+        }
+
+        // ✅ إنشاء عمولة Referral للكوتش الذي سوّق الخدمة
+        if (physioReferralEnabled && referralCoachId && totalAmount > 0) {
+          try {
+            const commissionAmount = (totalAmount * physioReferralPercentage) / 100
+
+            if (commissionAmount > 0) {
+              await tx.commission.create({
+                data: {
+                  staffId: referralCoachId,
+                  amount: commissionAmount,
+                  type: 'physio_referral',
+                  description: `عمولة Referral علاج طبيعي - ${clientName} - ${physioReferralPercentage}% من ${totalAmount.toFixed(2)} ج.م (#${physiotherapy.physioNumber})`
+                }
+              })
+            }
+          } catch (referralError) {
+            console.error('⚠️ فشل إنشاء عمولة Referral (غير حرج):', referralError)
             // لا نفشل العملية إذا فشلت العمولة
           }
         }

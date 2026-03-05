@@ -43,7 +43,10 @@
       "Bash(/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/LICENSE_SYSTEM_REMOVED.md:*)",
       "Bash(npm uninstall @supabase/supabase-js)",
       "Read(//dev/**)",
-      "Bash(npx tsc --noEmit components/MemberForm.tsx)"
+      "Bash(npx tsc --noEmit components/MemberForm.tsx)",
+      "Bash(npx prisma migrate resolve --rolled-back 20260205000000_add_missing_permissions)",
+      "Bash(npx tsc --noEmit --pretty)",
+      "Bash(kill 16483)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",

@@ -381,6 +381,30 @@ export default function SettingsPage() {
     }
   }
 
+  const updatePTCommissionAmount = async (value: number) => {
+    setLoadingServices(true)
+    try {
+      const newSettings = {
+        ...serviceSettings,
+        ptCommissionAmount: value
+      }
+
+      const response = await fetch('/api/settings/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      })
+
+      if (response.ok) {
+        setServiceSettings(newSettings)
+      }
+    } catch (error) {
+      console.error('Error updating PT commission amount:', error)
+    } finally {
+      setLoadingServices(false)
+    }
+  }
+
   const updatePointsSettings = async (setting: 'pointsPerCheckIn' | 'pointsPerInvitation' | 'pointsPerReferral' | 'pointsPerEGPSpent' | 'pointsValueInEGP', value: number) => {
     setLoadingServices(true)
     try {
@@ -1509,6 +1533,171 @@ export default function SettingsPage() {
               </button>
             </div>
 
+            {/* PT Commission Toggle */}
+            <div className="space-y-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">👨‍🏫</span>
+                  <div>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-100">عمولة الكوتش عند إضافة عضو</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">تفعيل إضافة عمولة تلقائية للكوتش عند تسجيل عضو جديد</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleService('ptCommission')}
+                  disabled={loadingServices}
+                  className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                    serviceSettings.ptCommissionEnabled ? 'bg-purple-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                      serviceSettings.ptCommissionEnabled
+                        ? 'end-1'
+                        : 'start-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Amount Input - Only show when enabled */}
+              {serviceSettings.ptCommissionEnabled && (
+                <div className="flex items-center gap-3 pt-2 border-t border-purple-200 dark:border-purple-700">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
+                    💰 مبلغ العمولة:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="10"
+                    value={serviceSettings.ptCommissionAmount}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0
+                      setServiceSettings({ ...serviceSettings, ptCommissionAmount: value })
+                    }}
+                    onBlur={(e) => {
+                      const value = parseFloat(e.target.value) || 0
+                      updatePTCommissionAmount(value)
+                    }}
+                    disabled={loadingServices}
+                    className="flex-1 px-3 py-2 border-2 border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 text-center font-bold"
+                  />
+                  <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">جنيه</span>
+                </div>
+              )}
+            </div>
+
+            {/* Referral Settings */}
+            <div className="space-y-4 p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700">
+              <h3 className="text-lg font-bold flex items-center gap-2 text-gray-800 dark:text-gray-100">
+                <span className="text-2xl">🎁</span>
+                إعدادات عمولة Referral
+              </h3>
+
+              {/* Nutrition Referral */}
+              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-700">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={serviceSettings.nutritionReferralEnabled}
+                      onChange={(e) => {
+                        const enabled = e.target.checked
+                        setServiceSettings({ ...serviceSettings, nutritionReferralEnabled: enabled })
+                        updateReferralSettings('nutrition', enabled)
+                      }}
+                      disabled={loadingServices}
+                      className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="font-medium text-gray-800 dark:text-gray-100">تفعيل Referral للتغذية</span>
+                  </label>
+                </div>
+
+                {serviceSettings.nutritionReferralEnabled && (
+                  <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-700">
+                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2 font-semibold">
+                      نسبة العمولة (%)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        value={serviceSettings.nutritionReferralPercentage}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          setServiceSettings({ ...serviceSettings, nutritionReferralPercentage: value })
+                        }}
+                        onBlur={(e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          updateReferralSettings('nutrition', true, value)
+                        }}
+                        disabled={loadingServices}
+                        className="flex-1 px-3 py-2 border-2 border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 text-center font-bold"
+                        placeholder="مثال: 5"
+                      />
+                      <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">%</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      مثال: 5% = 50 ج.م لكل اشتراك بـ 1000 ج.م
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Physiotherapy Referral */}
+              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-700">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={serviceSettings.physioReferralEnabled}
+                      onChange={(e) => {
+                        const enabled = e.target.checked
+                        setServiceSettings({ ...serviceSettings, physioReferralEnabled: enabled })
+                        updateReferralSettings('physio', enabled)
+                      }}
+                      disabled={loadingServices}
+                      className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="font-medium text-gray-800 dark:text-gray-100">تفعيل Referral للعلاج الطبيعي</span>
+                  </label>
+                </div>
+
+                {serviceSettings.physioReferralEnabled && (
+                  <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-700">
+                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2 font-semibold">
+                      نسبة العمولة (%)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        value={serviceSettings.physioReferralPercentage}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          setServiceSettings({ ...serviceSettings, physioReferralPercentage: value })
+                        }}
+                        onBlur={(e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          updateReferralSettings('physio', true, value)
+                        }}
+                        disabled={loadingServices}
+                        className="flex-1 px-3 py-2 border-2 border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 text-center font-bold"
+                        placeholder="مثال: 3"
+                      />
+                      <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">%</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      مثال: 3% = 60 ج.م لكل اشتراك بـ 2000 ج.م
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         )}

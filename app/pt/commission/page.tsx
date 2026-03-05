@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
+import { useServiceSettings } from '../../../contexts/ServiceSettingsContext'
 
 interface Staff {
   id: string
@@ -105,6 +106,7 @@ interface SessionBasedCommission {
 export default function CoachCommissionPage() {
   const { t, locale } = useLanguage()
   const toast = useToast()
+  const { refetch: refetchServiceSettings } = useServiceSettings()
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
   const [coaches, setCoaches] = useState<Staff[]>([])
   const [ptSessions, setPtSessions] = useState<PTSession[]>([])
@@ -118,7 +120,7 @@ export default function CoachCommissionPage() {
   const [coachEarnings, setCoachEarnings] = useState<CoachEarnings | null>(null)
   const [memberSignupCommissions, setMemberSignupCommissions] = useState<MemberSignupCommission[]>([])
   const [ptCommissions, setPtCommissions] = useState<PTCommission[]>([])
-  const [fixedCommissions, setFixedCommissions] = useState<{member_signup: number, pt_signup: number}>({member_signup: 0, pt_signup: 0})  // 💰 العمولات الثابتة
+  const [referralCommissions, setReferralCommissions] = useState<{nutrition: number, physio: number}>({nutrition: 0, physio: 0})  // 🎁 عمولات Referral
 
   // إعدادات الكومشن
   const [showSettingsModal, setShowSettingsModal] = useState(false)
@@ -164,10 +166,20 @@ export default function CoachCommissionPage() {
   // إعدادات الجلسات المجانية
   const [freeSessionsSettings, setFreeSessionsSettings] = useState({
     trackFreeSessionsCost: false,
-    freePTSessionPrice: 0
+    freePTSessionPrice: 0,
+    ptCommissionEnabled: true,
+    ptCommissionAmount: 50
   })
   const [freeSessions, setFreeSessions] = useState<any[]>([])
   const [loadingFreeSessionsSettings, setLoadingFreeSessionsSettings] = useState(false)
+
+  // 🎁 إعدادات Referral
+  const [referralSettings, setReferralSettings] = useState({
+    nutritionReferralEnabled: false,
+    nutritionReferralPercentage: 0,
+    physioReferralEnabled: false,
+    physioReferralPercentage: 0
+  })
 
   // تحديد الفترة الزمنية (أول يوم في الشهر الحالي إلى آخر يوم)
   const today = new Date()
@@ -207,10 +219,10 @@ export default function CoachCommissionPage() {
     fetchMemberSignupCommissions()
   }, [dateFrom, dateTo])
 
-  // 💰 جلب العمولات الثابتة عند تغيير الكوتش أو الفترة الزمنية
+  // 🎁 جلب عمولات Referral عند تغيير الكوتش أو الفترة الزمنية
   useEffect(() => {
     if (selectedCoach) {
-      fetchFixedCommissions(selectedCoach)
+      fetchReferralCommissions(selectedCoach)
     }
   }, [selectedCoach, dateFrom, dateTo])
 
@@ -318,7 +330,16 @@ export default function CoachCommissionPage() {
         const data = await response.json()
         setFreeSessionsSettings({
           trackFreeSessionsCost: data.trackFreeSessionsCost || false,
-          freePTSessionPrice: data.freePTSessionPrice || 0
+          freePTSessionPrice: data.freePTSessionPrice || 0,
+          ptCommissionEnabled: data.ptCommissionEnabled ?? true,
+          ptCommissionAmount: data.ptCommissionAmount ?? 50
+        })
+        // 🎁 جلب إعدادات Referral
+        setReferralSettings({
+          nutritionReferralEnabled: data.nutritionReferralEnabled || false,
+          nutritionReferralPercentage: data.nutritionReferralPercentage || 0,
+          physioReferralEnabled: data.physioReferralEnabled || false,
+          physioReferralPercentage: data.physioReferralPercentage || 0
         })
       }
     } catch (error) {
@@ -356,8 +377,8 @@ export default function CoachCommissionPage() {
     }
   }
 
-  // 💰 جلب العمولات الثابتة (member_signup + pt_signup) للكوتش المختار
-  const fetchFixedCommissions = async (coachName: string) => {
+  // 🎁 جلب عمولات Referral (nutrition_referral + physio_referral) للكوتش المختار
+  const fetchReferralCommissions = async (coachName: string) => {
     try {
       const response = await fetch('/api/commissions')
       if (!response.ok) return
@@ -376,20 +397,20 @@ export default function CoachCommissionPage() {
       })
 
       // جمع العمولات حسب النوع
-      const memberSignupTotal = filtered
-        .filter((c: any) => c.type === 'member_signup')
+      const nutritionReferralTotal = filtered
+        .filter((c: any) => c.type === 'nutrition_referral')
         .reduce((sum: number, c: any) => sum + c.amount, 0)
 
-      const ptSignupTotal = filtered
-        .filter((c: any) => c.type === 'pt_signup')
+      const physioReferralTotal = filtered
+        .filter((c: any) => c.type === 'physio_referral')
         .reduce((sum: number, c: any) => sum + c.amount, 0)
 
-      setFixedCommissions({
-        member_signup: memberSignupTotal,
-        pt_signup: ptSignupTotal
+      setReferralCommissions({
+        nutrition: nutritionReferralTotal,
+        physio: physioReferralTotal
       })
     } catch (error) {
-      console.error('Error fetching fixed commissions:', error)
+      console.error('Error fetching referral commissions:', error)
     }
   }
 
@@ -448,6 +469,9 @@ export default function CoachCommissionPage() {
   const handleSaveSettings = async () => {
     setSavingSettings(true)
     try {
+      console.log('🔄 Saving settings...')
+      console.log('Referral Settings:', referralSettings)
+
       // حفظ إعدادات الكوميشن
       const commissionResponse = await fetch('/api/commission-settings', {
         method: 'PUT',
@@ -455,25 +479,48 @@ export default function CoachCommissionPage() {
         body: JSON.stringify(commissionSettings)
       })
 
-      // حفظ إعدادات الجلسات المجانية
+      // حفظ إعدادات الجلسات المجانية وإعدادات Referral وإعدادات PT Commission
+      const settingsToSave = {
+        trackFreeSessionsCost: freeSessionsSettings.trackFreeSessionsCost,
+        freePTSessionPrice: freeSessionsSettings.freePTSessionPrice,
+        ptCommissionEnabled: freeSessionsSettings.ptCommissionEnabled,
+        ptCommissionAmount: freeSessionsSettings.ptCommissionAmount,
+        nutritionReferralEnabled: referralSettings.nutritionReferralEnabled,
+        nutritionReferralPercentage: referralSettings.nutritionReferralPercentage,
+        physioReferralEnabled: referralSettings.physioReferralEnabled,
+        physioReferralPercentage: referralSettings.physioReferralPercentage
+      }
+      console.log('📤 Sending to API:', settingsToSave)
+
       const freeSessionsResponse = await fetch('/api/settings/services', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trackFreeSessionsCost: freeSessionsSettings.trackFreeSessionsCost,
-          freePTSessionPrice: freeSessionsSettings.freePTSessionPrice
-        })
+        body: JSON.stringify(settingsToSave)
       })
 
+      console.log('Commission Response:', commissionResponse.status)
+      console.log('Free Sessions Response:', freeSessionsResponse.status)
+
       if (commissionResponse.ok && freeSessionsResponse.ok) {
+        const savedData = await freeSessionsResponse.json()
+        console.log('✅ Settings saved successfully:', savedData)
+
         toast.success(t('pt.commission.settingsSavedSuccess'))
         setShowSettingsModal(false)
+
+        // تحديث إعدادات الخدمات في الـ Context
+        console.log('🔄 Refetching service settings...')
+        await refetchServiceSettings()
+        console.log('✅ Service settings refetched')
+
         // إعادة الحساب إذا كان هناك كوتش محدد
         if (selectedCoach) {
           handleCalculate()
         }
       } else {
+        console.error('❌ Save failed')
         const data = await commissionResponse.json()
+        console.error('Error data:', data)
         toast.error(data.error || t('pt.commission.defaultMethodSavedError'))
       }
     } catch (error) {
@@ -789,10 +836,9 @@ export default function CoachCommissionPage() {
   const openPayrollModal = async (coachName: string, commission: number) => {
     const staff = coaches.find(c => c.name === coachName)
 
-    // 💰 جلب العمولات الثابتة للكوتش المحدد (وليس الكوتش المختار في dropdown)
+    // 🎁 جلب عمولات Referral للكوتش المحدد
     try {
       const response = await fetch('/api/commissions')
-      let coachFixedCommissions = { member_signup: 0, pt_signup: 0 }
 
       if (response.ok) {
         const allCommissions = await response.json()
@@ -808,47 +854,42 @@ export default function CoachCommissionPage() {
           return commissionDate >= start && commissionDate <= end
         })
 
-        // جمع العمولات حسب النوع
-        const memberSignupTotal = filtered
-          .filter((c: any) => c.type === 'member_signup')
+        // 🎁 جمع عمولات Referral للكوتش المحدد
+        const nutritionReferralTotal = filtered
+          .filter((c: any) => c.type === 'nutrition_referral')
           .reduce((sum: number, c: any) => sum + c.amount, 0)
 
-        const ptSignupTotal = filtered
-          .filter((c: any) => c.type === 'pt_signup')
+        const physioReferralTotal = filtered
+          .filter((c: any) => c.type === 'physio_referral')
           .reduce((sum: number, c: any) => sum + c.amount, 0)
 
-        coachFixedCommissions = {
-          member_signup: memberSignupTotal,
-          pt_signup: ptSignupTotal
-        }
-      }
+        const referralCommissionsTotal = nutritionReferralTotal + physioReferralTotal
+        const totalCommission = commission + referralCommissionsTotal
 
-      const fixedCommissionsTotal = coachFixedCommissions.member_signup + coachFixedCommissions.pt_signup
-      const totalCommission = commission + fixedCommissionsTotal
+        setPayrollCoachName(coachName)
+        setPayrollCommission(totalCommission)  // 💰 العمولة الإجمالية (جلسات + ثابتة + Referral)
+        setPayrollSalary(staff?.salary?.toString() || '0')
+        setPayrollStaffId(staff?.id || null)
+        setPayrollDeductions([])
+        setShowPayrollModal(true)
 
-      setPayrollCoachName(coachName)
-      setPayrollCommission(totalCommission)  // 💰 العمولة الإجمالية (جلسات + ثابتة)
-      setPayrollSalary(staff?.salary?.toString() || '0')
-      setPayrollStaffId(staff?.id || null)
-      setPayrollDeductions([])
-      setShowPayrollModal(true)
-
-      // جلب الخصومات المعلقة لهذا الكوتش
-      if (staff?.id) {
-        setLoadingDeductions(true)
-        try {
-          const res = await fetch(`/api/staff-deductions?staffId=${staff.id}&isApplied=false`)
-          if (res.ok) {
-            const data = await res.json()
-            setPayrollDeductions(Array.isArray(data) ? data : [])
+        // جلب الخصومات المعلقة لهذا الكوتش
+        if (staff?.id) {
+          setLoadingDeductions(true)
+          try {
+            const res = await fetch(`/api/staff-deductions?staffId=${staff.id}&isApplied=false`)
+            if (res.ok) {
+              const data = await res.json()
+              setPayrollDeductions(Array.isArray(data) ? data : [])
+            }
+          } catch { /* ignore */ } finally {
+            setLoadingDeductions(false)
           }
-        } catch { /* ignore */ } finally {
-          setLoadingDeductions(false)
         }
       }
     } catch (error) {
-      console.error('Error fetching fixed commissions:', error)
-      // في حالة فشل جلب العمولات الثابتة، نستخدم عمولة الجلسات فقط
+      console.error('Error fetching commissions:', error)
+      // في حالة فشل جلب العمولات، نستخدم عمولة الجلسات فقط
       setPayrollCoachName(coachName)
       setPayrollCommission(commission)
       setPayrollSalary(staff?.salary?.toString() || '0')
@@ -1693,7 +1734,7 @@ export default function CoachCommissionPage() {
                     <p className="text-white/90 text-xs sm:text-sm">{t('pt.commission.coachDue')}</p>
                     <div className="flex items-baseline gap-2 flex-wrap">
                       <p className="text-2xl sm:text-3xl font-bold font-mono break-words">
-                        {(result.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString, {
+                        {(result.commission + referralCommissions.nutrition + referralCommissions.physio).toLocaleString(localeString, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
@@ -1737,7 +1778,7 @@ export default function CoachCommissionPage() {
                     const signupRevenue = coachSignupData?.totalAmount || 0
                     const ptCommission = (ptRevenue * result.percentage) / 100
 
-                    if (signupRevenue > 0 || fixedCommissions.member_signup > 0 || fixedCommissions.pt_signup > 0) {
+                    if (signupRevenue > 0 || referralCommissions.nutrition > 0 || referralCommissions.physio > 0) {
                       return (
                         <div className="space-y-2">
                           {/* عمولة الجلسات (نسبة مئوية) */}
@@ -1747,31 +1788,31 @@ export default function CoachCommissionPage() {
                             <span className="font-bold text-green-600"> {ptCommission.toLocaleString(localeString)}</span>
                           </p>
 
-                          {/* عمولات تسجيل الأعضاء (ثابتة) */}
-                          {(signupRevenue > 0 || fixedCommissions.member_signup > 0) && (
+                          {/* عمولات Referral للتغذية */}
+                          {referralCommissions.nutrition > 0 && (
                             <>
                               <p className="text-base sm:text-lg font-bold text-gray-500 dark:text-gray-400">+</p>
                               <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
-                                <span className="font-bold text-purple-600">{fixedCommissions.member_signup.toLocaleString(localeString)}</span>
-                                <span className="text-gray-500 dark:text-gray-400"> (عمولة تسجيل أعضاء)</span>
+                                <span className="font-bold text-purple-600">{referralCommissions.nutrition.toLocaleString(localeString)}</span>
+                                <span className="text-gray-500 dark:text-gray-400"> (🎁 Referral تغذية - {referralSettings.nutritionReferralPercentage}%)</span>
                               </p>
                             </>
                           )}
 
-                          {/* عمولات PT signup (ثابتة) */}
-                          {fixedCommissions.pt_signup > 0 && (
+                          {/* عمولات Referral للعلاج الطبيعي */}
+                          {referralCommissions.physio > 0 && (
                             <>
                               <p className="text-base sm:text-lg font-bold text-gray-500 dark:text-gray-400">+</p>
                               <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 break-words">
-                                <span className="font-bold text-indigo-600">{fixedCommissions.pt_signup.toLocaleString(localeString)}</span>
-                                <span className="text-gray-500 dark:text-gray-400"> (عمولة اشتراكات PT)</span>
+                                <span className="font-bold text-pink-600">{referralCommissions.physio.toLocaleString(localeString)}</span>
+                                <span className="text-gray-500 dark:text-gray-400"> (🎁 Referral علاج طبيعي - {referralSettings.physioReferralPercentage}%)</span>
                               </p>
                             </>
                           )}
 
                           <div className="border-t-2 border-gray-300 dark:border-gray-600 pt-2 mt-2">
                             <p className="text-base sm:text-lg font-bold break-words">
-                              {t('pt.commission.total')} = <span className="text-green-600">{(result.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString, {
+                              {t('pt.commission.total')} = <span className="text-green-600">{(result.commission + referralCommissions.nutrition + referralCommissions.physio).toLocaleString(localeString, {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}</span> {t('pt.commission.egp')}
@@ -1784,7 +1825,7 @@ export default function CoachCommissionPage() {
                         <p className="text-sm sm:text-base md:text-lg break-words">
                           {result.monthlyIncome.toLocaleString(localeString)} × {result.percentage}% ={' '}
                           <span className="font-bold text-green-600">
-                            {(result.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString, {
+                            {(result.commission + referralCommissions.nutrition + referralCommissions.physio).toLocaleString(localeString, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}
@@ -1875,7 +1916,7 @@ export default function CoachCommissionPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-3xl font-bold text-green-600">
-                          {(coach.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString, {
+                          {(coach.commission + referralCommissions.nutrition + referralCommissions.physio).toLocaleString(localeString, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                           })} {t('pt.commission.egp')}
@@ -1895,7 +1936,7 @@ export default function CoachCommissionPage() {
                       <div className="bg-green-50 dark:bg-green-900/50 rounded-lg p-3 text-center">
                         <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{t('pt.commission.coachCommission')}</p>
                         <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                          {(coach.commission + fixedCommissions.member_signup + fixedCommissions.pt_signup).toLocaleString(localeString)} {t('pt.commission.egp')}
+                          {(coach.commission + referralCommissions.nutrition + referralCommissions.physio).toLocaleString(localeString)} {t('pt.commission.egp')}
                         </p>
                       </div>
                       {/* نصيب الجيم - للأدمن فقط */}
@@ -1909,25 +1950,31 @@ export default function CoachCommissionPage() {
                       )}
                     </div>
 
-                    {/* 💰 العمولات الثابتة */}
-                    {(fixedCommissions.member_signup > 0 || fixedCommissions.pt_signup > 0) && (
-                      <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-dashed">
-                        {fixedCommissions.member_signup > 0 && (
-                          <div className="bg-purple-50 dark:bg-purple-900/50 rounded-lg p-3 text-center">
-                            <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">عمولة تسجيل أعضاء</p>
-                            <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
-                              {fixedCommissions.member_signup.toLocaleString(localeString)} {t('pt.commission.egp')}
-                            </p>
-                          </div>
-                        )}
-                        {fixedCommissions.pt_signup > 0 && (
-                          <div className="bg-indigo-50 dark:bg-indigo-900/50 rounded-lg p-3 text-center">
-                            <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">عمولة اشتراكات PT</p>
-                            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-300">
-                              {fixedCommissions.pt_signup.toLocaleString(localeString)} {t('pt.commission.egp')}
-                            </p>
-                          </div>
-                        )}
+                    {/* 🎁 عمولات Referral */}
+                    {(referralCommissions.nutrition > 0 || referralCommissions.physio > 0) && (
+                      <div className="mb-4 pb-4 border-b border-dashed">
+                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                          <span className="text-xl">🎁</span>
+                          عمولات Referral
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          {referralCommissions.nutrition > 0 && (
+                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg p-3 text-center border border-purple-200 dark:border-purple-700">
+                              <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">Referral تغذية</p>
+                              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                                {referralCommissions.nutrition.toLocaleString(localeString)} {t('pt.commission.egp')}
+                              </p>
+                            </div>
+                          )}
+                          {referralCommissions.physio > 0 && (
+                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg p-3 text-center border border-purple-200 dark:border-purple-700">
+                              <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">Referral علاج طبيعي</p>
+                              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                                {referralCommissions.physio.toLocaleString(localeString)} {t('pt.commission.egp')}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -2322,7 +2369,7 @@ export default function CoachCommissionPage() {
       {showSettingsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-gray-700 to-gray-600 text-white p-6 rounded-t-2xl">
+            <div className="sticky top-0 bg-gradient-to-r from-gray-700 to-gray-600 text-white p-6 rounded-t-2xl z-50">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold flex items-center gap-3">
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2632,6 +2679,134 @@ export default function CoachCommissionPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     💡 هذا السعر يُستخدم لحساب قيمة جلسات PT المجانية في التحصيل
                   </p>
+                </div>
+              </div>
+
+              {/* إعدادات عمولة تسجيل الأعضاء */}
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6 border-2 border-indigo-200 dark:border-indigo-700 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">👨‍🏫</span>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">عمولة الكوتش عند إضافة عضو</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">تفعيل إضافة عمولة تلقائية للكوتش عند تسجيل عضو جديد</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={freeSessionsSettings.ptCommissionEnabled !== false}
+                      onChange={(e) => setFreeSessionsSettings(prev => ({
+                        ...prev,
+                        ptCommissionEnabled: e.target.checked
+                      }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:start-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 border-l-4 border-amber-500 dark:border-amber-600 rounded">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    💡 <strong>ملاحظة:</strong> يتم تحديد سعر العمولة في إعدادات الباقة/العرض نفسه
+                  </p>
+                </div>
+              </div>
+
+              {/* إعدادات عمولة Referral */}
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 border-2 border-purple-200 dark:border-purple-700">
+                <div className="flex items-center gap-2 mb-6">
+                  <span className="text-2xl">🎁</span>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">إعدادات عمولة Referral</h3>
+                </div>
+
+                {/* Nutrition Referral */}
+                <div className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={referralSettings.nutritionReferralEnabled}
+                        onChange={(e) => setReferralSettings(prev => ({
+                          ...prev,
+                          nutritionReferralEnabled: e.target.checked
+                        }))}
+                        className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="font-semibold text-gray-800 dark:text-gray-100">تفعيل Referral للتغذية</span>
+                    </label>
+                  </div>
+
+                  {referralSettings.nutritionReferralEnabled && (
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                        نسبة العمولة (%)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={referralSettings.nutritionReferralPercentage}
+                          onChange={(e) => setReferralSettings(prev => ({
+                            ...prev,
+                            nutritionReferralPercentage: parseFloat(e.target.value) || 0
+                          }))}
+                          className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:bg-gray-800 dark:text-white"
+                          placeholder="مثال: 5"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">%</span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        💡 مثال: 5% = 50 ج.م لكل اشتراك بـ 1000 ج.م
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Physiotherapy Referral */}
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={referralSettings.physioReferralEnabled}
+                        onChange={(e) => setReferralSettings(prev => ({
+                          ...prev,
+                          physioReferralEnabled: e.target.checked
+                        }))}
+                        className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="font-semibold text-gray-800 dark:text-gray-100">تفعيل Referral للعلاج الطبيعي</span>
+                    </label>
+                  </div>
+
+                  {referralSettings.physioReferralEnabled && (
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                        نسبة العمولة (%)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={referralSettings.physioReferralPercentage}
+                          onChange={(e) => setReferralSettings(prev => ({
+                            ...prev,
+                            physioReferralPercentage: parseFloat(e.target.value) || 0
+                          }))}
+                          className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:bg-gray-800 dark:text-white"
+                          placeholder="مثال: 5"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">%</span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        💡 مثال: 5% = 50 ج.م لكل اشتراك بـ 1000 ج.م
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

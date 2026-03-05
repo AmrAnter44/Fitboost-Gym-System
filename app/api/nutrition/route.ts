@@ -112,7 +112,8 @@ export async function POST(request: Request) {
       startDate,
       expiryDate,
       paymentMethod,
-      staffName
+      staffName,
+      referralCoachId
     } = body
 
 
@@ -277,6 +278,14 @@ export async function POST(request: Request) {
       }
     }
 
+    // الحصول على إعدادات Referral
+    const systemSettings = await prisma.systemSettings.findUnique({
+      where: { id: 'singleton' }
+    })
+
+    const nutritionReferralEnabled = systemSettings?.nutritionReferralEnabled ?? false
+    const nutritionReferralPercentage = systemSettings?.nutritionReferralPercentage ?? 0
+
     // إنشاء إيصال باستخدام Transaction
     try {
       const totalAmount = sessionsPurchased * pricePerSession
@@ -413,6 +422,27 @@ export async function POST(request: Request) {
             )
           } catch (commissionError) {
             console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
+            // لا نفشل العملية إذا فشلت العمولة
+          }
+        }
+
+        // ✅ إنشاء عمولة Referral للكوتش الذي سوّق الخدمة
+        if (nutritionReferralEnabled && referralCoachId && totalAmount > 0) {
+          try {
+            const commissionAmount = (totalAmount * nutritionReferralPercentage) / 100
+
+            if (commissionAmount > 0) {
+              await tx.commission.create({
+                data: {
+                  staffId: referralCoachId,
+                  amount: commissionAmount,
+                  type: 'nutrition_referral',
+                  description: `عمولة Referral تغذية - ${clientName} - ${nutritionReferralPercentage}% من ${totalAmount.toFixed(2)} ج.م (#${nutrition.nutritionNumber})`
+                }
+              })
+            }
+          } catch (referralError) {
+            console.error('⚠️ فشل إنشاء عمولة Referral (غير حرج):', referralError)
             // لا نفشل العملية إذا فشلت العمولة
           }
         }

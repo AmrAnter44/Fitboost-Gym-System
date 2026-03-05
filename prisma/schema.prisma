@@ -848,6 +848,12 @@ model SystemSettings {
   ptCommissionEnabled         Boolean  @default(true)   // تفعيل/تعطيل عمولة الكوتش عند إضافة عضو
   ptCommissionAmount          Float    @default(50)     // مبلغ العمولة (جنيه)
 
+  // إعدادات عمولة Referral
+  nutritionReferralEnabled    Boolean  @default(false)  // تفعيل/تعطيل Referral للتغذية
+  nutritionReferralPercentage Float    @default(0)      // نسبة عمولة Referral للتغذية (%)
+  physioReferralEnabled       Boolean  @default(false)  // تفعيل/تعطيل Referral للعلاج الطبيعي
+  physioReferralPercentage    Float    @default(0)      // نسبة عمولة Referral للعلاج الطبيعي (%)
+
   updatedAt             DateTime @updatedAt
   updatedBy             String?
 }

@@ -15,6 +15,7 @@ import type { PaymentMethod } from '../../lib/paymentHelpers'
 import { fetchCoaches } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
+import CoachSelector from '../../components/CoachSelector'
 
 interface Staff {
   id: string
@@ -139,6 +140,8 @@ export default function PhysiotherapyPage() {
     paymentMethod: 'cash',
     staffName: user?.name || '',
   })
+
+  const [referralCoachId, setReferralCoachId] = useState<string | null>(null)
 
   // ✅ معالجة أخطاء جلسات Physiotherapy
   useEffect(() => {
@@ -284,6 +287,7 @@ export default function PhysiotherapyPage() {
       paymentMethod: 'cash',
       staffName: user?.name || '',
     })
+    setReferralCoachId(null)
     setEditingSession(null)
     setShowForm(false)
     setIsDayUse(false)
@@ -334,7 +338,7 @@ export default function PhysiotherapyPage() {
       const method = editingSession ? 'PUT' : 'POST'
       const body = editingSession
         ? { physioNumber: editingSession.physioNumber, ...formData, staffName: user?.name || '' }
-        : { ...formData, staffName: user?.name || '' }
+        : { ...formData, staffName: user?.name || '', referralCoachId: referralCoachId || null }
 
       const response = await fetch(url, {
         method,
@@ -882,6 +886,33 @@ export default function PhysiotherapyPage() {
                     <span className="font-bold text-orange-600 dark:text-orange-400">
                       {formData.remainingAmount.toFixed(2)} {t('physiotherapy.egp')}
                     </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Referral Section */}
+            {settings.physioReferralEnabled && !editingSession && (
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 border-2 border-purple-200 dark:border-purple-700">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <span className="text-2xl">🎁</span>
+                  Referral - من سوّق هذا الاشتراك؟
+                </h3>
+
+                <CoachSelector
+                  value={referralCoachId}
+                  onChange={setReferralCoachId}
+                  required={false}
+                />
+
+                {referralCoachId && formData.totalPrice > 0 && (
+                  <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-700">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      💰 عمولة Referral: {settings.physioReferralPercentage}% من سعر الاشتراك
+                    </p>
+                    <p className="text-sm font-semibold text-purple-600 dark:text-purple-400 mt-1">
+                      = {((formData.totalPrice * settings.physioReferralPercentage) / 100).toFixed(2)} ج.م
+                    </p>
                   </div>
                 )}
               </div>

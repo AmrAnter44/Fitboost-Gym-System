@@ -16,6 +16,10 @@ interface ServiceSettings {
   pointsValueInEGP: number
   ptCommissionEnabled: boolean
   ptCommissionAmount: number
+  nutritionReferralEnabled: boolean
+  nutritionReferralPercentage: number
+  physioReferralEnabled: boolean
+  physioReferralPercentage: number
 }
 
 interface ServiceSettingsContextType {
@@ -40,7 +44,11 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     pointsPerEGPSpent: 0.1,
     pointsValueInEGP: 0.1,
     ptCommissionEnabled: true,
-    ptCommissionAmount: 50
+    ptCommissionAmount: 50,
+    nutritionReferralEnabled: false,
+    nutritionReferralPercentage: 0,
+    physioReferralEnabled: false,
+    physioReferralPercentage: 0
   })
   const [loading, setLoading] = useState(true)
 
@@ -62,7 +70,11 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
           pointsPerEGPSpent: data.pointsPerEGPSpent,
           pointsValueInEGP: data.pointsValueInEGP,
           ptCommissionEnabled: data.ptCommissionEnabled ?? true,
-          ptCommissionAmount: data.ptCommissionAmount ?? 50
+          ptCommissionAmount: data.ptCommissionAmount ?? 50,
+          nutritionReferralEnabled: data.nutritionReferralEnabled ?? false,
+          nutritionReferralPercentage: data.nutritionReferralPercentage ?? 0,
+          physioReferralEnabled: data.physioReferralEnabled ?? false,
+          physioReferralPercentage: data.physioReferralPercentage ?? 0
         })
       }
     } catch (error) {

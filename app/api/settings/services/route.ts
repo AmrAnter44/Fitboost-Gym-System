@@ -39,7 +39,11 @@ export async function GET(request: Request) {
           websiteUrl: 'https://www.xgym.website',
           showWebsiteOnReceipts: false,
           ptCommissionEnabled: true,
-          ptCommissionAmount: 50
+          ptCommissionAmount: 50,
+          nutritionReferralEnabled: false,
+          nutritionReferralPercentage: 0,
+          physioReferralEnabled: false,
+          physioReferralPercentage: 0
         }
       })
     }
@@ -84,7 +88,9 @@ async function updateSettings(request: Request) {
       'trackFreeSessionsCost', 'freePTSessionPrice',
       'freeNutritionSessionPrice', 'freePhysioSessionPrice',
       'freeGroupClassSessionPrice',
-      'ptCommissionEnabled', 'ptCommissionAmount'
+      'ptCommissionEnabled', 'ptCommissionAmount',
+      'nutritionReferralEnabled', 'nutritionReferralPercentage',
+      'physioReferralEnabled', 'physioReferralPercentage'
     ]
 
     validFields.forEach(field => {
