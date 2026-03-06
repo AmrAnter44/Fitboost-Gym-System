@@ -211,18 +211,44 @@ export default function ReceiptsPage() {
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
+      // Membership
       'Member': `🆕 ${t('receipts.types.Member')}`,
       'تجديد عضويه': `🔄 ${t('receipts.types.membershipRenewal')}`,
+      'membershipRenewal': `🔄 ${t('receipts.types.membershipRenewal')}`,
       'ترقية باكدج': `🚀 ${t('receipts.types.packageUpgrade')}`,
       'عضوية': `🆕 ${t('receipts.types.membership')}`,
+
+      // PT (old and new types)
       'اشتراك برايفت': `💪 ${t('receipts.types.newPT')}`,
       'تجديد برايفت': `🔄 ${t('receipts.types.ptRenewal')}`,
-      'PT': '💪 PT',
+      'PT': `💪 ${t('receipts.types.newPT')}`,
+      'newPT': `💪 ${t('receipts.types.newPT')}`,
+      'ptRenewal': `🔄 ${t('receipts.types.ptRenewal')}`,
+      'ptDayUse': `📅 ${t('receipts.types.ptDayUse')}`,
+      'PT Day Use': `📅 ${t('receipts.types.ptDayUse')}`,
+
+      // Nutrition
+      'newNutrition': `🥗 ${t('receipts.types.newNutrition')}`,
+      'nutritionRenewal': `🔄 ${t('receipts.types.nutritionRenewal')}`,
+      'nutritionDayUse': `📅 ${t('receipts.types.nutritionDayUse')}`,
+
+      // Physiotherapy
+      'newPhysiotherapy': `🏥 ${t('receipts.types.newPhysiotherapy')}`,
+      'physiotherapyRenewal': `🔄 ${t('receipts.types.physiotherapyRenewal')}`,
+      'physiotherapyDayUse': `📅 ${t('receipts.types.physiotherapyDayUse')}`,
+
+      // Group Class
+      'newGroupClass': `👥 ${t('receipts.types.newGroupClass')}`,
+      'groupClassRenewal': `🔄 ${t('receipts.types.groupClassRenewal')}`,
+      'groupClassDayUse': `📅 ${t('receipts.types.groupClassDayUse')}`,
+
+      // Day Use & Others
       'DayUse': `📅 ${t('receipts.types.dayUse')}`,
       'يوم استخدام': `📅 ${t('receipts.types.dayUse')}`,
       'تأجير لوجر': `🔐 ${t('receipts.types.lockerRental')}`,
       'Payment': `💰 ${t('receipts.types.Payment')}`,
-      'InBody': `⚖️ ${t('receipts.types.InBody')}`
+      'InBody': `⚖️ ${t('receipts.types.InBody')}`,
+      'inBody': `⚖️ ${t('receipts.types.InBody')}`
     }
     return labels[type] || type
   }
@@ -733,36 +759,89 @@ export default function ReceiptsPage() {
                   </div>
                 </div>
 
-                {/* Subscription Duration - للتجديد والاشتراك الجديد */}
-                {(receipt.type === 'تجديد عضويه' || receipt.type === 'عضوية' || receipt.type === 'Member') && (details.duration || details.subscriptionDays) && (
-                  <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/30 dark:to-yellow-900/30 rounded-lg p-3 mb-4 border-2 border-orange-200 dark:border-orange-700">
-                    <div className="flex items-center gap-2">
-                      <span className="text-orange-600 dark:text-orange-400 text-lg">⏰</span>
+                {/* Membership Details - تفاصيل العضوية */}
+                {(receipt.type === 'تجديد عضويه' || receipt.type === 'membershipRenewal' || receipt.type === 'ترقية باكدج' || receipt.type === 'عضوية' || receipt.type === 'Member') && (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg p-4 mb-4 border-2 border-blue-300 dark:border-blue-700">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-blue-600 dark:text-blue-400 text-2xl">👤</span>
                       <div>
-                        <p className="text-xs text-orange-700 dark:text-orange-300 font-semibold">{t('receipts.card.subscriptionDuration')}</p>
-                        <p className="font-bold text-orange-900 dark:text-orange-200 text-lg">
-                          {details.duration ? (
-                            `${details.duration} ${details.duration === 1 ? t('receipts.card.month') : t('receipts.card.months')}`
-                          ) : details.subscriptionDays ? (
-                            details.subscriptionDays >= 30 ?
-                              `${Math.round(details.subscriptionDays / 30)} ${Math.round(details.subscriptionDays / 30) === 1 ? 'شهر' : 'شهور'}`
-                              : `${details.subscriptionDays} ${details.subscriptionDays === 1 ? 'يوم' : 'أيام'}`
-                          ) : '-'}
+                        <p className="text-xs text-blue-700 dark:text-blue-300 font-semibold">
+                          {receipt.type === 'تجديد عضويه' || receipt.type === 'membershipRenewal' ? 'تفاصيل التجديد' :
+                           receipt.type === 'ترقية باكدج' ? 'تفاصيل الترقية' : 'تفاصيل العضوية'}
                         </p>
                       </div>
                     </div>
-                    {(details.endDate || details.expiryDate) && (
-                      <div className="mt-2 pt-2 border-t border-orange-200 dark:border-orange-700">
-                        <p className="text-xs text-orange-700 dark:text-orange-300">
-                          📅 {t('receipts.card.expiresOn')}: <span className="font-semibold">{new Date(details.endDate || details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
-                        </p>
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      {/* المدة */}
+                      {(details.duration || details.subscriptionDays) && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-blue-200 dark:border-blue-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">⏰ المدة:</span>
+                          <span className="font-bold text-blue-700 dark:text-blue-400 text-lg">
+                            {details.duration ? (
+                              `${details.duration} ${details.duration === 1 ? 'شهر' : 'شهور'}`
+                            ) : details.subscriptionDays ? (
+                              details.subscriptionDays >= 30 ?
+                                `${Math.round(details.subscriptionDays / 30)} ${Math.round(details.subscriptionDays / 30) === 1 ? 'شهر' : 'شهور'}`
+                                : `${details.subscriptionDays} ${details.subscriptionDays === 1 ? 'يوم' : 'أيام'}`
+                            ) : '-'}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* سعر الاشتراك */}
+                      {details.subscriptionPrice && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-blue-200 dark:border-blue-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">💵 سعر الاشتراك:</span>
+                          <span className="font-bold text-blue-700 dark:text-blue-400">{details.subscriptionPrice} {t('members.egp')}</span>
+                        </div>
+                      )}
+
+                      {/* التواريخ */}
+                      {(details.startDate && details.expiryDate) && (
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-blue-200 dark:border-blue-700">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-600 dark:text-gray-300">📅 من:</span>
+                            <span className="font-semibold text-blue-700 dark:text-blue-400">{new Date(details.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span className="text-gray-600 dark:text-gray-300">📅 إلى:</span>
+                            <span className="font-semibold text-blue-700 dark:text-blue-400">{new Date(details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* الخدمات المجانية */}
+                      {(details.freePTSessions > 0 || details.inBodyScans > 0 || details.invitations > 0) && (
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-3 border border-green-200 dark:border-green-700">
+                          <p className="text-xs text-green-700 dark:text-green-300 font-semibold mb-2">🎁 الخدمات المجانية:</p>
+                          <div className="space-y-1.5">
+                            {details.freePTSessions > 0 && (
+                              <div className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded px-2 py-1">
+                                <span className="text-gray-600 dark:text-gray-300">💪 جلسات PT:</span>
+                                <span className="font-bold text-green-700 dark:text-green-400">{details.freePTSessions}</span>
+                              </div>
+                            )}
+                            {details.inBodyScans > 0 && (
+                              <div className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded px-2 py-1">
+                                <span className="text-gray-600 dark:text-gray-300">📊 InBody:</span>
+                                <span className="font-bold text-green-700 dark:text-green-400">{details.inBodyScans}</span>
+                              </div>
+                            )}
+                            {details.invitations > 0 && (
+                              <div className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded px-2 py-1">
+                                <span className="text-gray-600 dark:text-gray-300">👥 دعوات:</span>
+                                <span className="font-bold text-green-700 dark:text-green-400">{details.invitations}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* PT Details - معلومات البرايفت */}
-                {(receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت') && (
+                {(receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت' || receipt.type === 'newPT' || receipt.type === 'ptRenewal' || receipt.type === 'ptDayUse') && (
                   <div className="bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 rounded-lg p-4 mb-4 border-2 border-primary-300 dark:border-primary-700">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-primary-600 dark:text-primary-400 text-2xl">🏋️</span>
@@ -802,6 +881,153 @@ export default function ReceiptsPage() {
                           {details.subscriptionDays && (
                             <div className="text-xs text-primary-600 dark:text-primary-400 text-center mt-2 pt-2 border-t border-primary-200 dark:border-primary-700">
                               ⏰ المدة: {details.subscriptionDays} يوم
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Nutrition Details - معلومات التغذية */}
+                {(receipt.type === 'newNutrition' || receipt.type === 'nutritionRenewal' || receipt.type === 'nutritionDayUse') && (
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg p-4 mb-4 border-2 border-green-300 dark:border-green-700">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-green-600 dark:text-green-400 text-2xl">🥗</span>
+                      <div>
+                        <p className="text-xs text-green-700 dark:text-green-300 font-semibold">{t('receipts.serviceDetails.nutrition')}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {details.sessionsPurchased && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-green-200 dark:border-green-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">🎯 {t('receipts.serviceDetails.sessions')}:</span>
+                          <span className="font-bold text-green-700 dark:text-green-400 text-lg">{details.sessionsPurchased} {t('receipts.serviceDetails.session')}</span>
+                        </div>
+                      )}
+                      {details.coachName && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-green-200 dark:border-green-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">👨‍⚕️ {t('receipts.serviceDetails.specialist')}:</span>
+                          <span className="font-bold text-green-700 dark:text-green-400">{details.coachName}</span>
+                        </div>
+                      )}
+                      {details.pricePerSession && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-green-200 dark:border-green-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">💵 {t('receipts.serviceDetails.pricePerSession')}:</span>
+                          <span className="font-bold text-green-700 dark:text-green-400">{details.pricePerSession} {t('members.egp')}</span>
+                        </div>
+                      )}
+                      {(details.startDate && details.expiryDate) && (
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-green-200 dark:border-green-700">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.serviceDetails.from')}:</span>
+                            <span className="font-semibold text-green-700 dark:text-green-400">{new Date(details.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.serviceDetails.to')}:</span>
+                            <span className="font-semibold text-green-700 dark:text-green-400">{new Date(details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                          {details.subscriptionDays && (
+                            <div className="text-xs text-green-600 dark:text-green-400 text-center mt-2 pt-2 border-t border-green-200 dark:border-green-700">
+                              ⏰ {t('receipts.serviceDetails.duration')}: {details.subscriptionDays} {t('receipts.serviceDetails.days')}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Physiotherapy Details - معلومات العلاج الطبيعي */}
+                {(receipt.type === 'newPhysiotherapy' || receipt.type === 'physiotherapyRenewal' || receipt.type === 'physiotherapyDayUse') && (
+                  <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-lg p-4 mb-4 border-2 border-teal-300 dark:border-teal-700">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-teal-600 dark:text-teal-400 text-2xl">🏥</span>
+                      <div>
+                        <p className="text-xs text-teal-700 dark:text-teal-300 font-semibold">{t('receipts.serviceDetails.physiotherapy')}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {details.sessionsPurchased && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-teal-200 dark:border-teal-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">🎯 {t('receipts.serviceDetails.sessions')}:</span>
+                          <span className="font-bold text-teal-700 dark:text-teal-400 text-lg">{details.sessionsPurchased} {t('receipts.serviceDetails.session')}</span>
+                        </div>
+                      )}
+                      {details.coachName && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-teal-200 dark:border-teal-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">👨‍⚕️ {t('receipts.serviceDetails.specialist')}:</span>
+                          <span className="font-bold text-teal-700 dark:text-teal-400">{details.coachName}</span>
+                        </div>
+                      )}
+                      {details.pricePerSession && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-teal-200 dark:border-teal-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">💵 {t('receipts.serviceDetails.pricePerSession')}:</span>
+                          <span className="font-bold text-teal-700 dark:text-teal-400">{details.pricePerSession} {t('members.egp')}</span>
+                        </div>
+                      )}
+                      {(details.startDate && details.expiryDate) && (
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-teal-200 dark:border-teal-700">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.serviceDetails.from')}:</span>
+                            <span className="font-semibold text-teal-700 dark:text-teal-400">{new Date(details.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.serviceDetails.to')}:</span>
+                            <span className="font-semibold text-teal-700 dark:text-teal-400">{new Date(details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                          {details.subscriptionDays && (
+                            <div className="text-xs text-teal-600 dark:text-teal-400 text-center mt-2 pt-2 border-t border-teal-200 dark:border-teal-700">
+                              ⏰ {t('receipts.serviceDetails.duration')}: {details.subscriptionDays} {t('receipts.serviceDetails.days')}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Group Class Details - معلومات جروب كلاسيس */}
+                {(receipt.type === 'newGroupClass' || receipt.type === 'groupClassRenewal' || receipt.type === 'groupClassDayUse') && (
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-lg p-4 mb-4 border-2 border-indigo-300 dark:border-indigo-700">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-indigo-600 dark:text-indigo-400 text-2xl">👥</span>
+                      <div>
+                        <p className="text-xs text-indigo-700 dark:text-indigo-300 font-semibold">{t('receipts.serviceDetails.groupClass')}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {details.sessionsPurchased && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-indigo-200 dark:border-indigo-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">🎯 {t('receipts.serviceDetails.sessions')}:</span>
+                          <span className="font-bold text-indigo-700 dark:text-indigo-400 text-lg">{details.sessionsPurchased} {t('receipts.serviceDetails.session')}</span>
+                        </div>
+                      )}
+                      {details.coachName && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-indigo-200 dark:border-indigo-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">👨‍🏫 {t('receipts.serviceDetails.instructor')}:</span>
+                          <span className="font-bold text-indigo-700 dark:text-indigo-400">{details.coachName}</span>
+                        </div>
+                      )}
+                      {details.pricePerSession && (
+                        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-indigo-200 dark:border-indigo-700">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">💵 {t('receipts.serviceDetails.pricePerSession')}:</span>
+                          <span className="font-bold text-indigo-700 dark:text-indigo-400">{details.pricePerSession} {t('members.egp')}</span>
+                        </div>
+                      )}
+                      {(details.startDate && details.expiryDate) && (
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-indigo-200 dark:border-indigo-700">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.serviceDetails.from')}:</span>
+                            <span className="font-semibold text-indigo-700 dark:text-indigo-400">{new Date(details.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.serviceDetails.to')}:</span>
+                            <span className="font-semibold text-indigo-700 dark:text-indigo-400">{new Date(details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                          </div>
+                          {details.subscriptionDays && (
+                            <div className="text-xs text-indigo-600 dark:text-indigo-400 text-center mt-2 pt-2 border-t border-indigo-200 dark:border-indigo-700">
+                              ⏰ {t('receipts.serviceDetails.duration')}: {details.subscriptionDays} {t('receipts.serviceDetails.days')}
                             </div>
                           )}
                         </div>
