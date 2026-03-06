@@ -864,10 +864,15 @@ export default function CoachCommissionPage() {
           .reduce((sum: number, c: any) => sum + c.amount, 0)
 
         const referralCommissionsTotal = nutritionReferralTotal + physioReferralTotal
-        const totalCommission = commission + referralCommissionsTotal
+
+        // 🎁 إضافة قيمة الجلسات المجانية
+        const freeSessionsDetails = getFreeSessionsDetails(coachName)
+        const freeSessionsValue = freeSessionsDetails.value
+
+        const totalCommission = commission + referralCommissionsTotal + freeSessionsValue
 
         setPayrollCoachName(coachName)
-        setPayrollCommission(totalCommission)  // 💰 العمولة الإجمالية (جلسات + ثابتة + Referral)
+        setPayrollCommission(totalCommission)  // 💰 العمولة الإجمالية (جلسات + ثابتة + Referral + حصص مجانية)
         setPayrollSalary(staff?.salary?.toString() || '0')
         setPayrollStaffId(staff?.id || null)
         setPayrollDeductions([])
@@ -889,9 +894,13 @@ export default function CoachCommissionPage() {
       }
     } catch (error) {
       console.error('Error fetching commissions:', error)
-      // في حالة فشل جلب العمولات، نستخدم عمولة الجلسات فقط
+      // في حالة فشل جلب العمولات، نستخدم عمولة الجلسات + الحصص المجانية
+      const freeSessionsDetails = getFreeSessionsDetails(coachName)
+      const freeSessionsValue = freeSessionsDetails.value
+      const totalCommission = commission + freeSessionsValue
+
       setPayrollCoachName(coachName)
-      setPayrollCommission(commission)
+      setPayrollCommission(totalCommission)
       setPayrollSalary(staff?.salary?.toString() || '0')
       setPayrollStaffId(staff?.id || null)
       setPayrollDeductions([])
@@ -2286,6 +2295,90 @@ export default function CoachCommissionPage() {
           </table>
         </div>
       </div>
+
+      {/* جدول الجلسات المجانية */}
+      {freeSessionsSettings.trackFreeSessionsCost && freeSessionsSettings.freePTSessionPrice > 0 && (
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <span>🎁</span>
+            <span>الجلسات المجانية ({new Date(dateFrom).toLocaleDateString(localeString)} - {new Date(dateTo).toLocaleDateString(localeString)})</span>
+          </h2>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-purple-100 to-violet-200 dark:from-purple-900/50 dark:to-violet-900/50">
+                <tr>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">الكوتش</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">عدد الجلسات</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">سعر الجلسة</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">القيمة الإجمالية</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const allCoaches = [...new Set(freeSessions.map((s: any) => s.coachName || s.attendedBy))].filter(Boolean)
+                  const coachesWithSessions = allCoaches.map(name => ({
+                    name,
+                    ...getFreeSessionsDetails(name)
+                  })).filter(c => c.count > 0)
+
+                  return coachesWithSessions.length > 0 ? (
+                    coachesWithSessions.map((coach) => (
+                      <tr key={coach.name} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-4 py-3 font-semibold dark:text-gray-200">{coach.name}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-block bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 font-bold px-3 py-1 rounded-full">
+                            {coach.count}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
+                          {freeSessionsSettings.freePTSessionPrice} ج.م
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-purple-600 dark:text-purple-400 text-lg">
+                          {coach.value.toLocaleString(localeString)} ج.م
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
+                        <div className="text-6xl mb-4">🎁</div>
+                        <p className="text-xl">لا توجد جلسات مجانية في هذه الفترة</p>
+                      </td>
+                    </tr>
+                  )
+                })()}
+              </tbody>
+              {(() => {
+                const allCoaches = [...new Set(freeSessions.map((s: any) => s.coachName || s.attendedBy))].filter(Boolean)
+                const coachesWithSessions = allCoaches.map(name => ({
+                  name,
+                  ...getFreeSessionsDetails(name)
+                })).filter(c => c.count > 0)
+                const totalCount = coachesWithSessions.reduce((sum, c) => sum + c.count, 0)
+                const totalValue = coachesWithSessions.reduce((sum, c) => sum + c.value, 0)
+
+                return totalCount > 0 ? (
+                  <tfoot className="bg-gradient-to-r from-purple-50 to-violet-100 dark:from-purple-900/50 dark:to-violet-900/50 font-bold">
+                    <tr>
+                      <td className="px-4 py-3 dark:text-gray-200">الإجمالي</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-block bg-purple-500 dark:bg-purple-600 text-white font-bold px-3 py-1 rounded-full">
+                          {totalCount}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center dark:text-gray-200">-</td>
+                      <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 text-xl">
+                        {totalValue.toLocaleString(localeString)} ج.م
+                      </td>
+                    </tr>
+                  </tfoot>
+                ) : null
+              })()}
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* مودال التحصيل */}
       {showPayrollModal && (

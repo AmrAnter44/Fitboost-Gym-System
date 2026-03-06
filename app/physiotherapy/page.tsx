@@ -12,7 +12,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
-import { fetchCoaches } from '../../lib/api/pt'
+import { fetchStaff } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import CoachSelector from '../../components/CoachSelector'
@@ -72,16 +72,16 @@ export default function PhysiotherapyPage() {
     staleTime: 2 * 60 * 1000,
   })
 
-  // ✅ استخدام useQuery لجلب أخصائيي العلاج الطبيعي
+  // ✅ استخدام useQuery لجلب جميع الموظفين النشطين
   const {
     data: coaches = [],
     isLoading: coachesLoading
   } = useQuery({
-    queryKey: ['coaches'],
-    queryFn: fetchCoaches,
+    queryKey: ['staff'],
+    queryFn: fetchStaff,
     enabled: !permissionsLoading,
     retry: 1,
-    staleTime: 5 * 60 * 1000, // أخصائيو العلاج الطبيعي مش بيتغيروا كتير
+    staleTime: 5 * 60 * 1000, // الموظفين مش بيتغيروا كتير
   })
 
   const [showForm, setShowForm] = useState(false)
@@ -626,35 +626,55 @@ export default function PhysiotherapyPage() {
                   <div className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                     {t('physiotherapy.loadingPhysiotherapyists')}
                   </div>
-                ) : coaches.length === 0 ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
+                ) : (() => {
+                  // فلترة أخصائيي العلاج الطبيعي النشطين
+                  console.log('📊 All coaches:', coaches.map(c => ({ name: c.name, position: c.position, isActive: c.isActive })))
+
+                  let therapists = coaches.filter(coach =>
+                    coach.isActive &&
+                    (coach.position?.toLowerCase().includes('علاج') ||
+                     coach.position?.toLowerCase().includes('physiotherapy') ||
+                     coach.position?.toLowerCase().includes('طبيعي'))
+                  )
+
+                  console.log('🏥 Filtered therapists:', therapists.map(c => ({ name: c.name, position: c.position })))
+
+                  // إذا لم يجد أخصائيين محددين، اعرض كل الموظفين النشطين
+                  if (therapists.length === 0) {
+                    therapists = coaches.filter(coach => coach.isActive)
+                    console.log('⚠️ No therapists found, showing all active staff:', therapists.length)
+                  }
+
+                  return therapists.length === 0 ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        required
+                        value={formData.therapistName}
+                        onChange={(e) => setFormData({ ...formData, therapistName: e.target.value })}
+                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                        placeholder={t('physiotherapy.therapistNamePlaceholder')}
+                      />
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        ⚠️ {t('physiotherapy.noActivePhysiotherapyists')}
+                      </p>
+                    </div>
+                  ) : (
+                    <select
                       required
                       value={formData.therapistName}
                       onChange={(e) => setFormData({ ...formData, therapistName: e.target.value })}
-                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                      placeholder={t('physiotherapy.therapistNamePlaceholder')}
-                    />
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      ⚠️ {t('physiotherapy.noActivePhysiotherapyists')}
-                    </p>
-                  </div>
-                ) : (
-                  <select
-                    required
-                    value={formData.therapistName}
-                    onChange={(e) => setFormData({ ...formData, therapistName: e.target.value })}
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="">{t('physiotherapy.selectPhysiotherapyist')}</option>
-                    {coaches.map((coach) => (
-                      <option key={coach.id} value={coach.name}>
-                        {coach.name} {coach.phone && `(${coach.phone})`}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">{t('physiotherapy.selectPhysiotherapyist')}</option>
+                      {therapists.map((coach) => (
+                        <option key={coach.id} value={coach.name}>
+                          {coach.name} {coach.phone && `(${coach.phone})`}
+                        </option>
+                      ))}
+                    </select>
+                  )
+                })()}
               </div>
 
               {/* Day Use Checkbox - مخفي في وضع التعديل */}

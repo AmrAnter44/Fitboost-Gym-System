@@ -43,8 +43,37 @@ interface Receipt {
   cancelReason?: string
 }
 
-// أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة) - خارج الـ component لتجنب re-creation
+// أنواع الإيصالات المدعومة (جميع الأنواع الحالية والقديمة) - خارج الـ component لتجنب re-creation
+
+// 💪 PT (البرايفت)
 const PT_RECEIPT_TYPES = ['برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت', 'PT Day Use']
+
+// 🥗 Nutrition (التغذية)
+const NUTRITION_RECEIPT_TYPES = [
+  'newNutrition',
+  'nutritionRenewal',
+  'nutritionDayUse',
+  'تغذية جديدة',
+  'تجديد تغذية',
+  'يوم استخدام تغذية'
+]
+
+// 🏥 Physiotherapy (العلاج الطبيعي)
+const PHYSIOTHERAPY_RECEIPT_TYPES = [
+  'newPhysiotherapy',
+  'physiotherapyRenewal',
+  'physiotherapyDayUse',
+  'علاج طبيعي جديد',
+  'تجديد علاج طبيعي',
+  'يوم استخدام علاج طبيعي'
+]
+
+// 👥 Group Classes (الحصص الجماعية)
+const GROUP_CLASS_RECEIPT_TYPES = [
+  'newGroupClass',
+  'groupClassRenewal',
+  'groupClassDayUse'
+]
 
 export default function ReceiptsPage() {
   const router = useRouter()
@@ -142,6 +171,15 @@ export default function ReceiptsPage() {
       if (filterType === 'PT') {
         // فلتر PT: يعرض كل أنواع إيصالات PT
         filtered = filtered.filter(r => PT_RECEIPT_TYPES.includes(r.type))
+      } else if (filterType === 'Nutrition') {
+        // فلتر التغذية: يعرض كل أنواع إيصالات التغذية
+        filtered = filtered.filter(r => NUTRITION_RECEIPT_TYPES.includes(r.type))
+      } else if (filterType === 'Physiotherapy') {
+        // فلتر العلاج الطبيعي: يعرض كل أنواع إيصالات العلاج الطبيعي
+        filtered = filtered.filter(r => PHYSIOTHERAPY_RECEIPT_TYPES.includes(r.type))
+      } else if (filterType === 'GroupClass') {
+        // فلتر الحصص الجماعية: يعرض كل أنواع إيصالات الحصص الجماعية
+        filtered = filtered.filter(r => GROUP_CLASS_RECEIPT_TYPES.includes(r.type))
       } else {
         filtered = filtered.filter(r => r.type === filterType)
       }
@@ -662,14 +700,29 @@ export default function ReceiptsPage() {
               className="w-full px-3 py-2 md:px-4 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
             >
               <option value="all">{t('receipts.filters.all')}</option>
-              <option value="Member">{t('receipts.types.Member')}</option>
-              <option value="عضوية">{t('receipts.types.membership')}</option>
-              <option value="تجديد عضويه">{t('receipts.types.membershipRenewal')}</option>
-              <option value="PT">💪 PT (جميع الأنواع)</option>
-              <option value="يوم استخدام">{t('receipts.types.dayUse')}</option>
-              <option value="تأجير لوجر">{t('receipts.types.lockerRental')}</option>
-              <option value="InBody">{t('receipts.types.InBody')}</option>
-              <option value="Payment">{t('receipts.types.Payment')}</option>
+
+              {/* العضويات */}
+              <optgroup label="━━━━━━ 👤 العضويات ━━━━━━">
+                <option value="Member">{t('receipts.types.Member')}</option>
+                <option value="عضوية">{t('receipts.types.membership')}</option>
+                <option value="تجديد عضويه">{t('receipts.types.membershipRenewal')}</option>
+                <option value="يوم استخدام">{t('receipts.types.dayUse')}</option>
+              </optgroup>
+
+              {/* الخدمات */}
+              <optgroup label="━━━━━━ 🏋️ الخدمات ━━━━━━">
+                <option value="PT">💪 PT (جميع الأنواع)</option>
+                <option value="Nutrition">🥗 التغذية (جميع الأنواع)</option>
+                <option value="Physiotherapy">🏥 العلاج الطبيعي (جميع الأنواع)</option>
+                <option value="GroupClass">👥 الحصص الجماعية (جميع الأنواع)</option>
+              </optgroup>
+
+              {/* أخرى */}
+              <optgroup label="━━━━━━ 📦 أخرى ━━━━━━">
+                <option value="تأجير لوجر">{t('receipts.types.lockerRental')}</option>
+                <option value="InBody">{t('receipts.types.InBody')}</option>
+                <option value="Payment">{t('receipts.types.Payment')}</option>
+              </optgroup>
             </select>
           </div>
 

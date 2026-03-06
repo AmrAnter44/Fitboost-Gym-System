@@ -281,11 +281,11 @@ export default function NutritionCommissionPage() {
 
   const fetchData = async () => {
     try {
-      // جلب الكوتشات
+      // جلب أخصائيي التغذية
       const staffResponse = await fetch('/api/staff')
       const staffData: Staff[] = await staffResponse.json()
       const activeCoaches = staffData.filter(
-        (staff) => staff.isActive && staff.position?.toLowerCase().includes('مدرب')
+        (staff) => staff.isActive && (staff.position?.toLowerCase().includes('تغذية') || staff.position?.toLowerCase().includes('nutrition'))
       )
       setCoaches(activeCoaches)
 
@@ -725,13 +725,12 @@ export default function NutritionCommissionPage() {
     // حساب الإيرادات من الإيصالات (المبالغ الفعلية المدفوعة)
     const nutritionRevenue = nutritionReceipts.reduce((sum, receipt) => sum + receipt.amount, 0)
 
-    // إضافة عمولات تسجيل الأعضاء
-    const coachSignupCommissions = memberSignupCommissions.find(c => c.nutritionistName === nutritionistName)
-    const signupRevenue = coachSignupCommissions?.totalAmount || 0
+    // ✅ إضافة قيمة الجلسات المجانية
+    const freeSessionsData = getFreeSessionsDetails(nutritionistName)
+    const freeSessionsValue = freeSessionsData.value
 
-
-    // إجمالي الإيرادات = التغذية + تسجيل الأعضاء
-    const totalRevenue = nutritionRevenue + signupRevenue
+    // إجمالي الإيرادات = التغذية + الجلسات المجانية
+    const totalRevenue = nutritionRevenue + freeSessionsValue
 
     // جمع بيانات الجلسات للإحصائيات (من أرقام التغذية في الإيصالات)
     const nutritionNumbersFromReceipts = new Set(
@@ -768,8 +767,14 @@ export default function NutritionCommissionPage() {
   // فتح مودال التحصيل
   const openPayrollModal = async (coachName: string, commission: number) => {
     const staff = coaches.find(c => c.name === coachName)
+
+    // 🎁 إضافة قيمة الجلسات المجانية
+    const freeSessionsDetails = getFreeSessionsDetails(coachName)
+    const freeSessionsValue = freeSessionsDetails.value
+    const totalCommission = commission + freeSessionsValue
+
     setPayrollCoachName(coachName)
-    setPayrollCommission(commission)
+    setPayrollCommission(totalCommission)  // 💰 العمولة الإجمالية (تغذية + حصص مجانية)
     setPayrollSalary(staff?.salary?.toString() || '0')
     setPayrollStaffId(staff?.id || null)
     setPayrollDeductions([])
@@ -872,12 +877,8 @@ export default function NutritionCommissionPage() {
     // جمع عمولات التغذية
     const nutritionCommission = nutritionCommissionsData.reduce((sum, c) => sum + c.amount, 0)
 
-    // جمع عمولات الأعضاء (الكوتش ياخدها كاملة)
-    const coachSignupCommissions = memberSignupCommissions.find(c => c.nutritionistName === selectedCoach)
-    const signupRevenue = coachSignupCommissions?.totalAmount || 0
-
-    // إجمالي العمولة = عمولة التغذية + عمولة تسجيل الأعضاء
-    const totalCommission = nutritionCommission + signupRevenue
+    // إجمالي العمولة = عمولة التغذية فقط
+    const totalCommission = nutritionCommission
 
     // حساب إجمالي الإيرادات للعرض فقط
     const start = new Date(dateFrom)
@@ -897,9 +898,9 @@ export default function NutritionCommissionPage() {
     })
     const nutritionRevenue = coachNutritionReceipts.reduce((sum, receipt) => sum + receipt.amount, 0)
 
-    const totalIncome = nutritionRevenue + signupRevenue
+    const totalIncome = nutritionRevenue
 
-    // حساب النسبة المتوسطة بناءً على إجمالي الدخل (التغذية + عمولات الاشتراكات)
+    // حساب النسبة المتوسطة بناءً على إجمالي الدخل (التغذية فقط)
     const averagePercentage = totalIncome > 0 ? calculatePercentage(totalIncome) : 0
 
     // إعادة حساب العمولة بناءً على النسبة الجديدة
@@ -2056,76 +2057,89 @@ export default function NutritionCommissionPage() {
         </div>
       )}
 
-      {/* جدول عمولات تسجيل الأعضاء */}
-      <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <span>💵</span>
-          <span>
-            {t('nutrition.commission.memberSignupCommissionsTitle', {
-              fromDate: new Date(dateFrom).toLocaleDateString(localeString),
-              toDate: new Date(dateTo).toLocaleDateString(localeString)
-            })}
-          </span>
-        </h2>
+      {/* جدول الجلسات المجانية */}
+      {freeSessionsSettings.trackFreeSessionsCost && freeSessionsSettings.freeNutritionSessionPrice > 0 && (
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <span>🎁</span>
+            <span>الجلسات المجانية ({new Date(dateFrom).toLocaleDateString(localeString)} - {new Date(dateTo).toLocaleDateString(localeString)})</span>
+          </h2>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-green-100 to-emerald-200 dark:from-green-900/50 dark:to-emerald-900/50">
-              <tr>
-                <th className="px-4 py-3 text-right dark:text-gray-200">{t('nutrition.commission.coach')}</th>
-                <th className="px-4 py-3 text-center dark:text-gray-200">{t('nutrition.commission.staffNumber')}</th>
-                <th className="px-4 py-3 text-center dark:text-gray-200">{t('nutrition.commission.subscriptionCount')}</th>
-                <th className="px-4 py-3 text-center dark:text-gray-200">{t('nutrition.commission.commissionPerSubscription')}</th>
-                <th className="px-4 py-3 text-center dark:text-gray-200">{t('nutrition.commission.totalCommissions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {memberSignupCommissions.length > 0 ? (
-                memberSignupCommissions.map((commission) => (
-                  <tr key={commission.nutritionistId} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-4 py-3 font-semibold dark:text-gray-200">{commission.nutritionistName}</td>
-                    <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">#{commission.staffCode}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-block bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300 font-bold px-3 py-1 rounded-full">
-                        {commission.count}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
-                      50 {t('nutrition.commission.egp')}
-                    </td>
-                    <td className="px-4 py-3 text-center font-bold text-green-600 dark:text-green-400 text-lg">
-                      {commission.totalAmount.toLocaleString(localeString)} {t('nutrition.commission.egp')}
-                    </td>
-                  </tr>
-                ))
-              ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-purple-100 to-violet-200 dark:from-purple-900/50 dark:to-violet-900/50">
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-                    <div className="text-6xl mb-4">📭</div>
-                    <p className="text-xl">{t('nutrition.commission.noCommissionsInPeriod')}</p>
-                  </td>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">أخصائي التغذية</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">عدد الجلسات</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">سعر الجلسة</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">القيمة الإجمالية</th>
                 </tr>
-              )}
-            </tbody>
-            {memberSignupCommissions.length > 0 && (
-              <tfoot className="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 font-bold">
-                <tr>
-                  <td className="px-4 py-3 dark:text-gray-200" colSpan={2}>{t('nutrition.commission.total')}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-block bg-primary-500 dark:bg-primary-600 text-white font-bold px-3 py-1 rounded-full">
-                      {memberSignupCommissions.reduce((sum, c) => sum + c.count, 0)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center dark:text-gray-200">-</td>
-                  <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 text-xl">
-                    {memberSignupCommissions.reduce((sum, c) => sum + c.totalAmount, 0).toLocaleString(localeString)} {t('nutrition.commission.egp')}
-                  </td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
+              </thead>
+              <tbody>
+                {(() => {
+                  const allNutritionists = [...new Set(freeSessions.map((s: any) => s.nutritionistName || s.attendedBy))].filter(Boolean)
+                  const nutritionistsWithSessions = allNutritionists.map(name => ({
+                    name,
+                    ...getFreeSessionsDetails(name)
+                  })).filter(n => n.count > 0)
+
+                  return nutritionistsWithSessions.length > 0 ? (
+                    nutritionistsWithSessions.map((nutritionist) => (
+                      <tr key={nutritionist.name} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-4 py-3 font-semibold dark:text-gray-200">{nutritionist.name}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-block bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 font-bold px-3 py-1 rounded-full">
+                            {nutritionist.count}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
+                          {freeSessionsSettings.freeNutritionSessionPrice} ج.م
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-purple-600 dark:text-purple-400 text-lg">
+                          {nutritionist.value.toLocaleString(localeString)} ج.م
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
+                        <div className="text-6xl mb-4">🎁</div>
+                        <p className="text-xl">لا توجد جلسات مجانية في هذه الفترة</p>
+                      </td>
+                    </tr>
+                  )
+                })()}
+              </tbody>
+              {(() => {
+                const allNutritionists = [...new Set(freeSessions.map((s: any) => s.nutritionistName || s.attendedBy))].filter(Boolean)
+                const nutritionistsWithSessions = allNutritionists.map(name => ({
+                  name,
+                  ...getFreeSessionsDetails(name)
+                })).filter(n => n.count > 0)
+                const totalCount = nutritionistsWithSessions.reduce((sum, n) => sum + n.count, 0)
+                const totalValue = nutritionistsWithSessions.reduce((sum, n) => sum + n.value, 0)
+
+                return totalCount > 0 ? (
+                  <tfoot className="bg-gradient-to-r from-purple-50 to-violet-100 dark:from-purple-900/50 dark:to-violet-900/50 font-bold">
+                    <tr>
+                      <td className="px-4 py-3 dark:text-gray-200">الإجمالي</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-block bg-purple-500 dark:bg-purple-600 text-white font-bold px-3 py-1 rounded-full">
+                          {totalCount}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center dark:text-gray-200">-</td>
+                      <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 text-xl">
+                        {totalValue.toLocaleString(localeString)} ج.م
+                      </td>
+                    </tr>
+                  </tfoot>
+                ) : null
+              })()}
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* مودال التحصيل */}
       {showPayrollModal && (

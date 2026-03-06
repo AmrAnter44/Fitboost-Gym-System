@@ -56,14 +56,7 @@ export async function GET(request: Request) {
       const sessions = await prisma.physiotherapySession.findMany({
         orderBy: { sessionDate: 'desc' },
         include: {
-          physiotherapy: {
-            select: {
-              clientName: true,
-              therapistName: true,
-              phone: true,
-              therapistUserId: true
-            }
-          },
+          physiotherapy: true,
           member: {
             select: {
               name: true,

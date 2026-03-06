@@ -12,7 +12,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
-import { fetchCoaches } from '../../lib/api/pt'
+import { fetchStaff } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import CoachSelector from '../../components/CoachSelector'
@@ -72,16 +72,16 @@ export default function NutritionPage() {
     staleTime: 2 * 60 * 1000,
   })
 
-  // ✅ استخدام useQuery لجلب أخصائيي التغذية
+  // ✅ استخدام useQuery لجلب جميع الموظفين النشطين
   const {
     data: coaches = [],
     isLoading: coachesLoading
   } = useQuery({
-    queryKey: ['coaches'],
-    queryFn: fetchCoaches,
+    queryKey: ['staff'],
+    queryFn: fetchStaff,
     enabled: !permissionsLoading,
     retry: 1,
-    staleTime: 5 * 60 * 1000, // أخصائيو التغذية مش بيتغيروا كتير
+    staleTime: 5 * 60 * 1000, // الموظفين مش بيتغيروا كتير
   })
 
   const [showForm, setShowForm] = useState(false)
@@ -627,35 +627,54 @@ export default function NutritionPage() {
                   <div className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                     {t('nutrition.loadingNutritionists')}
                   </div>
-                ) : coaches.length === 0 ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
+                ) : (() => {
+                  // فلترة أخصائيي التغذية النشطين
+                  console.log('📊 All coaches:', coaches.map(c => ({ name: c.name, position: c.position, isActive: c.isActive })))
+
+                  let nutritionists = coaches.filter(coach =>
+                    coach.isActive &&
+                    (coach.position?.toLowerCase().includes('تغذية') ||
+                     coach.position?.toLowerCase().includes('nutrition'))
+                  )
+
+                  console.log('🥗 Filtered nutritionists:', nutritionists.map(c => ({ name: c.name, position: c.position })))
+
+                  // إذا لم يجد أخصائيين محددين، اعرض كل الموظفين النشطين
+                  if (nutritionists.length === 0) {
+                    nutritionists = coaches.filter(coach => coach.isActive)
+                    console.log('⚠️ No nutritionists found, showing all active staff:', nutritionists.length)
+                  }
+
+                  return nutritionists.length === 0 ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        required
+                        value={formData.nutritionistName}
+                        onChange={(e) => setFormData({ ...formData, nutritionistName: e.target.value })}
+                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                        placeholder={t('nutrition.nutritionistNamePlaceholder')}
+                      />
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        ⚠️ {t('nutrition.noActiveNutritionists')}
+                      </p>
+                    </div>
+                  ) : (
+                    <select
                       required
                       value={formData.nutritionistName}
                       onChange={(e) => setFormData({ ...formData, nutritionistName: e.target.value })}
-                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                      placeholder={t('nutrition.nutritionistNamePlaceholder')}
-                    />
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      ⚠️ {t('nutrition.noActiveNutritionists')}
-                    </p>
-                  </div>
-                ) : (
-                  <select
-                    required
-                    value={formData.nutritionistName}
-                    onChange={(e) => setFormData({ ...formData, nutritionistName: e.target.value })}
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="">{t('nutrition.selectNutritionist')}</option>
-                    {coaches.map((coach) => (
-                      <option key={coach.id} value={coach.name}>
-                        {coach.name} {coach.phone && `(${coach.phone})`}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">{t('nutrition.selectNutritionist')}</option>
+                      {nutritionists.map((coach) => (
+                        <option key={coach.id} value={coach.name}>
+                          {coach.name} {coach.phone && `(${coach.phone})`}
+                        </option>
+                      ))}
+                    </select>
+                  )
+                })()}
               </div>
 
               {/* Day Use Checkbox - مخفي في وضع التعديل */}

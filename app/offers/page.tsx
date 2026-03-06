@@ -19,6 +19,7 @@ interface Offer {
   inBodyScans: number
   invitations: number
   freezeDays: number
+  ptCommission?: number  // 💰 عمولة الكوتش
   icon: string
   isActive: boolean
   upgradeEligibilityDays?: number | null
@@ -86,6 +87,7 @@ export default function OffersPage() {
     inBodyScans: '',
     invitations: '',
     freezeDays: '',
+    ptCommission: '0',  // 💰 عمولة الكوتش
     icon: '📅',
     upgradeEligibilityDays: '7',
     upgradePoints: '0'
@@ -144,6 +146,7 @@ export default function OffersPage() {
       inBodyScans: offer.inBodyScans.toString(),
       invitations: offer.invitations.toString(),
       freezeDays: offer.freezeDays.toString(),
+      ptCommission: offer.ptCommission?.toString() || '0',  // 💰 عمولة الكوتش
       icon: offer.icon,
       upgradeEligibilityDays: offer.upgradeEligibilityDays?.toString() || '7',
       upgradePoints: offer.upgradePoints?.toString() || '0'
@@ -225,6 +228,7 @@ export default function OffersPage() {
       inBodyScans: '',
       invitations: '',
       freezeDays: '',
+      ptCommission: '0',  // 💰 عمولة الكوتش
       icon: '📅',
       upgradeEligibilityDays: '7',
       upgradePoints: '0'
@@ -477,6 +481,29 @@ export default function OffersPage() {
                   </p>
                 </div>
 
+                {/* 💰 عمولة الكوتش */}
+                {settings.ptCommissionEnabled && (
+                  <div>
+                    <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                      👨‍🏫 عمولة الكوتش (جنيه)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.ptCommission}
+                      onChange={(e) => setFormData({ ...formData, ptCommission: e.target.value })}
+                      className="w-full p-3 border-2 border-purple-300 dark:border-purple-600 rounded-lg focus:border-purple-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                      placeholder="0"
+                      min="0"
+                      step="10"
+                    />
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      💰 مبلغ العمولة للكوتش عند اشتراك عضو بهذا العرض
+                      <br />
+                      <span className="text-gray-500 dark:text-gray-400">(0 = استخدام المبلغ الافتراضي من الإعدادات: {settings.ptCommissionAmount || 50} ج.م)</span>
+                    </p>
+                  </div>
+                )}
+
                 <div className="md:col-span-2">
                   <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.icon')}</label>
                   <div className="flex gap-3">
@@ -567,6 +594,12 @@ export default function OffersPage() {
                       <span className="text-gray-600 dark:text-gray-300">{t('offers.ptSessions')}</span>
                       <span className="font-bold text-gray-800 dark:text-gray-100">{offer.freePTSessions}</span>
                     </div>
+                    {settings.ptCommissionEnabled && offer.ptCommission !== undefined && offer.ptCommission > 0 && (
+                      <div className="flex justify-between items-center text-sm bg-purple-50 dark:bg-purple-900/30 p-2 rounded-lg border border-purple-200 dark:border-purple-700">
+                        <span className="text-purple-700 dark:text-purple-300 font-semibold">👨‍🏫 عمولة الكوتش</span>
+                        <span className="font-bold text-purple-700 dark:text-purple-300">{offer.ptCommission} ج.م</span>
+                      </div>
+                    )}
                     {settings.nutritionEnabled && (
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-gray-600 dark:text-gray-300">🥗 {t('offers.nutritionSessions')}</span>

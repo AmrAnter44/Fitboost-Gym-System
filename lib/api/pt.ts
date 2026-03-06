@@ -26,6 +26,26 @@ export async function fetchPTSessions() {
   return data
 }
 
+// جلب كل الموظفين النشطين (للاستخدام في التغذية والعلاج الطبيعي)
+export async function fetchStaff() {
+  const response = await fetch('/api/staff')
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'فشل جلب بيانات الموظفين')
+  }
+
+  const data = await response.json()
+
+  if (!Array.isArray(data)) {
+    return []
+  }
+
+  // إرجاع كل الموظفين النشطين بدون فلتر
+  return data.filter((staff: any) => staff.isActive)
+}
+
+// جلب المدربين فقط (للاستخدام في PT)
 export async function fetchCoaches() {
   const response = await fetch('/api/staff')
 

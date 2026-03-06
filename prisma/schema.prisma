@@ -696,7 +696,7 @@ model Nutrition {
 
 model NutritionSession {
   id              String      @id @default(cuid())
-  nutritionNumber Int
+  nutritionNumber Int?
   clientName      String
   nutritionistName String
   sessionDate     DateTime
@@ -705,7 +705,7 @@ model NutritionSession {
   attended        Boolean     @default(false)
   attendedAt      DateTime?
   attendedBy      String?
-  nutrition       Nutrition   @relation(fields: [nutritionNumber], references: [nutritionNumber], onDelete: Cascade)
+  nutrition       Nutrition?   @relation(fields: [nutritionNumber], references: [nutritionNumber], onDelete: Cascade)
 
   // Free Session Tracking
   isFreeSession         Boolean     @default(false)
@@ -749,7 +749,7 @@ model Physiotherapy {
 
 model PhysiotherapySession {
   id            String         @id @default(cuid())
-  physioNumber  Int
+  physioNumber  Int?
   clientName    String
   therapistName String
   sessionDate   DateTime
@@ -758,7 +758,7 @@ model PhysiotherapySession {
   attended      Boolean        @default(false)
   attendedAt    DateTime?
   attendedBy    String?
-  physiotherapy Physiotherapy  @relation(fields: [physioNumber], references: [physioNumber], onDelete: Cascade)
+  physiotherapy Physiotherapy?  @relation(fields: [physioNumber], references: [physioNumber], onDelete: Cascade)
 
   // Free Session Tracking
   isFreeSession         Boolean        @default(false)

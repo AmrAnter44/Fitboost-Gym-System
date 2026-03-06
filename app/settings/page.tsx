@@ -656,7 +656,11 @@ export default function SettingsPage() {
                     <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{isDarkMode ? t('settingsPage.display.darkMode') : t('settingsPage.display.lightMode')}</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-300">{isDarkMode ? t('settingsPage.display.switchToLight') : t('settingsPage.display.switchToDark')}</p>
                   </div>
-                  <button onClick={toggleDarkMode} className={`relative inline-flex h-10 w-20 items-center rounded-full transition-colors ${isDarkMode ? 'bg-slate-600' : 'bg-gray-300'}`}>
+                  <button
+                    onClick={toggleDarkMode}
+                    className={`relative inline-flex h-10 w-20 items-center rounded-full transition-colors ${isDarkMode ? 'bg-slate-600' : 'bg-gray-300'}`}
+                    dir="ltr"
+                  >
                     <span className={`flex h-8 w-8 rounded-full bg-white shadow-lg transition-transform items-center justify-center text-xl ${isDarkMode ? 'translate-x-11' : 'translate-x-1'}`}>
                       {isDarkMode ? '🌙' : '☀️'}
                     </span>

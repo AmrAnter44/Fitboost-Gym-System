@@ -280,11 +280,11 @@ export default function PhysiotherapyCommissionPage() {
 
   const fetchData = async () => {
     try {
-      // جلب الكوتشات
+      // جلب أخصائيي العلاج الطبيعي
       const staffResponse = await fetch('/api/staff')
       const staffData: Staff[] = await staffResponse.json()
       const activeCoaches = staffData.filter(
-        (staff) => staff.isActive && staff.position?.toLowerCase().includes('مدرب')
+        (staff) => staff.isActive && (staff.position?.toLowerCase().includes('علاج') || staff.position?.toLowerCase().includes('physiotherapy') || staff.position?.toLowerCase().includes('طبيعي'))
       )
       setCoaches(activeCoaches)
 
@@ -724,13 +724,12 @@ export default function PhysiotherapyCommissionPage() {
     // حساب الإيرادات من الإيصالات (المبالغ الفعلية المدفوعة)
     const ptRevenue = ptReceipts.reduce((sum, receipt) => sum + receipt.amount, 0)
 
-    // إضافة عمولات تسجيل الأعضاء
-    const coachSignupCommissions = memberSignupCommissions.find(c => c.therapistName === therapistName)
-    const signupRevenue = coachSignupCommissions?.totalAmount || 0
+    // ✅ إضافة قيمة الجلسات المجانية
+    const freeSessionsData = getFreeSessionsDetails(therapistName)
+    const freeSessionsValue = freeSessionsData.value
 
-
-    // إجمالي الإيرادات = العلاج الطبيعي + تسجيل الأعضاء
-    const totalRevenue = ptRevenue + signupRevenue
+    // إجمالي الإيرادات = العلاج الطبيعي + الجلسات المجانية
+    const totalRevenue = ptRevenue + freeSessionsValue
 
     // جمع بيانات الجلسات للإحصائيات (من أرقام العلاج الطبيعي في الإيصالات)
     const physioNumbersFromReceipts = new Set(
@@ -767,8 +766,14 @@ export default function PhysiotherapyCommissionPage() {
   // فتح مودال التحصيل
   const openPayrollModal = async (coachName: string, commission: number) => {
     const staff = coaches.find(c => c.name === coachName)
+
+    // 🎁 إضافة قيمة الجلسات المجانية
+    const freeSessionsDetails = getFreeSessionsDetails(coachName)
+    const freeSessionsValue = freeSessionsDetails.value
+    const totalCommission = commission + freeSessionsValue
+
     setPayrollCoachName(coachName)
-    setPayrollCommission(commission)
+    setPayrollCommission(totalCommission)  // 💰 العمولة الإجمالية (علاج طبيعي + حصص مجانية)
     setPayrollSalary(staff?.salary?.toString() || '0')
     setPayrollStaffId(staff?.id || null)
     setPayrollDeductions([])
@@ -2055,76 +2060,89 @@ export default function PhysiotherapyCommissionPage() {
         </div>
       )}
 
-      {/* جدول عمولات تسجيل الأعضاء */}
-      <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <span>💵</span>
-          <span>
-            {t('physiotherapy.commission.memberSignupCommissionsTitle', {
-              fromDate: new Date(dateFrom).toLocaleDateString(localeString),
-              toDate: new Date(dateTo).toLocaleDateString(localeString)
-            })}
-          </span>
-        </h2>
+      {/* جدول الجلسات المجانية */}
+      {freeSessionsSettings.trackFreeSessionsCost && freeSessionsSettings.freePhysioSessionPrice > 0 && (
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <span>🎁</span>
+            <span>الجلسات المجانية ({new Date(dateFrom).toLocaleDateString(localeString)} - {new Date(dateTo).toLocaleDateString(localeString)})</span>
+          </h2>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-green-100 to-emerald-200 dark:from-green-900/50 dark:to-emerald-900/50">
-              <tr>
-                <th className="px-4 py-3 text-right dark:text-gray-200">{t('physiotherapy.commission.coach')}</th>
-                <th className="px-4 py-3 text-center dark:text-gray-200">{t('physiotherapy.commission.staffNumber')}</th>
-                <th className="px-4 py-3 text-center dark:text-gray-200">{t('physiotherapy.commission.subscriptionCount')}</th>
-                <th className="px-4 py-3 text-center dark:text-gray-200">{t('physiotherapy.commission.commissionPerSubscription')}</th>
-                <th className="px-4 py-3 text-center dark:text-gray-200">{t('physiotherapy.commission.totalCommissions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {memberSignupCommissions.length > 0 ? (
-                memberSignupCommissions.map((commission) => (
-                  <tr key={commission.coachId} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-4 py-3 font-semibold dark:text-gray-200">{commission.therapistName}</td>
-                    <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">#{commission.staffCode}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-block bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300 font-bold px-3 py-1 rounded-full">
-                        {commission.count}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
-                      50 {t('physiotherapy.commission.egp')}
-                    </td>
-                    <td className="px-4 py-3 text-center font-bold text-green-600 dark:text-green-400 text-lg">
-                      {commission.totalAmount.toLocaleString(localeString)} {t('physiotherapy.commission.egp')}
-                    </td>
-                  </tr>
-                ))
-              ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-purple-100 to-violet-200 dark:from-purple-900/50 dark:to-violet-900/50">
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                    <div className="text-6xl mb-4">📭</div>
-                    <p className="text-xl">{t('physiotherapy.commission.noCommissionsInPeriod')}</p>
-                  </td>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">أخصائي العلاج الطبيعي</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">عدد الجلسات</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">سعر الجلسة</th>
+                  <th className="px-4 py-3 text-center dark:text-gray-200">القيمة الإجمالية</th>
                 </tr>
-              )}
-            </tbody>
-            {memberSignupCommissions.length > 0 && (
-              <tfoot className="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 font-bold">
-                <tr>
-                  <td className="px-4 py-3" colSpan={2}>{t('physiotherapy.commission.total')}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-block bg-primary-500 dark:bg-primary-600 text-white font-bold px-3 py-1 rounded-full">
-                      {memberSignupCommissions.reduce((sum, c) => sum + c.count, 0)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">-</td>
-                  <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 text-xl">
-                    {memberSignupCommissions.reduce((sum, c) => sum + c.totalAmount, 0).toLocaleString(localeString)} {t('physiotherapy.commission.egp')}
-                  </td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
+              </thead>
+              <tbody>
+                {(() => {
+                  const allTherapists = [...new Set(freeSessions.map((s: any) => s.therapistName || s.attendedBy))].filter(Boolean)
+                  const therapistsWithSessions = allTherapists.map(name => ({
+                    name,
+                    ...getFreeSessionsDetails(name)
+                  })).filter(t => t.count > 0)
+
+                  return therapistsWithSessions.length > 0 ? (
+                    therapistsWithSessions.map((therapist) => (
+                      <tr key={therapist.name} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-4 py-3 font-semibold dark:text-gray-200">{therapist.name}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-block bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 font-bold px-3 py-1 rounded-full">
+                            {therapist.count}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
+                          {freeSessionsSettings.freePhysioSessionPrice} ج.م
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-purple-600 dark:text-purple-400 text-lg">
+                          {therapist.value.toLocaleString(localeString)} ج.م
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
+                        <div className="text-6xl mb-4">🎁</div>
+                        <p className="text-xl">لا توجد جلسات مجانية في هذه الفترة</p>
+                      </td>
+                    </tr>
+                  )
+                })()}
+              </tbody>
+              {(() => {
+                const allTherapists = [...new Set(freeSessions.map((s: any) => s.therapistName || s.attendedBy))].filter(Boolean)
+                const therapistsWithSessions = allTherapists.map(name => ({
+                  name,
+                  ...getFreeSessionsDetails(name)
+                })).filter(t => t.count > 0)
+                const totalCount = therapistsWithSessions.reduce((sum, t) => sum + t.count, 0)
+                const totalValue = therapistsWithSessions.reduce((sum, t) => sum + t.value, 0)
+
+                return totalCount > 0 ? (
+                  <tfoot className="bg-gradient-to-r from-purple-50 to-violet-100 dark:from-purple-900/50 dark:to-violet-900/50 font-bold">
+                    <tr>
+                      <td className="px-4 py-3 dark:text-gray-200">الإجمالي</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-block bg-purple-500 dark:bg-purple-600 text-white font-bold px-3 py-1 rounded-full">
+                          {totalCount}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center dark:text-gray-200">-</td>
+                      <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 text-xl">
+                        {totalValue.toLocaleString(localeString)} ج.م
+                      </td>
+                    </tr>
+                  </tfoot>
+                ) : null
+              })()}
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* مودال التحصيل */}
       {showPayrollModal && (
