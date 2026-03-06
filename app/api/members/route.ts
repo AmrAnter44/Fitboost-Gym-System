@@ -185,6 +185,9 @@ export async function POST(request: Request) {
       freeNutritionSessions,
       freePhysioSessions,
       freeGroupClassSessions,
+      freePoolSessions,
+      freePadelSessions,
+      freeAssessmentSessions,
       remainingFreezeDays,
       subscriptionPrice,
       remainingAmount,
@@ -258,6 +261,9 @@ export async function POST(request: Request) {
     const cleanFreeNutritionSessions = parseInt((freeNutritionSessions || 0).toString())
     const cleanFreePhysioSessions = parseInt((freePhysioSessions || 0).toString())
     const cleanFreeGroupClassSessions = parseInt((freeGroupClassSessions || 0).toString())
+    const cleanFreePoolSessions = parseInt((freePoolSessions || 0).toString())
+    const cleanFreePadelSessions = parseInt((freePadelSessions || 0).toString())
+    const cleanFreeAssessmentSessions = parseInt((freeAssessmentSessions || 0).toString())
     const cleanRemainingFreezeDays = parseInt((remainingFreezeDays || 0).toString())
     const cleanSubscriptionPrice = parseInt(subscriptionPrice.toString())
     const cleanRemainingAmount = parseInt((remainingAmount || 0).toString())
@@ -326,6 +332,9 @@ export async function POST(request: Request) {
       freeNutritionSessions: cleanFreeNutritionSessions,
       freePhysioSessions: cleanFreePhysioSessions,
       freeGroupClassSessions: cleanFreeGroupClassSessions,
+      freePoolSessions: cleanFreePoolSessions,
+      freePadelSessions: cleanFreePadelSessions,
+      freeAssessmentSessions: cleanFreeAssessmentSessions,
       remainingFreezeDays: cleanRemainingFreezeDays,
       subscriptionPrice: cleanSubscriptionPrice,
       remainingAmount: cleanRemainingAmount,
@@ -651,6 +660,15 @@ export async function PUT(request: Request) {
     }
     if (data.freePTSessions !== undefined) {
       updateData.freePTSessions = parseInt(data.freePTSessions.toString())
+    }
+    if (data.freePoolSessions !== undefined) {
+      updateData.freePoolSessions = parseInt(data.freePoolSessions.toString())
+    }
+    if (data.freePadelSessions !== undefined) {
+      updateData.freePadelSessions = parseInt(data.freePadelSessions.toString())
+    }
+    if (data.freeAssessmentSessions !== undefined) {
+      updateData.freeAssessmentSessions = parseInt(data.freeAssessmentSessions.toString())
     }
     if (data.remainingFreezeDays !== undefined) {
       updateData.remainingFreezeDays = parseInt(data.remainingFreezeDays.toString())

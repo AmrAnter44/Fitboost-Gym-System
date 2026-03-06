@@ -8,6 +8,9 @@ interface ServiceSettings {
   groupClassEnabled: boolean
   spaEnabled: boolean
   inBodyEnabled: boolean
+  poolEnabled: boolean
+  padelEnabled: boolean
+  assessmentEnabled: boolean
   pointsEnabled: boolean
   pointsPerCheckIn: number
   pointsPerInvitation: number
@@ -37,6 +40,9 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     groupClassEnabled: true,
     spaEnabled: true,
     inBodyEnabled: true,
+    poolEnabled: true,
+    padelEnabled: true,
+    assessmentEnabled: true,
     pointsEnabled: true,
     pointsPerCheckIn: 1,
     pointsPerInvitation: 2,
@@ -63,6 +69,9 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
           groupClassEnabled: data.groupClassEnabled,
           spaEnabled: data.spaEnabled,
           inBodyEnabled: data.inBodyEnabled,
+          poolEnabled: data.poolEnabled ?? true,
+          padelEnabled: data.padelEnabled ?? true,
+          assessmentEnabled: data.assessmentEnabled ?? true,
           pointsEnabled: data.pointsEnabled,
           pointsPerCheckIn: data.pointsPerCheckIn,
           pointsPerInvitation: data.pointsPerInvitation,

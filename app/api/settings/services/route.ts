@@ -30,6 +30,9 @@ export async function GET(request: Request) {
           groupClassEnabled: true,
           spaEnabled: true,
           inBodyEnabled: true,
+          poolEnabled: true,
+          padelEnabled: true,
+          assessmentEnabled: true,
           pointsEnabled: true,
           pointsPerCheckIn: 1,
           pointsPerInvitation: 2,
@@ -81,10 +84,10 @@ async function updateSettings(request: Request) {
     const updateData: any = {}
     const validFields = [
       'nutritionEnabled', 'physiotherapyEnabled', 'groupClassEnabled',
-      'spaEnabled', 'inBodyEnabled', 'pointsEnabled',
+      'spaEnabled', 'inBodyEnabled', 'poolEnabled', 'padelEnabled', 'assessmentEnabled', 'pointsEnabled',
       'pointsPerCheckIn', 'pointsPerInvitation', 'pointsPerReferral',
       'pointsValueInEGP', 'pointsPerEGPSpent',
-      'websiteUrl', 'showWebsiteOnReceipts',
+      'websiteUrl', 'showWebsiteOnReceipts', 'receiptTerms',
       'trackFreeSessionsCost', 'freePTSessionPrice',
       'freeNutritionSessionPrice', 'freePhysioSessionPrice',
       'freeGroupClassSessionPrice',

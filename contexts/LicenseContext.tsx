@@ -43,13 +43,27 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
         setMessage(data.message)
         setLastChecked(new Date())
       } else {
-        setIsValid(false)
-        setMessage('فشل التحقق من الترخيص')
+        // في حالة فشل الـ API، لا تغيّر الـ status (استخدم الـ cached)
+        // فقط حدّث الرسالة
+        setMessage('يعمل في وضع عدم الاتصال (Offline Mode)')
       }
-    } catch (error) {
-      console.error('License check error:', error)
-      setIsValid(false)
-      setMessage('خطأ في الاتصال')
+    } catch (error: any) {
+      // في حالة network error، لا تغيّر isValid
+      // السيستم يفضل شغال بالـ cached status
+      const errorMessage = error?.message || ''
+      const isNetworkError =
+        errorMessage.includes('fetch') ||
+        errorMessage.includes('network') ||
+        errorMessage.includes('Failed to fetch')
+
+      if (isNetworkError) {
+        // Network error - يفضل شغال بدون تغيير الـ status
+        setMessage('يعمل في وضع عدم الاتصال (Offline Mode)')
+      } else {
+        // خطأ آخر - اطبعه في الـ console
+        console.error('License check error:', error)
+        setMessage('خطأ في التحقق من الترخيص')
+      }
     } finally {
       setIsChecking(false)
     }
@@ -65,7 +79,7 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
     const EIGHT_HOURS = 8 * 60 * 60 * 1000 // 8 ساعات بالميلي ثانية
 
     const interval = setInterval(() => {
-      console.log('🔍 Automatic license check (every 8 hours)')
+      // Automatic license check (silent - no console logs)
       checkLicense()
     }, EIGHT_HOURS)
 

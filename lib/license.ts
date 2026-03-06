@@ -19,46 +19,73 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
       }
     }
 
-    // فحص الترخيص من Supabase
-    const { data, error } = await supabase
-      .from('branches')
-      .select('system_license')
-      .eq('id', license.branchId)
-      .single()
+    // محاولة فحص الترخيص من Supabase (مع timeout)
+    try {
+      // إضافة timeout (5 ثواني)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('License check timeout')), 5000)
+      )
 
-    if (error) {
-      console.error('License check error:', error)
-      return {
-        valid: false,
-        message: 'فشل التحقق من الترخيص. يرجى المحاولة مرة أخرى.'
+      const supabasePromise = supabase
+        .from('branches')
+        .select('system_license')
+        .eq('id', license.branchId)
+        .single()
+
+      const { data, error } = await Promise.race([
+        supabasePromise,
+        timeoutPromise
+      ]) as any
+
+      // إذا نجح الاتصال، حدّث الـ cache
+      if (!error && data) {
+        await prisma.supabaseLicense.update({
+          where: { id: license.id },
+          data: {
+            lastChecked: new Date(),
+            systemLicense: data?.system_license?.toString() || 'false'
+          }
+        })
+
+        const isValid = data?.system_license === true ||
+                        data?.system_license === 'true' ||
+                        data?.system_license === 'active'
+
+        return {
+          valid: isValid,
+          message: isValid
+            ? 'الترخيص نشط ✓'
+            : 'الترخيص منتهي. يرجى التواصل مع المسؤول.'
+        }
       }
-    }
 
-    // تحديث آخر فحص
-    await prisma.supabaseLicense.update({
-      where: { id: license.id },
-      data: {
-        lastChecked: new Date(),
-        systemLicense: data?.system_license?.toString() || 'false'
+      // إذا فشل الاتصال، استخدم الـ cached status
+      // (لا نطبع warning عشان ما نزعجش المستخدم في حالة offline mode)
+      return getCachedLicenseStatus()
+    } catch (networkError: any) {
+      // في حالة network errors (مفيش نت) أو timeout، استخدم الـ cached status
+      const errorMessage = networkError?.message || ''
+      const isNetworkError =
+        errorMessage.includes('fetch failed') ||
+        errorMessage.includes('ENOTFOUND') ||
+        errorMessage.includes('EADDRNOTAVAIL') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('network') ||
+        errorMessage.includes('timeout')
+
+      if (isNetworkError) {
+        // لا تطبع الخطأ في حالة network error (عشان ما نزعجش المستخدم)
+        return getCachedLicenseStatus()
       }
-    })
 
-    const isValid = data?.system_license === true ||
-                    data?.system_license === 'true' ||
-                    data?.system_license === 'active'
-
-    return {
-      valid: isValid,
-      message: isValid
-        ? 'الترخيص نشط ✓'
-        : 'الترخيص منتهي. يرجى التواصل مع المسؤول.'
+      // خطأ آخر غير network error
+      console.error('License check error:', networkError)
+      return getCachedLicenseStatus()
     }
   } catch (error) {
     console.error('Validate license error:', error)
-    return {
-      valid: false,
-      message: 'خطأ في التحقق من الترخيص'
-    }
+    // في حالة أي خطأ، استخدم الـ cached status بدلاً من إيقاف النظام
+    return getCachedLicenseStatus()
   }
 }
 
@@ -84,14 +111,17 @@ export async function getCachedLicenseStatus(): Promise<{ valid: boolean; messag
 
     return {
       valid: isValid,
-      message: isValid ? 'الترخيص نشط ✓' : 'الترخيص منتهي',
+      message: isValid
+        ? 'الترخيص نشط ✓ (وضع عدم الاتصال)'
+        : 'الترخيص منتهي',
       lastChecked: license.lastChecked
     }
   } catch (error) {
     console.error('Get cached license error:', error)
+    // في حالة الخطأ، اسمح بالعمل (offline mode) بدلاً من إيقاف النظام
     return {
-      valid: false,
-      message: 'خطأ في قراءة الترخيص'
+      valid: true,
+      message: 'يعمل في وضع عدم الاتصال (Offline Mode)'
     }
   }
 }

@@ -160,24 +160,55 @@ function sanitizeRequestData(data: any): any {
 }
 
 /**
- * حفظ الخطأ في Supabase (non-blocking)
+ * حفظ الخطأ في Supabase (non-blocking with timeout)
  */
 async function logErrorToSupabase(data: any): Promise<string | null> {
   try {
-    const { data: result, error } = await supabase
+    // إضافة timeout للـ Supabase call (5 ثواني)
+    const timeoutPromise = new Promise<null>((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    )
+
+    const supabasePromise = supabase
       .from('error_logs')
       .insert([data])
       .select('id')
       .single()
 
+    const { data: result, error } = await Promise.race([
+      supabasePromise,
+      timeoutPromise
+    ]) as any
+
     if (error) {
-      console.error('[ErrorTracking] Supabase insert failed:', error)
+      // فقط اطبع الخطأ إذا لم يكن network error
+      const isNetworkError =
+        error.message?.includes('fetch failed') ||
+        error.message?.includes('ENOTFOUND') ||
+        error.message?.includes('EADDRNOTAVAIL') ||
+        error.message?.includes('ECONNREFUSED')
+
+      if (!isNetworkError) {
+        console.error('[ErrorTracking] Supabase insert failed:', error)
+      }
       return null
     }
 
     return result?.id || null
-  } catch (err) {
-    console.error('[ErrorTracking] Supabase exception:', err)
+  } catch (err: any) {
+    // فقط اطبع الخطأ إذا لم يكن network error أو timeout
+    const errorMessage = err?.message || ''
+    const isNetworkError =
+      errorMessage.includes('fetch failed') ||
+      errorMessage.includes('ENOTFOUND') ||
+      errorMessage.includes('EADDRNOTAVAIL') ||
+      errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('Timeout')
+
+    if (!isNetworkError) {
+      console.error('[ErrorTracking] Supabase exception:', err)
+    }
     return null
   }
 }

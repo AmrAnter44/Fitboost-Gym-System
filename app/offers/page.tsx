@@ -78,6 +78,9 @@ export default function OffersPage() {
     freeNutritionSessions: '',
     freePhysioSessions: '',
     freeGroupClassSessions: '',
+    freePoolSessions: '',
+    freePadelSessions: '',
+    freeAssessmentSessions: '',
     nutritionPrice: '',
     physioPrice: '',
     groupClassPrice: '',
@@ -134,6 +137,9 @@ export default function OffersPage() {
       freeNutritionSessions: (offer as any).freeNutritionSessions?.toString() || '0',
       freePhysioSessions: (offer as any).freePhysioSessions?.toString() || '0',
       freeGroupClassSessions: (offer as any).freeGroupClassSessions?.toString() || '0',
+      freePoolSessions: (offer as any).freePoolSessions?.toString() || '0',
+      freePadelSessions: (offer as any).freePadelSessions?.toString() || '0',
+      freeAssessmentSessions: (offer as any).freeAssessmentSessions?.toString() || '0',
       nutritionPrice: (offer as any).nutritionPrice?.toString() || '0',
       physioPrice: (offer as any).physioPrice?.toString() || '0',
       groupClassPrice: (offer as any).groupClassPrice?.toString() || '0',
@@ -213,6 +219,9 @@ export default function OffersPage() {
       freeNutritionSessions: '',
       freePhysioSessions: '',
       freeGroupClassSessions: '',
+      freePoolSessions: '',
+      freePadelSessions: '',
+      freeAssessmentSessions: '',
       nutritionPrice: '',
       physioPrice: '',
       groupClassPrice: '',
@@ -367,6 +376,51 @@ export default function OffersPage() {
                       type="number"
                       value={formData.inBodyScans}
                       onChange={(e) => setFormData({ ...formData, inBodyScans: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+
+                {settings.poolEnabled && (
+                  <div>
+                    <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                      🏊 جلسات حمام السباحة
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.freePoolSessions}
+                      onChange={(e) => setFormData({ ...formData, freePoolSessions: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+
+                {settings.padelEnabled && (
+                  <div>
+                    <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                      🎾 جلسات البادل
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.freePadelSessions}
+                      onChange={(e) => setFormData({ ...formData, freePadelSessions: e.target.value })}
+                      className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+
+                {settings.assessmentEnabled && (
+                  <div>
+                    <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                      📊 جلسات التقييم
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.freeAssessmentSessions}
+                      onChange={(e) => setFormData({ ...formData, freeAssessmentSessions: e.target.value })}
                       className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                       placeholder="0"
                     />
@@ -553,6 +607,24 @@ export default function OffersPage() {
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-gray-600 dark:text-gray-300">{t('offers.inBody')}</span>
                         <span className="font-bold text-gray-800 dark:text-gray-100">{offer.inBodyScans}</span>
+                      </div>
+                    )}
+                    {settings.poolEnabled && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600 dark:text-gray-300">🏊 جلسات حمام السباحة</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100">{(offer as any).freePoolSessions || 0}</span>
+                      </div>
+                    )}
+                    {settings.padelEnabled && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600 dark:text-gray-300">🎾 جلسات البادل</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100">{(offer as any).freePadelSessions || 0}</span>
+                      </div>
+                    )}
+                    {settings.assessmentEnabled && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600 dark:text-gray-300">📊 جلسات التقييم</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100">{(offer as any).freeAssessmentSessions || 0}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center text-sm">

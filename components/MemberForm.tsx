@@ -54,6 +54,9 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
     freeNutritionSessions: 0,
     freePhysioSessions: 0,
     freeGroupClassSessions: 0,
+    freePoolSessions: 0,
+    freePadelSessions: 0,
+    freeAssessmentSessions: 0,
     remainingFreezeDays: 0,
     subscriptionPrice: 0,
     notes: '',
@@ -314,6 +317,9 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       freeNutritionSessions: parseInt(formData.freeNutritionSessions.toString()),
       freePhysioSessions: parseInt(formData.freePhysioSessions.toString()),
       freeGroupClassSessions: parseInt(formData.freeGroupClassSessions.toString()),
+      freePoolSessions: parseInt(formData.freePoolSessions.toString()),
+      freePadelSessions: parseInt(formData.freePadelSessions.toString()),
+      freeAssessmentSessions: parseInt(formData.freeAssessmentSessions.toString()),
       remainingFreezeDays: parseInt(formData.remainingFreezeDays.toString()),
       subscriptionPrice: parseInt(formData.subscriptionPrice.toString()),
       staffName: user?.name || '',
@@ -425,6 +431,9 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       freeNutritionSessions: offer.freeNutritionSessions || 0,
       freePhysioSessions: offer.freePhysioSessions || 0,
       freeGroupClassSessions: offer.freeGroupClassSessions || 0,
+      freePoolSessions: offer.freePoolSessions || 0,
+      freePadelSessions: offer.freePadelSessions || 0,
+      freeAssessmentSessions: offer.freeAssessmentSessions || 0,
       inBodyScans: offer.inBodyScans,
       invitations: offer.invitations,
       remainingFreezeDays: offer.freezeDays,
@@ -462,12 +471,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               >
                 <div className="text-2xl mb-1">{offer.icon}</div>
                 <div className="font-bold text-primary-800 dark:text-primary-200 mb-1 text-sm">{offer.name}</div>
-                <div className="text-xl font-bold text-green-600 dark:text-green-400 mb-1">{offer.price} ج.م</div>
-                <div className="text-xs text-gray-600 dark:text-gray-300 space-y-0.5">
-                  <div>💪 {offer.freePTSessions} PT</div>
-                  <div>⚖️ {offer.inBodyScans} InBody</div>
-                  <div>🎟️ {offer.invitations} دعوات</div>
-                </div>
+                <div className="text-xl font-bold text-green-600 dark:text-green-400">{offer.price} ج.م</div>
               </button>
             ))}
           </div>

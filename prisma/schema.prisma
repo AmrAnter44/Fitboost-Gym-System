@@ -29,6 +29,9 @@ model Member {
   freeNutritionSessions   Int    @default(0)
   freePhysioSessions      Int    @default(0)
   freeGroupClassSessions  Int    @default(0)
+  freePoolSessions        Int    @default(0)
+  freePadelSessions       Int    @default(0)
+  freeAssessmentSessions  Int    @default(0)
   remainingFreezeDays Int        @default(0)
   subscriptionPrice Float
   remainingAmount   Float        @default(0)
@@ -48,6 +51,7 @@ model Member {
   spaBookings          SpaBooking[]
   freezeRequests       FreezeRequest[]
   pointsHistory        PointsHistory[]
+  assessmentHistory    AssessmentHistory[]
   coach                Staff?       @relation("CoachMembers", fields: [coachId], references: [id], onDelete: SetNull)
 
   // Free Session Relations
@@ -228,6 +232,9 @@ model Offer {
   freeNutritionSessions   Int      @default(0)
   freePhysioSessions      Int      @default(0)
   freeGroupClassSessions  Int      @default(0)
+  freePoolSessions        Int      @default(0)
+  freePadelSessions       Int      @default(0)
+  freeAssessmentSessions  Int      @default(0)
   nutritionPrice          Float?   @default(0)
   physioPrice             Float?   @default(0)
   groupClassPrice         Float?   @default(0)
@@ -828,6 +835,9 @@ model SystemSettings {
   groupClassEnabled     Boolean  @default(true)
   spaEnabled            Boolean  @default(true)
   inBodyEnabled         Boolean  @default(true)
+  poolEnabled           Boolean  @default(true)
+  padelEnabled          Boolean  @default(true)
+  assessmentEnabled     Boolean  @default(true)
   pointsEnabled         Boolean  @default(true)
   pointsPerCheckIn      Int      @default(1)
   pointsPerInvitation   Int      @default(2)
@@ -836,6 +846,7 @@ model SystemSettings {
   pointsValueInEGP      Float    @default(0.1)
   websiteUrl            String?  @default("https://www.xgym.website")  // رابط الموقع الإلكتروني
   showWebsiteOnReceipts Boolean  @default(false)  // عرض رابط الموقع في الإيصالات
+  receiptTerms          String?  @default("الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه")  // شروط وأحكام الإيصال
 
   // إعدادات الجلسات المجانية
   trackFreeSessionsCost       Boolean  @default(false)  // تفعيل/تعطيل احتساب تكلفة الجلسات المجانية
@@ -888,6 +899,22 @@ model PointsHistory {
   @@index([memberId])
   @@index([createdAt])
   @@index([action])
+}
+
+// نظام التقييمات - تاريخ التقييمات البدنية
+model AssessmentHistory {
+  id          String   @id @default(cuid())
+  memberId    String
+  type        String   // نوع التقييم: 'weight', 'body_fat', 'muscle_mass', 'manual', etc
+  value       Float?   // القيمة (وزن، نسبة دهون، إلخ)
+  notes       String?  // ملاحظات أو سبب التقييم
+  createdAt   DateTime @default(now())
+
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([createdAt])
+  @@index([type])
 }
 
 // جدول مواعيد الجروب كلاسيس الأسبوعية

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     try {
       console.log('📦 تطبيق التغييرات على قاعدة البيانات...')
       const { stdout: pushOutput, stderr: pushError } = await execAsync(
-        'npx prisma db push --accept-data-loss',
+        'npx prisma db push --skip-generate',
         { timeout: 60000 } // 60 seconds timeout
       )
 

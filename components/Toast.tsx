@@ -12,7 +12,7 @@ interface ToastProps {
 }
 
 export default function Toast({ message, type = 'info', onClose, duration = 4000, index = 0 }: ToastProps) {
-  const { direction } = useLanguage()
+  const { direction, t } = useLanguage()
   const [isExiting, setIsExiting] = useState(false)
 
   useEffect(() => {
@@ -63,10 +63,10 @@ export default function Toast({ message, type = 'info', onClose, duration = 4000
   }
 
   const titles = {
-    success: direction === 'rtl' ? 'نجح' : 'Success',
-    error: direction === 'rtl' ? 'خطأ' : 'Error',
-    warning: direction === 'rtl' ? 'تحذير' : 'Warning',
-    info: direction === 'rtl' ? 'معلومات' : 'Info'
+    success: t('toast.success'),
+    error: t('toast.error'),
+    warning: t('toast.warning'),
+    info: t('toast.info')
   }
 
   const topPosition = 20 + (index * 100) // Stack toasts vertically
@@ -97,7 +97,7 @@ export default function Toast({ message, type = 'info', onClose, duration = 4000
           <button
             onClick={handleClose}
             className="text-white hover:bg-white dark:bg-gray-800/20 rounded-full w-8 h-8 flex items-center justify-center text-2xl font-bold transition flex-shrink-0"
-            title={direction === 'rtl' ? 'إغلاق' : 'Close'}
+            title={t('toast.close')}
           >
             ×
           </button>

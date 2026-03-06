@@ -180,6 +180,13 @@ export default function MemberDetailPage() {
   const [showPointsHistory, setShowPointsHistory] = useState(false)
   const [pointsHistory, setPointsHistory] = useState<any[]>([])
   const [pointsLoading, setPointsLoading] = useState(false)
+  const [showAddPointsModal, setShowAddPointsModal] = useState(false)
+  const [addPointsData, setAddPointsData] = useState({
+    points: '',
+    reason: ''
+  })
+
+  // التقييمات
 
   const [confirmModal, setConfirmModal] = useState<{
     show: boolean
@@ -315,7 +322,10 @@ export default function MemberDetailPage() {
           inBodyScans: parseInt(foundMember.inBodyScans?.toString() || '0'),
           invitations: parseInt(foundMember.invitations?.toString() || '0'),
           subscriptionPrice: parseInt(foundMember.subscriptionPrice?.toString() || '0'),
-          remainingAmount: parseInt(foundMember.remainingAmount?.toString() || '0')
+          remainingAmount: parseInt(foundMember.remainingAmount?.toString() || '0'),
+          freePoolSessions: parseInt(foundMember.freePoolSessions?.toString() || '0'),
+          freePadelSessions: parseInt(foundMember.freePadelSessions?.toString() || '0'),
+          freeAssessmentSessions: parseInt(foundMember.freeAssessmentSessions?.toString() || '0')
         }
 
         setMember(memberWithDefaults)
@@ -430,6 +440,54 @@ export default function MemberDetailPage() {
     fetchPointsHistory()
     setShowPointsHistory(true)
   }
+
+  const handleAddPoints = async () => {
+    if (!member || !addPointsData.points || !addPointsData.reason.trim()) {
+      toast.warning(t('memberDetails.enterPointsAndReason'))
+      return
+    }
+
+    const pointsValue = parseInt(addPointsData.points)
+    if (isNaN(pointsValue) || pointsValue === 0) {
+      toast.warning(t('memberDetails.enterValidPointsNumber'))
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/members/${member.id}/add-points`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          points: pointsValue,
+          reason: addPointsData.reason.trim()
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast.success(t('memberDetails.pointsUpdatedSuccessfully', {
+          action: pointsValue > 0 ? t('memberDetails.added') : t('memberDetails.deducted'),
+          count: Math.abs(pointsValue)
+        }))
+        setAddPointsData({ points: '', reason: '' })
+        setShowAddPointsModal(false)
+        fetchMember()
+        if (showPointsHistory) {
+          fetchPointsHistory()
+        }
+      } else {
+        toast.error(result.error || t('memberDetails.pointsUpdateFailed'))
+      }
+    } catch (error) {
+      console.error('Error adding points:', error)
+      toast.error(t('memberDetails.pointsUpdateError'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
 
   const fetchFitnessTest = async () => {
     try {
@@ -666,6 +724,114 @@ export default function MemberDetailPage() {
 
           if (response.ok) {
             toast.success(t('memberDetails.inBodyUsed'))
+            fetchMember()
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.error'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
+  const handleUsePool = async () => {
+    if (!member || (member.freePoolSessions ?? 0) <= 0) {
+      toast.warning(t('memberDetails.noPoolSessionsRemaining'))
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: `🏊 ${t('memberDetails.usePoolSession')}`,
+      message: t('memberDetails.confirmUsePoolSession'),
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: member.id,
+              freePoolSessions: (member.freePoolSessions ?? 0) - 1
+            })
+          })
+
+          if (response.ok) {
+            toast.success(t('memberDetails.poolSessionUsed'))
+            fetchMember()
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.error'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
+  const handleUsePadel = async () => {
+    if (!member || (member.freePadelSessions ?? 0) <= 0) {
+      toast.warning(t('memberDetails.noPadelSessionsRemaining'))
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: `🎾 ${t('memberDetails.usePadelSession')}`,
+      message: t('memberDetails.confirmUsePadelSession'),
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: member.id,
+              freePadelSessions: (member.freePadelSessions ?? 0) - 1
+            })
+          })
+
+          if (response.ok) {
+            toast.success(t('memberDetails.padelSessionUsed'))
+            fetchMember()
+          }
+        } catch (error) {
+          toast.error(t('memberDetails.error'))
+        } finally {
+          setLoading(false)
+        }
+      }
+    })
+  }
+
+  const handleUseAssessment = async () => {
+    if (!member || (member.freeAssessmentSessions ?? 0) <= 0) {
+      toast.warning(t('memberDetails.noAssessmentSessionsRemaining'))
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: `📊 ${t('memberDetails.useAssessmentSession')}`,
+      message: t('memberDetails.confirmUseAssessmentSession'),
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: member.id,
+              freeAssessmentSessions: (member.freeAssessmentSessions ?? 0) - 1
+            })
+          })
+
+          if (response.ok) {
+            toast.success(t('memberDetails.assessmentSessionUsed'))
             fetchMember()
           }
         } catch (error) {
@@ -1540,16 +1706,25 @@ export default function MemberDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.points')}</p>
-                <p className="text-4xl font-bold text-primary-600">{member.points ?? 0}</p>
+                <p className="text-4xl font-bold text-primary-600 dark:text-primary-400">{member.points ?? 0}</p>
               </div>
               <div className="text-5xl">🏆</div>
             </div>
-            <button
-              onClick={handleShowPointsHistory}
-              className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700"
-            >
-              {t('memberDetails.viewPointsHistory')}
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={handleShowPointsHistory}
+                className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                {t('memberDetails.viewPointsHistory')}
+              </button>
+              <button
+                onClick={() => setShowAddPointsModal(true)}
+                className="w-full bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 flex items-center justify-center gap-2 transition-colors"
+              >
+                <span>➕</span>
+                <span>{t('memberDetails.addRemovePoints')}</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -1748,6 +1923,63 @@ export default function MemberDetailPage() {
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {settings.poolEnabled && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-teal-500">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.poolSessions')}</p>
+                <p className="text-4xl font-bold text-teal-600 dark:text-teal-400">{member.freePoolSessions ?? 0}</p>
+              </div>
+              <div className="text-5xl">🏊</div>
+            </div>
+            <button
+              onClick={handleUsePool}
+              disabled={(member.freePoolSessions ?? 0) <= 0 || loading}
+              className="w-full bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {t('memberDetails.useSession')}
+            </button>
+          </div>
+        )}
+
+        {settings.padelEnabled && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-amber-500">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.padelSessions')}</p>
+                <p className="text-4xl font-bold text-amber-600 dark:text-amber-400">{member.freePadelSessions ?? 0}</p>
+              </div>
+              <div className="text-5xl">🎾</div>
+            </div>
+            <button
+              onClick={handleUsePadel}
+              disabled={(member.freePadelSessions ?? 0) <= 0 || loading}
+              className="w-full bg-amber-600 text-white py-2 rounded-lg hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {t('memberDetails.useSession')}
+            </button>
+          </div>
+        )}
+
+        {settings.assessmentEnabled && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-indigo-500">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.assessmentSessions')}</p>
+                <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{member.freeAssessmentSessions ?? 0}</p>
+              </div>
+              <div className="text-5xl">📊</div>
+            </div>
+            <button
+              onClick={handleUseAssessment}
+              disabled={(member.freeAssessmentSessions ?? 0) <= 0 || loading}
+              className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {t('memberDetails.useSession')}
+            </button>
           </div>
         )}
 
@@ -3206,24 +3438,26 @@ export default function MemberDetailPage() {
                   {pointsHistory.map((entry: any) => (
                     <div
                       key={entry.id}
-                      className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white p-4 hover:shadow-md transition"
+                      className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg p-4 hover:shadow-md transition"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-2xl">
-                              {entry.action === 'check-in' ? '✅' : '🎁'}
+                              {entry.action === 'check-in' ? '✅' : entry.action === 'manual' ? '✏️' : '🎁'}
                             </span>
                             <span className="font-bold text-gray-800 dark:text-gray-100">
                               {entry.action === 'check-in'
                                 ? t('memberDetails.checkInPoints')
+                                : entry.action === 'manual'
+                                ? t('memberDetails.manualEdit')
                                 : t('memberDetails.invitationPoints')}
                             </span>
                           </div>
                           {entry.description && (
                             <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{entry.description}</p>
                           )}
-                          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {new Date(entry.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
                               year: 'numeric',
                               month: 'long',
@@ -3234,7 +3468,7 @@ export default function MemberDetailPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className={`${entry.points >= 0 ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-2 rounded-lg`}>
+                          <div className={`${entry.points >= 0 ? 'bg-green-500 dark:bg-green-600' : 'bg-red-500 dark:bg-red-600'} text-white px-4 py-2 rounded-lg shadow-md`}>
                             <p className="text-2xl font-bold">{entry.points >= 0 ? '+' : ''}{entry.points}</p>
                             <p className="text-xs opacity-90">{t('memberDetails.points')}</p>
                           </div>
@@ -3260,6 +3494,89 @@ export default function MemberDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add Points Modal */}
+      {showAddPointsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-t-lg">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <span>✏️</span>
+                <span>{t('memberDetails.addRemovePoints')}</span>
+              </h2>
+              <p className="text-yellow-100 mt-1">{member?.name} - #{member?.memberNumber}</p>
+              <p className="text-yellow-100 text-sm mt-1">
+                {t('memberDetails.currentBalance')}: <span className="font-bold text-white">{member?.points ?? 0}</span> {t('memberDetails.point')}
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                  {t('memberDetails.pointsAmount')} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={addPointsData.points}
+                  onChange={(e) => setAddPointsData({ ...addPointsData, points: e.target.value })}
+                  placeholder={t('memberDetails.enterPointsPlaceholder')}
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-yellow-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t('memberDetails.pointsExample')}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                  {t('memberDetails.reason')} <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={addPointsData.reason}
+                  onChange={(e) => setAddPointsData({ ...addPointsData, reason: e.target.value })}
+                  placeholder={t('memberDetails.enterReasonPlaceholder')}
+                  rows={3}
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-yellow-500 focus:outline-none dark:bg-gray-700 dark:text-white resize-none"
+                />
+              </div>
+
+              {addPointsData.points && !isNaN(parseInt(addPointsData.points)) && parseInt(addPointsData.points) !== 0 && (
+                <div className={`p-3 rounded-lg ${parseInt(addPointsData.points) > 0 ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'}`}>
+                  <p className={`text-sm font-semibold ${parseInt(addPointsData.points) > 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                    {parseInt(addPointsData.points) > 0 ? '✅ ' : '❌ '}
+                    {t('memberDetails.balanceAfterUpdate')}: {(member?.points ?? 0) + parseInt(addPointsData.points)} {t('memberDetails.point')}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowAddPointsModal(false)
+                  setAddPointsData({ points: '', reason: '' })
+                }}
+                className="flex-1 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 font-bold transition-colors"
+              >
+                {t('memberDetails.cancel')}
+              </button>
+              <button
+                onClick={handleAddPoints}
+                disabled={loading || !addPointsData.points || !addPointsData.reason.trim()}
+                className="flex-1 bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600 font-bold disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? t('memberDetails.saving') : t('memberDetails.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assessment History Modal */}
       )}
 
       {/* Modal عرض صور البطاقة الشخصية */}

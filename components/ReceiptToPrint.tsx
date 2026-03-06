@@ -25,20 +25,33 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
   const [websiteUrl, setWebsiteUrl] = useState('https://www.xgym.website')
   const [showWebsite, setShowWebsite] = useState(false) // ✅ البداية false عشان ميظهرش لحد ما نجيب الإعدادات
+  const [receiptTerms, setReceiptTerms] = useState('الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه')
   const [settingsLoaded, setSettingsLoaded] = useState(false)
 
-  // جلب إعدادات الموقع
+  // جلب إعدادات الموقع والإيصال
   useEffect(() => {
     const fetchWebsiteSettings = async () => {
       try {
         const response = await fetch('/api/settings/services')
         if (response.ok) {
           const data = await response.json()
+          console.log('📋 Receipt Settings Fetched:', {
+            websiteUrl: data.websiteUrl,
+            showWebsiteOnReceipts: data.showWebsiteOnReceipts,
+            receiptTerms: data.receiptTerms ? `${data.receiptTerms.substring(0, 50)}...` : 'NOT FOUND',
+            hasReceiptTerms: !!data.receiptTerms
+          })
           if (data.websiteUrl) {
             setWebsiteUrl(data.websiteUrl)
           }
           if (typeof data.showWebsiteOnReceipts === 'boolean') {
             setShowWebsite(data.showWebsiteOnReceipts)
+          }
+          if (data.receiptTerms) {
+            setReceiptTerms(data.receiptTerms)
+            console.log('✅ Receipt terms loaded successfully')
+          } else {
+            console.warn('⚠️ No receiptTerms found in settings - using default')
           }
         }
       } catch (error) {
@@ -182,11 +195,8 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     message += `━━━━━━━━━━━━━━━━━━━━\n`
     message += `*شروط وأحكام*\n`
     message += `━━━━━━━━━━━━━━━━━━━━\n`
-    message += `الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n`
-    message += `١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n`
-    message += `٢- لا يجوز التمرين بخلاف الزى الرياضى\n`
-    message += `٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n`
-    message += `٤- الاداره غير مسئوله عن المتعلقات الشخصيه\n\n`
+    console.log('📝 Using receipt terms:', receiptTerms.substring(0, 100) + '...')
+    message += `${receiptTerms}\n\n`
 
     // عرض الموقع الإلكتروني فقط إذا كان مفعلاً
     if (showWebsite && websiteUrl) {

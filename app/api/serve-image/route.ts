@@ -29,10 +29,20 @@ export async function GET(request: Request) {
 
     // التحقق من وجود الملف
     if (!existsSync(imagePath)) {
-      return NextResponse.json(
-        { error: 'الصورة غير موجودة' },
-        { status: 404 }
+      // بدلاً من إرجاع 404، نرجع صورة شفافة 1x1 pixel
+      // عشان ما يطلعش error في الـ console
+      const transparentPixel = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        'base64'
       )
+
+      return new NextResponse(transparentPixel, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'no-cache',
+        }
+      })
     }
 
     // قراءة الملف
@@ -59,10 +69,18 @@ export async function GET(request: Request) {
     })
 
   } catch (error) {
-    console.error('خطأ في خدمة الصورة:', error)
-    return NextResponse.json(
-      { error: 'فشل تحميل الصورة' },
-      { status: 500 }
+    // بدلاً من إرجاع error، نرجع صورة شفافة (silent failure)
+    const transparentPixel = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64'
     )
+
+    return new NextResponse(transparentPixel, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'no-cache',
+      }
+    })
   }
 }

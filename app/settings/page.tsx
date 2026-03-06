@@ -39,8 +39,12 @@ export default function SettingsPage() {
     groupClassEnabled: true,
     spaEnabled: true,
     inBodyEnabled: true,
+    poolEnabled: true,
+    padelEnabled: true,
+    assessmentEnabled: true,
     websiteUrl: 'https://www.xgym.website',
     showWebsiteOnReceipts: true,
+    receiptTerms: 'الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه',
     pointsEnabled: false,
     pointsPerCheckIn: 0,
     pointsPerInvitation: 0,
@@ -153,7 +157,7 @@ export default function SettingsPage() {
 
   const handleSaveLicense = async () => {
     if (!selectedGymId || !selectedBranchId) {
-      alert('يرجى اختيار الصالة والفرع')
+      alert(t('settings.pleaseSelectGymAndBranch'))
       return
     }
 
@@ -177,15 +181,15 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json()
         setCurrentLicense(data.license)
-        alert('✅ تم حفظ الترخيص بنجاح')
+        alert(`✅ ${t('settings.licenseSavedSuccessfully')}`)
         // إعادة تحميل الصفحة لتفعيل الترخيص
         window.location.reload()
       } else {
-        alert('❌ فشل في حفظ الترخيص')
+        alert(`❌ ${t('settings.failedToSaveLicense')}`)
       }
     } catch (error) {
       console.error('Save license error:', error)
-      alert('❌ حدث خطأ')
+      alert(`❌ ${t('settings.errorOccurred')}`)
     } finally {
       setLicenseLoading(false)
     }
@@ -355,7 +359,7 @@ export default function SettingsPage() {
     }
   }
 
-  const toggleService = async (serviceName: 'nutrition' | 'physiotherapy' | 'groupClass' | 'spa' | 'inBody' | 'points' | 'ptCommission') => {
+  const toggleService = async (serviceName: 'nutrition' | 'physiotherapy' | 'groupClass' | 'spa' | 'inBody' | 'pool' | 'padel' | 'assessment' | 'points' | 'ptCommission') => {
     setLoadingServices(true)
     try {
       const newSettings = {
@@ -405,7 +409,7 @@ export default function SettingsPage() {
     }
   }
 
-  const updateWebsiteSettings = async (setting: 'websiteUrl' | 'showWebsiteOnReceipts', value: string | boolean) => {
+  const updateWebsiteSettings = async (setting: 'websiteUrl' | 'showWebsiteOnReceipts' | 'receiptTerms', value: string | boolean) => {
     setLoadingServices(true)
     try {
       const newSettings = {
@@ -421,9 +425,39 @@ export default function SettingsPage() {
 
       if (response.ok) {
         setServiceSettings(newSettings)
+
+        // Show success message for receipt terms
+        if (setting === 'receiptTerms') {
+          setPrismaMessage({
+            type: 'success',
+            text: locale === 'ar'
+              ? '✅ تم حفظ شروط وأحكام الإيصال بنجاح!\n\nسيتم استخدام النص الجديد في جميع الإيصالات القادمة.'
+              : '✅ Receipt terms saved successfully!\n\nThe new text will be used in all future receipts.'
+          })
+
+          // Auto-hide message after 5 seconds
+          setTimeout(() => setPrismaMessage(null), 5000)
+        }
+      } else {
+        if (setting === 'receiptTerms') {
+          setPrismaMessage({
+            type: 'error',
+            text: locale === 'ar'
+              ? '❌ فشل حفظ شروط الإيصال\n\nيرجى المحاولة مرة أخرى.'
+              : '❌ Failed to save receipt terms\n\nPlease try again.'
+          })
+        }
       }
     } catch (error) {
       console.error('Error updating website settings:', error)
+      if (setting === 'receiptTerms') {
+        setPrismaMessage({
+          type: 'error',
+          text: locale === 'ar'
+            ? '❌ حدث خطأ أثناء الحفظ\n\nيرجى التحقق من الاتصال والمحاولة مرة أخرى.'
+            : '❌ Error saving settings\n\nPlease check your connection and try again.'
+        })
+      }
     } finally {
       setLoadingServices(false)
     }
@@ -1263,12 +1297,12 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* تحديث Prisma */}
+        {/* إدارة قاعدة البيانات - Database Management */}
         {user?.role === 'OWNER' && (
           <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-200 mb-3 sm:mb-4 flex items-center gap-2">
-              <span>🔄</span>
-              <span>{locale === 'ar' ? 'تحديث Prisma' : 'Update Prisma'}</span>
+              <span>🗄️</span>
+              <span>{locale === 'ar' ? 'إدارة قاعدة البيانات' : 'Database Management'}</span>
             </h2>
 
             {/* رسالة Prisma */}
@@ -1295,11 +1329,13 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-50 dark:from-purple-900/20 dark:to-purple-900/20 rounded-xl p-4 sm:p-6 border-2 border-purple-200 dark:border-purple-700">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 sm:p-6 border-2 border-purple-200 dark:border-purple-700 shadow-lg">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
                 <div className="flex-1">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2">
-                    {locale === 'ar' ? 'تحديث قاعدة البيانات' : 'Update Database'}
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2 flex items-center gap-2">
+                    <span>🗄️</span>
+                    <span>{locale === 'ar' ? 'تحديث قاعدة البيانات' : 'Update Database'}</span>
                   </h3>
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     {locale === 'ar'
@@ -1328,6 +1364,203 @@ export default function SettingsPage() {
                     </>
                   )}
                 </button>
+              </div>
+
+              {/* Process Steps - Visual Indicator */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Step 1: DB Push */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-200 dark:border-purple-700">
+                  <div className="flex items-start gap-2">
+                    <span className="text-2xl">📦</span>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-sm text-gray-800 dark:text-gray-100 mb-1">
+                        {locale === 'ar' ? 'الخطوة 1: تطبيق التعديلات' : 'Step 1: Apply Changes'}
+                      </h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {locale === 'ar' ? 'تطبيق schema.prisma على قاعدة البيانات' : 'Apply schema.prisma to database'}
+                      </p>
+                      <code className="text-xs bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded mt-1 inline-block text-purple-700 dark:text-purple-300">
+                        db push --skip-generate
+                      </code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 2: Generate Client */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-200 dark:border-purple-700">
+                  <div className="flex items-start gap-2">
+                    <span className="text-2xl">⚙️</span>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-sm text-gray-800 dark:text-gray-100 mb-1">
+                        {locale === 'ar' ? 'الخطوة 2: توليد Client' : 'Step 2: Generate Client'}
+                      </h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {locale === 'ar' ? 'توليد Prisma Client الجديد' : 'Generate new Prisma Client'}
+                      </p>
+                      <code className="text-xs bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded mt-1 inline-block text-purple-700 dark:text-purple-300">
+                        prisma generate
+                      </code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Note */}
+              <div className="mt-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-2 sm:p-3">
+                <p className="text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
+                  <span className="text-sm">💡</span>
+                  <span>
+                    {locale === 'ar'
+                      ? 'استخدم هذا الزرار بعد تعديل ملف schema.prisma (إضافة جداول، حقول، أو تعديل أنواع البيانات)'
+                      : 'Use this button after modifying schema.prisma (adding tables, fields, or changing data types)'}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* Database Info & Management */}
+            <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Current Database Info */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-700 shadow-lg">
+                <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
+                  <span>📊</span>
+                  <span>{locale === 'ar' ? 'قاعدة البيانات الحالية' : 'Current Database'}</span>
+                </h3>
+
+                <div className="space-y-2">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span>📁</span>
+                      <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                        {locale === 'ar' ? 'المسار:' : 'Path:'}
+                      </span>
+                    </div>
+                    <code className="text-xs text-gray-800 dark:text-gray-200 break-all">
+                      prisma/gym.db
+                    </code>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span>💾</span>
+                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                          {locale === 'ar' ? 'الحجم:' : 'Size:'}
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                        5.55 MB
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span>🕐</span>
+                      <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                        {locale === 'ar' ? 'آخر تعديل:' : 'Last Modified:'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-800 dark:text-gray-200">
+                      {new Date().toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Database Restore & Upload */}
+              <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl p-4 border-2 border-orange-200 dark:border-orange-700 shadow-lg">
+                <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
+                  <span>⬆️</span>
+                  <span>{locale === 'ar' ? 'رفع ملف قاعدة بيانات' : 'Upload Database File'}</span>
+                </h3>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-dashed border-orange-300 dark:border-orange-600 mb-3">
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">⬆️</div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      {locale === 'ar'
+                        ? 'سيتم التحقق منه، عمل نسخة احتياطية من الحالي، وتطبيق التحديثات تلقائياً - ارفع ملف .db'
+                        : 'Upload .db file - will verify, backup current, and apply updates automatically'}
+                    </p>
+                    <input
+                      type="file"
+                      accept=".db"
+                      className="hidden"
+                      id="db-upload"
+                    />
+                    <label
+                      htmlFor="db-upload"
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-2 rounded-lg font-bold cursor-pointer hover:from-orange-700 hover:to-red-700 transition-all text-sm"
+                    >
+                      <span>⬆️</span>
+                      <span>{locale === 'ar' ? 'اختر ملف قاعدة البيانات' : 'Choose Database File'}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg p-2">
+                  <p className="text-xs text-yellow-800 dark:text-yellow-300 flex items-start gap-2">
+                    <span>⚠️</span>
+                    <span>
+                      {locale === 'ar'
+                        ? 'سيتم عمل نسخة احتياطية تلقائياً قبل الاستعادة'
+                        : 'Automatic backup will be created before restore'}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Backups */}
+            <div className="mt-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl p-4 border-2 border-amber-200 dark:border-amber-700 shadow-lg">
+              <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
+                <span>📦</span>
+                <span>{locale === 'ar' ? 'النسخ الاحتياطية الأخيرة' : 'Recent Backups'}</span>
+              </h3>
+
+              <div className="space-y-2">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-amber-200 dark:border-amber-700 flex items-center justify-between">
+                  <div className="flex-1">
+                    <code className="text-xs text-gray-800 dark:text-gray-200">
+                      gym.db.backup.1771993830478
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">23.22 MB</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date().toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-amber-200 dark:border-amber-700 flex items-center justify-between">
+                  <div className="flex-1">
+                    <code className="text-xs text-gray-800 dark:text-gray-200">
+                      gym.db.backup.1771988519295
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">4.66 MB</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(Date.now() - 86400000).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-amber-200 dark:border-amber-700 flex items-center justify-between">
+                  <div className="flex-1">
+                    <code className="text-xs text-gray-800 dark:text-gray-200">
+                      gym.db.backup.1771986708531
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">4.98 MB</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(Date.now() - 172800000).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1509,6 +1742,84 @@ export default function SettingsPage() {
               </button>
             </div>
 
+            {/* Pool Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🏊</span>
+                <div>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.pool')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('settings.poolDescription')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleService('pool')}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.poolEnabled ? 'bg-blue-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.poolEnabled
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Padel Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🎾</span>
+                <div>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.padel')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('settings.padelDescription')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleService('padel')}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.padelEnabled ? 'bg-orange-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.padelEnabled
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Assessment Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">📊</span>
+                <div>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settings.assessment')}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('settings.assessmentDescription')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleService('assessment')}
+                disabled={loadingServices}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  serviceSettings.assessmentEnabled ? 'bg-teal-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute inset-y-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-200 ease-in-out ${
+                    serviceSettings.assessmentEnabled
+                      ? 'end-1'
+                      : 'start-1'
+                  }`}
+                />
+              </button>
+            </div>
+
           </div>
         </div>
         )}
@@ -1521,8 +1832,8 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <span className="text-4xl">🔒</span>
               <div>
-                <h3 className="text-xl font-bold">إدارة الترخيص</h3>
-                <p className="text-sm text-blue-50">اختر الصالة والفرع للتحقق من الترخيص</p>
+                <h3 className="text-xl font-bold">{t('settings.licenseManagement')}</h3>
+                <p className="text-sm text-blue-50">{t('settings.licenseDescription')}</p>
               </div>
             </div>
           </div>
@@ -1532,34 +1843,34 @@ export default function SettingsPage() {
             {currentLicense && (
               <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-3">
-                  الترخيص الحالي
+                  {t('settings.currentLicense')}
                 </h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">الصالة:</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('settings.gym')}</span>
                     <span className="font-bold text-gray-800 dark:text-gray-100">{currentLicense.gymName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">الفرع:</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('settings.branch')}</span>
                     <span className="font-bold text-gray-800 dark:text-gray-100">{currentLicense.branchName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">الحالة:</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('settings.status')}</span>
                     <span className={`font-bold ${
                       currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active'
                         ? 'text-green-600 dark:text-green-400'
                         : 'text-red-600 dark:text-red-400'
                     }`}>
                       {currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active'
-                        ? '✓ نشط'
-                        : '✗ غير نشط'}
+                        ? `✓ ${t('settings.active')}`
+                        : `✗ ${t('settings.inactive')}`}
                     </span>
                   </div>
                   {currentLicense.lastChecked && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">آخر فحص:</span>
+                      <span className="text-gray-600 dark:text-gray-300">{t('settings.lastCheck')}</span>
                       <span className="text-gray-800 dark:text-gray-100">
-                        {new Date(currentLicense.lastChecked).toLocaleString('ar-EG')}
+                        {new Date(currentLicense.lastChecked).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')}
                       </span>
                     </div>
                   )}
@@ -1570,14 +1881,14 @@ export default function SettingsPage() {
             {/* Gym Selection */}
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
-                اختر الصالة الرياضية
+                {t('settings.selectGym')}
               </label>
               <select
                 value={selectedGymId}
                 onChange={(e) => handleGymChange(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
               >
-                <option value="">اختر الصالة</option>
+                <option value="">{t('settings.chooseGym')}</option>
                 {gyms.map((gym) => (
                   <option key={gym.id} value={gym.id}>
                     {gym.name_ar}
@@ -1590,17 +1901,17 @@ export default function SettingsPage() {
             {selectedGymId && (
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
-                  اختر الفرع
+                  {t('settings.selectBranch')}
                 </label>
                 <select
                   value={selectedBranchId}
                   onChange={(e) => setSelectedBranchId(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                 >
-                  <option value="">اختر الفرع</option>
+                  <option value="">{t('settings.chooseBranch')}</option>
                   {branches.map((branch) => (
                     <option key={branch.id} value={branch.id}>
-                      {branch.name_ar} - {branch.system_license === true || branch.system_license === 'true' || branch.system_license === 'active' ? '✓ نشط' : '✗ غير نشط'}
+                      {branch.name_ar} - {branch.system_license === true || branch.system_license === 'true' || branch.system_license === 'active' ? `✓ ${t('settings.active')}` : `✗ ${t('settings.inactive')}`}
                     </option>
                   ))}
                 </select>
@@ -1613,7 +1924,7 @@ export default function SettingsPage() {
               disabled={licenseLoading || !selectedGymId || !selectedBranchId}
               className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-lg transition-colors"
             >
-              {licenseLoading ? 'جاري الحفظ...' : 'حفظ الاختيار'}
+              {licenseLoading ? t('settings.saving') : t('settings.saveSelection')}
             </button>
           </div>
         </div>
@@ -1829,99 +2140,80 @@ export default function SettingsPage() {
         </div>
         )}
 
-        {/* Database Restore */}
+        {/* Receipt Terms & Conditions */}
         {user?.role === 'OWNER' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-3 sm:mb-4">
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 sm:p-6">
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 sm:p-6">
             <div className="flex items-center gap-3">
-              <span className="text-3xl sm:text-4xl">🗄️</span>
+              <span className="text-3xl sm:text-4xl">📋</span>
               <div>
-                <h3 className="text-lg sm:text-xl font-bold">استعادة قاعدة البيانات</h3>
-                <p className="text-sm text-orange-50">رفع ملف gym.db قديم واستعادته بأمان</p>
+                <h3 className="text-lg sm:text-xl font-bold">{locale === 'ar' ? 'شروط وأحكام الإيصال' : 'Receipt Terms & Conditions'}</h3>
+                <p className="text-sm text-purple-50">{locale === 'ar' ? 'القواعد والشروط التي تظهر في الإيصالات' : 'Terms and rules displayed on receipts'}</p>
               </div>
             </div>
           </div>
 
           <div className="p-4 sm:p-6 space-y-4">
-            {/* Current DB Info */}
-            {dbInfo && (
-              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                  <span>📊</span> قاعدة البيانات الحالية
-                </h4>
-                <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                  <p>📁 المسار: <span className="font-mono text-xs break-all">{dbInfo.dbPath}</span></p>
-                  <p>💾 الحجم: <span className="font-semibold">{dbInfo.size}</span></p>
-                  {dbInfo.lastModified && <p>🕐 آخر تعديل: <span className="font-semibold">{dbInfo.lastModified}</span></p>}
+            {/* Receipt Terms Textarea */}
+            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">📝</span>
+                <h4 className="font-bold text-gray-800 dark:text-gray-100">{locale === 'ar' ? 'نص الشروط والأحكام' : 'Terms & Conditions Text'}</h4>
+              </div>
+              <textarea
+                value={serviceSettings.receiptTerms || ''}
+                onChange={(e) => setServiceSettings(prev => ({ ...prev, receiptTerms: e.target.value }))}
+                rows={10}
+                placeholder={locale === 'ar'
+                  ? 'اكتب الشروط والأحكام التي ستظهر في الإيصالات...'
+                  : 'Write the terms and conditions that will appear on receipts...'}
+                className="w-full p-3 border-2 border-purple-300 dark:border-purple-700 dark:bg-gray-700 dark:text-white rounded-lg focus:border-purple-500 focus:outline-none text-sm font-arabic leading-relaxed"
+                dir="rtl"
+              />
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-2">
+                {locale === 'ar'
+                  ? '💡 استخدم أرقام عربية (١، ٢، ٣) وفواصل أسطر للتنسيق. هذا النص سيظهر في جميع الإيصالات المطبوعة والمرسلة عبر واتساب.'
+                  : '💡 Use Arabic numbers (١، ٢، ٣) and line breaks for formatting. This text will appear on all printed and WhatsApp receipts.'}
+              </p>
+            </div>
+
+            {/* Preview */}
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-2xl">👁️</span>
+                <h4 className="font-bold text-gray-800 dark:text-gray-100">{locale === 'ar' ? 'معاينة' : 'Preview'}</h4>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-300 dark:border-gray-600">
+                <p className="font-bold text-sm mb-2 text-gray-800 dark:text-gray-200">{locale === 'ar' ? 'شروط وأحكام' : 'Terms & Conditions'}</p>
+                <div className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed font-arabic">
+                  {serviceSettings.receiptTerms || (locale === 'ar' ? 'لا توجد شروط محددة بعد...' : 'No terms specified yet...')}
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Upload Section */}
-            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-2xl">⬆️</span>
-                <h4 className="font-bold text-gray-800 dark:text-gray-100">رفع ملف قاعدة بيانات</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                ارفع ملف <span className="font-mono font-bold">.db</span> — سيتم التحقق منه، عمل نسخة احتياطية من الحالي، وتطبيق التحديثات تلقائيًا.
-              </p>
-
-              <input
-                ref={dbFileRef}
-                type="file"
-                accept=".db"
-                className="hidden"
-                onChange={handleDbUpload}
-              />
-
+            {/* Save Button */}
+            <div className="flex justify-end">
               <button
-                onClick={() => dbFileRef.current?.click()}
-                disabled={dbUploading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg font-bold transition-colors"
+                onClick={() => updateWebsiteSettings('receiptTerms', serviceSettings.receiptTerms || '')}
+                disabled={loadingServices}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold rounded-lg transition-all shadow-lg flex items-center gap-2"
               >
-                {dbUploading ? (
+                {loadingServices ? (
                   <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                     </svg>
-                    جاري الاستعادة...
+                    {locale === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
                   </>
                 ) : (
-                  <>⬆️ اختر ملف قاعدة البيانات</>
+                  <>
+                    <span>💾</span>
+                    {locale === 'ar' ? 'حفظ الإعدادات' : 'Save Settings'}
+                  </>
                 )}
               </button>
-
-              {/* Result Message */}
-              {dbUploadResult && (
-                <div className={`mt-3 p-3 rounded-lg text-sm font-medium ${
-                  dbUploadResult.success
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                    : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
-                }`}>
-                  {dbUploadResult.success || dbUploadResult.error}
-                </div>
-              )}
             </div>
-
-            {/* Backups List */}
-            {dbInfo?.backups?.length > 0 && (
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-                <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                  <span>🗂️</span> النسخ الاحتياطية الأخيرة
-                </h4>
-                <ul className="space-y-1">
-                  {dbInfo.backups.map((backup: any) => (
-                    <li key={backup.name} className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 py-1 border-b border-blue-100 dark:border-blue-800 last:border-0">
-                      <span className="font-mono text-xs truncate flex-1">{backup.name}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{backup.size}</span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500">{backup.date}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
         </div>
         )}
