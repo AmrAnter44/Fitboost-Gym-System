@@ -93,7 +93,52 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     message += `*ايصال رقم #${receiptNumber}*\n`
     message += `━━━━━━━━━━━━━━━━━━━━\n\n`
 
-    const typeName = type === 'Member' ? 'اشتراك عضوية' : type === 'PT' ? 'تدريب شخصي' : type === 'DayUse' ? 'Day Use' : type === 'Expense' ? 'مصروف' : type
+    // تحويل نوع الإيصال إلى اسم عربي
+    const getReceiptTypeName = (type: string): string => {
+      const typeMap: Record<string, string> = {
+        // Membership
+        'Member': 'اشتراك عضوية',
+        'عضوية': 'اشتراك عضوية',
+        'تجديد عضويه': 'تجديد عضوية',
+        'membershipRenewal': 'تجديد عضوية',
+        'ترقية باكدج': 'ترقية باكدج',
+
+        // PT
+        'PT': 'تدريب شخصي',
+        'اشتراك برايفت': 'تدريب شخصي',
+        'تجديد برايفت': 'تجديد تدريب شخصي',
+        'newPT': 'تدريب شخصي',
+        'ptRenewal': 'تجديد تدريب شخصي',
+        'ptDayUse': 'تدريب شخصي يومي',
+
+        // Nutrition
+        'newNutrition': 'تغذية',
+        'nutritionRenewal': 'تجديد تغذية',
+        'nutritionDayUse': 'تغذية يومي',
+
+        // Physiotherapy
+        'newPhysiotherapy': 'علاج طبيعي',
+        'physiotherapyRenewal': 'تجديد علاج طبيعي',
+        'physiotherapyDayUse': 'علاج طبيعي يومي',
+
+        // Group Class
+        'newGroupClass': 'حصص جماعية',
+        'groupClassRenewal': 'تجديد حصص جماعية',
+        'groupClassDayUse': 'حصص جماعية يومي',
+
+        // Other
+        'DayUse': 'استخدام يومي',
+        'يوم استخدام': 'استخدام يومي',
+        'Expense': 'مصروف',
+        'inBody': 'InBody',
+        'تأجير لوجر': 'تأجير لوجر',
+        'lockerRental': 'تأجير لوجر'
+      }
+
+      return typeMap[type] || type
+    }
+
+    const typeName = getReceiptTypeName(type)
     message += `*النوع:* ${typeName}\n\n`
 
     if (details.memberNumber) {
@@ -107,17 +152,19 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     }
     message += `\n`
 
-    if (type === 'Member' && details.subscriptionDays) {
+    // تفاصيل الاشتراك - لجميع أنواع العضوية
+    const membershipTypes = ['Member', 'عضوية', 'تجديد عضويه', 'membershipRenewal', 'ترقية باكدج']
+    if (membershipTypes.includes(type) && details.subscriptionDays) {
       message += `━━━━━━━━━━━━━━━━━━━━\n`
       message += `*تفاصيل الاشتراك*\n`
       message += `━━━━━━━━━━━━━━━━━━━━\n`
       if (details.startDate) {
-        message += `• من: ${new Date(details.startDate).toLocaleDateString('ar-EG')}\n`
+        message += `- من: ${new Date(details.startDate).toLocaleDateString('ar-EG')}\n`
       }
       if (details.expiryDate) {
-        message += `• الى: ${new Date(details.expiryDate).toLocaleDateString('ar-EG')}\n`
+        message += `- الى: ${new Date(details.expiryDate).toLocaleDateString('ar-EG')}\n`
       }
-      message += `• المدة: ${details.subscriptionDays} يوم\n`
+      message += `- المدة: ${details.subscriptionDays} يوم\n`
 
       const extras = []
       if (details.freePTSessions > 0) extras.push(`${details.freePTSessions} جلسة PT`)
@@ -129,22 +176,96 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
       message += `\n`
     }
 
-    if (type === 'PT' || type.includes('برايفت')) {
+    // تفاصيل التدريب - لجميع أنواع PT
+    const ptTypes = ['PT', 'اشتراك برايفت', 'تجديد برايفت', 'newPT', 'ptRenewal', 'ptDayUse']
+    if (ptTypes.includes(type) || type.includes('برايفت')) {
       message += `━━━━━━━━━━━━━━━━━━━━\n`
       message += `*تفاصيل التدريب*\n`
       message += `━━━━━━━━━━━━━━━━━━━━\n`
       if (details.ptNumber) {
-        message += `• رقم PT: ${details.ptNumber}\n`
+        message += `- رقم PT: ${details.ptNumber}\n`
       }
       if (details.sessions || details.sessionsPurchased) {
-        message += `• عدد الجلسات: ${details.sessions || details.sessionsPurchased}\n`
+        message += `- عدد الجلسات: ${details.sessions || details.sessionsPurchased}\n`
       }
       if (details.pricePerSession) {
-        message += `• سعر الجلسة: ${details.pricePerSession} ج.م\n`
+        message += `- سعر الجلسة: ${details.pricePerSession} ج.م\n`
       }
-      // ✅ عرض المبلغ المتبقي المرتجع في حالة التجديد
+      if (details.coachName) {
+        message += `- الكوتش: ${details.coachName}\n`
+      }
+      if (details.startDate && details.expiryDate) {
+        message += `- من: ${new Date(details.startDate).toLocaleDateString('ar-EG')}\n`
+        message += `- الى: ${new Date(details.expiryDate).toLocaleDateString('ar-EG')}\n`
+      }
       if (details.oldRemainingAmount && details.oldRemainingAmount > 0) {
-        message += `• المبلغ المتبقي المرتجع: ${details.oldRemainingAmount} ج.م ✅\n`
+        message += `- المبلغ المتبقي المرتجع: ${details.oldRemainingAmount} ج.م\n`
+      }
+      message += `\n`
+    }
+
+    // تفاصيل التغذية - لجميع أنواع Nutrition
+    const nutritionTypes = ['newNutrition', 'nutritionRenewal', 'nutritionDayUse']
+    if (nutritionTypes.includes(type)) {
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      message += `*تفاصيل التغذية*\n`
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      if (details.sessions || details.sessionsPurchased) {
+        message += `- عدد الجلسات: ${details.sessions || details.sessionsPurchased}\n`
+      }
+      if (details.nutritionistName || details.specialistName) {
+        message += `- الاخصائي: ${details.nutritionistName || details.specialistName}\n`
+      }
+      if (details.pricePerSession) {
+        message += `- سعر الجلسة: ${details.pricePerSession} ج.م\n`
+      }
+      if (details.startDate && details.expiryDate) {
+        message += `- من: ${new Date(details.startDate).toLocaleDateString('ar-EG')}\n`
+        message += `- الى: ${new Date(details.expiryDate).toLocaleDateString('ar-EG')}\n`
+      }
+      message += `\n`
+    }
+
+    // تفاصيل العلاج الطبيعي - لجميع أنواع Physiotherapy
+    const physioTypes = ['newPhysiotherapy', 'physiotherapyRenewal', 'physiotherapyDayUse']
+    if (physioTypes.includes(type)) {
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      message += `*تفاصيل العلاج الطبيعي*\n`
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      if (details.sessions || details.sessionsPurchased) {
+        message += `- عدد الجلسات: ${details.sessions || details.sessionsPurchased}\n`
+      }
+      if (details.therapistName || details.specialistName) {
+        message += `- الاخصائي: ${details.therapistName || details.specialistName}\n`
+      }
+      if (details.pricePerSession) {
+        message += `- سعر الجلسة: ${details.pricePerSession} ج.م\n`
+      }
+      if (details.startDate && details.expiryDate) {
+        message += `- من: ${new Date(details.startDate).toLocaleDateString('ar-EG')}\n`
+        message += `- الى: ${new Date(details.expiryDate).toLocaleDateString('ar-EG')}\n`
+      }
+      message += `\n`
+    }
+
+    // تفاصيل الحصص الجماعية - لجميع أنواع Group Class
+    const groupClassTypes = ['newGroupClass', 'groupClassRenewal', 'groupClassDayUse']
+    if (groupClassTypes.includes(type)) {
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      message += `*تفاصيل الحصص الجماعية*\n`
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      if (details.sessions || details.sessionsPurchased) {
+        message += `- عدد الجلسات: ${details.sessions || details.sessionsPurchased}\n`
+      }
+      if (details.instructorName || details.specialistName) {
+        message += `- المدرب: ${details.instructorName || details.specialistName}\n`
+      }
+      if (details.pricePerSession) {
+        message += `- سعر الجلسة: ${details.pricePerSession} ج.م\n`
+      }
+      if (details.startDate && details.expiryDate) {
+        message += `- من: ${new Date(details.startDate).toLocaleDateString('ar-EG')}\n`
+        message += `- الى: ${new Date(details.expiryDate).toLocaleDateString('ar-EG')}\n`
       }
       message += `\n`
     }
@@ -154,10 +275,10 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     message += `━━━━━━━━━━━━━━━━━━━━\n`
 
     if (details.subscriptionPrice > 0) {
-      message += `• سعر الاشتراك: ${details.subscriptionPrice} ج.م\n`
+      message += `- سعر الاشتراك: ${details.subscriptionPrice} ج.م\n`
     }
     if (details.totalPrice > 0 && type === 'PT') {
-      message += `• الاجمالي: ${details.totalPrice} ج.م\n`
+      message += `- الاجمالي: ${details.totalPrice} ج.م\n`
     }
 
     message += `*المدفوع:* ${amount} ج.م\n`
@@ -173,7 +294,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
       const normalized = normalizePaymentMethod(pmValue, amount)
       message += `*طريقة الدفع:* متعددة\n`
       normalized.methods.forEach(m => {
-        message += `  • ${getPaymentMethodLabel(m.method, 'ar')}: ${m.amount.toFixed(2)} ج.م\n`
+        message += `  - ${getPaymentMethodLabel(m.method, 'ar')}: ${m.amount.toFixed(2)} ج.م\n`
       })
     } else {
       const paymentName = getPaymentMethodLabel(pmValue, 'ar')
@@ -200,7 +321,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
 
     // عرض الموقع الإلكتروني فقط إذا كان مفعلاً
     if (showWebsite && websiteUrl) {
-      message += `🌐 *الموقع الإلكتروني:*\n`
+      message += `*الموقع الإلكتروني:*\n`
       message += `${websiteUrl}\n\n`
     }
 
