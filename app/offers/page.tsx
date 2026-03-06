@@ -19,7 +19,6 @@ interface Offer {
   inBodyScans: number
   invitations: number
   freezeDays: number
-  ptCommission?: number
   icon: string
   isActive: boolean
   upgradeEligibilityDays?: number | null
@@ -60,15 +59,15 @@ export default function OffersPage() {
     if (offersError) {
       const errorMessage = (offersError as Error).message
       if (errorMessage === 'UNAUTHORIZED') {
-        toast.error('يجب تسجيل الدخول أولاً')
+        toast.error(t('offers.messages.unauthorized'))
         setTimeout(() => router.push('/login'), 2000)
       } else if (errorMessage === 'FORBIDDEN') {
-        toast.error('ليس لديك صلاحية عرض العروض')
+        toast.error(t('offers.messages.forbidden'))
       } else {
-        toast.error(errorMessage || 'حدث خطأ أثناء جلب بيانات العروض')
+        toast.error(errorMessage || t('offers.messages.fetchErrorGeneral'))
       }
     }
-  }, [offersError, toast, router])
+  }, [offersError, toast, router, t])
 
   const [formData, setFormData] = useState({
     name: '',
@@ -87,7 +86,6 @@ export default function OffersPage() {
     inBodyScans: '',
     invitations: '',
     freezeDays: '',
-    ptCommission: '',
     icon: '📅',
     upgradeEligibilityDays: '7',
     upgradePoints: '0'
@@ -146,7 +144,6 @@ export default function OffersPage() {
       inBodyScans: offer.inBodyScans.toString(),
       invitations: offer.invitations.toString(),
       freezeDays: offer.freezeDays.toString(),
-      ptCommission: offer.ptCommission?.toString() || '0',
       icon: offer.icon,
       upgradeEligibilityDays: offer.upgradeEligibilityDays?.toString() || '7',
       upgradePoints: offer.upgradePoints?.toString() || '0'
@@ -228,7 +225,6 @@ export default function OffersPage() {
       inBodyScans: '',
       invitations: '',
       freezeDays: '',
-      ptCommission: '',
       icon: '📅',
       upgradeEligibilityDays: '7',
       upgradePoints: '0'
@@ -452,20 +448,6 @@ export default function OffersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">👨‍🏫 عمولة الكوتش (جنيه)</label>
-                  <input
-                    type="number"
-                    value={formData.ptCommission}
-                    onChange={(e) => setFormData({ ...formData, ptCommission: e.target.value })}
-                    className="w-full p-3 border-2 border-purple-300 dark:border-purple-600 rounded-lg focus:border-purple-500 focus:outline-none dark:bg-gray-700 dark:text-white"
-                    placeholder="0"
-                    min="0"
-                    step="10"
-                  />
-                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">💰 مبلغ العمولة للكوتش عند اشتراك عضو بهذه الباقة (0 = استخدام المبلغ الافتراضي من الإعدادات)</p>
-                </div>
-
-                <div>
                   <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.upgradeEligibilityDays')}</label>
                   <input
                     type="number"
@@ -521,7 +503,7 @@ export default function OffersPage() {
                     disabled={submitting}
                     className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-bold hover:scale-105 dark:hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {submitting ? '⏳ جاري الحفظ...' : editingOffer ? `💾 ${t('offers.saveChanges')}` : `➕ ${t('offers.addOffer')}`}
+                    {submitting ? `⏳ ${t('offers.messages.saving')}` : editingOffer ? `💾 ${t('offers.saveChanges')}` : `➕ ${t('offers.addOffer')}`}
                   </button>
                   <button
                     type="button"
@@ -635,12 +617,6 @@ export default function OffersPage() {
                       <span className="text-gray-600 dark:text-gray-300">❄️ أيام الفريز</span>
                       <span className="font-bold text-primary-600 dark:text-primary-400">{offer.freezeDays}</span>
                     </div>
-                    {offer.ptCommission !== undefined && offer.ptCommission > 0 && (
-                      <div className="flex justify-between items-center text-sm bg-purple-50 dark:bg-purple-900/20 p-2 rounded">
-                        <span className="text-purple-700 dark:text-purple-300">👨‍🏫 عمولة الكوتش</span>
-                        <span className="font-bold text-purple-600 dark:text-purple-400">{offer.ptCommission} ج.م</span>
-                      </div>
-                    )}
                     <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                       <span className="text-gray-600 dark:text-gray-300">{t('offers.upgradeWindow')}</span>
                       <span className="font-bold text-primary-600 dark:text-primary-400">
