@@ -265,6 +265,14 @@
 
 
 
+
+
+
+
+
+
+
+
 /* Dark Mode Colors */
 .dark {
   /* Dark Mode Primary Colors */
@@ -704,4 +712,237 @@ textarea {
 /* Smooth transitions for dark mode toggle */
 .dark-mode-toggle {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Notification Toast Animations */
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -100px);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, 10px);
+  }
+  100% {
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+}
+
+/* ========================================
+   Custom Scrollbar Styles
+   تنسيقات شريط التمرير المخصص
+   ======================================== */
+
+/* Webkit Browsers (Chrome, Safari, Edge) */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Dark Mode Scrollbar */
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Firefox Scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.dark .scrollbar-thin {
+  scrollbar-color: #4b5563 transparent;
+}
+
+/* Scrollbar Track Colors */
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+}
+
+.scrollbar-thumb-gray-600::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+/* ========================================
+   Sidebar Responsive Enhancements
+   تحسينات responsive للقائمة الجانبية
+   ======================================== */
+
+/* Smooth sidebar transitions */
+@media (max-width: 1024px) {
+  aside {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Scale hover effect */
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+/* Active scale effect */
+.active\:scale-95:active {
+  transform: scale(0.95);
+}
+
+/* ========================================
+   Modern Toggle Switch (RTL-Compatible)
+   زر تبديل حديث يدعم RTL
+   ======================================== */
+
+/* Toggle Container */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hide default checkbox */
+.toggle-switch input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Toggle Track */
+.toggle-track {
+  position: relative;
+  width: 3.5rem;
+  height: 2rem;
+  background-color: #d1d5db;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease-in-out;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle Thumb */
+.toggle-thumb {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: white;
+  border-radius: 9999px;
+  transition: transform 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Checked State - Track */
+.toggle-switch input[type="checkbox"]:checked + .toggle-track {
+  background-color: #10b981;
+}
+
+/* Checked State - Thumb (LTR) */
+[dir="ltr"] .toggle-switch input[type="checkbox"]:checked + .toggle-track .toggle-thumb {
+  transform: translateX(1.5rem);
+}
+
+/* Checked State - Thumb (RTL) */
+[dir="rtl"] .toggle-switch input[type="checkbox"]:checked + .toggle-track .toggle-thumb {
+  transform: translateX(-1.5rem);
+}
+
+/* RTL Support - Initial Position */
+[dir="rtl"] .toggle-thumb {
+  left: auto;
+  right: 0.25rem;
+}
+
+/* Focus State */
+.toggle-switch input[type="checkbox"]:focus + .toggle-track {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Disabled State */
+.toggle-switch input[type="checkbox"]:disabled + .toggle-track {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Color Variants */
+.toggle-green input[type="checkbox"]:checked + .toggle-track {
+  background-color: #10b981;
+}
+
+.toggle-blue input[type="checkbox"]:checked + .toggle-track {
+  background-color: #3b82f6;
+}
+
+.toggle-yellow input[type="checkbox"]:checked + .toggle-track {
+  background-color: #eab308;
+}
+
+.toggle-purple input[type="checkbox"]:checked + .toggle-track {
+  background-color: #a855f7;
+}
+
+.toggle-pink input[type="checkbox"]:checked + .toggle-track {
+  background-color: #ec4899;
+}
+
+.toggle-indigo input[type="checkbox"]:checked + .toggle-track {
+  background-color: #6366f1;
+}
+
+.toggle-teal input[type="checkbox"]:checked + .toggle-track {
+  background-color: #14b8a6;
+}
+
+/* Dark Mode */
+.dark .toggle-track {
+  background-color: #4b5563;
+}
+
+.dark .toggle-thumb {
+  background-color: #f3f4f6;
+}
+
+/* Hover Effect */
+.toggle-switch:hover .toggle-track {
+  opacity: 0.9;
+}
+
+/* Active (Click) Effect */
+.toggle-switch:active .toggle-thumb {
+  width: 1.75rem;
 }

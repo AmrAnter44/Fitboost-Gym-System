@@ -178,7 +178,6 @@
     "all": "All",
     "expiresIn": "Expires in",
     "days": "days",
-    "expired": "Expired",
     "viewDetails": "View Details",
     "hideForm": "Hide Form",
     "clearFilters": "Clear Filters",
@@ -1390,8 +1389,6 @@
       "commissionAmount": "Commission",
       "onPTRevenueOnlyText": "On PT revenue only",
       "memberSignupCommissionsTitle": "Member Signup Commissions ({fromDate} - {toDate})",
-      "coach": "Coach",
-      "total": "Total",
       "staffNumber": "Staff Number",
       "subscriptionCount": "Subscription Count",
       "commissionPerSubscription": "Commission Per Subscription",
@@ -3263,8 +3260,6 @@
       "commissionAmount": "Commission",
       "onPTRevenueOnlyText": "On physiotherapy revenue only",
       "memberSignupCommissionsTitle": "Member Signup Commissions ({fromDate} - {toDate})",
-      "coach": "Physiotherapist",
-      "total": "Total",
       "staffNumber": "Staff Number",
       "subscriptionCount": "Subscription Count",
       "commissionPerSubscription": "Commission Per Subscription",
@@ -3650,8 +3645,6 @@
       "commissionAmount": "Commission",
       "onPTRevenueOnlyText": "On nutrition revenue only",
       "memberSignupCommissionsTitle": "Member Signup Commissions ({fromDate} - {toDate})",
-      "coach": "Nutritionist",
-      "total": "Total",
       "staffNumber": "Staff Number",
       "subscriptionCount": "Subscription Count",
       "commissionPerSubscription": "Commission Per Subscription",
@@ -4028,5 +4021,175 @@
     "warning": "Warning",
     "info": "Info",
     "close": "Close"
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "backToDashboard": "Back",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "saveSuccess": "✅ Settings saved successfully!",
+    "saveError": "❌ Failed to save settings. Please try again.",
+    "saveNetworkError": "❌ Error occurred while saving. Please check your internet connection.",
+    "navigation": {
+      "quickLinks": "Quick Links",
+      "services": "Services",
+      "points": "Points System",
+      "referral": "Referral Commission",
+      "freeSessions": "Free Sessions",
+      "receipts": "Receipts",
+      "display": "Appearance & Language",
+      "database": "Database",
+      "support": "Technical Support"
+    },
+    "services": {
+      "title": "Services Settings",
+      "description": "Enable or disable available services",
+      "nutrition": {
+        "name": "Nutrition",
+        "desc": "Nutritional consultation service"
+      },
+      "physiotherapy": {
+        "name": "Physiotherapy",
+        "desc": "Physiotherapy service"
+      },
+      "groupClass": {
+        "name": "Group Classes",
+        "desc": "Group fitness classes"
+      },
+      "spa": {
+        "name": "Spa",
+        "desc": "Spa and jacuzzi services"
+      },
+      "inBody": {
+        "name": "InBody",
+        "desc": "Body composition analysis"
+      },
+      "pool": {
+        "name": "Pool",
+        "desc": "Swimming pool service"
+      },
+      "padel": {
+        "name": "Padel",
+        "desc": "Padel courts"
+      },
+      "assessment": {
+        "name": "Assessments",
+        "desc": "Physical assessments"
+      }
+    },
+    "points": {
+      "title": "Points System",
+      "description": "Points rewards system settings",
+      "enable": "Enable Points System",
+      "enableDesc": "Enable points rewards system",
+      "perCheckIn": "Points per Check-in",
+      "perCheckInDesc": "Number of points per check-in",
+      "perInvitation": "Points per Invitation",
+      "perInvitationDesc": "Number of points for inviting a new member",
+      "perEGP": "Points per EGP",
+      "perEGPDesc": "Number of points per Egyptian pound spent",
+      "valueInEGP": "Point Value in EGP",
+      "valueInEGPDesc": "Point value when redeeming"
+    },
+    "referral": {
+      "title": "Referral Commission Settings",
+      "description": "Incentivize coaches to market services",
+      "nutritionTitle": "Nutrition Referral",
+      "nutritionDesc": "Commission for coach when marketing nutrition service",
+      "physioTitle": "Physiotherapy Referral",
+      "physioDesc": "Commission for coach when marketing physiotherapy service",
+      "percentage": "Commission Percentage (%)",
+      "exampleNutrition": "Example: 5% = 50 EGP per 1000 EGP subscription",
+      "examplePhysio": "Example: 3% = 30 EGP per 1000 EGP subscription"
+    },
+    "freeSessions": {
+      "title": "Free Sessions",
+      "description": "Free sessions cost tracking settings",
+      "enable": "Enable Cost Tracking",
+      "enableDesc": "Calculate free sessions cost in reports",
+      "ptPrice": "Free PT Session Price (EGP)",
+      "nutritionPrice": "Free Nutrition Session Price (EGP)",
+      "physioPrice": "Free Physiotherapy Session Price (EGP)",
+      "groupClassPrice": "Free Group Class Session Price (EGP)"
+    },
+    "receipts": {
+      "title": "Receipts Settings",
+      "description": "Manage receipts and serial numbers",
+      "website": "Website",
+      "websiteUrl": "Website URL",
+      "websiteUrlDesc": "Your website URL",
+      "showOnReceipts": "Show URL on Receipts",
+      "showOnReceiptsDesc": "Display website URL on all receipts",
+      "serialNumbers": "Serial Numbers",
+      "nextReceiptNumber": "Next Receipt Number",
+      "nextMemberNumber": "Next Member Number",
+      "serialInfo": "ℹ️ Serial numbers are generated automatically. For modifications, use database tools.",
+      "terms": "Receipt Terms and Conditions",
+      "termsLabel": "Text displayed at the bottom of each receipt",
+      "termsPlaceholder": "Enter receipt terms and conditions...",
+      "termsDesc": "This text will be displayed at the bottom of all printed receipts"
+    },
+    "quickLinks": {
+      "title": "Quick Links",
+      "description": "Quick access to system settings",
+      "users": {
+        "title": "User Management",
+        "desc": "Add and edit users"
+      },
+      "offers": {
+        "title": "Membership Offers",
+        "desc": "Manage offers and packages"
+      },
+      "packages": {
+        "title": "Package Management",
+        "desc": "Different service packages"
+      },
+      "audit": {
+        "title": "Event Log",
+        "desc": "Monitor all operations"
+      }
+    },
+    "display": {
+      "title": "Appearance & Language",
+      "description": "Customize system appearance and language",
+      "appearance": "Appearance",
+      "darkMode": "Dark Mode",
+      "lightMode": "Light Mode",
+      "switchToLight": "Switch to Light Mode",
+      "switchToDark": "Switch to Dark Mode",
+      "language": "Language",
+      "arabic": "العربية",
+      "arabicSubtitle": "Arabic",
+      "english": "English",
+      "englishSubtitle": "الإنجليزية"
+    },
+    "database": {
+      "title": "Database",
+      "description": "Restore, backup, and update data",
+      "restore": "Restore Database",
+      "warningTitle": "Important Warning",
+      "warningText": "Restoring the database will replace all current data. Make sure to backup first!",
+      "uploadLabel": "Upload Database File (.db)",
+      "uploadDesc": "Choose gym.db file to restore data",
+      "uploading": "Uploading file...",
+      "prismaUpdate": "Prisma Update",
+      "prismaWhat": "What does this action do?",
+      "prismaStep1": "• Apply latest updates from schema.prisma",
+      "prismaStep2": "• Generate new Prisma Client",
+      "prismaStep3": "• Update database tables",
+      "prismaButton": "Update Prisma",
+      "prismaUpdating": "Updating...",
+      "prismaConfirm": "⚠️ Do you want to apply changes to the database and update Prisma Client?",
+      "prismaSuccess": "✅ Prisma updated successfully!\n\n📦 Changes applied to database\n⚙️ Prisma Client generated",
+      "prismaInfo": "💡 Recommended to restart the server after updating for best performance"
+    },
+    "support": {
+      "title": "Technical Support",
+      "description": "Contact us for assistance",
+      "needHelp": "Need help?",
+      "contactText": "We're here to help! Contact us via WhatsApp",
+      "whatsappButton": "Contact via WhatsApp"
+    }
   }
 }

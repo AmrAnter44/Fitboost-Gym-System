@@ -180,7 +180,6 @@
     "all": "الكل",
     "expiresIn": "ينتهي خلال",
     "days": "أيام",
-    "expired": "منتهي",
     "viewDetails": "عرض التفاصيل",
     "hideForm": "إخفاء النموذج",
     "clearFilters": "مسح الفلاتر",
@@ -1397,8 +1396,6 @@
       "commissionAmount": "العمولة",
       "onPTRevenueOnlyText": "على إيرادات PT فقط",
       "memberSignupCommissionsTitle": "عمولات تسجيل الأعضاء ({fromDate} - {toDate})",
-      "coach": "الكوتش",
-      "total": "الإجمالي",
       "staffNumber": "رقم الموظف",
       "subscriptionCount": "عدد الاشتراكات",
       "commissionPerSubscription": "قيمة العمولة الواحدة",
@@ -3260,8 +3257,6 @@
       "commissionAmount": "العمولة",
       "onPTRevenueOnlyText": "على إيرادات العلاج الطبيعي فقط",
       "memberSignupCommissionsTitle": "عمولات تسجيل الأعضاء ({fromDate} - {toDate})",
-      "coach": "أخصائي العلاج الطبيعي",
-      "total": "الإجمالي",
       "staffNumber": "رقم الموظف",
       "subscriptionCount": "عدد الاشتراكات",
       "commissionPerSubscription": "قيمة العمولة الواحدة",
@@ -3654,8 +3649,6 @@
       "commissionAmount": "العمولة",
       "onPTRevenueOnlyText": "على إيرادات التغذية فقط",
       "memberSignupCommissionsTitle": "عمولات تسجيل الأعضاء ({fromDate} - {toDate})",
-      "coach": "أخصائي التغذية",
-      "total": "الإجمالي",
       "staffNumber": "رقم الموظف",
       "subscriptionCount": "عدد الاشتراكات",
       "commissionPerSubscription": "قيمة العمولة الواحدة",
@@ -4039,5 +4032,175 @@
     "warning": "تحذير",
     "info": "معلومات",
     "close": "إغلاق"
+  },
+  "settingsPage": {
+    "title": "الإعدادات",
+    "backToDashboard": "رجوع",
+    "loading": "جاري التحميل...",
+    "saving": "جاري الحفظ...",
+    "saveChanges": "حفظ التغييرات",
+    "saveSuccess": "تم حفظ الإعدادات بنجاح!",
+    "saveError": "فشل حفظ الإعدادات. حاول مرة أخرى.",
+    "saveNetworkError": "حدث خطأ أثناء الحفظ. تحقق من الاتصال بالإنترنت.",
+    "navigation": {
+      "quickLinks": "روابط سريعة",
+      "services": "الخدمات",
+      "points": "نظام النقاط",
+      "referral": "عمولة Referral",
+      "freeSessions": "الجلسات المجانية",
+      "receipts": "الإيصالات",
+      "display": "المظهر واللغة",
+      "database": "قاعدة البيانات",
+      "support": "الدعم الفني"
+    },
+    "services": {
+      "title": "إعدادات الخدمات",
+      "description": "تفعيل وتعطيل الخدمات المتاحة",
+      "nutrition": {
+        "name": "التغذية",
+        "desc": "خدمة الاستشارات الغذائية"
+      },
+      "physiotherapy": {
+        "name": "العلاج الطبيعي",
+        "desc": "خدمة العلاج الطبيعي"
+      },
+      "groupClass": {
+        "name": "جروب كلاسيس",
+        "desc": "الكلاسات الجماعية"
+      },
+      "spa": {
+        "name": "السبا",
+        "desc": "خدمات السبا والجاكوزي"
+      },
+      "inBody": {
+        "name": "InBody",
+        "desc": "قياس مؤشرات الجسم"
+      },
+      "pool": {
+        "name": "المسبح",
+        "desc": "خدمة المسبح"
+      },
+      "padel": {
+        "name": "البادل",
+        "desc": "ملاعب البادل"
+      },
+      "assessment": {
+        "name": "التقييمات",
+        "desc": "التقييمات البدنية"
+      }
+    },
+    "points": {
+      "title": "نظام النقاط",
+      "description": "إعدادات نظام مكافآت النقاط",
+      "enable": "تفعيل نظام النقاط",
+      "enableDesc": "تفعيل نظام المكافآت بالنقاط",
+      "perCheckIn": "نقاط عند الحضور",
+      "perCheckInDesc": "عدد النقاط عند كل حضور",
+      "perInvitation": "نقاط عند الدعوة",
+      "perInvitationDesc": "عدد النقاط عند دعوة عضو جديد",
+      "perEGP": "نقاط لكل جنيه",
+      "perEGPDesc": "عدد النقاط لكل جنيه يتم دفعه",
+      "valueInEGP": "قيمة النقطة بالجنيه",
+      "valueInEGPDesc": "قيمة النقطة عند الاستبدال"
+    },
+    "referral": {
+      "title": "إعدادات عمولة Referral",
+      "description": "تحفيز الكوتشات على تسويق الخدمات",
+      "nutritionTitle": "Referral للتغذية",
+      "nutritionDesc": "عمولة للكوتش عند تسويق خدمة التغذية",
+      "physioTitle": "Referral للعلاج الطبيعي",
+      "physioDesc": "عمولة للكوتش عند تسويق خدمة العلاج الطبيعي",
+      "percentage": "نسبة العمولة (%)",
+      "exampleNutrition": "مثال: 5% = 50 ج.م لكل اشتراك بـ 1000 ج.م",
+      "examplePhysio": "مثال: 3% = 30 ج.م لكل اشتراك بـ 1000 ج.م"
+    },
+    "freeSessions": {
+      "title": "الجلسات المجانية",
+      "description": "إعدادات تتبع تكلفة الجلسات المجانية",
+      "enable": "تفعيل تتبع التكلفة",
+      "enableDesc": "احتساب تكلفة الجلسات المجانية في التقارير",
+      "ptPrice": "سعر جلسة PT المجانية (جنيه)",
+      "nutritionPrice": "سعر جلسة التغذية المجانية (جنيه)",
+      "physioPrice": "سعر جلسة العلاج الطبيعي المجانية (جنيه)",
+      "groupClassPrice": "سعر جلسة الجروب كلاسيس المجانية (جنيه)"
+    },
+    "receipts": {
+      "title": "إعدادات الإيصالات",
+      "description": "إدارة الإيصالات والأرقام التسلسلية",
+      "website": "الموقع الإلكتروني",
+      "websiteUrl": "رابط الموقع الإلكتروني",
+      "websiteUrlDesc": "رابط موقعك الإلكتروني",
+      "showOnReceipts": "إظهار الرابط في الإيصالات",
+      "showOnReceiptsDesc": "عرض رابط الموقع في جميع الإيصالات",
+      "serialNumbers": "الأرقام التسلسلية",
+      "nextReceiptNumber": "رقم الإيصال التالي",
+      "nextMemberNumber": "رقم العضوية التالي",
+      "serialInfo": "الأرقام التسلسلية يتم توليدها تلقائياً. للتعديل، استخدم أدوات قاعدة البيانات.",
+      "terms": "شروط وأحكام الإيصال",
+      "termsLabel": "النص الذي يظهر في أسفل كل إيصال",
+      "termsPlaceholder": "أدخل شروط وأحكام الإيصال...",
+      "termsDesc": "سيتم عرض هذا النص في أسفل جميع الإيصالات المطبوعة"
+    },
+    "quickLinks": {
+      "title": "روابط سريعة",
+      "description": "الوصول السريع لإعدادات النظام",
+      "users": {
+        "title": "إدارة المستخدمين",
+        "desc": "إضافة وتعديل المستخدمين"
+      },
+      "offers": {
+        "title": "عروض العضوية",
+        "desc": "إدارة العروض والباقات"
+      },
+      "packages": {
+        "title": "إدارة الباقات",
+        "desc": "باقات الخدمات المختلفة"
+      },
+      "audit": {
+        "title": "سجل الأحداث",
+        "desc": "مراقبة جميع العمليات"
+      }
+    },
+    "display": {
+      "title": "المظهر واللغة",
+      "description": "تخصيص شكل ولغة النظام",
+      "appearance": "المظهر",
+      "darkMode": "الوضع الداكن",
+      "lightMode": "الوضع الفاتح",
+      "switchToLight": "التبديل إلى الوضع الفاتح",
+      "switchToDark": "التبديل إلى الوضع الداكن",
+      "language": "اللغة",
+      "arabic": "العربية",
+      "arabicSubtitle": "Arabic",
+      "english": "English",
+      "englishSubtitle": "الإنجليزية"
+    },
+    "database": {
+      "title": "قاعدة البيانات",
+      "description": "استعادة ونسخ احتياطي وتحديث البيانات",
+      "restore": "استعادة قاعدة البيانات",
+      "warningTitle": "تحذير مهم",
+      "warningText": "استعادة قاعدة البيانات ستستبدل جميع البيانات الحالية. تأكد من أخذ نسخة احتياطية أولاً!",
+      "uploadLabel": "رفع ملف قاعدة البيانات (.db)",
+      "uploadDesc": "اختر ملف gym.db لاستعادة البيانات",
+      "uploading": "جاري رفع الملف...",
+      "prismaUpdate": "تحديث Prisma",
+      "prismaWhat": "ماذا يفعل هذا الإجراء؟",
+      "prismaStep1": "تطبيق آخر التحديثات من schema.prisma",
+      "prismaStep2": "توليد Prisma Client الجديد",
+      "prismaStep3": "تحديث جداول قاعدة البيانات",
+      "prismaButton": "تحديث Prisma",
+      "prismaUpdating": "جاري التحديث...",
+      "prismaConfirm": "هل تريد تطبيق التغييرات على قاعدة البيانات وتحديث Prisma Client؟",
+      "prismaSuccess": "تم تحديث Prisma بنجاح!\n\nتم تطبيق التغييرات على قاعدة البيانات\nتم توليد Prisma Client",
+      "prismaInfo": "يُنصح بإعادة تشغيل السيرفر بعد التحديث للحصول على أفضل أداء"
+    },
+    "support": {
+      "title": "الدعم الفني",
+      "description": "تواصل معنا للحصول على المساعدة",
+      "needHelp": "تحتاج مساعدة؟",
+      "contactText": "نحن هنا لمساعدتك! تواصل معنا عبر واتساب",
+      "whatsappButton": "تواصل عبر واتساب"
+    }
   }
 }
