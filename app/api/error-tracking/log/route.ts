@@ -80,13 +80,17 @@ export async function POST(request: Request) {
         }
       : undefined
 
+    // Add browser info to context if available
+    if (browserInfo) {
+      context.browserInfo = browserInfo
+    }
+
     // Log to error tracking system (non-blocking)
     logFrontendError({
       message,
       error,
       url,
       userAgent,
-      browserInfo,
       additionalContext: context,
     }).catch((err) => {
       // Log to console but don't fail the request

@@ -33,6 +33,9 @@ interface Member {
   freeNutritionSessions: number
   freePhysioSessions: number
   freeGroupClassSessions: number
+  freePoolSessions: number
+  freePadelSessions: number
+  freeAssessmentSessions: number
   remainingFreezeDays: number
   subscriptionPrice: number
   remainingAmount: number
@@ -469,7 +472,7 @@ export default function MemberDetailPage() {
       if (response.ok) {
         toast.success(t('memberDetails.pointsUpdatedSuccessfully', {
           action: pointsValue > 0 ? t('memberDetails.added') : t('memberDetails.deducted'),
-          count: Math.abs(pointsValue)
+          count: Math.abs(pointsValue).toString()
         }))
         setAddPointsData({ points: '', reason: '' })
         setShowAddPointsModal(false)
@@ -3574,9 +3577,6 @@ export default function MemberDetailPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Assessment History Modal */}
       )}
 
       {/* Modal عرض صور البطاقة الشخصية */}

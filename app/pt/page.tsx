@@ -33,6 +33,7 @@ interface PTSession {
   sessionsRemaining: number
   coachName: string
   pricePerSession: number
+  ptCommissionAmount?: number
   remainingAmount?: number
   startDate: string | null
   expiryDate: string | null
@@ -311,6 +312,7 @@ export default function PTPage() {
       expiryDate: session.expiryDate ? formatDateYMD(session.expiryDate) : '',
       paymentMethod: 'cash',
       staffName: user?.name || '',
+      ptCommissionAmount: session.ptCommissionAmount || 0,
     })
     setEditingSession(session)
     setShowForm(true)

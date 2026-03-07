@@ -45,6 +45,12 @@ interface Attendance {
   duration: number | null
   notes: string | null
   createdAt: string
+  staff: {
+    id: string
+    staffCode: string
+    name: string
+    position?: string
+  }
 }
 
 interface Staff {

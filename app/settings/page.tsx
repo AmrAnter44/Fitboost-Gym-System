@@ -153,7 +153,7 @@ export default function SettingsPage() {
   }
 
   const handleLanguageChange = (newLocale: string) => {
-    setLanguage(newLocale)
+    setLanguage(newLocale as 'ar' | 'en')
   }
 
   const handleDbUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

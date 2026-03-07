@@ -4,8 +4,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAuth } from '@/lib/auth'
-import { requirePermission } from '@/lib/permissions'
+import { verifyAuth, requirePermission } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,12 +22,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   try {
     // التحقق من المصادقة والصلاحيات
-    const user = await verifyAuth(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    await requirePermission(user, 'canAccessAdmin')
+    await requirePermission(request, 'canAccessAdmin')
 
     // Parse query parameters
     const url = new URL(request.url)
