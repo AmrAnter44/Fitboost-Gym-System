@@ -114,6 +114,12 @@ export default function UpgradeForm({ member, onSuccess, onClose }: UpgradeFormP
   const isUpgradeEligible = (offer: Offer): boolean => {
     if (!member.startDate || !member.expiryDate) return false
 
+    // ✅ Admin و Owner لهم صلاحية كاملة بدون قيود
+    const isAdminOrOwner = currentUser?.role === 'ADMIN' || currentUser?.role === 'OWNER'
+    if (isAdminOrOwner) {
+      return true  // ✅ بدون أي قيود للأدمن والأونر
+    }
+
     // حساب مدة الباقة الحالية
     const currentDuration = calculateDaysBetween(member.startDate, member.expiryDate)
 

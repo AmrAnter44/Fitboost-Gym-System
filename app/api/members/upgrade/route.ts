@@ -88,23 +88,28 @@ export async function POST(request: Request) {
       }, { status: 404 })
     }
 
-    // 5. التحقق من تفعيل الترقية للباكدج
-    if (newOffer.upgradeEligibilityDays === null) {
+    // ✅ التحقق من صلاحية المستخدم - Admin و Owner لهم صلاحية كاملة بدون قيود
+    const isAdminOrOwner = user.role === 'ADMIN' || user.role === 'OWNER'
+
+    // 5. التحقق من تفعيل الترقية للباكدج (إلا للأدمن والأونر)
+    if (!isAdminOrOwner && newOffer.upgradeEligibilityDays === null) {
       return NextResponse.json({
         error: 'هذا الباكدج غير قابل للترقية إليه'
       }, { status: 422 })
     }
 
-    // 6. التحقق من فترة الترقية المسموحة
-    const daysSinceStart = calculateDaysBetween(member.startDate, now)
-    if (daysSinceStart > newOffer.upgradeEligibilityDays) {
-      return NextResponse.json({
-        error: `انتهت فترة الترقية المسموحة. يمكن الترقية خلال ${newOffer.upgradeEligibilityDays} يوم فقط من بداية الاشتراك`
-      }, { status: 422 })
+    // 6. التحقق من فترة الترقية المسموحة (إلا للأدمن والأونر)
+    if (!isAdminOrOwner && newOffer.upgradeEligibilityDays !== null) {
+      const daysSinceStart = calculateDaysBetween(member.startDate, now)
+      if (daysSinceStart > newOffer.upgradeEligibilityDays) {
+        return NextResponse.json({
+          error: `انتهت فترة الترقية المسموحة. يمكن الترقية خلال ${newOffer.upgradeEligibilityDays} يوم فقط من بداية الاشتراك`
+        }, { status: 422 })
+      }
     }
 
-    // 7. التحقق من أن السعر الجديد أعلى
-    if (newOffer.price <= member.subscriptionPrice) {
+    // 7. التحقق من أن السعر الجديد أعلى (إلا للأدمن والأونر)
+    if (!isAdminOrOwner && newOffer.price <= member.subscriptionPrice) {
       return NextResponse.json({
         error: 'يمكن الترقية فقط لباكدجات أعلى سعراً من الباكدج الحالي'
       }, { status: 422 })
