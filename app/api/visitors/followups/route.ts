@@ -32,6 +32,13 @@ export async function GET(request: Request) {
             status: true,
           },
         },
+        assignedStaff: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+          },
+        },
       },
     })
 
@@ -52,7 +59,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateFollowUp')
 
     const body = await request.json()
-    const { visitorId, notes, contacted, nextFollowUpDate, result, salesName, visitorData } = body
+    const { visitorId, notes, contacted, nextFollowUpDate, result, salesName, visitorData, assignedTo, priority, stage } = body
 
     if (!visitorId || !notes) {
       return NextResponse.json(
@@ -104,17 +111,91 @@ export async function POST(request: Request) {
       }
     }
 
-    // إنشاء المتابعة
-    const followUp = await prisma.followUp.create({
-      data: {
+    // ✅ التحقق من وجود متابعة موجودة لنفس الزائر
+    const existingFollowUp = await prisma.followUp.findFirst({
+      where: {
         visitorId: actualVisitorId,
-        notes: notes.trim(),
-        contacted: contacted || false,
-        nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate) : null,
-        result: result?.trim(), // 'interested', 'not-interested', 'postponed', 'subscribed'
-        salesName: salesName?.trim(), // اسم البائع الذي قام بالمتابعة
+        archived: false // فقط المتابعات النشطة
       },
+      orderBy: {
+        createdAt: 'desc' // أحدث متابعة
+      }
     })
+
+    let followUp
+    let isUpdate = false
+
+    if (existingFollowUp) {
+      // ✅ تحديث المتابعة الموجودة بدلاً من إنشاء واحدة جديدة
+      isUpdate = true
+      followUp = await prisma.followUp.update({
+        where: { id: existingFollowUp.id },
+        data: {
+          notes: notes.trim(),
+          contacted: contacted || existingFollowUp.contacted,
+          nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate) : existingFollowUp.nextFollowUpDate,
+          result: result?.trim() || existingFollowUp.result,
+          salesName: salesName?.trim() || existingFollowUp.salesName,
+          assignedTo: assignedTo !== undefined ? assignedTo : existingFollowUp.assignedTo,
+          priority: priority || existingFollowUp.priority,
+          stage: stage || existingFollowUp.stage,
+          lastContactedAt: contacted ? new Date() : existingFollowUp.lastContactedAt,
+          contactCount: contacted ? (existingFollowUp.contactCount || 0) + 1 : existingFollowUp.contactCount,
+        },
+      })
+    } else {
+      // ✅ إنشاء متابعة جديدة
+      followUp = await prisma.followUp.create({
+        data: {
+          visitorId: actualVisitorId,
+          notes: notes.trim(),
+          contacted: contacted || false,
+          nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate) : null,
+          result: result?.trim(),
+          salesName: salesName?.trim(),
+          assignedTo: assignedTo || null,
+          priority: priority || 'medium',
+          stage: stage || 'new',
+          lastContactedAt: contacted ? new Date() : null,
+          contactCount: contacted ? 1 : 0,
+        },
+      })
+    }
+
+    // ✅ تسجيل النشاط (Activity Log)
+    try {
+      // تسجيل التحديث أو الإنشاء
+      if (isUpdate) {
+        await prisma.followUpActivity.create({
+          data: {
+            followUpId: followUp.id,
+            activityType: 'note',
+            notes: `تم تحديث المتابعة: ${notes.trim()}${contacted ? ' ✅ تم التواصل' : ''}`,
+            createdBy: user.staffId || user.userId,
+          }
+        })
+      }
+
+      // تسجيل التوزيع إذا تم تحديد موظف
+      if (assignedTo && !isUpdate) {
+        const assignedStaff = await prisma.staff.findUnique({
+          where: { id: assignedTo },
+          select: { name: true }
+        })
+
+        await prisma.followUpActivity.create({
+          data: {
+            followUpId: followUp.id,
+            activityType: 'assignment',
+            notes: `تم إسناد المتابعة إلى ${assignedStaff?.name || 'موظف'}`,
+            createdBy: user.staffId || user.userId,
+          }
+        })
+      }
+    } catch (activityError) {
+      console.error('Error creating activity:', activityError)
+      // لا نوقف العملية إذا فشل تسجيل النشاط
+    }
 
     // تحديث حالة الزائر إذا لزم الأمر
     if (result === 'subscribed') {
@@ -154,7 +235,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json()
-    const { id, notes, contacted, nextFollowUpDate, result } = body
+    const { id, notes, contacted, nextFollowUpDate, result, assignedTo, priority, stage, contactCount, lastContactedAt } = body
 
     if (!id) {
       return NextResponse.json(
@@ -163,6 +244,12 @@ export async function PUT(request: Request) {
       )
     }
 
+    // جلب المتابعة الحالية للمقارنة
+    const currentFollowUp = await prisma.followUp.findUnique({
+      where: { id },
+      select: { assignedTo: true, contacted: true }
+    })
+
     const updateData: any = {}
     if (notes !== undefined) updateData.notes = notes.trim()
     if (contacted !== undefined) updateData.contacted = contacted
@@ -170,6 +257,44 @@ export async function PUT(request: Request) {
       updateData.nextFollowUpDate = nextFollowUpDate ? new Date(nextFollowUpDate) : null
     }
     if (result !== undefined) updateData.result = result?.trim()
+    if (priority !== undefined) updateData.priority = priority
+    if (stage !== undefined) updateData.stage = stage
+
+    // تحديث assignedTo مع تسجيل إعادة التوزيع
+    if (assignedTo !== undefined) {
+      updateData.assignedTo = assignedTo
+
+      // تسجيل إعادة التوزيع إذا تغير الموظف
+      if (assignedTo && assignedTo !== currentFollowUp?.assignedTo) {
+        try {
+          const newStaff = await prisma.staff.findUnique({
+            where: { id: assignedTo },
+            select: { name: true }
+          })
+
+          await prisma.followUpActivity.create({
+            data: {
+              followUpId: id,
+              activityType: 'assignment',
+              notes: `تم إعادة الإسناد إلى ${newStaff?.name || 'موظف'}`,
+              createdBy: user.staffId || user.userId
+            }
+          })
+        } catch (activityError) {
+          console.error('Error creating reassignment activity:', activityError)
+        }
+      }
+    }
+
+    // تحديث contactCount عند التواصل
+    if (contacted === true && !currentFollowUp?.contacted) {
+      updateData.contactCount = { increment: 1 }
+      updateData.lastContactedAt = new Date()
+    }
+
+    // السماح بتحديث يدوي لـ contactCount و lastContactedAt
+    if (contactCount !== undefined) updateData.contactCount = contactCount
+    if (lastContactedAt !== undefined) updateData.lastContactedAt = lastContactedAt ? new Date(lastContactedAt) : null
 
     const followUp = await prisma.followUp.update({
       where: { id },

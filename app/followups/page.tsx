@@ -34,6 +34,7 @@ interface Visitor {
   phone: string
   source: string
   status: string
+  createdAt?: string
 }
 
 interface FollowUp {
@@ -45,6 +46,16 @@ interface FollowUp {
   salesName?: string
   createdAt: string
   visitor: Visitor
+  assignedTo?: string
+  assignedStaff?: {
+    id: string
+    name: string
+    position?: string
+  }
+  priority?: string
+  stage?: string
+  lastContactedAt?: string
+  contactCount?: number
 }
 
 interface Member {
@@ -129,6 +140,22 @@ export default function FollowUpsPage() {
     staleTime: 2 * 60 * 1000,
   })
 
+  // ✅ جلب الموظفين النشطين
+  const {
+    data: staffList = [],
+    error: staffError
+  } = useQuery({
+    queryKey: ['staff-active'],
+    queryFn: async () => {
+      const res = await fetch('/api/staff')
+      if (!res.ok) throw new Error('Failed to fetch staff')
+      const data = await res.json()
+      return data.filter((s: any) => s.isActive)
+    },
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+  })
+
   // Extract visitors and members from queries
   const visitors = visitorsData
   const allMembers = allMembersData
@@ -152,7 +179,12 @@ export default function FollowUpsPage() {
     },
     onSuccess: () => {
       toast.success(t('followups.messages.deleteSuccess'))
+      // ✅ Invalidate جميع الـ queries لتجنب التكرار
       queryClient.invalidateQueries({ queryKey: ['followups'] })
+      queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+      queryClient.invalidateQueries({ queryKey: ['members-followups'] })
+      queryClient.invalidateQueries({ queryKey: ['dayuse-followups'] })
+      queryClient.invalidateQueries({ queryKey: ['invitations-followups'] })
     },
     onError: (error: Error, _id, context) => {
       if (context?.previousData) {
@@ -241,68 +273,129 @@ export default function FollowUpsPage() {
 
   // ✅ دمج المتابعات الحقيقية مع الأعضاء المنتهيين + الأعضاء القريبين من الانتهاء + Day Use + Invitations
   const allFollowUps = useMemo(() => {
-    // 1. الأعضاء المنتهيين
-    const expiredFollowUps: FollowUp[] = expiredMembers.map(member => ({
-      id: member.id,
-      notes: 'عضو منتهي - يحتاج تجديد اشتراك',
-      contacted: false,
-      nextFollowUpDate: new Date().toISOString(),
-      result: undefined,
-      salesName: 'نظام',
-      createdAt: new Date().toISOString(),
-      visitor: member
-    }))
+    // ✅ تنظيف رقم الهاتف
+    const normalizePhone = (phone: string) => {
+      if (!phone) return ''
+      let normalized = phone.replace(/[\s\-\(\)\+]/g, '').trim()
+      if (normalized.startsWith('2')) normalized = normalized.substring(1)
+      if (normalized.startsWith('0')) normalized = normalized.substring(1)
+      return normalized
+    }
 
-    // 2. الأعضاء اللي اشتراكهم قرب ينتهي
-    const expiringFollowUps: FollowUp[] = expiringMembers.map((member: any) => ({
-      id: member.id,
-      notes: `اشتراك قرب ينتهي - باقي ${member.daysLeft} يوم فقط`,
-      contacted: false,
-      nextFollowUpDate: new Date().toISOString(),
-      result: undefined,
-      salesName: 'نظام',
-      createdAt: new Date().toISOString(),
-      visitor: member
-    }))
+    // ✅ إنشاء Set من أرقام المتابعات الحقيقية لتجنب التكرار
+    const realFollowUpPhones = new Set<string>()
 
-    // 3. Day Use (استخدام InBody يوم واحد)
-    const dayUseFollowUps: FollowUp[] = dayUseRecords.map(record => ({
-      id: `dayuse-${record.id}`,
-      notes: `استخدام ${record.serviceType} - فرصة للاشتراك`,
-      contacted: false,
-      nextFollowUpDate: new Date().toISOString(),
-      result: undefined,
-      salesName: record.staffName || 'نظام',
-      createdAt: record.createdAt,
-      visitor: {
+    followUps.forEach(fu => {
+      if (fu.visitor?.phone) {
+        realFollowUpPhones.add(normalizePhone(fu.visitor.phone))
+      }
+    })
+
+    // 1. الأعضاء المنتهيين (فقط اللي مش عندهم متابعة حقيقية)
+    const expiredFollowUps: FollowUp[] = expiredMembers
+      .filter(member => !realFollowUpPhones.has(normalizePhone(member.phone)))
+      .map(member => ({
+        id: member.id,
+        notes: 'عضو منتهي - يحتاج تجديد اشتراك',
+        contacted: false,
+        nextFollowUpDate: new Date().toISOString(),
+        result: undefined,
+        salesName: 'نظام',
+        createdAt: new Date().toISOString(),
+        visitor: member,
+        assignedTo: undefined,
+        assignedStaff: undefined,
+        priority: 'high'
+      }))
+
+    // 2. الأعضاء اللي اشتراكهم قرب ينتهي (فقط اللي مش عندهم متابعة حقيقية)
+    const expiringFollowUps: FollowUp[] = expiringMembers
+      .filter((member: any) => !realFollowUpPhones.has(normalizePhone(member.phone)))
+      .map((member: any) => ({
+        id: member.id,
+        notes: `اشتراك قرب ينتهي - باقي ${member.daysLeft} يوم فقط`,
+        contacted: false,
+        nextFollowUpDate: new Date().toISOString(),
+        result: undefined,
+        salesName: 'نظام',
+        createdAt: new Date().toISOString(),
+        visitor: member,
+        assignedTo: undefined,
+        assignedStaff: undefined,
+        priority: 'medium'
+      }))
+
+    // 3. Day Use (استخدام InBody يوم واحد) - فقط اللي مش عندهم متابعة حقيقية
+    const dayUseFollowUps: FollowUp[] = dayUseRecords
+      .filter(record => !realFollowUpPhones.has(normalizePhone(record.phone)))
+      .map(record => ({
         id: `dayuse-${record.id}`,
-        name: record.name,
-        phone: record.phone,
-        source: 'invitation', // 🎁 استخدام يوم
-        status: 'pending'
-      }
-    }))
+        notes: `استخدام ${record.serviceType} - فرصة للاشتراك`,
+        contacted: false,
+        nextFollowUpDate: new Date().toISOString(),
+        result: undefined,
+        salesName: record.staffName || 'نظام',
+        createdAt: record.createdAt,
+        visitor: {
+          id: `dayuse-${record.id}`,
+          name: record.name,
+          phone: record.phone,
+          source: 'invitation', // 🎁 استخدام يوم
+          status: 'pending'
+        },
+        assignedTo: undefined,
+        assignedStaff: undefined,
+        priority: 'medium'
+      }))
 
-    // 4. Invitations (دعوات من أعضاء)
-    const invitationFollowUps: FollowUp[] = invitations.map(inv => ({
-      id: `invitation-${inv.id}`,
-      notes: `دعوة من عضو - ${inv.member?.name || 'عضو'}`,
-      contacted: false,
-      nextFollowUpDate: new Date().toISOString(),
-      result: undefined,
-      salesName: 'نظام',
-      createdAt: inv.createdAt,
-      visitor: {
+    // 4. Invitations (دعوات من أعضاء) - فقط اللي مش عندهم متابعة حقيقية
+    const invitationFollowUps: FollowUp[] = invitations
+      .filter(inv => !realFollowUpPhones.has(normalizePhone(inv.guestPhone)))
+      .map(inv => ({
         id: `invitation-${inv.id}`,
-        name: inv.guestName,
-        phone: inv.guestPhone,
-        source: 'member-invitation', // 👥 دعوة من عضو
-        status: 'pending'
-      }
-    }))
+        notes: `دعوة من عضو - ${inv.member?.name || 'عضو'}`,
+        contacted: false,
+        nextFollowUpDate: new Date().toISOString(),
+        result: undefined,
+        salesName: 'نظام',
+        createdAt: inv.createdAt,
+        visitor: {
+          id: `invitation-${inv.id}`,
+          name: inv.guestName,
+          phone: inv.guestPhone,
+          source: 'member-invitation', // 👥 دعوة من عضو
+          status: 'pending'
+        },
+        assignedTo: undefined,
+        assignedStaff: undefined,
+        priority: 'medium'
+      }))
 
-    return [...followUps, ...expiredFollowUps, ...expiringFollowUps, ...dayUseFollowUps, ...invitationFollowUps]
-  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, invitations])
+    // 5. الزوار العاديين (Visitors) - فقط اللي مش عندهم متابعة حقيقية
+    const regularVisitorFollowUps: FollowUp[] = visitors
+      .filter(visitor => !realFollowUpPhones.has(normalizePhone(visitor.phone)))
+      .map(visitor => ({
+        id: `visitor-${visitor.id}`,
+        notes: `زائر جديد - ${visitor.source || 'walk-in'}`,
+        contacted: false,
+        nextFollowUpDate: new Date().toISOString(),
+        result: undefined,
+        salesName: undefined,
+        createdAt: visitor.createdAt || new Date().toISOString(),
+        visitor: {
+          id: visitor.id,
+          name: visitor.name,
+          phone: visitor.phone,
+          source: visitor.source || 'walk-in',
+          status: visitor.status || 'pending'
+        },
+        assignedTo: undefined,
+        assignedStaff: undefined,
+        priority: 'medium'
+      }))
+
+    return [...followUps, ...expiredFollowUps, ...expiringFollowUps, ...dayUseFollowUps, ...invitationFollowUps, ...regularVisitorFollowUps]
+  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, invitations, visitors])
 
   const handleSubmit = async (formData: {
     visitorId: string
@@ -357,7 +450,12 @@ export default function FollowUpsPage() {
 
       if (response.ok) {
         toast.success('تم إضافة المتابعة بنجاح!')
-        await refetchFollowUps()
+        // ✅ Invalidate جميع الـ queries لتجنب التكرار
+        await queryClient.invalidateQueries({ queryKey: ['followups'] })
+        await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+        await queryClient.invalidateQueries({ queryKey: ['members-followups'] })
+        await queryClient.invalidateQueries({ queryKey: ['dayuse-followups'] })
+        await queryClient.invalidateQueries({ queryKey: ['invitations-followups'] })
         setShowForm(false)
         setSelectedVisitorId('')
       } else {
@@ -1190,22 +1288,6 @@ export default function FollowUpsPage() {
               className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
               placeholder={t('followups.filters.searchPlaceholder')}
             />
-          </div>
-
-          <div>
-            <label className="block text-xs sm:text-sm font-medium mb-1 dark:text-gray-200">📂 {t('followups.filters.source')}</label>
-            <select
-              value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-            >
-              <option value="all">{t('followups.filters.all')}</option>
-              <option value="expired-member">❌ {t('followups.sources.expiredMembers')}</option>
-              <option value="expiring-member">⏰ {t('followups.sources.expiringMembers')}</option>
-              <option value="member-invitation">👥 {t('followups.sources.memberInvitations')}</option>
-              <option value="dayuse">🎁 {t('followups.sources.dayUse')}</option>
-              <option value="visitors">👤 {t('followups.sources.visitors')}</option>
-            </select>
           </div>
 
           <div>

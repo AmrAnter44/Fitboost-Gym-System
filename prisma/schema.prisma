@@ -17,6 +17,7 @@ model Member {
   name              String
   phone             String       // سيتم التحقق من التكرار في الـ API للأعضاء الجُدد
   backupPhone       String?
+  email             String?
   nationalId        String?
   birthDate         DateTime?
   source            String?
@@ -255,7 +256,7 @@ model Staff {
   staffCode    String         @unique
   name         String
   phone        String?
-  position     String?
+  position     String?        // Can store multiple positions as comma-separated (e.g., "مدرب,ريسبشن,بار")
   salary       Float?
   notes        String?
   isActive     Boolean        @default(true)
@@ -843,6 +844,7 @@ model SystemSettings {
   pointsPerInvitation   Int      @default(2)
   pointsPerReferral     Int      @default(0)    // نقاط إحالة عضو جديد
   pointsPerEGPSpent     Float    @default(0.1)  // نقاط لكل جنيه يتم دفعه
+  pointsPerBirthday     Int      @default(10)   // نقاط عيد الميلاد للأعضاء النشطين
   pointsValueInEGP      Float    @default(0.1)
   websiteUrl            String?  @default("https://www.xgym.website")  // رابط الموقع الإلكتروني
   showWebsiteOnReceipts Boolean  @default(false)  // عرض رابط الموقع في الإيصالات
@@ -864,6 +866,9 @@ model SystemSettings {
   nutritionReferralPercentage Float    @default(0)      // نسبة عمولة Referral للتغذية (%)
   physioReferralEnabled       Boolean  @default(false)  // تفعيل/تعطيل Referral للعلاج الطبيعي
   physioReferralPercentage    Float    @default(0)      // نسبة عمولة Referral للعلاج الطبيعي (%)
+
+  // نظام نقاط عيد الميلاد التلقائي
+  lastBirthdayPointsCheck     String?  @default("1970-01-01")  // آخر تاريخ تم فيه التحقق من أعياد الميلاد (YYYY-MM-DD)
 
   updatedAt             DateTime @updatedAt
   updatedBy             String?

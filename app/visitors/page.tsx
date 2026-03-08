@@ -612,86 +612,41 @@ export default function VisitorsPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">🔍 {t('visitors.filters.search')}</label>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder={t('visitors.filters.searchPlaceholder')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">📅 {t('visitors.filters.month')}</label>
-            <select
-              value={monthFilter}
-              onChange={(e) => setMonthFilter(e.target.value)}
-              className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="all">{t('visitors.filters.allMonths', { count: visitors.length.toString() })}</option>
-              {availableMonths.map(month => {
-                const count = visitors.filter(v => {
-                  const date = new Date(v.createdAt)
-                  const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-                  return yearMonth === month
-                }).length
-                return (
-                  <option key={month} value={month}>
-                    {getMonthLabel(month)} ({count})
-                  </option>
-                )
-              })}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">📂 {t('visitors.filters.source')}</label>
-            <select
-              value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
-              className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="all">{t('visitors.filters.all')}</option>
-              <option value="walk-in">{t('visitors.sources.walkIn')}</option>
-              <option value="facebook">{t('visitors.sources.facebook')}</option>
-              <option value="instagram">{t('visitors.sources.instagram')}</option>
-              <option value="friend">{t('visitors.sources.friend')}</option>
-              <option value="other">{t('visitors.sources.other')}</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">📊 {t('visitors.filters.status')}</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="all">{t('visitors.filters.all')}</option>
-              <option value="pending">{t('visitors.status.pending')}</option>
-              <option value="contacted">{t('visitors.status.contacted')}</option>
-              <option value="subscribed">{t('visitors.status.subscribed')}</option>
-              <option value="rejected">{t('visitors.status.rejected')}</option>
-            </select>
-          </div>
+      {/* Visitors Info */}
+      <div className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-primary-300 dark:border-primary-600 rounded-xl p-6 sm:p-8 text-center">
+        <div className="text-6xl mb-4">👥</div>
+        <h3 className="text-2xl font-bold text-primary-900 dark:text-primary-100 mb-3">
+          {t('visitors.info.title')}
+        </h3>
+        <p className="text-primary-700 dark:text-primary-200 mb-4 max-w-2xl mx-auto">
+          {t('visitors.info.description')}
+        </p>
+        <div className="flex gap-3 justify-center flex-wrap">
+          <button
+            onClick={() => router.push('/followups')}
+            className="bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-bold text-lg shadow-lg transition-all hover:scale-105"
+          >
+            📋 {t('visitors.info.goToFollowUps')}
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white px-6 py-3 rounded-lg font-bold text-lg shadow-lg transition-all hover:scale-105"
+          >
+            ➕ {t('visitors.info.quickAdd')}
+          </button>
         </div>
       </div>
 
-      {/* Visitors Table */}
-      {loading ? (
+      {/* Quick Add (Hidden List) */}
+      {false && loading ? (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">⏳</div>
           <p className="text-xl">{t('visitors.loading')}</p>
         </div>
       ) : (
         <>
-          {/* Cards للموبايل (Virtualized) */}
-          <div className="lg:hidden">
+          {/* Cards للموبايل (Virtualized) - مخفي */}
+          <div className="lg:hidden hidden">
             <VirtualVisitorList
               visitors={filteredVisitors}
               onFollowUp={openQuickFollowUp}
@@ -721,8 +676,8 @@ export default function VisitorsPage() {
             )}
           </div>
 
-          {/* الجدول للشاشات الكبيرة */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+          {/* الجدول للشاشات الكبيرة - مخفي */}
+          <div className="hidden bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
                 <tr>

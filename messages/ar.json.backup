@@ -1705,7 +1705,7 @@
       "actions": "إجراءات"
     },
     "card": {
-      "client": "العميل:",
+      "client": "العميل",
       "membership": "عضوية",
       "subscriptionDuration": "مدة الاشتراك",
       "month": "شهر",
@@ -1713,16 +1713,13 @@
       "expiresOn": "ينتهي في",
       "paidAmount": "المبلغ المدفوع",
       "discount": "الخصم",
-      "services": "الخدمات",
-      "receiptNumber": "رقم الإيصال"
+      "services": "الخدمات"
     },
     "actions": {
       "print": "طباعة",
       "edit": "تعديل",
       "delete": "حذف",
-      "printError": "حدث خطأ في الطباعة",
-      "viewDetails": "التفاصيل",
-      "cancel": "إلغاء"
+      "printError": "حدث خطأ في الطباعة"
     },
     "serviceDetails": {
       "nutrition": "تفاصيل التغذية",
@@ -1820,27 +1817,6 @@
     "messages": {
       "updated": "تم تحديث الرقم التالي بنجاح",
       "updateError": "حدث خطأ في التحديث"
-    },
-    "details": {
-      "membershipRenewal": "تفاصيل التجديد",
-      "packageUpgrade": "تفاصيل الترقية",
-      "membershipDetails": "تفاصيل العضوية",
-      "duration": "المدة:",
-      "month": "شهر",
-      "months": "شهور",
-      "day": "يوم",
-      "days": "أيام",
-      "subscriptionPrice": "سعر الاشتراك:",
-      "from": "من:",
-      "to": "إلى:",
-      "ptDetails": "تفاصيل البرايفت",
-      "sessionsCount": "عدد الجلسات:",
-      "session": "جلسة",
-      "coach": "الكوتش:",
-      "pricePerSession": "سعر الجلسة:",
-      "until": "حتى",
-      "discount": "خصم:",
-      "service": "خدمة"
     }
   },
   "expenses": {
@@ -2012,12 +1988,12 @@
     },
     "historyModal": {
       "title": "سجل المتابعات",
-      "noFollowUps": "لا توجد متابعات لهذا الزائر",
-      "addFirst": "إضافة أول متابعة",
-      "completed": "تم",
-      "notCompleted": "لم يتم",
       "total": "المجموع",
-      "nextFollowUp": "المتابعة القادمة"
+      "noHistory": "لا توجد متابعات لهذا الزائر",
+      "addFirst": "إضافة أول متابعة",
+      "contacted": "تم",
+      "notContacted": "لم يتم",
+      "nextFollowUp": "القادمة"
     },
     "results": {
       "interested": "مهتم",
@@ -2068,6 +2044,15 @@
     },
     "stats": {
       "visitorsOf": "زوار"
+    },
+    "historyModal": {
+      "title": "سجل المتابعات",
+      "noFollowUps": "لا توجد متابعات لهذا الزائر",
+      "addFirst": "إضافة أول متابعة",
+      "completed": "تم",
+      "notCompleted": "لم يتم",
+      "total": "المجموع",
+      "nextFollowUp": "المتابعة القادمة"
     }
   },
   "followups": {
@@ -4146,9 +4131,7 @@
       "perEGP": "نقاط لكل جنيه",
       "perEGPDesc": "عدد النقاط لكل جنيه يتم دفعه",
       "valueInEGP": "قيمة النقطة بالجنيه",
-      "valueInEGPDesc": "قيمة النقطة عند الاستبدال",
-      "perBirthday": "نقاط عيد الميلاد",
-      "perBirthdayDesc": "عدد النقاط التي يحصل عليها العضو النشط في يوم عيد ميلاده تلقائياً"
+      "valueInEGPDesc": "قيمة النقطة عند الاستبدال"
     },
     "referral": {
       "title": "إعدادات عمولة Referral",
@@ -4284,12 +4267,5 @@
       "sessionPrice": "سعر الجلسة",
       "simpleRegistration": "تسجيل مبسط - اسم ورقم وسعر الجلسة فقط"
     }
-  },
-  "homepageClassBookings": {
-    "todayClassBookings": "حجوزات الكلاس اليوم",
-    "noBookingsYet": "لا توجد حجوزات حتى الآن",
-    "deletedMember": "عضو محذوف",
-    "todayClasses": "كلاسيس اليوم",
-    "minutes": "د"
   }
 }

@@ -18,6 +18,9 @@ interface FollowUpFormProps {
     result: string
     nextFollowUpDate: string
     contacted: boolean
+    assignedTo?: string
+    priority?: string
+    stage?: string
   }) => Promise<void>
   onClose: () => void
 }
@@ -35,14 +38,29 @@ export default function FollowUpForm({
   const { t, direction } = useLanguage()
   const { user } = usePermissions()
   const [loading, setLoading] = useState(false)
+  const [staff, setStaff] = useState<any[]>([])
   const [formData, setFormData] = useState({
     visitorId: initialVisitorId,
     salesName: user?.name || '',
     notes: '',
     result: '',
     nextFollowUpDate: '',
-    contacted: false
+    contacted: false,
+    assignedTo: '', // فارغ - بدون إسناد تلقائي
+    priority: 'medium',
+    stage: 'new'
   })
+
+  // جلب الموظفين النشطين
+  useEffect(() => {
+    fetch('/api/staff')
+      .then(res => res.json())
+      .then(data => {
+        const activeStaff = data.filter((s: any) => s.isActive)
+        setStaff(activeStaff)
+      })
+      .catch(err => console.error('Error fetching staff:', err))
+  }, [])
 
   // ✅ تعبئة اسم السيلز تلقائياً من المستخدم المسجل
   useEffect(() => {
@@ -107,7 +125,10 @@ export default function FollowUpForm({
         notes: '',
         result: '',
         nextFollowUpDate: '',
-        contacted: false
+        contacted: false,
+        assignedTo: '', // فارغ - بدون إسناد تلقائي
+        priority: 'medium',
+        stage: 'new'
       })
     } finally {
       setLoading(false)
@@ -214,6 +235,42 @@ export default function FollowUpForm({
                 className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm dark:bg-gray-700 dark:text-white"
               />
             </div>
+          </div>
+
+          {/* الموظف المسؤول - مخفي */}
+          {false && (
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-gray-100">
+                الموظف المسؤول
+              </label>
+              <select
+                value={formData.assignedTo}
+                onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">غير محدد</option>
+                {staff.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}{s.position ? ` - ${s.position}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-100">
+              الأولوية
+            </label>
+            <select
+              value={formData.priority}
+              onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+              className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm dark:bg-gray-700 dark:text-white"
+            >
+              <option value="low">🟢 عادي</option>
+              <option value="medium">🟡 متوسط</option>
+              <option value="high">🔴 عاجل</option>
+            </select>
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">

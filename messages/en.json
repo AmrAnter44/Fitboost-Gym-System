@@ -101,6 +101,7 @@
     "accountant": "Accountant",
     "maintenance": "Maintenance",
     "security": "Security",
+    "sales": "Sales",
     "nutritionist": "Nutritionist",
     "physiotherapist": "Physiotherapist",
     "other": "Other..."
@@ -1697,7 +1698,7 @@
       "actions": "Actions"
     },
     "card": {
-      "client": "Client",
+      "client": "Client:",
       "membership": "Membership",
       "subscriptionDuration": "Subscription Duration",
       "month": "month",
@@ -1705,13 +1706,16 @@
       "expiresOn": "Expires on",
       "paidAmount": "Paid Amount",
       "discount": "Discount",
-      "services": "Services"
+      "services": "Services",
+      "receiptNumber": "Receipt No."
     },
     "actions": {
       "print": "Print",
       "edit": "Edit",
       "delete": "Delete",
-      "printError": "An error occurred while printing"
+      "printError": "An error occurred while printing",
+      "viewDetails": "Details",
+      "cancel": "Cancel"
     },
     "serviceDetails": {
       "nutrition": "Nutrition Details",
@@ -1809,6 +1813,27 @@
     "messages": {
       "updated": "Next number updated successfully",
       "updateError": "An error occurred while updating"
+    },
+    "details": {
+      "membershipRenewal": "Renewal Details",
+      "packageUpgrade": "Upgrade Details",
+      "membershipDetails": "Membership Details",
+      "duration": "Duration:",
+      "month": "month",
+      "months": "months",
+      "day": "day",
+      "days": "days",
+      "subscriptionPrice": "Subscription Price:",
+      "from": "From:",
+      "to": "To:",
+      "ptDetails": "PT Details",
+      "sessionsCount": "Sessions:",
+      "session": "session",
+      "coach": "Coach:",
+      "pricePerSession": "Price/Session:",
+      "until": "until",
+      "discount": "Discount:",
+      "service": "service"
     }
   },
   "expenses": {
@@ -2021,6 +2046,20 @@
       "deleteSuccess": "Visitor deleted successfully!",
       "deleteError": "Failed to delete visitor",
       "error": "An error occurred"
+    },
+    "info": {
+      "title": "Manage Visitors from Follow-ups Page",
+      "description": "To add and follow up with visitors, please go to the Follow-ups page where you can add a new visitor and follow up more effectively",
+      "goToFollowUps": "Go to Follow-ups",
+      "quickAdd": "Quick Add Visitor"
+    },
+    "noVisitors": {
+      "current": "No visitors currently",
+      "inMonth": "No visitors in {month}",
+      "showAll": "Show all months"
+    },
+    "stats": {
+      "visitorsOf": "Visitors of"
     }
   },
   "followups": {
@@ -4096,7 +4135,9 @@
       "perEGP": "Points per EGP",
       "perEGPDesc": "Number of points per Egyptian pound spent",
       "valueInEGP": "Point Value in EGP",
-      "valueInEGPDesc": "Point value when redeeming"
+      "valueInEGPDesc": "Point value when redeeming",
+      "perBirthday": "Birthday Points",
+      "perBirthdayDesc": "Points automatically awarded to active members on their birthday"
     },
     "referral": {
       "title": "Referral Commission Settings",
@@ -4196,6 +4237,48 @@
       "needHelp": "Need help?",
       "contactText": "We're here to help! Contact us via WhatsApp",
       "whatsappButton": "Contact via WhatsApp"
+    },
+    "groupClassSchedules": {
+      "title": "Class Schedule",
+      "pageTitle": "Group Class Schedule",
+      "addNew": "Add New Schedule",
+      "edit": "Edit Schedule",
+      "delete": "Delete Schedule",
+      "day": "Day",
+      "time": "Time",
+      "className": "Class Name",
+      "classNamePlaceholder": "e.g., Zumba, Yoga, CrossFit",
+      "instructor": "Instructor Name",
+      "instructorPlaceholder": "Instructor name",
+      "duration": "Duration (minutes)",
+      "currentSchedules": "Current Schedules",
+      "noSchedules": "No schedules set yet",
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "added": "Schedule added",
+      "updated": "Schedule updated",
+      "deleted": "Schedule deleted",
+      "loadFailed": "Failed to load schedules",
+      "saveFailed": "Save failed",
+      "deleteFailed": "Delete failed",
+      "fillAllFields": "Please fill class name, instructor, and time",
+      "deleteConfirm": "Are you sure you want to delete this schedule?",
+      "sessionType": "Session Type",
+      "remainingSessions": "Remaining Sessions",
+      "sessionPrice": "Session Price",
+      "simpleRegistration": "Simple registration - name, number, and session price only"
     }
+  },
+  "homepageClassBookings": {
+    "todayClassBookings": "Today's Class Bookings",
+    "noBookingsYet": "No bookings yet",
+    "deletedMember": "Deleted Member",
+    "todayClasses": "Today's Classes",
+    "minutes": "min"
   }
 }

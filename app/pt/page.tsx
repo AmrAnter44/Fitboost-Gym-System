@@ -1153,16 +1153,16 @@ export default function PTPage() {
                         <td className="px-4 py-3">
                           <div className="text-xs font-mono">
                             {session.startDate && (
-                              <p>{t('pt.from')} {formatDateYMD(session.startDate)}</p>
+                              <p className="text-gray-700 dark:text-gray-200">{t('pt.from')} {formatDateYMD(session.startDate)}</p>
                             )}
                             {session.expiryDate && (
-                              <p className={isExpired ? 'text-red-600 font-bold' : ''}>
+                              <p className={isExpired ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-700 dark:text-gray-200'}>
                                 {t('pt.to')} {formatDateYMD(session.expiryDate)}
                               </p>
                             )}
-                            {isExpired && <p className="text-red-600 font-bold">{t('pt.expired')}</p>}
+                            {isExpired && <p className="text-red-600 dark:text-red-400 font-bold">{t('pt.expired')}</p>}
                             {!isExpired && isExpiringSoon && (
-                              <p className="text-orange-600 font-bold">{t('pt.expiringSoon')}</p>
+                              <p className="text-orange-600 dark:text-orange-400 font-bold">{t('pt.expiringSoon')}</p>
                             )}
                           </div>
                         </td>

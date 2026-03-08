@@ -24,6 +24,7 @@ interface Member {
   name: string
   phone: string
   backupPhone?: string
+  email?: string
   nationalId?: string
   birthDate?: string
   source?: string
@@ -1389,7 +1390,7 @@ export default function MemberDetailPage() {
 
   if (loading && !member) {
     return (
-      <div className="container mx-auto p-6 text-center" dir="rtl">
+      <div className="container mx-auto p-6 text-center" dir={direction}>
         <div className="text-6xl mb-4">⏳</div>
         <p className="text-xl">{t('memberDetails.loading')}</p>
       </div>
@@ -1398,7 +1399,7 @@ export default function MemberDetailPage() {
 
   if (!member) {
     return (
-      <div className="container mx-auto p-6 text-center" dir="rtl">
+      <div className="container mx-auto p-6 text-center" dir={direction}>
         <div className="text-6xl mb-4">❌</div>
         <p className="text-xl mb-4">{t('memberDetails.memberNotFound')}</p>
         <button
@@ -1415,7 +1416,7 @@ export default function MemberDetailPage() {
   const daysRemaining = calculateRemainingDays(member.expiryDate)
 
   return (
-    <div className="container mx-auto p-6" dir="rtl">
+    <div className="container mx-auto p-6" dir={direction}>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">👤 {t('memberDetails.title')}</h1>
@@ -1563,6 +1564,12 @@ export default function MemberDetailPage() {
               <p className="text-2xl font-mono">{member.backupPhone}</p>
             </div>
           )}
+          {member.email && (
+            <div>
+              <p className="text-sm opacity-90 mb-2">📧 البريد الإلكتروني</p>
+              <p className="text-2xl font-mono">{member.email}</p>
+            </div>
+          )}
           {member.nationalId && (
             <div>
               <p className="text-sm opacity-90 mb-2">{t('memberDetails.nationalId')}</p>
@@ -1705,7 +1712,7 @@ export default function MemberDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
         {settings.pointsEnabled && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-primary-500">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.points')}</p>
@@ -1731,7 +1738,7 @@ export default function MemberDetailPage() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-primary-500">
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500`}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.invitations')}</p>
@@ -1749,7 +1756,7 @@ export default function MemberDetailPage() {
         </div>
 
         {settings.inBodyEnabled && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-green-500">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-green-500`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.inBody')}</p>
@@ -1767,7 +1774,7 @@ export default function MemberDetailPage() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-orange-500">
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-orange-500`}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.freePTSessions')}</p>
@@ -1807,11 +1814,11 @@ export default function MemberDetailPage() {
         </div>
 
         {settings.nutritionEnabled && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-lime-500">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-lime-500 dark:border-lime-600`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.nutritionSessions')}</p>
-                <p className="text-4xl font-bold text-lime-600">{member.freeNutritionSessions ?? 0}</p>
+                <p className="text-4xl font-bold text-lime-600 dark:text-lime-400">{member.freeNutritionSessions ?? 0}</p>
               </div>
               <div className="text-5xl">🥗</div>
             </div>
@@ -1829,7 +1836,7 @@ export default function MemberDetailPage() {
               <button
                 onClick={handleUseFreeNutrition}
                 disabled={(member.freeNutritionSessions ?? 0) <= 0 || loading}
-                className="w-full bg-lime-600 text-white py-2 rounded-lg hover:bg-lime-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full bg-lime-600 dark:bg-lime-700 text-white py-2 rounded-lg hover:bg-lime-700 dark:hover:bg-lime-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
               >
                 {t('memberDetails.useNutrition')}
               </button>
@@ -1838,7 +1845,7 @@ export default function MemberDetailPage() {
                 <button
                   onClick={handleUsePaidNutrition}
                   disabled={loading}
-                  className="w-full bg-lime-500 text-white py-2 rounded-lg hover:bg-lime-600"
+                  className="w-full bg-lime-500 dark:bg-lime-600 text-white py-2 rounded-lg hover:bg-lime-600 dark:hover:bg-lime-700 transition-colors"
                 >
                   {t('memberDetails.usePaidSession')}
                 </button>
@@ -1848,7 +1855,7 @@ export default function MemberDetailPage() {
         )}
 
         {settings.physiotherapyEnabled && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-blue-500">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-blue-500`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.physioSessions')}</p>
@@ -1889,7 +1896,7 @@ export default function MemberDetailPage() {
         )}
 
         {settings.groupClassEnabled && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-fuchsia-500">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-fuchsia-500`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.groupClassSessions')}</p>
@@ -1930,7 +1937,7 @@ export default function MemberDetailPage() {
         )}
 
         {settings.poolEnabled && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-teal-500">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-teal-500`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.poolSessions')}</p>
@@ -1949,7 +1956,7 @@ export default function MemberDetailPage() {
         )}
 
         {settings.padelEnabled && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-amber-500">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-amber-500`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.padelSessions')}</p>
@@ -1968,7 +1975,7 @@ export default function MemberDetailPage() {
         )}
 
         {settings.assessmentEnabled && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-indigo-500">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-indigo-500`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.assessmentSessions')}</p>
@@ -1986,7 +1993,7 @@ export default function MemberDetailPage() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-r-4 border-cyan-500">
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-cyan-500`}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.freezeDays')}</p>
@@ -2246,7 +2253,7 @@ export default function MemberDetailPage() {
               </button>
             </div>
 
-            <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded-lg mb-6 dark:bg-yellow-900/20 dark:border-yellow-700">
+            <div className={`bg-yellow-50 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-yellow-500 p-4 rounded-lg mb-6 dark:bg-yellow-900/20 dark:border-yellow-700`}>
               <p className="font-bold text-yellow-800">
                 {t('memberDetails.paymentModal.remainingLabel', { amount: member.remainingAmount.toString() })}
               </p>
@@ -2643,14 +2650,14 @@ export default function MemberDetailPage() {
               </button>
             </div>
 
-            <div className="bg-cyan-50 dark:bg-cyan-900/20 border-r-4 border-cyan-500 dark:border-cyan-700 p-4 rounded-lg mb-4">
+            <div className={`bg-cyan-50 dark:bg-cyan-900/20 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-cyan-500 dark:border-cyan-700 p-4 rounded-lg mb-4`}>
               <p className="text-sm text-cyan-800 dark:text-cyan-300 mb-2">
                 ❄️ {t('memberDetails.freezeModal.availableFreezeDays')}: <strong className="text-xl">{member.remainingFreezeDays} {t('common.day')}</strong>
               </p>
               <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('memberDetails.freezeModal.canUseInBatches')}</p>
             </div>
 
-            <div className="bg-primary-50 dark:bg-primary-900/20 border-r-4 border-primary-500 dark:border-primary-700 p-4 rounded-lg mb-6">
+            <div className={`bg-primary-50 dark:bg-primary-900/20 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500 dark:border-primary-700 p-4 rounded-lg mb-6`}>
               <p className="text-sm text-primary-800 dark:text-primary-300 mb-2">
                 {t('memberDetails.freezeModal.currentExpiryDate')}: <strong>{formatDateYMD(member.expiryDate)}</strong>
               </p>
@@ -3281,7 +3288,7 @@ export default function MemberDetailPage() {
 
       {/* Member Receipts Modal */}
       {showReceiptsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="bg-gradient-to-r from-orange-600 to-yellow-600 text-white p-6 rounded-t-lg">
@@ -3409,7 +3416,7 @@ export default function MemberDetailPage() {
 
       {/* Points History Modal */}
       {showPointsHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-t-lg">
@@ -3470,7 +3477,7 @@ export default function MemberDetailPage() {
                             })}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className={direction === 'rtl' ? 'text-right' : 'text-left'}>
                           <div className={`${entry.points >= 0 ? 'bg-green-500 dark:bg-green-600' : 'bg-red-500 dark:bg-red-600'} text-white px-4 py-2 rounded-lg shadow-md`}>
                             <p className="text-2xl font-bold">{entry.points >= 0 ? '+' : ''}{entry.points}</p>
                             <p className="text-xs opacity-90">{t('memberDetails.points')}</p>
@@ -3501,7 +3508,7 @@ export default function MemberDetailPage() {
 
       {/* Add Points Modal */}
       {showAddPointsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir={direction}>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md">
             {/* Header */}
             <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-t-lg">
@@ -3665,7 +3672,7 @@ export default function MemberDetailPage() {
               )}
 
               {/* Note */}
-              <div className="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded dark:bg-blue-900/20 dark:border-blue-700">
+              <div className={`mt-6 bg-blue-50 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-blue-500 p-4 rounded dark:bg-blue-900/20 dark:border-blue-700`}>
                 <p className="text-sm text-blue-900">
                   💡 {t('memberDetails.idCardModal.clickToOpen')}
                 </p>

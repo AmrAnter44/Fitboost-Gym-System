@@ -60,6 +60,7 @@ export default function HomePage() {
     checkAuth()
     fetchTodayClasses()
     fetchClassBookings()
+    autoBirthdayCheck() // 🎂 التحقق التلقائي من أعياد الميلاد
   }, [])
 
   // إعادة تحميل البيانات عند تغيير اللغة
@@ -93,6 +94,17 @@ export default function HomePage() {
       router.push('/login')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 🎂 التحقق التلقائي من أعياد الميلاد (مرة واحدة يومياً)
+  const autoBirthdayCheck = async () => {
+    try {
+      await fetch('/api/auto-birthday-check')
+      // نشتغل silent mode - لا نعرض أي رسائل للمستخدم
+    } catch (error) {
+      // Silent failure - لا نزعج المستخدم
+      console.log('Birthday auto-check skipped')
     }
   }
 
@@ -396,7 +408,7 @@ export default function HomePage() {
         <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 border-2 border-purple-200 dark:border-purple-700 rounded-2xl p-5 mb-6 shadow-lg">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-2xl">📅</span>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">كلاسيس اليوم</h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t('homepageClassBookings.todayClasses')}</h2>
             <span className="bg-purple-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{todayClasses.length}</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -414,7 +426,7 @@ export default function HomePage() {
                     <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{cls.className}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">👤 {cls.coachName}</p>
                     <p className="text-sm font-semibold text-purple-700 dark:text-purple-300">
-                      🕐 {cls.startTime} · ⏱ {cls.duration} د
+                      🕐 {cls.startTime} · ⏱ {cls.duration} {t('homepageClassBookings.minutes')}
                     </p>
                   </div>
                 </div>
@@ -428,14 +440,14 @@ export default function HomePage() {
         <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl p-5 mb-6 shadow-lg">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-2xl">🎫</span>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">حجوزات الكلاس اليوم</h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t('homepageClassBookings.todayClassBookings')}</h2>
             <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{classBookings.length}</span>
           </div>
 
           {classBookings.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center">
               <div className="text-5xl mb-3">📭</div>
-              <p className="text-gray-600 dark:text-gray-400 font-semibold">لا توجد حجوزات حتى الآن</p>
+              <p className="text-gray-600 dark:text-gray-400 font-semibold">{t('homepageClassBookings.noBookingsYet')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -450,7 +462,7 @@ export default function HomePage() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900 dark:text-gray-100 truncate">
-                        {booking.member?.name || 'عضو محذوف'}
+                        {booking.member?.name || t('homepageClassBookings.deletedMember')}
                       </p>
                       <p className="text-sm text-emerald-700 dark:text-emerald-300 font-semibold">
                         #{booking.member?.memberNumber || 'N/A'}

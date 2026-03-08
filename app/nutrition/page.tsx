@@ -1081,7 +1081,7 @@ export default function NutritionPage() {
                       <tr
                         key={session.nutritionNumber}
                         className={`border-t hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                          isExpired ? 'bg-red-50' : isExpiringSoon ? 'bg-yellow-50' : ''
+                          isExpired ? 'bg-red-50 dark:bg-red-900/20' : isExpiringSoon ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''
                         }`}
                       >
                         <td className="px-4 py-3">
@@ -1134,13 +1134,13 @@ export default function NutritionPage() {
                               <p>{t('nutrition.from')} {formatDateYMD(session.startDate)}</p>
                             )}
                             {session.expiryDate && (
-                              <p className={isExpired ? 'text-red-600 font-bold' : ''}>
+                              <p className={isExpired ? 'text-red-600 dark:text-red-400 font-bold' : ''}>
                                 {t('nutrition.to')} {formatDateYMD(session.expiryDate)}
                               </p>
                             )}
-                            {isExpired && <p className="text-red-600 font-bold">{t('nutrition.expired')}</p>}
+                            {isExpired && <p className="text-red-600 dark:text-red-400 font-bold">{t('nutrition.expired')}</p>}
                             {!isExpired && isExpiringSoon && (
-                              <p className="text-orange-600 font-bold">{t('nutrition.expiringSoon')}</p>
+                              <p className="text-orange-600 dark:text-orange-400 font-bold">{t('nutrition.expiringSoon')}</p>
                             )}
                           </div>
                         </td>
@@ -1273,12 +1273,12 @@ export default function NutritionPage() {
                     {/* Dates */}
                     {(session.startDate || session.expiryDate) && (
                       <div className={`border-2 rounded-lg p-2.5 ${
-                        isExpired ? 'bg-red-50 border-red-300' : isExpiringSoon ? 'bg-orange-50 border-orange-300' : 'bg-gray-50 dark:bg-gray-700 dark:bg-gray-700 border-gray-200 dark:border-gray-600 dark:border-gray-600'
+                        isExpired ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
                       }`}>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm">📅</span>
                           <span className={`text-xs font-semibold ${
-                            isExpired ? 'text-red-700' : isExpiringSoon ? 'text-orange-700' : 'text-gray-700 dark:text-gray-200'
+                            isExpired ? 'text-red-700 dark:text-red-400' : isExpiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'
                           }`}>{t('nutrition.period')}</span>
                         </div>
                         <div className="space-y-1 text-xs font-mono">
@@ -1286,15 +1286,15 @@ export default function NutritionPage() {
                             <div className="text-gray-700 dark:text-gray-200">{t('nutrition.from')} {formatDateYMD(session.startDate)}</div>
                           )}
                           {session.expiryDate && (
-                            <div className={isExpired ? 'text-red-600 font-bold' : 'text-gray-700 dark:text-gray-200'}>
+                            <div className={isExpired ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-700 dark:text-gray-200'}>
                               {t('nutrition.to')} {formatDateYMD(session.expiryDate)}
                             </div>
                           )}
                           {isExpired && (
-                            <div className="text-red-600 font-bold">{t('nutrition.expired')}</div>
+                            <div className="text-red-600 dark:text-red-400 font-bold">{t('nutrition.expired')}</div>
                           )}
                           {!isExpired && isExpiringSoon && (
-                            <div className="text-orange-600 font-bold">{t('nutrition.expiringSoon')}</div>
+                            <div className="text-orange-600 dark:text-orange-400 font-bold">{t('nutrition.expiringSoon')}</div>
                           )}
                         </div>
                       </div>

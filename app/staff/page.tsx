@@ -79,6 +79,7 @@ const POSITION_MAP: { [key: string]: string } = {
   'محاسب': 'accountant',
   'صيانة': 'maintenance',
   'أمن': 'security',
+  'sales': 'sales',
   'أخصائي تغذية': 'nutritionist',
   'أخصائي علاج طبيعي': 'physiotherapist',
   'other': 'other',
@@ -100,6 +101,7 @@ export default function StaffPage() {
     { value: 'محاسب', label: `💼 ${t('positions.accountant')}`, icon: '💼' },
     { value: 'صيانة', label: `🔧 ${t('positions.maintenance')}`, icon: '🔧' },
     { value: 'أمن', label: `🛡️ ${t('positions.security')}`, icon: '🛡️' },
+    { value: 'sales', label: `💰 ${t('positions.sales')}`, icon: '💰' },
     ...(settings.nutritionEnabled ? [{ value: 'أخصائي تغذية', label: `🥗 ${t('positions.nutritionist')}`, icon: '🥗' }] : []),
     ...(settings.physiotherapyEnabled ? [{ value: 'أخصائي علاج طبيعي', label: `🏥 ${t('positions.physiotherapist')}`, icon: '🏥' }] : []),
     { value: 'other', label: `📝 ${t('positions.other')}`, icon: '📝' },
@@ -346,10 +348,6 @@ const handleScan = async (staffCode: string) => {
   }
 
   const handleEdit = (staffMember: Staff) => {
-    const isStandardPosition = POSITIONS.some(
-      (pos) => pos.value === staffMember.position && pos.value !== 'other'
-    )
-
     // ✅ تحويل staffCode من s022 إلى 100000022
     let displayCode = staffMember.staffCode
     if (staffMember.staffCode.startsWith('s') || staffMember.staffCode.startsWith('S')) {
@@ -361,12 +359,12 @@ const handleScan = async (staffCode: string) => {
       staffCode: displayCode,
       name: staffMember.name,
       phone: staffMember.phone || '',
-      position: isStandardPosition ? staffMember.position || '' : 'other',
-      customPosition: isStandardPosition ? '' : staffMember.position || '',
+      position: staffMember.position || '', // الآن قد يحتوي على عدة وظائف مفصولة بفواصل
+      customPosition: '',
       salary: staffMember.salary || 0,
       notes: staffMember.notes || '',
     })
-    setShowOtherPosition(!isStandardPosition)
+    setShowOtherPosition(false)
     setEditingStaff(staffMember)
     setShowForm(true)
   }
@@ -504,6 +502,7 @@ const handleScan = async (staffCode: string) => {
       محاسب: 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-700',
       صيانة: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700',
       أمن: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600',
+      sales: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700',
       'أخصائي تغذية': 'bg-lime-100 dark:bg-lime-900/50 text-lime-800 dark:text-lime-200 border border-lime-200 dark:border-lime-700',
       'أخصائي علاج طبيعي': 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700',
     }
@@ -854,24 +853,48 @@ const handleScan = async (staffCode: string) => {
                 />
               </div>
 
-              {/* الوظيفة */}
+              {/* الوظيفة - اختيار متعدد */}
               <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
-                  {t('staff.form.positionRequired')}
+                <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
+                  {t('staff.form.positionRequired')} (يمكن اختيار أكثر من وظيفة)
                 </label>
-                <select
-                  required={!showOtherPosition}
-                  value={formData.position}
-                  onChange={(e) => handlePositionChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition text-lg text-gray-900 dark:text-white"
-                >
-                  <option value="" className="dark:bg-gray-700">{t('staff.form.selectPosition')}</option>
-                  {POSITIONS.map((pos) => (
-                    <option key={pos.value} value={pos.value} className="dark:bg-gray-700">
-                      {pos.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                  {POSITIONS.map((pos) => {
+                    const selectedPositions = formData.position ? formData.position.split(',') : []
+                    const isSelected = selectedPositions.includes(pos.value)
+
+                    return (
+                      <label
+                        key={pos.value}
+                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-primary-100 dark:bg-primary-900/40 border-2 border-primary-500'
+                            : 'bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            const positions = formData.position ? formData.position.split(',').filter(p => p) : []
+                            if (positions.includes(pos.value)) {
+                              // Remove position
+                              const newPositions = positions.filter(p => p !== pos.value)
+                              setFormData({ ...formData, position: newPositions.join(',') })
+                            } else {
+                              // Add position
+                              setFormData({ ...formData, position: [...positions, pos.value].join(',') })
+                            }
+                          }}
+                          className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                        <span className={`text-lg font-medium ${isSelected ? 'text-primary-900 dark:text-primary-100' : 'text-gray-700 dark:text-gray-200'}`}>
+                          {pos.label}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
               </div>
 
               {/* حقل الوظيفة المخصصة */}
@@ -1067,17 +1090,20 @@ const handleScan = async (staffCode: string) => {
                     </div>
                   </div>
 
-                  {/* الوظيفة */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">💼</span>
-                    <span
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getPositionColor(
-                        staffMember.position || ''
-                      )}`}
-                    >
-                      <span>{getPositionIcon(staffMember.position || '')}</span>
-                      <span>{getPositionLabel(staffMember.position)}</span>
-                    </span>
+                  {/* الوظائف المتعددة */}
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 dark:text-gray-400 text-sm mt-1">💼</span>
+                    <div className="flex flex-wrap gap-2">
+                      {staffMember.position ? staffMember.position.split(',').filter(p => p).map((pos, idx) => (
+                        <span
+                          key={idx}
+                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getPositionColor(pos)}`}
+                        >
+                          <span>{getPositionIcon(pos)}</span>
+                          <span>{getPositionLabel(pos)}</span>
+                        </span>
+                      )) : <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>}
+                    </div>
                   </div>
 
                   {/* الهاتف */}
@@ -1183,14 +1209,17 @@ const handleScan = async (staffCode: string) => {
                       </td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{staffMember.phone || '-'}</td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getPositionColor(
-                            staffMember.position || ''
-                          )}`}
-                        >
-                          <span>{getPositionIcon(staffMember.position || '')}</span>
-                          <span>{getPositionLabel(staffMember.position)}</span>
-                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {staffMember.position ? staffMember.position.split(',').filter(p => p).map((pos, idx) => (
+                            <span
+                              key={idx}
+                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getPositionColor(pos)}`}
+                            >
+                              <span>{getPositionIcon(pos)}</span>
+                              <span>{getPositionLabel(pos)}</span>
+                            </span>
+                          )) : <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>}
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
                         {staffMember.salary ? `${staffMember.salary} ج.م` : '-'}

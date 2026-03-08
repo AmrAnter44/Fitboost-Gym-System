@@ -42,6 +42,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
     name: '',
     phone: '',
     backupPhone: '',
+    email: '',
     nationalId: '',
     birthDate: '',
     source: '',
@@ -635,6 +636,18 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
               onChange={(e) => setFormData({ ...formData, backupPhone: e.target.value })}
               className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
               placeholder="01234567890"
+              dir="ltr"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-1">📧 البريد الإلكتروني (اختياري)</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              placeholder="example@email.com"
               dir="ltr"
             />
           </div>

@@ -778,7 +778,7 @@ export default function ReceiptsPage() {
                 <div className="flex justify-between items-start mb-4 pb-3 border-b-2 border-gray-100 dark:border-gray-700">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">رقم الإيصال</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{t('receipts.card.receiptNumber')}</span>
                     </div>
                     <span className="font-bold text-primary-600 dark:text-primary-400 text-xl">#{receipt.receiptNumber}</span>
                   </div>
@@ -790,7 +790,7 @@ export default function ReceiptsPage() {
                 {/* Client Info Section */}
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-4">
                   <div className="flex items-start gap-2 mb-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">👤 العميل:</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">👤 {t('receipts.card.client')}</span>
                     <div className="flex-1">
                       <p className="font-bold text-gray-900 dark:text-white text-lg">{clientName}</p>
                       {details.phone && (
@@ -799,7 +799,7 @@ export default function ReceiptsPage() {
                       <div className="flex gap-2 mt-2 flex-wrap">
                         {details.memberNumber && (
                           <span className="text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2 py-1 rounded-full font-semibold">
-                            عضوية #{details.memberNumber}
+                            {t('receipts.card.membership')} #{details.memberNumber}
                           </span>
                         )}
                         {details.ptNumber && (
@@ -819,8 +819,8 @@ export default function ReceiptsPage() {
                       <span className="text-blue-600 dark:text-blue-400 text-2xl">👤</span>
                       <div>
                         <p className="text-xs text-blue-700 dark:text-blue-300 font-semibold">
-                          {receipt.type === 'تجديد عضويه' || receipt.type === 'membershipRenewal' ? 'تفاصيل التجديد' :
-                           receipt.type === 'ترقية باكدج' ? 'تفاصيل الترقية' : 'تفاصيل العضوية'}
+                          {receipt.type === 'تجديد عضويه' || receipt.type === 'membershipRenewal' ? t('receipts.details.membershipRenewal') :
+                           receipt.type === 'ترقية باكدج' ? t('receipts.details.packageUpgrade') : t('receipts.details.membershipDetails')}
                         </p>
                       </div>
                     </div>
@@ -828,14 +828,14 @@ export default function ReceiptsPage() {
                       {/* المدة */}
                       {(details.duration || details.subscriptionDays) && (
                         <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-blue-200 dark:border-blue-700">
-                          <span className="text-sm text-gray-600 dark:text-gray-300">⏰ المدة:</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">⏰ {t('receipts.details.duration')}</span>
                           <span className="font-bold text-blue-700 dark:text-blue-400 text-lg">
                             {details.duration ? (
-                              `${details.duration} ${details.duration === 1 ? 'شهر' : 'شهور'}`
+                              `${details.duration} ${details.duration === 1 ? t('receipts.details.month') : t('receipts.details.months')}`
                             ) : details.subscriptionDays ? (
                               details.subscriptionDays >= 30 ?
-                                `${Math.round(details.subscriptionDays / 30)} ${Math.round(details.subscriptionDays / 30) === 1 ? 'شهر' : 'شهور'}`
-                                : `${details.subscriptionDays} ${details.subscriptionDays === 1 ? 'يوم' : 'أيام'}`
+                                `${Math.round(details.subscriptionDays / 30)} ${Math.round(details.subscriptionDays / 30) === 1 ? t('receipts.details.month') : t('receipts.details.months')}`
+                                : `${details.subscriptionDays} ${details.subscriptionDays === 1 ? t('receipts.details.day') : t('receipts.details.days')}`
                             ) : '-'}
                           </span>
                         </div>
@@ -844,7 +844,7 @@ export default function ReceiptsPage() {
                       {/* سعر الاشتراك */}
                       {details.subscriptionPrice && (
                         <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-blue-200 dark:border-blue-700">
-                          <span className="text-sm text-gray-600 dark:text-gray-300">💵 سعر الاشتراك:</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">💵 {t('receipts.details.subscriptionPrice')}</span>
                           <span className="font-bold text-blue-700 dark:text-blue-400">{details.subscriptionPrice} {t('members.egp')}</span>
                         </div>
                       )}
@@ -853,42 +853,16 @@ export default function ReceiptsPage() {
                       {(details.startDate && details.expiryDate) && (
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-blue-200 dark:border-blue-700">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-600 dark:text-gray-300">📅 من:</span>
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.details.from')}</span>
                             <span className="font-semibold text-blue-700 dark:text-blue-400">{new Date(details.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
                           </div>
                           <div className="flex items-center justify-between text-xs mt-1">
-                            <span className="text-gray-600 dark:text-gray-300">📅 إلى:</span>
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.details.to')}</span>
                             <span className="font-semibold text-blue-700 dark:text-blue-400">{new Date(details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
                           </div>
                         </div>
                       )}
 
-                      {/* الخدمات المجانية */}
-                      {(details.freePTSessions > 0 || details.inBodyScans > 0 || details.invitations > 0) && (
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-3 border border-green-200 dark:border-green-700">
-                          <p className="text-xs text-green-700 dark:text-green-300 font-semibold mb-2">🎁 الخدمات المجانية:</p>
-                          <div className="space-y-1.5">
-                            {details.freePTSessions > 0 && (
-                              <div className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded px-2 py-1">
-                                <span className="text-gray-600 dark:text-gray-300">💪 جلسات PT:</span>
-                                <span className="font-bold text-green-700 dark:text-green-400">{details.freePTSessions}</span>
-                              </div>
-                            )}
-                            {details.inBodyScans > 0 && (
-                              <div className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded px-2 py-1">
-                                <span className="text-gray-600 dark:text-gray-300">📊 InBody:</span>
-                                <span className="font-bold text-green-700 dark:text-green-400">{details.inBodyScans}</span>
-                              </div>
-                            )}
-                            {details.invitations > 0 && (
-                              <div className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded px-2 py-1">
-                                <span className="text-gray-600 dark:text-gray-300">👥 دعوات:</span>
-                                <span className="font-bold text-green-700 dark:text-green-400">{details.invitations}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -899,41 +873,41 @@ export default function ReceiptsPage() {
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-primary-600 dark:text-primary-400 text-2xl">🏋️</span>
                       <div>
-                        <p className="text-xs text-primary-700 dark:text-primary-300 font-semibold">تفاصيل البرايفت</p>
+                        <p className="text-xs text-primary-700 dark:text-primary-300 font-semibold">{t('receipts.details.ptDetails')}</p>
                       </div>
                     </div>
                     <div className="space-y-2">
                       {details.sessionsPurchased && (
                         <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-primary-200 dark:border-primary-700">
-                          <span className="text-sm text-gray-600 dark:text-gray-300">🎯 عدد الجلسات:</span>
-                          <span className="font-bold text-primary-700 dark:text-primary-400 text-lg">{details.sessionsPurchased} جلسة</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">🎯 {t('receipts.details.sessionsCount')}</span>
+                          <span className="font-bold text-primary-700 dark:text-primary-400 text-lg">{details.sessionsPurchased} {t('receipts.details.session')}</span>
                         </div>
                       )}
                       {details.coachName && (
                         <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-primary-200 dark:border-primary-700">
-                          <span className="text-sm text-gray-600 dark:text-gray-300">👨‍🏫 الكوتش:</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">👨‍🏫 {t('receipts.details.coach')}</span>
                           <span className="font-bold text-primary-700 dark:text-primary-400">{details.coachName}</span>
                         </div>
                       )}
                       {details.pricePerSession && (
                         <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 border border-primary-200 dark:border-primary-700">
-                          <span className="text-sm text-gray-600 dark:text-gray-300">💵 سعر الجلسة:</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">💵 {t('receipts.details.pricePerSession')}</span>
                           <span className="font-bold text-primary-700 dark:text-primary-400">{details.pricePerSession} {t('members.egp')}</span>
                         </div>
                       )}
                       {(details.startDate && details.expiryDate) && (
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-primary-200 dark:border-primary-700">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-600 dark:text-gray-300">📅 من:</span>
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.details.from')}</span>
                             <span className="font-semibold text-primary-700 dark:text-primary-400">{new Date(details.startDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
                           </div>
                           <div className="flex items-center justify-between text-xs mt-1">
-                            <span className="text-gray-600 dark:text-gray-300">📅 إلى:</span>
+                            <span className="text-gray-600 dark:text-gray-300">📅 {t('receipts.details.to')}</span>
                             <span className="font-semibold text-primary-700 dark:text-primary-400">{new Date(details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
                           </div>
                           {details.subscriptionDays && (
                             <div className="text-xs text-primary-600 dark:text-primary-400 text-center mt-2 pt-2 border-t border-primary-200 dark:border-primary-700">
-                              ⏰ المدة: {details.subscriptionDays} يوم
+                              ⏰ {t('receipts.details.duration')} {details.subscriptionDays} {details.subscriptionDays === 1 ? t('receipts.details.day') : t('receipts.details.days')}
                             </div>
                           )}
                         </div>
@@ -1198,9 +1172,9 @@ export default function ReceiptsPage() {
                   </div>
                 </div>
 
-                {/* Action Buttons - Grid Layout */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
-                  {/* الصف الأول - 3 أزرار */}
+                {/* Action Buttons - تحسين الترتيب للموبايل */}
+                <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
+                  {/* الصف الأول - الأزرار الأكثر استخداماً */}
                   <ReceiptWhatsApp
                     receipt={receipt}
                     onDetailsClick={() => setSelectedReceipt(receipt)}
@@ -1208,48 +1182,50 @@ export default function ReceiptsPage() {
 
                   <button
                     onClick={() => handlePrint(receipt, { printOnly: true })}
-                    className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 text-sm transition shadow-md font-semibold"
+                    className="bg-primary-600 text-white px-4 py-2.5 rounded-lg hover:bg-primary-700 text-sm transition shadow-md font-semibold"
                     title="طباعة فقط"
                   >
                     🖨️ {t('receipts.actions.print')}
                   </button>
 
+                  {/* الصف الثاني - التفاصيل */}
                   <button
-                    onClick={() => handleDownloadAndWhatsApp(receipt)}
-                    className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 text-sm transition shadow-md font-semibold"
-                    title="تحميل PDF وإرسال واتساب"
+                    onClick={() => setSelectedReceipt(receipt)}
+                    className="col-span-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 text-sm transition shadow-md font-semibold"
+                    title="عرض التفاصيل"
                   >
-                    PDF
+                    👁️ {t('receipts.actions.viewDetails')}
                   </button>
 
-                  {/* الصف الثاني - زر التعديل بمساحة 2، والحذف بمساحة 1 */}
+                  {/* الصف الثالث - التعديل */}
                   {canEdit && !receipt.isCancelled && (
                     <button
                       onClick={() => handleOpenEdit(receipt)}
-                      className="col-span-2 bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 text-sm transition shadow-md font-semibold"
+                      className="col-span-2 bg-orange-600 text-white px-4 py-2.5 rounded-lg hover:bg-orange-700 text-sm transition shadow-md font-semibold"
                       title={t('receipts.actions.edit')}
                     >
                       ✏️ {t('receipts.actions.edit')}
                     </button>
                   )}
 
+                  {/* الصف الرابع - الإلغاء والحذف */}
                   {canCancel && !receipt.isCancelled && (
                     <button
                       onClick={() => handleCancelReceipt(receipt.id)}
-                      className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 text-sm transition shadow-md font-semibold"
+                      className="bg-yellow-600 text-white px-4 py-2.5 rounded-lg hover:bg-yellow-700 text-sm transition shadow-md font-semibold"
                       title="إلغاء الإيصال"
                     >
-                      🚫
+                      🚫 {t('receipts.actions.cancel')}
                     </button>
                   )}
 
                   {canDelete && (
                     <button
                       onClick={() => handleDelete(receipt.id)}
-                      className={`bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm transition shadow-md ${(!canEdit && !canCancel) || receipt.isCancelled ? 'col-span-3' : ''}`}
+                      className={`bg-red-600 text-white px-4 py-2.5 rounded-lg hover:bg-red-700 text-sm transition shadow-md font-semibold ${(!canEdit && !canCancel) || receipt.isCancelled ? 'col-span-2' : ''}`}
                       title={t('receipts.actions.delete')}
                     >
-                      🗑️
+                      🗑️ {t('receipts.actions.delete')}
                     </button>
                   )}
                 </div>
@@ -1362,16 +1338,16 @@ export default function ReceiptsPage() {
                           <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700 rounded px-2 py-1">
                             <p className="text-xs text-orange-700 dark:text-orange-300 font-semibold">
                               ⏰ {details.duration ? (
-                                `${details.duration} ${details.duration === 1 ? 'شهر' : 'شهور'}`
+                                `${details.duration} ${details.duration === 1 ? t('receipts.details.month') : t('receipts.details.months')}`
                               ) : details.subscriptionDays ? (
                                 details.subscriptionDays >= 30 ?
-                                  `${Math.round(details.subscriptionDays / 30)} ${Math.round(details.subscriptionDays / 30) === 1 ? 'شهر' : 'شهور'}`
-                                  : `${details.subscriptionDays} ${details.subscriptionDays === 1 ? 'يوم' : 'أيام'}`
+                                  `${Math.round(details.subscriptionDays / 30)} ${Math.round(details.subscriptionDays / 30) === 1 ? t('receipts.details.month') : t('receipts.details.months')}`
+                                  : `${details.subscriptionDays} ${details.subscriptionDays === 1 ? t('receipts.details.day') : t('receipts.details.days')}`
                               ) : '-'}
                             </p>
                             {(details.endDate || details.expiryDate) && (
                               <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">
-                                حتى {new Date(details.endDate || details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
+                                {t('receipts.details.until')} {new Date(details.endDate || details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
                               </p>
                             )}
                           </div>
@@ -1381,7 +1357,7 @@ export default function ReceiptsPage() {
                           <div className="bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded px-2 py-1 space-y-1">
                             {details.sessionsPurchased && (
                               <p className="text-xs text-primary-700 dark:text-primary-300 font-semibold">
-                                🎯 {details.sessionsPurchased} جلسة
+                                🎯 {details.sessionsPurchased} {t('receipts.details.session')}
                               </p>
                             )}
                             {details.coachName && (
@@ -1391,19 +1367,19 @@ export default function ReceiptsPage() {
                             )}
                             {details.subscriptionDays && (
                               <p className="text-xs text-primary-600 dark:text-primary-400">
-                                ⏰ {details.subscriptionDays} يوم
+                                ⏰ {details.subscriptionDays} {details.subscriptionDays === 1 ? t('receipts.details.day') : t('receipts.details.days')}
                               </p>
                             )}
                           </div>
                         )}
                         {details.discount > 0 && (
                           <p className="text-xs text-red-600 dark:text-red-400 font-semibold">
-                            🏷️ خصم: {details.discount} {t('common.currency')}
+                            🏷️ {t('receipts.details.discount')} {details.discount} {t('common.currency')}
                           </p>
                         )}
                         {details.services && details.services.length > 0 && (
                           <p className="text-xs text-gray-600 dark:text-gray-300">
-                            📋 {details.services.length} خدمة
+                            📋 {details.services.length} {t('receipts.details.service')}
                           </p>
                         )}
                       </div>
@@ -1440,14 +1416,6 @@ export default function ReceiptsPage() {
                           title="طباعة فقط"
                         >
                           🖨️
-                        </button>
-
-                        <button
-                          onClick={() => handleDownloadAndWhatsApp(receipt)}
-                          className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 text-sm transition shadow-md hover:shadow-lg font-semibold"
-                          title="تحميل PDF وإرسال واتساب"
-                        >
-                          PDF
                         </button>
 
                         {canEdit && !receipt.isCancelled && (

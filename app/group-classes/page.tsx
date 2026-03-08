@@ -512,7 +512,15 @@ export default function GroupClassPage() {
   })
 
   // ── Schedule helpers ────────────────────────────────────────────────────────
-  const DAY_NAMES_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+  const DAY_NAMES = [
+    t('groupClassSchedules.sunday'),
+    t('groupClassSchedules.monday'),
+    t('groupClassSchedules.tuesday'),
+    t('groupClassSchedules.wednesday'),
+    t('groupClassSchedules.thursday'),
+    t('groupClassSchedules.friday'),
+    t('groupClassSchedules.saturday')
+  ]
 
   const fetchSchedules = async () => {
     setLoadingSchedules(true)
@@ -520,7 +528,7 @@ export default function GroupClassPage() {
       const res = await fetch('/api/group-classes/schedule')
       if (res.ok) setSchedules(await res.json())
     } catch {
-      toast.error('فشل تحميل المواعيد')
+      toast.error(t('groupClassSchedules.loadFailed'))
     } finally {
       setLoadingSchedules(false)
     }
@@ -538,7 +546,7 @@ export default function GroupClassPage() {
 
   const handleSaveSchedule = async () => {
     if (!scheduleForm.className.trim() || !scheduleForm.coachName.trim() || !scheduleForm.startTime) {
-      toast.error('يرجى تعبئة اسم الكلاس والكوتش والوقت')
+      toast.error(t('groupClassSchedules.fillAllFields'))
       return
     }
     setSavingSchedule(true)
@@ -554,14 +562,14 @@ export default function GroupClassPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error || 'فشل الحفظ')
+        toast.error(err.error || t('groupClassSchedules.saveFailed'))
         return
       }
-      toast.success(editingSchedule ? 'تم تعديل الموعد' : 'تم إضافة الموعد')
+      toast.success(editingSchedule ? t('groupClassSchedules.updated') : t('groupClassSchedules.added'))
       resetScheduleForm()
       fetchSchedules()
     } catch {
-      toast.error('حدث خطأ')
+      toast.error(t('common.error'))
     } finally {
       setSavingSchedule(false)
     }
@@ -569,22 +577,22 @@ export default function GroupClassPage() {
 
   const handleDeleteSchedule = async (id: string) => {
     const confirmed = await confirm({
-      title: 'حذف الموعد',
-      message: 'هل أنت متأكد من حذف هذا الموعد؟',
-      confirmText: 'حذف',
+      title: t('groupClassSchedules.delete'),
+      message: t('groupClassSchedules.deleteConfirm'),
+      confirmText: t('common.delete'),
       type: 'danger',
     })
     if (!confirmed) return
     try {
       const res = await fetch(`/api/group-classes/schedule/${id}`, { method: 'DELETE' })
       if (res.ok) {
-        toast.success('تم حذف الموعد')
+        toast.success(t('groupClassSchedules.deleted'))
         setSchedules(prev => prev.filter(s => s.id !== id))
       } else {
-        toast.error('فشل الحذف')
+        toast.error(t('groupClassSchedules.deleteFailed'))
       }
     } catch {
-      toast.error('حدث خطأ')
+      toast.error(t('common.error'))
     }
   }
 
@@ -627,7 +635,7 @@ export default function GroupClassPage() {
                 className="w-full sm:w-auto bg-purple-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-purple-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <span>📅</span>
-                <span>مواعيد الكلاسيس</span>
+                <span>{t('groupClassSchedules.title')}</span>
               </button>
               <button
                 onClick={() => {
@@ -1063,8 +1071,8 @@ export default function GroupClassPage() {
                     return (
                       <tr
                         key={session.groupClassNumber}
-                        className={`border-t hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 ${
-                          isExpired ? 'bg-red-50' : isExpiringSoon ? 'bg-yellow-50' : ''
+                        className={`border-t hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          isExpired ? 'bg-red-50 dark:bg-red-900/20' : isExpiringSoon ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''
                         }`}
                       >
                         <td className="px-4 py-3">
@@ -1085,10 +1093,10 @@ export default function GroupClassPage() {
                             <p
                               className={`font-bold ${
                                 session.sessionsRemaining === 0
-                                  ? 'text-red-600'
+                                  ? 'text-red-600 dark:text-red-400'
                                   : session.sessionsRemaining <= 3
-                                  ? 'text-orange-600'
-                                  : 'text-primary-600'
+                                  ? 'text-orange-600 dark:text-orange-400'
+                                  : 'text-primary-600 dark:text-primary-400'
                               }`}
                             >
                               {session.sessionsRemaining}
@@ -1103,8 +1111,8 @@ export default function GroupClassPage() {
                           <span
                             className={`font-bold ${
                               (session.remainingAmount || 0) > 0
-                                ? 'text-orange-600'
-                                : 'text-primary-600'
+                                ? 'text-orange-600 dark:text-orange-400'
+                                : 'text-primary-600 dark:text-primary-400'
                             }`}
                           >
                             {(session.remainingAmount || 0).toFixed(0)} {t('groupClass.egp')}
@@ -1116,13 +1124,13 @@ export default function GroupClassPage() {
                               <p>{t('groupClass.from')} {formatDateYMD(session.startDate)}</p>
                             )}
                             {session.expiryDate && (
-                              <p className={isExpired ? 'text-red-600 font-bold' : ''}>
+                              <p className={isExpired ? 'text-red-600 dark:text-red-400 font-bold' : ''}>
                                 {t('groupClass.to')} {formatDateYMD(session.expiryDate)}
                               </p>
                             )}
-                            {isExpired && <p className="text-red-600 font-bold">{t('groupClass.expired')}</p>}
+                            {isExpired && <p className="text-red-600 dark:text-red-400 font-bold">{t('groupClass.expired')}</p>}
                             {!isExpired && isExpiringSoon && (
-                              <p className="text-orange-600 font-bold">{t('groupClass.expiringSoon')}</p>
+                              <p className="text-orange-600 dark:text-orange-400 font-bold">{t('groupClass.expiringSoon')}</p>
                             )}
                           </div>
                         </td>
@@ -1189,12 +1197,12 @@ export default function GroupClassPage() {
               return (
                 <div
                   key={session.groupClassNumber}
-                  className={`bg-white rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg transition ${
-                    isExpired ? 'border-red-300 bg-red-50' : isExpiringSoon ? 'border-orange-300 bg-orange-50' : 'border-gray-200 dark:border-gray-600'
+                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg dark:hover:shadow-2xl transition ${
+                    isExpired ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20' : isExpiringSoon ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-600'
                   }`}
                 >
                   {/* Header */}
-                  <div className={`p-2.5 ${isExpired ? 'bg-red-600' : isExpiringSoon ? 'bg-orange-600' : 'bg-gradient-to-r from-primary-600 to-primary-700'}`}>
+                  <div className={`p-2.5 ${isExpired ? 'bg-red-600 dark:bg-red-700' : isExpiringSoon ? 'bg-orange-600 dark:bg-orange-700' : 'bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800'}`}>
                     <div className="flex items-center justify-between">
                       <div className="text-xl font-bold text-white">
                         {session.groupClassNumber < 0 ? '🏃 Day Use' : `#${session.groupClassNumber}`}
@@ -1244,9 +1252,9 @@ export default function GroupClassPage() {
                       <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-2.5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                         <div className="flex items-center gap-1 mb-1">
                           <span className="text-sm">⚠️</span>
-                          <span className="text-xs text-orange-700 font-semibold">{t('groupClass.remainingAmountLabel')}</span>
+                          <span className="text-xs text-orange-700 dark:text-orange-400 font-semibold">{t('groupClass.remainingAmountLabel')}</span>
                         </div>
-                        <div className="text-base font-bold text-orange-600">
+                        <div className="text-base font-bold text-orange-600 dark:text-orange-400">
                           {(session.remainingAmount || 0).toFixed(0)} {t('groupClass.egp')}
                         </div>
                       </div>
@@ -1255,12 +1263,12 @@ export default function GroupClassPage() {
                     {/* Dates */}
                     {(session.startDate || session.expiryDate) && (
                       <div className={`border-2 rounded-lg p-2.5 ${
-                        isExpired ? 'bg-red-50 border-red-300' : isExpiringSoon ? 'bg-orange-50 border-orange-300' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                        isExpired ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
                       }`}>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm">📅</span>
                           <span className={`text-xs font-semibold ${
-                            isExpired ? 'text-red-700' : isExpiringSoon ? 'text-orange-700' : 'text-gray-700 dark:text-gray-200'
+                            isExpired ? 'text-red-700 dark:text-red-400' : isExpiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'
                           }`}>{t('groupClass.period')}</span>
                         </div>
                         <div className="space-y-1 text-xs font-mono">
@@ -1268,15 +1276,15 @@ export default function GroupClassPage() {
                             <div className="text-gray-700 dark:text-gray-200">{t('groupClass.from')} {formatDateYMD(session.startDate)}</div>
                           )}
                           {session.expiryDate && (
-                            <div className={isExpired ? 'text-red-600 font-bold' : 'text-gray-700 dark:text-gray-200'}>
+                            <div className={isExpired ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-700 dark:text-gray-200'}>
                               {t('groupClass.to')} {formatDateYMD(session.expiryDate)}
                             </div>
                           )}
                           {isExpired && (
-                            <div className="text-red-600 font-bold">{t('groupClass.expired')}</div>
+                            <div className="text-red-600 dark:text-red-400 font-bold">{t('groupClass.expired')}</div>
                           )}
                           {!isExpired && isExpiringSoon && (
-                            <div className="text-orange-600 font-bold">{t('groupClass.expiringSoon')}</div>
+                            <div className="text-orange-600 dark:text-orange-400 font-bold">{t('groupClass.expiringSoon')}</div>
                           )}
                         </div>
                       </div>
@@ -1677,7 +1685,7 @@ export default function GroupClassPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
-              <h2 className="text-2xl font-bold dark:text-white">📅 مواعيد الجروب كلاسيس</h2>
+              <h2 className="text-2xl font-bold dark:text-white">📅 {t('groupClassSchedules.pageTitle')}</h2>
               <button
                 onClick={() => { setShowScheduleModal(false); resetScheduleForm() }}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none"
@@ -1688,23 +1696,23 @@ export default function GroupClassPage() {
               {/* Add / Edit Form */}
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-6">
                 <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                  {editingSchedule ? '✏️ تعديل موعد' : '➕ إضافة موعد جديد'}
+                  {editingSchedule ? `✏️ ${t('groupClassSchedules.edit')}` : `➕ ${t('groupClassSchedules.addNew')}`}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">اليوم</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.day')}</label>
                     <select
                       value={scheduleForm.dayOfWeek}
                       onChange={e => setScheduleForm(p => ({ ...p, dayOfWeek: Number(e.target.value) }))}
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
-                      {DAY_NAMES_AR.map((day, i) => (
+                      {DAY_NAMES.map((day, i) => (
                         <option key={i} value={i}>{day}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">الوقت</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.time')}</label>
                     <input
                       type="time"
                       value={scheduleForm.startTime}
@@ -1713,27 +1721,27 @@ export default function GroupClassPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">اسم الكلاس</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.className')}</label>
                     <input
                       type="text"
-                      placeholder="مثال: زومبا، يوجا، كروسفيت"
+                      placeholder={t('groupClassSchedules.classNamePlaceholder')}
                       value={scheduleForm.className}
                       onChange={e => setScheduleForm(p => ({ ...p, className: e.target.value }))}
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">اسم الكوتش</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.instructor')}</label>
                     <input
                       type="text"
-                      placeholder="اسم المدرب"
+                      placeholder={t('groupClassSchedules.instructorPlaceholder')}
                       value={scheduleForm.coachName}
                       onChange={e => setScheduleForm(p => ({ ...p, coachName: e.target.value }))}
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">المدة (دقيقة)</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.duration')}</label>
                     <input
                       type="number"
                       min={15}
@@ -1750,30 +1758,30 @@ export default function GroupClassPage() {
                     disabled={savingSchedule}
                     className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 transition font-medium"
                   >
-                    {savingSchedule ? 'جاري الحفظ...' : editingSchedule ? 'حفظ التعديلات' : 'إضافة الموعد'}
+                    {savingSchedule ? t('common.processing') : editingSchedule ? t('common.save') : t('groupClassSchedules.addNew')}
                   </button>
                   {editingSchedule && (
                     <button
                       onClick={resetScheduleForm}
                       className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300"
-                    >إلغاء</button>
+                    >{t('common.cancel')}</button>
                   )}
                 </div>
               </div>
 
               {/* Schedule List */}
               <div>
-                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">المواعيد الحالية</h3>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('groupClassSchedules.currentSchedules')}</h3>
                 {loadingSchedules ? (
-                  <div className="text-center py-8 text-gray-500">جاري التحميل...</div>
+                  <div className="text-center py-8 text-gray-500">{t('common.loading')}</div>
                 ) : schedules.length === 0 ? (
                   <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                     <div className="text-4xl mb-2">📋</div>
-                    <p>لا توجد مواعيد محددة بعد</p>
+                    <p>{t('groupClassSchedules.noSchedules')}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {DAY_NAMES_AR.map((dayName, dayIdx) => {
+                    {DAY_NAMES.map((dayName, dayIdx) => {
                       const daySchedules = schedules.filter(s => s.dayOfWeek === dayIdx)
                       if (daySchedules.length === 0) return null
                       return (

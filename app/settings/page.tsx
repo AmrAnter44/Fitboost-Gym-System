@@ -14,6 +14,8 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('services')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isAwardingBirthday, setIsAwardingBirthday] = useState(false)
+  const [birthdayResult, setBirthdayResult] = useState<any>(null)
 
   const [serviceSettings, setServiceSettings] = useState({
     nutritionEnabled: true,
@@ -32,6 +34,7 @@ export default function SettingsPage() {
     pointsPerInvitation: 0,
     pointsPerReferral: 0,
     pointsPerEGPSpent: 0,
+    pointsPerBirthday: 10,
     pointsValueInEGP: 0,
     nutritionReferralEnabled: false,
     nutritionReferralPercentage: 0,
@@ -138,6 +141,48 @@ export default function SettingsPage() {
       })
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const awardBirthdayPoints = async () => {
+    if (!confirm(direction === 'rtl'
+      ? 'هل تريد منح نقاط عيد الميلاد لجميع الأعضاء الذين لديهم عيد ميلاد اليوم؟'
+      : 'Award birthday points to all members with birthdays today?')) {
+      return
+    }
+
+    setIsAwardingBirthday(true)
+    setBirthdayResult(null)
+    try {
+      const response = await fetch('/api/birthday-points', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer birthday-points-secret-2024'
+        }
+      })
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setBirthdayResult({
+          type: 'success',
+          message: data.message,
+          count: data.count,
+          members: data.members
+        })
+        setTimeout(() => setBirthdayResult(null), 10000)
+      } else {
+        setBirthdayResult({
+          type: 'error',
+          message: data.message || (direction === 'rtl' ? 'فشل منح النقاط' : 'Failed to award points')
+        })
+      }
+    } catch (error) {
+      setBirthdayResult({
+        type: 'error',
+        message: direction === 'rtl' ? 'حدث خطأ في الاتصال' : 'Network error'
+      })
+    } finally {
+      setIsAwardingBirthday(false)
     }
   }
 
@@ -409,6 +454,51 @@ export default function SettingsPage() {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.points.perInvitation')}</label>
                       <input type="number" min="0" value={serviceSettings.pointsPerInvitation} onChange={(e) => updateSetting('pointsPerInvitation', parseInt(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-blue-300 dark:border-blue-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.points.perInvitationDesc')}</p>
+                    </div>
+                    <div className="p-4 bg-pink-50 dark:bg-pink-900/20 border-2 border-pink-200 dark:border-pink-700 rounded-lg">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🎂 {t('settingsPage.points.perBirthday')}</label>
+                      <input type="number" min="0" value={serviceSettings.pointsPerBirthday || 10} onChange={(e) => updateSetting('pointsPerBirthday', parseInt(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-pink-300 dark:border-pink-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">🎉 {t('settingsPage.points.perBirthdayDesc')}</p>
+
+                      {/* زر منح نقاط عيد الميلاد */}
+                      <button
+                        onClick={awardBirthdayPoints}
+                        disabled={isAwardingBirthday || !serviceSettings.pointsEnabled}
+                        className="mt-4 w-full px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        {isAwardingBirthday ? (
+                          <>
+                            <span className="animate-spin">⚙️</span>
+                            <span>{direction === 'rtl' ? 'جاري منح النقاط...' : 'Awarding points...'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>🎁</span>
+                            <span>{direction === 'rtl' ? 'منح نقاط عيد الميلاد الآن' : 'Award Birthday Points Now'}</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* نتيجة منح النقاط */}
+                      {birthdayResult && (
+                        <div className={`mt-3 p-3 rounded-lg border-2 ${
+                          birthdayResult.type === 'success'
+                            ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-800 dark:text-green-300'
+                            : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300'
+                        }`}>
+                          <div className="font-bold">{birthdayResult.message}</div>
+                          {birthdayResult.members && birthdayResult.members.length > 0 && (
+                            <div className="mt-2 text-sm space-y-1">
+                              {birthdayResult.members.map((member: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <span>✅</span>
+                                  <span>{member.name} (#{member.memberNumber}): +{member.pointsAwarded} {direction === 'rtl' ? 'نقطة' : 'points'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.points.perEGP')}</label>

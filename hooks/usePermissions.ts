@@ -10,6 +10,7 @@ export interface User {
   name: string
   email: string
   role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
+  staffId?: string | null
 }
 
 // استخدام نفس interface الـ Permissions من types/permissions.ts
