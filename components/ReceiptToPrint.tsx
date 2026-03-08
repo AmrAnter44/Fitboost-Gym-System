@@ -23,7 +23,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
   const [phone, setPhone] = useState('')
   const [sending, setSending] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
-  const [websiteUrl, setWebsiteUrl] = useState('https://www.xgym.website')
+  const [websiteUrl, setWebsiteUrl] = useState('') // ✅ يتم جلب القيمة من الإعدادات
   const [showWebsite, setShowWebsite] = useState(false) // ✅ البداية false عشان ميظهرش لحد ما نجيب الإعدادات
   const [receiptTerms, setReceiptTerms] = useState('الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه')
   const [settingsLoaded, setSettingsLoaded] = useState(false)

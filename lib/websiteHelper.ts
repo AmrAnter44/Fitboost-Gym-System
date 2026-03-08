@@ -18,19 +18,19 @@ async function fetchWebsiteSettings() {
       if (response.ok) {
         const data = await response.json()
         cachedSettings = {
-          websiteUrl: data.websiteUrl || 'https://www.xgym.website',
+          websiteUrl: data.websiteUrl || '',
           showWebsite: data.showWebsiteOnReceipts || false
         }
       } else {
         cachedSettings = {
-          websiteUrl: 'https://www.xgym.website',
+          websiteUrl: '',
           showWebsite: false
         }
       }
     } catch (error) {
       console.error('Error fetching website settings:', error)
       cachedSettings = {
-        websiteUrl: 'https://www.xgym.website',
+        websiteUrl: '',
         showWebsite: false
       }
     }

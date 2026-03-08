@@ -15,7 +15,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
   const [barcodeImage, setBarcodeImage] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
-  const [websiteUrl, setWebsiteUrl] = useState('https://www.xgym.website')
+  const [websiteUrl, setWebsiteUrl] = useState('') // ✅ يتم جلب القيمة من الإعدادات
   const [showWebsite, setShowWebsite] = useState(false) // ✅ البداية false عشان ميظهرش لحد ما نجيب الإعدادات
 
   // جلب إعدادات الموقع

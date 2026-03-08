@@ -23,6 +23,8 @@ interface ServiceSettings {
   nutritionReferralPercentage: number
   physioReferralEnabled: boolean
   physioReferralPercentage: number
+  websiteUrl?: string
+  showWebsiteOnReceipts?: boolean
 }
 
 interface ServiceSettingsContextType {
@@ -54,7 +56,9 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     nutritionReferralEnabled: false,
     nutritionReferralPercentage: 0,
     physioReferralEnabled: false,
-    physioReferralPercentage: 0
+    physioReferralPercentage: 0,
+    websiteUrl: '',
+    showWebsiteOnReceipts: false
   })
   const [loading, setLoading] = useState(true)
 
@@ -83,7 +87,9 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
           nutritionReferralEnabled: data.nutritionReferralEnabled ?? false,
           nutritionReferralPercentage: data.nutritionReferralPercentage ?? 0,
           physioReferralEnabled: data.physioReferralEnabled ?? false,
-          physioReferralPercentage: data.physioReferralPercentage ?? 0
+          physioReferralPercentage: data.physioReferralPercentage ?? 0,
+          websiteUrl: data.websiteUrl || '',
+          showWebsiteOnReceipts: data.showWebsiteOnReceipts ?? false
         })
       }
     } catch (error) {
