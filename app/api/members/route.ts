@@ -355,7 +355,6 @@ export async function POST(request: Request) {
       data: memberData,
     })
 
-
     // 📝 Audit log
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,

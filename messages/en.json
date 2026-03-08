@@ -4076,6 +4076,9 @@
     "saveSuccess": "✅ Settings saved successfully!",
     "saveError": "❌ Failed to save settings. Please try again.",
     "saveNetworkError": "❌ Error occurred while saving. Please check your internet connection.",
+    "networkError": "Network error",
+    "unexpectedError": "An unexpected error occurred",
+    "prismaUpdateError": "Error occurred while updating Prisma",
     "navigation": {
       "quickLinks": "Quick Links",
       "services": "Services",
@@ -4132,12 +4135,18 @@
       "perCheckInDesc": "Number of points per check-in",
       "perInvitation": "Points per Invitation",
       "perInvitationDesc": "Number of points for inviting a new member",
+      "perReferral": "Referral Points",
+      "perReferralDesc": "Points awarded to existing member when they refer a new member",
       "perEGP": "Points per EGP",
       "perEGPDesc": "Number of points per Egyptian pound spent",
       "valueInEGP": "Point Value in EGP",
       "valueInEGPDesc": "Point value when redeeming",
       "perBirthday": "Birthday Points",
-      "perBirthdayDesc": "Points automatically awarded to active members on their birthday"
+      "perBirthdayDesc": "Points automatically awarded to active members on their birthday",
+      "awardingPoints": "Awarding points...",
+      "awardNow": "Award Birthday Points Now",
+      "failedToAward": "Failed to award points",
+      "confirmAward": "Award birthday points to all members with birthdays today?"
     },
     "referral": {
       "title": "Referral Commission Settings",

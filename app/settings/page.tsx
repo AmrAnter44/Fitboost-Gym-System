@@ -145,9 +145,7 @@ export default function SettingsPage() {
   }
 
   const awardBirthdayPoints = async () => {
-    if (!confirm(direction === 'rtl'
-      ? 'هل تريد منح نقاط عيد الميلاد لجميع الأعضاء الذين لديهم عيد ميلاد اليوم؟'
-      : 'Award birthday points to all members with birthdays today?')) {
+    if (!confirm(t('settingsPage.points.confirmAward'))) {
       return
     }
 
@@ -173,13 +171,13 @@ export default function SettingsPage() {
       } else {
         setBirthdayResult({
           type: 'error',
-          message: data.message || (direction === 'rtl' ? 'فشل منح النقاط' : 'Failed to award points')
+          message: data.message || t('settingsPage.points.failedToAward')
         })
       }
     } catch (error) {
       setBirthdayResult({
         type: 'error',
-        message: direction === 'rtl' ? 'حدث خطأ في الاتصال' : 'Network error'
+        message: t('settingsPage.networkError')
       })
     } finally {
       setIsAwardingBirthday(false)
@@ -215,7 +213,7 @@ export default function SettingsPage() {
       if (res.ok && data.success) {
         setDbUploadResult({ success: `✅ ${data.message}` })
       } else {
-        setDbUploadResult({ error: data.error || 'حدث خطأ غير متوقع' })
+        setDbUploadResult({ error: data.error || t('settingsPage.unexpectedError') })
       }
     } catch (err: any) {
       setDbUploadResult({ error: err.message })
@@ -255,7 +253,7 @@ export default function SettingsPage() {
     } catch (error) {
       setPrismaMessage({
         type: 'error',
-        text: 'حدث خطأ أثناء تحديث Prisma'
+        text: t('settingsPage.prismaUpdateError')
       })
     } finally {
       setUpdatingPrisma(false)
@@ -455,6 +453,11 @@ export default function SettingsPage() {
                       <input type="number" min="0" value={serviceSettings.pointsPerInvitation} onChange={(e) => updateSetting('pointsPerInvitation', parseInt(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-blue-300 dark:border-blue-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.points.perInvitationDesc')}</p>
                     </div>
+                    <div className="p-4 bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-200 dark:border-teal-700 rounded-lg">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">👥 {t('settingsPage.points.perReferral')}</label>
+                      <input type="number" min="0" value={serviceSettings.pointsPerReferral} onChange={(e) => updateSetting('pointsPerReferral', parseInt(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-teal-300 dark:border-teal-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">💡 {t('settingsPage.points.perReferralDesc')}</p>
+                    </div>
                     <div className="p-4 bg-pink-50 dark:bg-pink-900/20 border-2 border-pink-200 dark:border-pink-700 rounded-lg">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🎂 {t('settingsPage.points.perBirthday')}</label>
                       <input type="number" min="0" value={serviceSettings.pointsPerBirthday || 10} onChange={(e) => updateSetting('pointsPerBirthday', parseInt(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-pink-300 dark:border-pink-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
@@ -469,12 +472,12 @@ export default function SettingsPage() {
                         {isAwardingBirthday ? (
                           <>
                             <span className="animate-spin">⚙️</span>
-                            <span>{direction === 'rtl' ? 'جاري منح النقاط...' : 'Awarding points...'}</span>
+                            <span>{t('settingsPage.points.awardingPoints')}</span>
                           </>
                         ) : (
                           <>
                             <span>🎁</span>
-                            <span>{direction === 'rtl' ? 'منح نقاط عيد الميلاد الآن' : 'Award Birthday Points Now'}</span>
+                            <span>{t('settingsPage.points.awardNow')}</span>
                           </>
                         )}
                       </button>
@@ -492,7 +495,7 @@ export default function SettingsPage() {
                               {birthdayResult.members.map((member: any, idx: number) => (
                                 <div key={idx} className="flex items-center gap-2">
                                   <span>✅</span>
-                                  <span>{member.name} (#{member.memberNumber}): +{member.pointsAwarded} {direction === 'rtl' ? 'نقطة' : 'points'}</span>
+                                  <span>{member.name} (#{member.memberNumber}): +{member.pointsAwarded} {t('members.pointsLabel')}</span>
                                 </div>
                               ))}
                             </div>
