@@ -240,21 +240,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                           bg-primary-600 dark:bg-primary-500 rounded-full
                         `} />
                       )}
-
-                      {/* Tooltip for collapsed mode */}
-                      {isCollapsed && (
-                        <div className={`
-                          absolute ${direction === 'rtl' ? 'right-full mr-2' : 'left-full ml-2'}
-                          bg-gray-900 dark:bg-gray-700 text-white
-                          px-3 py-2 rounded-lg text-sm whitespace-nowrap
-                          opacity-0 invisible group-hover:opacity-100 group-hover:visible
-                          transition-all duration-200
-                          pointer-events-none
-                          shadow-lg z-50
-                        `}>
-                          {link.label}
-                        </div>
-                      )}
                     </Link>
                   )
                 })}
