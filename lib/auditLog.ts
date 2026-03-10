@@ -39,6 +39,7 @@ export type AuditResource =
   | 'GroupClass'
   | 'Nutrition'
   | 'Physiotherapy'
+  | 'More'
 
 export type AuditStatus = 'success' | 'failure' | 'warning'
 

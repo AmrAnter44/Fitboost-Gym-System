@@ -17,15 +17,33 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Language>('ar')
-  const [messages, setMessages] = useState<any>({})
-
-  useEffect(() => {
-    // جلب اللغة المحفوظة من localStorage
+  // ✅ قراءة القيمة من localStorage مباشرة عند التهيئة
+  const [locale, setLocale] = useState<Language>(() => {
     const savedLocale = safeStorage.getItem('locale') as Language
     if (savedLocale && (savedLocale === 'ar' || savedLocale === 'en')) {
-      setLocale(savedLocale)
+      return savedLocale
     }
+    return 'ar'
+  })
+  const [messages, setMessages] = useState<any>({})
+
+  // جلب الإعدادات من قاعدة البيانات عند البداية
+  useEffect(() => {
+    fetch('/api/user/settings')
+      .then(res => {
+        if (res.ok) return res.json()
+        throw new Error('Not authenticated')
+      })
+      .then(data => {
+        if (data.locale && (data.locale === 'ar' || data.locale === 'en')) {
+          setLocale(data.locale)
+          safeStorage.setItem('locale', data.locale)
+        }
+      })
+      .catch(() => {
+        // استخدام localStorage كـ fallback للمستخدمين غير المسجلين
+        console.log('Using localStorage for locale (user not authenticated)')
+      })
   }, [])
 
   useEffect(() => {
@@ -41,9 +59,27 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }, [locale])
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = async (lang: Language) => {
     setLocale(lang)
     safeStorage.setItem('locale', lang)
+
+    // حفظ في قاعدة البيانات للمستخدمين المسجلين
+    try {
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale: lang })
+      })
+
+      // تجاهل الأخطاء بصمت (fallback account أو مستخدمين غير موجودين)
+      if (!response.ok) {
+        // localStorage already saved, we're good
+        return
+      }
+    } catch (error) {
+      // استمر بالعمل حتى لو فشل الحفظ في قاعدة البيانات
+      // localStorage already saved
+    }
   }
 
   // دالة الترجمة البسيطة

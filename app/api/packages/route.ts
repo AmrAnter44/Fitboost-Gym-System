@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { name, serviceType, sessions, price, ptCommission } = body
+    const { name, serviceType, sessions, price, durationDays, moreCommission } = body
 
     // التحقق من البيانات
     if (!name || !serviceType || !sessions || !price) {
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!['PT', 'Nutrition', 'Physiotherapy', 'GroupClass'].includes(serviceType)) {
+    if (!['PT', 'Nutrition', 'Physiotherapy', 'GroupClass', 'More'].includes(serviceType)) {
       return NextResponse.json(
         { error: 'نوع الخدمة غير صحيح' },
         { status: 400 }
@@ -76,7 +76,8 @@ export async function POST(request: Request) {
         serviceType,
         sessions: parseInt(sessions),
         price: parseFloat(price),
-        ptCommission: ptCommission ? parseFloat(ptCommission) : 0  // 💰 عمولة الكوتش
+        durationDays: durationDays ? parseInt(durationDays) : 30,  // 📅 مدة الاشتراك (افتراضي: 30 يوم)
+        moreCommission: moreCommission ? parseFloat(moreCommission) : 0  // 💰 عمولة المدرب لخدمة مزيد
       }
     })
 
@@ -115,7 +116,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { id, name, sessions, price, ptCommission, isActive } = body
+    const { id, name, sessions, price, durationDays, moreCommission, isActive } = body
 
     if (!id) {
       return NextResponse.json(
@@ -130,7 +131,8 @@ export async function PUT(request: Request) {
         name,
         sessions: sessions ? parseInt(sessions) : undefined,
         price: price ? parseFloat(price) : undefined,
-        ptCommission: ptCommission !== undefined ? parseFloat(ptCommission) : undefined,  // 💰 عمولة الكوتش
+        durationDays: durationDays ? parseInt(durationDays) : undefined,  // 📅 مدة الاشتراك
+        moreCommission: moreCommission !== undefined ? parseFloat(moreCommission) : undefined,  // 💰 عمولة المدرب لخدمة مزيد
         isActive: isActive !== undefined ? isActive : undefined
       }
     })

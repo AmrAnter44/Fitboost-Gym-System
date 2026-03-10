@@ -12,7 +12,8 @@ interface ServicePackage {
   serviceType: string
   sessions: number
   price: number
-  ptCommission?: number  // 💰 عمولة الكوتش لهذه الباقة
+  durationDays: number  // 📅 مدة الاشتراك بالأيام
+  moreCommission?: number  // 💰 عمولة المدرب لباقات مزيد
   isActive: boolean
 }
 
@@ -32,7 +33,8 @@ export default function PackagesManagementPage() {
     serviceType: 'PT',
     sessions: '',
     price: '',
-    ptCommission: ''  // 💰 عمولة الكوتش
+    durationDays: '30',  // 📅 مدة الاشتراك بالأيام (افتراضي 30 يوم)
+    moreCommission: ''  // 💰 عمولة المدرب
   })
 
   useEffect(() => {
@@ -97,7 +99,8 @@ export default function PackagesManagementPage() {
       serviceType: pkg.serviceType,
       sessions: pkg.sessions.toString(),
       price: pkg.price.toString(),
-      ptCommission: pkg.ptCommission?.toString() || '0'  // 💰 عمولة الكوتش
+      durationDays: pkg.durationDays?.toString() || '30',  // 📅 مدة الاشتراك
+      moreCommission: pkg.moreCommission?.toString() || '0'  // 💰 عمولة المدرب
     })
     setShowForm(true)
   }
@@ -128,7 +131,8 @@ export default function PackagesManagementPage() {
       serviceType: 'PT',
       sessions: '',
       price: '',
-      ptCommission: ''  // 💰 عمولة الكوتش
+      durationDays: '30',  // 📅 مدة الاشتراك
+      moreCommission: ''  // 💰 عمولة المدرب
     })
     setEditingPackage(null)
     setShowForm(false)
@@ -140,6 +144,7 @@ export default function PackagesManagementPage() {
       case 'Nutrition': return '🥗'
       case 'Physiotherapy': return '🏥'
       case 'GroupClass': return '👥'
+      case 'More': return '➕'
       default: return '📦'
     }
   }
@@ -150,6 +155,7 @@ export default function PackagesManagementPage() {
       case 'Nutrition': return 'bg-lime-50 dark:bg-lime-900/50 border-lime-400 dark:border-lime-700'
       case 'Physiotherapy': return 'bg-blue-50 dark:bg-blue-900/50 border-blue-400 dark:border-blue-700'
       case 'GroupClass': return 'bg-fuchsia-50 dark:bg-fuchsia-900/50 border-fuchsia-400 dark:border-fuchsia-700'
+      case 'More': return 'bg-pink-50 dark:bg-pink-900/50 border-pink-400 dark:border-pink-700'
       default: return 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600'
     }
   }
@@ -158,7 +164,8 @@ export default function PackagesManagementPage() {
     PT: packages.filter(p => p.serviceType === 'PT'),
     Nutrition: packages.filter(p => p.serviceType === 'Nutrition'),
     Physiotherapy: packages.filter(p => p.serviceType === 'Physiotherapy'),
-    GroupClass: packages.filter(p => p.serviceType === 'GroupClass')
+    GroupClass: packages.filter(p => p.serviceType === 'GroupClass'),
+    More: packages.filter(p => p.serviceType === 'More')
   }
 
   if (loading) {
@@ -235,6 +242,7 @@ export default function PackagesManagementPage() {
                 {settings.nutritionEnabled && <option value="Nutrition">🥗 {t('services.nutrition')}</option>}
                 {settings.physiotherapyEnabled && <option value="Physiotherapy">🏥 {t('services.physiotherapy')}</option>}
                 {settings.groupClassEnabled && <option value="GroupClass">👥 {t('services.groupClasses')}</option>}
+                {settings.moreEnabled && <option value="More">➕ {t('nav.more')}</option>}
               </select>
             </div>
 
@@ -266,28 +274,21 @@ export default function PackagesManagementPage() {
               />
             </div>
 
-            {/* 💰 عمولة الكوتش - فقط لباقات PT */}
-            {formData.serviceType === 'PT' && (
-              <div className="md:col-span-2">
-                <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
-                  👨‍🏫 عمولة الكوتش (جنيه)
-                </label>
-                <input
-                  type="number"
-                  value={formData.ptCommission}
-                  onChange={(e) => setFormData({ ...formData, ptCommission: e.target.value })}
-                  className="w-full p-3 border-2 border-purple-300 dark:border-purple-600 rounded-lg focus:border-purple-500 focus:outline-none dark:bg-gray-700 dark:text-white"
-                  placeholder="0"
-                  min="0"
-                  step="10"
-                />
-                <p className="text-sm text-purple-600 dark:text-purple-400 mt-2">
-                  💰 مبلغ العمولة للكوتش عند اشتراك عضو بهذه الباقة
-                  <br />
-                  <span className="text-gray-500 dark:text-gray-400">(0 = استخدام المبلغ الافتراضي من الإعدادات: {settings.ptCommissionAmount || 50} ج.م)</span>
-                </p>
-              </div>
-            )}
+            {/* 📅 مدة الاشتراك بالأيام */}
+            <div>
+              <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                📅 مدة الاشتراك (يوم)
+              </label>
+              <input
+                type="number"
+                value={formData.durationDays}
+                onChange={(e) => setFormData({ ...formData, durationDays: e.target.value })}
+                className="w-full p-3 border-2 border-blue-300 dark:border-blue-600 rounded-lg focus:border-blue-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                placeholder="30"
+                min="1"
+                required
+              />
+            </div>
 
             <div className="md:col-span-2 flex gap-3">
               <button
@@ -340,10 +341,10 @@ export default function PackagesManagementPage() {
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           {pkg.sessions} {t('packages.sessions')}
                         </p>
-                        {/* 💰 عمولة الكوتش - فقط لباقات PT */}
-                        {pkg.serviceType === 'PT' && pkg.ptCommission !== undefined && pkg.ptCommission > 0 && (
-                          <div className="mt-2 inline-block bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded text-xs font-bold">
-                            👨‍🏫 عمولة: {pkg.ptCommission} ج.م
+                        {/* 📅 مدة الاشتراك */}
+                        {pkg.durationDays && (
+                          <div className="mt-2 inline-block bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded text-xs font-bold">
+                            📅 {pkg.durationDays} يوم
                           </div>
                         )}
                       </div>

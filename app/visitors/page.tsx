@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
+import MemberForm from '../../components/MemberForm'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { fetchVisitors, fetchFollowUps } from '../../lib/api/visitors'
@@ -95,6 +96,10 @@ export default function VisitorsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedVisitorForHistory, setSelectedVisitorForHistory] = useState<Visitor | null>(null)
+
+  // ✅ اشتراك سريع - تحويل الزائر إلى عضو
+  const [showQuickSubscribeModal, setShowQuickSubscribeModal] = useState(false)
+  const [selectedVisitorForSubscribe, setSelectedVisitorForSubscribe] = useState<Visitor | null>(null)
 
   // Delete confirmation modal
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -381,6 +386,12 @@ export default function VisitorsPage() {
   const openQuickFollowUp = (visitor: Visitor) => {
     // الانتقال لصفحة المتابعات مع تمرير بيانات الزائر
     router.push(`/followups?visitorId=${visitor.id}`)
+  }
+
+  // ✅ فتح نموذج الاشتراك السريع
+  const openQuickSubscribe = (visitor: Visitor) => {
+    setSelectedVisitorForSubscribe(visitor)
+    setShowQuickSubscribeModal(true)
   }
 
   // Memoize history to avoid recalculation on every render
@@ -759,10 +770,11 @@ export default function VisitorsPage() {
                           📋 {t('visitors.actions.history')}
                         </button>
                         <button
-                          onClick={() => handleDelete(visitor)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
+                          onClick={() => openQuickSubscribe(visitor)}
+                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
+                          title="تحويل الزائر إلى عضو"
                         >
-                          🗑️ {t('visitors.actions.delete')}
+                          ⚡ اشتراك سريع
                         </button>
                       </div>
                     </td>
@@ -983,6 +995,42 @@ export default function VisitorsPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ⚡ نموذج الاشتراك السريع */}
+      {showQuickSubscribeModal && selectedVisitorForSubscribe && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                ⚡ اشتراك سريع - {selectedVisitorForSubscribe.name}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowQuickSubscribeModal(false)
+                  setSelectedVisitorForSubscribe(null)
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6">
+              <MemberForm
+                onSuccess={() => {
+                  setShowQuickSubscribeModal(false)
+                  setSelectedVisitorForSubscribe(null)
+                  refetchVisitors()
+                  toast.success(`تم تحويل ${selectedVisitorForSubscribe.name} إلى عضو بنجاح!`)
+                }}
+                prefillData={{
+                  name: selectedVisitorForSubscribe.name,
+                  phone: selectedVisitorForSubscribe.phone
+                }}
+              />
             </div>
           </div>
         </div>

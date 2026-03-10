@@ -38,9 +38,18 @@ export function usePermissions() {
   const fetchUserPermissions = async () => {
     try {
       const response = await fetch('/api/auth/me')
-      
+
       if (response.ok) {
         const data = await response.json()
+
+        // 🔍 Debug: اطبع البيانات المستلمة
+        console.log('🔍 usePermissions Debug:', {
+          role: data.user.role,
+          isAdmin: data.user.role === 'OWNER' || data.user.role === 'ADMIN',
+          hasPermissions: !!data.user.permissions,
+          canViewMore: data.user.permissions?.canViewMore
+        })
+
         setAuthState({
           user: data.user,
           permissions: data.user.permissions || null,
@@ -68,9 +77,20 @@ export function usePermissions() {
 
   // ✅ التحقق من صلاحية واحدة
   const hasPermission = (permission: keyof Permissions): boolean => {
-    if (authState.isAdmin) return true
-    if (!authState.permissions) return false
-    return authState.permissions[permission]
+    const result = authState.isAdmin || (authState.permissions?.[permission] ?? false)
+
+    // 🔍 Debug لصلاحية canViewMore فقط
+    if (permission === 'canViewMore') {
+      console.log('🔍 hasPermission(canViewMore):', {
+        isAdmin: authState.isAdmin,
+        userRole: authState.user?.role,
+        hasPermissionsObject: !!authState.permissions,
+        canViewMore: authState.permissions?.canViewMore,
+        result
+      })
+    }
+
+    return result
   }
 
   // ✅ التحقق من صلاحيات متعددة (يجب توفر واحدة على الأقل)

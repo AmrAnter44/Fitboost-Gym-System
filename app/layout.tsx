@@ -105,8 +105,41 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ar" dir="rtl" className="dark">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
+        {/* ⚡ تحميل الإعدادات من localStorage قبل React hydration - BLOCKING SCRIPT */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var html = document.documentElement;
+
+                  // تطبيق Dark Mode فورًا
+                  var darkMode = localStorage.getItem('darkMode');
+                  console.log('🌙 Loading Dark Mode:', darkMode);
+
+                  if (darkMode === 'true') {
+                    html.classList.add('dark');
+                  } else {
+                    html.classList.remove('dark');
+                  }
+
+                  // تطبيق اللغة فورًا
+                  var locale = localStorage.getItem('locale') || 'ar';
+                  console.log('🌐 Loading Language:', locale);
+
+                  html.setAttribute('lang', locale);
+                  html.setAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
+
+                  console.log('✅ Settings loaded successfully');
+                } catch (e) {
+                  console.error('❌ Failed to load settings:', e);
+                }
+              })();
+            `,
+          }}
+        />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
 
         {/* PWA Icons - iOS */}

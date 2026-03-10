@@ -43,6 +43,12 @@ export interface Permissions {
   canDeletePhysiotherapy: boolean
   canRegisterPhysioAttendance: boolean
 
+  // صلاحيات خدمة مزيد
+  canViewMore: boolean
+  canRegisterMoreAttendance: boolean
+  canDeleteMore: boolean
+  canAccessMoreCommission: boolean
+
   // صلاحيات الموظفين
   canViewStaff: boolean
   canCreateStaff: boolean
@@ -190,6 +196,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditPhysiotherapy: true,
     canDeletePhysiotherapy: true,
     canRegisterPhysioAttendance: true,
+    canViewMore: true,
+    canRegisterMoreAttendance: true,
+    canDeleteMore: true,
+    canAccessMoreCommission: true,
     canViewStaff: true,
     canCreateStaff: true,
     canEditStaff: true,
@@ -255,6 +265,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditPhysiotherapy: true,
     canDeletePhysiotherapy: true,
     canRegisterPhysioAttendance: true,
+    canViewMore: true,
+    canRegisterMoreAttendance: true,
+    canDeleteMore: true,
+    canAccessMoreCommission: true,
     canViewStaff: true,
     canCreateStaff: true,
     canEditStaff: true,
@@ -320,6 +334,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditPhysiotherapy: true,
     canDeletePhysiotherapy: false,
     canRegisterPhysioAttendance: true,
+    canViewMore: false, // ❌ MANAGER لا يمكنه رؤية صفحة مزيد
+    canRegisterMoreAttendance: false,
+    canDeleteMore: false,
+    canAccessMoreCommission: false,
     canViewStaff: true,
     canCreateStaff: false,
     canEditStaff: false,
@@ -385,6 +403,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditPhysiotherapy: false,
     canDeletePhysiotherapy: false,
     canRegisterPhysioAttendance: true,
+    canViewMore: false, // ❌ STAFF لا يمكنه رؤية صفحة مزيد
+    canRegisterMoreAttendance: false,
+    canDeleteMore: false,
+    canAccessMoreCommission: false,
     canViewStaff: false,
     canCreateStaff: false,
     canEditStaff: false,
@@ -451,6 +473,10 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditPhysiotherapy: false,
     canDeletePhysiotherapy: false,
     canRegisterPhysioAttendance: true,
+    canViewMore: false, // ❌ COACH لا يمكنه رؤية صفحة مزيد
+    canRegisterMoreAttendance: false,
+    canDeleteMore: false,
+    canAccessMoreCommission: false,
     canViewStaff: false,
     canCreateStaff: false,
     canEditStaff: false,
@@ -521,6 +547,10 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditPhysiotherapy: 'تعديل جلسة علاج طبيعي',
   canDeletePhysiotherapy: 'حذف جلسة علاج طبيعي',
   canRegisterPhysioAttendance: 'تسجيل حضور علاج طبيعي',
+  canViewMore: 'عرض خدمة مزيد',
+  canRegisterMoreAttendance: 'تسجيل حضور مزيد',
+  canDeleteMore: 'حذف اشتراك مزيد',
+  canAccessMoreCommission: 'عرض عمولات مزيد',
   canViewStaff: 'عرض الموظفين',
   canCreateStaff: 'إضافة موظف',
   canEditStaff: 'تعديل موظف',
@@ -613,6 +643,15 @@ export const PERMISSION_GROUPS = {
       'canEditPhysiotherapy',
       'canDeletePhysiotherapy',
       'canRegisterPhysioAttendance',
+    ] as Array<keyof Permissions>,
+  },
+  more: {
+    label: '➕ خدمة مزيد',
+    permissions: [
+      'canViewMore',
+      'canRegisterMoreAttendance',
+      'canDeleteMore',
+      'canAccessMoreCommission',
     ] as Array<keyof Permissions>,
   },
   staff: {
@@ -739,6 +778,10 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canEditPhysiotherapy: '✏️',
   canDeletePhysiotherapy: '🗑️',
   canRegisterPhysioAttendance: '✅',
+  canViewMore: '👁️',
+  canRegisterMoreAttendance: '✅',
+  canDeleteMore: '🗑️',
+  canAccessMoreCommission: '💰',
   canViewStaff: '👁️',
   canCreateStaff: '➕',
   canEditStaff: '✏️',

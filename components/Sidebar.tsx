@@ -68,6 +68,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
         { href: '/nutrition', label: t('nav.nutrition'), icon: '🥗', permission: 'canViewNutrition' as keyof Permissions, enabled: settings.nutritionEnabled },
         { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: '🏥', permission: 'canViewPhysiotherapy' as keyof Permissions, enabled: settings.physiotherapyEnabled },
         { href: '/group-classes', label: t('nav.groupClasses'), icon: '🎯', permission: 'canViewGroupClass' as keyof Permissions, enabled: settings.groupClassEnabled },
+        { href: '/more', label: t('nav.more'), icon: '➕', permission: 'canViewMore' as keyof Permissions, enabled: settings.moreEnabled },
         { href: '/spa-bookings', label: t('nav.spaBookings'), icon: '💆', permission: 'canViewSpaBookings' as keyof Permissions, enabled: settings.spaEnabled },
         { href: '/dayuse', label: t('nav.dayUse'), icon: '📊', permission: 'canViewDayUse' as keyof Permissions },
       ]

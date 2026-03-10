@@ -15,6 +15,7 @@ const SalesDashboard = nextDynamic(() => import('./SalesDashboard'), {
   loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl" />
 })
 const MessageTemplateManager = nextDynamic(() => import('./MessageTemplateManager'), { ssr: false })
+const MemberForm = nextDynamic(() => import('../../components/MemberForm'), { ssr: false })
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useRouter } from 'next/navigation'
@@ -83,6 +84,10 @@ export default function FollowUpsPage() {
   const [selectedVisitorForTemplate, setSelectedVisitorForTemplate] = useState<Visitor | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{id: string, name: string} | null>(null)
+
+  // ✅ اشتراك سريع - تحويل الزائر إلى عضو
+  const [showQuickSubscribeModal, setShowQuickSubscribeModal] = useState(false)
+  const [selectedVisitorForSubscribe, setSelectedVisitorForSubscribe] = useState<Visitor | null>(null)
 
   // View mode state
   const [viewMode, setViewMode] = useState<'list' | 'analytics'>('list')
@@ -558,6 +563,12 @@ export default function FollowUpsPage() {
   const cancelDelete = useCallback(() => {
     setShowDeleteConfirm(false)
     setDeleteTarget(null)
+  }, [])
+
+  // ✅ فتح نموذج الاشتراك السريع
+  const openQuickSubscribe = useCallback((visitor: Visitor) => {
+    setSelectedVisitorForSubscribe(visitor)
+    setShowQuickSubscribeModal(true)
   }, [])
 
   // Memoize history to avoid recalculation on every render
@@ -1463,16 +1474,13 @@ export default function FollowUpsPage() {
                       >
                         📋
                       </button>
-                      {!followUp.id.startsWith('expired-') && !followUp.id.startsWith('expiring-') && !followUp.id.startsWith('dayuse-') && !followUp.id.startsWith('invitation-') && (
-                        <button
-                          onClick={() => handleDeleteFollowUp(followUp.id, followUp.visitor.name)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
-                          disabled={deleteMutation.isPending}
-                          title={t('followups.actions.deleteFollowup')}
-                        >
-                          🗑️
-                        </button>
-                      )}
+                      <button
+                        onClick={() => openQuickSubscribe(followUp.visitor)}
+                        className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
+                        title="تحويل الزائر إلى عضو"
+                      >
+                        ⚡
+                      </button>
                     </div>
                   </div>
 
@@ -1788,17 +1796,14 @@ export default function FollowUpsPage() {
                           📋 {t('followups.buttons.history')}
                         </button>
 
-                        {/* زر حذف */}
-                        {!followUp.id.startsWith('expired-') && !followUp.id.startsWith('expiring-') && !followUp.id.startsWith('dayuse-') && !followUp.id.startsWith('invitation-') && (
-                          <button
-                            onClick={() => handleDeleteFollowUp(followUp.id, followUp.visitor.name)}
-                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
-                            title={t('followups.actions.deleteFollowup')}
-                            disabled={deleteMutation.isPending}
-                          >
-                            🗑️ {t('followups.actions.delete')}
-                          </button>
-                        )}
+                        {/* زر اشتراك سريع */}
+                        <button
+                          onClick={() => openQuickSubscribe(followUp.visitor)}
+                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
+                          title="تحويل الزائر إلى عضو"
+                        >
+                          ⚡ اشتراك سريع
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -2100,6 +2105,42 @@ export default function FollowUpsPage() {
               >
                 {t('followups.deleteConfirm.cancelButton')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ⚡ نموذج الاشتراك السريع */}
+      {showQuickSubscribeModal && selectedVisitorForSubscribe && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                ⚡ اشتراك سريع - {selectedVisitorForSubscribe.name}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowQuickSubscribeModal(false)
+                  setSelectedVisitorForSubscribe(null)
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6">
+              <MemberForm
+                onSuccess={() => {
+                  setShowQuickSubscribeModal(false)
+                  setSelectedVisitorForSubscribe(null)
+                  refetchFollowUps()
+                  toast.success(`تم تحويل ${selectedVisitorForSubscribe.name} إلى عضو بنجاح!`)
+                }}
+                prefillData={{
+                  name: selectedVisitorForSubscribe.name,
+                  phone: selectedVisitorForSubscribe.phone
+                }}
+              />
             </div>
           </div>
         </div>

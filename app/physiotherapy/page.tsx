@@ -229,13 +229,23 @@ export default function PhysiotherapyPage() {
   }
 
   const applyPackage = (pkg: any) => {
+    // حساب تاريخ الانتهاء تلقائيًا من durationDays
+    let calculatedExpiry = ''
+    if (formData.startDate && pkg.durationDays) {
+      const start = new Date(formData.startDate)
+      const expiry = new Date(start)
+      expiry.setDate(expiry.getDate() + pkg.durationDays)
+      calculatedExpiry = formatDateYMD(expiry)
+    }
+
     setFormData(prev => ({
       ...prev,
       sessionsPurchased: pkg.sessions,
       sessionsRemaining: pkg.sessions,
-      totalPrice: pkg.price
+      totalPrice: pkg.price,
+      expiryDate: calculatedExpiry || prev.expiryDate  // ✅ حساب تاريخ الانتهاء تلقائيًا
     }))
-    toast.success(`تم تطبيق باقة: ${pkg.name}`)
+    toast.success(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`)
   }
 
   // دالة جلب بيانات العضو بناءً على رقم العضوية وملء الحقول تلقائياً
@@ -736,6 +746,11 @@ export default function PhysiotherapyPage() {
                           <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                             {pkg.sessions} {t('packages.sessions')}
                           </div>
+                          {pkg.durationDays && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              📅 {pkg.durationDays} يوم
+                            </div>
+                          )}
                           <div className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">
                             {pkg.price} {t('physiotherapy.egp')}
                           </div>

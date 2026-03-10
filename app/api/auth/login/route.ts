@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken'
 import { logError } from '../../../../lib/errorLogger'
 import { checkRateLimit, getClientIdentifier } from '../../../../lib/rateLimit'
 import { logLogin, logLoginFailure, logRateLimitHit, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
+import { DEFAULT_PERMISSIONS } from '../../../../types/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,9 +70,9 @@ export async function POST(request: Request) {
         id: 'fallback-fitboost-account',
         name: 'FitBoost Admin',
         email: 'fitboost@system.local',
-        role: 'OWNER',
+        role: 'OWNER' as const,
         staffId: null,
-        permissions: null
+        permissions: DEFAULT_PERMISSIONS.OWNER
       }
 
       const token = jwt.sign(
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
           email: fallbackUser.email,
           role: fallbackUser.role,
           staffId: null,
-          permissions: null
+          permissions: DEFAULT_PERMISSIONS.OWNER
         },
         JWT_SECRET,
         { expiresIn: '7d' }
@@ -185,6 +186,9 @@ export async function POST(request: Request) {
     const displayName = user.staff?.name || user.name
 
 
+    // ✅ استخدام DEFAULT_PERMISSIONS إذا لم تكن موجودة في قاعدة البيانات
+    const permissions = user.permissions || DEFAULT_PERMISSIONS[user.role as keyof typeof DEFAULT_PERMISSIONS]
+
     // إنشاء JWT token
     const token = jwt.sign(
       {
@@ -193,7 +197,7 @@ export async function POST(request: Request) {
         email: user.email,
         role: user.role,
         staffId: user.staffId,
-        permissions: user.permissions
+        permissions  // ✅ استخدام الصلاحيات المحددة
       },
       JWT_SECRET,  // ✅ استخدام الـ secret مباشرة (مع fallback)
       { expiresIn: '7d' }

@@ -6,6 +6,7 @@ interface ServiceSettings {
   nutritionEnabled: boolean
   physiotherapyEnabled: boolean
   groupClassEnabled: boolean
+  moreEnabled: boolean
   spaEnabled: boolean
   inBodyEnabled: boolean
   poolEnabled: boolean
@@ -19,6 +20,8 @@ interface ServiceSettings {
   pointsValueInEGP: number
   ptCommissionEnabled: boolean
   ptCommissionAmount: number
+  moreCommissionEnabled: boolean
+  moreCommissionAmount: number
   nutritionReferralEnabled: boolean
   nutritionReferralPercentage: number
   physioReferralEnabled: boolean
@@ -40,6 +43,7 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     nutritionEnabled: true,
     physiotherapyEnabled: true,
     groupClassEnabled: true,
+    moreEnabled: true,
     spaEnabled: true,
     inBodyEnabled: true,
     poolEnabled: true,
@@ -53,6 +57,8 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     pointsValueInEGP: 0.1,
     ptCommissionEnabled: true,
     ptCommissionAmount: 50,
+    moreCommissionEnabled: true,
+    moreCommissionAmount: 50,
     nutritionReferralEnabled: false,
     nutritionReferralPercentage: 0,
     physioReferralEnabled: false,
@@ -71,6 +77,7 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
           nutritionEnabled: data.nutritionEnabled,
           physiotherapyEnabled: data.physiotherapyEnabled,
           groupClassEnabled: data.groupClassEnabled,
+          moreEnabled: data.moreEnabled ?? true,
           spaEnabled: data.spaEnabled,
           inBodyEnabled: data.inBodyEnabled,
           poolEnabled: data.poolEnabled ?? true,
@@ -84,6 +91,8 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
           pointsValueInEGP: data.pointsValueInEGP,
           ptCommissionEnabled: data.ptCommissionEnabled ?? true,
           ptCommissionAmount: data.ptCommissionAmount ?? 50,
+          moreCommissionEnabled: data.moreCommissionEnabled ?? true,
+          moreCommissionAmount: data.moreCommissionAmount ?? 50,
           nutritionReferralEnabled: data.nutritionReferralEnabled ?? false,
           nutritionReferralPercentage: data.nutritionReferralPercentage ?? 0,
           physioReferralEnabled: data.physioReferralEnabled ?? false,

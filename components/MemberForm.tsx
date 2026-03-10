@@ -16,9 +16,13 @@ import { serializePaymentMethods } from '../lib/paymentHelpers'
 interface MemberFormProps {
   onSuccess: () => void
   customCreatedAt?: Date | null
+  prefillData?: {  // ✅ بيانات مسبقة للتعبئة (مثل: من الزوار)
+    name?: string
+    phone?: string
+  }
 }
 
-export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormProps) {
+export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: MemberFormProps) {
   const { user } = usePermissions()
   const { t, direction } = useLanguage()
   const toast = useToast()
@@ -55,6 +59,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
     freeNutritionSessions: 0,
     freePhysioSessions: 0,
     freeGroupClassSessions: 0,
+    freeMoreSessions: 0,
     freePoolSessions: 0,
     freePadelSessions: 0,
     freeAssessmentSessions: 0,
@@ -129,6 +134,17 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
     fetchNextReceiptNumber()
     fetchOffers()
   }, [])
+
+  // ✅ تعبئة البيانات من prefillData (مثل: من صفحة الزوار)
+  useEffect(() => {
+    if (prefillData) {
+      setFormData(prev => ({
+        ...prev,
+        ...(prefillData.name && { name: prefillData.name }),
+        ...(prefillData.phone && { phone: prefillData.phone })
+      }))
+    }
+  }, [prefillData])
 
   useEffect(() => {
     if (user && !formData.staffName) {
@@ -318,6 +334,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       freeNutritionSessions: parseInt(formData.freeNutritionSessions.toString()),
       freePhysioSessions: parseInt(formData.freePhysioSessions.toString()),
       freeGroupClassSessions: parseInt(formData.freeGroupClassSessions.toString()),
+      freeMoreSessions: parseInt(formData.freeMoreSessions.toString()),
       freePoolSessions: parseInt(formData.freePoolSessions.toString()),
       freePadelSessions: parseInt(formData.freePadelSessions.toString()),
       freeAssessmentSessions: parseInt(formData.freeAssessmentSessions.toString()),
@@ -432,6 +449,7 @@ export default function MemberForm({ onSuccess, customCreatedAt }: MemberFormPro
       freeNutritionSessions: offer.freeNutritionSessions || 0,
       freePhysioSessions: offer.freePhysioSessions || 0,
       freeGroupClassSessions: offer.freeGroupClassSessions || 0,
+      freeMoreSessions: offer.freeMoreSessions || 0,
       freePoolSessions: offer.freePoolSessions || 0,
       freePadelSessions: offer.freePadelSessions || 0,
       freeAssessmentSessions: offer.freeAssessmentSessions || 0,

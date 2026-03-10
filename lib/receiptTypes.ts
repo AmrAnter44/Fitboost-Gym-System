@@ -22,6 +22,10 @@ export const RECEIPT_TYPES = {
   GROUP_CLASS_DAY_USE: 'groupClassDayUse',
   GROUP_CLASS_RENEWAL: 'groupClassRenewal',
 
+  // More Services
+  MORE_SUBSCRIPTION: 'moreSubscription',
+  MORE_RENEWAL: 'moreRenewal',
+
   // Member
   MEMBERSHIP_RENEWAL: 'membershipRenewal',
 

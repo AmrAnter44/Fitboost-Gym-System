@@ -33,6 +33,7 @@ model Member {
   freePoolSessions        Int    @default(0)
   freePadelSessions       Int    @default(0)
   freeAssessmentSessions  Int    @default(0)
+  freeMoreSessions        Int    @default(0)
   remainingFreezeDays Int        @default(0)
   subscriptionPrice Float
   remainingAmount   Float        @default(0)
@@ -60,6 +61,8 @@ model Member {
   nutritionSessions       NutritionSession[]
   physiotherapySessions   PhysiotherapySession[]
   groupClassSessions      GroupClassSession[]
+  moreSessions            MoreSession[]
+  moreSubscriptions       More[]
 
   @@index([coachId])
 }
@@ -202,6 +205,7 @@ model Receipt {
   nutritionNumber    Int?
   physioNumber       Int?
   classNumber        Int?
+  moreNumber         Int?
   isCancelled   Boolean       @default(false)
   cancelledAt   DateTime?
   cancelledBy   String?
@@ -212,6 +216,7 @@ model Receipt {
   nutrition     Nutrition?    @relation(fields: [nutritionNumber], references: [nutritionNumber])
   physiotherapy Physiotherapy? @relation(fields: [physioNumber], references: [physioNumber])
   groupClass    GroupClass?   @relation(fields: [classNumber], references: [classNumber])
+  more          More?         @relation(fields: [moreNumber], references: [moreNumber])
 }
 
 model ReceiptCounter {
@@ -236,9 +241,11 @@ model Offer {
   freePoolSessions        Int      @default(0)
   freePadelSessions       Int      @default(0)
   freeAssessmentSessions  Int      @default(0)
+  freeMoreSessions        Int      @default(0)
   nutritionPrice          Float?   @default(0)
   physioPrice             Float?   @default(0)
   groupClassPrice         Float?   @default(0)
+  morePrice               Float?   @default(0)
   inBodyScans             Int      @default(0)
   invitations             Int      @default(0)
   freezeDays              Int      @default(0)
@@ -350,6 +357,8 @@ model User {
   password     String
   role         String        @default("STAFF")
   isActive     Boolean       @default(true)
+  darkMode     Boolean       @default(false)  // 🌙 إعدادات Dark Mode
+  locale       String        @default("ar")   // 🌐 إعدادات اللغة (ar/en)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   staffId      String?       @unique
@@ -828,12 +837,72 @@ model GroupClassSession {
   @@index([collectedInExpenseId])
 }
 
+// ===== مزيد (More Services) =====
+model More {
+  moreNumber        Int         @id @default(autoincrement())
+  clientName        String
+  phone             String
+  memberId          String?
+  member            Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  sessionsPurchased Int
+  sessionsRemaining Int
+  coachName         String
+  coachUserId       String?
+  pricePerSession   Float
+  totalAmount       Float
+  startDate         DateTime    @default(now())
+  expiryDate        DateTime
+  remainingAmount   Float       @default(0)
+  notes             String?
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  sessions          MoreSession[]
+  receipts          Receipt[]
+
+  @@index([moreNumber])
+  @@index([phone])
+  @@index([memberId])
+  @@index([coachUserId])
+  @@index([isActive])
+}
+
+model MoreSession {
+  id              String   @id @default(cuid())
+  moreNumber      Int
+  clientName      String
+  coachName       String
+  sessionDate     DateTime @default(now())
+  attended        Boolean  @default(true)
+  attendedAt      DateTime @default(now())
+  attendedBy      String   // المستخدم الذي سجل الحضور
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  more            More     @relation(fields: [moreNumber], references: [moreNumber], onDelete: Cascade)
+
+  // Free Session Tracking
+  isFreeSession         Boolean   @default(false)
+  memberId              String?
+  member                Member?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?   // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
+
+  @@index([moreNumber])
+  @@index([sessionDate])
+  @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
+}
+
 // نظام إعدادات الخدمات
 model SystemSettings {
   id                    String   @id @default("singleton")
   nutritionEnabled      Boolean  @default(true)
   physiotherapyEnabled  Boolean  @default(true)
   groupClassEnabled     Boolean  @default(true)
+  moreEnabled           Boolean  @default(true)
   spaEnabled            Boolean  @default(true)
   inBodyEnabled         Boolean  @default(true)
   poolEnabled           Boolean  @default(true)
@@ -861,6 +930,10 @@ model SystemSettings {
   ptCommissionEnabled         Boolean  @default(true)   // تفعيل/تعطيل عمولة الكوتش عند إضافة عضو
   ptCommissionAmount          Float    @default(50)     // مبلغ العمولة (جنيه)
 
+  // إعدادات عمولة More
+  moreCommissionEnabled       Boolean  @default(true)   // تفعيل/تعطيل عمولة المدرب لخدمة مزيد
+  moreCommissionAmount        Float    @default(50)     // مبلغ العمولة (جنيه)
+
   // إعدادات عمولة Referral
   nutritionReferralEnabled    Boolean  @default(false)  // تفعيل/تعطيل Referral للتغذية
   nutritionReferralPercentage Float    @default(0)      // نسبة عمولة Referral للتغذية (%)
@@ -876,15 +949,16 @@ model SystemSettings {
 
 // باقات الخدمات
 model ServicePackage {
-  id           String   @id @default(cuid())
-  name         String
-  serviceType  String   // 'PT', 'Nutrition', 'Physiotherapy', 'GroupClass'
-  sessions     Int
-  price        Float
-  ptCommission Float?   @default(0)  // 💰 عمولة الكوتش لهذه الباقة (0 = استخدام الإعدادات الافتراضية)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  serviceType   String   // 'PT', 'Nutrition', 'Physiotherapy', 'GroupClass', 'More'
+  sessions      Int
+  price         Float
+  durationDays  Int      @default(30)  // 📅 مدة الاشتراك بالأيام (افتراضي: 30 يوم)
+  moreCommission Float?  @default(0)  // 💰 عمولة المدرب لباقات مزيد (0 = استخدام الإعدادات الافتراضية)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([serviceType])
   @@index([isActive])

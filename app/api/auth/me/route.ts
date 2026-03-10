@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '../../../../lib/auth'
 import { prisma } from '../../../../lib/prisma'
+import { DEFAULT_PERMISSIONS } from '../../../../types/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,11 +44,24 @@ export async function GET(request: Request) {
       }
     }
 
-    // إرجاع بيانات المستخدم مع الاسم المحدث
+    // ✅ استخدام DEFAULT_PERMISSIONS إذا لم تكن موجودة في JWT
+    const permissions = user.permissions || DEFAULT_PERMISSIONS[user.role]
+
+    // 🔍 Debug: طباعة البيانات المرسلة
+    console.log('🔍 /api/auth/me Response:', {
+      role: user.role,
+      hasUserPermissions: !!user.permissions,
+      hasDefaultPermissions: !!DEFAULT_PERMISSIONS[user.role],
+      canViewMore: permissions?.canViewMore,
+      allPermissions: permissions
+    })
+
+    // إرجاع بيانات المستخدم مع الاسم المحدث والصلاحيات
     return NextResponse.json({
       user: {
         ...user,
-        name: displayName  // ✅ استخدام الاسم من Staff
+        name: displayName,  // ✅ استخدام الاسم من Staff
+        permissions  // ✅ إضافة الصلاحيات
       }
     })
   } catch (error) {

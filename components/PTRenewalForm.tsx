@@ -142,13 +142,23 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
   }
 
   const applyPackage = (pkg: any) => {
+    // حساب تاريخ الانتهاء تلقائيًا من durationDays
+    let calculatedExpiry = ''
+    if (formData.startDate && pkg.durationDays) {
+      const start = new Date(formData.startDate)
+      const expiry = new Date(start)
+      expiry.setDate(expiry.getDate() + pkg.durationDays)
+      calculatedExpiry = formatDateYMD(expiry)
+    }
+
     setFormData(prev => ({
       ...prev,
       sessionsPurchased: pkg.sessions,
-      totalPrice: pkg.price
+      totalPrice: pkg.price,
+      expiryDate: calculatedExpiry || prev.expiryDate  // ✅ حساب تاريخ الانتهاء تلقائيًا
     }))
 
-    setSuccessMessage(`✅ تم تطبيق باقة ${pkg.name}`)
+    setSuccessMessage(`✅ تم تطبيق باقة ${pkg.name} (${pkg.durationDays} يوم)`)
     setTimeout(() => setSuccessMessage(''), 2000)
   }
 
@@ -284,6 +294,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                     <div className="text-xl font-bold text-green-600 mb-1">{pkg.price} {t('renewal.currency')}</div>
                     <div className="text-xs text-gray-600 dark:text-gray-300 space-y-0.5">
                       <div>🏋️ {pkg.sessions} جلسة</div>
+                      {pkg.durationDays && <div className="text-blue-600 dark:text-blue-400">📅 {pkg.durationDays} يوم</div>}
                     </div>
                   </button>
                 ))}
