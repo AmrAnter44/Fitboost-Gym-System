@@ -296,7 +296,9 @@ export default function SearchModal() {
     const isActive = member.isActive
     const isFrozen = member.isFrozen
     const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
+    const startDate = member.startDate ? new Date(member.startDate) : null
     const today = new Date()
+    today.setHours(0, 0, 0, 0) // تصفير الوقت للمقارنة بالتاريخ فقط
 
     if (isBanned) {
       playBannedHornSound()
@@ -308,7 +310,8 @@ export default function SearchModal() {
       return 'frozen'
     }
 
-    if (!isActive || (expiryDate && expiryDate < today)) {
+    // التحقق من: الاشتراك غير نشط، أو منتهي، أو لم يبدأ بعد
+    if (!isActive || (expiryDate && expiryDate < today) || (startDate && startDate > today)) {
       playAlarmSound()
       return 'expired'
     } else if (expiryDate) {
@@ -467,8 +470,14 @@ export default function SearchModal() {
 
       if (foundResults.length > 0) {
         const member = foundResults[0].data
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const startDate = member.startDate ? new Date(member.startDate) : null
+        const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
+        const hasStarted = !startDate || startDate <= today
+        const notExpired = !expiryDate || expiryDate >= today
 
-        if (member.isActive && !member.isBanned) {
+        if (member.isActive && !member.isBanned && hasStarted && notExpired) {
           handleMemberCheckIn(member.id)
         }
 
@@ -562,8 +571,18 @@ export default function SearchModal() {
       setLastSearchTime(new Date())
 
       if (foundResults.length > 0) {
-        if (foundResults[0].type === 'member' && foundResults[0].data.isActive && !foundResults[0].data.isBanned) {
-          handleMemberCheckIn(foundResults[0].data.id)
+        if (foundResults[0].type === 'member') {
+          const member = foundResults[0].data
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const startDate = member.startDate ? new Date(member.startDate) : null
+          const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
+          const hasStarted = !startDate || startDate <= today
+          const notExpired = !expiryDate || expiryDate >= today
+
+          if (member.isActive && !member.isBanned && hasStarted && notExpired) {
+            handleMemberCheckIn(member.id)
+          }
         }
 
         if (!silent) {
@@ -966,7 +985,15 @@ export default function SearchModal() {
                                         ? 'bg-gray-900 text-white'
                                         : result.data.isFrozen
                                           ? 'bg-primary-500 text-white'
-                                          : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
+                                          : (() => {
+                                              const today = new Date()
+                                              today.setHours(0, 0, 0, 0)
+                                              const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+                                              const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
+                                              const hasStarted = !startDate || startDate <= today
+                                              const notExpired = !expiryDate || expiryDate >= today
+                                              return result.data.isActive && hasStarted && notExpired
+                                            })()
                                           ? 'bg-green-500 text-white'
                                           : 'bg-red-500 text-white animate-pulse'
                                     }`}>
@@ -974,7 +1001,15 @@ export default function SearchModal() {
                                         ? `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
                                         : result.data.isFrozen
                                           ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
-                                          : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
+                                          : (() => {
+                                              const today = new Date()
+                                              today.setHours(0, 0, 0, 0)
+                                              const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+                                              const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
+                                              const hasStarted = !startDate || startDate <= today
+                                              const notExpired = !expiryDate || expiryDate >= today
+                                              return result.data.isActive && hasStarted && notExpired
+                                            })()
                                             ? `✅ ${t('search.active')}`
                                             : `🚨 ${t('search.expired')}`
                                       }
@@ -1047,7 +1082,13 @@ export default function SearchModal() {
                                   </div>
                                 )}
 
-                                {result.data.isActive && (result.data.invitations > 0 || result.data.freePTSessions > 0 || (settings.inBodyEnabled && result.data.inBodyScans > 0) || (settings.nutritionEnabled && result.data.freeNutritionSessions > 0) || (settings.physiotherapyEnabled && result.data.freePhysioSessions > 0) || (settings.groupClassEnabled && result.data.freeGroupClassSessions > 0)) && (
+                                {(() => {
+                                  const today = new Date()
+                                  today.setHours(0, 0, 0, 0)
+                                  const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+                                  const hasStarted = !startDate || startDate <= today
+                                  return result.data.isActive && hasStarted && (result.data.invitations > 0 || result.data.freePTSessions > 0 || (settings.inBodyEnabled && result.data.inBodyScans > 0) || (settings.nutritionEnabled && result.data.freeNutritionSessions > 0) || (settings.physiotherapyEnabled && result.data.freePhysioSessions > 0) || (settings.groupClassEnabled && result.data.freeGroupClassSessions > 0))
+                                })() && (
                                   <div className="mb-3 sm:mb-4 bg-gradient-to-r from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 border-2 border-primary-400 dark:border-primary-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                     <div className="flex items-center gap-2 mb-3">
                                       <span className="text-2xl">🎁</span>

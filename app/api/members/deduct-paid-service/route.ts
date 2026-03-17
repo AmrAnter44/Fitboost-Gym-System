@@ -119,15 +119,24 @@ export async function POST(request: Request) {
  * خصم جلسة من أقدم اشتراك PT نشط (FIFO)
  */
 async function deductFromPTSubscription(phone: string) {
-  // البحث عن كل اشتراكات PT النشطة
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // البحث عن كل اشتراكات PT النشطة (بدأت ولم تنتهي)
   const activePTs = await prisma.pT.findMany({
     where: {
       phone: phone,
       sessionsRemaining: { gt: 0 },
       OR: [
-        { expiryDate: null },
-        { expiryDate: { gt: new Date() } }
-      ]
+        { startDate: null },
+        { startDate: { lte: today } }
+      ],
+      AND: {
+        OR: [
+          { expiryDate: null },
+          { expiryDate: { gte: today } }
+        ]
+      }
     },
     orderBy: { createdAt: 'asc' } // أقدم أولاً (FIFO)
   })
@@ -158,14 +167,23 @@ async function deductFromPTSubscription(phone: string) {
  * خصم جلسة من أقدم اشتراك تغذية نشط (FIFO)
  */
 async function deductFromNutritionSubscription(phone: string) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   const activeNutrition = await prisma.nutrition.findMany({
     where: {
       phone: phone,
       sessionsRemaining: { gt: 0 },
       OR: [
-        { expiryDate: null },
-        { expiryDate: { gt: new Date() } }
-      ]
+        { startDate: null },
+        { startDate: { lte: today } }
+      ],
+      AND: {
+        OR: [
+          { expiryDate: null },
+          { expiryDate: { gte: today } }
+        ]
+      }
     },
     orderBy: { createdAt: 'asc' }
   })
@@ -195,14 +213,23 @@ async function deductFromNutritionSubscription(phone: string) {
  * خصم جلسة من أقدم اشتراك علاج طبيعي نشط (FIFO)
  */
 async function deductFromPhysioSubscription(phone: string) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   const activePhysio = await prisma.physiotherapy.findMany({
     where: {
       phone: phone,
       sessionsRemaining: { gt: 0 },
       OR: [
-        { expiryDate: null },
-        { expiryDate: { gt: new Date() } }
-      ]
+        { startDate: null },
+        { startDate: { lte: today } }
+      ],
+      AND: {
+        OR: [
+          { expiryDate: null },
+          { expiryDate: { gte: today } }
+        ]
+      }
     },
     orderBy: { createdAt: 'asc' }
   })
@@ -232,14 +259,23 @@ async function deductFromPhysioSubscription(phone: string) {
  * خصم جلسة من أقدم اشتراك جروب كلاسيس نشط (FIFO)
  */
 async function deductFromGroupClassSubscription(phone: string) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   const activeClasses = await prisma.groupClass.findMany({
     where: {
       phone: phone,
       sessionsRemaining: { gt: 0 },
       OR: [
-        { expiryDate: null },
-        { expiryDate: { gt: new Date() } }
-      ]
+        { startDate: null },
+        { startDate: { lte: today } }
+      ],
+      AND: {
+        OR: [
+          { expiryDate: null },
+          { expiryDate: { gte: today } }
+        ]
+      }
     },
     orderBy: { createdAt: 'asc' }
   })

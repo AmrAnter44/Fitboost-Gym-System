@@ -51,7 +51,8 @@
       "Bash(npx tsc --noEmit app/members/[id]/page.tsx)",
       "Bash(npx eslint app/followups/page.tsx --no-eslintrc --parser @typescript-eslint/parser)",
       "Bash(npx tsc --noEmit app/followups/page.tsx)",
-      "Bash(/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/vercel.json:*)"
+      "Bash(/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/vercel.json:*)",
+      "Read(//Users/amranter200444/.cache/puppeteer/**)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",

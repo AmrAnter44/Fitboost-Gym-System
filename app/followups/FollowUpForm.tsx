@@ -36,7 +36,7 @@ export default function FollowUpForm({
   onClose
 }: FollowUpFormProps) {
   const { t, direction } = useLanguage()
-  const { user } = usePermissions()
+  const { user, hasPermission } = usePermissions()
   const [loading, setLoading] = useState(false)
   const [staff, setStaff] = useState<any[]>([])
   const [formData, setFormData] = useState({
@@ -51,8 +51,12 @@ export default function FollowUpForm({
     stage: 'new'
   })
 
-  // جلب الموظفين النشطين
+  // جلب الموظفين النشطين - فقط إذا كان لديه صلاحية
   useEffect(() => {
+    if (!hasPermission('canViewStaff')) {
+      return // لا تحاول جلب الموظفين إذا لم يكن لديه صلاحية
+    }
+
     fetch('/api/staff')
       .then(res => res.json())
       .then(data => {
@@ -60,7 +64,7 @@ export default function FollowUpForm({
         setStaff(activeStaff)
       })
       .catch(err => console.error('Error fetching staff:', err))
-  }, [])
+  }, [hasPermission])
 
   // ✅ تعبئة اسم السيلز تلقائياً من المستخدم المسجل
   useEffect(() => {
@@ -198,10 +202,9 @@ export default function FollowUpForm({
 
           <div>
             <label className="block text-sm font-medium mb-1 dark:text-gray-100">
-              {t('followups.form.notes')} {t('followups.form.required')}
+              {t('followups.form.notes')} <span className="text-gray-400 text-xs">({t('followups.form.optional')})</span>
             </label>
             <textarea
-              required
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm dark:bg-gray-700 dark:text-white"

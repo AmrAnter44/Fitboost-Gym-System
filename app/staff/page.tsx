@@ -61,6 +61,8 @@ interface Staff {
   position?: string
   salary?: number
   notes?: string
+  workingHours?: number
+  monthlyVacationDays?: number
   isActive: boolean
   createdAt: string
   expenses?: Expense[]
@@ -154,6 +156,8 @@ export default function StaffPage() {
     customPosition: '',
     salary: 0,
     notes: '',
+    workingHours: 0,
+    monthlyVacationDays: 0,
   })
 
   // ✅ توليد رقم عشوائي من 9 أرقام للموظف
@@ -341,6 +345,8 @@ const handleScan = async (staffCode: string) => {
       customPosition: '',
       salary: 0,
       notes: '',
+      workingHours: 0,
+      monthlyVacationDays: 0,
     })
     setShowOtherPosition(false)
     setEditingStaff(null)
@@ -363,6 +369,8 @@ const handleScan = async (staffCode: string) => {
       customPosition: '',
       salary: staffMember.salary || 0,
       notes: staffMember.notes || '',
+      workingHours: staffMember.workingHours || 0,
+      monthlyVacationDays: staffMember.monthlyVacationDays || 0,
     })
     setShowOtherPosition(false)
     setEditingStaff(staffMember)
@@ -771,6 +779,12 @@ const handleScan = async (staffCode: string) => {
               📉 {t('nav.staffDeductions')}
             </Link>
           )}
+          <Link
+            href="/staff-hr-assistant"
+            className="flex-1 sm:flex-none text-center bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-700 dark:to-indigo-700 text-white px-5 py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 dark:hover:from-purple-600 dark:hover:to-indigo-600 transition transform hover:scale-105 shadow-lg font-medium"
+          >
+            {t('staff.hrAssistant.title')}
+          </Link>
           <button
             onClick={() => {
               resetForm()
@@ -933,6 +947,35 @@ const handleScan = async (staffCode: string) => {
                   placeholder={t('staff.form.salaryPlaceholder')}
                 />
               </div>
+            </div>
+
+            {/* ساعات العمل */}
+            <div>
+              <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.workingHours')}</label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.workingHours}
+                onChange={(e) => setFormData({ ...formData, workingHours: parseFloat(e.target.value) || 0 })}
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder={t('staff.form.workingHoursPlaceholder')}
+              />
+            </div>
+
+            {/* عدد أيام الإجازة شهرياً */}
+            <div>
+              <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.monthlyVacationDays')}</label>
+              <input
+                type="number"
+                min="0"
+                max="31"
+                value={formData.monthlyVacationDays}
+                onChange={(e) => setFormData({ ...formData, monthlyVacationDays: parseInt(e.target.value) || 0 })}
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder={t('staff.form.monthlyVacationDaysPlaceholder')}
+              />
             </div>
 
             {/* ملاحظات */}

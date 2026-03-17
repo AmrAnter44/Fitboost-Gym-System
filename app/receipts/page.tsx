@@ -12,6 +12,7 @@ import PermissionDenied from '../../components/PermissionDenied'
 import { printReceiptFromData } from '../../lib/printSystem'
 import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import { normalizeArabic } from '@/lib/arabicNormalization'
 
 // ✅ Dynamic imports - تحميل عند الحاجة فقط
 const ReceiptWhatsApp = nextDynamic(() => import('../../components/ReceiptWhatsApp'), { ssr: false })
@@ -147,18 +148,19 @@ export default function ReceiptsPage() {
 
     // فلتر البحث
     if (debouncedSearchTerm) {
+      const searchNormalized = normalizeArabic(debouncedSearchTerm)
       filtered = filtered.filter(r => {
         try {
           const details = JSON.parse(r.itemDetails)
           return (
             r.receiptNumber.toString().includes(debouncedSearchTerm) ||
-            details.memberName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-            details.clientName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-            details.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+            normalizeArabic(details.memberName || '').includes(searchNormalized) ||
+            normalizeArabic(details.clientName || '').includes(searchNormalized) ||
+            normalizeArabic(details.name || '').includes(searchNormalized) ||
             details.memberNumber?.toString().includes(debouncedSearchTerm) ||
             details.ptNumber?.toString().includes(debouncedSearchTerm) ||
             details.phone?.includes(debouncedSearchTerm) ||
-            r.staffName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+            normalizeArabic(r.staffName || '').includes(searchNormalized)
           )
         } catch {
           return false
@@ -434,10 +436,17 @@ export default function ReceiptsPage() {
       .toISOString()
       .slice(0, 16)
 
+    // ✅ استخراج طريقة الدفع الصحيحة (في حالة الدفع المتعدد نأخذ أول طريقة)
+    let paymentMethodValue = receipt.paymentMethod
+    if (isMultiPayment(receipt.paymentMethod)) {
+      const normalized = normalizePaymentMethod(receipt.paymentMethod, receipt.amount)
+      paymentMethodValue = normalized.methods[0]?.method || 'cash'
+    }
+
     setEditFormData({
       receiptNumber: receipt.receiptNumber,
       amount: receipt.amount,
-      paymentMethod: receipt.paymentMethod,
+      paymentMethod: paymentMethodValue,
       staffName: receipt.staffName || '',
       createdAt: formattedDate
     })

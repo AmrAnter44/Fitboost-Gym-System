@@ -12,12 +12,14 @@
     "close": "Close",
     "confirm": "Confirm",
     "loading": "Loading...",
+    "processing": "Processing...",
     "success": "Success",
     "error": "Error",
     "required": "Required",
     "optional": "Optional",
     "yes": "Yes",
     "no": "No",
+    "day": "Day",
     "back": "Back",
     "next": "Next",
     "previous": "Previous",
@@ -37,7 +39,9 @@
     "cash": "Cash",
     "card": "Card",
     "instapay": "Instapay",
-    "wallet": "Wallet"
+    "wallet": "Wallet",
+    "appTitle": "Gym System",
+    "appSubtitle": "Management System"
   },
   "nav": {
     "home": "Home",
@@ -309,6 +313,7 @@
       "maxImageSize": "Maximum: 5MB",
       "subscriptionPeriod": "Subscription Period",
       "quickAdd": "Quick Add",
+      "selectDate": "Select from calendar",
       "month": "month",
       "months": "months",
       "subscriptionDuration": "Subscription Duration",
@@ -424,7 +429,65 @@
     "pleaseSelectGymAndBranch": "Please select gym and branch",
     "licenseSavedSuccessfully": "License saved successfully",
     "failedToSaveLicense": "Failed to save license",
-    "errorOccurred": "An error occurred"
+    "errorOccurred": "An error occurred",
+    "whatsapp": {
+      "title": "WhatsApp Settings",
+      "subtitle": "Manage WhatsApp connection and automatic messaging",
+      "connectionStatus": "Connection Status",
+      "loading": "Loading...",
+      "client": "Client:",
+      "initialized": "Initialized",
+      "notInitialized": "Not Initialized",
+      "connection": "Connection:",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "connecting": "Connecting",
+      "initialize": "Initialize WhatsApp",
+      "initializing": "Initializing...",
+      "reconnect": "Reconnect",
+      "reconnecting": "Reconnecting...",
+      "reconnectInfo": "Will attempt to reconnect using saved session",
+      "restartInfo": "Restart connection (useful if experiencing issues)",
+      "resetSession": "Start Fresh",
+      "resetting": "Resetting...",
+      "resetInfo": "⚠️ This will delete the current session completely and show a new QR code",
+      "scanQR": "Scan QR Code from your phone",
+      "qrInstructions": "Open WhatsApp → Settings → Linked Devices → Link Device",
+      "readyToSend": "WhatsApp is connected and ready to send!",
+      "testSending": "Test Sending",
+      "phoneNumber": "Phone Number",
+      "message": "Message",
+      "sendTestMessage": "Send Test Message",
+      "sending": "Sending...",
+      "mustBeConnected": "WhatsApp must be connected to send messages",
+      "importantInfo": "Important Information",
+      "infoItems": {
+        "qrOnce": "QR code needs to be scanned only once on first setup",
+        "sessionPersists": "Session remains active even after closing the app",
+        "autoSend": "Receipts can be sent automatically without user intervention",
+        "fromConnected": "Messages are sent from the connected WhatsApp number",
+        "keepConnected": "Make sure your phone stays connected to the internet"
+      },
+      "toast": {
+        "connected": "WhatsApp connected successfully!",
+        "disconnected": "WhatsApp disconnected",
+        "authFailed": "WhatsApp authentication failed",
+        "initialized": "WhatsApp initialized. Scan QR code to connect",
+        "initFailed": "Failed to initialize WhatsApp",
+        "notAvailable": "WhatsApp is not available in this environment",
+        "initError": "Error occurred while initializing WhatsApp",
+        "reconnectSuccess": "Reconnected successfully! Scan QR code",
+        "reconnectFailed": "Reconnect failed",
+        "reconnectError": "Error occurred while reconnecting",
+        "resetSuccess": "Session reset! Scan the new QR code",
+        "resetFailed": "Reset failed",
+        "resetError": "Error occurred while resetting",
+        "invalidPhone": "Enter a valid phone number",
+        "testSent": "Test message sent successfully",
+        "sendFailed": "Failed to send",
+        "sendError": "Error occurred while sending"
+      }
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -645,8 +708,10 @@
       "availableFreezeDays": "Available Freeze Days",
       "daysAvailable": "days available",
       "canUseInPortions": "You can use freeze days in portions",
+      "canUseInBatches": "You can use freeze days in batches",
       "currentExpiryDate": "Current expiry date",
       "daysRemaining": "Days remaining",
+      "remainingDays": "Days remaining",
       "day": "day",
       "days": "days",
       "daysToFreeze": "Days to freeze",
@@ -654,11 +719,13 @@
       "daysToAdd": "Number of days to add",
       "daysPlaceholder": "Number of days",
       "daysToFreezeHelp": "You can freeze up to {max} days",
+      "canFreezeUpTo": "You can freeze up to",
       "reason": "Reason",
       "reasonPlaceholder": "Reason for freeze...",
       "newExpiryDate": "New expiry date",
       "summary": "Summary",
       "summaryText": "Subscription will be frozen for {days} days",
+      "willFreeze": "Subscription will be frozen for",
       "remainingBalance": "Remaining balance",
       "confirmFreeze": "Confirm Freeze",
       "cancel": "Cancel",
@@ -1559,6 +1626,10 @@
       "salary": "Salary (EGP)",
       "notes": "Notes",
       "notesPlaceholder": "Additional notes...",
+      "workingHours": "Working Hours (Daily)",
+      "workingHoursPlaceholder": "8",
+      "monthlyVacationDays": "Monthly Vacation Days",
+      "monthlyVacationDaysPlaceholder": "2",
       "namePlaceholder": "Mohamed Ahmed",
       "salaryPlaceholder": "0.00",
       "customPosition": "Enter Position",
@@ -1629,6 +1700,82 @@
       "unpaid": "Unpaid",
       "noLoans": "No loans for this staff member",
       "viewInExpenses": "View in Expenses"
+    },
+    "hrAssistant": {
+      "title": "🤖 Your HR Personal Assistant",
+      "subtitle": "Staff performance analysis and attendance tracking",
+      "overview": "Overview",
+      "totalStaff": "Total Staff",
+      "excellent": "Excellent",
+      "good": "Good",
+      "average": "Average",
+      "underperforming": "Underperforming",
+      "filters": "Filters",
+      "search": "Search for Staff",
+      "searchPlaceholder": "Search by name, code or position...",
+      "results": "results",
+      "noResults": "No search results found",
+      "month": "Month",
+      "year": "Year",
+      "refresh": "Refresh",
+      "details": "Staff Details",
+      "staffList": "Staff List",
+      "selectedStaffDetails": "Selected Staff Details",
+      "hoursPerDay": "hrs/day",
+      "vacationDaysPerMonth": "vacation days/month",
+      "attendance": "Attendance",
+      "absence": "Absence",
+      "workHours": "Work Hours",
+      "performance": "Performance",
+      "alerts": "Alerts",
+      "underperformanceDays": "Underperformance Days",
+      "hoursShortfall": "Hours Shortfall",
+      "vacationExceeded": "Vacation Days Exceeded",
+      "vacationUsed": "Vacation Days Used",
+      "vacationRemaining": "Vacation Remaining",
+      "export": "Export Report",
+      "loading": "Analyzing...",
+      "noData": "No data for the selected month",
+      "noStaff": "No staff members",
+      "day": "day",
+      "days": "days",
+      "hour": "hour",
+      "hours": "hours",
+      "of": "of",
+      "workingDays": "Working Days",
+      "viewDetails": "View Details",
+      "hideDetails": "Hide Details",
+      "revenue": {
+        "total": "Total Revenue",
+        "breakdown": "Revenue Breakdown",
+        "pt": "Personal Training",
+        "nutrition": "Nutrition",
+        "physiotherapy": "Physiotherapy",
+        "other": "Other",
+        "salary": "Salary",
+        "ratio": "Revenue/Salary Ratio",
+        "difference": "Difference"
+      },
+      "status": {
+        "excellent": "Excellent",
+        "good": "Good",
+        "warning": "Warning",
+        "critical": "Critical"
+      },
+      "months": {
+        "1": "January",
+        "2": "February",
+        "3": "March",
+        "4": "April",
+        "5": "May",
+        "6": "June",
+        "7": "July",
+        "8": "August",
+        "9": "September",
+        "10": "October",
+        "11": "November",
+        "12": "December"
+      }
     }
   },
   "receipts": {
@@ -1840,6 +1987,16 @@
       "until": "until",
       "discount": "Discount:",
       "service": "service"
+    },
+    "cancel": {
+      "notFound": "Receipt not found",
+      "alreadyCancelled": "Receipt already cancelled",
+      "noReason": "No reason provided",
+      "cancellationType": "Receipt Cancellation",
+      "success": "Receipt cancelled successfully",
+      "unauthorized": "Please login first",
+      "forbidden": "You don't have permission to cancel receipts",
+      "failed": "Failed to cancel receipt"
     }
   },
   "expenses": {
@@ -1909,7 +2066,9 @@
       "addError": "Failed to add expense",
       "deleteSuccess": "Expense deleted successfully",
       "deleteError": "Failed to delete expense",
-      "error": "An error occurred"
+      "error": "An error occurred",
+      "updateSuccess": "Expense updated successfully!",
+      "updateError": "Failed to update expense"
     },
     "loansModal": {
       "title": "Staff Loans",
@@ -2015,7 +2174,9 @@
       "contacted": "Done",
       "notContacted": "Not done",
       "nextFollowUp": "Next",
-      "noFollowUps": "No follow-ups yet"
+      "noFollowUps": "No follow-ups yet",
+      "completed": "Completed",
+      "notCompleted": "Not Completed"
     },
     "results": {
       "interested": "Interested",
@@ -2074,6 +2235,7 @@
     "loading": "Loading...",
     "newFollowup": "New Follow-up",
     "addNew": "New Follow-up",
+    "quickSubscribe": "⚡ Quick Subscribe",
     "days": "days",
     "close": "Close",
     "permissionDenied": "You don't have permission to view follow-ups",
@@ -2167,7 +2329,8 @@
     },
     "buttons": {
       "followup": "Follow-up",
-      "history": "History"
+      "history": "History",
+      "delete": "Delete"
     },
     "labels": {
       "contacted": "Contacted",
@@ -2203,7 +2366,8 @@
       "contactedCheckbox": "Already contacted",
       "saving": "Saving...",
       "save": "✅ Save",
-      "required": "*"
+      "required": "*",
+      "optional": "Optional"
     },
     "status": {
       "contacted": "Contacted",
@@ -2434,7 +2598,9 @@
       "addFollowupNew": "Add New Follow-up",
       "addFollowupForRenewal": "Add Follow-up for Renewal",
       "delete": "Delete",
-      "deleteFollowup": "Delete Follow-up"
+      "deleteFollowup": "Delete Follow-up",
+      "followUpTitle": "Follow-up",
+      "historyTitle": "History"
     },
     "recentlyConverted": {
       "title": "Recently Converted",
@@ -2685,7 +2851,11 @@
       "toggleError": "Failed to update offer status",
       "toggleSuccess": "Offer status updated successfully",
       "toggleErrorGeneral": "An error occurred while updating the offer status"
-    }
+    },
+    "upgradePoints": "Upgrade Points",
+    "upgradePointsHelp": "Points earned when member upgrades subscription",
+    "upgradePointsReward": "Upgrade Points Reward",
+    "pointsLabel": "Points"
   },
   "upgrade": {
     "title": "Package Upgrade",
@@ -2796,7 +2966,10 @@
     "physiotherapy": "Physiotherapy",
     "groupClass": "Group Class",
     "pointsBalance": "Points Balance",
-    "valueInEGP": "Value in EGP"
+    "valueInEGP": "Value in EGP",
+    "soundCyan": "Sound (Cyan)",
+    "frozenSubscription": "Frozen Subscription",
+    "frozen": "Frozen"
   },
   "renewal": {
     "title": "Renew Subscription",
@@ -2858,7 +3031,27 @@
       "invalidDateRange": "Expiry date must be after start date",
       "renewalFailed": "Failed to renew subscription",
       "unexpectedError": "An unexpected error occurred"
-    }
+    },
+    "subtitle": "Renew member subscription for a new period",
+    "renewButton": "Renew Subscription",
+    "memberName": "Name:",
+    "membershipNumber": "Membership Number:",
+    "membershipRenewal": "Membership Renewal",
+    "currentPTSessions": "Current PT Sessions:",
+    "previousExpiryDate": "Previous Expiry Date:",
+    "additionalPTSessions": "Additional PT Sessions",
+    "additionalInBodyScans": "Additional InBody Scans",
+    "notesOptional": "Notes (Optional)",
+    "renewalSummary": "Renewal Summary",
+    "sessions": "session",
+    "egp": "EGP",
+    "enterDates": "Please specify start and expiry dates",
+    "enterValidPrice": "Please enter a valid subscription price",
+    "expiryMustBeAfterStart": "Expiry date must be after start date",
+    "renewalSuccess": "Renewal Successful!",
+    "renewalSuccessMessage": "Subscription renewed successfully!",
+    "renewalFailed": "Subscription renewal failed",
+    "unexpectedError": "An unexpected error occurred"
   },
   "multiPayment": {
     "title": "Split Amount Across Multiple Payment Methods",
@@ -3190,7 +3383,14 @@
         "lastVisit": "Last Visit",
         "date": "Date",
         "checkInTime": "Check-in Time"
-      }
+      },
+      "subscriptionDuration": "Subscription Duration:",
+      "dateError": "Expiry date must be after start date",
+      "summary": "Renewal Summary",
+      "replacementWarning": "Renewal will replace current remaining sessions ({sessionsRemaining} sessions) with new sessions",
+      "newSessionsLabel": "Number of New Sessions:",
+      "paidAmount": "Paid Amount:",
+      "renewButton": "✅ Renew Sessions"
     },
     "commission": {
       "title": "Physiotherapist Commission Calculator",
@@ -3575,7 +3775,14 @@
         "lastVisit": "Last Visit",
         "date": "Date",
         "checkInTime": "Check-in Time"
-      }
+      },
+      "subscriptionDuration": "Subscription Duration:",
+      "dateError": "Expiry date must be after start date",
+      "summary": "Renewal Summary",
+      "replacementWarning": "Renewal will replace current remaining sessions ({sessionsRemaining} sessions) with new sessions",
+      "newSessionsLabel": "Number of New Sessions:",
+      "paidAmount": "Paid Amount:",
+      "renewButton": "✅ Renew Sessions"
     },
     "commission": {
       "title": "Nutritionist Commission Calculator",
@@ -3960,7 +4167,14 @@
         "lastVisit": "Last Visit",
         "date": "Date",
         "checkInTime": "Check-in Time"
-      }
+      },
+      "subscriptionDuration": "Subscription Duration:",
+      "dateError": "Expiry date must be after start date",
+      "summary": "Renewal Summary",
+      "replacementWarning": "Renewal will replace current remaining sessions ({sessionsRemaining} sessions) with new sessions",
+      "newSessionsLabel": "Number of New Sessions:",
+      "paidAmount": "Paid Amount:",
+      "renewButton": "✅ Renew Sessions"
     }
   },
   "more": {
@@ -4245,6 +4459,7 @@
       "referral": "Referral Commission",
       "freeSessions": "Free Sessions",
       "receipts": "Receipts",
+      "portForwarding": "Remote Access",
       "display": "Appearance & Language",
       "database": "Database",
       "support": "Technical Support"
@@ -4403,6 +4618,27 @@
       "prismaSuccess": "✅ Prisma updated successfully!\n\n📦 Changes applied to database\n⚙️ Prisma Client generated",
       "prismaInfo": "💡 Recommended to restart the server after updating for best performance"
     },
+    "portForwarding": {
+      "title": "Remote Access",
+      "description": "Access the system from any device on the local network",
+      "localAccess": "Local Network Access",
+      "localAccessDesc": "Scan QR Code to access the system from mobile or any device connected to the same network",
+      "localURL": "Local Access URL",
+      "localIP": "Local IP Address",
+      "urlCopied": "URL copied successfully",
+      "copyURL": "Copy URL",
+      "refresh": "Refresh",
+      "noConnection": "Unable to get IP address. Make sure you're connected to the network",
+      "tryAgain": "Try Again",
+      "instructions": {
+        "title": "How to Use",
+        "step1": "Make sure the target device (mobile/tablet) is connected to the same Wi-Fi network as the system",
+        "step2": "Open your phone's camera or QR Scanner app and scan the code",
+        "step3": "Or copy the URL and open it in the browser on any device connected to the same network",
+        "step4": "You'll have full access to the system from any device on the local network",
+        "warning": "⚠️ Note: This URL only works on devices connected to the same Wi-Fi network. For external access, you'll need to configure Port Forwarding on your router."
+      }
+    },
     "support": {
       "title": "Technical Support",
       "description": "Contact us for assistance",
@@ -4445,6 +4681,9 @@
       "sessionPrice": "Session Price",
       "simpleRegistration": "Simple registration - name, number, and session price only"
     }
+  },
+  "receipt": {
+    "created": "Receipt #{number} created"
   },
   "homepageClassBookings": {
     "todayClassBookings": "Today's Class Bookings",

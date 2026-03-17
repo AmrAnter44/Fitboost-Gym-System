@@ -36,6 +36,19 @@ async function productionSync() {
     log('\n🚀 مزامنة قاعدة البيانات (Production Mode)', 'cyan');
     log('='.repeat(60), 'cyan');
 
+    // توليد Prisma Client أولاً
+    log('\n⚙️  جاري توليد Prisma Client...', 'blue');
+    try {
+      execSync('npx prisma generate', {
+        cwd: PROJECT_ROOT,
+        stdio: 'inherit'
+      });
+      log('✅ تم توليد Prisma Client بنجاح', 'green');
+    } catch (error) {
+      log('❌ فشل توليد Prisma Client', 'red');
+      throw error;
+    }
+
     // فحص وجود الداتابيز
     if (!fs.existsSync(DB_PATH)) {
       log('\n⚠️  الداتابيز غير موجودة!', 'yellow');

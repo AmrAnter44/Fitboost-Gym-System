@@ -108,8 +108,19 @@ export async function POST(request: Request) {
       )
     }
 
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // التحقق من تاريخ البداية
+    if (more.startDate && new Date(more.startDate) > today) {
+      return NextResponse.json(
+        { error: 'الاشتراك لم يبدأ بعد' },
+        { status: 400 }
+      )
+    }
+
     // التحقق من تاريخ الانتهاء
-    if (new Date() > new Date(more.expiryDate)) {
+    if (more.expiryDate && new Date(more.expiryDate) < today) {
       return NextResponse.json(
         { error: 'الاشتراك منتهي' },
         { status: 400 }

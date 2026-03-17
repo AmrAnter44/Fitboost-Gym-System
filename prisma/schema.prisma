@@ -1,6 +1,7 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "darwin-arm64", "windows", "debian-openssl-3.0.x"]
+  binaryTargets = ["native", "windows"]
+  previewFeatures = []
 }
 
 datasource db {
@@ -266,6 +267,8 @@ model Staff {
   position     String?        // Can store multiple positions as comma-separated (e.g., "مدرب,ريسبشن,بار")
   salary       Float?
   notes        String?
+  workingHours Float?         // عدد ساعات العمل المطلوبة يومياً (e.g., 8)
+  monthlyVacationDays Int?   // عدد أيام الإجازة شهرياً (e.g., 2)
   isActive     Boolean        @default(true)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -1056,4 +1059,16 @@ model SupabaseLicense {
   updatedAt      DateTime @updatedAt
 
   @@index([branchId])
+}
+
+// قوالب رسائل الواتساب
+model WhatsAppTemplate {
+  id        String   @id @default(cuid())
+  title     String
+  icon      String   @default("💬")
+  message   String
+  isCustom  Boolean  @default(true)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

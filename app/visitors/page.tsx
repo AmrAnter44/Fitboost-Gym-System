@@ -276,7 +276,12 @@ export default function VisitorsPage() {
       if (response.ok) {
         setFormData({ name: '', phone: '', notes: '', source: 'walk-in', interestedIn: '' })
         toast.success(t('visitors.messages.addSuccess'))
+
+        // ✅ تحديث جميع الصفحات المرتبطة بالزوار والمتابعات
         refetchVisitors()
+        await queryClient.invalidateQueries({ queryKey: ['followups'] })
+        await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+
         setShowForm(false)
       } else {
         toast.error(data.error || t('visitors.messages.addError'))
@@ -1020,10 +1025,16 @@ export default function VisitorsPage() {
             </div>
             <div className="p-6">
               <MemberForm
-                onSuccess={() => {
+                onSuccess={async () => {
                   setShowQuickSubscribeModal(false)
                   setSelectedVisitorForSubscribe(null)
                   refetchVisitors()
+
+                  // ✅ تحديث صفحة المتابعات لإزالة الزائر الذي أصبح عضواً
+                  await queryClient.invalidateQueries({ queryKey: ['followups'] })
+                  await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+                  await queryClient.invalidateQueries({ queryKey: ['members-followups'] })
+
                   toast.success(`تم تحويل ${selectedVisitorForSubscribe.name} إلى عضو بنجاح!`)
                 }}
                 prefillData={{

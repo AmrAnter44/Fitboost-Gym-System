@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '../../../../lib/auth'
-import { supabase } from '../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       )
     }
 
-    const { data: branches, error } = await supabase
+    const { data: branches, error } = await supabaseAdmin
       .from('branches')
       .select('id, name_en, name_ar, system_license')
       .eq('gym_id', gymId)

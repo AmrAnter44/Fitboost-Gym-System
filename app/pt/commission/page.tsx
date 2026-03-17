@@ -771,22 +771,57 @@ export default function CoachCommissionPage() {
     end.setHours(23, 59, 59, 999)
 
     // حساب الإيرادات من إيصالات PT (جميع الأنواع)
+    console.log(`\n🔍 Filtering receipts for coach: ${coachName}`)
+    console.log(`📅 Date range: ${start.toLocaleDateString('ar-EG')} to ${end.toLocaleDateString('ar-EG')}`)
+    console.log(`📋 Total receipts in system: ${receipts.length}`)
+
     const ptReceipts = receipts.filter((receipt) => {
       // فلترة إيصالات PT فقط
       if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
 
       // التحقق من التاريخ
       const receiptDate = new Date(receipt.createdAt)
-      if (receiptDate < start || receiptDate > end) return false
+      const isInDateRange = receiptDate >= start && receiptDate <= end
+
+      if (!isInDateRange) {
+        // طباعة الإيصالات المرفوضة بسبب التاريخ
+        try {
+          const details = JSON.parse(receipt.itemDetails)
+          if (details.coachName === coachName) {
+            console.log(`❌ Receipt REJECTED (out of range):`, {
+              receiptNumber: receipt.receiptNumber,
+              createdAt: receipt.createdAt,
+              receiptDate: receiptDate.toLocaleDateString('ar-EG'),
+              coachName: details.coachName,
+              amount: receipt.amount
+            })
+          }
+        } catch {}
+        return false
+      }
 
       // التحقق من اسم الكوتش في itemDetails
       try {
         const details = JSON.parse(receipt.itemDetails)
-        return details.coachName === coachName
+        const isCorrectCoach = details.coachName === coachName
+
+        if (isCorrectCoach) {
+          console.log(`✅ Receipt ACCEPTED:`, {
+            receiptNumber: receipt.receiptNumber,
+            createdAt: receipt.createdAt,
+            receiptDate: receiptDate.toLocaleDateString('ar-EG'),
+            amount: receipt.amount
+          })
+        }
+
+        return isCorrectCoach
       } catch {
         return false
       }
     })
+
+    console.log(`✅ Filtered PT receipts count: ${ptReceipts.length}`)
+    console.log(`💰 Total PT revenue: ${ptReceipts.reduce((sum, r) => sum + r.amount, 0)}\n`)
 
 
     // حساب الإيرادات من الإيصالات (المبالغ الفعلية المدفوعة)
@@ -1520,10 +1555,30 @@ export default function CoachCommissionPage() {
                   // فلترة كل أنواع إيصالات PT للعرض
                   if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
                   const receiptDate = new Date(receipt.createdAt)
-                  if (receiptDate < start || receiptDate > end) return false
+
+                  // 🔍 Debug: طباعة التواريخ للتأكد
+                  const isInDateRange = receiptDate >= start && receiptDate <= end
+
+                  if (!isInDateRange) return false
+
                   try {
                     const details = JSON.parse(receipt.itemDetails)
-                    return details.coachName === result.coachName
+                    const isCorrectCoach = details.coachName === result.coachName
+
+                    // 🔍 Debug: طباعة معلومات الإيصال المقبول
+                    if (isCorrectCoach) {
+                      console.log('✅ Receipt accepted:', {
+                        receiptNumber: receipt.receiptNumber,
+                        type: receipt.type,
+                        createdAt: receipt.createdAt,
+                        receiptDate: receiptDate.toLocaleDateString('ar-EG'),
+                        coachName: details.coachName,
+                        amount: receipt.amount,
+                        dateRange: `${start.toLocaleDateString('ar-EG')} - ${end.toLocaleDateString('ar-EG')}`
+                      })
+                    }
+
+                    return isCorrectCoach
                   } catch {
                     return false
                   }

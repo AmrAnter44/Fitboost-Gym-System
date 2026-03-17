@@ -57,10 +57,12 @@ interface Member {
 }
 
 // ✅ Fuzzy search helper
+import { normalizeArabic } from '@/lib/arabicNormalization'
+
 function fuzzyMatch(str: string, pattern: string): boolean {
   if (!pattern) return true
-  const s = str.toLowerCase()
-  const p = pattern.toLowerCase()
+  const s = normalizeArabic(str)
+  const p = normalizeArabic(pattern)
   // If pattern is contained, match immediately (faster path)
   if (s.includes(p)) return true
   // Fuzzy: all chars of pattern appear in order in str
@@ -69,6 +71,22 @@ function fuzzyMatch(str: string, pattern: string): boolean {
     if (s[si] === p[pi]) pi++
   }
   return pi === p.length
+}
+
+// ✅ التحقق من حالة العضو (هل بدأ الاشتراك ولم ينتهي؟)
+function isMemberActiveNow(member: Member): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // التحقق من تاريخ البداية
+  const startDate = member.startDate ? new Date(member.startDate) : null
+  const hasStarted = !startDate || startDate <= today
+
+  // التحقق من تاريخ الانتهاء
+  const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
+  const notExpired = !expiryDate || expiryDate >= today
+
+  return member.isActive && hasStarted && notExpired
 }
 
 export default function MembersPage() {
@@ -176,16 +194,16 @@ export default function MembersPage() {
 
     if (filterStatus !== 'all') {
       filtered = filtered.filter((member) => {
-        const isExpired = member.expiryDate ? new Date(member.expiryDate) < new Date() : false
+        const isActiveNow = isMemberActiveNow(member)
         const daysRemaining = calculateRemainingDays(member.expiryDate)
         const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
 
         if (filterStatus === 'expired') {
-          return isExpired
+          return !isActiveNow
         } else if (filterStatus === 'expiring-soon') {
-          return isExpiringSoon
+          return isExpiringSoon && isActiveNow
         } else if (filterStatus === 'active') {
-          return member.isActive && !isExpired
+          return isActiveNow
         } else if (filterStatus === 'has-remaining') {
           return member.remainingAmount > 0
         }
@@ -356,8 +374,11 @@ export default function MembersPage() {
   }
 
   useEffect(() => {
-    fetchLastReceipts()
-  }, [])
+    // ✅ فقط إذا كان لديه صلاحية عرض الإيصالات
+    if (hasPermission('canViewReceipts')) {
+      fetchLastReceipts()
+    }
+  }, [hasPermission])
 
   // إعادة تعيين الصفحة عند تغيير الفلاتر (مش البيانات)
   useEffect(() => {
@@ -416,30 +437,25 @@ export default function MembersPage() {
 
   // دالة مساعدة لفلترة الأعضاء حسب الحالة
   const filterByStatus = (member: Member) => {
-    const isExpired = member.expiryDate ? new Date(member.expiryDate) < new Date() : false
+    const isActiveNow = isMemberActiveNow(member)
     const daysRemaining = calculateRemainingDays(member.expiryDate)
     const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
 
     if (filterStatus === 'all') return true
-    if (filterStatus === 'expired') return isExpired
-    if (filterStatus === 'expiring-soon') return isExpiringSoon
-    if (filterStatus === 'active') return member.isActive && !isExpired
+    if (filterStatus === 'expired') return !isActiveNow
+    if (filterStatus === 'expiring-soon') return isExpiringSoon && isActiveNow
+    if (filterStatus === 'active') return isActiveNow
     if (filterStatus === 'has-remaining') return member.remainingAmount > 0
     return true
   }
 
   const stats = {
     total: membersData.length,
-    active: membersData.filter(m => {
-      const isExpired = m.expiryDate ? new Date(m.expiryDate) < new Date() : false
-      return m.isActive && !isExpired
-    }).length,
-    expired: membersData.filter(m => {
-      return m.expiryDate ? new Date(m.expiryDate) < new Date() : false
-    }).length,
+    active: membersData.filter(m => isMemberActiveNow(m)).length,
+    expired: membersData.filter(m => !isMemberActiveNow(m)).length,
     expiringSoon: membersData.filter(m => {
       const daysRemaining = calculateRemainingDays(m.expiryDate)
-      return daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
+      return isMemberActiveNow(m) && daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
     }).length,
     hasRemaining: membersData.filter(m => m.remainingAmount > 0).length,
     packageMonth: membersData.filter(m => {
@@ -1124,9 +1140,9 @@ export default function MembersPage() {
                 </thead>
                 <tbody>
                   {Array.isArray(visibleMembers) && visibleMembers.map((member) => {
-                    const isExpired = member.expiryDate ? new Date(member.expiryDate) < new Date() : false
+                    const isActiveNow = isMemberActiveNow(member)
                     const daysRemaining = calculateRemainingDays(member.expiryDate)
-                    const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
+                    const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7 && isActiveNow
 
                     const isBanned = member.isBanned
                     return (
@@ -1185,7 +1201,7 @@ export default function MembersPage() {
                                 ? 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
                                 : isExpiringSoon
                                   ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300'
-                                  : member.isActive && !isExpired
+                                  : isActiveNow
                                     ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300'
                                     : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
                           }`}>
@@ -1195,7 +1211,7 @@ export default function MembersPage() {
                                 ? <><span className="text-lg">❄️</span> {locale === 'ar' ? 'مجمد' : 'Frozen'}{member.freezeUntil ? <span className="text-xs font-normal ms-1 text-blue-600 dark:text-blue-400">{locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}</span> : null}</>
                                 : isExpiringSoon
                                   ? <><span className="text-lg">🟡</span> {locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'}</>
-                                  : member.isActive && !isExpired
+                                  : isActiveNow
                                     ? <><span className="text-lg">🟢</span> {t('members.active')}</>
                                     : <><span className="text-lg">🔴</span> {t('members.expired')}</>
                             }
@@ -1209,7 +1225,7 @@ export default function MembersPage() {
                         <td className="px-4 py-3">
                           {member.expiryDate ? (
                             <div>
-                              <span className={`font-mono ${isExpired ? 'text-red-600 font-bold' : isExpiringSoon ? 'text-orange-600 font-bold' : ''}`}>
+                              <span className={`font-mono ${!isActiveNow ? 'text-red-600 font-bold' : isExpiringSoon ? 'text-orange-600 font-bold' : ''}`}>
                                 {formatDateYMD(member.expiryDate)}
                               </span>
                               {daysRemaining !== null && daysRemaining > 0 && (
@@ -1217,7 +1233,7 @@ export default function MembersPage() {
                                   {isExpiringSoon && '⚠️ '} {t('members.daysRemaining', { days: daysRemaining.toString() })}
                                 </p>
                               )}
-                              {isExpired && daysRemaining !== null && (
+                              {!isActiveNow && daysRemaining !== null && (
                                 <p className="text-xs text-red-600">
                                   ❌ {t('members.expiredSince', { days: Math.abs(daysRemaining).toString() })}
                                 </p>

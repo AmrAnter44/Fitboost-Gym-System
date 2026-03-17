@@ -30,6 +30,7 @@ export async function GET(request: Request) {
             phone: true,
             source: true,
             status: true,
+            interestedIn: true,
           },
         },
         assignedStaff: {
@@ -61,9 +62,9 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { visitorId, notes, contacted, nextFollowUpDate, result, salesName, visitorData, assignedTo, priority, stage } = body
 
-    if (!visitorId || !notes) {
+    if (!visitorId) {
       return NextResponse.json(
-        { error: 'معرف الزائر والملاحظات مطلوبان' },
+        { error: 'معرف الزائر مطلوب' },
         { status: 400 }
       )
     }
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
       followUp = await prisma.followUp.update({
         where: { id: existingFollowUp.id },
         data: {
-          notes: notes.trim(),
+          notes: notes?.trim() || existingFollowUp.notes,
           contacted: contacted || existingFollowUp.contacted,
           nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate) : existingFollowUp.nextFollowUpDate,
           result: result?.trim() || existingFollowUp.result,
@@ -148,7 +149,7 @@ export async function POST(request: Request) {
       followUp = await prisma.followUp.create({
         data: {
           visitorId: actualVisitorId,
-          notes: notes.trim(),
+          notes: notes?.trim() || '',
           contacted: contacted || false,
           nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate) : null,
           result: result?.trim(),

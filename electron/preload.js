@@ -137,5 +137,93 @@ contextBridge.exposeInMainWorld('electron', {
   openExternal: (url) => {
     console.log('🌐 preload: openExternal called with URL:', url);
     return ipcRenderer.invoke('open-external-url', url);
+  },
+
+  // ==================== WhatsApp Web.js Integration ====================
+
+  // WhatsApp: Initialize client
+  whatsapp: {
+    init: () => {
+      console.log('📱 preload: whatsapp.init called');
+      return ipcRenderer.invoke('whatsapp:init');
+    },
+
+    // Get WhatsApp status
+    getStatus: () => {
+      return ipcRenderer.invoke('whatsapp:status');
+    },
+
+    // Send message
+    sendMessage: (phone, message) => {
+      console.log('📤 preload: whatsapp.sendMessage called');
+      console.log('📞 Phone:', phone);
+      console.log('💬 Message length:', message?.length || 0);
+      return ipcRenderer.invoke('whatsapp:send', { phone, message });
+    },
+
+    // Send image with caption
+    sendImage: (phone, imageBase64, caption = '') => {
+      console.log('📤 preload: whatsapp.sendImage called');
+      console.log('📞 Phone:', phone);
+      console.log('🖼️ Image data length:', imageBase64?.length || 0);
+      console.log('💬 Caption:', caption);
+      return ipcRenderer.invoke('whatsapp:sendImage', { phone, imageBase64, caption });
+    },
+
+    // Reconnect
+    reconnect: () => {
+      console.log('🔄 preload: whatsapp.reconnect called');
+      return ipcRenderer.invoke('whatsapp:reconnect');
+    },
+
+    // Reset session and start fresh
+    resetSession: () => {
+      console.log('🔄 preload: whatsapp.resetSession called');
+      return ipcRenderer.invoke('whatsapp:reset-session');
+    },
+
+    // Listen for QR code
+    onQR: (callback) => {
+      ipcRenderer.on('whatsapp:qr', (event, qr) => {
+        callback(qr);
+      });
+    },
+
+    // Listen for ready event
+    onReady: (callback) => {
+      ipcRenderer.on('whatsapp:ready', () => {
+        callback();
+      });
+    },
+
+    // Listen for disconnected event
+    onDisconnected: (callback) => {
+      ipcRenderer.on('whatsapp:disconnected', (event, reason) => {
+        callback(reason);
+      });
+    },
+
+    // Listen for auth failure
+    onAuthFailure: (callback) => {
+      ipcRenderer.on('whatsapp:auth_failure', (event, msg) => {
+        callback(msg);
+      });
+    },
+
+    // Listen for loading screen (connection progress)
+    onLoadingScreen: (callback) => {
+      ipcRenderer.on('whatsapp:loading_screen', (event, percent, message) => {
+        callback(percent, message);
+      });
+    },
+
+    // Remove all WhatsApp listeners
+    offAllListeners: () => {
+      ipcRenderer.removeAllListeners('whatsapp:qr');
+      ipcRenderer.removeAllListeners('whatsapp:ready');
+      ipcRenderer.removeAllListeners('whatsapp:disconnected');
+      ipcRenderer.removeAllListeners('whatsapp:auth_failure');
+      ipcRenderer.removeAllListeners('whatsapp:loading_screen');
+    }
   }
 });

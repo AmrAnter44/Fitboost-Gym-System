@@ -817,28 +817,48 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
             <label className="block text-xs font-medium mb-1">
               {t('members.startDate')} <span className="text-xs text-gray-500 dark:text-gray-400">(yyyy-mm-dd)</span>
             </label>
-            <input
-              type="text"
-              value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white"
-              placeholder="2025-11-18"
-              pattern="\d{4}-\d{2}-\d{2}"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                className="flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white"
+                placeholder="2025-11-18"
+                pattern="\d{4}-\d{2}-\d{2}"
+              />
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                className="px-3 py-2 border-2 border-blue-600 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-sm font-medium"
+                style={{ colorScheme: 'dark', width: '45px' }}
+                title={t('members.form.selectDate')}
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-medium mb-1">
               {t('members.expiryDate')} <span className="text-xs text-gray-500 dark:text-gray-400">(yyyy-mm-dd)</span>
             </label>
-            <input
-              type="text"
-              value={formData.expiryDate}
-              onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white"
-              placeholder="2025-12-18"
-              pattern="\d{4}-\d{2}-\d{2}"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.expiryDate}
+                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                className="flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white"
+                placeholder="2025-12-18"
+                pattern="\d{4}-\d{2}-\d{2}"
+              />
+              <input
+                type="date"
+                value={formData.expiryDate}
+                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                className="px-3 py-2 border-2 border-blue-600 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-sm font-medium"
+                style={{ colorScheme: 'dark', width: '45px' }}
+                title={t('members.form.selectDate')}
+              />
+            </div>
           </div>
         </div>
 

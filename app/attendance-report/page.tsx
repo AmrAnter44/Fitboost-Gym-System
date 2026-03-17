@@ -96,6 +96,12 @@ export default function AttendanceReportPage() {
   }
 
   const fetchStaff = async () => {
+    // ✅ التحقق من صلاحية عرض الموظفين
+    if (!hasPermission('canViewStaff')) {
+      setStaff([])
+      return
+    }
+
     try {
       const response = await fetch('/api/staff')
       const data = await response.json()

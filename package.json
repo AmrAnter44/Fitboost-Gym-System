@@ -22,6 +22,8 @@
     "db:setup": "node scripts/setup-database.js",
     "db:fix": "bash scripts/quick-fix-db.sh",
     "db:migrate": "bash scripts/migrate-old-db.sh",
+    "db:migrate:create": "node scripts/create-migration.js",
+    "db:migrate:apply": "node scripts/apply-migrations.js",
     "db:backup": "cp prisma/gym.db prisma/gym.db.backup.$(date +%Y%m%d_%H%M%S)",
     "db:validate": "prisma validate && prisma db execute --stdin <<< 'SELECT COUNT(*) FROM sqlite_master;'",
     "db:sync": "node scripts/production-sync-database.js",
@@ -44,6 +46,7 @@
     "theme:sync": "node scripts/sync-theme-colors.js"
   },
   "dependencies": {
+    "@hapi/boom": "^10.0.1",
     "@hello-pangea/dnd": "^18.0.1",
     "@next/env": "^16.0.3",
     "@prisma/client": "^5.22.0",
@@ -52,9 +55,11 @@
     "@tanstack/react-query": "^5.90.19",
     "@tanstack/react-query-devtools": "^5.91.2",
     "@types/react-window": "^1.8.8",
+    "@whiskeysockets/baileys": "^6.7.9",
     "autoprefixer": "^10.4.21",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.5.0",
+    "bufferutil": "^4.1.0",
     "bwip-js": "^4.8.0",
     "client-only": "^0.0.1",
     "csv-parse": "^6.1.0",
@@ -73,14 +78,18 @@
     "next": "^14.2.33",
     "next-pwa": "^5.6.0",
     "node-hid": "^3.2.0",
+    "pino": "^9.5.0",
     "postcss": "^8.5.6",
+    "prisma": "^5.22.0",
+    "qr-image": "^3.2.0",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-window": "^2.2.7",
     "recharts": "^3.5.1",
     "styled-jsx": "^5.1.7",
-    "uiohook-napi": "^1.5.4"
+    "uiohook-napi": "^1.5.4",
+    "utf-8-validate": "^6.0.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -93,7 +102,6 @@
     "concurrently": "^8.2.2",
     "electron": "^39.2.3",
     "electron-builder": "^24.13.3",
-    "prisma": "^5.22.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.0.0",
@@ -114,6 +122,14 @@
       "!prisma/gym.db-*",
       "!prisma/*.backup*",
       "!prisma/*.corrupted*",
+      "migrations/**/*",
+      "node_modules/.prisma/**/*",
+      "node_modules/@prisma/**/*",
+      "node_modules/prisma/**/*",
+      "node_modules/whatsapp-web.js/**/*",
+      "node_modules/puppeteer/**/*",
+      "node_modules/qrcode/**/*",
+      "node_modules/qrcode-terminal/**/*",
       "package.json"
     ],
     "asarUnpack": [
@@ -121,7 +137,12 @@
       ".next/standalone/node_modules/**/*",
       "node_modules/uiohook-napi/**/*",
       "node_modules/better-sqlite3/**/*",
-      "node_modules/node-hid/**/*"
+      "node_modules/node-hid/**/*",
+      "node_modules/.prisma/**/*",
+      "node_modules/@prisma/**/*",
+      "node_modules/prisma/**/*",
+      "node_modules/puppeteer/**/*",
+      "node_modules/whatsapp-web.js/**/*"
     ],
     "extraResources": [
       {

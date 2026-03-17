@@ -87,7 +87,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       icon: '⚙️',
       links: [
         { href: '/staff', label: t('nav.staff'), icon: '👷', permission: 'canViewStaff' as keyof Permissions },
-        { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: 'canAccessSettings' as keyof Permissions },
+        { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: null },
       ]
     },
   ]
@@ -153,10 +153,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
               />
               <div>
                 <h2 className="font-bold text-lg leading-tight">
-                  {locale === 'ar' ? 'نظام الجيم' : 'Gym System'}
+                  {t('common.appTitle')}
                 </h2>
                 <p className="text-xs text-white/80">
-                  {locale === 'ar' ? 'إدارة متكاملة' : 'Management System'}
+                  {t('common.appSubtitle')}
                 </p>
               </div>
             </div>

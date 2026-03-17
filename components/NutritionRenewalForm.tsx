@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { calculateDaysBetween, formatDateYMD, formatDurationInMonths } from '../lib/dateFormatter'
 import PaymentMethodSelector from './Paymentmethodselector'
+import ReceiptSuccessModal from './ReceiptSuccessModal'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
@@ -46,6 +47,8 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
   const [coachesLoading, setCoachesLoading] = useState(true)
   const [packages, setPackages] = useState<any[]>([])
   const [successMessage, setSuccessMessage] = useState('')
+  const [createdReceipt, setCreatedReceipt] = useState<any>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   const getDefaultStartDate = () => {
     if (session.expiryDate) {
@@ -216,22 +219,30 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
 
         if (result.receipt) {
           try {
-            const receiptsResponse = await fetch(`/api/receipts?nutritionNumber=${session.nutritionNumber}`)
-            const receipts = await receiptsResponse.json()
-
-            if (receipts.length > 0) {
-              const latestReceipt = receipts[0]
-              console.log('Receipt ready for print:', latestReceipt)
+            const receiptResponse = await fetch(`/api/receipts/${result.receipt.id}`)
+            if (receiptResponse.ok) {
+              const receiptData = await receiptResponse.json()
+              setCreatedReceipt(receiptData)
+              setShowSuccessModal(true)
+            } else {
+              setTimeout(() => {
+                onSuccess()
+                onClose()
+              }, 1500)
             }
           } catch (err) {
             console.error('Error fetching receipt:', err)
+            setTimeout(() => {
+              onSuccess()
+              onClose()
+            }, 1500)
           }
+        } else {
+          setTimeout(() => {
+            onSuccess()
+            onClose()
+          }, 1500)
         }
-
-        setTimeout(() => {
-          onSuccess()
-          onClose()
-        }, 1500)
       } else {
         toast.error(result.error || t('nutrition.renewal.failureMessage'))
       }
@@ -574,6 +585,17 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
           </form>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <ReceiptSuccessModal
+        receipt={createdReceipt}
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false)
+          onSuccess()
+          onClose()
+        }}
+      />
     </div>
   )
 }

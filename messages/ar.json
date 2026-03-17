@@ -39,7 +39,9 @@
     "cash": "كاش",
     "card": "فيزا",
     "instapay": "إنستاباي",
-    "wallet": "محفظة"
+    "wallet": "محفظة",
+    "appTitle": "نظام الجيم",
+    "appSubtitle": "إدارة متكاملة"
   },
   "nav": {
     "home": "الرئيسية",
@@ -311,6 +313,7 @@
       "maxImageSize": "الحد الأقصى: 5MB",
       "subscriptionPeriod": "فترة الاشتراك",
       "quickAdd": "إضافة سريعة",
+      "selectDate": "اختر من الكاليندر",
       "month": "شهر",
       "months": "أشهر",
       "subscriptionDuration": "مدة الاشتراك",
@@ -426,7 +429,65 @@
     "pleaseSelectGymAndBranch": "يرجى اختيار الصالة والفرع",
     "licenseSavedSuccessfully": "تم حفظ الترخيص بنجاح",
     "failedToSaveLicense": "فشل في حفظ الترخيص",
-    "errorOccurred": "حدث خطأ"
+    "errorOccurred": "حدث خطأ",
+    "whatsapp": {
+      "title": "إعدادات الواتساب",
+      "subtitle": "إدارة اتصال الواتساب وإرسال الرسائل التلقائية",
+      "connectionStatus": "حالة الاتصال",
+      "loading": "جاري التحميل...",
+      "client": "العميل:",
+      "initialized": "مُهيّأ",
+      "notInitialized": "غير مُهيّأ",
+      "connection": "الاتصال:",
+      "connected": "متصل",
+      "disconnected": "غير متصل",
+      "connecting": "جاري الاتصال",
+      "initialize": "تهيئة الواتساب",
+      "initializing": "جاري التهيئة...",
+      "reconnect": "إعادة الاتصال",
+      "reconnecting": "جاري إعادة الاتصال...",
+      "reconnectInfo": "سيتم محاولة إعادة الاتصال بالجلسة المحفوظة",
+      "restartInfo": "إعادة تشغيل الاتصال (مفيد في حالة وجود مشاكل)",
+      "resetSession": "بداية جديدة",
+      "resetting": "جاري البدء من جديد...",
+      "resetInfo": "⚠️ سيتم حذف الجلسة الحالية تماماً وسيظهر QR code جديد",
+      "scanQR": "امسح QR Code من هاتفك",
+      "qrInstructions": "افتح الواتساب → الإعدادات → الأجهزة المرتبطة → ربط جهاز",
+      "readyToSend": "الواتساب متصل وجاهز للإرسال!",
+      "testSending": "اختبار الإرسال",
+      "phoneNumber": "رقم الهاتف",
+      "message": "الرسالة",
+      "sendTestMessage": "إرسال رسالة تجريبية",
+      "sending": "جاري الإرسال...",
+      "mustBeConnected": "يجب أن يكون الواتساب متصلاً لإرسال الرسائل",
+      "importantInfo": "معلومات مهمة",
+      "infoItems": {
+        "qrOnce": "يجب مسح QR code مرة واحدة فقط عند التشغيل الأول",
+        "sessionPersists": "الجلسة تبقى نشطة حتى بعد إغلاق البرنامج",
+        "autoSend": "يمكن إرسال الإيصالات تلقائياً بدون تدخل المستخدم",
+        "fromConnected": "الرسائل تُرسل من رقم الواتساب المتصل",
+        "keepConnected": "تأكد من بقاء هاتفك متصلاً بالإنترنت"
+      },
+      "toast": {
+        "connected": "WhatsApp متصل بنجاح!",
+        "disconnected": "انقطع اتصال الواتساب",
+        "authFailed": "فشلت مصادقة الواتساب",
+        "initialized": "تم تهيئة الواتساب. امسح QR code للاتصال",
+        "initFailed": "فشل تهيئة الواتساب",
+        "notAvailable": "WhatsApp غير متاح في هذه البيئة",
+        "initError": "حدث خطأ أثناء تهيئة الواتساب",
+        "reconnectSuccess": "تم إعادة الاتصال بنجاح! امسح QR code",
+        "reconnectFailed": "فشلت إعادة الاتصال",
+        "reconnectError": "حدث خطأ أثناء إعادة الاتصال",
+        "resetSuccess": "تم البدء من جديد! امسح QR code الجديد",
+        "resetFailed": "فشل البدء من جديد",
+        "resetError": "حدث خطأ أثناء البدء من جديد",
+        "invalidPhone": "أدخل رقم هاتف صحيح",
+        "testSent": "تم إرسال الرسالة التجريبية بنجاح",
+        "sendFailed": "فشل الإرسال",
+        "sendError": "حدث خطأ أثناء الإرسال"
+      }
+    }
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -1566,6 +1627,10 @@
       "salary": "المرتب (ج.م)",
       "notes": "ملاحظات",
       "notesPlaceholder": "ملاحظات إضافية...",
+      "workingHours": "ساعات العمل (يومياً)",
+      "workingHoursPlaceholder": "8",
+      "monthlyVacationDays": "عدد أيام الإجازة (شهرياً)",
+      "monthlyVacationDaysPlaceholder": "2",
       "namePlaceholder": "محمد أحمد",
       "salaryPlaceholder": "0.00",
       "customPosition": "اكتب الوظيفة",
@@ -1636,6 +1701,82 @@
       "unpaid": "غير مدفوعة",
       "noLoans": "لا توجد سلف لهذا الموظف",
       "viewInExpenses": "عرض في المصروفات"
+    },
+    "hrAssistant": {
+      "title": "🤖 مساعدك الشخصي في HR",
+      "subtitle": "تحليل أداء الموظفين ومتابعة الحضور والغياب",
+      "overview": "نظرة عامة",
+      "totalStaff": "إجمالي الموظفين",
+      "excellent": "متميزون",
+      "good": "جيدون",
+      "average": "متوسطون",
+      "underperforming": "مقصرون",
+      "filters": "الفلاتر",
+      "search": "بحث عن موظف",
+      "searchPlaceholder": "ابحث بالاسم أو الكود أو الوظيفة...",
+      "results": "نتيجة",
+      "noResults": "لا توجد نتائج للبحث",
+      "month": "الشهر",
+      "year": "السنة",
+      "refresh": "تحديث",
+      "details": "تفاصيل الموظفين",
+      "hoursPerDay": "ساعة/يوم",
+      "vacationDaysPerMonth": "يوم إجازة/شهر",
+      "attendance": "الحضور",
+      "absence": "الغياب",
+      "workHours": "ساعات العمل",
+      "performance": "الأداء",
+      "alerts": "تنبيهات",
+      "underperformanceDays": "أيام التقصير",
+      "hoursShortfall": "نقص في الساعات",
+      "vacationExceeded": "تجاوز أيام الإجازة",
+      "vacationUsed": "استنفذ أيام الإجازة",
+      "vacationRemaining": "إجازات متبقية",
+      "export": "تصدير التقرير",
+      "loading": "جاري التحليل...",
+      "noData": "لا توجد بيانات للشهر المحدد",
+      "noStaff": "لا يوجد موظفين",
+      "day": "يوم",
+      "days": "أيام",
+      "hour": "ساعة",
+      "hours": "ساعات",
+      "of": "من",
+      "workingDays": "أيام العمل",
+      "viewDetails": "عرض التفاصيل",
+      "hideDetails": "إخفاء التفاصيل",
+      "revenue": {
+        "total": "إجمالي العائدات",
+        "breakdown": "تفصيل العائدات",
+        "pt": "تدريب شخصي",
+        "nutrition": "تغذية",
+        "physiotherapy": "علاج طبيعي",
+        "other": "أخرى",
+        "salary": "الراتب",
+        "ratio": "نسبة العائدات/الراتب",
+        "difference": "الفرق"
+      },
+      "status": {
+        "excellent": "ممتاز",
+        "good": "جيد",
+        "warning": "تحذير",
+        "critical": "حرج"
+      },
+      "months": {
+        "1": "يناير",
+        "2": "فبراير",
+        "3": "مارس",
+        "4": "أبريل",
+        "5": "مايو",
+        "6": "يونيو",
+        "7": "يوليو",
+        "8": "أغسطس",
+        "9": "سبتمبر",
+        "10": "أكتوبر",
+        "11": "نوفمبر",
+        "12": "ديسمبر"
+      },
+      "staffList": "قائمة الموظفين",
+      "selectedStaffDetails": "تفاصيل الموظف المحدد"
     }
   },
   "receipts": {
@@ -1847,6 +1988,16 @@
       "until": "حتى",
       "discount": "خصم:",
       "service": "خدمة"
+    },
+    "cancel": {
+      "notFound": "الإيصال غير موجود",
+      "alreadyCancelled": "الإيصال ملغي بالفعل",
+      "noReason": "لا يوجد سبب",
+      "cancellationType": "إلغاء إيصال",
+      "success": "تم إلغاء الإيصال بنجاح",
+      "unauthorized": "يجب تسجيل الدخول أولاً",
+      "forbidden": "ليس لديك صلاحية إلغاء الإيصالات",
+      "failed": "فشل إلغاء الإيصال"
     }
   },
   "expenses": {
@@ -2082,6 +2233,7 @@
     "loading": "جاري التحميل...",
     "newFollowup": "متابعة جديدة",
     "addNew": "متابعة جديدة",
+    "quickSubscribe": "⚡ اشتراك سريع",
     "close": "إغلاق",
     "permissionDenied": "ليس لديك صلاحية عرض المتابعات",
     "days": "يوم",
@@ -2183,7 +2335,8 @@
     },
     "buttons": {
       "followup": "متابعة",
-      "history": "السجل"
+      "history": "السجل",
+      "delete": "حذف"
     },
     "labels": {
       "renewed": "تم التجديد",
@@ -2217,7 +2370,8 @@
       "contactedCheckbox": "تم التواصل بالفعل",
       "saving": "جاري الحفظ...",
       "save": "✅ حفظ",
-      "required": "*"
+      "required": "*",
+      "optional": "اختياري"
     },
     "messages": {
       "success": "تم إضافة المتابعة بنجاح!",
@@ -4256,6 +4410,7 @@
       "referral": "عمولة Referral",
       "freeSessions": "الجلسات المجانية",
       "receipts": "الإيصالات",
+      "portForwarding": "الوصول عن بُعد",
       "display": "المظهر واللغة",
       "database": "قاعدة البيانات",
       "support": "الدعم الفني"
@@ -4413,6 +4568,27 @@
       "prismaConfirm": "هل تريد تطبيق التغييرات على قاعدة البيانات وتحديث Prisma Client؟",
       "prismaSuccess": "تم تحديث Prisma بنجاح!\n\nتم تطبيق التغييرات على قاعدة البيانات\nتم توليد Prisma Client",
       "prismaInfo": "يُنصح بإعادة تشغيل السيرفر بعد التحديث للحصول على أفضل أداء"
+    },
+    "portForwarding": {
+      "title": "الوصول عن بُعد",
+      "description": "الوصول للنظام من أي جهاز على الشبكة المحلية",
+      "localAccess": "الوصول من الشبكة المحلية",
+      "localAccessDesc": "امسح QR Code للدخول للنظام من الموبايل أو أي جهاز متصل بنفس الشبكة",
+      "localURL": "رابط الوصول المحلي",
+      "localIP": "عنوان IP المحلي",
+      "urlCopied": "تم نسخ الرابط بنجاح",
+      "copyURL": "نسخ الرابط",
+      "refresh": "تحديث",
+      "noConnection": "تعذر الحصول على عنوان IP. تأكد من الاتصال بالشبكة",
+      "tryAgain": "حاول مرة أخرى",
+      "instructions": {
+        "title": "طريقة الاستخدام",
+        "step1": "تأكد من اتصال الجهاز المستهدف (موبايل/تابلت) بنفس شبكة Wi-Fi التي يعمل عليها النظام",
+        "step2": "افتح كاميرا الموبايل أو تطبيق QR Scanner وامسح الكود",
+        "step3": "أو انسخ الرابط وافتحه في المتصفح على أي جهاز متصل بنفس الشبكة",
+        "step4": "ستتمكن من الوصول الكامل للنظام من أي جهاز على الشبكة المحلية",
+        "warning": "⚠️ ملاحظة: يعمل هذا الرابط فقط على الأجهزة المتصلة بنفس شبكة Wi-Fi. للوصول من خارج الشبكة، ستحتاج لإعداد Port Forwarding على الراوتر."
+      }
     },
     "support": {
       "title": "الدعم الفني",

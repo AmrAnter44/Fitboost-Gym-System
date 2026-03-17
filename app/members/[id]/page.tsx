@@ -534,12 +534,18 @@ export default function MemberDetailPage() {
       const response = await fetch('/api/pt')
       if (response.ok) {
         const allPTs = await response.json()
-        // البحث عن PT نشط للعضو بناءً على رقم الهاتف
-        const activePT = allPTs.find((pt: any) =>
-          pt.phone === member.phone &&
-          pt.sessionsRemaining > 0 &&
-          (!pt.expiryDate || new Date(pt.expiryDate) > new Date())
-        )
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        // البحث عن PT نشط للعضو (بدأ ولم ينتهي)
+        const activePT = allPTs.find((pt: any) => {
+          const hasStarted = !pt.startDate || new Date(pt.startDate) <= today
+          const notExpired = !pt.expiryDate || new Date(pt.expiryDate) >= today
+          return pt.phone === member.phone &&
+            pt.sessionsRemaining > 0 &&
+            hasStarted &&
+            notExpired
+        })
         setPtSubscription(activePT || null)
       }
     } catch (error) {
@@ -551,17 +557,26 @@ export default function MemberDetailPage() {
   const fetchServiceSubscriptions = async () => {
     if (!member) return
 
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // دالة helper للتحقق من الاشتراك النشط
+    const isSubscriptionActive = (sub: any) => {
+      const hasStarted = !sub.startDate || new Date(sub.startDate) <= today
+      const notExpired = !sub.expiryDate || new Date(sub.expiryDate) >= today
+      return sub.phone === member.phone &&
+        sub.sessionsRemaining > 0 &&
+        hasStarted &&
+        notExpired
+    }
+
     try {
       // جلب اشتراكات PT
       const ptRes = await fetch('/api/pt')
       let memberPTs: any[] = []
       if (ptRes.ok) {
         const allPTs = await ptRes.json()
-        memberPTs = allPTs.filter((pt: any) =>
-          pt.phone === member.phone &&
-          pt.sessionsRemaining > 0 &&
-          (!pt.expiryDate || new Date(pt.expiryDate) > new Date())
-        )
+        memberPTs = allPTs.filter(isSubscriptionActive)
       }
 
       // جلب اشتراكات التغذية
@@ -569,11 +584,7 @@ export default function MemberDetailPage() {
       let memberNutrition: any[] = []
       if (nutritionRes.ok) {
         const allNutrition = await nutritionRes.json()
-        memberNutrition = allNutrition.filter((n: any) =>
-          n.phone === member.phone &&
-          n.sessionsRemaining > 0 &&
-          (!n.expiryDate || new Date(n.expiryDate) > new Date())
-        )
+        memberNutrition = allNutrition.filter(isSubscriptionActive)
         setNutritionSubscriptions(memberNutrition)
       }
 
@@ -582,11 +593,7 @@ export default function MemberDetailPage() {
       let memberPhysio: any[] = []
       if (physioRes.ok) {
         const allPhysio = await physioRes.json()
-        memberPhysio = allPhysio.filter((p: any) =>
-          p.phone === member.phone &&
-          p.sessionsRemaining > 0 &&
-          (!p.expiryDate || new Date(p.expiryDate) > new Date())
-        )
+        memberPhysio = allPhysio.filter(isSubscriptionActive)
         setPhysioSubscriptions(memberPhysio)
       }
 
@@ -595,11 +602,7 @@ export default function MemberDetailPage() {
       let memberClasses: any[] = []
       if (classRes.ok) {
         const allClasses = await classRes.json()
-        memberClasses = allClasses.filter((c: any) =>
-          c.phone === member.phone &&
-          c.sessionsRemaining > 0 &&
-          (!c.expiryDate || new Date(c.expiryDate) > new Date())
-        )
+        memberClasses = allClasses.filter(isSubscriptionActive)
         setGroupClassSubscriptions(memberClasses)
       }
 
@@ -1412,7 +1415,14 @@ export default function MemberDetailPage() {
     )
   }
 
-  const isExpired = member.expiryDate ? new Date(member.expiryDate) < new Date() : false
+  // التحقق من حالة العضو (هل بدأ الاشتراك ولم ينتهي؟)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const startDate = member.startDate ? new Date(member.startDate) : null
+  const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
+  const hasStarted = !startDate || startDate <= today
+  const notExpired = !expiryDate || expiryDate >= today
+  const isMemberActiveNow = member.isActive && hasStarted && notExpired
   const daysRemaining = calculateRemainingDays(member.expiryDate)
 
   return (
@@ -1482,28 +1492,71 @@ export default function MemberDetailPage() {
                     const data = await res.json()
 
                     if (data.barcode) {
-                      // تحميل الباركود
-                      const a = document.createElement('a')
-                      a.href = data.barcode
-                      a.download = `barcode-${member.memberNumber}.png`
-                      a.click()
+                      // تحضير الرسالة
+                      const baseMessage = `Membership Barcode #${member.memberNumber} for member ${member.name}`
+                      // إضافة رابط الموقع إذا كان مفعلاً
+                      const websiteSection = settings?.showWebsiteOnReceipts && settings?.websiteUrl
+                        ? `\n\n🌐 *الموقع الإلكتروني:*\n${settings.websiteUrl}`
+                        : ''
+                      const caption = baseMessage + websiteSection
 
-                      // فتح واتساب
-                      setTimeout(() => {
-                        const baseMessage = `Membership Barcode #${member.memberNumber} for member ${member.name}`
-                        const termsAndConditions = `\n\n━━━━━━━━━━━━━━━━━━━━\n*شروط وأحكام*\n━━━━━━━━━━━━━━━━━━━━\nالساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه`
-                        // إضافة رابط الموقع إذا كان مفعلاً
-                        const websiteSection = settings?.showWebsiteOnReceipts && settings?.websiteUrl
-                          ? `\n\n🌐 *الموقع الإلكتروني:*\n${settings.websiteUrl}`
-                          : ''
-                        const message = baseMessage + termsAndConditions + websiteSection
-                        const phone = member.phone.replace(/\D/g, '')
-                        const url = `https://wa.me/20${phone}?text=${encodeURIComponent(message)}`
-                        window.open(url, '_blank')
-                      }, 500)
+                      // ✅ التحقق من بيئة Electron أولاً
+                      const electron = typeof window !== 'undefined' && (window as any).electron
+
+                      if (electron?.whatsapp) {
+                        // ✅ Electron Mode: استخدام IPC
+                        console.log('📱 Using Electron WhatsApp integration for barcode')
+                        const result = await electron.whatsapp.sendImage(
+                          member.phone,
+                          data.barcode,
+                          caption
+                        )
+
+                        if (result.success) {
+                          toast.success('✅ تم إرسال باركود العضوية بنجاح على الواتساب')
+                        } else {
+                          const errorMessage = result.error || 'فشل إرسال الصورة'
+                          if (errorMessage.includes('not ready') || errorMessage.includes('not initialized')) {
+                            toast.error('❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code')
+                          } else {
+                            toast.error(`❌ ${errorMessage}`)
+                          }
+                        }
+                      } else {
+                        // ✅ Browser Mode: استخدام API
+                        console.log('🌐 Using Browser WhatsApp API for barcode')
+                        try {
+                          const sendResult = await fetch('/api/whatsapp/send-image', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              phone: member.phone,
+                              imageBase64: data.barcode,
+                              caption: caption
+                            })
+                          })
+
+                          const sendData = await sendResult.json()
+
+                          if (sendData.success) {
+                            toast.success('✅ تم إرسال باركود العضوية بنجاح على الواتساب')
+                          } else {
+                            const errorMessage = sendData.error || 'فشل إرسال الصورة'
+                            if (errorMessage.includes('not ready') || errorMessage.includes('not initialized')) {
+                              toast.error('❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code')
+                            } else {
+                              toast.error(`❌ ${errorMessage}`)
+                            }
+                          }
+                        } catch (apiError) {
+                          console.error('WhatsApp API error:', apiError)
+                          toast.error('❌ حدث خطأ في إرسال الصورة عبر الواتساب')
+                        }
+                      }
                     }
                   } catch (error) {
                     console.error('Error:', error)
+                    toast.error('❌ حدث خطأ أثناء إرسال الباركود')
                   }
                 }}
                 className="bg-green-500 hover:bg-green-600 text-white rounded-full p-1.5 transition-all hover:scale-110"
@@ -1635,7 +1688,7 @@ export default function MemberDetailPage() {
                   ? `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
                   : member.isFrozen
                     ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
-                    : member.isActive && !isExpired
+                    : isMemberActiveNow
                       ? `✅ ${t('memberDetails.active')}`
                       : `❌ ${t('memberDetails.expired')}`
                 }

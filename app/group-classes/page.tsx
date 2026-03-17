@@ -263,6 +263,12 @@ export default function GroupClassPage() {
   const fetchMemberByNumber = async (memberNumber: string) => {
     if (!memberNumber.trim()) return
 
+    // ✅ التحقق من صلاحية عرض الأعضاء
+    if (!hasPermission('canViewMembers')) {
+      toast.warning('لا تملك صلاحية عرض بيانات الأعضاء')
+      return
+    }
+
     try {
       const response = await fetch('/api/members')
       if (!response.ok) return
@@ -523,13 +529,13 @@ export default function GroupClassPage() {
 
   // ── Schedule helpers ────────────────────────────────────────────────────────
   const DAY_NAMES = [
-    t('groupClassSchedules.sunday'),
-    t('groupClassSchedules.monday'),
-    t('groupClassSchedules.tuesday'),
-    t('groupClassSchedules.wednesday'),
-    t('groupClassSchedules.thursday'),
-    t('groupClassSchedules.friday'),
-    t('groupClassSchedules.saturday')
+    t('settingsPage.groupClassSchedules.sunday'),
+    t('settingsPage.groupClassSchedules.monday'),
+    t('settingsPage.groupClassSchedules.tuesday'),
+    t('settingsPage.groupClassSchedules.wednesday'),
+    t('settingsPage.groupClassSchedules.thursday'),
+    t('settingsPage.groupClassSchedules.friday'),
+    t('settingsPage.groupClassSchedules.saturday')
   ]
 
   const fetchSchedules = async () => {
@@ -538,7 +544,7 @@ export default function GroupClassPage() {
       const res = await fetch('/api/group-classes/schedule')
       if (res.ok) setSchedules(await res.json())
     } catch {
-      toast.error(t('groupClassSchedules.loadFailed'))
+      toast.error(t('settingsPage.groupClassSchedules.loadFailed'))
     } finally {
       setLoadingSchedules(false)
     }
@@ -556,7 +562,7 @@ export default function GroupClassPage() {
 
   const handleSaveSchedule = async () => {
     if (!scheduleForm.className.trim() || !scheduleForm.coachName.trim() || !scheduleForm.startTime) {
-      toast.error(t('groupClassSchedules.fillAllFields'))
+      toast.error(t('settingsPage.groupClassSchedules.fillAllFields'))
       return
     }
     setSavingSchedule(true)
@@ -572,10 +578,10 @@ export default function GroupClassPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error || t('groupClassSchedules.saveFailed'))
+        toast.error(err.error || t('settingsPage.groupClassSchedules.saveFailed'))
         return
       }
-      toast.success(editingSchedule ? t('groupClassSchedules.updated') : t('groupClassSchedules.added'))
+      toast.success(editingSchedule ? t('settingsPage.groupClassSchedules.updated') : t('settingsPage.groupClassSchedules.added'))
       resetScheduleForm()
       fetchSchedules()
     } catch {
@@ -587,8 +593,8 @@ export default function GroupClassPage() {
 
   const handleDeleteSchedule = async (id: string) => {
     const confirmed = await confirm({
-      title: t('groupClassSchedules.delete'),
-      message: t('groupClassSchedules.deleteConfirm'),
+      title: t('settingsPage.groupClassSchedules.delete'),
+      message: t('settingsPage.groupClassSchedules.deleteConfirm'),
       confirmText: t('common.delete'),
       type: 'danger',
     })
@@ -596,10 +602,10 @@ export default function GroupClassPage() {
     try {
       const res = await fetch(`/api/group-classes/schedule/${id}`, { method: 'DELETE' })
       if (res.ok) {
-        toast.success(t('groupClassSchedules.deleted'))
+        toast.success(t('settingsPage.groupClassSchedules.deleted'))
         setSchedules(prev => prev.filter(s => s.id !== id))
       } else {
-        toast.error(t('groupClassSchedules.deleteFailed'))
+        toast.error(t('settingsPage.groupClassSchedules.deleteFailed'))
       }
     } catch {
       toast.error(t('common.error'))
@@ -645,7 +651,7 @@ export default function GroupClassPage() {
                 className="w-full sm:w-auto bg-purple-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-purple-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <span>📅</span>
-                <span>{t('groupClassSchedules.title')}</span>
+                <span>{t('settingsPage.groupClassSchedules.title')}</span>
               </button>
               <button
                 onClick={() => {
@@ -1700,7 +1706,7 @@ export default function GroupClassPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
-              <h2 className="text-2xl font-bold dark:text-white">📅 {t('groupClassSchedules.pageTitle')}</h2>
+              <h2 className="text-2xl font-bold dark:text-white">📅 {t('settingsPage.groupClassSchedules.pageTitle')}</h2>
               <button
                 onClick={() => { setShowScheduleModal(false); resetScheduleForm() }}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none"
@@ -1711,11 +1717,11 @@ export default function GroupClassPage() {
               {/* Add / Edit Form */}
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-6">
                 <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                  {editingSchedule ? `✏️ ${t('groupClassSchedules.edit')}` : `➕ ${t('groupClassSchedules.addNew')}`}
+                  {editingSchedule ? `✏️ ${t('settingsPage.groupClassSchedules.edit')}` : `➕ ${t('settingsPage.groupClassSchedules.addNew')}`}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.day')}</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('settingsPage.groupClassSchedules.day')}</label>
                     <select
                       value={scheduleForm.dayOfWeek}
                       onChange={e => setScheduleForm(p => ({ ...p, dayOfWeek: Number(e.target.value) }))}
@@ -1727,7 +1733,7 @@ export default function GroupClassPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.time')}</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('settingsPage.groupClassSchedules.time')}</label>
                     <input
                       type="time"
                       value={scheduleForm.startTime}
@@ -1736,27 +1742,27 @@ export default function GroupClassPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.className')}</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('settingsPage.groupClassSchedules.className')}</label>
                     <input
                       type="text"
-                      placeholder={t('groupClassSchedules.classNamePlaceholder')}
+                      placeholder={t('settingsPage.groupClassSchedules.classNamePlaceholder')}
                       value={scheduleForm.className}
                       onChange={e => setScheduleForm(p => ({ ...p, className: e.target.value }))}
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.instructor')}</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('settingsPage.groupClassSchedules.instructor')}</label>
                     <input
                       type="text"
-                      placeholder={t('groupClassSchedules.instructorPlaceholder')}
+                      placeholder={t('settingsPage.groupClassSchedules.instructorPlaceholder')}
                       value={scheduleForm.coachName}
                       onChange={e => setScheduleForm(p => ({ ...p, coachName: e.target.value }))}
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('groupClassSchedules.duration')}</label>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('settingsPage.groupClassSchedules.duration')}</label>
                     <input
                       type="number"
                       min={15}
@@ -1773,7 +1779,7 @@ export default function GroupClassPage() {
                     disabled={savingSchedule}
                     className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 transition font-medium"
                   >
-                    {savingSchedule ? t('common.processing') : editingSchedule ? t('common.save') : t('groupClassSchedules.addNew')}
+                    {savingSchedule ? t('common.processing') : editingSchedule ? t('common.save') : t('settingsPage.groupClassSchedules.addNew')}
                   </button>
                   {editingSchedule && (
                     <button
@@ -1786,13 +1792,13 @@ export default function GroupClassPage() {
 
               {/* Schedule List */}
               <div>
-                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('groupClassSchedules.currentSchedules')}</h3>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('settingsPage.groupClassSchedules.currentSchedules')}</h3>
                 {loadingSchedules ? (
                   <div className="text-center py-8 text-gray-500">{t('common.loading')}</div>
                 ) : schedules.length === 0 ? (
                   <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                     <div className="text-4xl mb-2">📋</div>
-                    <p>{t('groupClassSchedules.noSchedules')}</p>
+                    <p>{t('settingsPage.groupClassSchedules.noSchedules')}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1808,7 +1814,7 @@ export default function GroupClassPage() {
                                 <span className="text-purple-600 dark:text-purple-400 font-mono font-bold text-sm">{s.startTime}</span>
                                 <div>
                                   <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{s.className}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">👤 {s.coachName} · ⏱ {s.duration} د</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">👤 {s.coachName} · ⏱ {s.duration} {t('homepageClassBookings.minutes')}</p>
                                 </div>
                               </div>
                               <div className="flex gap-2">

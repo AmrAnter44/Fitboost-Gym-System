@@ -52,18 +52,19 @@ export default function Navbar() {
     return true
   })
 
-  // Open search modal with Ctrl+K
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault()
-        openSearch()
-      }
-    }
+  // ❌ Keyboard shortcuts معطلة بناءً على طلب المستخدم
+  // Open search modal with Ctrl+K - DISABLED
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+  //       e.preventDefault()
+  //       openSearch()
+  //     }
+  //   }
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [openSearch])
+  //   document.addEventListener('keydown', handleKeyDown)
+  //   return () => document.removeEventListener('keydown', handleKeyDown)
+  // }, [openSearch])
 
   const handleLogout = async () => {
     try {
@@ -87,11 +88,27 @@ export default function Navbar() {
   return (
     <>
       {/* ✅ Navbar أفقية مع أيقونات عمودية على اليمين */}
-      <nav className="bg-primary-700 dark:bg-gray-900 text-white shadow-xl sticky top-0 z-40 border-b border-primary-800 dark:border-gray-700">
+      <nav
+        dir={locale === 'ar' ? 'rtl' : 'ltr'}
+        className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800 text-white shadow-xl sticky top-0 z-40 border-b-2 border-primary-800 dark:border-gray-700"
+      >
         <div className="w-full px-2 sm:px-4 relative z-10">
           <div className="flex items-center justify-between gap-2">
-            {/* Logo + Hamburger Menu - على اليسار */}
-            <div className="flex items-center gap-2 flex-shrink-0 py-1.5">
+            {/* Mobile: Hamburger على اليسار/اليمين حسب اللغة */}
+            <div className="flex items-center gap-2 flex-shrink-0 py-1.5 lg:hidden">
+              <button
+                onClick={() => setShowDrawer(!showDrawer)}
+                className="p-1.5 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition-all hover:scale-110 active:scale-95"
+                aria-label={t('nav.menu')}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Desktop: Logo + Hamburger على اليسار */}
+            <div className="hidden lg:flex items-center gap-2 flex-shrink-0 py-1.5">
               {/* Logo Button - للصفحة الرئيسية (مخفي عن الكوتش) */}
               {user?.role !== 'COACH' && (
                 <Link
@@ -106,18 +123,25 @@ export default function Navbar() {
                   />
                 </Link>
               )}
-
-              {/* Hamburger Menu - على الموبايل فقط */}
-              <button
-                onClick={() => setShowDrawer(!showDrawer)}
-                className="p-1.5 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition-all hover:scale-110 active:scale-95 lg:hidden"
-                aria-label="القائمة"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
             </div>
+
+            {/* Mobile: Logo في المنتصف */}
+            {user?.role !== 'COACH' && (
+              <div className="flex lg:hidden items-center justify-center flex-1 py-1.5">
+                <Link
+                  href="/"
+                  className="logo-breathing flex items-center gap-2"
+                  title={t('nav.home')}
+                >
+                  <img
+                    src="/assets/icon.svg"
+                    alt="Home"
+                    className="w-10 h-10 object-contain drop-shadow-2xl"
+                  />
+                  <span className="font-bold text-base">{t('common.appTitle')}</span>
+                </Link>
+              </div>
+            )}
 
             {/* روابط التنقل - في الوسط على Desktop */}
             <div className="hidden lg:flex lg:justify-center lg:flex-wrap gap-1 xl:gap-1.5 py-1.5 flex-1">
@@ -245,7 +269,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile/Tablet Drawer - ينزلق من اليمين */}
+      {/* Mobile/Tablet Drawer - ينزلق حسب اللغة */}
       {showDrawer && (
         <>
           {/* Backdrop */}
@@ -255,24 +279,37 @@ export default function Navbar() {
           />
 
           {/* Drawer */}
-          <div className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto border-gray-500 dark:border-gray-700 ${
-            locale === 'ar'
-              ? 'right-0 animate-slideRight border-l-4'
-              : 'left-0 animate-slideLeft border-r-4'
-          }`}>
-            {/* Header */}
-            <div className="bg-primary-700 dark:bg-gray-900 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-xl">{t('nav.menu')}</span>
-              </div>
+          <div
+            dir={locale === 'ar' ? 'rtl' : 'ltr'}
+            className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto ${
+              locale === 'ar'
+                ? 'right-0 animate-slideRight border-l-4 border-primary-600 dark:border-primary-500'
+                : 'left-0 animate-slideLeft border-r-4 border-primary-600 dark:border-primary-500'
+            }`}>
+            {/* Header with Logo in Center */}
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
+              {/* Close Button */}
               <button
                 onClick={() => setShowDrawer(false)}
-                className="p-2 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition"
+                className="p-2 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition flex-shrink-0"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
+
+              {/* Logo in Center */}
+              <div className="flex items-center gap-2 flex-1 justify-center">
+                <img
+                  src="/assets/icon.svg"
+                  alt="Logo"
+                  className="w-10 h-10 object-contain drop-shadow-lg"
+                />
+                <span className="font-bold text-lg">{t('common.appTitle')}</span>
+              </div>
+
+              {/* Spacer for balance */}
+              <div className="w-10"></div>
             </div>
 
             {/* Navigation Links */}
@@ -282,18 +319,18 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setShowDrawer(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:translate-x-2 relative ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                    locale === 'ar' ? 'hover:-translate-x-2' : 'hover:translate-x-2'
+                  } relative ${
                     pathname === link.href
-                      ? 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-800 dark:text-gray-100 font-bold shadow-md border-r-4 border-gray-500 dark:border-gray-400'
+                      ? `bg-gradient-to-${locale === 'ar' ? 'l' : 'r'} from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 text-primary-700 dark:text-primary-400 font-bold shadow-md ${
+                          locale === 'ar' ? 'border-l-4' : 'border-r-4'
+                        } border-primary-600 dark:border-primary-500`
                       : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700/80'
                   }`}
                 >
                   <span className="text-2xl drop-shadow">{link.icon}</span>
                   <span className="text-base">{link.label}</span>
-                  {/* Update badge disabled - نظام التحديثات معطل */}
-                  {/* {link.href === '/settings' && updateAvailable && (
-                    <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></span>
-                  )} */}
                 </Link>
               ))}
             </div>

@@ -69,7 +69,7 @@ export default function Toast({ message, type = 'info', onClose, duration = 4000
     info: t('toast.info')
   }
 
-  const topPosition = 20 + (index * 100) // Stack toasts vertically
+  const topPosition = 16 + (index * 75) // Stack toasts vertically (more compact)
 
   return (
     <div
@@ -80,23 +80,23 @@ export default function Toast({ message, type = 'info', onClose, duration = 4000
       }`}
       style={{
         top: `${topPosition}px`,
-        [direction === 'rtl' ? 'right' : 'left']: '20px',
+        [direction === 'rtl' ? 'right' : 'left']: '16px',
         animation: isExiting ? 'none' : 'slideInToast 0.3s ease-out'
       }}
     >
       <div
-        className={`${colors[type].bg} text-white rounded-xl shadow-2xl overflow-hidden min-w-[320px] max-w-md border-2 ${colors[type].border}`}
+        className={`${colors[type].bg} text-white rounded-lg shadow-xl overflow-hidden min-w-[260px] max-w-sm border ${colors[type].border}`}
         dir={direction}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-          <span className="text-3xl flex-shrink-0">{icons[type]}</span>
+        <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
+          <span className="text-xl flex-shrink-0">{icons[type]}</span>
           <div className="flex-1">
-            <h4 className="font-bold text-lg">{titles[type]}</h4>
+            <h4 className="font-bold text-sm">{titles[type]}</h4>
           </div>
           <button
             onClick={handleClose}
-            className="text-white hover:bg-white dark:bg-gray-800/20 rounded-full w-8 h-8 flex items-center justify-center text-2xl font-bold transition flex-shrink-0"
+            className="text-white hover:bg-white dark:bg-gray-800/20 rounded-full w-6 h-6 flex items-center justify-center text-xl font-bold transition flex-shrink-0"
             title={t('toast.close')}
           >
             ×
@@ -104,8 +104,8 @@ export default function Toast({ message, type = 'info', onClose, duration = 4000
         </div>
 
         {/* Message */}
-        <div className="px-4 pb-4">
-          <p className="text-sm font-medium whitespace-pre-line leading-relaxed">
+        <div className="px-3 pb-2.5">
+          <p className="text-xs font-medium whitespace-pre-line leading-snug">
             {message}
           </p>
         </div>

@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateStaff')
     
     const body = await request.json()
-    const { staffCode, name, phone, position, salary, notes } = body
+    const { staffCode, name, phone, position, salary, notes, workingHours, monthlyVacationDays } = body
 
     // ✅ التحقق من وجود staffCode
     if (!staffCode) {
@@ -150,6 +150,8 @@ export async function POST(request: Request) {
         position,
         salary,
         notes,
+        workingHours: workingHours !== undefined && workingHours !== null && workingHours !== '' ? parseFloat(workingHours) : null,
+        monthlyVacationDays: monthlyVacationDays !== undefined && monthlyVacationDays !== null && monthlyVacationDays !== '' ? parseInt(monthlyVacationDays) : null,
       },
     })
 
@@ -189,7 +191,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canEditStaff')
 
     const body = await request.json()
-    const { id, staffCode, name, phone, position, salary, notes, isActive, customPosition } = body
+    const { id, staffCode, name, phone, position, salary, notes, isActive, customPosition, workingHours, monthlyVacationDays } = body
 
     // ✅ تحضير البيانات للتحديث (فقط الحقول المسموحة)
     const updateData: any = {}
@@ -200,6 +202,12 @@ export async function PUT(request: Request) {
     if (salary !== undefined) updateData.salary = salary
     if (notes !== undefined) updateData.notes = notes
     if (isActive !== undefined) updateData.isActive = isActive
+    if (workingHours !== undefined) {
+      updateData.workingHours = workingHours !== null && workingHours !== '' ? parseFloat(workingHours) : null
+    }
+    if (monthlyVacationDays !== undefined) {
+      updateData.monthlyVacationDays = monthlyVacationDays !== null && monthlyVacationDays !== '' ? parseInt(monthlyVacationDays) : null
+    }
 
     // ✅ إذا كان في تحديث للـ staffCode، تحقق من عدم التكرار
     if (staffCode !== undefined) {

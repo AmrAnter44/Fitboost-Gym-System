@@ -7,6 +7,7 @@ import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
+import ReceiptSuccessModal from './ReceiptSuccessModal'
 import type { PaymentMethod } from '../lib/paymentHelpers'
 
 interface Staff {
@@ -46,6 +47,8 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
   const [coachesLoading, setCoachesLoading] = useState(true)
   const [packages, setPackages] = useState<any[]>([])
   const [successMessage, setSuccessMessage] = useState('')
+  const [createdReceipt, setCreatedReceipt] = useState<any>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   const getDefaultStartDate = () => {
     if (session.expiryDate) {
@@ -216,22 +219,30 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
 
         if (result.receipt) {
           try {
-            const receiptsResponse = await fetch(`/api/receipts?physioNumber=${session.physioNumber}`)
-            const receipts = await receiptsResponse.json()
-
-            if (receipts.length > 0) {
-              const latestReceipt = receipts[0]
-              console.log('Receipt ready for print:', latestReceipt)
+            const receiptResponse = await fetch(`/api/receipts/${result.receipt.id}`)
+            if (receiptResponse.ok) {
+              const receiptData = await receiptResponse.json()
+              setCreatedReceipt(receiptData)
+              setShowSuccessModal(true)
+            } else {
+              setTimeout(() => {
+                onSuccess()
+                onClose()
+              }, 1500)
             }
           } catch (err) {
             console.error('Error fetching receipt:', err)
+            setTimeout(() => {
+              onSuccess()
+              onClose()
+            }, 1500)
           }
+        } else {
+          setTimeout(() => {
+            onSuccess()
+            onClose()
+          }, 1500)
         }
-
-        setTimeout(() => {
-          onSuccess()
-          onClose()
-        }, 1500)
       } else {
         toast.error(result.error || t('physiotherapy.renewal.failureMessage'))
       }
@@ -574,6 +585,17 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
           </form>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <ReceiptSuccessModal
+        receipt={createdReceipt}
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false)
+          onSuccess()
+          onClose()
+        }}
+      />
     </div>
   )
 }

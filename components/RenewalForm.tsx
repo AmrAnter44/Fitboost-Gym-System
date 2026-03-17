@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import PaymentMethodSelector from './Paymentmethodselector'
+import ReceiptSuccessModal from './ReceiptSuccessModal'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -76,6 +77,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [error, setError] = useState('')
   const [offers, setOffers] = useState<any[]>([])
   const [successMessage, setSuccessMessage] = useState('')
+  const [createdReceipt, setCreatedReceipt] = useState<any>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   useEffect(() => {
     if (user && !staffName) {
@@ -184,11 +187,23 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
       if (response.ok) {
         const data = await response.json()
-        
+
         console.log('✅ تم التجديد بنجاح:', data)
-        
+
         if (data.receipt) {
-          onSuccess(data.receipt)
+          try {
+            const receiptResponse = await fetch(`/api/receipts/${data.receipt.id}`)
+            if (receiptResponse.ok) {
+              const receiptData = await receiptResponse.json()
+              setCreatedReceipt(receiptData)
+              setShowSuccessModal(true)
+            } else {
+              onSuccess(data.receipt)
+            }
+          } catch (err) {
+            console.error('Error fetching receipt:', err)
+            onSuccess(data.receipt)
+          }
         } else {
           onSuccess()
         }
@@ -604,6 +619,20 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           </button>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <ReceiptSuccessModal
+        receipt={createdReceipt}
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false)
+          if (createdReceipt) {
+            onSuccess(createdReceipt)
+          } else {
+            onSuccess()
+          }
+        }}
+      />
     </div>
   )
 }

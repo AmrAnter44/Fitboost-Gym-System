@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabaseAdmin } from './supabase'
 import { prisma } from './prisma'
 
 /**
@@ -26,7 +26,7 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
         setTimeout(() => reject(new Error('License check timeout')), 5000)
       )
 
-      const supabasePromise = supabase
+      const supabasePromise = supabaseAdmin
         .from('branches')
         .select('system_license')
         .eq('id', license.branchId)

@@ -37,7 +37,7 @@ function homeIcon() {
 
 function chevron(isRtl: boolean) {
   return (
-    <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-3.5 h-3.5 text-white/60 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d={isRtl ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'} />
     </svg>
@@ -74,24 +74,24 @@ export default function Breadcrumb() {
     <nav
       aria-label="breadcrumb"
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 px-4 py-1.5"
+      className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800 border-b-2 border-primary-800 dark:border-gray-700 px-4 py-2 shadow-md"
     >
-      <ol className="flex items-center gap-1 flex-wrap text-xs">
+      <ol className="flex items-center gap-1.5 flex-wrap text-xs">
         {crumbs.map((crumb, i) => (
-          <li key={crumb.href} className="flex items-center gap-1">
+          <li key={crumb.href} className="flex items-center gap-1.5">
             {/* Separator before each crumb (except first) */}
             {i > 0 && chevron(isRtl)}
 
             {crumb.isLast ? (
               // Current page — not a link
-              <span className="flex items-center gap-1 text-primary-700 dark:text-primary-400 font-bold">
+              <span className="flex items-center gap-1 text-white font-bold drop-shadow">
                 {i === 0 && homeIcon()}
                 {crumb.label}
               </span>
             ) : (
               <Link
                 href={crumb.href}
-                className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                className="flex items-center gap-1 text-white/80 hover:text-white transition-colors"
               >
                 {i === 0 && homeIcon()}
                 {crumb.label}

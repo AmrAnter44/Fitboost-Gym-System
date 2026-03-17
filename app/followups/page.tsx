@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import nextDynamic from 'next/dynamic'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -28,6 +28,7 @@ import {
   deleteFollowUp
 } from '@/lib/api/followups'
 import { useDebounce } from '../../hooks/useDebounce'
+import { normalizeArabic } from '@/lib/arabicNormalization'
 
 interface Visitor {
   id: string
@@ -92,6 +93,13 @@ export default function FollowUpsPage() {
   // View mode state
   const [viewMode, setViewMode] = useState<'list' | 'analytics'>('list')
 
+  // ✅ Bulk sending states
+  const [showBulkSendModal, setShowBulkSendModal] = useState(false)
+  const [bulkSending, setBulkSending] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentName: '' })
+  const [bulkSendAborted, setBulkSendAborted] = useState(false)
+  const bulkSendAbortedRef = useRef(false)
+
   // Fetch all data using TanStack Query
   const {
     data: followUps = [],
@@ -123,6 +131,7 @@ export default function FollowUpsPage() {
     queryFn: fetchMembersData,
     retry: 1,
     staleTime: 5 * 60 * 1000,
+    enabled: hasPermission('canViewMembers'), // ✅ فقط إذا كان لديه صلاحية
   })
 
   const {
@@ -133,6 +142,7 @@ export default function FollowUpsPage() {
     queryFn: fetchDayUseData,
     retry: 1,
     staleTime: 2 * 60 * 1000,
+    enabled: hasPermission('canViewDayUse'), // ✅ فقط إذا كان لديه صلاحية
   })
 
   const {
@@ -159,10 +169,26 @@ export default function FollowUpsPage() {
     },
     retry: 1,
     staleTime: 5 * 60 * 1000,
+    enabled: hasPermission('canViewStaff'), // ✅ فقط إذا كان لديه صلاحية
   })
 
   // Extract visitors and members from queries
-  const visitors = visitorsData
+  // ✅ ترتيب الزوار حسب تاريخ الإنشاء (الأحدث أولاً)
+  const visitors = useMemo(() =>
+    (visitorsData || []).sort((a: any, b: any) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ),
+    [visitorsData]
+  )
+
+  // ✅ ترتيب الدعوات حسب تاريخ الإنشاء (الأحدث أولاً)
+  const sortedInvitations = useMemo(() =>
+    (invitations || []).sort((a: any, b: any) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ),
+    [invitations]
+  )
+
   const allMembers = allMembersData
   const members = useMemo(() =>
     (allMembersData || []).filter((m: Member) => m.isActive === true),
@@ -354,7 +380,7 @@ export default function FollowUpsPage() {
       }))
 
     // 4. Invitations (دعوات من أعضاء) - فقط اللي مش عندهم متابعة حقيقية
-    const invitationFollowUps: FollowUp[] = invitations
+    const invitationFollowUps: FollowUp[] = sortedInvitations
       .filter(inv => !realFollowUpPhones.has(normalizePhone(inv.guestPhone)))
       .map(inv => ({
         id: `invitation-${inv.id}`,
@@ -400,7 +426,7 @@ export default function FollowUpsPage() {
       }))
 
     return [...followUps, ...expiredFollowUps, ...expiringFollowUps, ...dayUseFollowUps, ...invitationFollowUps, ...regularVisitorFollowUps]
-  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, invitations, visitors])
+  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors])
 
   const handleSubmit = async (formData: {
     visitorId: string
@@ -442,7 +468,7 @@ export default function FollowUpsPage() {
       }
 
       // البحث في Invitations
-      const invitation = invitations.find(inv => `invitation-${inv.id}` === formData.visitorId)
+      const invitation = sortedInvitations.find(inv => `invitation-${inv.id}` === formData.visitorId)
       if (invitation) {
         visitorData = { name: invitation.guestName, phone: invitation.guestPhone, source: 'member-invitation' }
       }
@@ -515,7 +541,7 @@ export default function FollowUpsPage() {
   }, [])
 
   // 📤 إرسال رسالة من قالب
-  const sendWhatsAppTemplate = useCallback((template: MessageTemplate) => {
+  const sendWhatsAppTemplate = useCallback(async (template: MessageTemplate) => {
     if (!selectedVisitorForTemplate) return
 
     // استبدال المتغيرات في الرسالة
@@ -526,17 +552,151 @@ export default function FollowUpsPage() {
       .replace(/\{date\}/g, new Date().toLocaleDateString('ar-EG'))
       .replace(/\{time\}/g, new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }))
 
-    const encodedMessage = encodeURIComponent(message)
-    const url = `https://wa.me/20${selectedVisitorForTemplate.phone}?text=${encodedMessage}`
+    // ✅ التحقق من بيئة Electron أولاً
+    const electron = typeof window !== 'undefined' && (window as any).electron
 
-    window.open(url, '_blank')
-    setShowTemplateModal(false)
+    if (electron?.whatsapp) {
+      // ✅ استخدام Electron IPC للإرسال التلقائي
+      console.log('📱 Using Electron WhatsApp integration for template')
+      try {
+        const result = await electron.whatsapp.sendMessage(
+          selectedVisitorForTemplate.phone,
+          message
+        )
 
-    // فتح فورم المتابعة
-    setTimeout(() => {
-      openQuickFollowUp(selectedVisitorForTemplate)
-    }, 500)
-  }, [selectedVisitorForTemplate, openQuickFollowUp, user])
+        if (result.success) {
+          toast.success('✅ تم إرسال الرسالة بنجاح على الواتساب')
+          setShowTemplateModal(false)
+
+          // ✅ تحديث حالة المتابعة تلقائياً إلى "تم التواصل"
+          try {
+            const response = await fetch('/api/visitors/followups', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                visitorId: selectedVisitorForTemplate.id,
+                notes: `تم إرسال رسالة "${template.title}" عبر الواتساب`,
+                contacted: true,
+                salesName: user?.name,
+                visitorData: {
+                  name: selectedVisitorForTemplate.name,
+                  phone: selectedVisitorForTemplate.phone,
+                  source: selectedVisitorForTemplate.source
+                }
+              }),
+            })
+
+            if (response.ok) {
+              // ✅ تحديث البيانات
+              await queryClient.invalidateQueries({ queryKey: ['followups'] })
+              await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+              toast.success('✅ تم تحديث حالة المتابعة تلقائياً')
+            }
+          } catch (error) {
+            console.error('Error updating follow-up:', error)
+          }
+        } else {
+          const errorMessage = result.error || 'فشل إرسال الرسالة'
+          if (errorMessage.includes('not ready') || errorMessage.includes('not initialized')) {
+            toast.error('❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code')
+          } else {
+            toast.error(`❌ ${errorMessage}`)
+          }
+        }
+      } catch (error) {
+        console.error('WhatsApp send error:', error)
+        toast.error('❌ حدث خطأ أثناء الإرسال')
+      }
+    } else {
+      // ✅ Browser mode - التحقق من WhatsApp Backend
+      console.log('🌐 Running in browser - checking WhatsApp backend status...')
+
+      try {
+        const statusResponse = await fetch('/api/whatsapp/status')
+
+        if (statusResponse.ok) {
+          const status = await statusResponse.json()
+
+          if (status.isReady) {
+            // ✅ WhatsApp متصل - إرسال عبر API
+            console.log('✅ WhatsApp backend is ready - sending via API')
+
+            const sendResponse = await fetch('/api/whatsapp/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                phone: selectedVisitorForTemplate.phone,
+                message: message
+              })
+            })
+
+            const sendResult = await sendResponse.json()
+
+            if (sendResult.success) {
+              toast.success('✅ تم إرسال الرسالة بنجاح على الواتساب')
+              setShowTemplateModal(false)
+
+              // ✅ تحديث حالة المتابعة تلقائياً
+              try {
+                const response = await fetch('/api/visitors/followups', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    visitorId: selectedVisitorForTemplate.id,
+                    notes: `تم إرسال رسالة "${template.title}" عبر الواتساب`,
+                    contacted: true,
+                    salesName: user?.name,
+                    visitorData: {
+                      name: selectedVisitorForTemplate.name,
+                      phone: selectedVisitorForTemplate.phone,
+                      source: selectedVisitorForTemplate.source
+                    }
+                  }),
+                })
+
+                if (response.ok) {
+                  await queryClient.invalidateQueries({ queryKey: ['followups'] })
+                  await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+                  toast.success('✅ تم تحديث حالة المتابعة تلقائياً')
+                }
+              } catch (error) {
+                console.error('Error updating follow-up:', error)
+              }
+            } else {
+              toast.error(`❌ فشل إرسال الرسالة: ${sendResult.error}`)
+            }
+            return
+          }
+        }
+
+        // ⚠️ Fallback: WhatsApp غير متصل - استخدام wa.me links
+        console.log('⚠️ WhatsApp not ready - using wa.me fallback')
+        toast.warning('⚠️ الواتساب غير متصل. جاري فتح واتساب ويب...')
+
+        const encodedMessage = encodeURIComponent(message)
+        const url = `https://wa.me/20${selectedVisitorForTemplate.phone}?text=${encodedMessage}`
+        window.open(url, '_blank')
+        setShowTemplateModal(false)
+
+        // فتح فورم المتابعة يدوياً
+        setTimeout(() => {
+          openQuickFollowUp(selectedVisitorForTemplate)
+        }, 500)
+
+      } catch (error) {
+        console.error('Error checking WhatsApp status:', error)
+        // Fallback في حالة الخطأ
+        const encodedMessage = encodeURIComponent(message)
+        const url = `https://wa.me/20${selectedVisitorForTemplate.phone}?text=${encodedMessage}`
+        window.open(url, '_blank')
+        setShowTemplateModal(false)
+
+        setTimeout(() => {
+          openQuickFollowUp(selectedVisitorForTemplate)
+        }, 500)
+      }
+    }
+  }, [selectedVisitorForTemplate, openQuickFollowUp, user, toast, queryClient])
 
   // 🗑️ حذف متابعة
   const handleDeleteFollowUp = useCallback((followUpId: string, visitorName: string) => {
@@ -634,11 +794,12 @@ export default function FollowUpsPage() {
   const filteredFollowUps = useMemo(() => {
     return allFollowUps
       .filter(fu => {
+        const searchNormalized = normalizeArabic(debouncedSearchTerm)
         const matchesSearch =
-          fu.visitor.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          normalizeArabic(fu.visitor.name).includes(searchNormalized) ||
           fu.visitor.phone.includes(debouncedSearchTerm) ||
-          fu.notes.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-          (fu.salesName && fu.salesName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
+          normalizeArabic(fu.notes).includes(searchNormalized) ||
+          (fu.salesName && normalizeArabic(fu.salesName).includes(searchNormalized))
 
         const matchesResult = resultFilter === 'all' || fu.result === resultFilter
         const matchesContacted = contactedFilter === 'all' ||
@@ -711,6 +872,141 @@ export default function FollowUpsPage() {
     setCurrentPage(page)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
+
+  // 📤 إرسال جماعي لجميع الأعضاء المفلترين
+  const handleBulkSend = useCallback(async (template: MessageTemplate) => {
+    // الحصول على القائمة المفلترة الحالية
+    const targetVisitors = filteredFollowUps.map(fu => fu.visitor)
+
+    if (targetVisitors.length === 0) {
+      toast.error('لا يوجد أعضاء للإرسال إليهم')
+      return
+    }
+
+    // التحقق من Electron أو WhatsApp Backend
+    const electron = typeof window !== 'undefined' && (window as any).electron
+    let useElectron = false
+    let useBrowserAPI = false
+
+    if (electron?.whatsapp) {
+      useElectron = true
+    } else {
+      // التحقق من WhatsApp Backend في Browser
+      try {
+        const statusResponse = await fetch('/api/whatsapp/status')
+        if (statusResponse.ok) {
+          const status = await statusResponse.json()
+          if (status.isReady) {
+            useBrowserAPI = true
+          }
+        }
+      } catch (error) {
+        console.error('Error checking WhatsApp status:', error)
+      }
+    }
+
+    if (!useElectron && !useBrowserAPI) {
+      toast.error('❌ الواتساب غير متصل. افتح الإعدادات → واتساب لمسح QR code')
+      return
+    }
+
+    // إغلاق modal القوالب وفتح modal التقدم
+    setShowTemplateModal(false)
+    setBulkSending(true)
+    setBulkSendAborted(false)
+    bulkSendAbortedRef.current = false
+    setBulkProgress({ current: 0, total: targetVisitors.length, currentName: '' })
+
+    let successCount = 0
+    let failCount = 0
+
+    for (let i = 0; i < targetVisitors.length; i++) {
+      // التحقق من الإيقاف
+      if (bulkSendAbortedRef.current) {
+        toast.warning(`تم إيقاف الإرسال. تم الإرسال لـ ${successCount} من ${targetVisitors.length}`)
+        break
+      }
+
+      const visitor = targetVisitors[i]
+      setBulkProgress({ current: i + 1, total: targetVisitors.length, currentName: visitor.name })
+
+      try {
+        // تحضير الرسالة
+        const message = template.message
+          .replace(/\{name\}/g, visitor.name)
+          .replace(/\{salesName\}/g, user?.name || 'السيلز')
+          .replace(/\{phone\}/g, visitor.phone)
+          .replace(/\{date\}/g, new Date().toLocaleDateString('ar-EG'))
+          .replace(/\{time\}/g, new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }))
+
+        // إرسال الرسالة
+        let result: { success: boolean; error?: string }
+
+        if (useElectron) {
+          // إرسال عبر Electron
+          result = await electron.whatsapp.sendMessage(visitor.phone, message)
+        } else {
+          // إرسال عبر Browser API
+          const sendResponse = await fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: visitor.phone,
+              message: message
+            })
+          })
+          result = await sendResponse.json()
+        }
+
+        if (result.success) {
+          successCount++
+
+          // تحديث حالة المتابعة إلى "تم التواصل"
+          try {
+            await fetch('/api/visitors/followups', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                visitorId: visitor.id,
+                notes: `تم إرسال رسالة "${template.title}" عبر الواتساب (إرسال جماعي)`,
+                contacted: true,
+                salesName: user?.name,
+                visitorData: {
+                  name: visitor.name,
+                  phone: visitor.phone,
+                  source: visitor.source
+                }
+              }),
+            })
+          } catch (error) {
+            console.error('Error updating follow-up:', error)
+          }
+        } else {
+          failCount++
+          console.error(`Failed to send to ${visitor.name}:`, result.error)
+        }
+
+        // الانتظار 15 ثانية قبل الرسالة التالية (إلا إذا كانت آخر رسالة)
+        if (i < targetVisitors.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 15000))
+        }
+      } catch (error) {
+        failCount++
+        console.error(`Error sending to ${visitor.name}:`, error)
+      }
+    }
+
+    // انتهى الإرسال
+    setBulkSending(false)
+    await queryClient.invalidateQueries({ queryKey: ['followups'] })
+    await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+
+    if (successCount > 0) {
+      toast.success(`✅ تم إرسال ${successCount} رسالة بنجاح${failCount > 0 ? ` (فشل ${failCount})` : ''}`)
+    } else {
+      toast.error('❌ فشل الإرسال لجميع الأرقام')
+    }
+  }, [filteredFollowUps, user, toast, queryClient])
 
   const getResultBadge = useCallback((result?: string) => {
     const badges = {
@@ -787,7 +1083,7 @@ export default function FollowUpsPage() {
     expiredMembers: expiredMembers.length,
     expiringMembers: expiringMembers.length,
     dayUse: dayUseRecords.length,
-    invitations: invitations.length,
+    invitations: sortedInvitations.length,
     visitors: visitors.length,
     convertedToMembers: followUps.filter(fu => isVisitorAMember(fu.visitor.phone)).length,
 
@@ -1181,7 +1477,7 @@ export default function FollowUpsPage() {
           expiredMembers={expiredMembers}
           expiringMembers={expiringMembers}
           dayUseRecords={dayUseRecords}
-          invitations={invitations}
+          invitations={sortedInvitations}
           initialVisitorId={selectedVisitorId}
           onSubmit={handleSubmit}
           onClose={() => {
@@ -1192,14 +1488,66 @@ export default function FollowUpsPage() {
       )}
 
       {/* WhatsApp Template Modal */}
-      {showTemplateModal && selectedVisitorForTemplate && (
+      {showTemplateModal && (
         <MessageTemplateManager
           onClose={() => setShowTemplateModal(false)}
-          onSelect={sendWhatsAppTemplate}
-          visitorName={selectedVisitorForTemplate.name}
+          onSelect={selectedVisitorForTemplate ? sendWhatsAppTemplate : handleBulkSend}
+          visitorName={selectedVisitorForTemplate?.name || 'الأعضاء المنتهيين'}
           salesName={user?.name}
-          visitorPhone={selectedVisitorForTemplate.phone}
+          visitorPhone={selectedVisitorForTemplate?.phone || ''}
         />
+      )}
+
+      {/* Bulk Send Progress Modal */}
+      {bulkSending && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4 animate-pulse">📤</div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                جاري الإرسال الجماعي
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                {bulkProgress.current} / {bulkProgress.total}
+              </p>
+              {bulkProgress.currentName && (
+                <p className="text-sm text-primary-600 dark:text-primary-400 mt-2">
+                  📱 جاري الإرسال إلى: <span className="font-bold">{bulkProgress.currentName}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500 ease-out flex items-center justify-center text-xs font-bold text-white"
+                  style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                >
+                  {Math.round((bulkProgress.current / bulkProgress.total) * 100)}%
+                </div>
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
+                ⏰ الانتظار 15 ثانية بين كل رسالة
+              </p>
+            </div>
+
+            {/* Abort Button */}
+            <button
+              onClick={() => {
+                setBulkSendAborted(true)
+                bulkSendAbortedRef.current = true
+              }}
+              className="w-full bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-bold"
+            >
+              🛑 إيقاف الإرسال
+            </button>
+          </div>
+        </div>
       )}
 
       {/* History Modal - سجل المتابعات (Lightweight) */}
@@ -1406,6 +1754,19 @@ export default function FollowUpsPage() {
           >
             👤 {t('followups.sources.visitors')} ({stats.visitors})
           </button>
+
+          {/* زر الإرسال الجماعي - يظهر فقط عند اختيار الأعضاء المنتهيين */}
+          {sourceFilter === 'expired-member' && filteredFollowUps.length > 0 && (
+            <button
+              onClick={() => {
+                setSelectedVisitorForTemplate(null as any)
+                setShowTemplateModal(true)
+              }}
+              className="px-4 py-2 rounded-lg font-bold text-sm transition-all bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg hover:from-green-700 hover:to-emerald-700 flex items-center gap-2"
+            >
+              📤 إرسال للكل ({filteredFollowUps.length})
+            </button>
+          )}
         </div>
       </div>
 
@@ -1420,8 +1781,8 @@ export default function FollowUpsPage() {
         </div>
       ) : (
         <>
-          {/* Mobile Cards View */}
-          <div className="lg:hidden space-y-3 sm:space-y-4 mb-6">
+          {/* Cards View - للجميع */}
+          <div className="space-y-3 sm:space-y-4 mb-6">
             {currentFollowUps.map((followUp) => {
               const isExpired = followUp.visitor.source === 'expired-member'
               const isExpiring = followUp.visitor.source === 'expiring-member'
@@ -1429,13 +1790,13 @@ export default function FollowUpsPage() {
               return (
                 <div
                   key={followUp.id}
-                  className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4 ${
+                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-5 border-2 ${
                     isExpired
-                      ? 'border-r-4 border-red-500 dark:border-red-400'
+                      ? 'border-red-400 bg-gradient-to-br from-red-50/50 to-white dark:from-red-900/10 dark:to-gray-800'
                       : isExpiring
-                      ? 'border-r-4 border-yellow-500 dark:border-yellow-400'
-                      : 'border-r-4 border-primary-500 dark:border-primary-400'
-                  }`}
+                      ? 'border-yellow-400 bg-gradient-to-br from-yellow-50/50 to-white dark:from-yellow-900/10 dark:to-gray-800'
+                      : 'border-primary-400 bg-gradient-to-br from-primary-50/30 to-white dark:from-primary-900/10 dark:to-gray-800'
+                  } hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]`}
                 >
                   {/* Action Buttons at Top */}
                   <div className="flex justify-between items-start gap-2 mb-2 sm:mb-3">
@@ -1474,126 +1835,156 @@ export default function FollowUpsPage() {
                       >
                         📋
                       </button>
-                      <button
-                        onClick={() => openQuickSubscribe(followUp.visitor)}
-                        className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
-                        title="تحويل الزائر إلى عضو"
-                      >
-                        ⚡
-                      </button>
+                      {/* زر الاشتراك السريع - مخفي للأعضاء القريبين من الانتهاء */}
+                      {!isExpiring && (
+                        <button
+                          onClick={() => openQuickSubscribe(followUp.visitor)}
+                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
+                          title="تحويل الزائر إلى عضو"
+                        >
+                          ⚡
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   {/* Follow-up Info */}
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <div className="flex items-start gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">👤 {t('followups.table.name')}:</span>
-                      <span className={`font-bold text-sm sm:text-base ${
-                        isExpired ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'
-                      }`}>
-                        {followUp.visitor.name}
-                      </span>
-                    </div>
+                  <div className="space-y-2 sm:space-y-2.5">
+                    {/* اسم الزائر ورقم الهاتف - بروز أكبر */}
+                    <div className="bg-gradient-to-r from-primary-50 via-white to-primary-50 dark:from-primary-900/20 dark:via-gray-800 dark:to-primary-900/20 p-3 sm:p-4 rounded-xl border-2 border-primary-200 dark:border-primary-700 shadow-sm">
+                      <div className="flex flex-col gap-2.5">
+                        {/* الاسم */}
+                        <div className="flex items-center gap-2">
+                          <div className="bg-primary-500 p-1.5 rounded-lg">
+                            <span className="text-white text-base">👤</span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">الاسم</div>
+                            <span className={`font-bold text-base sm:text-lg ${
+                              isExpired ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'
+                            }`}>
+                              {followUp.visitor.name}
+                            </span>
+                          </div>
+                        </div>
 
-                    <div className="flex items-start gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📱 {t('followups.table.phone')}:</span>
-                      <div className="flex gap-1">
-                        <a
-                          href={`https://wa.me/20${followUp.visitor.phone}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg font-medium text-xs sm:text-sm ${
-                            isExpired
-                              ? 'bg-red-600 hover:bg-red-700 text-white'
-                              : 'bg-green-500 hover:bg-green-600 text-white'
-                          }`}
-                        >
-                          <span>💬</span>
-                          <span>{followUp.visitor.phone}</span>
-                        </a>
-                        <button
-                          onClick={() => openTemplateModal(followUp.visitor)}
-                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium"
-                          title="رسائل جاهزة"
-                        >
-                          📝
-                        </button>
+                        {/* رقم الهاتف */}
+                        <div className="flex items-center gap-2">
+                          <div className="bg-green-500 p-1.5 rounded-lg">
+                            <span className="text-white text-base">📱</span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">رقم الهاتف</div>
+                            <div className="flex gap-2 items-center">
+                              <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200" dir="ltr">
+                                {followUp.visitor.phone}
+                              </span>
+                              <button
+                                onClick={() => openTemplateModal(followUp.visitor)}
+                                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-md hover:shadow-lg transition-all"
+                                title="رسائل جاهزة"
+                              >
+                                💬 واتساب
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📂 {t('followups.table.source')}:</span>
-                      <span className={`${
-                        followUp.visitor.source === 'invitation'
-                          ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium'
-                          : followUp.visitor.source === 'member-invitation'
-                          ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium'
-                          : followUp.visitor.source === 'expired-member'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold'
-                          : followUp.visitor.source === 'expiring-member'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold'
-                          : 'text-gray-600 dark:text-gray-300 text-xs sm:text-sm'
-                      }`}>
-                        {getSourceLabel(followUp.visitor.source)}
-                      </span>
+                    {/* المصدر ومهتم بإيه - معلومات مهمة */}
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold">📂</span>
+                        <span className={`${
+                          followUp.visitor.source === 'invitation'
+                            ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-3 py-1 rounded-full text-xs font-semibold'
+                            : followUp.visitor.source === 'member-invitation'
+                            ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-3 py-1 rounded-full text-xs font-semibold'
+                            : followUp.visitor.source === 'expired-member'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-3 py-1 rounded-full text-xs font-bold shadow-sm'
+                            : followUp.visitor.source === 'expiring-member'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-3 py-1 rounded-full text-xs font-bold shadow-sm'
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium'
+                        }`}>
+                          {getSourceLabel(followUp.visitor.source)}
+                        </span>
+
+                        {/* مهتم بإيه - بروز أكبر */}
+                        {followUp.visitor.interestedIn && (
+                          <>
+                            <span className="text-gray-400">•</span>
+                            <div className="flex items-center gap-1.5 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 px-3 py-1 rounded-full border border-blue-300 dark:border-blue-700 shadow-sm">
+                              <span className="text-sm">🎯</span>
+                              <span className="text-blue-900 dark:text-blue-200 text-xs font-bold">
+                                {followUp.visitor.interestedIn}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
 
+                    {/* موظف المبيعات */}
                     {followUp.salesName && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">🧑‍💼 {t('followups.table.sales')}:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-semibold">🧑‍💼</span>
                         <span className="text-orange-600 font-semibold text-xs sm:text-sm">{followUp.salesName}</span>
                       </div>
                     )}
 
+                    {/* آخر تعليق أو الملاحظات */}
                     {(() => {
                       const lastComment = getLastComment(followUp.visitor.phone)
                       return lastComment ? (
-                        <div className="flex items-start gap-2">
-                          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">💬 {t('followups.table.lastComment')}:</span>
-                          <div className="flex-1">
-                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200">{lastComment.notes}</p>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                              {lastComment.salesName && <span className="text-orange-500">{lastComment.salesName} • </span>}
-                              {new Date(lastComment.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
-                            </p>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border-l-4 border-blue-500">
+                          <div className="flex items-start gap-2 mb-1">
+                            <span className="text-blue-600 dark:text-blue-400 text-xs font-semibold">💬 آخر تعليق:</span>
                           </div>
+                          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 mb-1">{lastComment.notes}</p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                            {lastComment.salesName && <span className="text-orange-500 font-medium">{lastComment.salesName} • </span>}
+                            {new Date(lastComment.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
+                          </p>
                         </div>
-                      ) : (
-                        <div className="flex items-start gap-2">
-                          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📝 {t('followups.table.notes')}:</span>
-                          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 flex-1">{followUp.notes}</p>
+                      ) : followUp.notes ? (
+                        <div className="bg-gray-50 dark:bg-gray-700/30 p-2.5 rounded-lg border-l-4 border-gray-400">
+                          <div className="flex items-start gap-2 mb-1">
+                            <span className="text-gray-600 dark:text-gray-300 text-xs font-semibold">📝 ملاحظات:</span>
+                          </div>
+                          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200">{followUp.notes}</p>
                         </div>
-                      )
+                      ) : null
                     })()}
 
-                    <div className="flex items-start gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📊 {t('followups.table.result')}:</span>
-                      {getResultBadge(followUp.result)}
-                    </div>
-
-                    {followUp.nextFollowUpDate && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📅 {t('followups.table.nextFollowUp')}:</span>
-                        <span className="text-xs sm:text-sm font-medium">
-                          {new Date(followUp.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
+                    {/* النتيجة وحالة التواصل والتواريخ */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">النتيجة</span>
+                        {getResultBadge(followUp.result)}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">حالة التواصل</span>
+                        {followUp.contacted ? (
+                          <span className="text-green-600 text-xs font-medium">✅ تم</span>
+                        ) : (
+                          <span className="text-orange-600 text-xs font-medium">⏳ لم يتم</span>
+                        )}
+                      </div>
+                      {followUp.nextFollowUpDate && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">المتابعة القادمة</span>
+                          <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
+                            {new Date(followUp.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">تاريخ الإضافة</span>
+                        <span className="text-[10px] text-gray-600 dark:text-gray-300">
+                          {new Date(followUp.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
-                    )}
-
-                    <div className="flex items-start gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📅 {t('followups.table.date')}:</span>
-                      <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        {new Date(followUp.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm min-w-[60px] sm:min-w-[70px]">📞 {t('followups.table.contacted')}:</span>
-                      {followUp.contacted ? (
-                        <span className="text-green-600 text-xs sm:text-sm">✅ {t('followups.labels.contactedYes')}</span>
-                      ) : (
-                        <span className="text-orange-600 text-xs sm:text-sm">⏳ {t('followups.labels.contactedNo')}</span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1623,8 +2014,8 @@ export default function FollowUpsPage() {
             )}
           </div>
 
-          {/* Desktop Table View */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+          {/* Desktop Table View - مخفي، نستخدم Cards بدلاً منه */}
+          <div className="hidden bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
               <thead className="bg-gradient-to-r from-primary-500 to-primary-600 text-white">
@@ -1676,20 +2067,8 @@ export default function FollowUpsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <a
-                          href={`https://wa.me/20${followUp.visitor.phone}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg font-medium text-sm transition-colors ${
-                            isExpired
-                              ? 'bg-red-600 hover:bg-red-700 text-white'
-                              : 'bg-green-500 hover:bg-green-600 text-white'
-                          }`}
-                        >
-                          <span>💬</span>
-                          <span>{followUp.visitor.phone}</span>
-                        </a>
+                      <div className="flex gap-3 items-center">
+                        <span className="font-medium">{followUp.visitor.phone}</span>
                         <button
                           onClick={() => openTemplateModal(followUp.visitor)}
                           className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 py-1 rounded-lg text-sm font-medium"
@@ -1796,14 +2175,27 @@ export default function FollowUpsPage() {
                           📋 {t('followups.buttons.history')}
                         </button>
 
-                        {/* زر اشتراك سريع */}
-                        <button
-                          onClick={() => openQuickSubscribe(followUp.visitor)}
-                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
-                          title="تحويل الزائر إلى عضو"
-                        >
-                          ⚡ اشتراك سريع
-                        </button>
+                        {/* زر اشتراك سريع - مخفي للأعضاء القريبين من الانتهاء */}
+                        {!isExpiring && (
+                          <button
+                            onClick={() => openQuickSubscribe(followUp.visitor)}
+                            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
+                            title="تحويل الزائر إلى عضو"
+                          >
+                            {t('followups.quickSubscribe')}
+                          </button>
+                        )}
+
+                        {/* زر الحذف - متاح فقط للمتابعات اليدوية (الزوار) */}
+                        {!isExpired && !isExpiring && !followUp.id.startsWith('dayuse-') && !followUp.id.startsWith('invitation-') && (
+                          <button
+                            onClick={() => handleDeleteFollowUp(followUp.id, followUp.visitor.name)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
+                            title={t('followups.actions.delete')}
+                          >
+                            🗑️ {t('followups.buttons.delete')}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -2116,7 +2508,7 @@ export default function FollowUpsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                ⚡ اشتراك سريع - {selectedVisitorForSubscribe.name}
+                {t('followups.quickSubscribe')} - {selectedVisitorForSubscribe.name}
               </h2>
               <button
                 onClick={() => {

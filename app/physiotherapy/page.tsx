@@ -252,6 +252,12 @@ export default function PhysiotherapyPage() {
   const fetchMemberByNumber = async (memberNumber: string) => {
     if (!memberNumber.trim()) return
 
+    // ✅ التحقق من صلاحية عرض الأعضاء
+    if (!hasPermission('canViewMembers')) {
+      toast.warning('لا تملك صلاحية عرض بيانات الأعضاء')
+      return
+    }
+
     try {
       const response = await fetch('/api/members')
       if (!response.ok) return

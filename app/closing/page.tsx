@@ -7,6 +7,8 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { normalizePaymentMethod, isMultiPayment } from '../../lib/paymentHelpers'
 import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
 import { getReceiptTypeTranslationKey, isFloorReceipt, isPTReceipt } from '../../lib/translateReceiptType'
+import { usePermissions } from '../../hooks/usePermissions'
+import PermissionDenied from '../../components/PermissionDenied'
 
 const ClosingCharts = dynamic(() => import('@/components/ClosingCharts'), {
   ssr: false,
@@ -44,6 +46,7 @@ interface Staff {
 }
 
 export default function ClosingPage() {
+  const { hasPermission, loading: permissionsLoading } = usePermissions()
   const [dailyData, setDailyData] = useState<DailyData[]>([])
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
@@ -776,6 +779,11 @@ export default function ClosingPage() {
       'points': `${t('closing.paymentMethods.points')} 🏆`
     }
     return methods[method] || `${t('closing.paymentMethods.cash')} 💵`
+  }
+
+  // ✅ التحقق من صلاحية الوصول
+  if (!permissionsLoading && !hasPermission('canAccessClosing')) {
+    return <PermissionDenied message="ليس لديك صلاحية الوصول لصفحة الإقفال" />
   }
 
   return (

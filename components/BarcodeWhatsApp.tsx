@@ -81,34 +81,99 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
     a.click()
   }
 
-  const handleSendBarcode = () => {
+  const handleSendBarcode = async () => {
     if (!barcodeImage) {
       setToast({ message: t('barcode.mustGenerateFirst'), type: 'warning' })
       return
     }
 
-    handleDownloadBarcode()
+    // إنشاء الرسالة النصية
+    const baseMessage = t('barcode.whatsappMessage', { memberNumber: memberNumber.toString(), memberName })
 
-    setTimeout(async () => {
-      const baseMessage = t('barcode.whatsappMessage', { memberNumber: memberNumber.toString(), memberName })
+    // إضافة الشروط والأحكام
+    const termsAndConditions = `\n\n━━━━━━━━━━━━━━━━━━━━\n*شروط وأحكام*\n━━━━━━━━━━━━━━━━━━━━\nالساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه`
 
-      // إضافة الشروط والأحكام
-      const termsAndConditions = `\n\n━━━━━━━━━━━━━━━━━━━━\n*شروط وأحكام*\n━━━━━━━━━━━━━━━━━━━━\nالساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه`
+    // إضافة رابط الموقع إذا كان مفعلاً
+    const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
 
-      // إضافة رابط الموقع إذا كان مفعلاً
-      const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
+    const caption = baseMessage + termsAndConditions + websiteSection
 
-      const message = baseMessage + termsAndConditions + websiteSection
+    setLoading(true)
 
-      // استخدام الـ helper الجديد
-      const success = await sendWhatsAppMessage(memberPhone, message, true)
+    try {
+      // ✅ Method 1: Check if running in Electron
+      if (typeof window !== 'undefined' && (window as any).electron?.whatsapp) {
+        console.log('📱 Using Electron WhatsApp integration for barcode')
 
-      if (success) {
-        setToast({ message: t('barcode.downloadedOpenWhatsApp'), type: 'success' })
-      } else {
-        setToast({ message: 'فشل فتح واتساب', type: 'error' })
+        const result = await (window as any).electron.whatsapp.sendImage(
+          memberPhone,
+          barcodeImage,
+          caption
+        )
+
+        if (result.success) {
+          setToast({ message: '✅ تم إرسال الباركود بنجاح على الواتساب', type: 'success' })
+        } else {
+          console.error('WhatsApp send failed:', result.error)
+          setToast({ message: `فشل إرسال الباركود: ${result.error}`, type: 'error' })
+        }
+        return
       }
-    }, 500)
+
+      // ✅ Method 2: Check if WhatsApp Backend is ready (Browser mode)
+      console.log('🌐 Running in browser - checking WhatsApp backend status...')
+
+      const statusResponse = await fetch('/api/whatsapp/status')
+      if (statusResponse.ok) {
+        const status = await statusResponse.json()
+
+        if (status.isReady) {
+          // ✅ WhatsApp متصل - إرسال الصورة عبر API
+          console.log('✅ WhatsApp backend is ready - sending image via API')
+
+          const sendResponse = await fetch('/api/whatsapp/send-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: memberPhone,
+              imageBase64: barcodeImage,
+              caption: caption
+            })
+          })
+
+          const sendResult = await sendResponse.json()
+
+          if (sendResult.success) {
+            setToast({ message: '✅ تم إرسال الباركود بنجاح على الواتساب', type: 'success' })
+          } else {
+            setToast({ message: `فشل إرسال الباركود: ${sendResult.error}`, type: 'error' })
+          }
+          return
+        }
+      }
+
+      // ⚠️ Fallback: WhatsApp غير متصل - استخدام الطريقة القديمة
+      console.log('⚠️ WhatsApp not ready - using fallback method (download + wa.me link)')
+      setToast({ message: '⚠️ الواتساب غير متصل. جاري تحميل الصورة وفتح واتساب...', type: 'warning' })
+
+      handleDownloadBarcode()
+
+      setTimeout(async () => {
+        const success = await sendWhatsAppMessage(memberPhone, caption, true)
+
+        if (success) {
+          setToast({ message: 'تم تحميل الصورة وفتح واتساب. يرجى إرفاق الصورة يدوياً.', type: 'info' })
+        } else {
+          setToast({ message: 'فشل فتح واتساب', type: 'error' })
+        }
+      }, 500)
+
+    } catch (error) {
+      console.error('Error sending barcode:', error)
+      setToast({ message: 'حدث خطأ أثناء إرسال الباركود', type: 'error' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -198,14 +263,15 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
               </button>
 
               <button
-                onClick={() => {
-                  handleSendBarcode()
+                onClick={async () => {
+                  await handleSendBarcode()
                   setShowBarcodeModal(false)
                 }}
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
               >
                 <span>📲</span>
-                <span>{t('barcode.downloadAndSendViaWhatsApp')}</span>
+                <span>{loading ? 'جاري الإرسال...' : t('barcode.downloadAndSendViaWhatsApp')}</span>
               </button>
 
               <button

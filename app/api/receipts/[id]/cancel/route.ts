@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
 import { requirePermission } from '../../../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../../lib/auditLog'
+import { getLocaleFromRequest, getServerTranslation } from '../../../../../lib/serverTranslation'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +18,10 @@ export async function POST(
      */
     const user = await requirePermission(request, 'canEditReceipts')
 
+    // Get translation function based on request locale
+    const locale = getLocaleFromRequest(request)
+    const t = getServerTranslation(locale)
+
     const { reason } = await request.json()
     const receiptId = params.id
 
@@ -26,37 +31,22 @@ export async function POST(
     })
 
     if (!receipt) {
-      return NextResponse.json({ error: 'الإيصال غير موجود' }, { status: 404 })
+      return NextResponse.json({ error: t('receipts.cancel.notFound') }, { status: 404 })
     }
 
     if (receipt.isCancelled) {
-      return NextResponse.json({ error: 'الإيصال ملغي بالفعل' }, { status: 400 })
+      return NextResponse.json({ error: t('receipts.cancel.alreadyCancelled') }, { status: 400 })
     }
 
-    // إلغاء الإيصال وإنشاء مصروف في transaction واحدة
-    const result = await prisma.$transaction(async (tx) => {
-      // تحديث الإيصال كملغي
-      const cancelledReceipt = await tx.receipt.update({
-        where: { id: receiptId },
-        data: {
-          isCancelled: true,
-          cancelledAt: new Date(),
-          cancelledBy: user.name || user.email,
-          cancelReason: reason || 'لا يوجد سبب'
-        }
-      })
-
-      // إنشاء مصروف بنفس المبلغ
-      const expense = await tx.expense.create({
-        data: {
-          type: 'إلغاء إيصال',
-          amount: receipt.amount,
-          description: `إلغاء إيصال رقم ${receipt.receiptNumber}`,
-          notes: reason || 'لا يوجد سبب'
-        }
-      })
-
-      return { cancelledReceipt, expense }
+    // إلغاء الإيصال (بدون تسجيل مصروف)
+    const cancelledReceipt = await prisma.receipt.update({
+      where: { id: receiptId },
+      data: {
+        isCancelled: true,
+        cancelledAt: new Date(),
+        cancelledBy: user.name || user.email,
+        cancelReason: reason || t('receipts.cancel.noReason')
+      }
     })
 
     createAuditLog({
@@ -68,29 +58,33 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'تم إلغاء الإيصال بنجاح',
-      data: result
+      message: t('receipts.cancel.success'),
+      data: { cancelledReceipt }
     })
 
   } catch (error: any) {
     console.error('Error cancelling receipt:', error)
 
+    // Get translation for error messages
+    const locale = getLocaleFromRequest(request)
+    const t = getServerTranslation(locale)
+
     if (error.message === 'Unauthorized') {
       return NextResponse.json(
-        { error: 'يجب تسجيل الدخول أولاً' },
+        { error: t('receipts.cancel.unauthorized') },
         { status: 401 }
       )
     }
 
     if (error.message.includes('Forbidden')) {
       return NextResponse.json(
-        { error: 'ليس لديك صلاحية إلغاء الإيصالات' },
+        { error: t('receipts.cancel.forbidden') },
         { status: 403 }
       )
     }
 
     return NextResponse.json(
-      { error: 'فشل إلغاء الإيصال' },
+      { error: t('receipts.cancel.failed') },
       { status: 500 }
     )
   }

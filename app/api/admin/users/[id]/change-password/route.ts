@@ -50,16 +50,70 @@ export async function POST(
     }
 
     // جلب بيانات الـ Owner الحالي للتحقق من كلمة المرور
+    console.log('🔍 Looking for owner with userId:', currentUser.userId)
     const ownerUser = await prisma.user.findUnique({
       where: { id: currentUser.userId },
       select: { id: true, password: true, role: true }
     })
 
+    console.log('👤 Owner user found:', ownerUser ? 'Yes' : 'No')
+
     if (!ownerUser) {
-      return NextResponse.json(
-        { error: 'حساب الـ Owner غير موجود' },
-        { status: 404 }
-      )
+      // جرب البحث بـ email بدلاً من id
+      console.log('⚠️ Owner not found by userId, trying by email:', currentUser.email)
+      const ownerByEmail = await prisma.user.findUnique({
+        where: { email: currentUser.email },
+        select: { id: true, password: true, role: true }
+      })
+
+      if (!ownerByEmail) {
+        console.error('❌ Owner not found by userId or email')
+        return NextResponse.json(
+          { error: 'حساب الـ Owner غير موجود' },
+          { status: 404 }
+        )
+      }
+
+      // استخدم البيانات المستخرجة من البحث بـ email
+      console.log('✅ Found owner by email, using that instead')
+      const isValidOwnerPassword = await bcrypt.compare(ownerPassword, ownerByEmail.password)
+
+      if (!isValidOwnerPassword) {
+        return NextResponse.json(
+          { error: 'كلمة مرور الـ Owner غير صحيحة' },
+          { status: 401 }
+        )
+      }
+
+      // استمر في الكود العادي
+      const targetUser = await prisma.user.findUnique({
+        where: { id: params.id },
+        select: { id: true, name: true, email: true, role: true }
+      })
+
+      if (!targetUser) {
+        return NextResponse.json(
+          { error: 'المستخدم غير موجود' },
+          { status: 404 }
+        )
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+      await prisma.user.update({
+        where: { id: params.id },
+        data: { password: hashedPassword }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `تم تغيير كلمة مرور ${targetUser.name} بنجاح`,
+        user: {
+          id: targetUser.id,
+          name: targetUser.name,
+          email: targetUser.email
+        }
+      })
     }
 
     // التحقق من كلمة مرور الـ Owner

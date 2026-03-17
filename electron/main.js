@@ -6,6 +6,7 @@ const http = require('http');
 const os = require('os');
 const HID = require('node-hid');
 const { startReverseProxy, stopReverseProxy } = require('./reverse-proxy');
+const WhatsAppManager = require('./whatsapp-manager');
 
 // Fix electron-is-dev issue - check manually (use process.env or defaultAppPaths)
 const isDev = process.env.NODE_ENV === 'development' || process.defaultApp || /[\\/]electron-prebuilt[\\/]/.test(process.execPath) || /[\\/]electron[\\/]/.test(process.execPath);
@@ -18,6 +19,7 @@ let uIOhook = null;
 
 let mainWindow;
 let serverProcess;
+let whatsappManager = null;
 
 // ------------------ Barcode Scanner Setup ------------------
 
@@ -577,10 +579,43 @@ function createWindow() {
     console.log('✅ DOM is ready');
   });
 
-  mainWindow.on('closed', () => {
+  mainWindow.on('closed', async () => {
     console.log('⚠️ Window closed by user');
     mainWindow = null;
-    if (serverProcess) serverProcess.kill();
+
+    // Force cleanup on Windows
+    if (process.platform === 'win32') {
+      console.log('🛑 Force cleanup on window close...');
+
+      // Kill server process tree
+      if (serverProcess && serverProcess.pid) {
+        try {
+          require('child_process').execSync(`taskkill /pid ${serverProcess.pid} /T /F`, {
+            stdio: 'ignore'
+          });
+        } catch (err) {
+          // Process may already be dead
+        }
+      }
+
+      // Destroy WhatsApp
+      if (whatsappManager) {
+        try {
+          await whatsappManager.destroy();
+        } catch (err) {
+          // Ignore errors
+        }
+      }
+
+      // Kill port 4001
+      try {
+        await killProcessOnPort(4001);
+      } catch (err) {
+        // Ignore errors
+      }
+    } else {
+      if (serverProcess) serverProcess.kill();
+    }
   });
 }
 
@@ -997,6 +1032,164 @@ ipcMain.handle('save-pdf-to-documents', async (event, { fileName, pdfData }) => 
   }
 });
 
+// ==================== WhatsApp Handlers ====================
+
+// دالة مساعدة لإعداد event listeners للـ WhatsApp
+function setupWhatsAppEventListeners() {
+  if (!whatsappManager) return;
+
+  whatsappManager.on('qr', (qr) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('whatsapp:qr', qr);
+    }
+  });
+
+  whatsappManager.on('ready', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('whatsapp:ready');
+    }
+  });
+
+  whatsappManager.on('disconnected', (reason) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('whatsapp:disconnected', reason);
+    }
+  });
+
+  whatsappManager.on('auth_failure', (msg) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('whatsapp:auth_failure', msg);
+    }
+  });
+
+  whatsappManager.on('loading_screen', (data) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const percent = data?.percent || 0;
+      const message = data?.message || 'Loading...';
+      mainWindow.webContents.send('whatsapp:loading_screen', percent, message);
+    }
+  });
+
+  whatsappManager.on('connecting', (data) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const percent = data?.percent || 30;
+      const message = data?.message || 'Connecting to WhatsApp...';
+      mainWindow.webContents.send('whatsapp:loading_screen', percent, message);
+    }
+  });
+}
+
+// تهيئة WhatsApp
+ipcMain.handle('whatsapp:init', async () => {
+  try {
+    if (!whatsappManager) {
+      const userDataPath = app.getPath('userData');
+      whatsappManager = new WhatsAppManager(userDataPath);
+      setupWhatsAppEventListeners();
+    }
+
+    await whatsappManager.initialize();
+    return { success: true };
+  } catch (error) {
+    console.error('WhatsApp initialization error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// الحصول على حالة WhatsApp
+ipcMain.handle('whatsapp:status', async () => {
+  try {
+    if (!whatsappManager) {
+      return {
+        isReady: false,
+        qrCode: null,
+        hasClient: false
+      };
+    }
+    return whatsappManager.getStatus();
+  } catch (error) {
+    console.error('WhatsApp status error:', error);
+    return {
+      isReady: false,
+      qrCode: null,
+      hasClient: false,
+      error: error.message
+    };
+  }
+});
+
+// إرسال رسالة
+ipcMain.handle('whatsapp:send', async (event, { phone, message }) => {
+  try {
+    if (!whatsappManager) {
+      return {
+        success: false,
+        error: 'WhatsApp not initialized'
+      };
+    }
+    return await whatsappManager.sendMessage(phone, message);
+  } catch (error) {
+    console.error('WhatsApp send error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// إرسال صورة
+ipcMain.handle('whatsapp:sendImage', async (event, { phone, imageBase64, caption }) => {
+  try {
+    if (!whatsappManager) {
+      return {
+        success: false,
+        error: 'WhatsApp not initialized'
+      };
+    }
+    return await whatsappManager.sendImage(phone, imageBase64, caption);
+  } catch (error) {
+    console.error('WhatsApp sendImage error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// إعادة الاتصال
+ipcMain.handle('whatsapp:reconnect', async () => {
+  try {
+    if (!whatsappManager) {
+      const userDataPath = app.getPath('userData');
+      whatsappManager = new WhatsAppManager(userDataPath);
+    }
+    return await whatsappManager.reconnect();
+  } catch (error) {
+    console.error('WhatsApp reconnect error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// إعادة تعيين الجلسة والبدء من جديد
+ipcMain.handle('whatsapp:reset-session', async () => {
+  try {
+    if (!whatsappManager) {
+      const userDataPath = app.getPath('userData');
+      whatsappManager = new WhatsAppManager(userDataPath);
+    }
+    return await whatsappManager.resetSession();
+  } catch (error) {
+    console.error('WhatsApp reset session error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
 // ------------------ أحداث التطبيق ------------------
 
 app.whenReady().then(async () => {
@@ -1011,11 +1204,65 @@ app.whenReady().then(async () => {
   createWindow();
   setupBarcodeScanner();
   // setupAutoUpdater(); // ✅ Auto-updater disabled
+
+  // ✅ تهيئة WhatsApp Manager تلقائياً عند بدء التطبيق
+  try {
+    const userDataPath = app.getPath('userData');
+    whatsappManager = new WhatsAppManager(userDataPath);
+    setupWhatsAppEventListeners();
+
+    // ✅ محاولة الاتصال التلقائي إذا كانت هناك جلسة محفوظة
+    const sessionPath = path.join(userDataPath, '.baileys_auth');
+    const credentialsFile = path.join(sessionPath, 'creds.json');
+
+    if (fs.existsSync(sessionPath) && fs.existsSync(credentialsFile)) {
+      console.log('📱 Found existing WhatsApp session, attempting to restore...');
+
+      // الانتظار حتى يتم تحميل النافذة ثم محاولة الاتصال
+      mainWindow.webContents.once('did-finish-load', async () => {
+        try {
+          await whatsappManager.initialize();
+          console.log('✅ WhatsApp initialized automatically with saved session');
+        } catch (error) {
+          console.error('❌ Auto-init WhatsApp failed:', error);
+        }
+      });
+    } else {
+      console.log('📱 No existing WhatsApp session found. User needs to scan QR code from settings.');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing WhatsApp Manager:', error);
+  }
 });
 
-app.on('window-all-closed', () => {
-  if (serverProcess) serverProcess.kill();
-  if (process.platform !== 'darwin') app.quit();
+app.on('window-all-closed', async () => {
+  console.log('🛑 All windows closed');
+
+  // Force cleanup on Windows
+  if (process.platform === 'win32') {
+    if (serverProcess && serverProcess.pid) {
+      try {
+        require('child_process').execSync(`taskkill /pid ${serverProcess.pid} /T /F`, {
+          stdio: 'ignore'
+        });
+      } catch (err) {
+        // Ignore
+      }
+    }
+
+    // Kill port
+    try {
+      await killProcessOnPort(4001);
+    } catch (err) {
+      // Ignore
+    }
+
+    // Force quit
+    app.quit();
+  } else {
+    if (serverProcess) serverProcess.kill();
+    if (process.platform !== 'darwin') app.quit();
+  }
 });
 
 app.on('activate', () => {
@@ -1027,16 +1274,59 @@ process.on('uncaughtException', error => {
   if (error.code !== 'EPIPE') dialog.showErrorBox('خطأ غير متوقع', error.message);
 });
 
-app.on('before-quit', async () => {
-  // Clean up on quit
+app.on('before-quit', async (event) => {
+  // Prevent default quit to allow cleanup
+  event.preventDefault();
+
   console.log('🛑 Shutting down FitBoost...');
 
-  // Stop reverse proxy
-  await stopReverseProxy();
+  try {
+    // 1. Destroy WhatsApp client
+    if (whatsappManager) {
+      console.log('🛑 Stopping WhatsApp...');
+      await whatsappManager.destroy();
+    }
 
-  // Stop Next.js server
-  if (serverProcess) serverProcess.kill();
-  await killProcessOnPort(4001);
+    // 2. Stop reverse proxy
+    console.log('🛑 Stopping reverse proxy...');
+    await stopReverseProxy();
 
-  console.log('✅ All services stopped');
+    // 3. Stop Next.js server forcefully
+    if (serverProcess) {
+      console.log('🛑 Stopping Next.js server...');
+
+      // On Windows, use taskkill for force kill
+      if (process.platform === 'win32') {
+        try {
+          require('child_process').execSync(`taskkill /pid ${serverProcess.pid} /T /F`, {
+            stdio: 'ignore'
+          });
+        } catch (err) {
+          console.warn('Failed to taskkill:', err.message);
+        }
+      }
+
+      serverProcess.kill('SIGTERM');
+
+      // Wait a bit then force kill
+      setTimeout(() => {
+        if (serverProcess && !serverProcess.killed) {
+          serverProcess.kill('SIGKILL');
+        }
+      }, 1000);
+    }
+
+    // 4. Kill any process on port 4001
+    console.log('🛑 Cleaning up port 4001...');
+    await killProcessOnPort(4001);
+
+    console.log('✅ All services stopped');
+  } catch (error) {
+    console.error('Error during shutdown:', error);
+  } finally {
+    // Force quit after cleanup
+    setTimeout(() => {
+      app.exit(0);
+    }, 1500);
+  }
 });

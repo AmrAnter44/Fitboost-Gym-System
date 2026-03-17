@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const { locale, setLanguage, t, direction } = useLanguage()
   const { isDarkMode, toggleDarkMode } = useDarkMode()
   const [user, setUser] = useState<any>(null)
-  const [activeSection, setActiveSection] = useState('services')
+  const [activeSection, setActiveSection] = useState('display')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isAwardingBirthday, setIsAwardingBirthday] = useState(false)
@@ -50,31 +50,54 @@ export default function SettingsPage() {
   const [nextReceiptNumber, setNextReceiptNumber] = useState(1001)
   const [nextMemberNumber, setNextMemberNumber] = useState(1001)
 
-  // Database & Prisma states
+  // Database states
   const [dbUploading, setDbUploading] = useState(false)
   const [dbUploadResult, setDbUploadResult] = useState<{ success?: string; error?: string } | null>(null)
-  const [updatingPrisma, setUpdatingPrisma] = useState(false)
-  const [prismaMessage, setPrismaMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Database Sync state (all-in-one)
+  const [syncingDatabase, setSyncingDatabase] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string; steps?: any[] } | null>(null)
 
   // Save notification state
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Port Forwarding states
+  const [localIP, setLocalIP] = useState<string>('')
+  const [localURL, setLocalURL] = useState<string>('')
+  const [isLoadingIP, setIsLoadingIP] = useState(false)
+
+  // License states
+  const [gyms, setGyms] = useState<any[]>([])
+  const [branches, setBranches] = useState<any[]>([])
+  const [selectedGymId, setSelectedGymId] = useState('')
+  const [selectedBranchId, setSelectedBranchId] = useState('')
+  const [currentLicense, setCurrentLicense] = useState<any>(null)
+  const [loadingGyms, setLoadingGyms] = useState(false)
+  const [loadingBranches, setLoadingBranches] = useState(false)
+  const [savingLicense, setSavingLicense] = useState(false)
 
   useEffect(() => {
     checkAuth()
     fetchServiceSettings()
     fetchNumbers()
+    fetchLocalIP()
   }, [])
+
+  // Fetch license data when user is loaded and is OWNER
+  useEffect(() => {
+    if (user?.role === 'OWNER') {
+      fetchCurrentLicense()
+      fetchGyms()
+    }
+  }, [user])
 
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/me')
       if (response.ok) {
         const data = await response.json()
-        const hasAccess = data.user.role === 'ADMIN' || data.user.role === 'OWNER' || data.user.permissions?.canAccessSettings === true
-        if (!hasAccess) {
-          router.push('/')
-          return
-        }
+        // السماح لجميع المستخدمين بالوصول لصفحة الإعدادات
+        // (navigationItems تتحكم في الأقسام المتاحة لكل مستخدم)
         setUser(data.user)
       } else {
         router.push('/login')
@@ -223,52 +246,207 @@ export default function SettingsPage() {
     }
   }
 
-  const handleUpdatePrisma = async () => {
-    if (!confirm(`⚠️ ${t('settingsPage.database.prismaConfirm')}`)) {
+  const handleSyncDatabase = async () => {
+    if (!confirm('⚠️ هل تريد تحديث قاعدة البيانات؟\n\nسيتم:\n• إصلاح الصلاحيات\n• مزامنة Schema\n• تطبيق Migrations\n• تحديث Prisma Client')) {
       return
     }
 
-    setUpdatingPrisma(true)
-    setPrismaMessage(null)
+    setSyncingDatabase(true)
+    setSyncMessage(null)
 
     try {
-      const response = await fetch('/api/admin/prisma-update', {
+      const response = await fetch('/api/database/sync', {
         method: 'POST',
       })
 
       const data = await response.json()
 
       if (data.success) {
-        setPrismaMessage({
+        const stepsText = data.steps
+          ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '✅' : s.status === 'error' ? '❌' : '⏭️'} ${s.message}`).join('\n')
+          : ''
+
+        setSyncMessage({
           type: 'success',
-          text: t('settingsPage.database.prismaSuccess')
+          text: `${data.message}${stepsText}`,
+          steps: data.steps
         })
-        setTimeout(() => setPrismaMessage(null), 10000)
+        setTimeout(() => setSyncMessage(null), 20000)
       } else {
-        setPrismaMessage({
+        const stepsText = data.steps
+          ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '✅' : s.status === 'error' ? '❌' : '⏭️'} ${s.message}`).join('\n')
+          : ''
+
+        setSyncMessage({
           type: 'error',
-          text: data.message || 'فشل تحديث Prisma'
+          text: `${data.error || 'فشل التحديث'}${stepsText}`,
+          steps: data.steps
         })
       }
     } catch (error) {
-      setPrismaMessage({
+      setSyncMessage({
         type: 'error',
-        text: t('settingsPage.prismaUpdateError')
+        text: 'حدث خطأ أثناء تحديث قاعدة البيانات'
       })
     } finally {
-      setUpdatingPrisma(false)
+      setSyncingDatabase(false)
     }
   }
 
+  const fetchLocalIP = async () => {
+    setIsLoadingIP(true)
+    try {
+      const response = await fetch('/api/network/local-ip')
+      if (response.ok) {
+        const data = await response.json()
+        setLocalIP(data.ip)
+        setLocalURL(data.url)
+      }
+    } catch (error) {
+      console.error('Error fetching local IP:', error)
+    } finally {
+      setIsLoadingIP(false)
+    }
+  }
+
+  // License functions
+  const fetchCurrentLicense = async () => {
+    try {
+      const response = await fetch('/api/license/current')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.license) {
+          setCurrentLicense(data.license)
+          setSelectedGymId(data.license.gymId)
+          setSelectedBranchId(data.license.branchId)
+          // ✅ جلب الفروع للـ gym المحفوظ لعرض الـ branch الصحيح
+          if (data.license.gymId) {
+            fetchBranches(data.license.gymId)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching current license:', error)
+    }
+  }
+
+  const fetchGyms = async () => {
+    console.log('🔍 fetchGyms called, user:', user)
+    setLoadingGyms(true)
+    try {
+      console.log('📡 Fetching gyms from /api/license/gyms...')
+      const response = await fetch('/api/license/gyms')
+      console.log('📥 Response status:', response.status, response.statusText)
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ Gyms fetched successfully:', data)
+        console.log('📊 Number of gyms:', data.gyms?.length || 0)
+        setGyms(data.gyms || [])
+        if (!data.gyms || data.gyms.length === 0) {
+          setSaveMessage({ type: 'error', text: '⚠️ لا توجد صالات متاحة في قاعدة البيانات' })
+        }
+      } else {
+        const errorData = await response.json()
+        console.error('❌ Fetch gyms error - Status:', response.status)
+        console.error('❌ Error data:', errorData)
+        setSaveMessage({ type: 'error', text: errorData.error || 'فشل جلب الصالات' })
+      }
+    } catch (error) {
+      console.error('❌ Exception fetching gyms:', error)
+      setSaveMessage({ type: 'error', text: 'خطأ في الاتصال - تحقق من الإنترنت أو إعدادات Supabase' })
+    } finally {
+      setLoadingGyms(false)
+      console.log('✅ fetchGyms completed')
+    }
+  }
+
+  const fetchBranches = async (gymId: string) => {
+    if (!gymId) {
+      setBranches([])
+      return
+    }
+    setLoadingBranches(true)
+    try {
+      const response = await fetch(`/api/license/branches?gymId=${gymId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setBranches(data.branches || [])
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    } finally {
+      setLoadingBranches(false)
+    }
+  }
+
+  const handleGymChange = (gymId: string) => {
+    setSelectedGymId(gymId)
+    setSelectedBranchId('')
+    setBranches([])
+    if (gymId) {
+      fetchBranches(gymId)
+    }
+  }
+
+  const saveLicenseSelection = async () => {
+    if (!selectedGymId || !selectedBranchId) {
+      setSaveMessage({ type: 'error', text: 'يرجى اختيار الصالة والفرع' })
+      return
+    }
+
+    setSavingLicense(true)
+    try {
+      const selectedGym = gyms.find(g => g.id === selectedGymId)
+      const selectedBranch = branches.find(b => b.id === selectedBranchId)
+
+      const response = await fetch('/api/license/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gymId: selectedGymId,
+          gymName: selectedGym?.name_ar || selectedGym?.name_en,
+          branchId: selectedBranchId,
+          branchName: selectedBranch?.name_ar || selectedBranch?.name_en,
+          systemLicense: selectedBranch?.system_license
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentLicense(data.license)
+        setSaveMessage({ type: 'success', text: '✅ تم حفظ اختيار الصالة والفرع بنجاح' })
+        setTimeout(() => setSaveMessage(null), 3000)
+      } else {
+        setSaveMessage({ type: 'error', text: 'فشل حفظ الاختيار' })
+      }
+    } catch (error) {
+      console.error('Error saving license:', error)
+      setSaveMessage({ type: 'error', text: 'حدث خطأ أثناء الحفظ' })
+    } finally {
+      setSavingLicense(false)
+    }
+  }
+
+  // تحديد من يمتلك صلاحيات الإعدادات الإدارية
+  const hasAdminAccess = user?.role === 'ADMIN' || user?.role === 'OWNER' || user?.permissions?.canAccessSettings === true
+
   const navigationItems = [
     ...(user?.role === 'ADMIN' || user?.role === 'OWNER' ? [{ id: 'quick-links', label: t('settingsPage.navigation.quickLinks'), icon: '⚡' }] : []),
-    { id: 'services', label: t('settingsPage.navigation.services'), icon: '🏋️' },
-    { id: 'points', label: t('settingsPage.navigation.points'), icon: '🎯' },
-    { id: 'referral', label: t('settingsPage.navigation.referral'), icon: '🎁' },
-    { id: 'free-sessions', label: t('settingsPage.navigation.freeSessions'), icon: '🎫' },
-    { id: 'receipts', label: t('settingsPage.navigation.receipts'), icon: '📋' },
+    ...(hasAdminAccess ? [
+      { id: 'services', label: t('settingsPage.navigation.services'), icon: '🏋️' },
+      { id: 'points', label: t('settingsPage.navigation.points'), icon: '🎯' },
+      { id: 'referral', label: t('settingsPage.navigation.referral'), icon: '🎁' },
+      { id: 'free-sessions', label: t('settingsPage.navigation.freeSessions'), icon: '🎫' },
+      { id: 'receipts', label: t('settingsPage.navigation.receipts'), icon: '📋' },
+      { id: 'port-forwarding', label: t('settingsPage.navigation.portForwarding'), icon: '🌐' }
+    ] : []),
+    { id: 'whatsapp', label: 'الواتساب', icon: '📱' },
     { id: 'display', label: t('settingsPage.navigation.display'), icon: '🎨' },
-    ...(user?.role === 'OWNER' ? [{ id: 'database', label: t('settingsPage.navigation.database'), icon: '💾' }] : []),
+    ...(user?.role === 'OWNER' ? [
+      { id: 'license', label: 'رخصة النظام', icon: '🔑' },
+      { id: 'database', label: t('settingsPage.navigation.database'), icon: '💾' }
+    ] : []),
     { id: 'support', label: t('settingsPage.navigation.support'), icon: '📞' }
   ]
 
@@ -793,6 +971,165 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {/* License Section */}
+          {activeSection === 'license' && user?.role === 'OWNER' && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">🔑</span>
+                  <div>
+                    <h2 className="text-2xl font-bold">رخصة النظام</h2>
+                    <p className="text-purple-50 text-sm mt-1">اختر الصالة والفرع التابع لها هذا النظام</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Current License Info */}
+              {currentLicense && (
+                <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-2xl">✅</span>
+                    <h3 className="text-lg font-bold text-green-800 dark:text-green-300">النظام مفعّل حالياً</h3>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">الصالة:</span>
+                      <span className="font-bold text-gray-900 dark:text-gray-100">{currentLicense.gymName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">الفرع:</span>
+                      <span className="font-bold text-gray-900 dark:text-gray-100">{currentLicense.branchName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">حالة الترخيص:</span>
+                      <span className={`font-bold ${currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                        {currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active' ? 'نشط ✓' : 'منتهي ✗'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* License Selection Form */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                  <span className="text-2xl">🏢</span>
+                  اختيار الصالة والفرع
+                </h3>
+
+                {/* Debug Info */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      🔍 معلومات التشخيص
+                    </span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/license/test')
+                          const data = await res.json()
+                          console.log('🧪 Test endpoint result:', data)
+                          alert(`Test Result:\nGyms: ${data.gyms?.count || 0}\nBranches: ${data.branches?.count || 0}\nCheck console for details`)
+                        } catch (err) {
+                          console.error('Test failed:', err)
+                          alert('Test failed - check console')
+                        }
+                      }}
+                      className="text-xs px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded"
+                    >
+                      اختبار الاتصال
+                    </button>
+                  </div>
+                  <div className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
+                    <div>عدد الصالات المحملة: <span className="font-bold">{gyms.length}</span></div>
+                    <div>حالة التحميل: <span className="font-bold">{loadingGyms ? 'جاري التحميل...' : 'مكتمل'}</span></div>
+                    <div>دور المستخدم: <span className="font-bold">{user?.role || 'غير محدد'}</span></div>
+                  </div>
+                </div>
+
+                {/* Gym Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    الصالة الرياضية *
+                  </label>
+                  <select
+                    value={selectedGymId}
+                    onChange={(e) => handleGymChange(e.target.value)}
+                    disabled={loadingGyms}
+                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 disabled:opacity-50"
+                  >
+                    <option value="">-- اختر الصالة --</option>
+                    {gyms.map(gym => (
+                      <option key={gym.id} value={gym.id}>
+                        {gym.name_ar || gym.name_en}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingGyms && <p className="text-xs text-gray-500 mt-1">جاري التحميل...</p>}
+                  {!loadingGyms && gyms.length === 0 && (
+                    <p className="text-xs text-red-500 mt-1">⚠️ لم يتم تحميل أي صالات - تحقق من الكونسول</p>
+                  )}
+                </div>
+
+                {/* Branch Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    الفرع *
+                  </label>
+                  <select
+                    value={selectedBranchId}
+                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                    disabled={!selectedGymId || loadingBranches}
+                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 disabled:opacity-50"
+                  >
+                    <option value="">-- اختر الفرع --</option>
+                    {branches.map(branch => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name_ar || branch.name_en}
+                        {branch.system_license === true || branch.system_license === 'true' ? ' ✓' : ' (منتهي)'}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingBranches && <p className="text-xs text-gray-500 mt-1">جاري تحميل الفروع...</p>}
+                </div>
+
+                {/* Save Button */}
+                <div className="pt-4">
+                  <button
+                    onClick={saveLicenseSelection}
+                    disabled={!selectedGymId || !selectedBranchId || savingLicense}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {savingLicense ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        <span>جاري الحفظ...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>💾</span>
+                        <span>حفظ الاختيار</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Info Note */}
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <span className="text-xl">ℹ️</span>
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      <p className="font-bold mb-1">ملاحظة:</p>
+                      <p>• يجب اختيار الصالة والفرع الصحيح لتفعيل الرخصة</p>
+                      <p>• سيتم التحقق من حالة الترخيص تلقائياً كل 8 ساعات</p>
+                      <p>• في حالة انقطاع الإنترنت، سيعمل النظام بالترخيص المحفوظ</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeSection === 'database' && user?.role === 'OWNER' && (
             <div className="space-y-6">
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl p-6 shadow-lg">
@@ -848,15 +1185,15 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {/* تحديث Prisma */}
-              {prismaMessage && (
-                <div className={`p-4 rounded-xl border-2 ${prismaMessage.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'}`}>
+              {/* مزامنة قاعدة البيانات - All-in-One */}
+              {syncMessage && (
+                <div className={`p-4 rounded-xl border-2 ${syncMessage.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'}`}>
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">{prismaMessage.type === 'success' ? '✅' : '❌'}</span>
+                    <span className="text-2xl">{syncMessage.type === 'success' ? '✅' : '❌'}</span>
                     <div className="flex-1">
-                      <p className={`text-sm whitespace-pre-line ${prismaMessage.type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>{prismaMessage.text}</p>
+                      <p className={`text-sm whitespace-pre-line ${syncMessage.type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>{syncMessage.text}</p>
                     </div>
-                    <button onClick={() => setPrismaMessage(null)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">✕</button>
+                    <button onClick={() => setSyncMessage(null)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">✕</button>
                   </div>
                 </div>
               )}
@@ -864,46 +1201,299 @@ export default function SettingsPage() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                   <span className="text-2xl">🔄</span>
-                  {t('settingsPage.database.prismaUpdate')}
+                  مزامنة قاعدة البيانات (الكل في واحد)
                 </h3>
 
-                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg">
+                <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg">
                   <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                    <span>📝</span>
-                    {t('settingsPage.database.prismaWhat')}
+                    <span>✨</span>
+                    ماذا يفعل هذا الزر؟
+                  </h4>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    زر واحد يقوم بجميع عمليات التحديث بشكل تلقائي:
+                  </p>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 mr-4">
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 dark:text-green-400 font-bold">1️⃣</span>
+                      <span><strong>إصلاح الصلاحيات:</strong> يتحقق من صلاحيات قاعدة البيانات ويصلحها تلقائياً</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">2️⃣</span>
+                      <span><strong>مزامنة Schema:</strong> يطبق التغييرات من schema.prisma على قاعدة البيانات</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 dark:text-purple-400 font-bold">3️⃣</span>
+                      <span><strong>تطبيق Migrations:</strong> يشغل جميع التحديثات الجديدة من مجلد migrations/</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-orange-600 dark:text-orange-400 font-bold">4️⃣</span>
+                      <span><strong>تحديث Prisma Client:</strong> يولد Prisma Client الجديد للتعامل مع قاعدة البيانات</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <span>📅</span>
+                    متى تستخدم هذا الزر؟
                   </h4>
                   <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 mr-4">
-                    <li>• {t('settingsPage.database.prismaStep1')}</li>
-                    <li>• {t('settingsPage.database.prismaStep2')}</li>
-                    <li>• {t('settingsPage.database.prismaStep3')}</li>
+                    <li>• بعد تحديث النظام لإصدار جديد</li>
+                    <li>• إذا ظهرت رسالة خطأ: &quot;attempt to write a readonly database&quot;</li>
+                    <li>• إذا ظهرت رسالة خطأ عن جدول أو عمود مفقود</li>
+                    <li>• لتفعيل مزايا جديدة تحتاج تحديثات في قاعدة البيانات</li>
+                    <li>• عند مواجهة أي مشكلة في قاعدة البيانات</li>
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg">
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <span>⚠️</span>
+                    قبل الضغط على الزر:
+                  </h4>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 mr-4">
+                    <li>• أغلق Prisma Studio إذا كان مفتوحاً</li>
+                    <li>• أغلق أي برامج أخرى تستخدم قاعدة البيانات</li>
+                    <li>• في Mac: قد تحتاج منح Full Disk Access للتطبيق في إعدادات النظام</li>
                   </ul>
                 </div>
 
                 <button
-                  onClick={handleUpdatePrisma}
-                  disabled={updatingPrisma}
-                  className={`w-full px-6 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-all shadow-lg flex items-center justify-center gap-3 ${updatingPrisma ? 'opacity-70 cursor-not-allowed' : 'hover:scale-105'}`}
+                  onClick={handleSyncDatabase}
+                  disabled={syncingDatabase}
+                  className={`w-full px-6 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold rounded-lg transition-all shadow-lg flex items-center justify-center gap-3 ${syncingDatabase ? 'opacity-70 cursor-not-allowed' : 'hover:scale-105'}`}
                 >
-                  {updatingPrisma ? (
+                  {syncingDatabase ? (
                     <>
                       <span className="animate-spin text-xl">⏳</span>
-                      <span>{t('settingsPage.database.prismaUpdating')}</span>
+                      <span>جاري المزامنة... (قد يستغرق دقيقة)</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-xl">🔄</span>
-                      <span>{t('settingsPage.database.prismaButton')}</span>
+                      <span className="text-xl">🚀</span>
+                      <span>مزامنة وتحديث قاعدة البيانات (الكل في واحد)</span>
                     </>
                   )}
                 </button>
 
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <p className="text-xs text-gray-600 dark:text-gray-400">💡 {t('settingsPage.database.prismaInfo')}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    💡 <strong>آمن تماماً:</strong> هذا الزر يقوم بجميع العمليات بالترتيب الصحيح ولن يؤثر على بياناتك الموجودة. إذا فشلت أي خطوة، سيتوقف تلقائياً ويعرض رسالة الخطأ. يُنصح بتطبيق التحديثات بعد كل تحديث للنظام.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {activeSection === 'whatsapp' && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">📱</span>
+                  <div>
+                    <h2 className="text-2xl font-bold">إعدادات الواتساب</h2>
+                    <p className="text-green-50 text-sm mt-1">إرسال الإيصالات والرسائل التلقائية عبر الواتساب</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                <div className="text-center space-y-6">
+                  <div className="inline-block p-6 bg-green-50 dark:bg-green-900/20 rounded-full">
+                    <span className="text-7xl">📲</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                    إرسال تلقائي عبر الواتساب
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                    قم بربط رقم الواتساب الخاص بك لإرسال الإيصالات والرسائل التلقائية للعملاء مباشرة
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+                    <Link
+                      href="/settings/whatsapp"
+                      className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all hover:scale-105 shadow-lg"
+                    >
+                      <span className="text-2xl">⚙️</span>
+                      <span>إدارة إعدادات الواتساب</span>
+                    </Link>
+                  </div>
+
+                  <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg text-right">
+                    <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
+                      <span>✨</span>
+                      <span>المميزات المتاحة:</span>
+                    </h4>
+                    <ul className="space-y-2 text-blue-700 dark:text-blue-300 text-sm">
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500">✓</span>
+                        <span>إرسال الإيصالات تلقائياً للعملاء عند الإنشاء</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500">✓</span>
+                        <span>تذكيرات انتهاء الاشتراكات</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500">✓</span>
+                        <span>إشعارات مواعيد الجلسات</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500">✓</span>
+                        <span>رسائل الترحيب والتهنئة</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500">✓</span>
+                        <span>متابعة الأعضاء تلقائياً</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
+          {activeSection === 'port-forwarding' && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">🌐</span>
+                  <div>
+                    <h2 className="text-2xl font-bold">{t('settingsPage.portForwarding.title')}</h2>
+                    <p className="text-blue-50 text-sm mt-1">{t('settingsPage.portForwarding.description')}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                <div className="space-y-8">
+                  {/* Local Network Access */}
+                  <div className="text-center space-y-6">
+                    <div className="inline-block p-6 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+                      <span className="text-7xl">📱</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                      {t('settingsPage.portForwarding.localAccess')}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                      {t('settingsPage.portForwarding.localAccessDesc')}
+                    </p>
+
+                    {/* QR Code & URL */}
+                    {isLoadingIP ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin text-6xl">⏳</div>
+                      </div>
+                    ) : localURL ? (
+                      <div className="flex flex-col items-center gap-6">
+                        {/* QR Code */}
+                        <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border-4 border-blue-200 dark:border-blue-700">
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(localURL)}&color=2563eb&bgcolor=ffffff`}
+                            alt="QR Code"
+                            className="w-64 h-64 sm:w-80 sm:h-80"
+                          />
+                        </div>
+
+                        {/* URL Display */}
+                        <div className="w-full max-w-2xl">
+                          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border-2 border-gray-200 dark:border-gray-600">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                  {t('settingsPage.portForwarding.localURL')}:
+                                </p>
+                                <p className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400 break-all" dir="ltr">
+                                  {localURL}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(localURL)
+                                  setSaveMessage({ type: 'success', text: t('settingsPage.portForwarding.urlCopied') })
+                                  setTimeout(() => setSaveMessage(null), 3000)
+                                }}
+                                className="flex-shrink-0 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:scale-105"
+                                title={t('settingsPage.portForwarding.copyURL')}
+                              >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+
+                          {localIP && (
+                            <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                              <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                                <span>🔌</span>
+                                <span>{t('settingsPage.portForwarding.localIP')}:</span>
+                                <span className="font-mono font-bold" dir="ltr">{localIP}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Refresh Button */}
+                        <button
+                          onClick={fetchLocalIP}
+                          className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all hover:scale-105 flex items-center gap-2"
+                        >
+                          <span className="text-xl">🔄</span>
+                          <span>{t('settingsPage.portForwarding.refresh')}</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="py-8">
+                        <p className="text-gray-500 dark:text-gray-400">
+                          {t('settingsPage.portForwarding.noConnection')}
+                        </p>
+                        <button
+                          onClick={fetchLocalIP}
+                          className="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:scale-105"
+                        >
+                          {t('settingsPage.portForwarding.tryAgain')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Instructions */}
+                  <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl">
+                    <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2 text-lg">
+                      <span>📖</span>
+                      <span>{t('settingsPage.portForwarding.instructions.title')}</span>
+                    </h4>
+                    <ul className="space-y-3 text-blue-700 dark:text-blue-300 text-sm">
+                      <li className="flex items-start gap-3">
+                        <span className="text-green-500 text-xl flex-shrink-0">1️⃣</span>
+                        <span>{t('settingsPage.portForwarding.instructions.step1')}</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-green-500 text-xl flex-shrink-0">2️⃣</span>
+                        <span>{t('settingsPage.portForwarding.instructions.step2')}</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-green-500 text-xl flex-shrink-0">3️⃣</span>
+                        <span>{t('settingsPage.portForwarding.instructions.step3')}</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-green-500 text-xl flex-shrink-0">4️⃣</span>
+                        <span>{t('settingsPage.portForwarding.instructions.step4')}</span>
+                      </li>
+                    </ul>
+
+                    <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                      <div className="flex items-start gap-2 text-yellow-800 dark:text-yellow-300 text-sm">
+                        <span className="text-xl flex-shrink-0">⚠️</span>
+                        <p>{t('settingsPage.portForwarding.instructions.warning')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {activeSection === 'support' && (
             <div className="space-y-6">

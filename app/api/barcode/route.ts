@@ -19,6 +19,8 @@ export async function POST(req: Request) {
       paddingright: 10,
       paddingtop: 5,
       paddingbottom: 5,
+      backgroundcolor: "FFFFFF", // ✅ خلفية بيضاء
+      barcolor: "000000", // ✅ الباركود أسود
     });
 
     const base64 = png.toString("base64");
