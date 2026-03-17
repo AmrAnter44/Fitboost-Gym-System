@@ -9,7 +9,6 @@ import fs from 'fs'
 
 export async function POST() {
   try {
-    console.log('🔧 Starting WhatsApp Templates table fix...')
 
     // تحديد مسار قاعدة البيانات
     let dbPath = path.join(process.cwd(), 'prisma', 'gym.db')
@@ -22,7 +21,6 @@ export async function POST() {
 
       if (fs.existsSync(productionDbPath)) {
         dbPath = productionDbPath
-        console.log('📦 Using production database:', productionDbPath)
       }
     }
 

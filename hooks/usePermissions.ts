@@ -42,14 +42,6 @@ export function usePermissions() {
       if (response.ok) {
         const data = await response.json()
 
-        // 🔍 Debug: اطبع البيانات المستلمة
-        console.log('🔍 usePermissions Debug:', {
-          role: data.user.role,
-          isAdmin: data.user.role === 'OWNER' || data.user.role === 'ADMIN',
-          hasPermissions: !!data.user.permissions,
-          canViewMore: data.user.permissions?.canViewMore
-        })
-
         setAuthState({
           user: data.user,
           permissions: data.user.permissions || null,
@@ -78,18 +70,6 @@ export function usePermissions() {
   // ✅ التحقق من صلاحية واحدة
   const hasPermission = (permission: keyof Permissions): boolean => {
     const result = authState.isAdmin || (authState.permissions?.[permission] ?? false)
-
-    // 🔍 Debug لصلاحية canViewMore فقط
-    if (permission === 'canViewMore') {
-      console.log('🔍 hasPermission(canViewMore):', {
-        isAdmin: authState.isAdmin,
-        userRole: authState.user?.role,
-        hasPermissionsObject: !!authState.permissions,
-        canViewMore: authState.permissions?.canViewMore,
-        result
-      })
-    }
-
     return result
   }
 

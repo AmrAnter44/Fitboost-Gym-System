@@ -74,10 +74,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { memberId, classScheduleId } = body
 
-    console.log('📝 Booking request:', { memberId, classScheduleId })
 
     if (!memberId || !classScheduleId) {
-      console.log('❌ Missing required fields')
       return NextResponse.json({ error: 'Member ID and Class Schedule ID required' }, { status: 400 })
     }
 
@@ -87,7 +85,6 @@ export async function POST(request: NextRequest) {
     })
 
     if (!classSchedule) {
-      console.log('❌ Class schedule not found:', classScheduleId)
       return NextResponse.json(
         { error: 'Class not found' },
         { status: 404 }
@@ -108,7 +105,6 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingBooking) {
-      console.log('⚠️ Already booked:', existingBooking.id)
       return NextResponse.json(
         { error: 'Already booked this class' },
         { status: 400 }
@@ -124,7 +120,6 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log('✅ Booking created:', booking.id)
     return NextResponse.json({ success: true, booking })
   } catch (error) {
     console.error('❌ Book class error:', error)

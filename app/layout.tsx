@@ -117,7 +117,6 @@ export default function RootLayout({
 
                   // تطبيق Dark Mode فورًا
                   var darkMode = localStorage.getItem('darkMode');
-                  console.log('🌙 Loading Dark Mode:', darkMode);
 
                   if (darkMode === 'true') {
                     html.classList.add('dark');
@@ -127,12 +126,10 @@ export default function RootLayout({
 
                   // تطبيق اللغة فورًا
                   var locale = localStorage.getItem('locale') || 'ar';
-                  console.log('🌐 Loading Language:', locale);
 
                   html.setAttribute('lang', locale);
                   html.setAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
 
-                  console.log('✅ Settings loaded successfully');
                 } catch (e) {
                   console.error('❌ Failed to load settings:', e);
                 }

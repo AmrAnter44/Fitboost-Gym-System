@@ -338,61 +338,24 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     const receiptMessage = prepareReceiptMessage()
 
     try {
-      // ✅ التحقق من بيئة Electron أولاً
-      const electron = typeof window !== 'undefined' && (window as any).electron
+      const sendResult = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message: receiptMessage })
+      })
 
-      if (electron?.whatsapp) {
-        // ✅ Electron Mode: استخدام IPC
-        console.log('📱 Using Electron WhatsApp integration')
-        const result = await electron.whatsapp.sendMessage(phone, receiptMessage)
+      const sendData = await sendResult.json()
 
-        if (result.success) {
-          setToast({ message: '✅ تم إرسال الإيصال بنجاح على الواتساب', type: 'success' })
-          setShowWhatsAppModal(false)
-          setPhone('')
-        } else {
-          const errorMessage = result.error || 'فشل إرسال الرسالة'
-
-          if (errorMessage.includes('not ready') || errorMessage.includes('not initialized')) {
-            setToast({
-              message: '❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code',
-              type: 'error'
-            })
-          } else {
-            setToast({ message: `❌ ${errorMessage}`, type: 'error' })
-          }
-        }
+      if (sendData.success) {
+        setToast({ message: '✅ تم إرسال الإيصال بنجاح على الواتساب', type: 'success' })
+        setShowWhatsAppModal(false)
+        setPhone('')
       } else {
-        // ✅ Browser Mode: استخدام API
-        console.log('🌐 Using Browser WhatsApp API')
-        try {
-          const sendResult = await fetch('/api/whatsapp/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: phone, message: receiptMessage })
-          })
-
-          const sendData = await sendResult.json()
-
-          if (sendData.success) {
-            setToast({ message: '✅ تم إرسال الإيصال بنجاح على الواتساب', type: 'success' })
-            setShowWhatsAppModal(false)
-            setPhone('')
-          } else {
-            const errorMessage = sendData.error || 'فشل إرسال الرسالة'
-
-            if (errorMessage.includes('not ready') || errorMessage.includes('QR code')) {
-              setToast({
-                message: '❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code',
-                type: 'error'
-              })
-            } else {
-              setToast({ message: `❌ ${errorMessage}`, type: 'error' })
-            }
-          }
-        } catch (apiError) {
-          console.error('API Error:', apiError)
-          setToast({ message: '❌ حدث خطأ في إرسال الرسالة عبر الواتساب', type: 'error' })
+        const errorMessage = sendData.error || 'فشل إرسال الرسالة'
+        if (errorMessage.includes('not ready') || errorMessage.includes('not initialized') || errorMessage.includes('QR code')) {
+          setToast({ message: '❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code', type: 'error' })
+        } else {
+          setToast({ message: `❌ ${errorMessage}`, type: 'error' })
         }
       }
     } catch (err) {

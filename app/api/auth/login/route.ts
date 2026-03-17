@@ -46,25 +46,6 @@ export async function POST(request: Request) {
     const OWNER_EMAIL = (process.env.OWNER_EMAIL || 'fitboost').trim()
     const OWNER_PASSWORD = (process.env.OWNER_PASSWORD || 'Amr#k#244#').trim()
 
-    // Debug log for owner account (remove in production)
-    console.log('🔐 Owner Login Attempt:', {
-      inputEmail: email,
-      inputPassword: password ? '***' : 'empty',
-      expectedEmail: OWNER_EMAIL,
-      emailMatch: email === OWNER_EMAIL,
-      passwordMatch: password === OWNER_PASSWORD,
-      passwordLengths: {
-        input: password?.length || 0,
-        expected: OWNER_PASSWORD.length
-      },
-      passwordDetails: {
-        input: password,
-        expected: OWNER_PASSWORD,
-        inputChars: password?.split('').map((c, i) => `[${i}]:'${c}'(${c.charCodeAt(0)})`).join(', '),
-        expectedChars: OWNER_PASSWORD.split('').map((c, i) => `[${i}]:'${c}'(${c.charCodeAt(0)})`).join(', ')
-      }
-    })
-
     if (email === OWNER_EMAIL && password === OWNER_PASSWORD) {
       const fallbackUser = {
         id: 'fallback-fitboost-account',
@@ -113,7 +94,6 @@ export async function POST(request: Request) {
         })
       } catch (auditError) {
         // تجاهل أخطاء الـ audit log إذا كانت قاعدة البيانات معطلة
-        console.log('⚠️ Audit log skipped for fallback account')
       }
 
       return response

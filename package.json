@@ -8,6 +8,7 @@
   "scripts": {
     "predev": "node scripts/sync-theme-colors.js && node scripts/auto-sync-database.js && node scripts/auto-update-prisma.js",
     "dev": "node server.js",
+    "whatsapp": "node electron/whatsapp-service.js",
     "dev:turbo": "node --max-old-space-size=4096 node_modules/next/dist/bin/next dev --turbo -p 4001 -H 0.0.0.0",
     "dev:default": "next dev -p 4001 -H 0.0.0.0",
     "prebuild": "node scripts/sync-theme-colors.js",

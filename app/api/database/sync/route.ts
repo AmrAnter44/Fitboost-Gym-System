@@ -27,7 +27,6 @@ export async function POST(request: Request) {
     // التحقق من الصلاحيات
     await requirePermission(request, 'canAccessAdmin')
 
-    console.log('🔄 بدء مزامنة قاعدة البيانات...')
 
     // تحديد مسار قاعدة البيانات
     let dbPath = path.join(process.cwd(), 'prisma', 'gym.db')

@@ -469,8 +469,6 @@ export default function CoachCommissionPage() {
   const handleSaveSettings = async () => {
     setSavingSettings(true)
     try {
-      console.log('🔄 Saving settings...')
-      console.log('Referral Settings:', referralSettings)
 
       // حفظ إعدادات الكوميشن
       const commissionResponse = await fetch('/api/commission-settings', {
@@ -490,7 +488,6 @@ export default function CoachCommissionPage() {
         physioReferralEnabled: referralSettings.physioReferralEnabled,
         physioReferralPercentage: referralSettings.physioReferralPercentage
       }
-      console.log('📤 Sending to API:', settingsToSave)
 
       const freeSessionsResponse = await fetch('/api/settings/services', {
         method: 'POST',
@@ -498,20 +495,15 @@ export default function CoachCommissionPage() {
         body: JSON.stringify(settingsToSave)
       })
 
-      console.log('Commission Response:', commissionResponse.status)
-      console.log('Free Sessions Response:', freeSessionsResponse.status)
 
       if (commissionResponse.ok && freeSessionsResponse.ok) {
         const savedData = await freeSessionsResponse.json()
-        console.log('✅ Settings saved successfully:', savedData)
 
         toast.success(t('pt.commission.settingsSavedSuccess'))
         setShowSettingsModal(false)
 
         // تحديث إعدادات الخدمات في الـ Context
-        console.log('🔄 Refetching service settings...')
         await refetchServiceSettings()
-        console.log('✅ Service settings refetched')
 
         // إعادة الحساب إذا كان هناك كوتش محدد
         if (selectedCoach) {
@@ -771,9 +763,6 @@ export default function CoachCommissionPage() {
     end.setHours(23, 59, 59, 999)
 
     // حساب الإيرادات من إيصالات PT (جميع الأنواع)
-    console.log(`\n🔍 Filtering receipts for coach: ${coachName}`)
-    console.log(`📅 Date range: ${start.toLocaleDateString('ar-EG')} to ${end.toLocaleDateString('ar-EG')}`)
-    console.log(`📋 Total receipts in system: ${receipts.length}`)
 
     const ptReceipts = receipts.filter((receipt) => {
       // فلترة إيصالات PT فقط
@@ -784,19 +773,6 @@ export default function CoachCommissionPage() {
       const isInDateRange = receiptDate >= start && receiptDate <= end
 
       if (!isInDateRange) {
-        // طباعة الإيصالات المرفوضة بسبب التاريخ
-        try {
-          const details = JSON.parse(receipt.itemDetails)
-          if (details.coachName === coachName) {
-            console.log(`❌ Receipt REJECTED (out of range):`, {
-              receiptNumber: receipt.receiptNumber,
-              createdAt: receipt.createdAt,
-              receiptDate: receiptDate.toLocaleDateString('ar-EG'),
-              coachName: details.coachName,
-              amount: receipt.amount
-            })
-          }
-        } catch {}
         return false
       }
 
@@ -804,24 +780,12 @@ export default function CoachCommissionPage() {
       try {
         const details = JSON.parse(receipt.itemDetails)
         const isCorrectCoach = details.coachName === coachName
-
-        if (isCorrectCoach) {
-          console.log(`✅ Receipt ACCEPTED:`, {
-            receiptNumber: receipt.receiptNumber,
-            createdAt: receipt.createdAt,
-            receiptDate: receiptDate.toLocaleDateString('ar-EG'),
-            amount: receipt.amount
-          })
-        }
-
         return isCorrectCoach
       } catch {
         return false
       }
     })
 
-    console.log(`✅ Filtered PT receipts count: ${ptReceipts.length}`)
-    console.log(`💰 Total PT revenue: ${ptReceipts.reduce((sum, r) => sum + r.amount, 0)}\n`)
 
 
     // حساب الإيرادات من الإيصالات (المبالغ الفعلية المدفوعة)
@@ -1564,20 +1528,6 @@ export default function CoachCommissionPage() {
                   try {
                     const details = JSON.parse(receipt.itemDetails)
                     const isCorrectCoach = details.coachName === result.coachName
-
-                    // 🔍 Debug: طباعة معلومات الإيصال المقبول
-                    if (isCorrectCoach) {
-                      console.log('✅ Receipt accepted:', {
-                        receiptNumber: receipt.receiptNumber,
-                        type: receipt.type,
-                        createdAt: receipt.createdAt,
-                        receiptDate: receiptDate.toLocaleDateString('ar-EG'),
-                        coachName: details.coachName,
-                        amount: receipt.amount,
-                        dateRange: `${start.toLocaleDateString('ar-EG')} - ${end.toLocaleDateString('ar-EG')}`
-                      })
-                    }
-
                     return isCorrectCoach
                   } catch {
                     return false

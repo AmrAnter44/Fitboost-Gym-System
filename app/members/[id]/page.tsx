@@ -1500,57 +1500,26 @@ export default function MemberDetailPage() {
                         : ''
                       const caption = baseMessage + websiteSection
 
-                      // ✅ التحقق من بيئة Electron أولاً
-                      const electron = typeof window !== 'undefined' && (window as any).electron
+                      const sendResult = await fetch('/api/whatsapp/send-image', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          phone: member.phone,
+                          imageBase64: data.barcode,
+                          caption: caption
+                        })
+                      })
 
-                      if (electron?.whatsapp) {
-                        // ✅ Electron Mode: استخدام IPC
-                        console.log('📱 Using Electron WhatsApp integration for barcode')
-                        const result = await electron.whatsapp.sendImage(
-                          member.phone,
-                          data.barcode,
-                          caption
-                        )
+                      const sendData = await sendResult.json()
 
-                        if (result.success) {
-                          toast.success('✅ تم إرسال باركود العضوية بنجاح على الواتساب')
-                        } else {
-                          const errorMessage = result.error || 'فشل إرسال الصورة'
-                          if (errorMessage.includes('not ready') || errorMessage.includes('not initialized')) {
-                            toast.error('❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code')
-                          } else {
-                            toast.error(`❌ ${errorMessage}`)
-                          }
-                        }
+                      if (sendData.success) {
+                        toast.success('✅ تم إرسال باركود العضوية بنجاح على الواتساب')
                       } else {
-                        // ✅ Browser Mode: استخدام API
-                        console.log('🌐 Using Browser WhatsApp API for barcode')
-                        try {
-                          const sendResult = await fetch('/api/whatsapp/send-image', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              phone: member.phone,
-                              imageBase64: data.barcode,
-                              caption: caption
-                            })
-                          })
-
-                          const sendData = await sendResult.json()
-
-                          if (sendData.success) {
-                            toast.success('✅ تم إرسال باركود العضوية بنجاح على الواتساب')
-                          } else {
-                            const errorMessage = sendData.error || 'فشل إرسال الصورة'
-                            if (errorMessage.includes('not ready') || errorMessage.includes('not initialized')) {
-                              toast.error('❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code')
-                            } else {
-                              toast.error(`❌ ${errorMessage}`)
-                            }
-                          }
-                        } catch (apiError) {
-                          console.error('WhatsApp API error:', apiError)
-                          toast.error('❌ حدث خطأ في إرسال الصورة عبر الواتساب')
+                        const errorMessage = sendData.error || 'فشل إرسال الصورة'
+                        if (errorMessage.includes('not ready') || errorMessage.includes('not initialized')) {
+                          toast.error('❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code')
+                        } else {
+                          toast.error(`❌ ${errorMessage}`)
                         }
                       }
                     }

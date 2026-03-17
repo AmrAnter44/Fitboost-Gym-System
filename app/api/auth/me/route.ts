@@ -47,15 +47,6 @@ export async function GET(request: Request) {
     // ✅ استخدام DEFAULT_PERMISSIONS إذا لم تكن موجودة في JWT
     const permissions = user.permissions || DEFAULT_PERMISSIONS[user.role]
 
-    // 🔍 Debug: طباعة البيانات المرسلة
-    console.log('🔍 /api/auth/me Response:', {
-      role: user.role,
-      hasUserPermissions: !!user.permissions,
-      hasDefaultPermissions: !!DEFAULT_PERMISSIONS[user.role],
-      canViewMore: permissions?.canViewMore,
-      allPermissions: permissions
-    })
-
     // إرجاع بيانات المستخدم مع الاسم المحدث والصلاحيات
     return NextResponse.json({
       user: {

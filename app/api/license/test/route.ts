@@ -9,8 +9,6 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     // Test 1: Check connection
-    console.log('🧪 Testing Supabase connection...')
-    console.log('📍 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 
     // Test 2: Fetch from gyms table
     const { data: gyms, error: gymsError } = await supabaseAdmin
@@ -28,7 +26,6 @@ export async function GET() {
       }, { status: 500 })
     }
 
-    console.log('✅ Gyms fetched:', gyms?.length || 0)
 
     // Test 3: Fetch from branches table
     const { data: branches, error: branchesError } = await supabaseAdmin

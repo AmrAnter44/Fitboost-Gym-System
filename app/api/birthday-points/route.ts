@@ -32,7 +32,6 @@ export async function POST(request: Request) {
     const currentMonth = today.getMonth() + 1 // 1-12
     const currentDay = today.getDate() // 1-31
 
-    console.log(`🎂 التحقق من أعياد الميلاد: ${currentDay}/${currentMonth}`)
 
     // البحث عن الأعضاء النشطين الذين عيد ميلادهم اليوم
     const membersWithBirthday = await prisma.member.findMany({
@@ -59,7 +58,6 @@ export async function POST(request: Request) {
              birthDate.getDate() === currentDay
     })
 
-    console.log(`🎉 تم العثور على ${birthdayMembers.length} عضو لديهم عيد ميلاد اليوم`)
 
     if (birthdayMembers.length === 0) {
       return NextResponse.json({
@@ -100,7 +98,6 @@ export async function POST(request: Request) {
           newTotal: member.points + settings.pointsPerBirthday
         })
 
-        console.log(`✅ منح ${settings.pointsPerBirthday} نقطة لـ ${member.name} (#${member.memberNumber})`)
       } catch (error) {
         console.error(`❌ خطأ في منح نقاط لـ ${member.name}:`, error)
       }

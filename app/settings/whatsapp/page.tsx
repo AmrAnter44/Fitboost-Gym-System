@@ -1,666 +1,508 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
 import QRCode from 'qrcode'
 import { getWhatsAppBrowserClient } from '../../../lib/whatsappClient'
 
-export default function WhatsAppSettingsPage() {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Status = {
+  isReady: boolean
+  qrCode: string | null
+  hasClient: boolean
+  sidecarOnline: boolean
+}
+
+type Op = 'init' | 'reconnect' | 'reset' | null
+
+type ErrorInfo = {
+  code: string
+  title: string
+  detail: string
+  solution: string
+}
+
+// ─── Error classifier ─────────────────────────────────────────────────────────
+
+function classifyError(msg: string): ErrorInfo {
+  const m = msg.toLowerCase()
+  if (m.includes('unavailable') || m.includes('503') || m.includes('service'))
+    return {
+      code: 'SERVICE_UNAVAILABLE',
+      title: 'خدمة الواتساب غير متاحة',
+      detail: msg,
+      solution: 'افتح تيرمنال جديد وشغّل: npm run whatsapp',
+    }
+  if (m.includes('already connected') || m.includes('already initializing'))
+    return {
+      code: 'CONFLICT',
+      title: 'يوجد اتصال نشط بالفعل',
+      detail: msg,
+      solution: 'انتظر ظهور QR Code أو اضغط "إعادة اتصال"',
+    }
+  if (m.includes('logged out') || m.includes('auth') || m.includes('logged_out'))
+    return {
+      code: 'AUTH_FAILED',
+      title: 'انتهت صلاحية الجلسة',
+      detail: msg,
+      solution: 'اضغط "بداية جديدة" لحذف الجلسة والبدء من الأول',
+    }
+  if (m.includes('timeout') || m.includes('econnrefused') || m.includes('network'))
+    return {
+      code: 'NETWORK',
+      title: 'مشكلة في الاتصال بالشبكة',
+      detail: msg,
+      solution: 'تأكد من اتصال الإنترنت وحاول مجدداً',
+    }
+  return {
+    code: 'UNKNOWN',
+    title: 'حدث خطأ غير متوقع',
+    detail: msg,
+    solution: 'جرب "إعادة اتصال" أو "بداية جديدة"',
+  }
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function WhatsAppPage() {
   const { t } = useLanguage()
   const toast = useToast()
-  const [status, setStatus] = useState<{
-    isReady: boolean
-    qrCode: string | null
-    hasClient: boolean
-  } | null>(null)
-  const [qrCodeImage, setQrCodeImage] = useState<string>('')
-  const [loading, setLoading] = useState(false)
-  const [connectionProgress, setConnectionProgress] = useState<{percent: number, message: string} | null>(null)
+  const isRTL = t('common.language') === 'ar'
+
+  const [status, setStatus] = useState<Status | null>(null)
+  const [qrImg, setQrImg] = useState('')
+  const [qrSeconds, setQrSeconds] = useState(60)
+  const [qrExpired, setQrExpired] = useState(false)
+  const [op, setOp] = useState<Op>(null)
+  const [err, setErr] = useState<ErrorInfo | null>(null)
+
   const [testPhone, setTestPhone] = useState('')
-  const [testMessage, setTestMessage] = useState('')
-  const [sendingTest, setSendingTest] = useState(false)
-  // 🔧 Improvement: Prevent double-click and track operation type
-  const [operationType, setOperationType] = useState<'initializing' | 'reconnecting' | 'resetting' | null>(null)
-  // 🔧 Improvement: Better error display
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [testMsg, setTestMsg] = useState('')
+  const [sending, setSending] = useState(false)
 
-  // تعيين الرسالة الافتراضية بناءً على اللغة
   useEffect(() => {
-    const defaultMessage = t('common.language') === 'ar'
-      ? 'مرحباً! هذه رسالة تجريبية من نظام Fitboost 💪'
-      : 'Hello! This is a test message from Fitboost system 💪'
-    setTestMessage(defaultMessage)
-  }, [t])
-  const [isElectron, setIsElectron] = useState(false)
+    setTestMsg(
+      isRTL
+        ? 'مرحباً! هذه رسالة تجريبية من نظام Fitboost 💪'
+        : 'Hello! Test message from Fitboost 💪'
+    )
+  }, [isRTL])
 
-  // 🔧 Improvement: Memory leak prevention - Properly cleanup event listeners
-  useEffect(() => {
-    const electron = typeof window !== 'undefined' && (window as any).electron
-    const hasElectron = !!electron?.whatsapp
-    setIsElectron(hasElectron)
+  // ── Status polling ──────────────────────────────────────────────────────────
 
-    // Electron Mode - Use IPC
-    if (hasElectron) {
-      // الاستماع لأحداث WhatsApp عبر IPC
-      electron.whatsapp.onQR((qr: string) => {
-        console.log('📱 [Electron] QR Code received:', qr.substring(0, 50) + '...');
-        setStatus(prev => ({
-          hasClient: prev?.hasClient ?? true,
-          isReady: false,
-          qrCode: qr
-        }));
-        setConnectionProgress(null);
-        setOperationType(null);
-      });
-
-      electron.whatsapp.onReady(() => {
-        console.log('✅ [Electron] WhatsApp ready');
-        setStatus(prev => ({
-          hasClient: true,
-          isReady: true,
-          qrCode: null
-        }));
-        setConnectionProgress(null);
-        setOperationType(null);
-        setErrorMessage(null);
-        toast.success(`✅ ${t('settings.whatsapp.toast.connected')}`);
-      });
-
-      electron.whatsapp.onDisconnected((reason: string) => {
-        console.log('❌ [Electron] WhatsApp disconnected:', reason);
-        setStatus(prev => ({
-          hasClient: prev?.hasClient ?? true,
-          isReady: false,
-          qrCode: null
-        }));
-        setConnectionProgress(null);
-        setOperationType(null);
-        toast.error(`❌ ${t('settings.whatsapp.toast.disconnected')}`);
-      });
-
-      electron.whatsapp.onAuthFailure((msg: string) => {
-        console.error('❌ [Electron] Auth failure:', msg);
-        setErrorMessage(`${t('settings.whatsapp.toast.authFailed')}: ${msg}`);
-        setOperationType(null);
-        toast.error(`❌ ${t('settings.whatsapp.toast.authFailed')}`);
-      });
-
-      electron.whatsapp.onLoadingScreen((percent: number, message: string) => {
-        console.log(`⏳ [Electron] Loading: ${percent}% - ${message}`);
-        setConnectionProgress({ percent, message });
-      });
-
-      return () => {
-        console.log('🧹 [Electron] Cleaning up WhatsApp event listeners');
-        electron.whatsapp.offAllListeners();
-      };
+  const fetchStatus = useCallback(async () => {
+    try {
+      const data = (await getWhatsAppBrowserClient().getStatus()) as Status
+      setStatus(prev => {
+        if (!prev) return data
+        if (data.isReady) return data
+        if (data.qrCode) return data
+        return { ...data, qrCode: prev.qrCode }
+      })
+      if (data.sidecarOnline) {
+        setErr(prev => (prev?.code === 'SERVICE_UNAVAILABLE' ? null : prev))
+      }
+    } catch {
+      setStatus(prev =>
+        prev ?? { isReady: false, qrCode: null, hasClient: false, sidecarOnline: false }
+      )
     }
-    // Browser Mode - Use SSE
-    else {
-      const browserClient = getWhatsAppBrowserClient();
+  }, [])
 
-      // Setup event listeners for browser mode
-      const onQR = (qr: string) => {
-        console.log('📱 [Browser] QR Code received:', qr.substring(0, 50) + '...');
-        setStatus(prev => ({
-          hasClient: prev?.hasClient ?? true,
-          isReady: false,
-          qrCode: qr
-        }));
-        setConnectionProgress(null);
-        setOperationType(null);
-      };
-
-      const onReady = () => {
-        console.log('✅ [Browser] WhatsApp ready');
-        setStatus(prev => ({
-          hasClient: true,
-          isReady: true,
-          qrCode: null
-        }));
-        setConnectionProgress(null);
-        setOperationType(null);
-        setErrorMessage(null);
-        toast.success(`✅ ${t('settings.whatsapp.toast.connected')}`);
-      };
-
-      const onConnecting = (data: { message: string; percent: number }) => {
-        console.log(`⏳ [Browser] Connecting: ${data.percent}%`);
-        setConnectionProgress(data);
-      };
-
-      const onDisconnected = (reason: string) => {
-        console.log('❌ [Browser] WhatsApp disconnected:', reason);
-        setStatus(prev => ({
-          hasClient: prev?.hasClient ?? true,
-          isReady: false,
-          qrCode: null
-        }));
-        setConnectionProgress(null);
-        setOperationType(null);
-        toast.error(`❌ ${t('settings.whatsapp.toast.disconnected')}`);
-      };
-
-      browserClient.on('qr', onQR);
-      browserClient.on('ready', onReady);
-      browserClient.on('connecting', onConnecting);
-      browserClient.on('disconnected', onDisconnected);
-
-      return () => {
-        console.log('🧹 [Browser] Cleaning up WhatsApp event listeners');
-        browserClient.off('qr', onQR);
-        browserClient.off('ready', onReady);
-        browserClient.off('connecting', onConnecting);
-        browserClient.off('disconnected', onDisconnected);
-      };
-    }
-  }, [t, toast]);
-
-  // جلب حالة الواتساب كل 3 ثوان
   useEffect(() => {
     fetchStatus()
-    const interval = setInterval(fetchStatus, 3000)
-    return () => clearInterval(interval)
-  }, [isElectron])
+    const id = setInterval(fetchStatus, 3000)
+    return () => clearInterval(id)
+  }, [fetchStatus])
 
-  // تحويل QR code text إلى صورة
+  // ── SSE ─────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    if (status?.qrCode) {
-      console.log('🔄 Converting QR code to image...');
-      QRCode.toDataURL(status.qrCode, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      })
-        .then(url => {
-          console.log('✅ QR Code image generated successfully');
-          setQrCodeImage(url);
-        })
-        .catch(err => {
-          console.error('❌ Error generating QR code:', err);
-          // Fallback: عرض QR text مباشرة
-          setQrCodeImage('');
-        })
-    } else {
-      console.log('⚪ No QR code to display');
-      setQrCodeImage('');
+    const client = getWhatsAppBrowserClient()
+    client.connectSSE()
+    return () => client.disconnectSSE()
+  }, [])
+
+  useEffect(() => {
+    const client = getWhatsAppBrowserClient()
+
+    const onQR = (qr: string) => {
+      setStatus(prev => ({
+        ...(prev ?? { hasClient: true, sidecarOnline: true }),
+        isReady: false,
+        qrCode: qr,
+      }))
+      setErr(null)
+      setOp(null)
+      setQrExpired(false)
+      setQrSeconds(60)
     }
+
+    const onReady = () => {
+      setStatus(prev => ({
+        ...(prev ?? { qrCode: null, sidecarOnline: true }),
+        hasClient: true,
+        isReady: true,
+        qrCode: null,
+      }))
+      setErr(null)
+      setOp(null)
+      setQrExpired(false)
+      toast.success(`✅ ${t('settings.whatsapp.toast.connected')}`)
+    }
+
+    const onDisconnected = (reason: string) => {
+      setStatus(prev => ({
+        ...(prev ?? { qrCode: null, sidecarOnline: true }),
+        hasClient: false,
+        isReady: false,
+        qrCode: null,
+      }))
+      setOp(null)
+      if (reason && reason !== 'Max reconnects reached')
+        setErr(classifyError(reason))
+    }
+
+    client.on('qr', onQR)
+    client.on('ready', onReady)
+    client.on('disconnected', onDisconnected)
+    return () => {
+      client.off('qr', onQR)
+      client.off('ready', onReady)
+      client.off('disconnected', onDisconnected)
+    }
+  }, [t, toast])
+
+  // ── QR image ────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!status?.qrCode) { setQrImg(''); return }
+    QRCode.toDataURL(status.qrCode, {
+      width: 280,
+      margin: 2,
+      color: { dark: '#0f172a', light: '#ffffff' },
+    })
+      .then(setQrImg)
+      .catch(() => setQrImg(''))
   }, [status?.qrCode])
 
-  const fetchStatus = async () => {
+  // ── QR countdown ────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!status?.qrCode) return
+    setQrSeconds(60)
+    setQrExpired(false)
+    const id = setInterval(() => {
+      setQrSeconds(s => {
+        if (s <= 1) { clearInterval(id); setQrExpired(true); return 0 }
+        return s - 1
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [status?.qrCode])
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
+
+  async function handleInit() {
+    if (op) return
+    setOp('init'); setErr(null)
     try {
-      if (isElectron && (window as any).electron?.whatsapp) {
-        // Electron Mode - Use IPC
-        const data = await (window as any).electron.whatsapp.getStatus()
-        setStatus(data)
-      } else {
-        // Browser Mode - Use API
-        const browserClient = getWhatsAppBrowserClient()
-        const data = await browserClient.getStatus()
-        setStatus(data)
+      const res = await getWhatsAppBrowserClient().init()
+      if (!res.success) {
+        const e = classifyError(res.error ?? 'Unknown error')
+        if (e.code !== 'CONFLICT') setErr(e)
       }
-    } catch (error) {
-      console.error('Error fetching WhatsApp status:', error)
-    }
+    } catch (e) {
+      setErr(classifyError(e instanceof Error ? e.message : String(e)))
+    } finally { setOp(null) }
   }
 
-  const handleInitialize = async () => {
-    // 🔧 Prevent double-click
-    if (operationType) return;
-
-    setLoading(true)
-    setOperationType('initializing')
-    setErrorMessage(null)
-
+  async function handleReconnect() {
+    if (op) return
+    setOp('reconnect'); setErr(null)
     try {
-      let result;
-
-      if (isElectron && (window as any).electron?.whatsapp) {
-        // Electron Mode - Use IPC
-        result = await (window as any).electron.whatsapp.init()
-      } else {
-        // Browser Mode - Use API
-        const browserClient = getWhatsAppBrowserClient()
-        result = await browserClient.init()
-      }
-
-      if (result.success) {
-        toast.success(`✅ ${t('settings.whatsapp.toast.initialized')}`)
-        fetchStatus()
-      } else {
-        const errorMsg = `${t('settings.whatsapp.toast.initFailed')}: ${result.error || ''}`
-        setErrorMessage(errorMsg)
-        toast.error(`❌ ${errorMsg}`)
-      }
-    } catch (error) {
-      console.error('Error initializing WhatsApp:', error)
-      const errorMsg = `${t('settings.whatsapp.toast.initError')}: ${error instanceof Error ? error.message : String(error)}`
-      setErrorMessage(errorMsg)
-      toast.error(`❌ ${errorMsg}`)
-    } finally {
-      setLoading(false)
-      setOperationType(null)
-    }
+      const res = await getWhatsAppBrowserClient().reconnect()
+      if (!res.success) setErr(classifyError(res.error ?? 'Unknown error'))
+    } catch (e) {
+      setErr(classifyError(e instanceof Error ? e.message : String(e)))
+    } finally { setOp(null) }
   }
 
-  const handleReconnect = async () => {
-    // 🔧 Prevent double-click
-    if (operationType) return;
-
-    setLoading(true)
-    setOperationType('reconnecting')
-    setErrorMessage(null)
-
+  async function handleReset() {
+    if (op) return
+    setOp('reset'); setErr(null)
     try {
-      console.log('🔄 Starting reconnect...')
-      let result;
-
-      if (isElectron && (window as any).electron?.whatsapp) {
-        // Electron Mode - Use IPC
-        result = await (window as any).electron.whatsapp.reconnect()
-      } else {
-        // Browser Mode - Use API
-        const browserClient = getWhatsAppBrowserClient()
-        result = await browserClient.reconnect()
-      }
-
-      if (result.success) {
-        toast.success(`✅ ${t('settings.whatsapp.toast.reconnectSuccess')}`)
-        fetchStatus()
-      } else {
-        const errorMsg = `${t('settings.whatsapp.toast.reconnectFailed')}: ${result.error || ''}`
-        setErrorMessage(errorMsg)
-        toast.error(`❌ ${errorMsg}`)
-      }
-    } catch (error) {
-      console.error('Error reconnecting WhatsApp:', error)
-      const errorMsg = `${t('settings.whatsapp.toast.reconnectError')}: ${error instanceof Error ? error.message : String(error)}`
-      setErrorMessage(errorMsg)
-      toast.error(`❌ ${errorMsg}`)
-    } finally {
-      setLoading(false)
-      setOperationType(null)
-    }
+      const res = await getWhatsAppBrowserClient().resetSession()
+      if (!res.success) setErr(classifyError(res.error ?? 'Unknown error'))
+    } catch (e) {
+      setErr(classifyError(e instanceof Error ? e.message : String(e)))
+    } finally { setOp(null) }
   }
 
-  const handleResetSession = async () => {
-    // 🔧 Prevent double-click
-    if (operationType) return;
-
-    setLoading(true)
-    setOperationType('resetting')
-    setErrorMessage(null)
-
-    try {
-      console.log('🔄 Starting reset session...')
-      let result;
-
-      if (isElectron && (window as any).electron?.whatsapp) {
-        // Electron Mode - Use IPC
-        result = await (window as any).electron.whatsapp.resetSession()
-      } else {
-        // Browser Mode - Use API
-        const browserClient = getWhatsAppBrowserClient()
-        result = await browserClient.resetSession()
-      }
-
-      if (result.success) {
-        toast.success(`✅ ${t('settings.whatsapp.toast.resetSuccess')}`)
-        fetchStatus()
-      } else {
-        const errorMsg = `${t('settings.whatsapp.toast.resetFailed')}: ${result.error || ''}`
-        setErrorMessage(errorMsg)
-        toast.error(`❌ ${errorMsg}`)
-      }
-    } catch (error) {
-      console.error('Error resetting session:', error)
-      const errorMsg = `${t('settings.whatsapp.toast.resetError')}: ${error instanceof Error ? error.message : String(error)}`
-      setErrorMessage(errorMsg)
-      toast.error(`❌ ${errorMsg}`)
-    } finally {
-      setLoading(false)
-      setOperationType(null)
-    }
-  }
-
-  const handleSendTest = async () => {
+  async function handleSendTest() {
     if (!testPhone || testPhone.length < 10) {
-      toast.error(`⚠️ ${t('settings.whatsapp.toast.invalidPhone')}`)
-      return
+      toast.error(`⚠️ ${t('settings.whatsapp.toast.invalidPhone')}`); return
     }
-
-    setSendingTest(true)
+    setSending(true)
     try {
-      let result;
-
-      if (isElectron && (window as any).electron?.whatsapp) {
-        // Electron Mode - Use IPC
-        result = await (window as any).electron.whatsapp.sendMessage(testPhone, testMessage)
-      } else {
-        // Browser Mode - Use API
-        const browserClient = getWhatsAppBrowserClient()
-        result = await browserClient.sendMessage(testPhone, testMessage)
-      }
-
-      if (result.success) {
+      const res = await getWhatsAppBrowserClient().sendMessage(testPhone, testMsg)
+      if (res.success) {
         toast.success(`✅ ${t('settings.whatsapp.toast.testSent')}`)
         setTestPhone('')
       } else {
-        toast.error(`❌ ${result.error || t('settings.whatsapp.toast.sendFailed')}`)
+        toast.error(`❌ ${res.error ?? t('settings.whatsapp.toast.sendFailed')}`)
       }
-    } catch (error) {
-      console.error('Error sending test message:', error)
+    } catch {
       toast.error(`❌ ${t('settings.whatsapp.toast.sendError')}`)
-    } finally {
-      setSendingTest(false)
-    }
+    } finally { setSending(false) }
   }
 
+  // ── Derived state ────────────────────────────────────────────────────────────
+
+  const loading      = status === null
+  const sidecarUp    = status?.sidecarOnline !== false
+  const isConnected  = !!status?.isReady
+  const hasQR        = !!status?.qrCode && !qrExpired
+  const hasClient    = !!status?.hasClient
+
+  // ── Banner config ────────────────────────────────────────────────────────────
+
+  const banner = (() => {
+    if (loading)     return { bg: 'from-gray-400 to-gray-500',     icon: '⌛', label: t('settings.whatsapp.loading'),     sub: '...' }
+    if (!sidecarUp)  return { bg: 'from-red-500 to-rose-600',      icon: '🔌', label: 'الخدمة غير متاحة',               sub: 'شغّل: npm run whatsapp' }
+    if (isConnected) return { bg: 'from-green-500 to-emerald-600', icon: '✅', label: t('settings.whatsapp.connected'),  sub: t('settings.whatsapp.readyToSend') }
+    if (hasQR)       return { bg: 'from-blue-500 to-indigo-600',   icon: '📱', label: t('settings.whatsapp.scanQR'),    sub: t('settings.whatsapp.qrInstructions') }
+    if (qrExpired)   return { bg: 'from-orange-500 to-amber-600',  icon: '⏰', label: 'انتهت صلاحية QR Code',            sub: 'اضغط "إعادة اتصال" للحصول على QR جديد' }
+    if (op === 'init')      return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.initializing'),  sub: 'جاري التهيئة...' }
+    if (op === 'reconnect') return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.reconnecting'), sub: 'جاري إعادة الاتصال...' }
+    if (op === 'reset')     return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.resetting'),    sub: 'جاري إعادة التعيين...' }
+    return { bg: 'from-gray-500 to-gray-600', icon: '⚪', label: t('settings.whatsapp.disconnected'), sub: t('settings.whatsapp.mustBeConnected') }
+  })()
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
   return (
-    <div className="container mx-auto p-4 md:p-6" dir={t('common.language') === 'ar' ? 'rtl' : 'ltr'}>
-      {/* 🎨 Enhanced Header with Gradient */}
-      <div className="mb-8 relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 via-emerald-600 to-teal-600 p-8 shadow-2xl">
-        <div className="absolute inset-0 bg-black opacity-10"></div>
-        <div className="relative z-10">
-          <h1 className="text-4xl font-black text-white mb-3 flex items-center gap-3">
-            <span className="text-5xl">💬</span>
+    <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
+      <div className="max-w-xl mx-auto space-y-5">
+
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+            <span className="text-3xl">💬</span>
             {t('settings.whatsapp.title')}
           </h1>
-          <p className="text-green-50 text-lg font-medium">
-            ⚡ {t('settings.whatsapp.subtitle')} - Powered by Baileys
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
+            {t('settings.whatsapp.subtitle')}
           </p>
-          <div className="mt-4 flex items-center gap-2 text-sm text-green-100 flex-wrap">
-            <span className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
-              🚀 Fast & Stable
-            </span>
-            <span className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
-              {isElectron ? '💻 Electron Mode' : '🌐 Browser Mode'}
-            </span>
-            <span className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
-              ⚡ Cross-Platform
-            </span>
-          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* حالة الاتصال */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <span>📊</span>
-            <span className="dark:text-gray-100">{t('settings.whatsapp.connectionStatus')}</span>
-          </h2>
+        {/* Sidecar status pill */}
+        {!loading && (
+          <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold border ${
+            sidecarUp
+              ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-700 dark:text-green-300'
+              : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300'
+          }`}>
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sidecarUp ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-xs font-mono opacity-70">port 4002</span>
+            <span>{sidecarUp ? 'WhatsApp Service Online' : 'WhatsApp Service Offline'}</span>
+            <span className="ms-auto text-xs">{sidecarUp ? '✓' : '✗'}</span>
+          </div>
+        )}
 
-          {!status ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">{t('settings.whatsapp.loading')}</p>
+        {/* Main card */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+
+          {/* Status banner */}
+          <div className={`bg-gradient-to-r ${banner.bg} px-6 py-5`}>
+            <div className="flex items-center gap-4">
+              <span className="text-4xl select-none">{banner.icon}</span>
+              <div>
+                <p className="font-black text-lg text-white leading-tight">{banner.label}</p>
+                <p className="text-sm text-white/75 mt-0.5">{banner.sub}</p>
+              </div>
+              {/* Spinner when op active */}
+              {op && (
+                <div className="ms-auto w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
             </div>
-          ) : (
-            <div className="space-y-4">
-              {/* حالة العميل */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="font-semibold dark:text-gray-200">{t('settings.whatsapp.client')}</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                  status.hasClient
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
-                }`}>
-                  {status.hasClient ? `✅ ${t('settings.whatsapp.initialized')}` : `⚪ ${t('settings.whatsapp.notInitialized')}`}
-                </span>
-              </div>
+          </div>
 
-              {/* حالة الاتصال */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="font-semibold dark:text-gray-200">{t('settings.whatsapp.connection')}</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                  status.isReady
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    : connectionProgress
-                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                }`}>
-                  {status.isReady ? `🟢 ${t('settings.whatsapp.connected')}` : connectionProgress ? `🟡 ${t('settings.whatsapp.connecting')}` : `🔴 ${t('settings.whatsapp.disconnected')}`}
-                </span>
-              </div>
+          <div className="p-6 space-y-5">
 
-              {/* Connection Progress Bar */}
-              {connectionProgress && !status.isReady && (
-                <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                      ⏳ {t('settings.whatsapp.connecting')}...
-                    </span>
-                    <span className="text-sm font-bold text-yellow-900 dark:text-yellow-100">
-                      {connectionProgress.percent}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-yellow-200 dark:bg-gray-600 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-yellow-500 to-orange-500 h-3 rounded-full transition-all duration-300 flex items-center justify-end"
-                      style={{ width: `${connectionProgress.percent}%` }}
-                    >
-                      <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+            {/* QR Code */}
+            {hasQR && (
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  {qrImg ? (
+                    <div className="p-3 bg-white rounded-2xl shadow-md border-4 border-blue-400">
+                      <img src={qrImg} alt="QR Code" className="w-60 h-60 rounded-lg" />
                     </div>
-                  </div>
-                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2 text-center">
-                    {connectionProgress.message}
-                  </p>
-                </div>
-              )}
-
-              {/* 🔧 Error Message Display */}
-              {errorMessage && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-lg">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-red-800 dark:text-red-300 mb-1">
-                        ❌ خطأ في الاتصال
-                      </p>
-                      <p className="text-xs text-red-700 dark:text-red-400">
-                        {errorMessage}
-                      </p>
+                  ) : (
+                    <div className="w-60 h-60 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-2xl border-4 border-gray-200 dark:border-gray-600">
+                      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
                     </div>
-                    <button
-                      onClick={() => setErrorMessage(null)}
-                      className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition"
-                    >
-                      ✕
-                    </button>
+                  )}
+                  {/* Countdown ring */}
+                  <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white shadow-lg transition-colors ${
+                    qrSeconds > 30 ? 'bg-blue-500' : qrSeconds > 10 ? 'bg-orange-500' : 'bg-red-500'
+                  }`}>
+                    ⏱ {qrSeconds}s
                   </div>
                 </div>
-              )}
+                <p className="text-xs text-center text-gray-500 dark:text-gray-400 pt-2 max-w-xs">
+                  {t('settings.whatsapp.qrInstructions')}
+                </p>
+              </div>
+            )}
 
-              {/* 🔧 أزرار الاتصال - Prevent double-click */}
-              {!status.hasClient ? (
-                <button
-                  onClick={handleInitialize}
-                  disabled={!!operationType}
-                  className="w-full bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold transition"
-                >
-                  {operationType === 'initializing' ? `⏳ ${t('settings.whatsapp.initializing')}` : `🚀 ${t('settings.whatsapp.initialize')}`}
-                </button>
-              ) : (
-                <div className="space-y-2">
+            {/* QR expired notice */}
+            {qrExpired && status?.qrCode && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl text-sm text-orange-800 dark:text-orange-300">
+                <span>⏰</span>
+                <span>انتهت صلاحية QR Code – اضغط "إعادة اتصال" للحصول على كود جديد</span>
+              </div>
+            )}
+
+            {/* Connected */}
+            {isConnected && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl text-sm font-semibold text-green-800 dark:text-green-300">
+                <span>🟢</span>
+                <span>{t('settings.whatsapp.readyToSend')}</span>
+              </div>
+            )}
+
+            {/* Error box */}
+            {err && (
+              <div className="rounded-xl border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-red-100 dark:bg-red-900/40 border-b border-red-200 dark:border-red-800">
+                  <span className="text-red-500">🚨</span>
+                  <span className="font-bold text-sm text-red-800 dark:text-red-300">{err.title}</span>
+                  <span className="ms-auto text-xs font-mono text-red-400">[{err.code}]</span>
+                  <button
+                    onClick={() => setErr(null)}
+                    className="text-red-400 hover:text-red-700 dark:hover:text-red-200 transition ms-2 leading-none text-base"
+                  >✕</button>
+                </div>
+                <div className="px-4 py-3 space-y-2">
+                  {err.detail && (
+                    <code className="block text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg px-3 py-2 break-all font-mono">
+                      {err.detail}
+                    </code>
+                  )}
+                  {err.solution && (
+                    <p className="flex items-start gap-2 text-sm text-red-700 dark:text-red-300">
+                      <span className="text-blue-500 flex-shrink-0 mt-0.5">💡</span>
+                      <span>{err.solution}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {!hasClient ? (
+              <button
+                onClick={handleInit}
+                disabled={!!op || !sidecarUp}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-bold text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                {op === 'init'
+                  ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.initializing')}</>
+                  : <><span>🚀</span>{t('settings.whatsapp.initialize')}</>}
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleReconnect}
-                    disabled={!!operationType}
-                    className={`w-full px-6 py-3 rounded-lg font-bold transition disabled:cursor-not-allowed ${
-                      status.isReady
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400'
-                        : 'bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400'
-                    }`}
+                    disabled={!!op}
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-white text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
-                    {operationType === 'reconnecting' ? `⏳ ${t('settings.whatsapp.reconnecting')}` : `🔄 ${t('settings.whatsapp.reconnect')}`}
+                    {op === 'reconnect'
+                      ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.reconnecting')}</>
+                      : <><span>🔄</span>{t('settings.whatsapp.reconnect')}</>}
                   </button>
-                  <p className="text-center text-xs text-gray-600 dark:text-gray-400">
-                    {status.isReady
-                      ? t('settings.whatsapp.restartInfo')
-                      : t('settings.whatsapp.reconnectInfo')
-                    }
-                  </p>
-
-                  {/* زر بداية جديدة */}
                   <button
-                    onClick={handleResetSession}
-                    disabled={!!operationType}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    onClick={handleReset}
+                    disabled={!!op}
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-white text-sm bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
-                    {operationType === 'resetting' ? `⏳ ${t('settings.whatsapp.resetting')}` : `🔥 ${t('settings.whatsapp.resetSession')}`}
+                    {op === 'reset'
+                      ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.resetting')}</>
+                      : <><span>🔥</span>{t('settings.whatsapp.resetSession')}</>}
                   </button>
-                  <p className="text-center text-xs text-red-600 dark:text-red-400">
-                    {t('settings.whatsapp.resetInfo')}
-                  </p>
                 </div>
-              )}
+                <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+                  {isConnected ? t('settings.whatsapp.restartInfo') : t('settings.whatsapp.reconnectInfo')}
+                </p>
+                <p className="text-center text-xs text-red-500 dark:text-red-400">
+                  {t('settings.whatsapp.resetInfo')}
+                </p>
+              </div>
+            )}
 
-              {/* 🎨 Enhanced QR Code with Animation */}
-              {status.qrCode && (
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-800 dark:to-gray-700 p-6 shadow-xl border-4 border-green-400 dark:border-green-600">
-                  {/* Animated background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-400/20 animate-pulse"></div>
-
-                  <div className="relative z-10">
-                    <div className="text-center mb-4">
-                      <div className="inline-flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg">
-                        <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-green-300 opacity-75"></span>
-                        <span className="relative">📱</span>
-                        {t('settings.whatsapp.scanQR')}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-center">
-                      {qrCodeImage ? (
-                        <div className="relative">
-                          {/* QR Container with gradient border */}
-                          <div className="p-4 bg-white rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300">
-                            <img
-                              src={qrCodeImage}
-                              alt="QR Code"
-                              className="w-72 h-72 rounded-xl"
-                            />
-                          </div>
-                          {/* Scan indicator corners */}
-                          <div className="absolute top-2 left-2 w-8 h-8 border-t-4 border-l-4 border-green-500 rounded-tl-lg"></div>
-                          <div className="absolute top-2 right-2 w-8 h-8 border-t-4 border-r-4 border-green-500 rounded-tr-lg"></div>
-                          <div className="absolute bottom-2 left-2 w-8 h-8 border-b-4 border-l-4 border-green-500 rounded-bl-lg"></div>
-                          <div className="absolute bottom-2 right-2 w-8 h-8 border-b-4 border-r-4 border-green-500 rounded-br-lg"></div>
-                        </div>
-                      ) : (
-                        <div className="w-72 h-72 flex items-center justify-center bg-white dark:bg-gray-700 rounded-2xl shadow-2xl">
-                          <div className="text-center">
-                            <div className="relative">
-                              <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-4"></div>
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-8 h-8 bg-green-600 rounded-full animate-pulse"></div>
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold">جاري توليد QR Code...</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-4">
-                      <p className="text-center text-sm text-gray-700 dark:text-gray-300 font-semibold mb-2">
-                        📲 {t('settings.whatsapp.qrInstructions')}
-                      </p>
-                      <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                          Scan within 60 seconds
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* رسالة النجاح */}
-              {status.isReady && (
-                <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-500 dark:border-green-700 rounded-lg p-4">
-                  <p className="text-green-800 dark:text-green-300 font-bold text-center">
-                    ✅ {t('settings.whatsapp.readyToSend')}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* اختبار الإرسال */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <span>🧪</span>
-            <span className="dark:text-gray-100">{t('settings.whatsapp.testSending')}</span>
-          </h2>
-
-          <div className="space-y-4">
+        {/* Test message – only when connected */}
+        {isConnected && (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+            <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <span>🧪</span>{t('settings.whatsapp.testSending')}
+            </h2>
             <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                 📞 {t('settings.whatsapp.phoneNumber')}
               </label>
               <input
                 type="tel"
                 value={testPhone}
-                onChange={(e) => setTestPhone(e.target.value)}
+                onChange={e => setTestPhone(e.target.value)}
                 placeholder="01xxxxxxxxx"
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                 dir="ltr"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none transition"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                 💬 {t('settings.whatsapp.message')}
               </label>
               <textarea
-                value={testMessage}
-                onChange={(e) => setTestMessage(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                placeholder={t('common.language') === 'ar' ? 'اكتب رسالتك التجريبية هنا...' : 'Write your test message here...'}
+                value={testMsg}
+                onChange={e => setTestMsg(e.target.value)}
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none transition resize-none"
               />
             </div>
-
             <button
               onClick={handleSendTest}
-              disabled={!status?.isReady || sendingTest || !testPhone}
-              className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 font-bold transition flex items-center justify-center gap-2"
+              disabled={sending || !testPhone}
+              className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
-              {sendingTest ? (
-                <>{`⏳ ${t('settings.whatsapp.sending')}`}</>
-              ) : (
-                <>{`📲 ${t('settings.whatsapp.sendTestMessage')}`}</>
-              )}
+              {sending
+                ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.sending')}</>
+                : <><span>📲</span>{t('settings.whatsapp.sendTestMessage')}</>}
             </button>
-
-            {!status?.isReady && (
-              <p className="text-center text-sm text-amber-600 dark:text-amber-400">
-                ⚠️ {t('settings.whatsapp.mustBeConnected')}
-              </p>
-            )}
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* معلومات مهمة */}
-      <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-xl p-6">
-        <h3 className="text-lg font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
-          <span>ℹ️</span>
-          <span>{t('settings.whatsapp.importantInfo')}</span>
-        </h3>
-        <ul className="space-y-2 text-blue-700 dark:text-blue-300">
-          <li>• {t('settings.whatsapp.infoItems.qrOnce')}</li>
-          <li>• {t('settings.whatsapp.infoItems.sessionPersists')}</li>
-          <li>• {t('settings.whatsapp.infoItems.autoSend')}</li>
-          <li>• {t('settings.whatsapp.infoItems.fromConnected')}</li>
-          <li>• {t('settings.whatsapp.infoItems.keepConnected')}</li>
-        </ul>
+        {/* Info */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-5">
+          <h3 className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-3">
+            <span>ℹ️</span>{t('settings.whatsapp.importantInfo')}
+          </h3>
+          <ul className="space-y-1.5 text-sm text-blue-700 dark:text-blue-300">
+            <li>• {t('settings.whatsapp.infoItems.qrOnce')}</li>
+            <li>• {t('settings.whatsapp.infoItems.sessionPersists')}</li>
+            <li>• {t('settings.whatsapp.infoItems.autoSend')}</li>
+            <li>• {t('settings.whatsapp.infoItems.fromConnected')}</li>
+            <li>• {t('settings.whatsapp.infoItems.keepConnected')}</li>
+          </ul>
+        </div>
+
       </div>
     </div>
   )

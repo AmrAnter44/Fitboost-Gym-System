@@ -37,7 +37,6 @@ export async function GET(request: Request) {
       })
     }
 
-    console.log(`🎂 [AUTO] التحقق من أعياد الميلاد: ${todayString}`)
 
     const currentMonth = today.getMonth() + 1
     const currentDay = today.getDate()
@@ -67,7 +66,6 @@ export async function GET(request: Request) {
              birthDate.getDate() === currentDay
     })
 
-    console.log(`🎉 [AUTO] تم العثور على ${birthdayMembers.length} عضو لديهم عيد ميلاد اليوم`)
 
     // تحديث تاريخ آخر فحص (حتى لو لم يكن هناك أعضاء)
     await prisma.systemSettings.update({
@@ -114,7 +112,6 @@ export async function GET(request: Request) {
           pointsAwarded: settings.pointsPerBirthday
         })
 
-        console.log(`✅ [AUTO] منح ${settings.pointsPerBirthday} نقطة لـ ${member.name} (#${member.memberNumber})`)
       } catch (error) {
         console.error(`❌ [AUTO] خطأ في منح نقاط لـ ${member.name}:`, error)
       }

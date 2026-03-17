@@ -16,7 +16,6 @@ export async function POST(request: Request) {
     // التحقق من الصلاحيات
     await requirePermission(request, 'canAccessAdmin')
 
-    console.log('🔧 إصلاح صلاحيات قاعدة البيانات...')
 
     // تحديد مسار قاعدة البيانات
     let dbPath = path.join(process.cwd(), 'prisma', 'gym.db')
@@ -30,9 +29,7 @@ export async function POST(request: Request) {
       if (fs.existsSync(productionDbPath)) {
         dbPath = productionDbPath
         isProduction = true
-        console.log('📦 Using production database:', productionDbPath)
       } else {
-        console.log('📁 Using development database:', dbPath)
       }
     }
 
@@ -66,7 +63,6 @@ export async function POST(request: Request) {
     try {
       if (process.platform === 'win32') {
         // Windows
-        console.log('💻 Windows detected')
 
         try {
           execSync(`attrib -R "${dbPath}"`)
@@ -74,7 +70,6 @@ export async function POST(request: Request) {
             action: 'Remove readonly flag from database',
             status: 'success'
           })
-          console.log('✅ Removed readonly flag from database')
         } catch (error: any) {
           results.fixes.push({
             action: 'Remove readonly flag from database',
@@ -86,7 +81,6 @@ export async function POST(request: Request) {
 
       } else {
         // Mac/Linux
-        console.log('🍎 Mac/Linux detected')
 
         // قاعدة البيانات
         try {
@@ -95,7 +89,6 @@ export async function POST(request: Request) {
             action: 'Database file permissions (666)',
             status: 'success'
           })
-          console.log('✅ Database: 666 (rw-rw-rw-)')
         } catch (error: any) {
           results.fixes.push({
             action: 'Database file permissions',
@@ -111,7 +104,6 @@ export async function POST(request: Request) {
             action: 'Directory permissions (777)',
             status: 'success'
           })
-          console.log('✅ Directory: 777 (rwxrwxrwx)')
         } catch (error: any) {
           results.fixes.push({
             action: 'Directory permissions',
@@ -135,7 +127,6 @@ export async function POST(request: Request) {
                 action: `Journal file: ${path.basename(journalFile)}`,
                 status: 'success'
               })
-              console.log(`✅ ${path.basename(journalFile)}: 666`)
             } catch (error: any) {
               results.fixes.push({
                 action: `Journal file: ${path.basename(journalFile)}`,

@@ -5,22 +5,17 @@ import { supabaseAdmin } from '../../../../lib/supabase'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  console.log('🔵 /api/license/gyms - Request received')
   try {
-    console.log('🔐 Verifying auth...')
     const user = await verifyAuth(request)
-    console.log('✅ Auth verified - User:', { userId: user.userId, role: user.role })
 
     // فقط OWNER يمكنه الوصول
     if (user.role !== 'OWNER') {
-      console.log('❌ Access denied - User is not OWNER')
       return NextResponse.json(
         { error: 'غير مصرح' },
         { status: 403 }
       )
     }
 
-    console.log('📡 Fetching gyms from Supabase...')
     const { data: gyms, error } = await supabaseAdmin
       .from('gyms')
       .select('id, name_en, name_ar')
@@ -34,8 +29,6 @@ export async function GET(request: Request) {
       )
     }
 
-    console.log('✅ Gyms fetched successfully:', gyms?.length || 0, 'gyms')
-    console.log('📊 Gyms data:', JSON.stringify(gyms, null, 2))
 
     return NextResponse.json({ gyms: gyms || [] })
   } catch (error: any) {

@@ -50,17 +50,14 @@ export async function POST(
     }
 
     // جلب بيانات الـ Owner الحالي للتحقق من كلمة المرور
-    console.log('🔍 Looking for owner with userId:', currentUser.userId)
     const ownerUser = await prisma.user.findUnique({
       where: { id: currentUser.userId },
       select: { id: true, password: true, role: true }
     })
 
-    console.log('👤 Owner user found:', ownerUser ? 'Yes' : 'No')
 
     if (!ownerUser) {
       // جرب البحث بـ email بدلاً من id
-      console.log('⚠️ Owner not found by userId, trying by email:', currentUser.email)
       const ownerByEmail = await prisma.user.findUnique({
         where: { email: currentUser.email },
         select: { id: true, password: true, role: true }
@@ -75,7 +72,6 @@ export async function POST(
       }
 
       // استخدم البيانات المستخرجة من البحث بـ email
-      console.log('✅ Found owner by email, using that instead')
       const isValidOwnerPassword = await bcrypt.compare(ownerPassword, ownerByEmail.password)
 
       if (!isValidOwnerPassword) {

@@ -312,7 +312,6 @@ export async function POST(request: Request) {
       }
 
       referrerId = referrer.id
-      console.log(`✅ تم العثور على العضو المُحيل: ${referrer.name} (${referrer.memberNumber})`)
     }
 
     // إنشاء العضو
@@ -590,7 +589,6 @@ export async function POST(request: Request) {
             `مكافأة إحالة عضو جديد: ${member.name} - ${settings.pointsPerReferral} نقطة`
           )
 
-          console.log(`✅ تم منح ${settings.pointsPerReferral} نقطة إحالة للعضو ${referrer?.name} (${referrer?.memberNumber})`)
         }
       } catch (pointsError) {
         console.error('Error adding referral points:', pointsError)

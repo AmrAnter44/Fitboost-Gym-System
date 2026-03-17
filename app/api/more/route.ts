@@ -330,7 +330,6 @@ export async function POST(request: Request) {
                 tx
               )
             } else {
-              console.log('ℹ️ العميل ليس عضواً مسجلاً - تم تخطي إضافة النقاط')
             }
           } catch (pointsError) {
             console.error('⚠️ فشل إضافة نقاط المكافأة (غير حرج):', pointsError)

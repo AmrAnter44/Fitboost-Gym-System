@@ -135,7 +135,6 @@ export async function POST(request: NextRequest) {
       );
 
       updateSuccess = true;
-      console.log('Database upgrade output:', stdout);
     } catch (error: any) {
       updateError = error.message || String(error);
       console.error('Database upgrade error:', error);

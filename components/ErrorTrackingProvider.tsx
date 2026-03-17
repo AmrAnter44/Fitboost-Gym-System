@@ -30,8 +30,6 @@ export function ErrorTrackingProvider({ children }: ErrorTrackingProviderProps) 
     // تفعيل global error handlers
     setupGlobalErrorHandler()
     setupFetchErrorTracking()
-
-    console.log('[ErrorTracking] ✅ Error tracking initialized')
   }, [])
 
   return (

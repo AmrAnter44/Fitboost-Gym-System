@@ -8,30 +8,30 @@
    ======================================== */
 :root {
   /* Primary Colors - الألوان الأساسية */
-  --color-primary-50: #e6f7f7;
-  --color-primary-100: #b3e6e6;
-  --color-primary-200: #80d6d6;
-  --color-primary-300: #4dc5c5;
-  --color-primary-400: #1ab5b5;
-  --color-primary-500: #008B8B;
-  --color-primary-600: #007272;
-  --color-primary-700: #005959;
-  --color-primary-800: #004141;
-  --color-primary-900: #002828;
-  --color-primary-950: #001414;
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
 
   /* RGB Values for transparency */
-  --color-primary-50-rgb: 230, 247, 247;
-  --color-primary-100-rgb: 179, 230, 230;
-  --color-primary-200-rgb: 128, 214, 214;
-  --color-primary-300-rgb: 77, 197, 197;
-  --color-primary-400-rgb: 26, 181, 181;
-  --color-primary-500-rgb: 0, 139, 139;
-  --color-primary-600-rgb: 0, 114, 114;
-  --color-primary-700-rgb: 0, 89, 89;
-  --color-primary-800-rgb: 0, 65, 65;
-  --color-primary-900-rgb: 0, 40, 40;
-  --color-primary-950-rgb: 0, 20, 20;
+  --color-primary-50-rgb: 239, 246, 255;
+  --color-primary-100-rgb: 219, 234, 254;
+  --color-primary-200-rgb: 191, 219, 254;
+  --color-primary-300-rgb: 147, 197, 253;
+  --color-primary-400-rgb: 96, 165, 250;
+  --color-primary-500-rgb: 59, 130, 246;
+  --color-primary-600-rgb: 37, 99, 235;
+  --color-primary-700-rgb: 29, 78, 216;
+  --color-primary-800-rgb: 30, 64, 175;
+  --color-primary-900-rgb: 30, 58, 138;
+  --color-primary-950-rgb: 23, 37, 84;
 
   /* Other colors */
   --foreground-rgb: 0, 0, 0;
@@ -552,20 +552,77 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* Dark Mode Colors */
 .dark {
   /* Dark Mode Primary Colors */
-  --color-primary-50: #001414;
-  --color-primary-100: #002828;
-  --color-primary-200: #004141;
-  --color-primary-300: #005959;
-  --color-primary-400: #007272;
-  --color-primary-500: #008B8B;
-  --color-primary-600: #1ab5b5;
-  --color-primary-700: #4dc5c5;
-  --color-primary-800: #80d6d6;
-  --color-primary-900: #b3e6e6;
-  --color-primary-950: #e6f7f7;
+  --color-primary-50: #172554;
+  --color-primary-100: #1e3a8a;
+  --color-primary-200: #1e40af;
+  --color-primary-300: #1d4ed8;
+  --color-primary-400: #2563eb;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #60a5fa;
+  --color-primary-700: #93c5fd;
+  --color-primary-800: #bfdbfe;
+  --color-primary-900: #dbeafe;
+  --color-primary-950: #eff6ff;
 
   /* Dark Mode Background & Foreground */
   --foreground-rgb: 255, 255, 255;

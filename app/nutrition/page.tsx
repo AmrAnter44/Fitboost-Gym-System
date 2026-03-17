@@ -645,7 +645,6 @@ export default function NutritionPage() {
                   </div>
                 ) : (() => {
                   // فلترة أخصائيي التغذية النشطين
-                  console.log('📊 All coaches:', coaches.map(c => ({ name: c.name, position: c.position, isActive: c.isActive })))
 
                   let nutritionists = coaches.filter(coach =>
                     coach.isActive &&
@@ -653,12 +652,10 @@ export default function NutritionPage() {
                      coach.position?.toLowerCase().includes('nutrition'))
                   )
 
-                  console.log('🥗 Filtered nutritionists:', nutritionists.map(c => ({ name: c.name, position: c.position })))
 
                   // إذا لم يجد أخصائيين محددين، اعرض كل الموظفين النشطين
                   if (nutritionists.length === 0) {
                     nutritionists = coaches.filter(coach => coach.isActive)
-                    console.log('⚠️ No nutritionists found, showing all active staff:', nutritionists.length)
                   }
 
                   return nutritionists.length === 0 ? (

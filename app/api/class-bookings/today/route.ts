@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth'
 
+// Force dynamic rendering (uses request.headers)
+export const dynamic = 'force-dynamic'
+
 // Get all class bookings for today with member details
 export async function GET(request: NextRequest) {
   const user = await verifyAuth(request)
@@ -19,7 +22,6 @@ export async function GET(request: NextRequest) {
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(23, 59, 59, 999)
 
-    console.log('🔍 Fetching bookings between:', today.toISOString(), 'and', tomorrow.toISOString())
 
     // Get all bookings for today
     const bookings = await prisma.classBooking.findMany({
@@ -41,7 +43,6 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    console.log('📋 Found bookings:', bookings.length)
 
     // Get member and class details for each booking
     const bookingsWithDetails = await Promise.all(
@@ -66,7 +67,6 @@ export async function GET(request: NextRequest) {
           }),
         ])
 
-        console.log('👤 Member:', member?.name, '#' + member?.memberNumber, '| 🏋️ Class:', classSchedule?.className, '@', classSchedule?.startTime)
 
         return {
           ...booking,
@@ -76,7 +76,6 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    console.log('✅ Returning bookings:', bookingsWithDetails.length)
 
     return NextResponse.json({
       count: bookings.length,

@@ -16,7 +16,6 @@ export async function POST(request: Request) {
     // التحقق من صلاحية الأدمن
     await requirePermission(request, 'canAccessAdmin')
 
-    console.log('🔄 بدء تحديث Prisma...')
 
     // تحديد مسار قاعدة البيانات (Development أو Production)
     let dbPath = path.join(process.cwd(), 'prisma', 'gym.db')
@@ -30,15 +29,12 @@ export async function POST(request: Request) {
       if (fs.existsSync(productionDbPath)) {
         dbPath = productionDbPath
         isProduction = true
-        console.log('📦 Using production database:', productionDbPath)
       } else {
-        console.log('📁 Using development database:', dbPath)
       }
     }
 
     // إنشاء DATABASE_URL المناسب
     const databaseUrl = `file:${dbPath}`
-    console.log('🗄️ Database URL:', databaseUrl)
 
     const results = {
       dbPush: { success: false, output: '', error: '' },
@@ -51,8 +47,6 @@ export async function POST(request: Request) {
     const prismaBinary = path.join(process.cwd(), 'node_modules', 'prisma', 'build', 'index.js')
     const nodeCmd = process.execPath // node executable
 
-    console.log('🔍 Prisma binary:', prismaBinary)
-    console.log('🔍 Node:', nodeCmd)
 
     // التحقق من وجود Prisma
     if (!fs.existsSync(prismaBinary)) {
@@ -65,11 +59,9 @@ export async function POST(request: Request) {
 
     // 1. تطبيق التغييرات على قاعدة البيانات
     try {
-      console.log('📦 تطبيق التغييرات على قاعدة البيانات...')
 
       // تشغيل prisma db push باستخدام node مباشرة
       const pushCmd = `"${nodeCmd}" "${prismaBinary}" db push --skip-generate`
-      console.log('🔧 Command:', pushCmd)
 
       const { stdout: pushOutput, stderr: pushError } = await execAsync(
         pushCmd,
@@ -87,7 +79,6 @@ export async function POST(request: Request) {
       results.dbPush.output = pushOutput
       results.dbPush.error = pushError
 
-      console.log('✅ تم تطبيق التغييرات بنجاح')
     } catch (pushError: any) {
       console.error('❌ خطأ في db push:', pushError.message)
       results.dbPush.error = pushError.message
@@ -101,10 +92,8 @@ export async function POST(request: Request) {
 
     // 2. توليد Prisma Client
     try {
-      console.log('⚙️ توليد Prisma Client...')
 
       const genCmd = `"${nodeCmd}" "${prismaBinary}" generate`
-      console.log('🔧 Command:', genCmd)
 
       const { stdout: genOutput, stderr: genError } = await execAsync(
         genCmd,
@@ -118,7 +107,6 @@ export async function POST(request: Request) {
       results.generate.output = genOutput
       results.generate.error = genError
 
-      console.log('✅ تم توليد Prisma Client بنجاح')
     } catch (genError: any) {
       console.error('❌ خطأ في generate:', genError.message)
       results.generate.error = genError.message
@@ -130,7 +118,6 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    console.log('✅ تم تحديث Prisma بنجاح!')
 
     const message = isProduction
       ? 'تم تحديث قاعدة البيانات في Production بنجاح! ✅\n\nيُنصح بإعادة تشغيل التطبيق.'

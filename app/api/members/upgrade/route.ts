@@ -227,7 +227,6 @@ export async function POST(request: Request) {
           'payment',
           `مكافأة ترقية إلى باقة ${newOffer.name} - ${newOffer.upgradePoints} نقطة`
         )
-        console.log(`✅ تم إضافة ${newOffer.upgradePoints} نقطة ترقية للعضو ${member.name}`)
       } catch (pointsError) {
         console.error('Error adding upgrade points:', pointsError)
         // لا نوقف العملية إذا فشلت إضافة نقاط الترقية

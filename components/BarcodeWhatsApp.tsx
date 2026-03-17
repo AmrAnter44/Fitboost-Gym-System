@@ -101,36 +101,12 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
     setLoading(true)
 
     try {
-      // ✅ Method 1: Check if running in Electron
-      if (typeof window !== 'undefined' && (window as any).electron?.whatsapp) {
-        console.log('📱 Using Electron WhatsApp integration for barcode')
-
-        const result = await (window as any).electron.whatsapp.sendImage(
-          memberPhone,
-          barcodeImage,
-          caption
-        )
-
-        if (result.success) {
-          setToast({ message: '✅ تم إرسال الباركود بنجاح على الواتساب', type: 'success' })
-        } else {
-          console.error('WhatsApp send failed:', result.error)
-          setToast({ message: `فشل إرسال الباركود: ${result.error}`, type: 'error' })
-        }
-        return
-      }
-
-      // ✅ Method 2: Check if WhatsApp Backend is ready (Browser mode)
-      console.log('🌐 Running in browser - checking WhatsApp backend status...')
-
+      // التحقق من حالة الواتساب
       const statusResponse = await fetch('/api/whatsapp/status')
       if (statusResponse.ok) {
         const status = await statusResponse.json()
 
         if (status.isReady) {
-          // ✅ WhatsApp متصل - إرسال الصورة عبر API
-          console.log('✅ WhatsApp backend is ready - sending image via API')
-
           const sendResponse = await fetch('/api/whatsapp/send-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -152,15 +128,12 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
         }
       }
 
-      // ⚠️ Fallback: WhatsApp غير متصل - استخدام الطريقة القديمة
-      console.log('⚠️ WhatsApp not ready - using fallback method (download + wa.me link)')
+      // Fallback: الواتساب غير متصل
       setToast({ message: '⚠️ الواتساب غير متصل. جاري تحميل الصورة وفتح واتساب...', type: 'warning' })
-
       handleDownloadBarcode()
 
       setTimeout(async () => {
         const success = await sendWhatsAppMessage(memberPhone, caption, true)
-
         if (success) {
           setToast({ message: 'تم تحميل الصورة وفتح واتساب. يرجى إرفاق الصورة يدوياً.', type: 'info' })
         } else {

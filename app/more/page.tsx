@@ -97,13 +97,6 @@ export default function MorePage() {
       return
     }
 
-    // Debug: اطبع معلومات المستخدم والصلاحيات
-    console.log('🔍 More Page Debug:', {
-      user: user?.role,
-      hasCanViewMore: hasPermission('canViewMore'),
-      moreEnabled: settings.moreEnabled
-    })
-
     if (!settings.moreEnabled) {
       toast.error(t('more.serviceDisabled'))
       setLoading(false)
@@ -406,18 +399,15 @@ export default function MorePage() {
         }
       } catch (error) {
         // إذا لم يتم العثور على العضو، لا تفعل شيء
-        console.log('Member not found or error:', error)
       }
     }, 1500) // ⏱️ 1.5 ثانية تأخير
   }
 
   const handleStaffChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = e.target.value
-    console.log('🔍 Staff Change:', { selectedValue, staffListLength: staffList.length })
 
     // البحث عن Staff إما بـ user.id أو staff.id
     const staff = staffList.find(s => (s.user?.id === selectedValue) || (s.id === selectedValue))
-    console.log('🔍 Found Staff:', staff ? { name: staff.name, userId: staff.user?.id, staffId: staff.id } : 'NOT FOUND')
 
     if (staff) {
       setFormData({

@@ -644,7 +644,6 @@ export default function PhysiotherapyPage() {
                   </div>
                 ) : (() => {
                   // فلترة أخصائيي العلاج الطبيعي النشطين
-                  console.log('📊 All coaches:', coaches.map(c => ({ name: c.name, position: c.position, isActive: c.isActive })))
 
                   let therapists = coaches.filter(coach =>
                     coach.isActive &&
@@ -653,12 +652,10 @@ export default function PhysiotherapyPage() {
                      coach.position?.toLowerCase().includes('طبيعي'))
                   )
 
-                  console.log('🏥 Filtered therapists:', therapists.map(c => ({ name: c.name, position: c.position })))
 
                   // إذا لم يجد أخصائيين محددين، اعرض كل الموظفين النشطين
                   if (therapists.length === 0) {
                     therapists = coaches.filter(coach => coach.isActive)
-                    console.log('⚠️ No therapists found, showing all active staff:', therapists.length)
                   }
 
                   return therapists.length === 0 ? (

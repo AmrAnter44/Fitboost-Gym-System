@@ -16,7 +16,6 @@ export async function POST(request: Request) {
     // التحقق من الصلاحيات
     await requirePermission(request, 'canAccessAdmin')
 
-    console.log('🔄 Starting database migrations...')
 
     // تحديد مسار قاعدة البيانات
     let dbPath = path.join(process.cwd(), 'prisma', 'gym.db')
@@ -30,7 +29,6 @@ export async function POST(request: Request) {
       if (fs.existsSync(productionDbPath)) {
         dbPath = productionDbPath
         isProduction = true
-        console.log('📦 Using production database:', productionDbPath)
       }
     }
 
@@ -57,7 +55,6 @@ export async function POST(request: Request) {
         const { execSync } = require('child_process')
         execSync(`chmod 666 "${dbPath}"`)
         execSync(`chmod 777 "${path.dirname(dbPath)}"`)
-        console.log('✅ Fixed permissions')
       } catch (fixError) {
         return NextResponse.json({
           success: false,
@@ -108,21 +105,17 @@ export async function POST(request: Request) {
     const appliedMigrations = db.prepare('SELECT name FROM _migrations').all() as { name: string }[]
     const appliedNames = new Set(appliedMigrations.map(m => m.name))
 
-    console.log(`📋 Total migrations: ${migrationFiles.length}`)
-    console.log(`✅ Applied migrations: ${appliedNames.size}`)
 
     // تطبيق الـ migrations الجديدة
     const migrationsToApply = migrationFiles.filter(file => !appliedNames.has(file))
     const results: any[] = []
 
-    console.log(`🆕 Migrations to apply: ${migrationsToApply.length}`)
 
     for (const migrationFile of migrationsToApply) {
       try {
         const migrationPath = path.join(migrationsDir, migrationFile)
         const sql = fs.readFileSync(migrationPath, 'utf-8')
 
-        console.log(`⚙️ Applying migration: ${migrationFile}`)
 
         // تطبيق الـ migration
         db.exec(sql)
@@ -135,7 +128,6 @@ export async function POST(request: Request) {
           status: 'success'
         })
 
-        console.log(`✅ Applied: ${migrationFile}`)
       } catch (error: any) {
         console.error(`❌ Error in ${migrationFile}:`, error.message)
 

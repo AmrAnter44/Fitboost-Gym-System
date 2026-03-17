@@ -552,23 +552,23 @@ export default function FollowUpsPage() {
       .replace(/\{date\}/g, new Date().toLocaleDateString('ar-EG'))
       .replace(/\{time\}/g, new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }))
 
-    // ✅ التحقق من بيئة Electron أولاً
-    const electron = typeof window !== 'undefined' && (window as any).electron
+    try {
+      const statusResponse = await fetch('/api/whatsapp/status')
+      const status = statusResponse.ok ? await statusResponse.json() : null
 
-    if (electron?.whatsapp) {
-      // ✅ استخدام Electron IPC للإرسال التلقائي
-      console.log('📱 Using Electron WhatsApp integration for template')
-      try {
-        const result = await electron.whatsapp.sendMessage(
-          selectedVisitorForTemplate.phone,
-          message
-        )
+      if (status?.isReady) {
+        const sendResponse = await fetch('/api/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: selectedVisitorForTemplate.phone, message })
+        })
 
-        if (result.success) {
+        const sendResult = await sendResponse.json()
+
+        if (sendResult.success) {
           toast.success('✅ تم إرسال الرسالة بنجاح على الواتساب')
           setShowTemplateModal(false)
 
-          // ✅ تحديث حالة المتابعة تلقائياً إلى "تم التواصل"
           try {
             const response = await fetch('/api/visitors/followups', {
               method: 'POST',
@@ -587,7 +587,6 @@ export default function FollowUpsPage() {
             })
 
             if (response.ok) {
-              // ✅ تحديث البيانات
               await queryClient.invalidateQueries({ queryKey: ['followups'] })
               await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
               toast.success('✅ تم تحديث حالة المتابعة تلقائياً')
@@ -596,105 +595,26 @@ export default function FollowUpsPage() {
             console.error('Error updating follow-up:', error)
           }
         } else {
-          const errorMessage = result.error || 'فشل إرسال الرسالة'
-          if (errorMessage.includes('not ready') || errorMessage.includes('not initialized')) {
-            toast.error('❌ الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code')
-          } else {
-            toast.error(`❌ ${errorMessage}`)
-          }
+          toast.error(`❌ فشل إرسال الرسالة: ${sendResult.error}`)
         }
-      } catch (error) {
-        console.error('WhatsApp send error:', error)
-        toast.error('❌ حدث خطأ أثناء الإرسال')
+        return
       }
-    } else {
-      // ✅ Browser mode - التحقق من WhatsApp Backend
-      console.log('🌐 Running in browser - checking WhatsApp backend status...')
 
-      try {
-        const statusResponse = await fetch('/api/whatsapp/status')
+      // Fallback: الواتساب غير متصل
+      toast.warning('⚠️ الواتساب غير متصل. جاري فتح واتساب ويب...')
+      const encodedMessage = encodeURIComponent(message)
+      const url = `https://wa.me/20${selectedVisitorForTemplate.phone}?text=${encodedMessage}`
+      window.open(url, '_blank')
+      setShowTemplateModal(false)
+      setTimeout(() => { openQuickFollowUp(selectedVisitorForTemplate) }, 500)
 
-        if (statusResponse.ok) {
-          const status = await statusResponse.json()
-
-          if (status.isReady) {
-            // ✅ WhatsApp متصل - إرسال عبر API
-            console.log('✅ WhatsApp backend is ready - sending via API')
-
-            const sendResponse = await fetch('/api/whatsapp/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                phone: selectedVisitorForTemplate.phone,
-                message: message
-              })
-            })
-
-            const sendResult = await sendResponse.json()
-
-            if (sendResult.success) {
-              toast.success('✅ تم إرسال الرسالة بنجاح على الواتساب')
-              setShowTemplateModal(false)
-
-              // ✅ تحديث حالة المتابعة تلقائياً
-              try {
-                const response = await fetch('/api/visitors/followups', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    visitorId: selectedVisitorForTemplate.id,
-                    notes: `تم إرسال رسالة "${template.title}" عبر الواتساب`,
-                    contacted: true,
-                    salesName: user?.name,
-                    visitorData: {
-                      name: selectedVisitorForTemplate.name,
-                      phone: selectedVisitorForTemplate.phone,
-                      source: selectedVisitorForTemplate.source
-                    }
-                  }),
-                })
-
-                if (response.ok) {
-                  await queryClient.invalidateQueries({ queryKey: ['followups'] })
-                  await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
-                  toast.success('✅ تم تحديث حالة المتابعة تلقائياً')
-                }
-              } catch (error) {
-                console.error('Error updating follow-up:', error)
-              }
-            } else {
-              toast.error(`❌ فشل إرسال الرسالة: ${sendResult.error}`)
-            }
-            return
-          }
-        }
-
-        // ⚠️ Fallback: WhatsApp غير متصل - استخدام wa.me links
-        console.log('⚠️ WhatsApp not ready - using wa.me fallback')
-        toast.warning('⚠️ الواتساب غير متصل. جاري فتح واتساب ويب...')
-
-        const encodedMessage = encodeURIComponent(message)
-        const url = `https://wa.me/20${selectedVisitorForTemplate.phone}?text=${encodedMessage}`
-        window.open(url, '_blank')
-        setShowTemplateModal(false)
-
-        // فتح فورم المتابعة يدوياً
-        setTimeout(() => {
-          openQuickFollowUp(selectedVisitorForTemplate)
-        }, 500)
-
-      } catch (error) {
-        console.error('Error checking WhatsApp status:', error)
-        // Fallback في حالة الخطأ
-        const encodedMessage = encodeURIComponent(message)
-        const url = `https://wa.me/20${selectedVisitorForTemplate.phone}?text=${encodedMessage}`
-        window.open(url, '_blank')
-        setShowTemplateModal(false)
-
-        setTimeout(() => {
-          openQuickFollowUp(selectedVisitorForTemplate)
-        }, 500)
-      }
+    } catch (error) {
+      console.error('Error sending WhatsApp message:', error)
+      const encodedMessage = encodeURIComponent(message)
+      const url = `https://wa.me/20${selectedVisitorForTemplate.phone}?text=${encodedMessage}`
+      window.open(url, '_blank')
+      setShowTemplateModal(false)
+      setTimeout(() => { openQuickFollowUp(selectedVisitorForTemplate) }, 500)
     }
   }, [selectedVisitorForTemplate, openQuickFollowUp, user, toast, queryClient])
 
@@ -883,29 +803,21 @@ export default function FollowUpsPage() {
       return
     }
 
-    // التحقق من Electron أو WhatsApp Backend
-    const electron = typeof window !== 'undefined' && (window as any).electron
-    let useElectron = false
-    let useBrowserAPI = false
-
-    if (electron?.whatsapp) {
-      useElectron = true
-    } else {
-      // التحقق من WhatsApp Backend في Browser
-      try {
-        const statusResponse = await fetch('/api/whatsapp/status')
-        if (statusResponse.ok) {
-          const status = await statusResponse.json()
-          if (status.isReady) {
-            useBrowserAPI = true
-          }
+    // التحقق من حالة الواتساب
+    try {
+      const statusResponse = await fetch('/api/whatsapp/status')
+      if (statusResponse.ok) {
+        const status = await statusResponse.json()
+        if (!status.isReady) {
+          toast.error('❌ الواتساب غير متصل. افتح الإعدادات → واتساب لمسح QR code')
+          return
         }
-      } catch (error) {
-        console.error('Error checking WhatsApp status:', error)
+      } else {
+        toast.error('❌ الواتساب غير متصل. افتح الإعدادات → واتساب لمسح QR code')
+        return
       }
-    }
-
-    if (!useElectron && !useBrowserAPI) {
+    } catch (error) {
+      console.error('Error checking WhatsApp status:', error)
       toast.error('❌ الواتساب غير متصل. افتح الإعدادات → واتساب لمسح QR code')
       return
     }
@@ -939,24 +851,13 @@ export default function FollowUpsPage() {
           .replace(/\{date\}/g, new Date().toLocaleDateString('ar-EG'))
           .replace(/\{time\}/g, new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }))
 
-        // إرسال الرسالة
-        let result: { success: boolean; error?: string }
-
-        if (useElectron) {
-          // إرسال عبر Electron
-          result = await electron.whatsapp.sendMessage(visitor.phone, message)
-        } else {
-          // إرسال عبر Browser API
-          const sendResponse = await fetch('/api/whatsapp/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              phone: visitor.phone,
-              message: message
-            })
-          })
-          result = await sendResponse.json()
-        }
+        // إرسال الرسالة عبر API
+        const sendResponse = await fetch('/api/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: visitor.phone, message })
+        })
+        const result: { success: boolean; error?: string } = await sendResponse.json()
 
         if (result.success) {
           successCount++

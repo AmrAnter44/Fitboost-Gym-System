@@ -104,7 +104,6 @@ export default function HomePage() {
       // نشتغل silent mode - لا نعرض أي رسائل للمستخدم
     } catch (error) {
       // Silent failure - لا نزعج المستخدم
-      console.log('Birthday auto-check skipped')
     }
   }
 
@@ -171,7 +170,7 @@ export default function HomePage() {
       // جلب المتابعات المعلقة
       let pendingFollowups = 0
       try {
-        const followupsRes = await fetch('/api/followups')
+        const followupsRes = await fetch('/api/visitors/followups')
         const followups = await followupsRes.json()
         pendingFollowups = Array.isArray(followups) ? followups.filter((f: any) => !f.contacted).length : 0
       } catch (error) {
@@ -332,7 +331,7 @@ export default function HomePage() {
             </Link>
 
             <Link
-              href="/member-checkin"
+              href="/member-attendance"
               className="bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-cyan-500 hover:to-cyan-600 text-gray-800 dark:text-gray-100 hover:text-white p-4 rounded-xl shadow-md hover:shadow-xl transition-all transform hover:scale-105 flex flex-col items-center gap-2 group border-2 border-cyan-200 dark:border-cyan-700"
             >
               <span className="text-3xl">📊</span>

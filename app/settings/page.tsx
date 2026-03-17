@@ -331,17 +331,12 @@ export default function SettingsPage() {
   }
 
   const fetchGyms = async () => {
-    console.log('🔍 fetchGyms called, user:', user)
     setLoadingGyms(true)
     try {
-      console.log('📡 Fetching gyms from /api/license/gyms...')
       const response = await fetch('/api/license/gyms')
-      console.log('📥 Response status:', response.status, response.statusText)
 
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ Gyms fetched successfully:', data)
-        console.log('📊 Number of gyms:', data.gyms?.length || 0)
         setGyms(data.gyms || [])
         if (!data.gyms || data.gyms.length === 0) {
           setSaveMessage({ type: 'error', text: '⚠️ لا توجد صالات متاحة في قاعدة البيانات' })
@@ -357,7 +352,6 @@ export default function SettingsPage() {
       setSaveMessage({ type: 'error', text: 'خطأ في الاتصال - تحقق من الإنترنت أو إعدادات Supabase' })
     } finally {
       setLoadingGyms(false)
-      console.log('✅ fetchGyms completed')
     }
   }
 
@@ -1028,7 +1022,6 @@ export default function SettingsPage() {
                         try {
                           const res = await fetch('/api/license/test')
                           const data = await res.json()
-                          console.log('🧪 Test endpoint result:', data)
                           alert(`Test Result:\nGyms: ${data.gyms?.count || 0}\nBranches: ${data.branches?.count || 0}\nCheck console for details`)
                         } catch (err) {
                           console.error('Test failed:', err)
