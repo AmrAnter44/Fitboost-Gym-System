@@ -55,3 +55,6 @@ public/uploads/
 
 # Claude Code settings
 .claude/settings.local.json
+
+# Chromium resources (too large for GitHub)
+resources/
