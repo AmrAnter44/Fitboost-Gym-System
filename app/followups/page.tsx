@@ -667,7 +667,7 @@ export default function FollowUpsPage() {
 
     // ترتيب من الأقدم للأحدث عشان الأحدث يكتب فوق الأقدم
     const sortedFollowUps = [...followUps].sort((a, b) =>
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime()
     )
 
     sortedFollowUps.forEach(fu => {
@@ -675,7 +675,7 @@ export default function FollowUpsPage() {
       if (normalizedPhone && fu.notes && fu.notes.trim()) {
         commentMap.set(normalizedPhone, {
           notes: fu.notes,
-          createdAt: fu.createdAt,
+          createdAt: fu.updatedAt || fu.createdAt,
           salesName: fu.salesName
         })
       }

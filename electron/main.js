@@ -298,7 +298,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       webSecurity: false, // Disabled for localhost development
-      partition: 'gym', // ✅ session مؤقت - مش بيتحفظ بعد إغلاق الأبلكيشن
+      partition: 'persist:gym', // ✅ session دائم - بيتحفظ بعد إغلاق الأبلكيشن
       enableRemoteModule: false,
       preload: path.join(__dirname, 'preload.js'),
       enableBlinkFeatures: 'WebHID,WebSerial', // تفعيل Web HID و Web Serial APIs
@@ -311,6 +311,10 @@ function createWindow() {
     backgroundColor: '#ffffff',
     show: false
   });
+
+  // ✅ مسح كوكيز تسجيل الدخول عند فتح التطبيق (المستخدم يسجل دخول كل مرة)
+  mainWindow.webContents.session.cookies.remove('http://localhost', 'auth-token').catch(() => {});
+  mainWindow.webContents.session.cookies.remove('http://localhost:4001', 'auth-token').catch(() => {});
 
   // ✅ منع فتح نوافذ جديدة في Electron - فتح كل الروابط في المتصفح الخارجي
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

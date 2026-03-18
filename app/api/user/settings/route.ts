@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       )
     }
 
-    const userSettings = await prisma.user.findUnique({
+    let userSettings = await prisma.user.findUnique({
       where: { id: user.userId },
       select: {
         darkMode: true,
@@ -24,11 +24,19 @@ export async function GET(request: Request) {
       }
     })
 
+    // إذا المستخدم غير موجود (مثل fallback account)، أنشئ سجل له
     if (!userSettings) {
-      return NextResponse.json(
-        { error: 'المستخدم غير موجود' },
-        { status: 404 }
-      )
+      const newUser = await prisma.user.create({
+        data: {
+          id: user.userId,
+          email: user.email || `${user.userId}@system.local`,
+          name: user.name || 'System User',
+          password: '---',
+          role: user.role || 'OWNER',
+        },
+        select: { darkMode: true, locale: true }
+      })
+      userSettings = newUser
     }
 
     return NextResponse.json(userSettings)
@@ -61,9 +69,17 @@ export async function PUT(request: Request) {
     if (darkMode !== undefined) updateData.darkMode = darkMode
     if (locale !== undefined) updateData.locale = locale
 
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.user.upsert({
       where: { id: user.userId },
-      data: updateData,
+      update: updateData,
+      create: {
+        id: user.userId,
+        email: user.email || `${user.userId}@system.local`,
+        name: user.name || 'System User',
+        password: '---',
+        role: user.role || 'OWNER',
+        ...updateData,
+      },
       select: {
         darkMode: true,
         locale: true
@@ -73,14 +89,6 @@ export async function PUT(request: Request) {
     return NextResponse.json(updatedUser)
   } catch (error: any) {
     console.error('Error updating user settings:', error)
-
-    // Handle Prisma "Record not found" error
-    if (error.code === 'P2025') {
-      return NextResponse.json(
-        { error: 'المستخدم غير موجود' },
-        { status: 404 }
-      )
-    }
 
     return NextResponse.json(
       { error: 'فشل تحديث الإعدادات' },
