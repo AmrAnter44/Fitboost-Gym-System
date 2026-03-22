@@ -183,6 +183,60 @@ function calculateChecksum(sql) {
   return crypto.createHash('sha256').update(sql).digest('hex');
 }
 
+// ==================== SQL Statement Splitter ====================
+
+/**
+ * Split a SQL file into individual statements.
+ * Handles multi-line statements, ignores comments and empty lines.
+ * Keeps CREATE TRIGGER and other compound statements intact.
+ */
+function splitSQLStatements(sql) {
+  const statements = [];
+  let current = '';
+  let inTrigger = false;
+
+  const lines = sql.split('\n');
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Skip empty lines and comments
+    if (!trimmed || trimmed.startsWith('--')) continue;
+
+    // Track if we're inside a CREATE TRIGGER (ends with END;)
+    if (/^CREATE\s+TRIGGER/i.test(trimmed)) {
+      inTrigger = true;
+    }
+
+    current += line + '\n';
+
+    // End of trigger
+    if (inTrigger && /^END\s*;/i.test(trimmed)) {
+      statements.push(current.trim());
+      current = '';
+      inTrigger = false;
+      continue;
+    }
+
+    // Normal statement ends with ;
+    if (!inTrigger && trimmed.endsWith(';')) {
+      const stmt = current.trim();
+      if (stmt && stmt !== ';') {
+        statements.push(stmt);
+      }
+      current = '';
+    }
+  }
+
+  // Any remaining SQL
+  const remaining = current.trim();
+  if (remaining && remaining !== ';') {
+    statements.push(remaining);
+  }
+
+  return statements;
+}
+
 // ==================== Core Migration Engine ====================
 
 /**
@@ -368,7 +422,7 @@ function runMigrations(dbPath) {
       return result;
     }
 
-    // Apply each pending migration
+    // Apply each pending migration (safe incremental — statement by statement)
     for (const migrationName of pending) {
       const sqlPath = path.join(migrationsDir, migrationName, 'migration.sql');
 
@@ -383,34 +437,41 @@ function runMigrations(dbPath) {
 
       logMigration('⚙️ Applying: ' + migrationName + '...');
 
-      try {
-        // Execute migration SQL in a transaction
-        db.exec('BEGIN TRANSACTION;');
+      // Split SQL into individual statements
+      const statements = splitSQLStatements(sql);
+      let applied = 0;
+      let skippedSafe = 0;
+      let fatalError = null;
 
-        // Split and execute statements (some migrations have multiple statements)
-        // SQLite's exec handles multiple statements separated by semicolons
-        db.exec(sql);
+      for (const stmt of statements) {
+        try {
+          db.exec(stmt);
+          applied++;
+        } catch (err) {
+          const msg = err.message.toLowerCase();
 
-        // Record in _prisma_migrations
-        const id = crypto.randomUUID();
-        db.prepare(`
-          INSERT INTO _prisma_migrations (id, checksum, finished_at, migration_name, started_at, applied_steps_count)
-          VALUES (?, ?, datetime('now'), ?, datetime('now'), 1)
-        `).run(id, checksum, migrationName);
+          // Safe to skip — object already exists from previous partial run or baseline
+          if (
+            msg.includes('already exists') ||
+            msg.includes('duplicate column') ||
+            msg.includes('table') && msg.includes('already') ||
+            msg.includes('index') && msg.includes('already')
+          ) {
+            skippedSafe++;
+            logMigration('  ↳ Skipped (already exists): ' + err.message);
+          } else {
+            // Real error — stop this migration
+            fatalError = err;
+            break;
+          }
+        }
+      }
 
-        db.exec('COMMIT;');
-
+      if (fatalError) {
         const duration = Date.now() - migrationStart;
-        logMigration('✅ Applied: ' + migrationName + ' — SUCCESS (' + duration + 'ms)');
-        result.applied.push(migrationName);
-
-      } catch (err) {
-        // Rollback this migration
-        try { db.exec('ROLLBACK;'); } catch {}
-
-        const duration = Date.now() - migrationStart;
-        logMigration('❌ Failed: ' + migrationName + ' — ERROR (' + duration + 'ms): ' + err.message);
-        result.errors.push(migrationName + ': ' + err.message);
+        logMigration('❌ Failed: ' + migrationName + ' — ERROR (' + duration + 'ms): ' + fatalError.message);
+        logMigration('  ↳ Applied ' + applied + ' statements, skipped ' + skippedSafe + ' (safe), then hit fatal error');
+        result.errors.push(migrationName + ': ' + fatalError.message);
 
         // Restore from backup
         logMigration('🔄 Restoring database from backup...');
@@ -421,6 +482,17 @@ function runMigrations(dbPath) {
         // Stop applying further migrations
         break;
       }
+
+      // Record in _prisma_migrations
+      const id = crypto.randomUUID();
+      db.prepare(`
+        INSERT INTO _prisma_migrations (id, checksum, finished_at, migration_name, logs, started_at, applied_steps_count)
+        VALUES (?, ?, datetime('now'), ?, ?, datetime('now'), 1)
+      `).run(id, checksum, migrationName, `Applied: ${applied}, Skipped (safe): ${skippedSafe}`);
+
+      const duration = Date.now() - migrationStart;
+      logMigration('✅ Applied: ' + migrationName + ' — SUCCESS (' + duration + 'ms) [' + applied + ' executed, ' + skippedSafe + ' skipped]');
+      result.applied.push(migrationName);
     }
 
     // Update DB version
