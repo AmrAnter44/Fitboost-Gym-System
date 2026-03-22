@@ -197,6 +197,12 @@ async function startProductionServer() {
           );
         } else if (migrationResult.applied.length > 0) {
           console.log(`✅ Applied ${migrationResult.applied.length} migration(s) successfully`);
+          dialog.showMessageBoxSync(mainWindow || null, {
+            type: 'info',
+            title: 'Database Updated',
+            message: `Database updated successfully!\n\n${migrationResult.applied.length} migration(s) applied.\n${migrationResult.skipped.length} already up to date.`,
+            buttons: ['OK']
+          });
         }
       }
     } catch (migrationError) {
