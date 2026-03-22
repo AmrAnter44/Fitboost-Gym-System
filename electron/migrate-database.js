@@ -273,6 +273,51 @@ function runMigrations(dbPath) {
       rows.forEach(r => appliedMigrations.add(r.migration_name));
     } catch {}
 
+    // ==================== Baseline Detection ====================
+    // If _prisma_migrations is empty BUT the database already has tables,
+    // this is an existing database that predates the migration engine.
+    // Baseline: mark all existing migrations as applied without running them.
+    if (appliedMigrations.size === 0) {
+      const tables = db.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '_prisma%' AND name NOT LIKE '_db_%' AND name NOT LIKE 'sqlite_%'"
+      ).all();
+
+      if (tables.length > 0) {
+        logMigration('📋 Existing database detected with ' + tables.length + ' tables but no migration history');
+        logMigration('📋 Baselining all existing migrations as already applied...');
+
+        // Find migrations directory early for baselining
+        const baselineMigrationsDir = getMigrationsDir();
+        if (baselineMigrationsDir) {
+          const allFolders = fs.readdirSync(baselineMigrationsDir)
+            .filter(f => {
+              const fullPath = path.join(baselineMigrationsDir, f);
+              return fs.statSync(fullPath).isDirectory() && f !== 'migration_lock';
+            })
+            .sort();
+
+          for (const migrationName of allFolders) {
+            const sqlPath = path.join(baselineMigrationsDir, migrationName, 'migration.sql');
+            let checksum = 'baseline';
+            if (fs.existsSync(sqlPath)) {
+              checksum = calculateChecksum(fs.readFileSync(sqlPath, 'utf8'));
+            }
+
+            const id = crypto.randomUUID();
+            db.prepare(`
+              INSERT INTO _prisma_migrations (id, checksum, finished_at, migration_name, logs, started_at, applied_steps_count)
+              VALUES (?, ?, datetime('now'), ?, 'Baselined — existing database', datetime('now'), 1)
+            `).run(id, checksum, migrationName);
+
+            appliedMigrations.add(migrationName);
+            logMigration('✅ Baselined: ' + migrationName);
+          }
+
+          logMigration('📋 Baseline complete — ' + allFolders.length + ' migrations marked as applied');
+        }
+      }
+    }
+
     // Find migrations directory
     const migrationsDir = getMigrationsDir();
     if (!migrationsDir) {
