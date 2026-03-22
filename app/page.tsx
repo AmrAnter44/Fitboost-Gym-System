@@ -80,7 +80,7 @@ export default function HomePage() {
 
         // إذا كان المستخدم مدرب، يوجه لصفحة PT Commission
         if (data.user.role === 'COACH') {
-          router.push('/pt/commission')
+          router.push('/coach')
           return
         }
 

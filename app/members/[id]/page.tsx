@@ -1423,6 +1423,8 @@ export default function MemberDetailPage() {
   const hasStarted = !startDate || startDate <= today
   const notExpired = !expiryDate || expiryDate >= today
   const isMemberActiveNow = member.isActive && hasStarted && notExpired
+  const isNotStartedYet = member.isActive && startDate && startDate > today
+  const daysUntilStart = isNotStartedYet ? Math.ceil((startDate!.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0
   const daysRemaining = calculateRemainingDays(member.expiryDate)
 
   return (
@@ -1657,9 +1659,11 @@ export default function MemberDetailPage() {
                   ? `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
                   : member.isFrozen
                     ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
-                    : isMemberActiveNow
-                      ? `✅ ${t('memberDetails.active')}`
-                      : `❌ ${t('memberDetails.expired')}`
+                    : isNotStartedYet
+                      ? `🕐 ${locale === 'ar' ? `يبدأ بعد ${daysUntilStart} يوم` : `Starts in ${daysUntilStart}d`}`
+                      : isMemberActiveNow
+                        ? `✅ ${t('memberDetails.active')}`
+                        : `❌ ${t('memberDetails.expired')}`
                 }
               </p>
             </div>

@@ -1036,15 +1036,6 @@ export default function CoachCommissionPage() {
     })
   }
 
-  // دالة مسح البيانات
-  const handleReset = () => {
-    setSelectedCoach('')
-    setCustomIncome('')
-    setUseCustomIncome(false)
-    setResult(null)
-    setCoachEarnings(null)
-  }
-
   // دالة تحديد لون النسبة حسب المستوى
   const getPercentageBgColor = (percentage: number): string => {
     if (percentage <= 25) return 'from-orange-500 to-orange-600'
@@ -1305,14 +1296,6 @@ export default function CoachCommissionPage() {
                 >
                   ✅ {t('pt.commission.calculateButton')}
                 </button>
-                {result && (
-                  <button
-                    onClick={handleReset}
-                    className="px-4 sm:px-6 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 dark:text-gray-200 py-3 sm:py-4 rounded-lg hover:from-gray-300 hover:to-gray-400 font-bold text-base sm:text-lg shadow-lg transform transition hover:scale-105 active:scale-95"
-                  >
-                    🔄 {t('pt.commission.resetButton')}
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -1866,7 +1849,7 @@ export default function CoachCommissionPage() {
               </div>
 
               {/* زر التحصيل - الطريقة الأولى */}
-              {(() => {
+              {currentUser?.role !== 'COACH' && (() => {
                 const staff = coaches.find(c => c.name === result.coachName)
                 const lastDate = staff && lastPayrollDates[staff.id]
                 return (
@@ -1993,7 +1976,7 @@ export default function CoachCommissionPage() {
                     )}
 
                     {/* زر التحصيل - الطريقة الثانية */}
-                    {(() => {
+                    {currentUser?.role !== 'COACH' && (() => {
                       const staff = coaches.find(c => c.name === coach.coachName)
                       const lastDate = staff && lastPayrollDates[staff.id]
                       return (

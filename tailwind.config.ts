@@ -1,6 +1,22 @@
 import type { Config } from 'tailwindcss'
 import { THEME_COLORS } from './lib/theme/colors'
 
+// CSS variable-based primary colors for dynamic theming
+// Uses RGB format to support Tailwind opacity modifiers (e.g., bg-primary-500/20)
+const primaryFromCSS = {
+  50: 'rgb(var(--color-primary-50-rgb) / <alpha-value>)',
+  100: 'rgb(var(--color-primary-100-rgb) / <alpha-value>)',
+  200: 'rgb(var(--color-primary-200-rgb) / <alpha-value>)',
+  300: 'rgb(var(--color-primary-300-rgb) / <alpha-value>)',
+  400: 'rgb(var(--color-primary-400-rgb) / <alpha-value>)',
+  500: 'rgb(var(--color-primary-500-rgb) / <alpha-value>)',
+  600: 'rgb(var(--color-primary-600-rgb) / <alpha-value>)',
+  700: 'rgb(var(--color-primary-700-rgb) / <alpha-value>)',
+  800: 'rgb(var(--color-primary-800-rgb) / <alpha-value>)',
+  900: 'rgb(var(--color-primary-900-rgb) / <alpha-value>)',
+  950: 'rgb(var(--color-primary-950-rgb) / <alpha-value>)',
+}
+
 const config: Config = {
   darkMode: 'class',
   content: [
@@ -11,14 +27,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ✅ ربط الألوان من النظام المركزي
-        primary: THEME_COLORS.primary,
+        // ✅ ألوان ديناميكية عبر CSS variables
+        primary: primaryFromCSS,
         secondary: THEME_COLORS.secondary,
         accent: THEME_COLORS.accent,
         danger: THEME_COLORS.danger,
 
         // إبقاء الألوان الافتراضية لـ Tailwind
-        blue: THEME_COLORS.primary, // redirect blue-* to primary-*
+        blue: primaryFromCSS, // redirect blue-* to primary-*
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

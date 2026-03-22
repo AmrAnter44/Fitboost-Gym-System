@@ -375,10 +375,11 @@ export default function MembersPage() {
 
   useEffect(() => {
     // ✅ فقط إذا كان لديه صلاحية عرض الإيصالات
-    if (hasPermission('canViewReceipts')) {
+    if (!permissionsLoading && hasPermission('canViewReceipts')) {
       fetchLastReceipts()
     }
-  }, [hasPermission])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissionsLoading])
 
   // إعادة تعيين الصفحة عند تغيير الفلاتر (مش البيانات)
   useEffect(() => {
@@ -1143,6 +1144,11 @@ export default function MembersPage() {
                     const isActiveNow = isMemberActiveNow(member)
                     const daysRemaining = calculateRemainingDays(member.expiryDate)
                     const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7 && isActiveNow
+                    // التحقق من اشتراك لم يبدأ بعد
+                    const startDate = member.startDate ? new Date(member.startDate) : null
+                    const todayCheck = new Date(); todayCheck.setHours(0, 0, 0, 0)
+                    const isNotStartedYet = member.isActive && startDate && startDate > todayCheck
+                    const daysUntilStart = isNotStartedYet ? Math.ceil((startDate!.getTime() - todayCheck.getTime()) / (1000 * 60 * 60 * 24)) : 0
 
                     const isBanned = member.isBanned
                     return (
@@ -1199,21 +1205,25 @@ export default function MembersPage() {
                               ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border border-gray-700'
                               : member.isFrozen
                                 ? 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
-                                : isExpiringSoon
-                                  ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300'
-                                  : isActiveNow
-                                    ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300'
-                                    : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
+                                : isNotStartedYet
+                                  ? 'bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/40 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                                  : isExpiringSoon
+                                    ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300'
+                                    : isActiveNow
+                                      ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300'
+                                      : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
                           }`}>
                             {member.isBanned
                               ? <><span className="text-lg">🚫</span> {locale === 'ar' ? 'محظور' : 'Banned'}</>
                               : member.isFrozen
                                 ? <><span className="text-lg">❄️</span> {locale === 'ar' ? 'مجمد' : 'Frozen'}{member.freezeUntil ? <span className="text-xs font-normal ms-1 text-blue-600 dark:text-blue-400">{locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}</span> : null}</>
-                                : isExpiringSoon
-                                  ? <><span className="text-lg">🟡</span> {locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'}</>
-                                  : isActiveNow
-                                    ? <><span className="text-lg">🟢</span> {t('members.active')}</>
-                                    : <><span className="text-lg">🔴</span> {t('members.expired')}</>
+                                : isNotStartedYet
+                                  ? <><span className="text-lg">🕐</span> {locale === 'ar' ? `يبدأ بعد ${daysUntilStart} يوم` : `Starts in ${daysUntilStart}d`}</>
+                                  : isExpiringSoon
+                                    ? <><span className="text-lg">🟡</span> {locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'}</>
+                                    : isActiveNow
+                                      ? <><span className="text-lg">🟢</span> {t('members.active')}</>
+                                      : <><span className="text-lg">🔴</span> {t('members.expired')}</>
                             }
                           </span>
                         </td>
@@ -1225,15 +1235,15 @@ export default function MembersPage() {
                         <td className="px-4 py-3">
                           {member.expiryDate ? (
                             <div>
-                              <span className={`font-mono ${!isActiveNow ? 'text-red-600 font-bold' : isExpiringSoon ? 'text-orange-600 font-bold' : ''}`}>
+                              <span className={`font-mono ${isNotStartedYet ? 'text-purple-600 font-bold' : !isActiveNow ? 'text-red-600 font-bold' : isExpiringSoon ? 'text-orange-600 font-bold' : ''}`}>
                                 {formatDateYMD(member.expiryDate)}
                               </span>
-                              {daysRemaining !== null && daysRemaining > 0 && (
-                                <p className={`text-xs ${isExpiringSoon ? 'text-orange-600' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400'}`}>
+                              {!isNotStartedYet && daysRemaining !== null && daysRemaining > 0 && (
+                                <p className={`text-xs ${isExpiringSoon ? 'text-orange-600' : 'text-gray-500 dark:text-gray-400'}`}>
                                   {isExpiringSoon && '⚠️ '} {t('members.daysRemaining', { days: daysRemaining.toString() })}
                                 </p>
                               )}
-                              {!isActiveNow && daysRemaining !== null && (
+                              {!isNotStartedYet && !isActiveNow && daysRemaining !== null && (
                                 <p className="text-xs text-red-600">
                                   ❌ {t('members.expiredSince', { days: Math.abs(daysRemaining).toString() })}
                                 </p>

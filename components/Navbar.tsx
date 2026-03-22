@@ -109,39 +109,35 @@ export default function Navbar() {
 
             {/* Desktop: Logo + Hamburger على اليسار */}
             <div className="hidden lg:flex items-center gap-2 flex-shrink-0 py-1.5">
-              {/* Logo Button - للصفحة الرئيسية (مخفي عن الكوتش) */}
-              {user?.role !== 'COACH' && (
-                <Link
-                  href="/"
-                  className="logo-breathing block w-12 h-12 sm:w-14 sm:h-14"
-                  title={t('nav.home')}
-                >
-                  <img
-                    src="/assets/icon.svg"
-                    alt="Home"
-                    className="w-full h-full object-contain drop-shadow-2xl"
-                  />
-                </Link>
-              )}
+              {/* Logo Button - للصفحة الرئيسية */}
+              <Link
+                href={user?.role === 'COACH' ? '/coach' : '/'}
+                className="logo-breathing block w-12 h-12 sm:w-14 sm:h-14"
+                title={t('nav.home')}
+              >
+                <img
+                  src={settings.gymLogo || '/assets/icon.png'}
+                  alt="Home"
+                  className="w-full h-full object-contain drop-shadow-2xl"
+                />
+              </Link>
             </div>
 
             {/* Mobile: Logo في المنتصف */}
-            {user?.role !== 'COACH' && (
-              <div className="flex lg:hidden items-center justify-center flex-1 py-1.5">
-                <Link
-                  href="/"
-                  className="logo-breathing flex items-center gap-2"
-                  title={t('nav.home')}
-                >
-                  <img
-                    src="/assets/icon.svg"
-                    alt="Home"
-                    className="w-10 h-10 object-contain drop-shadow-2xl"
-                  />
-                  <span className="font-bold text-base">{t('common.appTitle')}</span>
-                </Link>
-              </div>
-            )}
+            <div className="flex lg:hidden items-center justify-center flex-1 py-1.5">
+              <Link
+                href={user?.role === 'COACH' ? '/coach' : '/'}
+                className="logo-breathing flex items-center gap-2"
+                title={t('nav.home')}
+              >
+                <img
+                  src={settings.gymLogo || '/assets/icon.png'}
+                  alt="Home"
+                  className="w-10 h-10 object-contain drop-shadow-2xl"
+                />
+                <span className="font-bold text-base">{t('common.appTitle')}</span>
+              </Link>
+            </div>
 
             {/* روابط التنقل - في الوسط على Desktop */}
             <div className="hidden lg:flex lg:justify-center lg:flex-wrap gap-1 xl:gap-1.5 py-1.5 flex-1">
@@ -301,7 +297,7 @@ export default function Navbar() {
               {/* Logo in Center */}
               <div className="flex items-center gap-2 flex-1 justify-center">
                 <img
-                  src="/assets/icon.svg"
+                  src={settings.gymLogo || '/assets/icon.png'}
                   alt="Logo"
                   className="w-10 h-10 object-contain drop-shadow-lg"
                 />

@@ -1,46 +1,37 @@
 /**
  * Central Color System
- * نظام الألوان المركزي لـ Fitboost System
+ * نظام الألوان المركزي لـ X Gym
  *
  * جميع الألوان الأساسية للنظام في مكان واحد
  * لتغيير الألوان، عدّل القيم هنا مباشرة
  */
 
 /**
- * الألوان الأساسية للنظام - Fitboost Brand Identity
+ * الألوان الأساسية للنظام
  * غيّر الألوان من هنا لتحديث theme النظام بالكامل
  */
 export const THEME_COLORS = {
   primary: {
-    50: '#e6f7f7',    // أفتح تركواز
-    100: '#b3e6e6',
-    200: '#80d6d6',
-    300: '#4dc5c5',
-    400: '#1ab5b5',
-    500: '#008B8B',  // اللون الأساسي - تركواز داكن (من الهوية البصرية)
-    600: '#007272',
-    700: '#005959',
-    800: '#004141',
-    900: '#002828',
-    950: '#001414',
+    50: '#fcfaee',
+    100: '#f8f4d8',
+    200: '#f0eab2',
+    300: '#fded68',
+    400: '#fce62b',
+    500: '#fbe003',  // اللون الأساسي - أصفر
+    600: '#cab402',
+    700: '#a19002',
+    800: '#7e7002',
+    900: '#564e0b',
+    950: '#322d06',
   },
 
   // ألوان إضافية
   secondary: {
-    50: '#fff2f2',
-    100: '#ffd9d9',
-    200: '#ffbfbf',
-    300: '#ffa6a6',
-    400: '#ff8c8c',
-    500: '#FA8072', // مرجاني/سالمون (من الهوية البصرية)
-    600: '#f5635f',
-    700: '#f04a4a',
-    800: '#eb3030',
-    900: '#d91e1e',
+    500: '#10b981', // أخضر
   },
 
   accent: {
-    500: '#FA8072', // مرجاني
+    500: '#f59e0b', // برتقالي
   },
 
   danger: {
@@ -61,8 +52,8 @@ export function getColor(color: keyof typeof THEME_COLORS, shade: number = 500):
 export function hexToRgb(hex: string): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result
-    ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
-    : '0, 0, 0'
+    ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(result[3], 16)}`
+    : '0 0 0'
 }
 
 // Export RGB values

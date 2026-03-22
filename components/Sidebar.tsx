@@ -147,7 +147,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
           {!isCollapsed && (
             <div className="flex items-center gap-3">
               <img
-                src="/assets/icon.svg"
+                src={settings.gymLogo || '/assets/icon.png'}
                 alt="Logo"
                 className="w-10 h-10 object-contain drop-shadow-lg"
               />

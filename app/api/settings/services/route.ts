@@ -93,7 +93,9 @@ async function updateSettings(request: Request) {
       'freeGroupClassSessionPrice',
       'ptCommissionEnabled', 'ptCommissionAmount',
       'nutritionReferralEnabled', 'nutritionReferralPercentage',
-      'physioReferralEnabled', 'physioReferralPercentage'
+      'physioReferralEnabled', 'physioReferralPercentage',
+      'gymLogo',
+      'primaryColor'
     ]
 
     validFields.forEach(field => {

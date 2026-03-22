@@ -16,6 +16,11 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isAwardingBirthday, setIsAwardingBirthday] = useState(false)
   const [birthdayResult, setBirthdayResult] = useState<any>(null)
+  const [gymLogo, setGymLogo] = useState<string | null>(null)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [primaryColor, setPrimaryColor] = useState<string | null>(null)
+  const [customColorInput, setCustomColorInput] = useState('')
+  const [isSavingColor, setIsSavingColor] = useState(false)
 
   const [serviceSettings, setServiceSettings] = useState({
     nutritionEnabled: true,
@@ -113,6 +118,8 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json()
         setServiceSettings(data)
+        if (data.gymLogo) setGymLogo(data.gymLogo)
+        if (data.primaryColor) setPrimaryColor(data.primaryColor)
       }
     } catch (error) {
       console.error('Error fetching service settings:', error)
@@ -220,6 +227,80 @@ export default function SettingsPage() {
 
   const handleLanguageChange = (newLocale: string) => {
     setLanguage(newLocale as 'ar' | 'en')
+  }
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsUploadingLogo(true)
+    try {
+      const formData = new FormData()
+      formData.append('logo', file)
+      const res = await fetch('/api/settings/gym-logo', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok && data.logoUrl) {
+        setGymLogo(data.logoUrl)
+      } else {
+        alert(data.error || t('settingsPage.display.logoUploadFailed'))
+      }
+    } catch {
+      alert(t('settingsPage.display.logoUploadFailed'))
+    } finally {
+      setIsUploadingLogo(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleLogoRemove = async () => {
+    if (!confirm(t('settingsPage.display.confirmRemoveLogo'))) return
+    setIsUploadingLogo(true)
+    try {
+      const res = await fetch('/api/settings/gym-logo', { method: 'DELETE' })
+      if (res.ok) {
+        setGymLogo(null)
+      }
+    } catch {
+      alert(t('settingsPage.display.logoRemoveFailed'))
+    } finally {
+      setIsUploadingLogo(false)
+    }
+  }
+
+  const handleColorChange = async (color: string | null) => {
+    setIsSavingColor(true)
+    try {
+      // Preview مباشر
+      if (color) {
+        const { applyPaletteToDOM } = await import('../../lib/theme/generatePalette')
+        applyPaletteToDOM(color)
+      } else {
+        // Reset to defaults
+        const root = document.documentElement
+        const shades = ['50','100','200','300','400','500','600','700','800','900','950']
+        shades.forEach(s => {
+          root.style.removeProperty(`--color-primary-${s}`)
+          root.style.removeProperty(`--color-primary-${s}-rgb`)
+        })
+      }
+
+      const res = await fetch('/api/settings/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ primaryColor: color })
+      })
+      if (res.ok) {
+        setPrimaryColor(color)
+        if (color) {
+          localStorage.setItem('primaryColor', color)
+        } else {
+          localStorage.removeItem('primaryColor')
+        }
+      }
+    } catch {
+      alert(t('settingsPage.display.colorSaveFailed'))
+    } finally {
+      setIsSavingColor(false)
+    }
   }
 
   const handleDbUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -435,7 +516,7 @@ export default function SettingsPage() {
       { id: 'receipts', label: t('settingsPage.navigation.receipts'), icon: '📋' },
       { id: 'port-forwarding', label: t('settingsPage.navigation.portForwarding'), icon: '🌐' }
     ] : []),
-    { id: 'whatsapp', label: 'الواتساب', icon: '📱' },
+    { id: 'whatsapp', label: t('settingsPage.navigation.whatsapp'), icon: '📱' },
     { id: 'display', label: t('settingsPage.navigation.display'), icon: '🎨' },
     ...(user?.role === 'OWNER' ? [
       { id: 'license', label: 'رخصة النظام', icon: '🔑' },
@@ -910,6 +991,126 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3"><span className="text-4xl">🎨</span><div><h2 className="text-2xl font-bold">{t('settingsPage.display.title')}</h2><p className="text-violet-50 text-sm mt-1">{t('settingsPage.display.description')}</p></div></div>
               </div>
 
+              {/* لوجو الجيم - OWNER فقط */}
+              {user?.role === 'OWNER' && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">🏷️</span>
+                    {t('settingsPage.display.gymLogo')}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{t('settingsPage.display.gymLogoDesc')}</p>
+                  <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden bg-white dark:bg-gray-800 shrink-0">
+                      <img
+                        src={gymLogo || '/assets/icon.png'}
+                        alt="Gym Logo"
+                        className="w-full h-full object-contain p-1"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label className={`cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${isUploadingLogo ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-700 text-white'}`}>
+                        {isUploadingLogo ? (
+                          <span className="animate-spin">⏳</span>
+                        ) : (
+                          <span>📤</span>
+                        )}
+                        {t('settingsPage.display.uploadLogo')}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          onChange={handleLogoUpload}
+                          disabled={isUploadingLogo}
+                          className="hidden"
+                        />
+                      </label>
+                      {gymLogo && (
+                        <button
+                          onClick={handleLogoRemove}
+                          disabled={isUploadingLogo}
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                        >
+                          <span>🗑️</span>
+                          {t('settingsPage.display.removeLogo')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* اللون الأساسي - OWNER فقط */}
+              {user?.role === 'OWNER' && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">🎨</span>
+                    {t('settingsPage.display.primaryColor')}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{t('settingsPage.display.primaryColorDesc')}</p>
+
+                  {/* ألوان جاهزة */}
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-4">
+                    {[
+                      { hex: '#fbe003', label: 'أصفر' },
+                      { hex: '#ef4444', label: 'أحمر' },
+                      { hex: '#3b82f6', label: 'أزرق' },
+                      { hex: '#10b981', label: 'أخضر' },
+                      { hex: '#f97316', label: 'برتقالي' },
+                      { hex: '#8b5cf6', label: 'بنفسجي' },
+                      { hex: '#14b8a6', label: 'تركواز' },
+                      { hex: '#ec4899', label: 'وردي' },
+                    ].map(c => (
+                      <button
+                        key={c.hex}
+                        onClick={() => handleColorChange(c.hex)}
+                        disabled={isSavingColor}
+                        className={`w-full aspect-square rounded-xl border-3 transition-all hover:scale-110 active:scale-95 ${
+                          primaryColor === c.hex || (!primaryColor && c.hex === '#fbe003')
+                            ? 'border-gray-800 dark:border-white shadow-lg scale-110 ring-2 ring-offset-2 ring-gray-400'
+                            : 'border-transparent'
+                        }`}
+                        style={{ backgroundColor: c.hex }}
+                        title={c.label}
+                      />
+                    ))}
+                  </div>
+
+                  {/* لون مخصص */}
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <input
+                      type="color"
+                      value={primaryColor || '#fbe003'}
+                      onChange={(e) => {
+                        setCustomColorInput(e.target.value)
+                        handleColorChange(e.target.value)
+                      }}
+                      className="w-10 h-10 rounded-lg border-2 border-gray-300 dark:border-gray-600 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      placeholder="#fbe003"
+                      value={customColorInput || primaryColor || ''}
+                      onChange={(e) => setCustomColorInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && /^#[0-9a-fA-F]{6}$/.test(customColorInput)) {
+                          handleColorChange(customColorInput)
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-mono text-gray-800 dark:text-gray-200"
+                      dir="ltr"
+                    />
+                    {primaryColor && primaryColor !== '#fbe003' && (
+                      <button
+                        onClick={() => { handleColorChange('#fbe003'); setCustomColorInput('') }}
+                        disabled={isSavingColor}
+                        className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+                      >
+                        {t('settingsPage.display.resetColor')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* المظهر */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
@@ -1285,8 +1486,8 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3">
                   <span className="text-4xl">📱</span>
                   <div>
-                    <h2 className="text-2xl font-bold">إعدادات الواتساب</h2>
-                    <p className="text-green-50 text-sm mt-1">إرسال الإيصالات والرسائل التلقائية عبر الواتساب</p>
+                    <h2 className="text-2xl font-bold">{t('settingsPage.whatsapp.title')}</h2>
+                    <p className="text-green-50 text-sm mt-1">{t('settingsPage.whatsapp.description')}</p>
                   </div>
                 </div>
               </div>
@@ -1297,10 +1498,10 @@ export default function SettingsPage() {
                     <span className="text-7xl">📲</span>
                   </div>
                   <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                    إرسال تلقائي عبر الواتساب
+                    {t('settingsPage.whatsapp.autoSendTitle')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                    قم بربط رقم الواتساب الخاص بك لإرسال الإيصالات والرسائل التلقائية للعملاء مباشرة
+                    {t('settingsPage.whatsapp.autoSendDescription')}
                   </p>
 
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
@@ -1309,35 +1510,35 @@ export default function SettingsPage() {
                       className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all hover:scale-105 shadow-lg"
                     >
                       <span className="text-2xl">⚙️</span>
-                      <span>إدارة إعدادات الواتساب</span>
+                      <span>{t('settingsPage.whatsapp.manageButton')}</span>
                     </Link>
                   </div>
 
                   <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg text-right">
                     <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
                       <span>✨</span>
-                      <span>المميزات المتاحة:</span>
+                      <span>{t('settingsPage.whatsapp.availableFeatures')}</span>
                     </h4>
                     <ul className="space-y-2 text-blue-700 dark:text-blue-300 text-sm">
                       <li className="flex items-start gap-2">
                         <span className="text-green-500">✓</span>
-                        <span>إرسال الإيصالات تلقائياً للعملاء عند الإنشاء</span>
+                        <span>{t('settingsPage.whatsapp.featureAutoReceipts')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-green-500">✓</span>
-                        <span>تذكيرات انتهاء الاشتراكات</span>
+                        <span>{t('settingsPage.whatsapp.featureSubReminders')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-green-500">✓</span>
-                        <span>إشعارات مواعيد الجلسات</span>
+                        <span>{t('settingsPage.whatsapp.featureSessionNotifications')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-green-500">✓</span>
-                        <span>رسائل الترحيب والتهنئة</span>
+                        <span>{t('settingsPage.whatsapp.featureWelcomeMessages')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-green-500">✓</span>
-                        <span>متابعة الأعضاء تلقائياً</span>
+                        <span>{t('settingsPage.whatsapp.featureAutoFollowUp')}</span>
                       </li>
                     </ul>
                   </div>

@@ -185,11 +185,19 @@ async function startProductionServer() {
     // ✅ الحصول على مسار قاعدة البيانات الدائم
     const dbPath = getDatabasePath();
 
-    // ✅ تشغيل migration script
+    // ✅ تشغيل migration engine (بدل check-and-migrate القديم)
     try {
-      const { migrateDatabase } = require('./check-and-migrate');
+      const { runMigrations } = require('./migrate-database');
       if (fs.existsSync(dbPath)) {
-        migrateDatabase(dbPath);
+        const migrationResult = runMigrations(dbPath);
+        if (migrationResult.errors.length > 0) {
+          dialog.showErrorBox(
+            'Database Migration Error',
+            `Migration failed. A backup was created automatically.\n\nError: ${migrationResult.errors[0]}\n\nThe app will continue with the existing database.`
+          );
+        } else if (migrationResult.applied.length > 0) {
+          console.log(`✅ Applied ${migrationResult.applied.length} migration(s) successfully`);
+        }
       }
     } catch (migrationError) {
       console.warn('⚠️ Migration warning:', migrationError.message);
@@ -614,6 +622,11 @@ function createWindow() {
 }
 
 // ------------------ IPC Handlers ------------------
+
+// ✅ Handler للحصول على App Version
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
 
 // ✅ Handler للحصول على IP Address
 ipcMain.handle('get-local-ip', () => {
@@ -1046,7 +1059,7 @@ app.whenReady().then(async () => {
   }
   createWindow();
   setupBarcodeScanner();
-  // setupAutoUpdater(); // ✅ Auto-updater disabled
+  setupAutoUpdater(); // ✅ Auto-updater enabled
 
   // ✅ Start WhatsApp sidecar service (HTTP server on port 4002)
   // Runs Baileys inside Electron's main process – no module bundling issues

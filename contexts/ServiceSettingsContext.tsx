@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
+import { applyPaletteToDOM } from '../lib/theme/generatePalette'
 
 interface ServiceSettings {
   nutritionEnabled: boolean
@@ -28,6 +29,8 @@ interface ServiceSettings {
   physioReferralPercentage: number
   websiteUrl?: string
   showWebsiteOnReceipts?: boolean
+  gymLogo?: string | null
+  primaryColor?: string | null
 }
 
 interface ServiceSettingsContextType {
@@ -64,7 +67,9 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     physioReferralEnabled: false,
     physioReferralPercentage: 0,
     websiteUrl: '',
-    showWebsiteOnReceipts: false
+    showWebsiteOnReceipts: false,
+    gymLogo: null,
+    primaryColor: null
   })
   const [loading, setLoading] = useState(true)
 
@@ -98,7 +103,9 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
           physioReferralEnabled: data.physioReferralEnabled ?? false,
           physioReferralPercentage: data.physioReferralPercentage ?? 0,
           websiteUrl: data.websiteUrl || '',
-          showWebsiteOnReceipts: data.showWebsiteOnReceipts ?? false
+          showWebsiteOnReceipts: data.showWebsiteOnReceipts ?? false,
+          gymLogo: data.gymLogo || null,
+          primaryColor: data.primaryColor || null
         })
       }
     } catch (error) {
@@ -111,6 +118,26 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchSettings()
   }, [])
+
+  // تطبيق اللون الأساسي عند تغييره من السيرفر
+  const prevColor = useRef<string | null>(null)
+  useEffect(() => {
+    if (settings.primaryColor && settings.primaryColor !== prevColor.current) {
+      prevColor.current = settings.primaryColor
+      applyPaletteToDOM(settings.primaryColor)
+      localStorage.setItem('primaryColor', settings.primaryColor)
+    } else if (!settings.primaryColor && prevColor.current) {
+      prevColor.current = null
+      localStorage.removeItem('primaryColor')
+      // Reset to CSS defaults by removing inline styles
+      const root = document.documentElement
+      const shades = ['50','100','200','300','400','500','600','700','800','900','950']
+      shades.forEach(s => {
+        root.style.removeProperty(`--color-primary-${s}`)
+        root.style.removeProperty(`--color-primary-${s}-rgb`)
+      })
+    }
+  }, [settings.primaryColor])
 
   return (
     <ServiceSettingsContext.Provider value={{ settings, loading, refetch: fetchSettings }}>

@@ -19,7 +19,7 @@ export default function FloatingSearchButton() {
     <button
       onClick={() => openSearch()}
       className={`
-        fixed bottom-6 ${direction === 'rtl' ? 'left-6' : 'right-6'}
+        fixed bottom-6 end-6
         z-50
         w-14 h-14
         bg-gradient-to-br from-primary-500 to-primary-600

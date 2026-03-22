@@ -1,7 +1,7 @@
 // app/login/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
@@ -10,6 +10,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [gymLogo, setGymLogo] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/public/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.gymLogo) setGymLogo(data.gymLogo)
+        if (data.primaryColor) {
+          import('../../lib/theme/generatePalette').then(({ applyPaletteToDOM }) => {
+            applyPaletteToDOM(data.primaryColor)
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,7 +85,7 @@ export default function LoginPage() {
                   className="logo-switch absolute inset-0 w-full h-full object-contain drop-shadow-2xl"
                 />
                 <img
-                  src="/icon.svg"
+                  src={gymLogo || '/assets/icon.png'}
                   alt="Gym Logo"
                   className="logo-switch-alt absolute inset-0 w-full h-full object-contain drop-shadow-2xl"
                 />

@@ -7,7 +7,7 @@ import { ToastProvider } from '../contexts/ToastContext'
 import { DeviceSettingsProvider } from '../contexts/DeviceSettingsContext'
 import { SearchProvider } from '../contexts/SearchContext'
 import { UpdateProvider } from '../contexts/UpdateContext'
-import { ServiceSettingsProvider } from '../contexts/ServiceSettingsContext'
+import { ServiceSettingsProvider, useServiceSettings } from '../contexts/ServiceSettingsContext'
 import { DarkModeProvider } from '../contexts/DarkModeContext'
 import { LicenseProvider } from '../contexts/LicenseContext'
 import QueryProvider from './QueryProvider'
@@ -17,7 +17,7 @@ import ToastContainer from './ToastContainer'
 import SearchModal from './SearchModal'
 import BarcodeInputDetector from './BarcodeInputDetector'
 import FloatingSearchButton from './FloatingSearchButton'
-// import UpdateNotification from './UpdateNotification' // ✅ تم تعطيل نظام التحديثات
+import UpdateNotification from './UpdateNotification'
 import InstallPrompt from './InstallPrompt'
 import KeyboardShortcuts from './KeyboardShortcuts'
 import Breadcrumb from './Breadcrumb'
@@ -27,6 +27,7 @@ import ErrorTrackingProvider from './ErrorTrackingProvider'
 import Link from 'next/link'
 
 function LayoutContent({ children }: { children: ReactNode }) {
+  const { settings } = useServiceSettings()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const { t, locale } = useLanguage()
@@ -35,7 +36,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
     <>
       <PreventInputScroll />
       <BarcodeInputDetector />
-      {/* <UpdateNotification /> */} {/* ✅ تم تعطيل نظام التحديثات */}
+      <UpdateNotification />
       <InstallPrompt />
       <LicenseLockedScreen />
       <ToastContainer />
@@ -79,7 +80,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
                   title={t('nav.home')}
                 >
                   <img
-                    src="/assets/icon.svg"
+                    src={settings.gymLogo || '/assets/icon.png'}
                     alt="Logo"
                     className="w-8 h-8 object-contain drop-shadow-lg"
                   />

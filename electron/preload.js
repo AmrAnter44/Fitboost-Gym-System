@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld('electron', {
   // Existing: الحصول على IP Address المحلي
   getLocalIP: () => ipcRenderer.invoke('get-local-ip'),
 
+  // App Version
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+
   // New: Environment detection
   isElectron: true,
   platform: process.platform,

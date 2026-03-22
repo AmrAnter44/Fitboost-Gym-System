@@ -64,6 +64,11 @@ const MemberCardRow = ({
   const daysRemaining = calculateRemainingDays(member.expiryDate)
   const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
   const isBanned = member.isBanned
+  // التحقق من اشتراك لم يبدأ بعد
+  const startDate = member.startDate ? new Date(member.startDate) : null
+  const todayCheck = new Date(); todayCheck.setHours(0, 0, 0, 0)
+  const isNotStartedYet = member.isActive && startDate && startDate > todayCheck
+  const daysUntilStart = isNotStartedYet ? Math.ceil((startDate!.getTime() - todayCheck.getTime()) / (1000 * 60 * 60 * 24)) : 0
 
   return (
     <div style={{ ...style, paddingBottom: 12 }} {...ariaAttributes}>
@@ -99,17 +104,21 @@ const MemberCardRow = ({
                   ? 'bg-gray-900 text-white'
                   : member.isFrozen
                     ? 'bg-primary-400 dark:bg-primary-500 text-white'
-                    : member.isActive && !isExpired
-                      ? 'bg-green-500 dark:bg-green-600 text-white'
-                      : 'bg-red-500 dark:bg-red-600 text-white'
+                    : isNotStartedYet
+                      ? 'bg-purple-500 dark:bg-purple-600 text-white'
+                      : member.isActive && !isExpired
+                        ? 'bg-green-500 dark:bg-green-600 text-white'
+                        : 'bg-red-500 dark:bg-red-600 text-white'
               }`}>
                 {member.isBanned
                   ? `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
                   : member.isFrozen
                     ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}${member.freezeUntil ? ` ${locale === 'ar' ? 'لحد' : 'until'} ${new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}` : ''}`
-                    : member.isActive && !isExpired
-                      ? `✓ ${t('members.active')}`
-                      : `✕ ${t('members.expired')}`
+                    : isNotStartedYet
+                      ? `🕐 ${locale === 'ar' ? `يبدأ بعد ${daysUntilStart} يوم` : `Starts in ${daysUntilStart}d`}`
+                      : member.isActive && !isExpired
+                        ? `✓ ${t('members.active')}`
+                        : `✕ ${t('members.expired')}`
                 }
               </div>
             </div>
@@ -181,25 +190,25 @@ const MemberCardRow = ({
 
             {member.expiryDate && (
               <div className={`border-2 rounded-lg p-2.5 ${
-                isExpired ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                isNotStartedYet ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700' : isExpired ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
               }`}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm">{isExpired ? '❌' : isExpiringSoon ? '⚠️' : '📅'}</span>
+                  <span className="text-sm">{isNotStartedYet ? '🕐' : isExpired ? '❌' : isExpiringSoon ? '⚠️' : '📅'}</span>
                   <span className={`text-xs font-semibold ${
-                    isExpired ? 'text-red-700 dark:text-red-400' : isExpiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'
+                    isNotStartedYet ? 'text-purple-700 dark:text-purple-400' : isExpired ? 'text-red-700 dark:text-red-400' : isExpiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'
                   }`}>{t('members.expiryDate')}</span>
                 </div>
                 <div className={`text-sm font-mono font-bold ${
-                  isExpired ? 'text-red-600 dark:text-red-400' : isExpiringSoon ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'
+                  isNotStartedYet ? 'text-purple-600 dark:text-purple-400' : isExpired ? 'text-red-600 dark:text-red-400' : isExpiringSoon ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'
                 }`}>
                   {formatDateYMD(member.expiryDate)}
                 </div>
-                {daysRemaining !== null && daysRemaining > 0 && (
+                {!isNotStartedYet && daysRemaining !== null && daysRemaining > 0 && (
                   <div className={`text-xs mt-1 font-semibold ${isExpiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300'}`}>
                     {isExpiringSoon && '⚠️ '} {t('members.daysRemaining', { days: daysRemaining.toString() })}
                   </div>
                 )}
-                {isExpired && daysRemaining !== null && (
+                {!isNotStartedYet && isExpired && daysRemaining !== null && (
                   <div className="text-xs mt-1 font-semibold text-red-700 dark:text-red-400">
                     ❌ {t('members.expiredSince', { days: Math.abs(daysRemaining).toString() })}
                   </div>

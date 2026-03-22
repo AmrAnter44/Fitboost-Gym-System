@@ -115,7 +115,7 @@ export default function StaffPage() {
     const key = POSITION_MAP[position] || 'other'
     return t(`positions.${key}` as any)
   }
-  const { hasPermission, loading: permissionsLoading } = usePermissions()
+  const { hasPermission, isAdmin, loading: permissionsLoading } = usePermissions()
 
   const {
     data: staff = [],
@@ -930,7 +930,8 @@ const handleScan = async (staffCode: string) => {
                 </div>
               )}
 
-              {/* المرتب */}
+              {/* المرتب - للأدمن فقط */}
+              {isAdmin && (
               <div>
                 <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
                   {t('staff.form.salary')}
@@ -947,6 +948,7 @@ const handleScan = async (staffCode: string) => {
                   placeholder={t('staff.form.salaryPlaceholder')}
                 />
               </div>
+              )}
             </div>
 
             {/* ساعات العمل */}
@@ -1035,6 +1037,7 @@ const handleScan = async (staffCode: string) => {
           </div>
         </div>
 
+        {isAdmin && (
         <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -1046,6 +1049,7 @@ const handleScan = async (staffCode: string) => {
             <div className="text-3xl sm:text-5xl opacity-20">💰</div>
           </div>
         </div>
+        )}
 
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-700 dark:to-orange-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center justify-between">
@@ -1155,13 +1159,15 @@ const handleScan = async (staffCode: string) => {
                     <span className="text-gray-700 dark:text-gray-200">{staffMember.phone || '-'}</span>
                   </div>
 
-                  {/* المرتب */}
+                  {/* المرتب - للأدمن فقط */}
+                  {isAdmin && (
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500 dark:text-gray-400 text-sm">💰</span>
                     <span className="font-bold text-green-600 dark:text-green-400">
                       {staffMember.salary ? `${staffMember.salary} ج.م` : '-'}
                     </span>
                   </div>
+                  )}
 
                   {/* الخصومات */}
                   {staffMember.deductions && staffMember.deductions.length > 0 && (
@@ -1221,7 +1227,7 @@ const handleScan = async (staffCode: string) => {
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.name')}</th>
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.phone')}</th>
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.position')}</th>
-                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.salary')}</th>
+                    {isAdmin && <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.salary')}</th>}
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">📉 الخصومات</th>
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.status')}</th>
                     <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.actions')}</th>
@@ -1264,9 +1270,11 @@ const handleScan = async (staffCode: string) => {
                           )) : <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>}
                         </div>
                       </td>
+                      {isAdmin && (
                       <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
                         {staffMember.salary ? `${staffMember.salary} ج.م` : '-'}
                       </td>
+                      )}
                       <td className="px-4 py-3">
                         {staffMember.deductions && staffMember.deductions.length > 0 ? (
                           <div className="flex items-center gap-2">

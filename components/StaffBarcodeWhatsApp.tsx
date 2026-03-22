@@ -82,33 +82,67 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
     a.click()
   }
 
-  const handleSendBarcode = () => {
+  const handleSendBarcode = async () => {
     if (!barcodeImage) {
       setToast({ message: 'يجب توليد الباركود أولاً', type: 'warning' })
       return
     }
 
-    handleDownloadBarcode()
+    const displayCode = staffCode.toLowerCase().startsWith('s')
+      ? staffCode.toUpperCase()
+      : `S${staffCode}`
 
-    setTimeout(async () => {
-      const displayCode = staffCode.toLowerCase().startsWith('s')
-        ? staffCode.toUpperCase()
-        : `S${staffCode}`
+    const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
+    const caption = `Barcode الموظف #${displayCode} (${staffName})${websiteSection}`
 
-      // إضافة رابط الموقع إذا كان مفعلاً
-      const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
+    setLoading(true)
 
-      const message = `Barcode الموظف #${displayCode} (${staffName})${websiteSection}`
+    try {
+      const statusResponse = await fetch('/api/whatsapp/status')
+      if (statusResponse.ok) {
+        const status = await statusResponse.json()
 
-      // استخدام الـ helper الجديد
-      const success = await sendWhatsAppMessage(staffPhone, message, true)
+        if (status.isReady) {
+          const sendResponse = await fetch('/api/whatsapp/send-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: staffPhone,
+              imageBase64: barcodeImage,
+              caption: caption
+            })
+          })
 
-      if (success) {
-        setToast({ message: 'تم تحميل صورة الباركود!\nسيتم فتح واتساب الآن، قم بإرفاق الصورة المحملة مع الرسالة.', type: 'success' })
-      } else {
-        setToast({ message: 'تم تحميل الباركود لكن فشل فتح واتساب', type: 'warning' })
+          const sendResult = await sendResponse.json()
+
+          if (sendResult.success) {
+            setToast({ message: '✅ تم إرسال الباركود بنجاح على الواتساب', type: 'success' })
+          } else {
+            setToast({ message: `فشل إرسال الباركود: ${sendResult.error}`, type: 'error' })
+          }
+          return
+        }
       }
-    }, 500)
+
+      // Fallback: الواتساب غير متصل
+      setToast({ message: '⚠️ الواتساب غير متصل. جاري تحميل الصورة وفتح واتساب...', type: 'warning' })
+      handleDownloadBarcode()
+
+      setTimeout(async () => {
+        const success = await sendWhatsAppMessage(staffPhone, caption, true)
+        if (success) {
+          setToast({ message: 'تم تحميل الصورة وفتح واتساب. يرجى إرفاق الصورة يدوياً.', type: 'info' })
+        } else {
+          setToast({ message: 'فشل فتح واتساب', type: 'error' })
+        }
+      }, 500)
+
+    } catch (error) {
+      console.error('Error sending barcode:', error)
+      setToast({ message: 'حدث خطأ أثناء إرسال الباركود', type: 'error' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -194,14 +228,15 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
               </button>
 
               <button
-                onClick={() => {
-                  handleSendBarcode()
+                onClick={async () => {
+                  await handleSendBarcode()
                   setShowBarcodeModal(false)
                 }}
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
               >
                 <span>📲</span>
-                <span>تحميل وإرسال عبر واتساب</span>
+                <span>{loading ? 'جاري الإرسال...' : 'إرسال عبر واتساب'}</span>
               </button>
 
               <button

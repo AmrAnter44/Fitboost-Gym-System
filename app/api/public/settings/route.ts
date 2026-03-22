@@ -36,6 +36,8 @@ export async function GET(request: NextRequest) {
         physiotherapyEnabled: true,
         groupClassEnabled: true,
         inBodyEnabled: true,
+        gymLogo: true,
+        primaryColor: true,
       },
     })
 

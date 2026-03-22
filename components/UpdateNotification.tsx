@@ -22,8 +22,16 @@ export default function UpdateNotification() {
   const [isUpToDate, setIsUpToDate] = useState(false)
   const [updateDownloaded, setUpdateDownloaded] = useState(false)
 
-  // Get current version from package.json
-  const currentVersion = '1.0.13'
+  // Get current version dynamically from Electron
+  const [currentVersion, setCurrentVersion] = useState('...')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const electron = (window as any).electron
+    if (electron?.getAppVersion) {
+      electron.getAppVersion().then((v: string) => setCurrentVersion(v)).catch(() => setCurrentVersion('unknown'))
+    }
+  }, [])
 
   // Setup electron update listeners
   useEffect(() => {
