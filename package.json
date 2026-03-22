@@ -171,7 +171,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "installerIcon": "public/icon.ico",
-      "uninstallerIcon": "public/icon.ico"
+      "uninstallerIcon": "public/icon.ico",
+      "artifactName": "Gym-Management-Setup-${version}.${ext}"
     },
     "publish": {
       "provider": "github",
