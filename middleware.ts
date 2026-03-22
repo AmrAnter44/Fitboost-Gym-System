@@ -9,7 +9,7 @@ export function middleware(request: NextRequest) {
   if (
     pathname.startsWith('/_next/static') ||
     pathname.startsWith('/_next/image') ||
-    pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|css|js)$/)
+    pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|css|js|ttf|woff|woff2|eot)$/)
   ) {
     response.headers.set('Cache-Control', 'public, max-age=31536000, immutable')
     return response
@@ -72,6 +72,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|uploads|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.ico|.*\\.webp).*)',
+    '/((?!_next/static|_next/image|favicon.ico|uploads|fonts|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.ico|.*\\.webp|.*\\.ttf|.*\\.woff2?).*)',
   ]
 }

@@ -39,10 +39,75 @@ interface ServiceSettingsContextType {
   refetch: () => Promise<void>
 }
 
+const CACHE_KEY = 'serviceSettingsCache'
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
 const ServiceSettingsContext = createContext<ServiceSettingsContextType | undefined>(undefined)
 
-export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<ServiceSettings>({
+function parseSettings(data: any): ServiceSettings {
+  return {
+    nutritionEnabled: data.nutritionEnabled,
+    physiotherapyEnabled: data.physiotherapyEnabled,
+    groupClassEnabled: data.groupClassEnabled,
+    moreEnabled: data.moreEnabled ?? true,
+    spaEnabled: data.spaEnabled,
+    inBodyEnabled: data.inBodyEnabled,
+    poolEnabled: data.poolEnabled ?? true,
+    padelEnabled: data.padelEnabled ?? true,
+    assessmentEnabled: data.assessmentEnabled ?? true,
+    pointsEnabled: data.pointsEnabled,
+    pointsPerCheckIn: data.pointsPerCheckIn,
+    pointsPerInvitation: data.pointsPerInvitation,
+    pointsPerReferral: data.pointsPerReferral || 0,
+    pointsPerEGPSpent: data.pointsPerEGPSpent,
+    pointsValueInEGP: data.pointsValueInEGP,
+    ptCommissionEnabled: data.ptCommissionEnabled ?? true,
+    ptCommissionAmount: data.ptCommissionAmount ?? 50,
+    moreCommissionEnabled: data.moreCommissionEnabled ?? true,
+    moreCommissionAmount: data.moreCommissionAmount ?? 50,
+    nutritionReferralEnabled: data.nutritionReferralEnabled ?? false,
+    nutritionReferralPercentage: data.nutritionReferralPercentage ?? 0,
+    physioReferralEnabled: data.physioReferralEnabled ?? false,
+    physioReferralPercentage: data.physioReferralPercentage ?? 0,
+    websiteUrl: data.websiteUrl || '',
+    showWebsiteOnReceipts: data.showWebsiteOnReceipts ?? false,
+    gymLogo: data.gymLogo || null,
+    primaryColor: data.primaryColor || null
+  }
+}
+
+/** Load cached settings from localStorage (instant, no network) */
+function loadCachedSettings(): ServiceSettings | null {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY)
+    if (!cached) return null
+    const { data, ts } = JSON.parse(cached)
+    // Return cached data even if stale — we'll revalidate in background
+    if (data) return parseSettings(data)
+  } catch {}
+  return null
+}
+
+/** Save settings to localStorage cache */
+function saveCacheSettings(data: any) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }))
+  } catch {}
+}
+
+/** Check if cache is fresh (within TTL) */
+function isCacheFresh(): boolean {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY)
+    if (!cached) return false
+    const { ts } = JSON.parse(cached)
+    return Date.now() - ts < CACHE_TTL
+  } catch {}
+  return false
+}
+
+function getDefaultSettings(): ServiceSettings {
+  return {
     nutritionEnabled: true,
     physiotherapyEnabled: true,
     groupClassEnabled: true,
@@ -68,45 +133,42 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     physioReferralPercentage: 0,
     websiteUrl: '',
     showWebsiteOnReceipts: false,
-    gymLogo: null,
+    // Use cached logo from blocking script for instant display
+    gymLogo: typeof window !== 'undefined' ? (window as any).__CACHED_GYM_LOGO || null : null,
     primaryColor: null
+  }
+}
+
+export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
+  const [settings, setSettings] = useState<ServiceSettings>(() => {
+    // Stale-while-revalidate: show cached data instantly
+    if (typeof window !== 'undefined') {
+      const cached = loadCachedSettings()
+      if (cached) return cached
+    }
+    return getDefaultSettings()
   })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => {
+    // If we have cached data, don't show loading
+    if (typeof window !== 'undefined') return !loadCachedSettings()
+    return true
+  })
 
   const fetchSettings = async () => {
     try {
       const response = await fetch('/api/settings/services')
       if (response.ok) {
         const data = await response.json()
-        setSettings({
-          nutritionEnabled: data.nutritionEnabled,
-          physiotherapyEnabled: data.physiotherapyEnabled,
-          groupClassEnabled: data.groupClassEnabled,
-          moreEnabled: data.moreEnabled ?? true,
-          spaEnabled: data.spaEnabled,
-          inBodyEnabled: data.inBodyEnabled,
-          poolEnabled: data.poolEnabled ?? true,
-          padelEnabled: data.padelEnabled ?? true,
-          assessmentEnabled: data.assessmentEnabled ?? true,
-          pointsEnabled: data.pointsEnabled,
-          pointsPerCheckIn: data.pointsPerCheckIn,
-          pointsPerInvitation: data.pointsPerInvitation,
-          pointsPerReferral: data.pointsPerReferral || 0,
-          pointsPerEGPSpent: data.pointsPerEGPSpent,
-          pointsValueInEGP: data.pointsValueInEGP,
-          ptCommissionEnabled: data.ptCommissionEnabled ?? true,
-          ptCommissionAmount: data.ptCommissionAmount ?? 50,
-          moreCommissionEnabled: data.moreCommissionEnabled ?? true,
-          moreCommissionAmount: data.moreCommissionAmount ?? 50,
-          nutritionReferralEnabled: data.nutritionReferralEnabled ?? false,
-          nutritionReferralPercentage: data.nutritionReferralPercentage ?? 0,
-          physioReferralEnabled: data.physioReferralEnabled ?? false,
-          physioReferralPercentage: data.physioReferralPercentage ?? 0,
-          websiteUrl: data.websiteUrl || '',
-          showWebsiteOnReceipts: data.showWebsiteOnReceipts ?? false,
-          gymLogo: data.gymLogo || null,
-          primaryColor: data.primaryColor || null
-        })
+        const parsed = parseSettings(data)
+        setSettings(parsed)
+        saveCacheSettings(data)
+
+        // Cache logo URL in localStorage for blocking script
+        if (parsed.gymLogo) {
+          localStorage.setItem('gymLogo', parsed.gymLogo)
+        } else {
+          localStorage.removeItem('gymLogo')
+        }
       }
     } catch (error) {
       console.error('Error fetching service settings:', error)
@@ -116,11 +178,20 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    fetchSettings()
+    if (isCacheFresh()) {
+      // Cache is fresh — mark loaded instantly, but still revalidate in background
+      setLoading(false)
+      fetchSettings()
+    } else {
+      // Cache is stale or missing — fetch from network
+      fetchSettings()
+    }
   }, [])
 
-  // تطبيق اللون الأساسي عند تغييره من السيرفر
-  const prevColor = useRef<string | null>(null)
+  // تطبيق اللون الأساسي فقط عند تغيير فعلي
+  const prevColor = useRef<string | null>(
+    typeof window !== 'undefined' ? localStorage.getItem('primaryColor') : null
+  )
   useEffect(() => {
     if (settings.primaryColor && settings.primaryColor !== prevColor.current) {
       prevColor.current = settings.primaryColor
@@ -129,7 +200,6 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
     } else if (!settings.primaryColor && prevColor.current) {
       prevColor.current = null
       localStorage.removeItem('primaryColor')
-      // Reset to CSS defaults by removing inline styles
       const root = document.documentElement
       const shades = ['50','100','200','300','400','500','600','700','800','900','950']
       shades.forEach(s => {

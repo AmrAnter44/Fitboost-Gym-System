@@ -68,9 +68,11 @@ export async function POST(request: Request) {
       where: { id: 'singleton' }
     })
     if (currentSettings?.gymLogo) {
+      // Strip query params (cache-busting) before building file path
+      const logoPath = currentSettings.gymLogo.split('?')[0]
       const oldPath = isElectron
-        ? currentSettings.gymLogo.replace('/api/serve-image?path=', '')
-        : path.join(process.cwd(), 'public', currentSettings.gymLogo)
+        ? logoPath.replace('/api/serve-image', '').replace('path=', '')
+        : path.join(process.cwd(), 'public', logoPath)
       if (existsSync(oldPath)) {
         await unlink(oldPath).catch(() => {})
       }
@@ -82,10 +84,11 @@ export async function POST(request: Request) {
     const filepath = path.join(uploadsDir, filename)
     await writeFile(filepath, buffer)
 
-    // إرجاع المسار المناسب
+    // إرجاع المسار المناسب مع cache-busting
+    const cacheBust = Date.now()
     const logoUrl = isElectron
-      ? `/api/serve-image?path=${encodeURIComponent(filepath)}`
-      : `/uploads/${filename}`
+      ? `/api/serve-image?path=${encodeURIComponent(filepath)}&v=${cacheBust}`
+      : `/uploads/${filename}?v=${cacheBust}`
 
     // تحديث قاعدة البيانات
     await prisma.systemSettings.upsert({
@@ -128,9 +131,11 @@ export async function DELETE(request: Request) {
 
     if (currentSettings?.gymLogo) {
       const isElectron = process.env.UPLOADS_PATH !== undefined
+      // Strip query params (cache-busting) before building file path
+      const logoPath = currentSettings.gymLogo.split('?')[0]
       const filePath = isElectron
-        ? decodeURIComponent(currentSettings.gymLogo.replace('/api/serve-image?path=', ''))
-        : path.join(process.cwd(), 'public', currentSettings.gymLogo)
+        ? decodeURIComponent(logoPath.replace('/api/serve-image', '').replace('path=', ''))
+        : path.join(process.cwd(), 'public', logoPath)
 
       if (existsSync(filePath)) {
         await unlink(filePath).catch(() => {})

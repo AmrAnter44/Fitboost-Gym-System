@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useDarkMode } from '../../contexts/DarkModeContext'
+import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 
 // ==================== System Update Section ====================
 function SystemUpdateSection() {
@@ -205,25 +206,23 @@ function SystemUpdateSection() {
         </div>
       )}
 
+      {/* Checking Spinner */}
+      {updateStatus === 'checking' && (
+        <div className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold rounded-lg flex items-center justify-center gap-2">
+          <span className="animate-spin">⏳</span>
+          {t('settingsPage.updates.checking')}
+        </div>
+      )}
+
       {/* Check Button */}
       {isElectronApp ? (
         (updateStatus === 'idle' || updateStatus === 'up-to-date' || updateStatus === 'error') && (
           <button
             onClick={handleCheckForUpdates}
-            disabled={updateStatus === 'checking'}
-            className={`w-full px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${updateStatus === 'checking' ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+            className="w-full px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
           >
-            {updateStatus === 'checking' ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                {t('settingsPage.updates.checking')}
-              </>
-            ) : (
-              <>
-                <span>🔍</span>
-                {t('settingsPage.updates.checkForUpdates')}
-              </>
-            )}
+            <span>🔍</span>
+            {t('settingsPage.updates.checkForUpdates')}
           </button>
         )
       ) : (
@@ -240,6 +239,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { locale, setLanguage, t, direction } = useLanguage()
   const { isDarkMode, toggleDarkMode } = useDarkMode()
+  const { refetch: refetchServiceSettings } = useServiceSettings()
   const [user, setUser] = useState<any>(null)
   const [activeSection, setActiveSection] = useState('display')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -383,6 +383,7 @@ export default function SettingsPage() {
         body: JSON.stringify(serviceSettings)
       })
       if (response.ok) {
+        localStorage.removeItem('serviceSettingsCache')
         setSaveMessage({
           type: 'success',
           text: t('settingsPage.saveSuccess')
@@ -470,6 +471,9 @@ export default function SettingsPage() {
       const data = await res.json()
       if (res.ok && data.logoUrl) {
         setGymLogo(data.logoUrl)
+        localStorage.setItem('gymLogo', data.logoUrl)
+        localStorage.removeItem('serviceSettingsCache')
+        refetchServiceSettings()
       } else {
         alert(data.error || t('settingsPage.display.logoUploadFailed'))
       }
@@ -488,6 +492,9 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/gym-logo', { method: 'DELETE' })
       if (res.ok) {
         setGymLogo(null)
+        localStorage.removeItem('gymLogo')
+        localStorage.removeItem('serviceSettingsCache')
+        refetchServiceSettings()
       }
     } catch {
       alert(t('settingsPage.display.logoRemoveFailed'))
@@ -520,11 +527,13 @@ export default function SettingsPage() {
       })
       if (res.ok) {
         setPrimaryColor(color)
+        localStorage.removeItem('serviceSettingsCache')
         if (color) {
           localStorage.setItem('primaryColor', color)
         } else {
           localStorage.removeItem('primaryColor')
         }
+        refetchServiceSettings()
       }
     } catch {
       alert(t('settingsPage.display.colorSaveFailed'))
@@ -809,7 +818,7 @@ export default function SettingsPage() {
             transition-all duration-300 ease-in-out
             ${isSidebarOpen
               ? 'translate-x-0 opacity-100'
-              : 'ltr:-translate-x-full rtl:translate-x-full opacity-0 lg:translate-x-0 lg:opacity-100'
+              : `${direction === 'rtl' ? 'translate-x-full' : '-translate-x-full'} opacity-0 lg:translate-x-0 lg:opacity-100`
             }
           `}
         >

@@ -117,7 +117,6 @@ export default function RootLayout({
 
                   // تطبيق Dark Mode فورًا
                   var darkMode = localStorage.getItem('darkMode');
-
                   if (darkMode === 'true') {
                     html.classList.add('dark');
                   } else {
@@ -126,9 +125,19 @@ export default function RootLayout({
 
                   // تطبيق اللغة فورًا
                   var locale = localStorage.getItem('locale') || 'ar';
-
                   html.setAttribute('lang', locale);
                   html.setAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
+
+                  // تطبيق اللوجو فورًا من الكاش + preload
+                  var cachedLogo = localStorage.getItem('gymLogo');
+                  if (cachedLogo) {
+                    window.__CACHED_GYM_LOGO = cachedLogo;
+                    var link = document.createElement('link');
+                    link.rel = 'preload';
+                    link.as = 'image';
+                    link.href = cachedLogo;
+                    document.head.appendChild(link);
+                  }
 
                   // تطبيق اللون الأساسي فورًا
                   var pc = localStorage.getItem('primaryColor');
@@ -176,12 +185,16 @@ export default function RootLayout({
                   }
 
                 } catch (e) {
-                  console.error('❌ Failed to load settings:', e);
+                  console.error('Failed to load settings:', e);
                 }
               })();
             `,
           }}
         />
+        {/* Font Preloading - Critical weights only */}
+        <link rel="preload" href="/fonts/Cairo-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/Cairo-Bold.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
+
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
 
         {/* PWA Icons - iOS */}
