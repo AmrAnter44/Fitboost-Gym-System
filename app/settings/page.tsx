@@ -6,6 +6,236 @@ import Link from 'next/link'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useDarkMode } from '../../contexts/DarkModeContext'
 
+// ==================== System Update Section ====================
+function SystemUpdateSection() {
+  const { t } = useLanguage()
+  const [currentVersion, setCurrentVersion] = useState('...')
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'up-to-date' | 'error'>('idle')
+  const [updateInfo, setUpdateInfo] = useState<any>(null)
+  const [downloadProgress, setDownloadProgress] = useState(0)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isElectronApp, setIsElectronApp] = useState(false)
+
+  useEffect(() => {
+    const electron = (window as any).electron
+    if (electron?.isElectron) {
+      setIsElectronApp(true)
+
+      if (electron.getAppVersion) {
+        electron.getAppVersion().then((v: string) => setCurrentVersion(v)).catch(() => setCurrentVersion('unknown'))
+      }
+
+      electron.onUpdateAvailable?.((info: any) => {
+        setUpdateInfo(info)
+        setUpdateStatus('available')
+      })
+
+      electron.onUpdateNotAvailable?.(() => {
+        setUpdateStatus('up-to-date')
+      })
+
+      electron.onDownloadProgress?.((progress: any) => {
+        setDownloadProgress(Math.round(progress.percent))
+        setUpdateStatus('downloading')
+      })
+
+      electron.onUpdateDownloaded?.((info: any) => {
+        setUpdateInfo(info)
+        setUpdateStatus('downloaded')
+      })
+
+      electron.onUpdateError?.((err: any) => {
+        setErrorMessage(err.message || t('settingsPage.updates.checkFailed'))
+        setUpdateStatus('error')
+      })
+
+      return () => {
+        electron.offUpdateListeners?.()
+      }
+    } else {
+      setCurrentVersion(process.env.NEXT_PUBLIC_APP_VERSION || 'unknown')
+    }
+  }, [])
+
+  const handleCheckForUpdates = async () => {
+    const electron = (window as any).electron
+    if (!electron?.isElectron) return
+    setUpdateStatus('checking')
+    setErrorMessage('')
+    try {
+      const result = await electron.checkForUpdates?.()
+      if (result?.error) {
+        setErrorMessage(result.error)
+        setUpdateStatus('error')
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || t('settingsPage.updates.checkFailed'))
+      setUpdateStatus('error')
+    }
+  }
+
+  const handleDownload = async () => {
+    const electron = (window as any).electron
+    if (!electron?.isElectron) return
+    setUpdateStatus('downloading')
+    setDownloadProgress(0)
+    try {
+      const result = await electron.downloadUpdate?.()
+      if (result?.error) {
+        setErrorMessage(result.error)
+        setUpdateStatus('error')
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || t('settingsPage.updates.downloadFailed'))
+      setUpdateStatus('error')
+    }
+  }
+
+  const handleInstall = async () => {
+    const electron = (window as any).electron
+    if (!electron?.isElectron) return
+    try {
+      await electron.installUpdate?.()
+    } catch (err: any) {
+      setErrorMessage(err.message || t('settingsPage.updates.installFailed'))
+      setUpdateStatus('error')
+    }
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+      {/* Current Version */}
+      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">📦</span>
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('settingsPage.updates.currentVersion')}</p>
+            <p className="text-xl font-bold text-gray-800 dark:text-gray-100 font-mono">v{currentVersion}</p>
+          </div>
+        </div>
+
+        {updateStatus === 'up-to-date' && (
+          <span className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-bold flex items-center gap-1">
+            ✅ {t('settingsPage.updates.upToDate')}
+          </span>
+        )}
+        {updateStatus === 'available' && (
+          <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-bold flex items-center gap-1">
+            🆕 {t('settingsPage.updates.updateAvailable')}
+          </span>
+        )}
+        {updateStatus === 'downloaded' && (
+          <span className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-bold flex items-center gap-1">
+            ✅ {t('settingsPage.updates.readyToInstall')}
+          </span>
+        )}
+      </div>
+
+      {/* Error */}
+      {updateStatus === 'error' && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400 text-sm flex items-center gap-2">
+          <span>❌</span>
+          {errorMessage}
+        </div>
+      )}
+
+      {/* Update Available Info */}
+      {updateStatus === 'available' && updateInfo && (
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🎉</span>
+            <div>
+              <p className="font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.updates.newUpdateAvailable')}</p>
+              {updateInfo.version && (
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.updates.version')}: <span className="font-mono font-bold">v{updateInfo.version}</span></p>
+              )}
+            </div>
+          </div>
+          {updateInfo.releaseNotes && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 max-h-24 overflow-y-auto text-xs text-gray-600 dark:text-gray-400 border border-blue-100 dark:border-gray-600">
+              {updateInfo.releaseNotes.split('\n').slice(0, 5).map((line: string, i: number) => (
+                <p key={i}>{line}</p>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={handleDownload}
+            className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+          >
+            <span>📥</span>
+            {t('settingsPage.updates.downloadUpdate')}
+          </button>
+        </div>
+      )}
+
+      {/* Download Progress */}
+      {updateStatus === 'downloading' && (
+        <div className="p-4 bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-200 dark:border-primary-700 rounded-lg space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl animate-spin">⏳</span>
+            <p className="font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.updates.downloading')}</p>
+          </div>
+          <div className="bg-gray-200 dark:bg-gray-600 rounded-full h-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-primary-500 to-primary-600 h-full transition-all duration-300 rounded-full"
+              style={{ width: `${downloadProgress}%` }}
+            />
+          </div>
+          <p className="text-center text-sm font-bold text-gray-600 dark:text-gray-400">{downloadProgress}%</p>
+        </div>
+      )}
+
+      {/* Downloaded - Ready to Install */}
+      {updateStatus === 'downloaded' && (
+        <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">✅</span>
+            <div>
+              <p className="font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.updates.downloadComplete')}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.updates.downloadCompleteDesc')}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleInstall}
+            className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+          >
+            <span>🔄</span>
+            {t('settingsPage.updates.restartAndInstall')}
+          </button>
+        </div>
+      )}
+
+      {/* Check Button */}
+      {isElectronApp ? (
+        (updateStatus === 'idle' || updateStatus === 'up-to-date' || updateStatus === 'error') && (
+          <button
+            onClick={handleCheckForUpdates}
+            disabled={updateStatus === 'checking'}
+            className={`w-full px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${updateStatus === 'checking' ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+          >
+            {updateStatus === 'checking' ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                {t('settingsPage.updates.checking')}
+              </>
+            ) : (
+              <>
+                <span>🔍</span>
+                {t('settingsPage.updates.checkForUpdates')}
+              </>
+            )}
+          </button>
+        )
+      ) : (
+        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg text-yellow-700 dark:text-yellow-400 text-sm flex items-center gap-2">
+          <span>ℹ️</span>
+          {t('settingsPage.updates.electronOnly')}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const router = useRouter()
   const { locale, setLanguage, t, direction } = useLanguage()
@@ -522,6 +752,7 @@ export default function SettingsPage() {
       { id: 'license', label: 'رخصة النظام', icon: '🔑' },
       { id: 'database', label: t('settingsPage.navigation.database'), icon: '💾' }
     ] : []),
+    ...(typeof window !== 'undefined' && (window as any).electron?.isElectron ? [{ id: 'updates', label: t('settingsPage.navigation.updates'), icon: '🔄' }] : []),
     { id: 'support', label: t('settingsPage.navigation.support'), icon: '📞' }
   ]
 
@@ -568,17 +799,17 @@ export default function SettingsPage() {
           className={`
             fixed lg:sticky
             top-[73px]
-            ${direction === 'rtl' ? 'right-0' : 'left-0'}
+            ltr:left-0 rtl:right-0
             z-50 lg:z-30
             h-[calc(100vh-73px)]
             w-72 sm:w-80 lg:w-64
             bg-white dark:bg-gray-800
-            ${direction === 'rtl' ? 'border-l' : 'border-r'} border-gray-200 dark:border-gray-700
+            ltr:border-r rtl:border-l border-gray-200 dark:border-gray-700
             shadow-2xl lg:shadow-none
             transition-all duration-300 ease-in-out
             ${isSidebarOpen
               ? 'translate-x-0 opacity-100'
-              : `${direction === 'rtl' ? 'translate-x-full' : '-translate-x-full'} opacity-0 lg:translate-x-0 lg:opacity-100`
+              : 'ltr:-translate-x-full rtl:translate-x-full opacity-0 lg:translate-x-0 lg:opacity-100'
             }
           `}
         >
@@ -609,7 +840,7 @@ export default function SettingsPage() {
                 }}
                 className={`
                   w-full
-                  ${direction === 'rtl' ? 'text-right' : 'text-left'}
+                  ltr:text-left rtl:text-right
                   px-4 py-3.5
                   rounded-xl
                   transition-all duration-200
@@ -1686,6 +1917,21 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeSection === 'updates' && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">🔄</span>
+                  <div>
+                    <h2 className="text-2xl font-bold">{t('settingsPage.updates.title')}</h2>
+                    <p className="text-blue-50 text-sm mt-1">{t('settingsPage.updates.description')}</p>
+                  </div>
+                </div>
+              </div>
+              <SystemUpdateSection />
             </div>
           )}
 

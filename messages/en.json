@@ -4502,7 +4502,8 @@
       "display": "Appearance & Language",
       "database": "Database",
       "support": "Technical Support",
-      "whatsapp": "WhatsApp"
+      "whatsapp": "WhatsApp",
+      "updates": "System Updates"
     },
     "services": {
       "title": "Services Settings",
@@ -4689,6 +4690,27 @@
         "step4": "You'll have full access to the system from any device on the local network",
         "warning": "⚠️ Note: This URL only works on devices connected to the same Wi-Fi network. For external access, you'll need to configure Port Forwarding on your router."
       }
+    },
+    "updates": {
+      "title": "System Updates",
+      "description": "Check for new updates and install them",
+      "currentVersion": "Current Version",
+      "upToDate": "Up to Date",
+      "updateAvailable": "Update Available",
+      "readyToInstall": "Ready to Install",
+      "newUpdateAvailable": "New update available!",
+      "version": "Version",
+      "downloadUpdate": "Download Update",
+      "downloading": "Downloading update...",
+      "downloadComplete": "Update ready to install!",
+      "downloadCompleteDesc": "The app will restart to install the update",
+      "restartAndInstall": "Restart & Install Update",
+      "checkForUpdates": "Check for Updates",
+      "checking": "Checking...",
+      "electronOnly": "Automatic updates are only available in the desktop app (Electron)",
+      "checkFailed": "Failed to check for updates",
+      "downloadFailed": "Failed to download update",
+      "installFailed": "Failed to install update"
     },
     "support": {
       "title": "Technical Support",

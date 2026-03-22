@@ -18,13 +18,13 @@ export const EXTERNAL_LINKS = {
      * رابط المستودع الرئيسي على GitHub
      * يُستخدم للوصول إلى الكود المصدري
      */
-    repo: process.env.NEXT_PUBLIC_GITHUB_REPO_URL || 'https://github.com/AmrAnter44/sys-Xgym',
+    repo: process.env.NEXT_PUBLIC_GITHUB_REPO_URL || 'https://github.com/AmrAnter44/Fitboost-Gym-System',
 
     /**
      * رابط صفحة الإصدارات على GitHub
      * يُستخدم للتحقق من التحديثات المتاحة
      */
-    releases: process.env.NEXT_PUBLIC_GITHUB_RELEASES_URL || 'https://github.com/AmrAnter44/sys-Xgym/releases',
+    releases: process.env.NEXT_PUBLIC_GITHUB_RELEASES_URL || 'https://github.com/AmrAnter44/Fitboost-Gym-System/releases',
   },
 
   support: {

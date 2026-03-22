@@ -91,7 +91,8 @@ const nextConfig = {
   // Environment variables available to the browser
   env: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:4001',
-    NEXT_PUBLIC_DOMAIN: process.env.NEXT_PUBLIC_DOMAIN || 'system.xgym.website'
+    NEXT_PUBLIC_DOMAIN: process.env.NEXT_PUBLIC_DOMAIN || 'system.xgym.website',
+    NEXT_PUBLIC_APP_VERSION: require('./package.json').version
   },
 
   // Experimental features

@@ -4453,7 +4453,8 @@
       "display": "المظهر واللغة",
       "database": "قاعدة البيانات",
       "support": "الدعم الفني",
-      "whatsapp": "الواتساب"
+      "whatsapp": "الواتساب",
+      "updates": "تحديثات النظام"
     },
     "services": {
       "title": "إعدادات الخدمات",
@@ -4640,6 +4641,27 @@
         "step4": "ستتمكن من الوصول الكامل للنظام من أي جهاز على الشبكة المحلية",
         "warning": "⚠️ ملاحظة: يعمل هذا الرابط فقط على الأجهزة المتصلة بنفس شبكة Wi-Fi. للوصول من خارج الشبكة، ستحتاج لإعداد Port Forwarding على الراوتر."
       }
+    },
+    "updates": {
+      "title": "تحديثات النظام",
+      "description": "تحقق من وجود تحديثات جديدة وقم بتثبيتها",
+      "currentVersion": "الإصدار الحالي",
+      "upToDate": "أحدث إصدار",
+      "updateAvailable": "تحديث متاح",
+      "readyToInstall": "جاهز للتثبيت",
+      "newUpdateAvailable": "تحديث جديد متاح!",
+      "version": "الإصدار",
+      "downloadUpdate": "تحميل التحديث",
+      "downloading": "جاري تحميل التحديث...",
+      "downloadComplete": "التحديث جاهز للتثبيت!",
+      "downloadCompleteDesc": "سيتم إعادة تشغيل التطبيق لتثبيت التحديث",
+      "restartAndInstall": "إعادة التشغيل وتثبيت التحديث",
+      "checkForUpdates": "التحقق من وجود تحديثات",
+      "checking": "جاري التحقق...",
+      "electronOnly": "التحديثات التلقائية متاحة فقط في تطبيق سطح المكتب (Electron)",
+      "checkFailed": "فشل التحقق من التحديثات",
+      "downloadFailed": "فشل تحميل التحديث",
+      "installFailed": "فشل تثبيت التحديث"
     },
     "support": {
       "title": "الدعم الفني",
