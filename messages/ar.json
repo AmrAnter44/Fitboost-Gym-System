@@ -1178,6 +1178,8 @@
     "receiptNumber": "رقم الإيصال",
     "dateLabel": "التاريخ:",
     "egp": "ج.م",
+    "renew": "تجديد",
+    "renewService": "تجديد خدمة",
     "delete": "حذف",
     "actions": "إجراءات",
     "noOperationsYet": "لا توجد عمليات حالياً",

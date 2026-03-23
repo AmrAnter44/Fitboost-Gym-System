@@ -377,13 +377,17 @@ export default function SettingsPage() {
     setIsSaving(true)
     setSaveMessage(null)
     try {
+      // Exclude gymLogo and primaryColor — they are managed by their own dedicated APIs
+      // Including them here could accidentally overwrite them to null
+      const { gymLogo: _gl, primaryColor: _pc, id: _id, createdAt: _ca, updatedAt: _ua, updatedBy: _ub, ...settingsToSave } = serviceSettings as any
       const response = await fetch('/api/settings/services', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(serviceSettings)
+        body: JSON.stringify(settingsToSave)
       })
       if (response.ok) {
         localStorage.removeItem('serviceSettingsCache')
+        refetchServiceSettings()
         setSaveMessage({
           type: 'success',
           text: t('settingsPage.saveSuccess')

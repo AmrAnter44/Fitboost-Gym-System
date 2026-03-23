@@ -251,7 +251,7 @@ export default function DayUsePage() {
       {showForm && (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-xl font-semibold mb-4">
-            {isRenewing ? '🔄 تجديد خدمة' : t('dayUse.addOperationTitle')}
+            {isRenewing ? `🔄 ${t('dayUse.renewService')}` : t('dayUse.addOperationTitle')}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -361,7 +361,7 @@ export default function DayUsePage() {
                     onClick={() => handleRenewClick(entry)}
                     className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition text-sm font-medium shadow-sm"
                   >
-                    🔄 تجديد
+                    🔄 {t('dayUse.renew')}
                   </button>
                   <button
                     onClick={() => handleDeleteClick(entry)}
@@ -491,7 +491,7 @@ export default function DayUsePage() {
                           onClick={() => handleRenewClick(entry)}
                           className="bg-primary-500 text-white px-3 py-1 rounded hover:bg-primary-600 transition text-sm"
                         >
-                          🔄 تجديد
+                          🔄 {t('dayUse.renew')}
                         </button>
                         <button
                           onClick={() => handleDeleteClick(entry)}

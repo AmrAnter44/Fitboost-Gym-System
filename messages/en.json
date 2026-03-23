@@ -1177,6 +1177,8 @@
     "receiptNumber": "Receipt #",
     "dateLabel": "Date:",
     "egp": "EGP",
+    "renew": "Renew",
+    "renewService": "Renew Service",
     "delete": "Delete",
     "actions": "Actions",
     "noOperationsYet": "No operations yet",

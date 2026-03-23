@@ -76,6 +76,14 @@ function parseSettings(data: any): ServiceSettings {
   }
 }
 
+/** Read gymLogo from dedicated localStorage key (set by upload handler & blocking script) */
+function getSavedGymLogo(): string | null {
+  try {
+    return localStorage.getItem('gymLogo') || null
+  } catch {}
+  return null
+}
+
 /** Load cached settings from localStorage (instant, no network) */
 function loadCachedSettings(): ServiceSettings | null {
   try {
@@ -83,7 +91,15 @@ function loadCachedSettings(): ServiceSettings | null {
     if (!cached) return null
     const { data, ts } = JSON.parse(cached)
     // Return cached data even if stale — we'll revalidate in background
-    if (data) return parseSettings(data)
+    if (data) {
+      const parsed = parseSettings(data)
+      // Recover gymLogo from dedicated localStorage key if missing in cache
+      if (!parsed.gymLogo) {
+        const savedLogo = getSavedGymLogo()
+        if (savedLogo) parsed.gymLogo = savedLogo
+      }
+      return parsed
+    }
   } catch {}
   return null
 }
@@ -133,9 +149,13 @@ function getDefaultSettings(): ServiceSettings {
     physioReferralPercentage: 0,
     websiteUrl: '',
     showWebsiteOnReceipts: false,
-    // Use cached logo from blocking script for instant display
-    gymLogo: typeof window !== 'undefined' ? (window as any).__CACHED_GYM_LOGO || null : null,
-    primaryColor: null
+    // Use cached logo from blocking script or localStorage for instant display
+    gymLogo: typeof window !== 'undefined'
+      ? (window as any).__CACHED_GYM_LOGO || getSavedGymLogo() || null
+      : null,
+    primaryColor: typeof window !== 'undefined'
+      ? localStorage.getItem('primaryColor') || null
+      : null
   }
 }
 
@@ -160,6 +180,13 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json()
         const parsed = parseSettings(data)
+
+        // Recover gymLogo from localStorage if API returned null but we have a saved value
+        if (!parsed.gymLogo) {
+          const savedLogo = getSavedGymLogo()
+          if (savedLogo) parsed.gymLogo = savedLogo
+        }
+
         setSettings(parsed)
         saveCacheSettings(data)
 
@@ -169,6 +196,27 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
         } else {
           localStorage.removeItem('gymLogo')
         }
+      } else if (response.status === 401) {
+        // Not logged in yet — retry once after a delay (login redirect will cause full reload anyway)
+        setTimeout(() => {
+          fetch('/api/settings/services')
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+              if (data) {
+                const parsed = parseSettings(data)
+                if (!parsed.gymLogo) {
+                  const savedLogo = getSavedGymLogo()
+                  if (savedLogo) parsed.gymLogo = savedLogo
+                }
+                setSettings(parsed)
+                saveCacheSettings(data)
+                if (parsed.gymLogo) {
+                  localStorage.setItem('gymLogo', parsed.gymLogo)
+                }
+              }
+            })
+            .catch(() => {})
+        }, 3000)
       }
     } catch (error) {
       console.error('Error fetching service settings:', error)

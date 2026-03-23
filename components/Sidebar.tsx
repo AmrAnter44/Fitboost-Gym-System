@@ -150,6 +150,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                 src={settings.gymLogo || '/assets/icon.png'}
                 alt="Logo"
                 className="w-10 h-10 object-contain drop-shadow-lg"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/assets/icon.png' }}
               />
               <div>
                 <h2 className="font-bold text-lg leading-tight">

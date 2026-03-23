@@ -53,7 +53,8 @@
       "Bash(npx tsc --noEmit app/followups/page.tsx)",
       "Bash(/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/vercel.json:*)",
       "Read(//Users/amranter200444/.cache/puppeteer/**)",
-      "Bash(npx tsx -e \":*)"
+      "Bash(npx tsx -e \":*)",
+      "Bash(git check-ignore -v public/uploads/gym-logo.png)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",

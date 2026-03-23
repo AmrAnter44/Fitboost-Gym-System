@@ -119,6 +119,7 @@ export default function Navbar() {
                   src={settings.gymLogo || '/assets/icon.png'}
                   alt="Home"
                   className="w-full h-full object-contain drop-shadow-2xl"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/assets/icon.png' }}
                 />
               </Link>
             </div>
@@ -134,6 +135,7 @@ export default function Navbar() {
                   src={settings.gymLogo || '/assets/icon.png'}
                   alt="Home"
                   className="w-10 h-10 object-contain drop-shadow-2xl"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/assets/icon.png' }}
                 />
                 <span className="font-bold text-base">{t('common.appTitle')}</span>
               </Link>
@@ -300,6 +302,7 @@ export default function Navbar() {
                   src={settings.gymLogo || '/assets/icon.png'}
                   alt="Logo"
                   className="w-10 h-10 object-contain drop-shadow-lg"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/assets/icon.png' }}
                 />
                 <span className="font-bold text-lg">{t('common.appTitle')}</span>
               </div>
