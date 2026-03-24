@@ -1,52 +1,38 @@
 /**
- * WhatsApp Sidecar Service
+ * WhatsApp Sidecar Service – Multi-Number Edition
  *
  * Runs as an HTTP server INSIDE the Electron main process on localhost:4002.
- * All WhatsApp logic lives here – no IPC, no Next.js module conflicts.
+ * Supports up to 4 independent WhatsApp sessions (Baileys instances).
  *
- * The Next.js server (port 4001) proxies all /api/whatsapp/* requests here.
- * Works for both the Electron webview and any network browser.
+ * Backward compatible: existing /status, /init, /send, /events endpoints
+ * still work against session 0 (the primary number).
  *
- * Endpoints:
- *   GET  /status        → { isReady, qrCode, hasClient }
- *   POST /init          → initialize WhatsApp
- *   POST /reconnect     → clear session + reconnect (new QR)
- *   POST /reset         → delete all auth + reconnect (new QR)
- *   POST /send          → { phone, message }
- *   POST /send-image    → { phone, imageBase64, caption }
- *   GET  /events        → SSE stream (qr, ready, connecting, disconnected, heartbeat)
+ * New multi-session endpoints use /status/all, /init/:idx, /send-multi, etc.
  */
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const WhatsAppSession = require('./whatsapp-session');
 
 const PORT = 4002;
-const AUTH_PATH = path.join(os.homedir(), '.fitboost-whatsapp', '.baileys_auth');
-
-// Fallback version used only if fetchLatestBaileysVersion() fails
-const BAILEYS_VERSION_FALLBACK = [2, 3000, 1023123128];
+const MAX_SESSIONS = 4;
+const AUTH_BASE = path.join(os.homedir(), '.fitboost-whatsapp');
 
 // ── State ──────────────────────────────────────────────────────────────────
-let sock = null;
-let isReady = false;
-let qrCode = null;
-let isInitializing = false;
-let generation = 0;
-let reconnectCount = 0;
-const MAX_RECONNECTS = 5;
+const sessions = new Map(); // sessionIndex -> WhatsAppSession
 const sseClients = new Set();
 let httpServer = null;
 
-// ── Lazy-load Baileys (only when first needed) ─────────────────────────────
+const API_BASE = 'http://127.0.0.1:4001';
+
+// ── Lazy-load Baileys ──────────────────────────────────────────────────────
 let baileys = null;
-let pino = null;
 
 function loadDeps() {
   if (!baileys) {
     baileys = require('@whiskeysockets/baileys');
-    pino = require('pino');
   }
   return baileys;
 }
@@ -63,206 +49,39 @@ function broadcast(type, data) {
   }
 }
 
-// ── WhatsApp core ──────────────────────────────────────────────────────────
-function ensureAuthDir() {
-  try { fs.mkdirSync(AUTH_PATH, { recursive: true }); } catch {}
-}
-
-async function initialize() {
-  if (isInitializing) {
-    return { success: false, error: 'Already initializing' };
-  }
-  if (sock) {
-    return { success: false, error: 'Already connected' };
-  }
-
-  isInitializing = true;
-  generation++;
-  const gen = generation;
-
-  console.log(`[WhatsApp] initialize() gen=${gen}`);
-
+// ── Session migration (old single-session → session_0) ─────────────────────
+function migrateOldSession() {
+  const oldPath = path.join(AUTH_BASE, '.baileys_auth');
+  const newPath = path.join(AUTH_BASE, 'session_0');
   try {
-    ensureAuthDir();
-
-    const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore, fetchLatestBaileysVersion } = loadDeps();
-    const logger = pino({ level: 'silent' });
-
-    // Fetch latest WhatsApp Web version dynamically (avoids 515 "restart required")
-    let version = BAILEYS_VERSION_FALLBACK;
-    try {
-      const result = await fetchLatestBaileysVersion();
-      version = result.version;
-      console.log('[WhatsApp] Version fetched:', version);
-    } catch (e) {
-      console.warn('[WhatsApp] fetchLatestBaileysVersion failed, using fallback:', e.message);
+    if (fs.existsSync(path.join(oldPath, 'creds.json')) && !fs.existsSync(path.join(newPath, 'creds.json'))) {
+      fs.mkdirSync(newPath, { recursive: true });
+      const files = fs.readdirSync(oldPath);
+      for (const file of files) {
+        fs.copyFileSync(path.join(oldPath, file), path.join(newPath, file));
+      }
+      console.log('[WhatsApp Service] Migrated old session to session_0');
     }
-
-    const { state, saveCreds } = await useMultiFileAuthState(AUTH_PATH);
-
-    sock = makeWASocket({
-      version,
-      auth: {
-        creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, logger)
-      },
-      printQRInTerminal: false,
-      logger,
-      browser: ['FitBoost Gym', 'Chrome', '120'],
-      markOnlineOnConnect: true,
-      syncFullHistory: false,
-      defaultQueryTimeoutMs: 60000
-    });
-
-    sock.ev.on('creds.update', saveCreds);
-
-    sock.ev.on('connection.update', async (update) => {
-      // Ignore events from a replaced socket
-      if (generation !== gen) {
-        console.log(`[WhatsApp] Stale event from gen ${gen}, current ${generation} – ignored`);
-        return;
-      }
-
-      const { connection, lastDisconnect, qr } = update;
-
-      if (qr) {
-        console.log('[WhatsApp] QR code ready');
-        qrCode = qr;
-        isReady = false;
-        broadcast('qr', { qrCode: qr });
-      }
-
-      if (connection === 'connecting') {
-        broadcast('connecting', { percent: 30, message: 'Connecting...' });
-      }
-
-      if (connection === 'open') {
-        console.log('[WhatsApp] Connected!');
-        if (!isReady) broadcast('ready', { isReady: true });
-        isReady = true;
-        qrCode = null;
-        reconnectCount = 0;
-      }
-
-      if (connection === 'close') {
-        const code = lastDisconnect?.error?.output?.statusCode;
-        const reason = lastDisconnect?.error?.message || 'unknown';
-        console.log(`[WhatsApp] Connection closed – code: ${code}, reason: ${reason}`);
-        isReady = false;
-        qrCode = null;
-
-        // Bump generation immediately to block any future events from this socket
-        generation++;
-        const old = sock;
-        sock = null;
-        try { old?.ws?.close(); } catch {}
-
-        const { DisconnectReason: DR } = loadDeps();
-
-        if (code === DR.loggedOut) {
-          console.log('[WhatsApp] Logged out – clearing session');
-          _deleteCreds();
-          reconnectCount = 0;
-          broadcast('disconnected', { reason: 'Logged out' });
-        } else if (code === DR.restartRequired || code === 515) {
-          // WhatsApp requested restart (e.g. version update) – reconnect immediately
-          console.log('[WhatsApp] Restart required – reconnecting immediately');
-          setTimeout(initialize, 1000);
-        } else if (reconnectCount < MAX_RECONNECTS) {
-          reconnectCount++;
-          const delay = Math.min(2000 * Math.pow(2, reconnectCount - 1), 30000);
-          console.log(`[WhatsApp] Reconnect ${reconnectCount}/${MAX_RECONNECTS} in ${delay}ms`);
-          setTimeout(initialize, delay);
-        } else {
-          console.log('[WhatsApp] Max reconnects reached');
-          reconnectCount = 0;
-          broadcast('disconnected', { reason: 'Max reconnects reached' });
-        }
-      }
-    });
-
-    console.log(`[WhatsApp] Socket created (gen=${gen}) – waiting for QR or connection`);
-    return { success: true };
-
   } catch (err) {
-    console.error('[WhatsApp] initialize() failed:', err.message);
-    sock = null;
-    isReady = false;
-    return { success: false, error: err.message };
-  } finally {
-    isInitializing = false;
+    console.warn('[WhatsApp Service] Session migration warning:', err.message);
   }
 }
 
-function _closeSocket() {
-  generation++;
-  const old = sock;
-  sock = null;
-  isReady = false;
-  qrCode = null;
-  try { old?.ws?.close(); } catch {}
-}
-
-function _deleteCreds() {
-  try {
-    const f = path.join(AUTH_PATH, 'creds.json');
-    if (fs.existsSync(f)) fs.unlinkSync(f);
-  } catch {}
-}
-
-async function reconnect() {
-  console.log('[WhatsApp] reconnect()');
-  _closeSocket();
-  _deleteCreds();
-  reconnectCount = 0;
-  return initialize();
-}
-
-async function resetSession() {
-  console.log('[WhatsApp] resetSession()');
-  _closeSocket();
-  try {
-    if (fs.existsSync(AUTH_PATH)) {
-      fs.rmSync(AUTH_PATH, { recursive: true, force: true });
-      fs.mkdirSync(AUTH_PATH, { recursive: true });
-    }
-  } catch {}
-  reconnectCount = 0;
-  return initialize();
-}
-
-function _formatPhone(phone) {
-  let p = (phone || '').replace(/\D/g, '');
-  if (p.startsWith('0')) p = '20' + p.slice(1);
-  else if (!p.startsWith('20')) p = '20' + p;
-  return p;
-}
-
-async function sendMessage(phone, message) {
-  if (!isReady || !sock) return { success: false, error: 'WhatsApp not connected' };
-  try {
-    await sock.sendMessage(_formatPhone(phone) + '@s.whatsapp.net', { text: message });
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
+// ── Session factory ────────────────────────────────────────────────────────
+function createSessions() {
+  for (let i = 0; i < MAX_SESSIONS; i++) {
+    const session = new WhatsAppSession(i, AUTH_BASE, { broadcast, loadDeps });
+    sessions.set(i, session);
   }
 }
 
-async function sendImage(phone, imageBase64, caption = '') {
-  if (!isReady || !sock) return { success: false, error: 'WhatsApp not connected' };
-  try {
-    const b64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    await sock.sendMessage(_formatPhone(phone) + '@s.whatsapp.net', {
-      image: Buffer.from(b64, 'base64'),
-      caption
-    });
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
+function getSession(idx) {
+  const index = parseInt(idx);
+  if (isNaN(index) || index < 0 || index >= MAX_SESSIONS) return null;
+  return sessions.get(index);
 }
 
-// ── HTTP Server ─────────────────────────────────────────────────────────────
+// ── HTTP helpers ───────────────────────────────────────────────────────────
 function readBody(req) {
   return new Promise((resolve) => {
     let body = '';
@@ -283,10 +102,18 @@ function sendJSON(res, status, data) {
   res.end(body);
 }
 
+// ── Route matching helper ──────────────────────────────────────────────────
+function matchRoute(method, url, expectedMethod, pattern) {
+  if (method !== expectedMethod) return null;
+  const regex = new RegExp('^' + pattern.replace(/:(\w+)/g, '(?<$1>[^/]+)') + '$');
+  const match = url.match(regex);
+  return match ? (match.groups || {}) : null;
+}
+
+// ── HTTP Request Handler ───────────────────────────────────────────────────
 async function handleRequest(req, res) {
-  // Only allow connections from localhost
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -296,75 +123,250 @@ async function handleRequest(req, res) {
   }
 
   const url = (req.url || '/').split('?')[0];
+  const method = req.method;
+  let params;
 
   try {
-    // GET /status
-    if (req.method === 'GET' && url === '/status') {
-      return sendJSON(res, 200, { isReady, qrCode, hasClient: sock !== null });
+    // ════════════════════════════════════════════════════════════════════
+    // BACKWARD COMPATIBLE ENDPOINTS (session 0)
+    // ════════════════════════════════════════════════════════════════════
+
+    // GET /status → session 0 status (backward compat)
+    if (method === 'GET' && url === '/status') {
+      const s = sessions.get(0);
+      return sendJSON(res, 200, s ? s.getStatus() : { isReady: false, qrCode: null, hasClient: false });
     }
 
-    // POST /init
-    if (req.method === 'POST' && url === '/init') {
-      const result = await initialize();
+    // POST /init → init session 0
+    if (method === 'POST' && url === '/init') {
+      const s = sessions.get(0);
+      const result = await s.initialize();
       return sendJSON(res, result.success ? 200 : 400, result);
     }
 
-    // POST /reconnect
-    if (req.method === 'POST' && url === '/reconnect') {
-      const result = await reconnect();
+    // POST /reconnect → reconnect session 0
+    if (method === 'POST' && url === '/reconnect') {
+      const s = sessions.get(0);
+      const result = await s.reconnect();
       return sendJSON(res, result.success ? 200 : 400, result);
     }
 
-    // POST /reset
-    if (req.method === 'POST' && url === '/reset') {
-      const result = await resetSession();
+    // POST /reset → reset session 0
+    if (method === 'POST' && url === '/reset') {
+      const s = sessions.get(0);
+      const result = await s.resetSession();
       return sendJSON(res, result.success ? 200 : 400, result);
     }
 
-    // POST /send
-    if (req.method === 'POST' && url === '/send') {
+    // POST /send → send via session 0 (for receipts, barcodes, etc.)
+    if (method === 'POST' && url === '/send') {
       const { phone, message } = await readBody(req);
-      const result = await sendMessage(phone, message);
+      const s = sessions.get(0);
+      const result = await s.sendMessage(phone, message);
       return sendJSON(res, result.success ? 200 : 400, result);
     }
 
-    // POST /send-image
-    if (req.method === 'POST' && url === '/send-image') {
+    // POST /send-image → send image via session 0
+    if (method === 'POST' && url === '/send-image') {
       const { phone, imageBase64, caption } = await readBody(req);
-      const result = await sendImage(phone, imageBase64, caption);
+      const s = sessions.get(0);
+      const result = await s.sendImage(phone, imageBase64, caption);
       return sendJSON(res, result.success ? 200 : 400, result);
     }
 
-    // GET /events  (SSE)
-    if (req.method === 'GET' && url === '/events') {
+    // GET /events → SSE for session 0 (backward compat)
+    if (method === 'GET' && url === '/events') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no'
       });
-
-      // Send initial snapshot immediately
-      res.write(`data: ${JSON.stringify({ type: 'status', data: { isReady, qrCode, hasClient: sock !== null } })}\n\n`);
-
+      const s = sessions.get(0);
+      const status = s ? s.getStatus() : { isReady: false, qrCode: null, hasClient: false };
+      res.write(`data: ${JSON.stringify({ type: 'status', data: status })}\n\n`);
       sseClients.add(res);
-
-      // Heartbeat every 20s
       const hb = setInterval(() => {
-        try {
-          res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
-        } catch {
-          clearInterval(hb);
-          sseClients.delete(res);
-        }
+        try { res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`); }
+        catch { clearInterval(hb); sseClients.delete(res); }
       }, 20000);
+      req.on('close', () => { clearInterval(hb); sseClients.delete(res); });
+      return;
+    }
 
-      req.on('close', () => {
-        clearInterval(hb);
-        sseClients.delete(res);
+    // ════════════════════════════════════════════════════════════════════
+    // MULTI-SESSION ENDPOINTS
+    // ════════════════════════════════════════════════════════════════════
+
+    // GET /status/all → all sessions status
+    if (method === 'GET' && url === '/status/all') {
+      const all = [];
+      for (let i = 0; i < MAX_SESSIONS; i++) {
+        const s = sessions.get(i);
+        all.push(s ? s.getStatus() : { sessionIndex: i, isReady: false, qrCode: null, hasClient: false });
+      }
+      return sendJSON(res, 200, all);
+    }
+
+    // GET /status/:idx → specific session status
+    if ((params = matchRoute(method, url, 'GET', '/status/:idx'))) {
+      const s = getSession(params.idx);
+      if (!s) return sendJSON(res, 400, { error: 'Invalid session index' });
+      return sendJSON(res, 200, s.getStatus());
+    }
+
+    // POST /init/:idx → init specific session
+    if ((params = matchRoute(method, url, 'POST', '/init/:idx'))) {
+      const s = getSession(params.idx);
+      if (!s) return sendJSON(res, 400, { error: 'Invalid session index' });
+      const result = await s.initialize();
+      return sendJSON(res, result.success ? 200 : 400, result);
+    }
+
+    // POST /reconnect/:idx → reconnect specific session
+    if ((params = matchRoute(method, url, 'POST', '/reconnect/:idx'))) {
+      const s = getSession(params.idx);
+      if (!s) return sendJSON(res, 400, { error: 'Invalid session index' });
+      const result = await s.reconnect();
+      return sendJSON(res, result.success ? 200 : 400, result);
+    }
+
+    // POST /reset/:idx → reset specific session
+    if ((params = matchRoute(method, url, 'POST', '/reset/:idx'))) {
+      const s = getSession(params.idx);
+      if (!s) return sendJSON(res, 400, { error: 'Invalid session index' });
+      const result = await s.resetSession();
+      return sendJSON(res, result.success ? 200 : 400, result);
+    }
+
+    // POST /send-multi → send via specific session
+    if (method === 'POST' && url === '/send-multi') {
+      const { sessionIndex, phone, message } = await readBody(req);
+      const s = getSession(sessionIndex);
+      if (!s) return sendJSON(res, 400, { error: 'Invalid session index' });
+      const result = await s.sendMessage(phone, message);
+      return sendJSON(res, result.success ? 200 : 400, result);
+    }
+
+    // POST /send-image-multi → send image via specific session
+    if (method === 'POST' && url === '/send-image-multi') {
+      const { sessionIndex, phone, imageBase64, caption } = await readBody(req);
+      const s = getSession(sessionIndex);
+      if (!s) return sendJSON(res, 400, { error: 'Invalid session index' });
+      const result = await s.sendImage(phone, imageBase64, caption);
+      return sendJSON(res, result.success ? 200 : 400, result);
+    }
+
+    // POST /send-audio-multi → send audio via specific session
+    if (method === 'POST' && url === '/send-audio-multi') {
+      const { sessionIndex, phone, audioBase64, ptt } = await readBody(req);
+      const s = getSession(sessionIndex);
+      if (!s) return sendJSON(res, 400, { error: 'Invalid session index' });
+      const result = await s.sendAudio(phone, audioBase64, ptt !== false);
+      return sendJSON(res, result.success ? 200 : 400, result);
+    }
+
+    // POST /check-number → check if phone exists on WhatsApp
+    if (method === 'POST' && url === '/check-number') {
+      const { phone, sessionIndex: si } = await readBody(req);
+      // Use first connected session to check
+      let checker = null;
+      if (si !== undefined) {
+        checker = getSession(si);
+      }
+      if (!checker || !checker.isReady) {
+        for (const [, s] of sessions) {
+          if (s.isReady) { checker = s; break; }
+        }
+      }
+      if (!checker || !checker.isReady) {
+        return sendJSON(res, 400, { exists: false, error: 'No connected session' });
+      }
+      const result = await checker.checkNumber(phone);
+      return sendJSON(res, 200, result);
+    }
+
+    // POST /sync-history → request on-demand history sync for a session
+    if (method === 'POST' && url === '/sync-history') {
+      const { sessionIndex } = await readBody(req);
+      const s = getSession(sessionIndex);
+      if (!s) return sendJSON(res, 400, { error: 'Invalid session index' });
+      if (!s.isReady) return sendJSON(res, 400, { error: 'Session not connected' });
+      const result = await s.requestHistorySync();
+      return sendJSON(res, result.success ? 200 : 400, result);
+    }
+
+    // PUT /session/:idx/label → update session label (via Next.js API)
+    if ((params = matchRoute(method, url, 'PUT', '/session/:idx/label'))) {
+      const { label } = await readBody(req);
+      const idx = parseInt(params.idx);
+      if (isNaN(idx) || idx < 0 || idx >= MAX_SESSIONS) return sendJSON(res, 400, { error: 'Invalid index' });
+      try {
+        await fetch(`${API_BASE}/api/whatsapp/internal/update-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionIndex: idx, label }),
+        });
+        return sendJSON(res, 200, { success: true });
+      } catch (err) {
+        return sendJSON(res, 500, { error: err.message });
+      }
+    }
+
+    // GET /events/all → merged SSE stream for all sessions
+    if (method === 'GET' && url === '/events/all') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
       });
+      // Send initial snapshot of all sessions
+      const allStatus = [];
+      for (let i = 0; i < MAX_SESSIONS; i++) {
+        const s = sessions.get(i);
+        allStatus.push(s ? s.getStatus() : { sessionIndex: i, isReady: false, qrCode: null, hasClient: false });
+      }
+      res.write(`data: ${JSON.stringify({ type: 'status_all', data: allStatus })}\n\n`);
+      sseClients.add(res);
+      const hb = setInterval(() => {
+        try { res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`); }
+        catch { clearInterval(hb); sseClients.delete(res); }
+      }, 20000);
+      req.on('close', () => { clearInterval(hb); sseClients.delete(res); });
+      return;
+    }
 
-      return; // Keep connection open
+    // ════════════════════════════════════════════════════════════════════
+    // QUEUE ENDPOINTS (handled by whatsapp-queue.js)
+    // ════════════════════════════════════════════════════════════════════
+
+    // Queue endpoints – proxy to Next.js API
+    if (method === 'POST' && url === '/queue/add') {
+      const body = await readBody(req);
+      try {
+        const r = await fetch(`${API_BASE}/api/whatsapp/queue/add`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        return sendJSON(res, r.ok ? 200 : 400, await r.json());
+      } catch (err) { return sendJSON(res, 500, { error: err.message }); }
+    }
+
+    if (method === 'GET' && url === '/queue/status') {
+      try {
+        const r = await fetch(`${API_BASE}/api/whatsapp/queue/status`);
+        return sendJSON(res, 200, await r.json());
+      } catch (err) { return sendJSON(res, 500, { error: err.message }); }
+    }
+
+    if (method === 'POST' && url === '/queue/cancel') {
+      const body = await readBody(req);
+      try {
+        const r = await fetch(`${API_BASE}/api/whatsapp/queue/cancel`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        return sendJSON(res, 200, await r.json());
+      } catch (err) { return sendJSON(res, 500, { error: err.message }); }
     }
 
     // 404
@@ -379,6 +381,12 @@ async function handleRequest(req, res) {
 // ── Public API ─────────────────────────────────────────────────────────────
 function startWhatsAppService() {
   return new Promise((resolve, reject) => {
+    // Migrate old single-session auth to session_0
+    migrateOldSession();
+
+    // Create all session instances
+    createSessions();
+
     httpServer = http.createServer(handleRequest);
 
     httpServer.on('error', (err) => {
@@ -393,14 +401,28 @@ function startWhatsAppService() {
     httpServer.listen(PORT, '127.0.0.1', () => {
       const actualPort = httpServer.address().port;
       console.log(`[WhatsApp Service] HTTP server running on http://127.0.0.1:${actualPort}`);
+      console.log(`[WhatsApp Service] ${MAX_SESSIONS} session slots available`);
 
-      // Auto-connect if saved session exists
-      const credsFile = path.join(AUTH_PATH, 'creds.json');
-      if (fs.existsSync(credsFile)) {
-        console.log('[WhatsApp Service] Saved session found – auto-connecting in 3s');
-        setTimeout(initialize, 3000);
-      } else {
-        console.log('[WhatsApp Service] No saved session – waiting for manual init');
+      // Auto-connect sessions that have saved credentials (3s delay)
+      setTimeout(() => {
+        for (const [idx, session] of sessions) {
+          if (session.hasSavedSession()) {
+            console.log(`[WhatsApp Service] Session ${idx} has saved creds – auto-connecting`);
+            session.initialize().catch(err => {
+              console.error(`[WhatsApp Service] Auto-connect session ${idx} failed:`, err.message);
+            });
+          }
+        }
+      }, 3000);
+
+      // Start queue processor
+      try {
+        const WhatsAppQueue = require('./whatsapp-queue');
+        const queue = new WhatsAppQueue(sessions);
+        queue.startAll();
+        console.log('[WhatsApp Service] Queue processor started');
+      } catch (err) {
+        console.warn('[WhatsApp Service] Queue processor not available:', err.message);
       }
 
       resolve(actualPort);
@@ -410,8 +432,10 @@ function startWhatsAppService() {
 
 function stopWhatsAppService() {
   return new Promise((resolve) => {
-    // Close WhatsApp socket
-    _closeSocket();
+    // Stop all sessions
+    for (const [, session] of sessions) {
+      session.stop();
+    }
 
     // Close all SSE connections
     for (const res of sseClients) {

@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateStaff')
     
     const body = await request.json()
-    const { staffCode, name, phone, position, salary, notes, workingHours, monthlyVacationDays } = body
+    const { staffCode, name, phone, position, salary, notes, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime } = body
 
     // ✅ التحقق من وجود staffCode
     if (!staffCode) {
@@ -152,6 +152,8 @@ export async function POST(request: Request) {
         notes,
         workingHours: workingHours !== undefined && workingHours !== null && workingHours !== '' ? parseFloat(workingHours) : null,
         monthlyVacationDays: monthlyVacationDays !== undefined && monthlyVacationDays !== null && monthlyVacationDays !== '' ? parseInt(monthlyVacationDays) : null,
+        shiftStartTime: shiftStartTime || null,
+        shiftEndTime: shiftEndTime || null,
       },
     })
 
@@ -191,7 +193,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canEditStaff')
 
     const body = await request.json()
-    const { id, staffCode, name, phone, position, salary, notes, isActive, customPosition, workingHours, monthlyVacationDays } = body
+    const { id, staffCode, name, phone, position, salary, notes, isActive, customPosition, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime } = body
 
     // ✅ تحضير البيانات للتحديث (فقط الحقول المسموحة)
     const updateData: any = {}
@@ -207,6 +209,12 @@ export async function PUT(request: Request) {
     }
     if (monthlyVacationDays !== undefined) {
       updateData.monthlyVacationDays = monthlyVacationDays !== null && monthlyVacationDays !== '' ? parseInt(monthlyVacationDays) : null
+    }
+    if (shiftStartTime !== undefined) {
+      updateData.shiftStartTime = shiftStartTime || null
+    }
+    if (shiftEndTime !== undefined) {
+      updateData.shiftEndTime = shiftEndTime || null
     }
 
     // ✅ إذا كان في تحديث للـ staffCode، تحقق من عدم التكرار

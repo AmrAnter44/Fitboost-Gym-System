@@ -67,40 +67,35 @@ export async function GET(request: Request) {
       })
     }
 
-    // منح النقاط لكل عضو
-    const results = []
-    for (const member of birthdayMembers) {
-      try {
-        // تحديث نقاط العضو
-        await prisma.member.update({
-          where: { id: member.id },
-          data: {
-            points: {
-              increment: settings.pointsPerBirthday
-            }
-          }
-        })
+    // منح النقاط لكل عضو (batch transaction بدلاً من N+1)
+    const results: any[] = []
+    const transactionOps = birthdayMembers.flatMap(member => [
+      prisma.member.update({
+        where: { id: member.id },
+        data: { points: { increment: settings.pointsPerBirthday } }
+      }),
+      prisma.pointsHistory.create({
+        data: {
+          memberId: member.id,
+          points: settings.pointsPerBirthday,
+          action: 'birthday',
+          description: `🎂 عيد ميلاد سعيد! تم منح ${settings.pointsPerBirthday} نقطة تلقائياً (CRON)`
+        }
+      })
+    ])
 
-        // تسجيل في تاريخ النقاط
-        await prisma.pointsHistory.create({
-          data: {
-            memberId: member.id,
-            points: settings.pointsPerBirthday,
-            action: 'birthday',
-            description: `🎂 عيد ميلاد سعيد! تم منح ${settings.pointsPerBirthday} نقطة تلقائياً (CRON)`
-          }
-        })
-
+    try {
+      await prisma.$transaction(transactionOps)
+      birthdayMembers.forEach(member => {
         results.push({
           memberNumber: member.memberNumber,
           name: member.name,
           pointsAwarded: settings.pointsPerBirthday,
           newTotal: member.points + settings.pointsPerBirthday
         })
-
-      } catch (error) {
-        console.error(`❌ [CRON] خطأ في منح نقاط لـ ${member.name}:`, error)
-      }
+      })
+    } catch (error) {
+      console.error('❌ [CRON] خطأ في منح نقاط عيد الميلاد:', error)
     }
 
     return NextResponse.json({

@@ -66,6 +66,9 @@ model Member {
   moreSubscriptions       More[]
 
   @@index([coachId])
+  @@index([isActive])
+  @@index([phone])
+  @@index([expiryDate])
 }
 
 model MemberCheckIn {
@@ -218,6 +221,11 @@ model Receipt {
   physiotherapy Physiotherapy? @relation(fields: [physioNumber], references: [physioNumber])
   groupClass    GroupClass?   @relation(fields: [classNumber], references: [classNumber])
   more          More?         @relation(fields: [moreNumber], references: [moreNumber])
+
+  @@index([createdAt])
+  @@index([type])
+  @@index([isCancelled])
+  @@index([memberId])
 }
 
 model ReceiptCounter {
@@ -269,6 +277,8 @@ model Staff {
   notes        String?
   workingHours Float?         // عدد ساعات العمل المطلوبة يومياً (e.g., 8)
   monthlyVacationDays Int?   // عدد أيام الإجازة شهرياً (e.g., 2)
+  shiftStartTime String?     // ساعة بداية الشيفت (e.g., "09:00")
+  shiftEndTime   String?     // ساعة نهاية الشيفت (e.g., "17:00")
   isActive     Boolean        @default(true)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -281,8 +291,10 @@ model Staff {
   followUpAssignments FollowUp[]     @relation("FollowUpAssignments")
   followUpActivities  FollowUpActivity[]
   deductions          StaffDeduction[]
+  whatsappAssignments WhatsAppConversation[] @relation("WhatsAppAssignments")
 
   @@index([staffCode])
+  @@index([isActive])
 }
 
 model StaffDeduction {
@@ -323,6 +335,11 @@ model Expense {
   staffId     String?
   isPaid      Boolean  @default(false)
   staff       Staff?   @relation(fields: [staffId], references: [id])
+
+  @@index([createdAt])
+  @@index([staffId])
+  @@index([type])
+  @@index([isPaid])
 }
 
 model Commission {
@@ -432,6 +449,9 @@ model Permission {
   canEditSpaBooking       Boolean @default(false)
   canCancelSpaBooking     Boolean @default(false)
   canViewSpaReports       Boolean @default(false)
+  canViewWhatsAppInbox    Boolean @default(false)
+  canSendWhatsApp         Boolean @default(false)
+  canManageWhatsApp       Boolean @default(false)
   user                    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -1075,4 +1095,99 @@ model WhatsAppTemplate {
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ===== WhatsApp Multi-Number Inbox System =====
+
+model WhatsAppSession {
+  id                String    @id @default(cuid())
+  sessionIndex      Int       @unique
+  label             String
+  phoneNumber       String?
+  status            String    @default("disconnected")
+  isActive          Boolean   @default(true)
+  warmupComplete    Boolean   @default(false)
+  warmupStartedAt   DateTime?
+  dailyMessageCount Int       @default(0)
+  dailyCountResetAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  conversations WhatsAppConversation[]
+  messages      WhatsAppMessage[]
+  queueItems    WhatsAppQueueItem[]
+
+  @@index([sessionIndex])
+  @@index([status])
+  @@index([isActive])
+}
+
+model WhatsAppConversation {
+  id              String    @id @default(cuid())
+  remotePhone     String    @unique
+  remoteName      String?
+  lastMessageAt   DateTime?
+  lastMessageText String?
+  status          String    @default("open")
+  assignedToId    String?
+  sessionId       String?
+  unreadCount     Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  session    WhatsAppSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  assignedTo Staff?           @relation("WhatsAppAssignments", fields: [assignedToId], references: [id], onDelete: SetNull)
+  messages   WhatsAppMessage[]
+
+  @@index([status])
+  @@index([assignedToId])
+  @@index([lastMessageAt])
+  @@index([sessionId])
+}
+
+model WhatsAppMessage {
+  id             String    @id @default(cuid())
+  conversationId String
+  sessionId      String?
+  direction      String
+  messageType    String    @default("text")
+  content        String
+  mediaUrl       String?
+  whatsappMsgId  String?
+  status         String    @default("pending")
+  sentById       String?
+  createdAt      DateTime  @default(now())
+
+  conversation WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  session      WhatsAppSession?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([direction])
+}
+
+model WhatsAppQueueItem {
+  id          String    @id @default(cuid())
+  sessionId   String
+  phone       String
+  messageType String    @default("text")
+  content     String
+  mediaBase64 String?
+  priority    Int       @default(5)
+  status      String    @default("queued")
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  scheduledAt DateTime  @default(now())
+  sentAt      DateTime?
+  error       String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  session WhatsAppSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([priority])
 }

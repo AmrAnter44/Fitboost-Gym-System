@@ -77,6 +77,7 @@
     "services": "Services",
     "financial": "Financial",
     "management": "Management",
+    "whatsappInbox": "WhatsApp Inbox",
     "howToUse": "📝 How to Use:",
     "searchMember": "To search for a member:",
     "searchMemberDesc": "Enter the number (1-8 digits) directly (example:",
@@ -1671,6 +1672,8 @@
       "workingHoursPlaceholder": "8",
       "monthlyVacationDays": "Monthly Vacation Days",
       "monthlyVacationDaysPlaceholder": "2",
+      "shiftStartTime": "Shift Start Time",
+      "shiftEndTime": "Shift End Time",
       "namePlaceholder": "Mohamed Ahmed",
       "salaryPlaceholder": "0.00",
       "customPosition": "Enter Position",
@@ -2198,6 +2201,7 @@
       "history": "History",
       "historyTitle": "View follow-up history",
       "delete": "Delete",
+      "deleteVisitor": "Delete Visitor",
       "addFollowUpTitle": "Add new follow-up",
       "viewHistoryTitle": "View follow-up history"
     },
@@ -2371,7 +2375,8 @@
     "buttons": {
       "followup": "Follow-up",
       "history": "History",
-      "delete": "Delete"
+      "delete": "Delete",
+      "deleteVisitor": "Delete Visitor"
     },
     "labels": {
       "contacted": "Contacted",
@@ -2426,6 +2431,8 @@
       "addFirst": "Add First Follow-up",
       "deleteSuccess": "Follow-up deleted successfully",
       "deleteError": "Failed to delete follow-up",
+      "deleteVisitorSuccess": "Visitor and all their follow-ups deleted permanently",
+      "deleteVisitorError": "Failed to delete visitor",
       "cannotDeleteAuto": "Cannot delete automatically generated follow-ups"
     },
     "deleteConfirm": {
@@ -2435,6 +2442,12 @@
       "confirmButton": "Yes, Delete",
       "cancelButton": "Cancel",
       "deleting": "Deleting..."
+    },
+    "deleteVisitorConfirm": {
+      "title": "Delete Visitor Permanently",
+      "message": "Are you sure you want to permanently delete the visitor",
+      "warning": "This will delete the visitor and ALL their follow-ups permanently. This action cannot be undone!",
+      "confirmButton": "Yes, Delete Permanently"
     },
     "history": {
       "title": "Follow-up History",
@@ -4779,5 +4792,65 @@
     "deletedMember": "Deleted Member",
     "todayClasses": "Today's Classes",
     "minutes": "min"
+  },
+  "whatsappInbox": {
+    "title": "WhatsApp Inbox",
+    "subtitle": "Manage all conversations from all numbers",
+    "conversations": "Conversations",
+    "newChat": "New Chat",
+    "search": "Search conversations...",
+    "filterAll": "All",
+    "filterOpen": "Open",
+    "filterClosed": "Closed",
+    "noConversations": "No conversations",
+    "selectConversation": "Select a conversation to start",
+    "unread": "Unread",
+    "assign": "Assign to",
+    "unassigned": "Unassigned",
+    "closeChat": "Close Conversation",
+    "reopenChat": "Reopen Conversation",
+    "sendMessage": "Send",
+    "typeMessage": "Type a message...",
+    "selectSession": "Select Number",
+    "checkNumber": "Check Number",
+    "numberExists": "Number exists on WhatsApp",
+    "numberNotExists": "Number does not exist on WhatsApp",
+    "messageSent": "Message sent",
+    "messageFailed": "Message failed to send",
+    "chatStarted": "Chat started",
+    "queue": {
+      "title": "Queue",
+      "pending": "Pending",
+      "processing": "Processing",
+      "sent": "Sent",
+      "failed": "Failed",
+      "cancel": "Cancel",
+      "dailyLimit": "Daily Limit",
+      "remaining": "{count} messages remaining"
+    },
+    "sessions": {
+      "title": "Manage Numbers",
+      "session": "Number {index}",
+      "label": "Label",
+      "editLabel": "Edit Label",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "warmup": "Warm-up Period",
+      "warmupDaysLeft": "{days} days remaining",
+      "warmupComplete": "Warm-up Complete",
+      "dailyCount": "{count}/{limit} messages today",
+      "phoneNumber": "Phone Number"
+    },
+    "newChatDialog": {
+      "title": "Start New Chat",
+      "phone": "Phone Number",
+      "session": "Send From",
+      "message": "Message",
+      "contactName": "Contact Name (optional)",
+      "useTemplate": "Use Template",
+      "checking": "Checking...",
+      "send": "Send",
+      "cancel": "Cancel"
+    }
   }
 }

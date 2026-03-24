@@ -25,7 +25,8 @@ import {
   fetchMembersData,
   fetchDayUseData,
   fetchInvitationsData,
-  deleteFollowUp
+  deleteFollowUp,
+  deleteVisitor
 } from '@/lib/api/followups'
 import { useDebounce } from '../../hooks/useDebounce'
 import { normalizeArabic } from '@/lib/arabicNormalization'
@@ -85,6 +86,8 @@ export default function FollowUpsPage() {
   const [selectedVisitorForTemplate, setSelectedVisitorForTemplate] = useState<Visitor | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{id: string, name: string} | null>(null)
+  const [showDeleteVisitorConfirm, setShowDeleteVisitorConfirm] = useState(false)
+  const [deleteVisitorTarget, setDeleteVisitorTarget] = useState<{id: string, name: string} | null>(null)
 
   // ✅ اشتراك سريع - تحويل الزائر إلى عضو
   const [showQuickSubscribeModal, setShowQuickSubscribeModal] = useState(false)
@@ -222,6 +225,19 @@ export default function FollowUpsPage() {
         queryClient.setQueryData(['followups'], context.previousData)
       }
       toast.error(error.message || t('followups.messages.deleteError'))
+    }
+  })
+
+  // 🗑️ حذف زائر نهائياً (مع كل متابعاته)
+  const deleteVisitorMutation = useMutation({
+    mutationFn: deleteVisitor,
+    onSuccess: () => {
+      toast.success(t('followups.messages.deleteVisitorSuccess'))
+      queryClient.invalidateQueries({ queryKey: ['followups'] })
+      queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || t('followups.messages.deleteVisitorError'))
     }
   })
 
@@ -643,6 +659,25 @@ export default function FollowUpsPage() {
   const cancelDelete = useCallback(() => {
     setShowDeleteConfirm(false)
     setDeleteTarget(null)
+  }, [])
+
+  // 🗑️ حذف زائر نهائياً
+  const handleDeleteVisitor = useCallback((visitorId: string, visitorName: string) => {
+    setDeleteVisitorTarget({ id: visitorId, name: visitorName })
+    setShowDeleteVisitorConfirm(true)
+  }, [])
+
+  const confirmDeleteVisitor = useCallback(() => {
+    if (deleteVisitorTarget) {
+      deleteVisitorMutation.mutate(deleteVisitorTarget.id)
+      setShowDeleteVisitorConfirm(false)
+      setDeleteVisitorTarget(null)
+    }
+  }, [deleteVisitorTarget, deleteVisitorMutation])
+
+  const cancelDeleteVisitor = useCallback(() => {
+    setShowDeleteVisitorConfirm(false)
+    setDeleteVisitorTarget(null)
   }, [])
 
   // ✅ فتح نموذج الاشتراك السريع
@@ -2097,6 +2132,17 @@ export default function FollowUpsPage() {
                             🗑️ {t('followups.buttons.delete')}
                           </button>
                         )}
+
+                        {/* زر حذف الزائر نهائياً */}
+                        {!isExpired && !isExpiring && !followUp.id.startsWith('dayuse-') && !followUp.id.startsWith('invitation-') && (
+                          <button
+                            onClick={() => handleDeleteVisitor(followUp.visitor.id, followUp.visitor.name)}
+                            className="text-red-700 dark:text-red-500 hover:text-red-900 dark:hover:text-red-400 text-sm font-medium px-3 py-1 rounded bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-900/70 border border-red-300 dark:border-red-700"
+                            title={t('followups.actions.deleteVisitor')}
+                          >
+                            ❌ {t('followups.buttons.deleteVisitor')}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -2394,6 +2440,68 @@ export default function FollowUpsPage() {
               <button
                 onClick={cancelDelete}
                 disabled={deleteMutation.isPending}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-bold py-3 px-4 rounded-lg transition-colors"
+              >
+                {t('followups.deleteConfirm.cancelButton')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Visitor Confirmation Popup */}
+      {showDeleteVisitorConfirm && deleteVisitorTarget && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={cancelDeleteVisitor}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-6 transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+            dir={direction}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="text-4xl">🚨</div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {t('followups.deleteVisitorConfirm.title')}
+                </h3>
+              </div>
+            </div>
+
+            <div className="mb-6 space-y-3">
+              <p className="text-gray-700 dark:text-gray-200 text-base">
+                {t('followups.deleteVisitorConfirm.message')} <strong className="text-red-600 dark:text-red-400">{deleteVisitorTarget.name}</strong>?
+              </p>
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3">
+                <p className="text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
+                  <span className="text-lg">⚠️</span>
+                  <span>{t('followups.deleteVisitorConfirm.warning')}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={confirmDeleteVisitor}
+                disabled={deleteVisitorMutation.isPending}
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                {deleteVisitorMutation.isPending ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>{t('followups.deleteConfirm.deleting')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>❌</span>
+                    <span>{t('followups.deleteVisitorConfirm.confirmButton')}</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={cancelDeleteVisitor}
+                disabled={deleteVisitorMutation.isPending}
                 className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-bold py-3 px-4 rounded-lg transition-colors"
               >
                 {t('followups.deleteConfirm.cancelButton')}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { usePermissions } from '../hooks/usePermissions'
 import type { Permissions } from '../types/permissions'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -21,36 +21,33 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
 
-  const allLinks = [
-    { href: '/members', label: t('nav.members'), icon: '👥', permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
-    { href: '/pt', label: t('nav.pt'), icon: '💪', permission: 'canViewPT' as keyof Permissions, roleRequired: null },
-    { href: '/nutrition', label: t('nav.nutrition'), icon: '🥗', permission: 'canViewNutrition' as keyof Permissions, roleRequired: null, enabled: settings.nutritionEnabled },
-    { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: '🏥', permission: 'canViewPhysiotherapy' as keyof Permissions, roleRequired: null, enabled: settings.physiotherapyEnabled },
-    { href: '/group-classes', label: t('nav.groupClasses'), icon: '👥', permission: 'canViewGroupClass' as keyof Permissions, roleRequired: null, enabled: settings.groupClassEnabled },
-    { href: '/dayuse', label: t('nav.dayUse'), icon: '📊', permission: 'canViewDayUse' as keyof Permissions, roleRequired: null },
-    { href: '/staff', label: t('nav.staff'), icon: '👷', permission: 'canViewStaff' as keyof Permissions, roleRequired: null },
-    { href: '/receipts', label: t('nav.receipts'), icon: '🧾', permission: 'canViewReceipts' as keyof Permissions, roleRequired: null },
-    { href: '/expenses', label: t('nav.expenses'), icon: '💸', permission: 'canViewExpenses' as keyof Permissions, roleRequired: null },
-    { href: '/visitors', label: t('nav.visitors'), icon: '🚶', permission: 'canViewVisitors' as keyof Permissions, roleRequired: null },
-    { href: '/followups', label: t('nav.followups'), icon: '📝', permission: 'canViewFollowUps' as keyof Permissions, roleRequired: null },
-    { href: '/spa-bookings', label: t('nav.spaBookings'), icon: '💆', permission: 'canViewSpaBookings' as keyof Permissions, roleRequired: null, enabled: settings.spaEnabled },
-    { href: '/closing', label: t('nav.closing'), icon: '💰', permission: 'canAccessClosing' as keyof Permissions, roleRequired: null },
-    { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: 'canAccessSettings' as keyof Permissions, roleRequired: null },
-  ]
+  // Memoize links to avoid re-filtering on every render
+  const links = useMemo(() => {
+    const allLinks = [
+      { href: '/members', label: t('nav.members'), icon: '👥', permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
+      { href: '/pt', label: t('nav.pt'), icon: '💪', permission: 'canViewPT' as keyof Permissions, roleRequired: null },
+      { href: '/nutrition', label: t('nav.nutrition'), icon: '🥗', permission: 'canViewNutrition' as keyof Permissions, roleRequired: null, enabled: settings.nutritionEnabled },
+      { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: '🏥', permission: 'canViewPhysiotherapy' as keyof Permissions, roleRequired: null, enabled: settings.physiotherapyEnabled },
+      { href: '/group-classes', label: t('nav.groupClasses'), icon: '👥', permission: 'canViewGroupClass' as keyof Permissions, roleRequired: null, enabled: settings.groupClassEnabled },
+      { href: '/dayuse', label: t('nav.dayUse'), icon: '📊', permission: 'canViewDayUse' as keyof Permissions, roleRequired: null },
+      { href: '/staff', label: t('nav.staff'), icon: '👷', permission: 'canViewStaff' as keyof Permissions, roleRequired: null },
+      { href: '/receipts', label: t('nav.receipts'), icon: '🧾', permission: 'canViewReceipts' as keyof Permissions, roleRequired: null },
+      { href: '/expenses', label: t('nav.expenses'), icon: '💸', permission: 'canViewExpenses' as keyof Permissions, roleRequired: null },
+      { href: '/visitors', label: t('nav.visitors'), icon: '🚶', permission: 'canViewVisitors' as keyof Permissions, roleRequired: null },
+      { href: '/followups', label: t('nav.followups'), icon: '📝', permission: 'canViewFollowUps' as keyof Permissions, roleRequired: null },
+      { href: '/spa-bookings', label: t('nav.spaBookings'), icon: '💆', permission: 'canViewSpaBookings' as keyof Permissions, roleRequired: null, enabled: settings.spaEnabled },
+      { href: '/whatsapp-web', label: 'WhatsApp Web', icon: '📱', permission: 'canViewWhatsAppInbox' as keyof Permissions, roleRequired: null },
+      { href: '/closing', label: t('nav.closing'), icon: '💰', permission: 'canAccessClosing' as keyof Permissions, roleRequired: null },
+      { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: 'canAccessSettings' as keyof Permissions, roleRequired: null },
+    ]
 
-  // Filter links based on permissions, role, and enabled status
-  const links = allLinks.filter(link => {
-    // Check if service is enabled (for new services only)
-    if ('enabled' in link && !link.enabled) return false
-
-    // Check permission
-    if (link.permission && !hasPermission(link.permission)) return false
-
-    // Check role if required
-    if (link.roleRequired && user?.role !== link.roleRequired) return false
-
-    return true
-  })
+    return allLinks.filter(link => {
+      if ('enabled' in link && !link.enabled) return false
+      if (link.permission && !hasPermission(link.permission)) return false
+      if (link.roleRequired && user?.role !== link.roleRequired) return false
+      return true
+    })
+  }, [t, settings.nutritionEnabled, settings.physiotherapyEnabled, settings.groupClassEnabled, settings.spaEnabled, hasPermission, user?.role])
 
   // ❌ Keyboard shortcuts معطلة بناءً على طلب المستخدم
   // Open search modal with Ctrl+K - DISABLED
@@ -90,7 +87,7 @@ export default function Navbar() {
       {/* ✅ Navbar أفقية مع أيقونات عمودية على اليمين */}
       <nav
         dir={locale === 'ar' ? 'rtl' : 'ltr'}
-        className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800 text-white shadow-xl sticky top-0 z-40 border-b-2 border-primary-800 dark:border-gray-700"
+        className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 text-white shadow-xl sticky top-0 z-40 border-b-2 border-primary-800 dark:border-primary-950"
       >
         <div className="w-full px-2 sm:px-4 relative z-10">
           <div className="flex items-center justify-between gap-2">
@@ -107,36 +104,16 @@ export default function Navbar() {
               </button>
             </div>
 
-            {/* Desktop: Logo + Hamburger على اليسار */}
-            <div className="hidden lg:flex items-center gap-2 flex-shrink-0 py-1.5">
-              {/* Logo Button - للصفحة الرئيسية */}
-              <Link
-                href={user?.role === 'COACH' ? '/coach' : '/'}
-                className="logo-breathing block w-12 h-12 sm:w-14 sm:h-14"
-                title={t('nav.home')}
-              >
-                <img
-                  src={settings.gymLogo || '/assets/icon.png'}
-                  alt="Home"
-                  className="w-full h-full object-contain drop-shadow-2xl"
-                  onError={(e) => { (e.target as HTMLImageElement).src = '/assets/icon.png' }}
-                />
-              </Link>
-            </div>
+            {/* Desktop: spacer */}
+            <div className="hidden lg:block flex-shrink-0 py-1.5" />
 
-            {/* Mobile: Logo في المنتصف */}
+            {/* Mobile: Title في المنتصف */}
             <div className="flex lg:hidden items-center justify-center flex-1 py-1.5">
               <Link
                 href={user?.role === 'COACH' ? '/coach' : '/'}
-                className="logo-breathing flex items-center gap-2"
+                className="flex items-center gap-2"
                 title={t('nav.home')}
               >
-                <img
-                  src={settings.gymLogo || '/assets/icon.png'}
-                  alt="Home"
-                  className="w-10 h-10 object-contain drop-shadow-2xl"
-                  onError={(e) => { (e.target as HTMLImageElement).src = '/assets/icon.png' }}
-                />
                 <span className="font-bold text-base">{t('common.appTitle')}</span>
               </Link>
             </div>
@@ -237,8 +214,8 @@ export default function Navbar() {
 
                           <button
                             onClick={handleLogout}
-                            className={`w-full px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/30 transition-all flex items-center gap-2 font-bold ${
-                              locale === 'ar' ? 'text-right hover:translate-x-1' : 'text-left hover:-translate-x-1'
+                            className={`w-full px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/30 transition-all flex items-center gap-2 font-bold text-start ${
+                              locale === 'ar' ? 'hover:translate-x-1' : 'hover:-translate-x-1'
                             }`}
                           >
                             <span>🚪</span>
@@ -279,13 +256,13 @@ export default function Navbar() {
           {/* Drawer */}
           <div
             dir={locale === 'ar' ? 'rtl' : 'ltr'}
-            className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto ${
+            className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto border-e-4 border-primary-600 dark:border-primary-500 ${
               locale === 'ar'
-                ? 'right-0 animate-slideRight border-l-4 border-primary-600 dark:border-primary-500'
-                : 'left-0 animate-slideLeft border-r-4 border-primary-600 dark:border-primary-500'
+                ? 'right-0 animate-slideRight'
+                : 'left-0 animate-slideLeft'
             }`}>
             {/* Header with Logo in Center */}
-            <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
               {/* Close Button */}
               <button
                 onClick={() => setShowDrawer(false)}
@@ -296,14 +273,8 @@ export default function Navbar() {
                 </svg>
               </button>
 
-              {/* Logo in Center */}
+              {/* Title in Center */}
               <div className="flex items-center gap-2 flex-1 justify-center">
-                <img
-                  src={settings.gymLogo || '/assets/icon.png'}
-                  alt="Logo"
-                  className="w-10 h-10 object-contain drop-shadow-lg"
-                  onError={(e) => { (e.target as HTMLImageElement).src = '/assets/icon.png' }}
-                />
                 <span className="font-bold text-lg">{t('common.appTitle')}</span>
               </div>
 
@@ -322,9 +293,7 @@ export default function Navbar() {
                     locale === 'ar' ? 'hover:-translate-x-2' : 'hover:translate-x-2'
                   } relative ${
                     pathname === link.href
-                      ? `bg-gradient-to-${locale === 'ar' ? 'l' : 'r'} from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 text-primary-700 dark:text-primary-400 font-bold shadow-md ${
-                          locale === 'ar' ? 'border-l-4' : 'border-r-4'
-                        } border-primary-600 dark:border-primary-500`
+                      ? `bg-gradient-to-${locale === 'ar' ? 'l' : 'r'} from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 text-primary-700 dark:text-primary-400 font-bold shadow-md border-e-4 border-primary-600 dark:border-primary-500`
                       : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700/80'
                   }`}
                 >

@@ -77,6 +77,7 @@
     "services": "الخدمات",
     "financial": "المالية",
     "management": "الإدارة",
+    "whatsappInbox": "صندوق الواتساب",
     "howToUse": "📝 كيفية الاستخدام:",
     "searchMember": "للبحث عن عضو:",
     "searchMemberDesc": "اكتب الرقم (1-8 خانات) مباشرة (مثال:",
@@ -1672,6 +1673,8 @@
       "workingHoursPlaceholder": "8",
       "monthlyVacationDays": "عدد أيام الإجازة (شهرياً)",
       "monthlyVacationDaysPlaceholder": "2",
+      "shiftStartTime": "ساعة بداية الشيفت",
+      "shiftEndTime": "ساعة نهاية الشيفت",
       "namePlaceholder": "محمد أحمد",
       "salaryPlaceholder": "0.00",
       "customPosition": "اكتب الوظيفة",
@@ -2199,6 +2202,7 @@
       "history": "السجل",
       "historyTitle": "عرض سجل المتابعات",
       "delete": "حذف",
+      "deleteVisitor": "حذف الزائر",
       "addFollowUpTitle": "إضافة متابعة جديدة",
       "viewHistoryTitle": "عرض سجل المتابعات"
     },
@@ -2377,7 +2381,8 @@
     "buttons": {
       "followup": "متابعة",
       "history": "السجل",
-      "delete": "حذف"
+      "delete": "حذف",
+      "deleteVisitor": "حذف الزائر"
     },
     "labels": {
       "renewed": "تم التجديد",
@@ -2423,6 +2428,8 @@
       "addFirst": "إضافة أول متابعة",
       "deleteSuccess": "تم حذف المتابعة بنجاح",
       "deleteError": "فشل حذف المتابعة",
+      "deleteVisitorSuccess": "تم حذف الزائر وجميع متابعاته نهائياً",
+      "deleteVisitorError": "فشل حذف الزائر",
       "cannotDeleteAuto": "لا يمكن حذف المتابعات المولدة تلقائياً"
     },
     "deleteConfirm": {
@@ -2432,6 +2439,12 @@
       "confirmButton": "نعم، احذف",
       "cancelButton": "إلغاء",
       "deleting": "جاري الحذف..."
+    },
+    "deleteVisitorConfirm": {
+      "title": "حذف الزائر نهائياً",
+      "message": "هل أنت متأكد من حذف الزائر نهائياً",
+      "warning": "سيتم حذف الزائر وجميع متابعاته نهائياً. لا يمكن التراجع عن هذا الإجراء!",
+      "confirmButton": "نعم، احذف نهائياً"
     },
     "history": {
       "title": "سجل المتابعات",
@@ -4727,5 +4740,65 @@
     "deletedMember": "عضو محذوف",
     "todayClasses": "كلاسيس اليوم",
     "minutes": "د"
+  },
+  "whatsappInbox": {
+    "title": "صندوق الواتساب",
+    "subtitle": "إدارة جميع المحادثات من جميع الأرقام",
+    "conversations": "المحادثات",
+    "newChat": "محادثة جديدة",
+    "search": "بحث في المحادثات...",
+    "filterAll": "الكل",
+    "filterOpen": "مفتوحة",
+    "filterClosed": "مغلقة",
+    "noConversations": "لا توجد محادثات",
+    "selectConversation": "اختر محادثة للبدء",
+    "unread": "غير مقروء",
+    "assign": "تعيين لـ",
+    "unassigned": "غير معين",
+    "closeChat": "إغلاق المحادثة",
+    "reopenChat": "إعادة فتح المحادثة",
+    "sendMessage": "إرسال",
+    "typeMessage": "اكتب رسالة...",
+    "selectSession": "اختر الرقم",
+    "checkNumber": "التحقق من الرقم",
+    "numberExists": "الرقم موجود على واتساب",
+    "numberNotExists": "الرقم غير موجود على واتساب",
+    "messageSent": "تم إرسال الرسالة",
+    "messageFailed": "فشل إرسال الرسالة",
+    "chatStarted": "تم بدء المحادثة",
+    "queue": {
+      "title": "قائمة الانتظار",
+      "pending": "في الانتظار",
+      "processing": "جاري الإرسال",
+      "sent": "تم الإرسال",
+      "failed": "فشل",
+      "cancel": "إلغاء",
+      "dailyLimit": "الحد اليومي",
+      "remaining": "متبقي {count} رسالة"
+    },
+    "sessions": {
+      "title": "إدارة الأرقام",
+      "session": "رقم {index}",
+      "label": "الاسم",
+      "editLabel": "تعديل الاسم",
+      "connected": "متصل",
+      "disconnected": "غير متصل",
+      "warmup": "فترة التمهيد",
+      "warmupDaysLeft": "متبقي {days} يوم",
+      "warmupComplete": "التمهيد مكتمل",
+      "dailyCount": "{count}/{limit} رسالة اليوم",
+      "phoneNumber": "رقم الهاتف"
+    },
+    "newChatDialog": {
+      "title": "بدء محادثة جديدة",
+      "phone": "رقم الهاتف",
+      "session": "إرسال من",
+      "message": "الرسالة",
+      "contactName": "اسم جهة الاتصال (اختياري)",
+      "useTemplate": "استخدام قالب",
+      "checking": "جاري التحقق...",
+      "send": "إرسال",
+      "cancel": "إلغاء"
+    }
   }
 }

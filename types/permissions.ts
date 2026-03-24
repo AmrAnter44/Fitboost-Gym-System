@@ -111,6 +111,11 @@ export interface Permissions {
 
   // صلاحيات المحظورين
   canManageBannedMembers: boolean
+
+  // صلاحيات الواتساب
+  canViewWhatsAppInbox: boolean
+  canSendWhatsApp: boolean
+  canManageWhatsApp: boolean
 }
 
 /**
@@ -239,6 +244,9 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditDeduction: true,
     canDeleteDeduction: true,
     canManageBannedMembers: true,
+    canViewWhatsAppInbox: true,
+    canSendWhatsApp: true,
+    canManageWhatsApp: true,
   },
   ADMIN: {
     canViewMembers: true,
@@ -308,6 +316,9 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditDeduction: true,
     canDeleteDeduction: true,
     canManageBannedMembers: true,
+    canViewWhatsAppInbox: true,
+    canSendWhatsApp: true,
+    canManageWhatsApp: true,
   },
   MANAGER: {
     canViewMembers: true,
@@ -377,6 +388,9 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditDeduction: true,
     canDeleteDeduction: false,
     canManageBannedMembers: true,
+    canViewWhatsAppInbox: true,
+    canSendWhatsApp: true,
+    canManageWhatsApp: false,
   },
   STAFF: {
     canViewMembers: true,
@@ -446,6 +460,9 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditDeduction: false,
     canDeleteDeduction: false,
     canManageBannedMembers: false,
+    canViewWhatsAppInbox: true,
+    canSendWhatsApp: true,
+    canManageWhatsApp: false,
   },
   COACH: {
     // الكوتش يرى فقط حصصه الخاصة
@@ -516,6 +533,9 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canEditDeduction: false,
     canDeleteDeduction: false,
     canManageBannedMembers: false,
+    canViewWhatsAppInbox: false,
+    canSendWhatsApp: false,
+    canManageWhatsApp: false,
   },
 }
 
@@ -590,6 +610,9 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canEditDeduction: 'تعديل خصم',
   canDeleteDeduction: 'حذف خصم',
   canManageBannedMembers: 'إدارة المحظورين',
+  canViewWhatsAppInbox: 'عرض صندوق الواتساب',
+  canSendWhatsApp: 'إرسال رسائل واتساب',
+  canManageWhatsApp: 'إدارة إعدادات الواتساب',
 }
 
 /**
@@ -748,6 +771,14 @@ export const PERMISSION_GROUPS = {
       'canManageBannedMembers',
     ] as Array<keyof Permissions>,
   },
+  whatsapp: {
+    label: '💬 الواتساب',
+    permissions: [
+      'canViewWhatsAppInbox',
+      'canSendWhatsApp',
+      'canManageWhatsApp',
+    ] as Array<keyof Permissions>,
+  },
 }
 
 /**
@@ -821,6 +852,9 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canEditDeduction: '✏️',
   canDeleteDeduction: '🗑️',
   canManageBannedMembers: '🚫',
+  canViewWhatsAppInbox: '👁️',
+  canSendWhatsApp: '📤',
+  canManageWhatsApp: '⚙️',
 }
 
 /**

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     tomorrow.setHours(23, 59, 59, 999)
 
 
-    // Get all bookings for today
+    // Get all bookings for today with member and class details (single query)
     const bookings = await prisma.classBooking.findMany({
       where: {
         bookingDate: {
@@ -43,39 +43,29 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    // Batch fetch members and class schedules (2 queries instead of 2N)
+    const memberIds = [...new Set(bookings.map(b => b.memberId))]
+    const classScheduleIds = [...new Set(bookings.map(b => b.classScheduleId))]
 
-    // Get member and class details for each booking
-    const bookingsWithDetails = await Promise.all(
-      bookings.map(async (booking) => {
-        const [member, classSchedule] = await Promise.all([
-          prisma.member.findUnique({
-            where: { id: booking.memberId },
-            select: {
-              memberNumber: true,
-              name: true,
-              phone: true,
-            },
-          }),
-          prisma.classSchedule.findUnique({
-            where: { id: booking.classScheduleId },
-            select: {
-              className: true,
-              coachName: true,
-              startTime: true,
-              dayOfWeek: true,
-            },
-          }),
-        ])
+    const [members, classSchedules] = await Promise.all([
+      prisma.member.findMany({
+        where: { id: { in: memberIds } },
+        select: { id: true, memberNumber: true, name: true, phone: true },
+      }),
+      prisma.classSchedule.findMany({
+        where: { id: { in: classScheduleIds } },
+        select: { id: true, className: true, coachName: true, startTime: true, dayOfWeek: true },
+      }),
+    ])
 
+    const membersMap = new Map(members.map(m => [m.id, m]))
+    const classesMap = new Map(classSchedules.map(c => [c.id, c]))
 
-        return {
-          ...booking,
-          member: member || null,
-          class: classSchedule || null,
-        }
-      })
-    )
-
+    const bookingsWithDetails = bookings.map(booking => ({
+      ...booking,
+      member: membersMap.get(booking.memberId) || null,
+      class: classesMap.get(booking.classScheduleId) || null,
+    }))
 
     return NextResponse.json({
       count: bookings.length,

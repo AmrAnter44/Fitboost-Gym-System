@@ -1,19 +1,27 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
 import QRCode from 'qrcode'
-import { getWhatsAppBrowserClient } from '../../../lib/whatsappClient'
+import { getWhatsAppBrowserClient, SessionInfo } from '../../../lib/whatsappClient'
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const SESSION_COUNT = 1
+
+const SESSION_COLORS: Record<number, { tab: string; ring: string; bg: string; text: string; border: string; dot: string }> = {
+  0: {
+    tab: 'bg-blue-500',
+    ring: 'border-blue-400',
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    text: 'text-blue-700 dark:text-blue-300',
+    border: 'border-blue-200 dark:border-blue-700',
+    dot: 'bg-blue-500',
+  },
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type Status = {
-  isReady: boolean
-  qrCode: string | null
-  hasClient: boolean
-  sidecarOnline: boolean
-}
 
 type Op = 'init' | 'reconnect' | 'reset' | null
 
@@ -22,6 +30,19 @@ type ErrorInfo = {
   title: string
   detail: string
   solution: string
+}
+
+type SessionState = {
+  status: SessionInfo | null
+  qrImg: string
+  qrSeconds: number
+  qrExpired: boolean
+  op: Op
+  err: ErrorInfo | null
+  label: string
+  dailyCount: number
+  dailyLimit: number
+  warmupDaysLeft: number | null // null = complete
 }
 
 // ─── Error classifier ─────────────────────────────────────────────────────────
@@ -64,6 +85,21 @@ function classifyError(msg: string): ErrorInfo {
   }
 }
 
+function defaultSessionState(idx: number): SessionState {
+  return {
+    status: null,
+    qrImg: '',
+    qrSeconds: 60,
+    qrExpired: false,
+    op: null,
+    err: null,
+    label: `Session ${idx + 1}`,
+    dailyCount: 0,
+    dailyLimit: 250,
+    warmupDaysLeft: null,
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function WhatsAppPage() {
@@ -71,16 +107,19 @@ export default function WhatsAppPage() {
   const toast = useToast()
   const isRTL = t('common.language') === 'ar'
 
-  const [status, setStatus] = useState<Status | null>(null)
-  const [qrImg, setQrImg] = useState('')
-  const [qrSeconds, setQrSeconds] = useState(60)
-  const [qrExpired, setQrExpired] = useState(false)
-  const [op, setOp] = useState<Op>(null)
-  const [err, setErr] = useState<ErrorInfo | null>(null)
+  const activeTab = 0
+  const [sessions, setSessions] = useState<SessionState[]>(() =>
+    Array.from({ length: SESSION_COUNT }, (_, i) => defaultSessionState(i))
+  )
+  const [sidecarUp, setSidecarUp] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
 
   const [testPhone, setTestPhone] = useState('')
   const [testMsg, setTestMsg] = useState('')
   const [sending, setSending] = useState(false)
+
+  // Refs for QR countdown intervals
+  const qrTimers = useRef<Record<number, ReturnType<typeof setInterval>>>({})
 
   useEffect(() => {
     setTestMsg(
@@ -90,160 +129,273 @@ export default function WhatsAppPage() {
     )
   }, [isRTL])
 
-  // ── Status polling ──────────────────────────────────────────────────────────
+  // ── Helper to update a specific session ─────────────────────────────────────
 
-  const fetchStatus = useCallback(async () => {
-    try {
-      const data = (await getWhatsAppBrowserClient().getStatus()) as Status
-      setStatus(prev => {
-        if (!prev) return data
-        if (data.isReady) return data
-        if (data.qrCode) return data
-        return { ...data, qrCode: prev.qrCode }
+  const updateSession = useCallback((idx: number, patch: Partial<SessionState>) => {
+    setSessions(prev => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)))
+  }, [])
+
+  // ── Start QR countdown for a session ────────────────────────────────────────
+
+  const startQrCountdown = useCallback((idx: number) => {
+    // Clear any existing timer
+    if (qrTimers.current[idx]) clearInterval(qrTimers.current[idx])
+
+    qrTimers.current[idx] = setInterval(() => {
+      setSessions(prev => {
+        const s = prev[idx]
+        if (s.qrSeconds <= 1) {
+          clearInterval(qrTimers.current[idx])
+          delete qrTimers.current[idx]
+          return prev.map((ss, i) => (i === idx ? { ...ss, qrSeconds: 0, qrExpired: true } : ss))
+        }
+        return prev.map((ss, i) => (i === idx ? { ...ss, qrSeconds: ss.qrSeconds - 1 } : ss))
       })
-      if (data.sidecarOnline) {
-        setErr(prev => (prev?.code === 'SERVICE_UNAVAILABLE' ? null : prev))
+    }, 1000)
+  }, [])
+
+  // Clean up QR timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(qrTimers.current).forEach(clearInterval)
+    }
+  }, [])
+
+  // ── Status polling (all sessions) ───────────────────────────────────────────
+
+  const fetchSessions = useCallback(async () => {
+    try {
+      const client = getWhatsAppBrowserClient()
+      const data = await client.getSessions()
+
+      if (data && data.length > 0) {
+        setSidecarUp(true)
+        setInitialLoading(false)
+
+        setSessions(prev =>
+          prev.map((s, i) => {
+            const remote = data.find(d => d.sessionIndex === i)
+            if (!remote) return s
+
+            const newStatus: SessionInfo = {
+              sessionIndex: remote.sessionIndex,
+              isReady: remote.isReady,
+              qrCode: remote.qrCode,
+              hasClient: remote.hasClient,
+              phoneNumber: remote.phoneNumber,
+            }
+
+            // Preserve existing QR if new data has no QR and isn't ready
+            if (!newStatus.isReady && !newStatus.qrCode && s.status?.qrCode) {
+              newStatus.qrCode = s.status.qrCode
+            }
+
+            return { ...s, status: newStatus }
+          })
+        )
+      } else {
+        setInitialLoading(false)
       }
     } catch {
-      setStatus(prev =>
-        prev ?? { isReady: false, qrCode: null, hasClient: false, sidecarOnline: false }
-      )
+      setInitialLoading(false)
+      setSidecarUp(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchStatus()
-    const id = setInterval(fetchStatus, 3000)
+    fetchSessions()
+    const id = setInterval(fetchSessions, 3000)
     return () => clearInterval(id)
-  }, [fetchStatus])
+  }, [fetchSessions])
 
-  // ── SSE ─────────────────────────────────────────────────────────────────────
+  // ── Multi-session SSE ───────────────────────────────────────────────────────
 
   useEffect(() => {
     const client = getWhatsAppBrowserClient()
-    client.connectSSE()
-    return () => client.disconnectSSE()
+    client.connectMultiSSE()
+    return () => client.disconnectMultiSSE()
   }, [])
 
   useEffect(() => {
     const client = getWhatsAppBrowserClient()
 
-    const onQR = (qr: string) => {
-      setStatus(prev => ({
-        ...(prev ?? { hasClient: true, sidecarOnline: true }),
-        isReady: false,
-        qrCode: qr,
-      }))
-      setErr(null)
-      setOp(null)
-      setQrExpired(false)
-      setQrSeconds(60)
+    const onQR = (data: any) => {
+      const idx = data?.sessionIndex ?? 0
+      if (idx < 0 || idx >= SESSION_COUNT) return
+      const qr = data?.qrCode ?? data
+
+      updateSession(idx, {
+        status: {
+          sessionIndex: idx,
+          isReady: false,
+          qrCode: typeof qr === 'string' ? qr : null,
+          hasClient: true,
+        },
+        err: null,
+        op: null,
+        qrExpired: false,
+        qrSeconds: 60,
+      })
+      startQrCountdown(idx)
     }
 
-    const onReady = () => {
-      setStatus(prev => ({
-        ...(prev ?? { qrCode: null, sidecarOnline: true }),
-        hasClient: true,
-        isReady: true,
-        qrCode: null,
-      }))
-      setErr(null)
-      setOp(null)
-      setQrExpired(false)
-      toast.success(`✅ ${t('settings.whatsapp.toast.connected')}`)
+    const onReady = (data: any) => {
+      const idx = data?.sessionIndex ?? 0
+      if (idx < 0 || idx >= SESSION_COUNT) return
+
+      updateSession(idx, {
+        status: {
+          sessionIndex: idx,
+          isReady: true,
+          qrCode: null,
+          hasClient: true,
+          phoneNumber: data?.phoneNumber,
+        },
+        err: null,
+        op: null,
+        qrExpired: false,
+      })
+
+      // Clear QR timer
+      if (qrTimers.current[idx]) {
+        clearInterval(qrTimers.current[idx])
+        delete qrTimers.current[idx]
+      }
+
+      toast.success(`✅ ${t('settings.whatsapp.toast.connected')} (${t('whatsappInbox.sessions.session')} ${idx + 1})`)
     }
 
-    const onDisconnected = (reason: string) => {
-      setStatus(prev => ({
-        ...(prev ?? { qrCode: null, sidecarOnline: true }),
-        hasClient: false,
-        isReady: false,
-        qrCode: null,
-      }))
-      setOp(null)
-      if (reason && reason !== 'Max reconnects reached')
-        setErr(classifyError(reason))
+    const onDisconnected = (data: any) => {
+      const idx = data?.sessionIndex ?? 0
+      const reason = data?.reason ?? (typeof data === 'string' ? data : '')
+      if (idx < 0 || idx >= SESSION_COUNT) return
+
+      updateSession(idx, {
+        status: {
+          sessionIndex: idx,
+          isReady: false,
+          qrCode: null,
+          hasClient: false,
+        },
+        op: null,
+      })
+
+      if (reason && reason !== 'Max reconnects reached') {
+        updateSession(idx, { err: classifyError(reason) })
+      }
+
+      // Clear QR timer
+      if (qrTimers.current[idx]) {
+        clearInterval(qrTimers.current[idx])
+        delete qrTimers.current[idx]
+      }
+    }
+
+    const onStatusAll = (data: any) => {
+      if (!Array.isArray(data)) return
+      setSessions(prev =>
+        prev.map((s, i) => {
+          const remote = data.find((d: any) => d.sessionIndex === i)
+          if (!remote) return s
+          return {
+            ...s,
+            status: {
+              sessionIndex: remote.sessionIndex,
+              isReady: remote.isReady,
+              qrCode: remote.qrCode,
+              hasClient: remote.hasClient,
+              phoneNumber: remote.phoneNumber,
+            },
+          }
+        })
+      )
     }
 
     client.on('qr', onQR)
     client.on('ready', onReady)
     client.on('disconnected', onDisconnected)
+    client.on('status_all', onStatusAll)
+
     return () => {
       client.off('qr', onQR)
       client.off('ready', onReady)
       client.off('disconnected', onDisconnected)
+      client.off('status_all', onStatusAll)
     }
-  }, [t, toast])
+  }, [t, toast, updateSession, startQrCountdown])
 
-  // ── QR image ────────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!status?.qrCode) { setQrImg(''); return }
-    QRCode.toDataURL(status.qrCode, {
-      width: 280,
-      margin: 2,
-      color: { dark: '#0f172a', light: '#ffffff' },
-    })
-      .then(setQrImg)
-      .catch(() => setQrImg(''))
-  }, [status?.qrCode])
-
-  // ── QR countdown ────────────────────────────────────────────────────────────
+  // ── QR image generation (per session) ───────────────────────────────────────
 
   useEffect(() => {
-    if (!status?.qrCode) return
-    setQrSeconds(60)
-    setQrExpired(false)
-    const id = setInterval(() => {
-      setQrSeconds(s => {
-        if (s <= 1) { clearInterval(id); setQrExpired(true); return 0 }
-        return s - 1
+    sessions.forEach((s, idx) => {
+      const qrCode = s.status?.qrCode
+      if (!qrCode) {
+        if (s.qrImg) updateSession(idx, { qrImg: '' })
+        return
+      }
+      QRCode.toDataURL(qrCode, {
+        width: 260,
+        margin: 2,
+        color: { dark: '#0f172a', light: '#ffffff' },
       })
-    }, 1000)
-    return () => clearInterval(id)
-  }, [status?.qrCode])
+        .then(img => updateSession(idx, { qrImg: img }))
+        .catch(() => updateSession(idx, { qrImg: '' }))
+    })
+    // Only re-run when QR codes change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions.map(s => s.status?.qrCode).join(',')])
 
-  // ── Actions ─────────────────────────────────────────────────────────────────
+  // ── Actions (per session) ──────────────────────────────────────────────────
 
-  async function handleInit() {
-    if (op) return
-    setOp('init'); setErr(null)
+  async function handleInit(idx: number) {
+    const s = sessions[idx]
+    if (s.op) return
+    updateSession(idx, { op: 'init', err: null })
     try {
-      const res = await getWhatsAppBrowserClient().init()
+      const res = await getWhatsAppBrowserClient().initSession(idx)
       if (!res.success) {
         const e = classifyError(res.error ?? 'Unknown error')
-        if (e.code !== 'CONFLICT') setErr(e)
+        if (e.code !== 'CONFLICT') updateSession(idx, { err: e })
       }
     } catch (e) {
-      setErr(classifyError(e instanceof Error ? e.message : String(e)))
-    } finally { setOp(null) }
+      updateSession(idx, { err: classifyError(e instanceof Error ? e.message : String(e)) })
+    } finally {
+      updateSession(idx, { op: null })
+    }
   }
 
-  async function handleReconnect() {
-    if (op) return
-    setOp('reconnect'); setErr(null)
+  async function handleReconnect(idx: number) {
+    const s = sessions[idx]
+    if (s.op) return
+    updateSession(idx, { op: 'reconnect', err: null })
     try {
-      const res = await getWhatsAppBrowserClient().reconnect()
-      if (!res.success) setErr(classifyError(res.error ?? 'Unknown error'))
+      const res = await getWhatsAppBrowserClient().reconnectSession(idx)
+      if (!res.success) updateSession(idx, { err: classifyError(res.error ?? 'Unknown error') })
     } catch (e) {
-      setErr(classifyError(e instanceof Error ? e.message : String(e)))
-    } finally { setOp(null) }
+      updateSession(idx, { err: classifyError(e instanceof Error ? e.message : String(e)) })
+    } finally {
+      updateSession(idx, { op: null })
+    }
   }
 
-  async function handleReset() {
-    if (op) return
-    setOp('reset'); setErr(null)
+  async function handleReset(idx: number) {
+    const s = sessions[idx]
+    if (s.op) return
+    updateSession(idx, { op: 'reset', err: null })
     try {
-      const res = await getWhatsAppBrowserClient().resetSession()
-      if (!res.success) setErr(classifyError(res.error ?? 'Unknown error'))
+      const res = await getWhatsAppBrowserClient().resetSessionByIndex(idx)
+      if (!res.success) updateSession(idx, { err: classifyError(res.error ?? 'Unknown error') })
     } catch (e) {
-      setErr(classifyError(e instanceof Error ? e.message : String(e)))
-    } finally { setOp(null) }
+      updateSession(idx, { err: classifyError(e instanceof Error ? e.message : String(e)) })
+    } finally {
+      updateSession(idx, { op: null })
+    }
   }
 
   async function handleSendTest() {
     if (!testPhone || testPhone.length < 10) {
-      toast.error(`⚠️ ${t('settings.whatsapp.toast.invalidPhone')}`); return
+      toast.error(`⚠️ ${t('settings.whatsapp.toast.invalidPhone')}`)
+      return
     }
     setSending(true)
     try {
@@ -256,28 +408,30 @@ export default function WhatsAppPage() {
       }
     } catch {
       toast.error(`❌ ${t('settings.whatsapp.toast.sendError')}`)
-    } finally { setSending(false) }
+    } finally {
+      setSending(false)
+    }
   }
 
-  // ── Derived state ────────────────────────────────────────────────────────────
+  // ── Derived state for active session ─────────────────────────────────────────
 
-  const loading      = status === null
-  const sidecarUp    = status?.sidecarOnline !== false
-  const isConnected  = !!status?.isReady
-  const hasQR        = !!status?.qrCode && !qrExpired
-  const hasClient    = !!status?.hasClient
+  const s = sessions[activeTab]
+  const loading = s.status === null && initialLoading
+  const isConnected = !!s.status?.isReady
+  const hasQR = !!s.status?.qrCode && !s.qrExpired
+  const hasClient = !!s.status?.hasClient
 
-  // ── Banner config ────────────────────────────────────────────────────────────
+  // ── Banner config for active session ──────────────────────────────────────
 
   const banner = (() => {
-    if (loading)     return { bg: 'from-gray-400 to-gray-500',     icon: '⌛', label: t('settings.whatsapp.loading'),     sub: '...' }
-    if (!sidecarUp)  return { bg: 'from-red-500 to-rose-600',      icon: '🔌', label: 'الخدمة غير متاحة',               sub: 'شغّل: npm run whatsapp' }
-    if (isConnected) return { bg: 'from-green-500 to-emerald-600', icon: '✅', label: t('settings.whatsapp.connected'),  sub: t('settings.whatsapp.readyToSend') }
-    if (hasQR)       return { bg: 'from-blue-500 to-indigo-600',   icon: '📱', label: t('settings.whatsapp.scanQR'),    sub: t('settings.whatsapp.qrInstructions') }
-    if (qrExpired)   return { bg: 'from-orange-500 to-amber-600',  icon: '⏰', label: 'انتهت صلاحية QR Code',            sub: 'اضغط "إعادة اتصال" للحصول على QR جديد' }
-    if (op === 'init')      return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.initializing'),  sub: 'جاري التهيئة...' }
-    if (op === 'reconnect') return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.reconnecting'), sub: 'جاري إعادة الاتصال...' }
-    if (op === 'reset')     return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.resetting'),    sub: 'جاري إعادة التعيين...' }
+    if (loading) return { bg: 'from-gray-400 to-gray-500', icon: '⌛', label: t('settings.whatsapp.loading'), sub: '...' }
+    if (!sidecarUp) return { bg: 'from-red-500 to-rose-600', icon: '🔌', label: 'الخدمة غير متاحة', sub: 'شغّل: npm run whatsapp' }
+    if (isConnected) return { bg: 'from-green-500 to-emerald-600', icon: '✅', label: t('settings.whatsapp.connected'), sub: t('settings.whatsapp.readyToSend') }
+    if (hasQR) return { bg: 'from-blue-500 to-indigo-600', icon: '📱', label: t('settings.whatsapp.scanQR'), sub: t('settings.whatsapp.qrInstructions') }
+    if (s.qrExpired) return { bg: 'from-orange-500 to-amber-600', icon: '⏰', label: 'انتهت صلاحية QR Code', sub: 'اضغط "إعادة اتصال" للحصول على QR جديد' }
+    if (s.op === 'init') return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.initializing'), sub: 'جاري التهيئة...' }
+    if (s.op === 'reconnect') return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.reconnecting'), sub: 'جاري إعادة الاتصال...' }
+    if (s.op === 'reset') return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.resetting'), sub: 'جاري إعادة التعيين...' }
     return { bg: 'from-gray-500 to-gray-600', icon: '⚪', label: t('settings.whatsapp.disconnected'), sub: t('settings.whatsapp.mustBeConnected') }
   })()
 
@@ -285,13 +439,15 @@ export default function WhatsAppPage() {
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
-      <div className="max-w-xl mx-auto space-y-5">
+      <div className="max-w-2xl mx-auto space-y-5">
 
         {/* Header */}
         <div>
           <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
             <span className="text-3xl">💬</span>
-            {t('settings.whatsapp.title')}
+            {t('whatsappInbox.sessions.title') !== 'whatsappInbox.sessions.title'
+              ? t('whatsappInbox.sessions.title')
+              : t('settings.whatsapp.title')}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
             {t('settings.whatsapp.subtitle')}
@@ -299,7 +455,7 @@ export default function WhatsAppPage() {
         </div>
 
         {/* Sidecar status pill */}
-        {!loading && (
+        {!initialLoading && (
           <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold border ${
             sidecarUp
               ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-700 dark:text-green-300'
@@ -312,44 +468,101 @@ export default function WhatsAppPage() {
           </div>
         )}
 
-        {/* Main card */}
+        {/* Session card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+
+          {/* Session header */}
+          <div className={`flex items-center gap-3 px-5 py-3 border-b ${SESSION_COLORS[0].border} ${SESSION_COLORS[0].bg}`}>
+            <span className={`w-3 h-3 rounded-full flex-shrink-0 ${SESSION_COLORS[0].dot} ${isConnected ? 'animate-pulse' : 'opacity-40'}`} />
+            <span className={`font-bold text-sm ${SESSION_COLORS[0].text}`}>
+              WhatsApp
+            </span>
+            {/* Phone number when connected */}
+            {isConnected && s.status?.phoneNumber && (
+              <span className="ms-auto text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <span>📞</span>
+                <span dir="ltr">{s.status.phoneNumber}</span>
+              </span>
+            )}
+          </div>
 
           {/* Status banner */}
           <div className={`bg-gradient-to-r ${banner.bg} px-6 py-5`}>
             <div className="flex items-center gap-4">
               <span className="text-4xl select-none">{banner.icon}</span>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="font-black text-lg text-white leading-tight">{banner.label}</p>
                 <p className="text-sm text-white/75 mt-0.5">{banner.sub}</p>
               </div>
               {/* Spinner when op active */}
-              {op && (
-                <div className="ms-auto w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              {s.op && (
+                <div className="ms-auto w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
               )}
             </div>
           </div>
 
           <div className="p-6 space-y-5">
 
+            {/* Session info badges */}
+            {!loading && (<>
+              <div className="flex flex-wrap gap-2">
+                {/* Daily count */}
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${SESSION_COLORS[0].border} ${SESSION_COLORS[0].bg} ${SESSION_COLORS[0].text}`}>
+                  <span>📨</span>
+                  <span>{t('whatsappInbox.sessions.dailyCount') !== 'whatsappInbox.sessions.dailyCount' ? t('whatsappInbox.sessions.dailyCount') : 'Daily'}: {s.dailyCount}/{s.dailyLimit}</span>
+                </div>
+
+                {/* Warm-up status */}
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                  s.warmupDaysLeft === null
+                    ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                    : 'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
+                }`}>
+                  <span>{s.warmupDaysLeft === null ? '✅' : '🔥'}</span>
+                  <span>
+                    {s.warmupDaysLeft === null
+                      ? (t('whatsappInbox.sessions.warmupComplete') !== 'whatsappInbox.sessions.warmupComplete' ? t('whatsappInbox.sessions.warmupComplete') : 'Warm-up complete')
+                      : `${t('whatsappInbox.sessions.warmupDaysLeft') !== 'whatsappInbox.sessions.warmupDaysLeft' ? t('whatsappInbox.sessions.warmupDaysLeft') : 'Warm-up'}: ${s.warmupDaysLeft} ${isRTL ? 'يوم' : 'days'}`
+                    }
+                  </span>
+                </div>
+
+                {/* Connection status badge */}
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                  isConnected
+                    ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
+                  <span>
+                    {isConnected
+                      ? (t('whatsappInbox.sessions.connected') !== 'whatsappInbox.sessions.connected' ? t('whatsappInbox.sessions.connected') : 'Connected')
+                      : (t('whatsappInbox.sessions.disconnected') !== 'whatsappInbox.sessions.disconnected' ? t('whatsappInbox.sessions.disconnected') : 'Disconnected')
+                    }
+                  </span>
+                </div>
+
+              </div>
+            </>)}
+
             {/* QR Code */}
             {hasQR && (
               <div className="flex flex-col items-center gap-3">
                 <div className="relative">
-                  {qrImg ? (
-                    <div className="p-3 bg-white rounded-2xl shadow-md border-4 border-blue-400">
-                      <img src={qrImg} alt="QR Code" className="w-60 h-60 rounded-lg" />
+                  {s.qrImg ? (
+                    <div className={`p-3 bg-white rounded-2xl shadow-md border-4 ${SESSION_COLORS[0].ring}`}>
+                      <img src={s.qrImg} alt="QR Code" className="w-56 h-56 rounded-lg" />
                     </div>
                   ) : (
-                    <div className="w-60 h-60 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-2xl border-4 border-gray-200 dark:border-gray-600">
+                    <div className="w-56 h-56 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-2xl border-4 border-gray-200 dark:border-gray-600">
                       <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
                   {/* Countdown ring */}
                   <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white shadow-lg transition-colors ${
-                    qrSeconds > 30 ? 'bg-blue-500' : qrSeconds > 10 ? 'bg-orange-500' : 'bg-red-500'
+                    s.qrSeconds > 30 ? 'bg-blue-500' : s.qrSeconds > 10 ? 'bg-orange-500' : 'bg-red-500'
                   }`}>
-                    ⏱ {qrSeconds}s
+                    ⏱ {s.qrSeconds}s
                   </div>
                 </div>
                 <p className="text-xs text-center text-gray-500 dark:text-gray-400 pt-2 max-w-xs">
@@ -359,7 +572,7 @@ export default function WhatsAppPage() {
             )}
 
             {/* QR expired notice */}
-            {qrExpired && status?.qrCode && (
+            {s.qrExpired && s.status?.qrCode && (
               <div className="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl text-sm text-orange-800 dark:text-orange-300">
                 <span>⏰</span>
                 <span>انتهت صلاحية QR Code – اضغط "إعادة اتصال" للحصول على كود جديد</span>
@@ -371,31 +584,34 @@ export default function WhatsAppPage() {
               <div className="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl text-sm font-semibold text-green-800 dark:text-green-300">
                 <span>🟢</span>
                 <span>{t('settings.whatsapp.readyToSend')}</span>
+                {s.status?.phoneNumber && (
+                  <span className="ms-auto text-xs font-mono opacity-75" dir="ltr">{s.status.phoneNumber}</span>
+                )}
               </div>
             )}
 
             {/* Error box */}
-            {err && (
+            {s.err && (
               <div className="rounded-xl border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-red-100 dark:bg-red-900/40 border-b border-red-200 dark:border-red-800">
                   <span className="text-red-500">🚨</span>
-                  <span className="font-bold text-sm text-red-800 dark:text-red-300">{err.title}</span>
-                  <span className="ms-auto text-xs font-mono text-red-400">[{err.code}]</span>
+                  <span className="font-bold text-sm text-red-800 dark:text-red-300">{s.err.title}</span>
+                  <span className="ms-auto text-xs font-mono text-red-400">[{s.err.code}]</span>
                   <button
-                    onClick={() => setErr(null)}
+                    onClick={() => updateSession(activeTab, { err: null })}
                     className="text-red-400 hover:text-red-700 dark:hover:text-red-200 transition ms-2 leading-none text-base"
                   >✕</button>
                 </div>
                 <div className="px-4 py-3 space-y-2">
-                  {err.detail && (
+                  {s.err.detail && (
                     <code className="block text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg px-3 py-2 break-all font-mono">
-                      {err.detail}
+                      {s.err.detail}
                     </code>
                   )}
-                  {err.solution && (
+                  {s.err.solution && (
                     <p className="flex items-start gap-2 text-sm text-red-700 dark:text-red-300">
                       <span className="text-blue-500 flex-shrink-0 mt-0.5">💡</span>
-                      <span>{err.solution}</span>
+                      <span>{s.err.solution}</span>
                     </p>
                   )}
                 </div>
@@ -405,11 +621,11 @@ export default function WhatsAppPage() {
             {/* Action buttons */}
             {!hasClient ? (
               <button
-                onClick={handleInit}
-                disabled={!!op || !sidecarUp}
+                onClick={() => handleInit(activeTab)}
+                disabled={!!s.op || !sidecarUp}
                 className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-bold text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
-                {op === 'init'
+                {s.op === 'init'
                   ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.initializing')}</>
                   : <><span>🚀</span>{t('settings.whatsapp.initialize')}</>}
               </button>
@@ -417,20 +633,20 @@ export default function WhatsAppPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={handleReconnect}
-                    disabled={!!op}
+                    onClick={() => handleReconnect(activeTab)}
+                    disabled={!!s.op}
                     className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-white text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
-                    {op === 'reconnect'
+                    {s.op === 'reconnect'
                       ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.reconnecting')}</>
                       : <><span>🔄</span>{t('settings.whatsapp.reconnect')}</>}
                   </button>
                   <button
-                    onClick={handleReset}
-                    disabled={!!op}
+                    onClick={() => handleReset(activeTab)}
+                    disabled={!!s.op}
                     className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-white text-sm bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
-                    {op === 'reset'
+                    {s.op === 'reset'
                       ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.resetting')}</>
                       : <><span>🔥</span>{t('settings.whatsapp.resetSession')}</>}
                   </button>
@@ -447,7 +663,7 @@ export default function WhatsAppPage() {
           </div>
         </div>
 
-        {/* Test message – only when connected */}
+        {/* Test message -- only when active session is connected */}
         {isConnected && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
             <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">

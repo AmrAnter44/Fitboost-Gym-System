@@ -58,7 +58,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
           {/* Mobile Top Bar - Shows only on mobile when sidebar is hidden */}
           <div
             dir={locale === 'ar' ? 'rtl' : 'ltr'}
-            className="lg:hidden sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800 border-b-2 border-primary-800 dark:border-gray-700 px-4 py-2.5 shadow-md"
+            className="lg:hidden sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 border-b-2 border-primary-800 dark:border-primary-950 px-4 py-2.5 shadow-md"
           >
             <div className="flex items-center justify-between gap-2">
               {/* Hamburger Menu */}
@@ -72,18 +72,13 @@ function LayoutContent({ children }: { children: ReactNode }) {
                 </svg>
               </button>
 
-              {/* Logo in Center */}
+              {/* Title in Center */}
               <div className="flex items-center justify-center flex-1">
                 <Link
                   href="/"
                   className="flex items-center gap-2"
                   title={t('nav.home')}
                 >
-                  <img
-                    src={settings.gymLogo || '/assets/icon.png'}
-                    alt="Logo"
-                    className="w-8 h-8 object-contain drop-shadow-lg"
-                  />
                   <span className="font-bold text-sm text-white">{t('common.appTitle')}</span>
                 </Link>
               </div>

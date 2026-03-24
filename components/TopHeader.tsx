@@ -101,7 +101,7 @@ export default function TopHeader({ onMenuClick }: TopHeaderProps) {
                   }`}
                 >
                   {/* User Info */}
-                  <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800 text-white p-4">
+                  <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 text-white p-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white/20 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
                         {user.name.charAt(0).toUpperCase()}

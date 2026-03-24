@@ -74,7 +74,7 @@ export default function Breadcrumb() {
     <nav
       aria-label="breadcrumb"
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800 border-b-2 border-primary-800 dark:border-gray-700 px-4 py-2 shadow-md"
+      className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 border-b-2 border-primary-800 dark:border-primary-950 px-4 py-2 shadow-md"
     >
       <ol className="flex items-center gap-1.5 flex-wrap text-xs">
         {crumbs.map((crumb, i) => (

@@ -115,3 +115,23 @@ export async function deleteFollowUp(id: string) {
 
   return response.json()
 }
+
+export async function deleteVisitor(id: string) {
+  const response = await fetch(`/api/visitors?id=${id}`, {
+    method: 'DELETE',
+  })
+
+  if (response.status === 401) {
+    await handleAuthError(response.clone())
+    throw new Error('UNAUTHORIZED')
+  }
+
+  if (response.status === 403) throw new Error('FORBIDDEN')
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'فشل حذف الزائر')
+  }
+
+  return response.json()
+}

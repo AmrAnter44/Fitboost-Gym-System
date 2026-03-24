@@ -107,22 +107,18 @@ export async function GET(request: Request) {
         take: 10,
       })
 
-      // الحصول على معلومات الأعضاء
-      const topMembersWithInfo = await Promise.all(
-        topMembers.map(async (item) => {
-          const member = await prisma.member.findUnique({
-            where: { id: item.memberId },
-            select: {
-              name: true,
-              memberNumber: true,
-            },
-          })
-          return {
-            member,
-            visits: item._count.memberId,
-          }
-        })
-      )
+      // الحصول على معلومات الأعضاء (batch query بدلاً من N+1)
+      const topMemberIds = topMembers.map(item => item.memberId)
+      const membersInfo = await prisma.member.findMany({
+        where: { id: { in: topMemberIds } },
+        select: { id: true, name: true, memberNumber: true },
+      })
+      const membersMap = new Map(membersInfo.map(m => [m.id, m]))
+
+      const topMembersWithInfo = topMembers.map(item => ({
+        member: membersMap.get(item.memberId) || null,
+        visits: item._count.memberId,
+      }))
 
       stats = {
         totalCheckIns: checkIns.length,

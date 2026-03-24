@@ -54,14 +54,19 @@
       "Bash(/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/vercel.json:*)",
       "Read(//Users/amranter200444/.cache/puppeteer/**)",
       "Bash(npx tsx -e \":*)",
-      "Bash(git check-ignore -v public/uploads/gym-logo.png)"
+      "Bash(git check-ignore -v public/uploads/gym-logo.png)",
+      "WebFetch(domain:baileys.wiki)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx tsc --noEmit app/settings/whatsapp/page.tsx)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",
       "/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/app/api/members/[id]/fitness-test",
       "/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/app/members/[id]",
       "/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/lib",
-      "/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/public"
+      "/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/public",
+      "/Users/amranter200444/Desktop/Gyms/More/Fitboost-System/app/api/whatsapp/sessions/[idx]",
+      "/Users/amranter200444/Desktop"
     ]
   }
 }

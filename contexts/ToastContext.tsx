@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react'
+import { createContext, useContext, useState, useRef, ReactNode, useCallback, useEffect } from 'react'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -60,6 +60,15 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined)
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+
+  // Cleanup all timers on unmount
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(timer => clearTimeout(timer))
+      timersRef.current.clear()
+    }
+  }, [])
 
   // Load notifications from localStorage on mount
   useEffect(() => {
@@ -70,6 +79,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
+    // Clean up timer reference
+    timersRef.current.delete(id)
   }, [])
 
   const addToast = useCallback((message: string, type: ToastType = 'info', duration: number = 4000) => {
@@ -92,11 +103,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       return updated
     })
 
-    // Auto remove toast after duration
+    // Auto remove toast after duration (with cleanup tracking)
     if (duration > 0) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         removeToast(id)
       }, duration)
+      timersRef.current.set(id, timer)
     }
   }, [removeToast])
 

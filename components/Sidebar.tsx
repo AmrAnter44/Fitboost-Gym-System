@@ -87,6 +87,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       icon: '⚙️',
       links: [
         { href: '/staff', label: t('nav.staff'), icon: '👷', permission: 'canViewStaff' as keyof Permissions },
+        { href: '/whatsapp-web', label: 'WhatsApp Web', icon: '📱', permission: 'canViewWhatsAppInbox' as keyof Permissions },
         { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: null },
       ]
     },
@@ -122,12 +123,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
         className={`
           fixed lg:sticky
           top-0
-          ${direction === 'rtl' ? 'right-0' : 'left-0'}
+          start-0
           z-50 lg:z-30
           h-screen
           ${isCollapsed ? 'w-20' : 'w-72'}
           bg-white dark:bg-gray-800
-          ${direction === 'rtl' ? 'border-l' : 'border-r'} border-gray-200 dark:border-gray-700
+          border-e border-gray-200 dark:border-gray-700
           shadow-2xl
           transition-all duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : `${direction === 'rtl' ? 'translate-x-full lg:translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
@@ -139,19 +140,13 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
         <div className={`
           flex items-center justify-between
           border-b border-gray-200 dark:border-gray-700
-          bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800
+          bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900
           text-white
           flex-shrink-0
           ${isCollapsed ? 'justify-center py-9 px-2' : 'p-4'}
         `}>
           {!isCollapsed && (
             <div className="flex items-center gap-3">
-              <img
-                src={settings.gymLogo || '/assets/icon.png'}
-                alt="Logo"
-                className="w-10 h-10 object-contain drop-shadow-lg"
-                onError={(e) => { (e.target as HTMLImageElement).src = '/assets/icon.png' }}
-              />
               <div>
                 <h2 className="font-bold text-lg leading-tight">
                   {t('common.appTitle')}
@@ -171,7 +166,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
               p-2 rounded-lg
               hover:bg-white/20 dark:hover:bg-gray-700
               transition-all
-              ${isCollapsed ? 'absolute top-4 left-4' : ''}
+              ${isCollapsed ? 'absolute top-4 start-4' : ''}
             `}
             title={isCollapsed ? (locale === 'ar' ? 'توسيع' : 'Expand') : (locale === 'ar' ? 'طي' : 'Collapse')}
           >
@@ -237,10 +232,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
 
                       {/* Active Indicator */}
                       {isActive && (
-                        <div className={`
-                          absolute ${direction === 'rtl' ? 'left-0' : 'right-0'} top-0 h-full w-1
-                          bg-primary-600 dark:bg-primary-500 rounded-full
-                        `} />
+                        <div className="absolute end-0 top-0 h-full w-1 bg-primary-600 dark:bg-primary-500 rounded-full" />
                       )}
                     </Link>
                   )
@@ -264,7 +256,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                     <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 dark:from-gray-600 dark:to-gray-500 rounded-full flex items-center justify-center font-bold text-white shadow-md">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex-1 min-w-0 text-left">
+                    <div className="flex-1 min-w-0 text-start">
                       <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
                         {user.name}
                       </p>
@@ -330,8 +322,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
 
-                      <div className={`absolute ${direction === 'rtl' ? 'right-full mr-2' : 'left-full ml-2'} bottom-0 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-2xl overflow-hidden z-50 border border-gray-200 dark:border-gray-700`}>
-                        <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-gray-900 dark:to-gray-800 text-white p-3">
+                      <div className={`absolute ${direction === 'rtl' ? 'right-full me-2' : 'left-full ms-2'} bottom-0 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-2xl overflow-hidden z-50 border border-gray-200 dark:border-gray-700`}>
+                        <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 text-white p-3">
                           <p className="font-bold text-sm">{user.name}</p>
                           <p className="text-xs text-white/80">{getRoleLabel(user.role)}</p>
                         </div>

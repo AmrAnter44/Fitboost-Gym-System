@@ -318,7 +318,8 @@ function createWindow() {
       enableBlinkFeatures: 'WebHID,WebSerial', // تفعيل Web HID و Web Serial APIs
       // ✅ السماح بالكاميرا والميكروفون
       experimentalFeatures: true,
-      allowRunningInsecureContent: true
+      allowRunningInsecureContent: true,
+      webviewTag: true, // ✅ تفعيل webview لعرض واتساب ويب
     },
     autoHideMenuBar: !isDev,
     title: 'نظام إدارة الصالة الرياضية',
@@ -542,6 +543,27 @@ function createWindow() {
     });
   });
   console.log('✅ Permissions-Policy headers injected');
+
+  // ✅ Setup permissions for WhatsApp Web webview partitions
+  const { session: electronSession } = require('electron');
+  for (let i = 0; i < 6; i++) {
+    const waSession = electronSession.fromPartition(`persist:whatsapp-${i}`);
+    waSession.setPermissionRequestHandler((wc, permission, callback) => {
+      const allowed = ['media', 'mediaKeySystem', 'videoCapture', 'audioCapture', 'notifications', 'clipboard-read', 'clipboard-sanitized-write'];
+      callback(allowed.includes(permission));
+    });
+    waSession.setPermissionCheckHandler(() => true);
+    // Remove X-Frame-Options and CSP headers that might block embedding
+    waSession.webRequest.onHeadersReceived((details, callback) => {
+      const headers = { ...details.responseHeaders };
+      delete headers['x-frame-options'];
+      delete headers['X-Frame-Options'];
+      delete headers['content-security-policy'];
+      delete headers['Content-Security-Policy'];
+      callback({ responseHeaders: headers });
+    });
+  }
+  console.log('✅ WhatsApp Web webview sessions configured');
 
   const startUrl = 'http://localhost:4001';
   let attempts = 0, maxAttempts = 60;

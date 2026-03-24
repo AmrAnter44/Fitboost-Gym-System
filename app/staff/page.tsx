@@ -63,6 +63,8 @@ interface Staff {
   notes?: string
   workingHours?: number
   monthlyVacationDays?: number
+  shiftStartTime?: string
+  shiftEndTime?: string
   isActive: boolean
   createdAt: string
   expenses?: Expense[]
@@ -158,6 +160,8 @@ export default function StaffPage() {
     notes: '',
     workingHours: 0,
     monthlyVacationDays: 0,
+    shiftStartTime: '',
+    shiftEndTime: '',
   })
 
   // ✅ توليد رقم عشوائي من 9 أرقام للموظف
@@ -347,6 +351,8 @@ const handleScan = async (staffCode: string) => {
       notes: '',
       workingHours: 0,
       monthlyVacationDays: 0,
+      shiftStartTime: '',
+      shiftEndTime: '',
     })
     setShowOtherPosition(false)
     setEditingStaff(null)
@@ -371,6 +377,8 @@ const handleScan = async (staffCode: string) => {
       notes: staffMember.notes || '',
       workingHours: staffMember.workingHours || 0,
       monthlyVacationDays: staffMember.monthlyVacationDays || 0,
+      shiftStartTime: staffMember.shiftStartTime || '',
+      shiftEndTime: staffMember.shiftEndTime || '',
     })
     setShowOtherPosition(false)
     setEditingStaff(staffMember)
@@ -978,6 +986,28 @@ const handleScan = async (staffCode: string) => {
                 className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder={t('staff.form.monthlyVacationDaysPlaceholder')}
               />
+            </div>
+
+            {/* ساعة بداية ونهاية الشيفت */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.shiftStartTime')}</label>
+                <input
+                  type="time"
+                  value={formData.shiftStartTime}
+                  onChange={(e) => setFormData({ ...formData, shiftStartTime: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.shiftEndTime')}</label>
+                <input
+                  type="time"
+                  value={formData.shiftEndTime}
+                  onChange={(e) => setFormData({ ...formData, shiftEndTime: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
             </div>
 
             {/* ملاحظات */}

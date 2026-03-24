@@ -34,21 +34,24 @@ export async function GET(request: Request) {
 
 
     // توليد الأوقات المتاحة (من 9 صباحاً إلى 8 مساءً كل ساعة)
-    const timeSlots = []
     const MAX_CAPACITY = 1 // حجز واحد فقط في نفس الوقت (بغض النظر عن نوع الخدمة)
 
+    // استعلام واحد بدلاً من 12 استعلام (groupBy)
+    const bookingCounts = await prisma.spaBooking.groupBy({
+      by: ['bookingTime'],
+      where: {
+        bookingDate: new Date(date),
+        status: { in: ['pending', 'confirmed'] }
+      },
+      _count: { bookingTime: true }
+    })
+
+    const countsMap = new Map(bookingCounts.map(b => [b.bookingTime, b._count.bookingTime]))
+
+    const timeSlots = []
     for (let hour = 9; hour <= 20; hour++) {
       const time = `${hour.toString().padStart(2, '0')}:00`
-
-      // عد الحجوزات في هذا الوقت (لجميع الخدمات)
-      const bookingsCount = await prisma.spaBooking.count({
-        where: {
-          bookingDate: new Date(date),
-          bookingTime: time,
-          // لا نفلتر حسب serviceType - أي حجز في هذا الوقت يمنع حجوزات أخرى
-          status: { in: ['pending', 'confirmed'] }
-        }
-      })
+      const bookingsCount = countsMap.get(time) || 0
 
       timeSlots.push({
         time,
