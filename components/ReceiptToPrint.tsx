@@ -79,7 +79,8 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
       amount,
       details,
       date,
-      paymentMethod || details.paymentMethod || 'cash'
+      paymentMethod || details.paymentMethod || 'cash',
+      { printOnly: true }
     )
   }
 

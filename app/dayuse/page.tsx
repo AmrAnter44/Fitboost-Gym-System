@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ReceiptToPrint } from '../../components/ReceiptToPrint'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -32,6 +32,7 @@ export default function DayUsePage() {
   const { user } = usePermissions()
   const toast = useToast()
   const { settings } = useServiceSettings()
+  const queryClient = useQueryClient()
 
   const {
     data: entries = [],
@@ -128,6 +129,7 @@ export default function DayUsePage() {
               paymentMethod: formData.paymentMethod
             })
             setShowReceipt(true)
+            queryClient.invalidateQueries({ queryKey: ['receipts'] })
           } else {
             // For new entries, fetch receipt from API
             const receiptsResponse = await fetch(`/api/receipts?dayUseId=${data.id}`)
@@ -144,6 +146,7 @@ export default function DayUsePage() {
                 paymentMethod: formData.paymentMethod
               })
               setShowReceipt(true)
+              queryClient.invalidateQueries({ queryKey: ['receipts'] })
             }
           }
         } catch (err) {

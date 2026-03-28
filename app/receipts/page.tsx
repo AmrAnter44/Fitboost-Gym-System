@@ -95,7 +95,8 @@ export default function ReceiptsPage() {
     queryFn: fetchReceipts,
     enabled: !permissionsLoading && hasPermission('canViewReceipts'),
     retry: 1,
-    staleTime: 2 * 60 * 1000, // البيانات تعتبر fresh لمدة دقيقتين
+    staleTime: 30 * 1000, // البيانات تعتبر fresh لمدة 30 ثانية
+    refetchOnWindowFocus: true,
   })
 
   const [searchTerm, setSearchTerm] = useState('')

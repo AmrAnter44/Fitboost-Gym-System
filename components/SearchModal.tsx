@@ -977,6 +977,22 @@ export default function SearchModal() {
                                   )}
                                 </div>
 
+                                {(() => {
+                                  if (!result.data.birthDate) return null
+                                  const today = new Date()
+                                  const birth = new Date(result.data.birthDate)
+                                  if (birth.getDate() === today.getDate() && birth.getMonth() === today.getMonth()) {
+                                    return (
+                                      <div className="mb-2 bg-gradient-to-r from-pink-100 via-yellow-100 to-pink-100 dark:from-pink-900/40 dark:via-yellow-900/40 dark:to-pink-900/40 border-2 border-pink-400 dark:border-pink-600 rounded-xl p-3 text-center animate-pulse">
+                                        <p className="text-lg sm:text-xl font-bold text-pink-600 dark:text-pink-300">
+                                          🎂🎉 {locale === 'ar' ? `عيد ميلاد سعيد يا ${result.data.name.split(' ')[0]}!` : `Happy Birthday ${result.data.name.split(' ')[0]}!`} 🎉🎂
+                                        </p>
+                                      </div>
+                                    )
+                                  }
+                                  return null
+                                })()}
+
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-1.5 sm:mb-2">
                                   <div className="bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
                                     <p className="text-xs text-gray-600 dark:text-gray-300">{t('common.phone')}</p>

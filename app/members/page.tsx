@@ -199,7 +199,12 @@ export default function MembersPage() {
         const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
 
         if (filterStatus === 'expired') {
-          return !isActiveNow
+          // استثناء اللي لسه ما بدأوش - دول مش منتهيين
+          const startDate = member.startDate ? new Date(member.startDate) : null
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const notStartedYet = member.isActive && startDate && startDate > today
+          return !isActiveNow && !notStartedYet
         } else if (filterStatus === 'expiring-soon') {
           return isExpiringSoon && isActiveNow
         } else if (filterStatus === 'active') {
@@ -445,7 +450,13 @@ export default function MembersPage() {
     const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
 
     if (filterStatus === 'all') return true
-    if (filterStatus === 'expired') return !isActiveNow
+    if (filterStatus === 'expired') {
+      const startDate = member.startDate ? new Date(member.startDate) : null
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const notStartedYet = member.isActive && startDate && startDate > today
+      return !isActiveNow && !notStartedYet
+    }
     if (filterStatus === 'expiring-soon') return isExpiringSoon && isActiveNow
     if (filterStatus === 'active') return isActiveNow
     if (filterStatus === 'has-remaining') return member.remainingAmount > 0
@@ -456,7 +467,14 @@ export default function MembersPage() {
   const stats = {
     total: membersData.length,
     active: membersData.filter(m => isMemberActiveNow(m)).length,
-    expired: membersData.filter(m => !isMemberActiveNow(m)).length,
+    expired: membersData.filter(m => {
+      if (isMemberActiveNow(m)) return false
+      const startDate = m.startDate ? new Date(m.startDate) : null
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const notStartedYet = m.isActive && startDate && startDate > today
+      return !notStartedYet
+    }).length,
     expiringSoon: membersData.filter(m => {
       const daysRemaining = calculateRemainingDays(m.expiryDate)
       return isMemberActiveNow(m) && daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7

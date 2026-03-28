@@ -698,6 +698,7 @@ export default function MemberDetailPage() {
           })
           setShowReceipt(true)
           setLastReceiptNumber(receipt.receiptNumber)
+          queryClient.invalidateQueries({ queryKey: ['receipts'] })
         }
 
         toast.success(t('memberDetails.paymentModal.paymentSuccess'))
@@ -3435,6 +3436,7 @@ export default function MemberDetailPage() {
               })
               setShowReceipt(true)
               setLastReceiptNumber(receipt.receiptNumber)
+              queryClient.invalidateQueries({ queryKey: ['receipts'] })
             }
 
             fetchMember()
