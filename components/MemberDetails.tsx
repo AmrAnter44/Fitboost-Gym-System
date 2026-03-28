@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { ReceiptToPrint } from '../components/ReceiptToPrint'
 import PaymentMethodSelector from './Paymentmethodselector'
 import { formatDateYMD, calculateRemainingDays } from '../lib/dateFormatter'
@@ -39,6 +40,7 @@ export default function MemberDetailPage() {
   const { t, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
+  const queryClient = useQueryClient()
 
   const [member, setMember] = useState<Member | null>(null)
   const [loading, setLoading] = useState(true)
@@ -146,6 +148,7 @@ export default function MemberDetailPage() {
             paymentMethod: paymentData.paymentMethod
           })
           setShowReceipt(true)
+          queryClient.invalidateQueries({ queryKey: ['receipts'] })
         }
 
         toast.success(t('memberDetails.paymentModal.paymentSuccess'))

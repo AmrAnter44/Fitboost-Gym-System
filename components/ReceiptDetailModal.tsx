@@ -46,7 +46,9 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
       receipt.type,
       receipt.amount,
       details,
-      receipt.createdAt
+      receipt.createdAt,
+      undefined,
+      { printOnly: true }
     )
   }
 

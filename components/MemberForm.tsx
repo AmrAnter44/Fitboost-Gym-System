@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import PaymentMethodSelector from '../components/Paymentmethodselector'
 import CoachSelector from './CoachSelector'
 import ImageUpload from './ImageUpload'
@@ -27,6 +28,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   const { t, direction } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
+  const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [nextMemberNumber, setNextMemberNumber] = useState<number | null>(null)
   const [nextReceiptNumber, setNextReceiptNumber] = useState<number | null>(null)
@@ -371,7 +373,8 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
 
         if (data.receipt) {
           console.log('🖨️ طباعة الإيصال باستخدام النظام الموحد...')
-          
+          queryClient.invalidateQueries({ queryKey: ['receipts'] })
+
           setTimeout(() => {
             const subscriptionDays = formData.startDate && formData.expiryDate
               ? calculateDaysBetween(formData.startDate, formData.expiryDate)

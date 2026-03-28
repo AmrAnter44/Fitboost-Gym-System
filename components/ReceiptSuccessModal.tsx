@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDarkMode } from '@/contexts/DarkModeContext'
 import { useToast } from '@/contexts/ToastContext'
+import { printReceiptFromData } from '../lib/printSystem'
 
 interface Receipt {
   id: string
@@ -114,7 +115,20 @@ export default function ReceiptSuccessModal({
 
   // Print receipt
   const handlePrint = () => {
-    window.open(`/receipts/${receipt.id}/print`, '_blank')
+    try {
+      const details = typeof receipt.itemDetails === 'string' ? JSON.parse(receipt.itemDetails) : receipt.itemDetails
+      printReceiptFromData(
+        parseInt(receipt.receiptNumber),
+        receipt.type,
+        receipt.amount,
+        details,
+        receipt.createdAt,
+        receipt.paymentMethod,
+        { printOnly: true }
+      )
+    } catch (error) {
+      console.error('Error printing receipt:', error)
+    }
   }
 
   return (

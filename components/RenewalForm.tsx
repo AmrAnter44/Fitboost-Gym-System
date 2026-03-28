@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import PaymentMethodSelector from './Paymentmethodselector'
 import ReceiptSuccessModal from './ReceiptSuccessModal'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
@@ -60,6 +61,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const { user } = usePermissions()
   const { t, direction } = useLanguage()
   const { settings } = useServiceSettings()
+  const queryClient = useQueryClient()
   const [subscriptionPrice, setSubscriptionPrice] = useState('')
   const [freePTSessions, setFreePTSessions] = useState('0')
   const [freeNutritionSessions, setFreeNutritionSessions] = useState('0')
@@ -191,6 +193,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
         console.log('✅ تم التجديد بنجاح:', data)
 
         if (data.receipt) {
+          queryClient.invalidateQueries({ queryKey: ['receipts'] })
           try {
             const receiptResponse = await fetch(`/api/receipts/${data.receipt.id}`)
             if (receiptResponse.ok) {
