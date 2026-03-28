@@ -79,7 +79,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
                   className="flex items-center gap-2"
                   title={t('nav.home')}
                 >
-                  <span className="font-bold text-sm text-white">{t('common.appTitle')}</span>
+                  <span className="font-bold text-sm text-white">Fitboost System</span>
                 </Link>
               </div>
 

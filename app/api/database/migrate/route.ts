@@ -117,8 +117,30 @@ export async function POST(request: Request) {
         const sql = fs.readFileSync(migrationPath, 'utf-8')
 
 
-        // تطبيق الـ migration
-        db.exec(sql)
+        // تطبيق الـ migration — كل statement لوحده عشان لو واحد فشل (زي column already exists) الباقي يتطبق
+        const statements = sql
+          .split(';')
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && !s.startsWith('--'))
+
+        let stmtErrors: string[] = []
+        for (const stmt of statements) {
+          try {
+            db.exec(stmt + ';')
+          } catch (stmtErr: any) {
+            // تجاهل أخطاء "column already exists" أو "duplicate column"
+            const msg = stmtErr.message || ''
+            if (msg.includes('duplicate column') || msg.includes('already exists')) {
+              console.log(`⚠️ Skipped (already exists): ${stmt.substring(0, 80)}...`)
+            } else {
+              stmtErrors.push(`${stmt.substring(0, 80)}: ${msg}`)
+            }
+          }
+        }
+
+        if (stmtErrors.length > 0) {
+          throw new Error(`Some statements failed:\n${stmtErrors.join('\n')}`)
+        }
 
         // حفظ سجل التطبيق
         db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(migrationFile)

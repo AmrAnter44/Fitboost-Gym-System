@@ -112,7 +112,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { ptNumber, sessionDate, notes } = body
+    const { ptNumber, sessionDate, notes, signature } = body
 
 
     // التحقق من وجود جلسة PT
@@ -141,11 +141,12 @@ export async function POST(request: Request) {
         ptNumber: parseInt(ptNumber),
         clientName: pt.clientName,
         coachName: pt.coachName,
-        sessionDate: new Date(sessionDate),
+        sessionDate: sessionDate ? new Date(sessionDate) : new Date(),
         notes: notes || null,
         attended: true,
         attendedAt: new Date(),
-        attendedBy: 'Staff Registration'
+        attendedBy: 'Staff Registration',
+        signature: signature || null
       }
     })
 
@@ -157,8 +158,11 @@ export async function POST(request: Request) {
 
 
     return NextResponse.json({
-      ...session,
-      sessionsRemaining: pt.sessionsRemaining - 1
+      success: true,
+      session: {
+        ...session,
+        sessionsRemaining: pt.sessionsRemaining - 1
+      }
     }, { status: 201 })
   } catch (error) {
     console.error('❌ خطأ في تسجيل حضور الجلسة:', error)

@@ -149,7 +149,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
             <div className="flex items-center gap-3">
               <div>
                 <h2 className="font-bold text-lg leading-tight">
-                  {t('common.appTitle')}
+                  Fitboost System
                 </h2>
                 <p className="text-xs text-white/80">
                   {t('common.appSubtitle')}

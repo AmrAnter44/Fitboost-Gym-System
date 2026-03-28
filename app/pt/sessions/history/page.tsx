@@ -17,6 +17,8 @@ interface PTSessionRecord {
   coachName: string
   sessionDate: string
   notes: string | null
+  signature?: string | null
+  attendedBy?: string | null
   createdAt: string
   isFreeSession?: boolean
   memberId?: string | null
@@ -45,6 +47,7 @@ export default function PTSessionHistoryPage() {
   const [filterPTNumber, setFilterPTNumber] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [viewingSignature, setViewingSignature] = useState<string | null>(null)
 
   const isCoach = user?.role === 'COACH'
 
@@ -246,13 +249,13 @@ export default function PTSessionHistoryPage() {
         {loading ? (
           <div className="text-center py-12">{t('pt.sessionHistory.loading')}</div>
         ) : filteredSessions.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             {t('pt.sessionHistory.noRecords')}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700">
+              <thead className="bg-gray-100 dark:bg-gray-700">
                 <tr>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.sessionHistory.ptNumber')}</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.sessionHistory.client')}</th>
@@ -260,6 +263,7 @@ export default function PTSessionHistoryPage() {
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.sessionHistory.sessionDate')}</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.sessionHistory.sessionTime')}</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.sessionHistory.notes')}</th>
+                  <th className="px-4 py-3 text-right dark:text-gray-200">الإمضاء</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.sessionHistory.registrationDate')}</th>
                   <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.sessionHistory.actions')}</th>
                 </tr>
@@ -324,7 +328,23 @@ export default function PTSessionHistoryPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                        {session.signature ? (
+                          <button
+                            onClick={() => setViewingSignature(session.signature!)}
+                            className="inline-block border-2 border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden hover:border-primary-400 transition-colors cursor-pointer"
+                          >
+                            <img
+                              src={session.signature}
+                              alt="إمضاء"
+                              className="w-16 h-8 object-contain bg-white"
+                            />
+                          </button>
+                        ) : (
+                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(session.createdAt).toLocaleDateString('ar-EG')}
                         </span>
                       </td>
@@ -375,6 +395,36 @@ export default function PTSessionHistoryPage() {
         onClose={handleSuccessClose}
         type={successOptions.type}
       />
+
+      {/* Signature Viewer Modal */}
+      {viewingSignature && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setViewingSignature(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">✍️ إمضاء العميل</h3>
+              <button
+                onClick={() => setViewingSignature(null)}
+                className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="border-2 border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden bg-white p-4">
+              <img
+                src={viewingSignature}
+                alt="إمضاء العميل"
+                className="w-full h-auto object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

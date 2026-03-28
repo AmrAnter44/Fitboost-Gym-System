@@ -29,6 +29,7 @@ interface ServiceSettings {
   physioReferralPercentage: number
   websiteUrl?: string
   showWebsiteOnReceipts?: boolean
+  gymName?: string | null
   gymLogo?: string | null
   primaryColor?: string | null
 }
@@ -71,6 +72,7 @@ function parseSettings(data: any): ServiceSettings {
     physioReferralPercentage: data.physioReferralPercentage ?? 0,
     websiteUrl: data.websiteUrl || '',
     showWebsiteOnReceipts: data.showWebsiteOnReceipts ?? false,
+    gymName: data.gymName || null,
     gymLogo: data.gymLogo || null,
     primaryColor: data.primaryColor || null
   }
@@ -149,6 +151,7 @@ function getDefaultSettings(): ServiceSettings {
     physioReferralPercentage: 0,
     websiteUrl: '',
     showWebsiteOnReceipts: false,
+    gymName: null,
     // Use cached logo from blocking script or localStorage for instant display
     gymLogo: typeof window !== 'undefined'
       ? (window as any).__CACHED_GYM_LOGO || getSavedGymLogo() || null

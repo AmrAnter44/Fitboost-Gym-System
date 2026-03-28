@@ -94,6 +94,7 @@ async function updateSettings(request: Request) {
       'ptCommissionEnabled', 'ptCommissionAmount',
       'nutritionReferralEnabled', 'nutritionReferralPercentage',
       'physioReferralEnabled', 'physioReferralPercentage',
+      'gymName',
       'gymLogo',
       'primaryColor'
     ]

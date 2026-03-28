@@ -117,6 +117,7 @@ model PTSession {
   attended      Boolean   @default(false)
   attendedAt    DateTime?
   attendedBy    String?
+  signature     String?
   pt            PT        @relation(fields: [ptNumber], references: [ptNumber], onDelete: Cascade)
 
   // Free Session Tracking
@@ -230,12 +231,12 @@ model Receipt {
 
 model ReceiptCounter {
   id      Int @id @default(autoincrement())
-  current Int @default(1000)
+  current Int @default(0)
 }
 
 model MemberCounter {
   id      Int @id @default(autoincrement())
-  current Int @default(1000)
+  current Int @default(1)
 }
 
 model Offer {
@@ -942,7 +943,8 @@ model SystemSettings {
   showWebsiteOnReceipts Boolean  @default(false)  // عرض رابط الموقع في الإيصالات
   receiptTerms          String?  @default("الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه")  // شروط وأحكام الإيصال
 
-  // لوجو الجيم المخصص
+  // لوجو واسم الجيم المخصص
+  gymName               String?  // اسم الجيم (يظهر في الإيصالات والسايدبار)
   gymLogo               String?  // مسار لوجو الجيم المرفوع من الأونر
   primaryColor          String?  // اللون الأساسي المخصص (hex مثل #fbe003)
 

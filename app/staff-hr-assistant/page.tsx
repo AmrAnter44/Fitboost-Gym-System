@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDarkMode } from '@/contexts/DarkModeContext'
 import { useToast } from '@/contexts/ToastContext'
-import { usePermissions } from '@/hooks/usePermissions'
+// import { usePermissions } from '@/hooks/usePermissions'
 import { getStatusColors } from '@/lib/hrCalculations'
 import Link from 'next/link'
 
@@ -21,6 +21,23 @@ interface RevenueBreakdown {
   physiotherapy: number
   other: number
   total: number
+}
+
+interface AdvanceItem {
+  id: string
+  amount: number
+  description: string
+  isPaid: boolean
+  createdAt: string
+  notes: string | null
+}
+
+interface AdvancesData {
+  total: number
+  paid: number
+  unpaid: number
+  count: number
+  items: AdvanceItem[]
 }
 
 interface StaffAnalytics {
@@ -43,6 +60,7 @@ interface StaffAnalytics {
   alerts: string[]
   revenue: RevenueBreakdown
   revenueToSalaryRatio: number | null
+  advances: AdvancesData
 }
 
 interface AnalyticsResponse {
@@ -54,9 +72,8 @@ interface AnalyticsResponse {
 
 export default function StaffHRAssistantPage() {
   const { t, direction } = useLanguage()
-  const { isDarkMode } = useDarkMode()
+  useDarkMode()
   const toast = useToast()
-  const { hasPermission } = usePermissions()
 
   const [loading, setLoading] = useState(true)
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null)
@@ -67,6 +84,13 @@ export default function StaffHRAssistantPage() {
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Advances modal
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false)
+  const [advanceStaffId, setAdvanceStaffId] = useState<string | null>(null)
+  const [advanceAmount, setAdvanceAmount] = useState('')
+  const [advanceNotes, setAdvanceNotes] = useState('')
+  const [advanceSubmitting, setAdvanceSubmitting] = useState(false)
 
   // Fetch analytics
   const fetchAnalytics = async () => {
@@ -118,6 +142,59 @@ export default function StaffHRAssistantPage() {
   }
 
   const overview = calculateOverview()
+
+  // حساب إجمالي السلف غير المدفوعة
+  const totalUnpaidAdvances = analytics?.analytics.reduce((sum, s) => sum + s.advances.unpaid, 0) || 0
+
+  // إضافة سلفة جديدة
+  const handleAddAdvance = async () => {
+    if (!advanceStaffId || !advanceAmount || parseFloat(advanceAmount) <= 0) return
+    setAdvanceSubmitting(true)
+    try {
+      const staff = analytics?.analytics.find(s => s.staffId === advanceStaffId)
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'staff_loan',
+          amount: parseFloat(advanceAmount),
+          description: staff?.staffName || '',
+          notes: advanceNotes || '',
+          staffId: advanceStaffId
+        })
+      })
+      if (res.ok) {
+        toast.success(direction === 'rtl' ? 'تم إضافة السلفة بنجاح' : 'Advance added successfully')
+        setShowAdvanceModal(false)
+        setAdvanceAmount('')
+        setAdvanceNotes('')
+        fetchAnalytics()
+      } else {
+        toast.error(direction === 'rtl' ? 'فشل إضافة السلفة' : 'Failed to add advance')
+      }
+    } catch {
+      toast.error(direction === 'rtl' ? 'فشل إضافة السلفة' : 'Failed to add advance')
+    } finally {
+      setAdvanceSubmitting(false)
+    }
+  }
+
+  // تغيير حالة السلفة
+  const toggleAdvancePaid = async (expenseId: string, currentPaid: boolean) => {
+    try {
+      const res = await fetch('/api/expenses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: expenseId, isPaid: !currentPaid })
+      })
+      if (res.ok) {
+        toast.success(direction === 'rtl' ? 'تم تحديث حالة السلفة' : 'Advance status updated')
+        fetchAnalytics()
+      }
+    } catch {
+      toast.error(direction === 'rtl' ? 'فشل تحديث الحالة' : 'Failed to update status')
+    }
+  }
 
   // Filter staff based on search query
   const filteredAnalytics = analytics?.analytics.filter((staff) => {
@@ -197,7 +274,7 @@ export default function StaffHRAssistantPage() {
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           📊 {t('staff.hrAssistant.overview')} - {monthOptions[selectedMonth - 1]?.label} {selectedYear}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {/* Total Staff */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-l-4 border-blue-600">
             <div className="flex items-center justify-between">
@@ -255,6 +332,24 @@ export default function StaffHRAssistantPage() {
                 </p>
               </div>
               <div className="text-4xl">⚠️</div>
+            </div>
+          </div>
+
+          {/* Advances/سلف */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-l-4 border-orange-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
+                  {direction === 'rtl' ? 'إجمالي السلف المتبقية' : 'Unpaid Advances'}
+                </p>
+                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                  {totalUnpaidAdvances.toFixed(0)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t('common.egp')}
+                </p>
+              </div>
+              <div className="text-4xl">💵</div>
             </div>
           </div>
         </div>
@@ -400,7 +495,7 @@ export default function StaffHRAssistantPage() {
                       </div>
 
                       {/* Mini Stats */}
-                      <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="text-center">
                           <p className="text-xs text-gray-600 dark:text-gray-400">✅ {t('staff.hrAssistant.attendance')}</p>
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{staff.daysAttended}</p>
@@ -412,6 +507,10 @@ export default function StaffHRAssistantPage() {
                         <div className="text-center">
                           <p className="text-xs text-gray-600 dark:text-gray-400">💰 {t('staff.hrAssistant.revenue.total')}</p>
                           <p className="text-sm font-bold text-green-600 dark:text-green-400">{staff.revenue.total.toFixed(0)}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-gray-600 dark:text-gray-400">💵 {direction === 'rtl' ? 'سلف' : 'Advances'}</p>
+                          <p className={`text-sm font-bold ${staff.advances.unpaid > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}`}>{staff.advances.unpaid.toFixed(0)}</p>
                         </div>
                       </div>
                     </div>
@@ -644,6 +743,93 @@ export default function StaffHRAssistantPage() {
                       )}
                     </div>
 
+                    {/* قسم السلف */}
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-white">
+                          💵 {direction === 'rtl' ? 'السلف' : 'Advances'} ({staff.advances.count})
+                        </h4>
+                        <button
+                          onClick={() => {
+                            setAdvanceStaffId(staff.staffId)
+                            setAdvanceAmount('')
+                            setAdvanceNotes('')
+                            setShowAdvanceModal(true)
+                          }}
+                          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm font-medium"
+                        >
+                          + {direction === 'rtl' ? 'إضافة سلفة' : 'Add Advance'}
+                        </button>
+                      </div>
+
+                      {/* Summary Cards */}
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow text-center">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            {direction === 'rtl' ? 'إجمالي السلف' : 'Total'}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-white">
+                            {staff.advances.total.toFixed(0)} {t('common.egp')}
+                          </p>
+                        </div>
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow text-center">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            {direction === 'rtl' ? 'تم السداد' : 'Paid'}
+                          </p>
+                          <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                            {staff.advances.paid.toFixed(0)} {t('common.egp')}
+                          </p>
+                        </div>
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow text-center">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            {direction === 'rtl' ? 'متبقي' : 'Remaining'}
+                          </p>
+                          <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                            {staff.advances.unpaid.toFixed(0)} {t('common.egp')}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Advances List */}
+                      {staff.advances.items.length === 0 ? (
+                        <p className="text-gray-600 dark:text-gray-300">
+                          {direction === 'rtl' ? 'لا توجد سلف في هذا الشهر' : 'No advances this month'}
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {staff.advances.items.map((advance) => (
+                            <div
+                              key={advance.id}
+                              className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow flex items-center justify-between"
+                            >
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-white">
+                                  {advance.amount.toFixed(0)} {t('common.egp')}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {new Date(advance.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
+                                  {advance.notes && ` • ${advance.notes}`}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => toggleAdvancePaid(advance.id, advance.isPaid)}
+                                className={`px-3 py-1.5 rounded-full text-sm font-semibold transition ${
+                                  advance.isPaid
+                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
+                                    : 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400'
+                                }`}
+                              >
+                                {advance.isPaid
+                                  ? (direction === 'rtl' ? '✅ مدفوع' : '✅ Paid')
+                                  : (direction === 'rtl' ? '⏳ غير مدفوع' : '⏳ Unpaid')
+                                }
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Underperformance Days */}
                     <div>
                       <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
@@ -671,7 +857,7 @@ export default function StaffHRAssistantPage() {
                               </div>
                               <div className="text-right">
                                 <p className="text-red-600 dark:text-red-400 font-bold">
-                                  {day.shortfall.toFixed(1)} {t('staff.hrAssistant.hours')}
+                                  {Math.abs(day.shortfall).toFixed(1)} {t('staff.hrAssistant.hours')}
                                 </p>
                                 <p className="text-xs text-gray-600 dark:text-gray-400">
                                   {t('staff.hrAssistant.hoursShortfall')}
@@ -689,6 +875,75 @@ export default function StaffHRAssistantPage() {
           </div>
         )}
       </div>
+
+      {/* مودال إضافة سلفة */}
+      {showAdvanceModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6" dir={direction}>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+              💵 {direction === 'rtl' ? 'إضافة سلفة جديدة' : 'Add New Advance'}
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {direction === 'rtl' ? 'الموظف' : 'Staff'}
+                </label>
+                <p className="px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white font-medium">
+                  {analytics?.analytics.find(s => s.staffId === advanceStaffId)?.staffName || ''}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {direction === 'rtl' ? 'المبلغ' : 'Amount'} ({t('common.egp')})
+                </label>
+                <input
+                  type="number"
+                  value={advanceAmount}
+                  onChange={(e) => setAdvanceAmount(e.target.value)}
+                  placeholder="0"
+                  min="1"
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-orange-500 dark:focus:border-orange-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {direction === 'rtl' ? 'ملاحظات' : 'Notes'}
+                </label>
+                <input
+                  type="text"
+                  value={advanceNotes}
+                  onChange={(e) => setAdvanceNotes(e.target.value)}
+                  placeholder={direction === 'rtl' ? 'اختياري...' : 'Optional...'}
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-orange-500 dark:focus:border-orange-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleAddAdvance}
+                disabled={advanceSubmitting || !advanceAmount || parseFloat(advanceAmount) <= 0}
+                className="flex-1 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-medium disabled:opacity-50"
+              >
+                {advanceSubmitting
+                  ? (direction === 'rtl' ? 'جاري الحفظ...' : 'Saving...')
+                  : (direction === 'rtl' ? 'حفظ السلفة' : 'Save Advance')
+                }
+              </button>
+              <button
+                onClick={() => setShowAdvanceModal(false)}
+                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+              >
+                {direction === 'rtl' ? 'إلغاء' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

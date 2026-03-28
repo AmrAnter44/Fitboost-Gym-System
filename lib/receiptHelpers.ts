@@ -12,7 +12,7 @@ export async function getNextReceiptNumber(tx: any): Promise<number> {
   const counter = await tx.receiptCounter.upsert({
     where: { id: 1 },
     update: { current: { increment: 1 } },
-    create: { id: 1, current: 1001 },
+    create: { id: 1, current: 1 },
   })
 
   // جلب أكبر رقم إيصال موجود لضمان عدم التكرار
@@ -48,7 +48,7 @@ export async function getNextReceiptNumberDirect(prisma: any): Promise<number> {
   const counter = await prisma.receiptCounter.upsert({
     where: { id: 1 },
     update: { current: { increment: 1 } },
-    create: { id: 1, current: 1001 },
+    create: { id: 1, current: 1 },
   })
 
   // جلب أكبر رقم إيصال موجود لضمان عدم التكرار

@@ -246,6 +246,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isAwardingBirthday, setIsAwardingBirthday] = useState(false)
   const [birthdayResult, setBirthdayResult] = useState<any>(null)
+  const [gymName, setGymName] = useState('')
   const [gymLogo, setGymLogo] = useState<string | null>(null)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [primaryColor, setPrimaryColor] = useState<string | null>(null)
@@ -261,6 +262,7 @@ export default function SettingsPage() {
     poolEnabled: true,
     padelEnabled: true,
     assessmentEnabled: true,
+    gymName: '',
     websiteUrl: 'https://www.xgym.website',
     showWebsiteOnReceipts: true,
     receiptTerms: '',
@@ -282,8 +284,14 @@ export default function SettingsPage() {
     freeGroupClassSessionPrice: 0
   })
 
-  const [nextReceiptNumber, setNextReceiptNumber] = useState(1001)
-  const [nextMemberNumber, setNextMemberNumber] = useState(1001)
+  const [nextReceiptNumber, setNextReceiptNumber] = useState(1)
+  const [nextMemberNumber, setNextMemberNumber] = useState(1)
+  const [editingReceiptNumber, setEditingReceiptNumber] = useState(false)
+  const [editingMemberNumber, setEditingMemberNumber] = useState(false)
+  const [tempReceiptNumber, setTempReceiptNumber] = useState(1)
+  const [tempMemberNumber, setTempMemberNumber] = useState(1)
+  const [savingReceiptNumber, setSavingReceiptNumber] = useState(false)
+  const [savingMemberNumber, setSavingMemberNumber] = useState(false)
 
   // Database states
   const [dbUploading, setDbUploading] = useState(false)
@@ -348,6 +356,7 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json()
         setServiceSettings(data)
+        if (data.gymName) setGymName(data.gymName)
         if (data.gymLogo) setGymLogo(data.gymLogo)
         if (data.primaryColor) setPrimaryColor(data.primaryColor)
       }
@@ -370,6 +379,56 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error fetching numbers:', error)
+    }
+  }
+
+  const saveReceiptNumber = async () => {
+    if (tempReceiptNumber < 1) return
+    setSavingReceiptNumber(true)
+    try {
+      const res = await fetch('/api/receipts/next-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startNumber: tempReceiptNumber })
+      })
+      if (res.ok) {
+        setNextReceiptNumber(tempReceiptNumber)
+        setEditingReceiptNumber(false)
+        setSaveMessage({ type: 'success', text: 'تم تحديث رقم الإيصال القادم' })
+      } else {
+        const data = await res.json()
+        setSaveMessage({ type: 'error', text: data.error || 'فشل تحديث الرقم' })
+      }
+    } catch {
+      setSaveMessage({ type: 'error', text: 'حدث خطأ' })
+    } finally {
+      setSavingReceiptNumber(false)
+      setTimeout(() => setSaveMessage(null), 3000)
+    }
+  }
+
+  const saveMemberNumber = async () => {
+    if (tempMemberNumber < 1) return
+    setSavingMemberNumber(true)
+    try {
+      const res = await fetch('/api/members/next-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startNumber: tempMemberNumber })
+      })
+      if (res.ok) {
+        setNextMemberNumber(tempMemberNumber)
+        setEditingMemberNumber(false)
+        setSaveMessage({ type: 'success', text: 'تم تحديث رقم العضوية القادم' })
+      } else {
+        const data = await res.json()
+        setSaveMessage({ type: 'error', text: data.error || 'فشل تحديث الرقم' })
+      }
+    } catch {
+      setSaveMessage({ type: 'error', text: 'حدث خطأ' })
+    } finally {
+      setSavingMemberNumber(false)
+      setTimeout(() => setSaveMessage(null), 3000)
     }
   }
 
@@ -1111,10 +1170,90 @@ export default function SettingsPage() {
                   {t('settingsPage.receipts.serialNumbers')}
                 </h3>
                 <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg">
-                  <div className="flex items-center justify-between"><div><h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{t('settingsPage.receipts.nextReceiptNumber')}</h4><p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{nextReceiptNumber}</p></div><span className="text-4xl">🧾</span></div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{t('settingsPage.receipts.nextReceiptNumber')}</h4>
+                      {editingReceiptNumber ? (
+                        <div className="flex items-center gap-2 mt-2">
+                          <input
+                            type="number"
+                            min={1}
+                            value={tempReceiptNumber}
+                            onChange={(e) => setTempReceiptNumber(parseInt(e.target.value) || 1)}
+                            className="w-32 px-3 py-2 border-2 border-orange-400 dark:border-orange-600 dark:bg-gray-700 dark:text-white rounded-lg font-bold text-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            autoFocus
+                          />
+                          <button
+                            onClick={saveReceiptNumber}
+                            disabled={savingReceiptNumber}
+                            className="px-3 py-2 bg-orange-600 text-white rounded-lg font-bold text-sm hover:bg-orange-700 disabled:opacity-50"
+                          >
+                            {savingReceiptNumber ? '...' : '✅'}
+                          </button>
+                          <button
+                            onClick={() => setEditingReceiptNumber(false)}
+                            className="px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold text-sm hover:bg-gray-300"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{nextReceiptNumber}</p>
+                          <button
+                            onClick={() => { setTempReceiptNumber(nextReceiptNumber); setEditingReceiptNumber(true) }}
+                            className="px-2 py-1 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded-lg text-sm"
+                          >
+                            ✏️
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-4xl">🧾</span>
+                  </div>
                 </div>
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
-                  <div className="flex items-center justify-between"><div><h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{t('settingsPage.receipts.nextMemberNumber')}</h4><p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{nextMemberNumber}</p></div><span className="text-4xl">👤</span></div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{t('settingsPage.receipts.nextMemberNumber')}</h4>
+                      {editingMemberNumber ? (
+                        <div className="flex items-center gap-2 mt-2">
+                          <input
+                            type="number"
+                            min={1}
+                            value={tempMemberNumber}
+                            onChange={(e) => setTempMemberNumber(parseInt(e.target.value) || 1)}
+                            className="w-32 px-3 py-2 border-2 border-blue-400 dark:border-blue-600 dark:bg-gray-700 dark:text-white rounded-lg font-bold text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                          />
+                          <button
+                            onClick={saveMemberNumber}
+                            disabled={savingMemberNumber}
+                            className="px-3 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            {savingMemberNumber ? '...' : '✅'}
+                          </button>
+                          <button
+                            onClick={() => setEditingMemberNumber(false)}
+                            className="px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold text-sm hover:bg-gray-300"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{nextMemberNumber}</p>
+                          <button
+                            onClick={() => { setTempMemberNumber(nextMemberNumber); setEditingMemberNumber(true) }}
+                            className="px-2 py-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg text-sm"
+                          >
+                            ✏️
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-4xl">👤</span>
+                  </div>
                 </div>
                 <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-300">ℹ️ {t('settingsPage.receipts.serialInfo')}</p>
@@ -1235,14 +1374,37 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3"><span className="text-4xl">🎨</span><div><h2 className="text-2xl font-bold">{t('settingsPage.display.title')}</h2><p className="text-violet-50 text-sm mt-1">{t('settingsPage.display.description')}</p></div></div>
               </div>
 
-              {/* لوجو الجيم - OWNER فقط */}
+              {/* لوجو واسم الجيم - OWNER فقط */}
               {user?.role === 'OWNER' && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                     <span className="text-2xl">🏷️</span>
-                    {t('settingsPage.display.gymLogo')}
+                    {locale === 'ar' ? 'لوجو واسم الجيم' : 'Gym Logo & Name'}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{t('settingsPage.display.gymLogoDesc')}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{locale === 'ar' ? 'ارفع لوجو الجيم واكتب اسمه (يظهر في الإيصالات والسايدبار)' : 'Upload gym logo and set its name (shown on receipts & sidebar)'}</p>
+
+                  {/* اسم الجيم */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {locale === 'ar' ? '📝 اسم الجيم' : '📝 Gym Name'}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={serviceSettings.gymName || ''}
+                        onChange={(e) => updateSetting('gymName', e.target.value)}
+                        placeholder={locale === 'ar' ? 'مثال: FitBoost Gym' : 'e.g. FitBoost Gym'}
+                        className="flex-1 px-4 py-2.5 border-2 border-violet-200 dark:border-violet-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:border-violet-500 text-lg font-semibold"
+                      />
+                      <button
+                        onClick={saveServiceSettings}
+                        disabled={isSaving}
+                        className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-all"
+                      >
+                        {isSaving ? '⏳' : '💾'} {locale === 'ar' ? 'حفظ' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
                   <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden bg-white dark:bg-gray-800 shrink-0">
                       <img

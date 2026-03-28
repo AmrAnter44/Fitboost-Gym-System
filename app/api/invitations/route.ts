@@ -152,6 +152,42 @@ export async function POST(request: Request) {
   }
 }
 
+// PUT: تعديل دعوة
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json()
+    const { id, guestName, guestPhone, notes } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'Invitation ID is required' }, { status: 400 })
+    }
+
+    const updateData: any = {}
+    if (guestName !== undefined) updateData.guestName = guestName.trim()
+    if (guestPhone !== undefined) updateData.guestPhone = guestPhone.trim()
+    if (notes !== undefined) updateData.notes = notes
+
+    const invitation = await prisma.invitation.update({
+      where: { id },
+      data: updateData,
+      include: {
+        member: {
+          select: {
+            memberNumber: true,
+            name: true,
+            phone: true,
+          },
+        },
+      },
+    })
+
+    return NextResponse.json(invitation)
+  } catch (error) {
+    console.error('Error updating invitation:', error)
+    return NextResponse.json({ error: 'Failed to update invitation' }, { status: 500 })
+  }
+}
+
 // DELETE: حذف دعوة
 export async function DELETE(request: Request) {
   try {

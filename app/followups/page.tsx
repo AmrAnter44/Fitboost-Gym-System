@@ -38,6 +38,7 @@ interface Visitor {
   source: string
   status: string
   createdAt?: string
+  interestedIn?: string
 }
 
 interface FollowUp {
@@ -85,9 +86,13 @@ export default function FollowUpsPage() {
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [selectedVisitorForTemplate, setSelectedVisitorForTemplate] = useState<Visitor | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<{id: string, name: string} | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{id: string, name: string, type?: 'invitation'} | null>(null)
   const [showDeleteVisitorConfirm, setShowDeleteVisitorConfirm] = useState(false)
   const [deleteVisitorTarget, setDeleteVisitorTarget] = useState<{id: string, name: string} | null>(null)
+
+  // ✏️ تعديل زائر/دعوة
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editTarget, setEditTarget] = useState<{id: string, name: string, phone: string, type: 'visitor' | 'invitation', originalId: string} | null>(null)
 
   // ✅ اشتراك سريع - تحويل الزائر إلى عضو
   const [showQuickSubscribeModal, setShowQuickSubscribeModal] = useState(false)
@@ -100,8 +105,29 @@ export default function FollowUpsPage() {
   const [showBulkSendModal, setShowBulkSendModal] = useState(false)
   const [bulkSending, setBulkSending] = useState(false)
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentName: '' })
-  const [bulkSendAborted, setBulkSendAborted] = useState(false)
   const bulkSendAbortedRef = useRef(false)
+
+  // ✅ Smart Bulk Script states
+  const [showBulkScriptModal, setShowBulkScriptModal] = useState(false)
+  const [bulkScriptMessages, setBulkScriptMessages] = useState<string[]>([''])
+  const [bulkScriptContactFilter, setBulkScriptContactFilter] = useState<'all' | 'contacted' | 'not-contacted'>('not-contacted')
+  const [bulkScriptDelayMin, setBulkScriptDelayMin] = useState(15)
+  const [bulkScriptDelayMax, setBulkScriptDelayMax] = useState(30)
+  const [bulkScriptSkipDays, setBulkScriptSkipDays] = useState(7)
+  const [bulkScriptTestPhone, setBulkScriptTestPhone] = useState('')
+  const [bulkScriptRunning, setBulkScriptRunning] = useState(false)
+  const [bulkScriptPaused, setBulkScriptPaused] = useState(false)
+  const bulkScriptPausedRef = useRef(false)
+  const bulkScriptAbortedRef = useRef(false)
+  const [bulkScriptProgress, setBulkScriptProgress] = useState({ current: 0, total: 0, currentName: '', currentMsgIndex: 0, successCount: 0, failCount: 0, countdown: 0 })
+  const [bulkScriptReport, setBulkScriptReport] = useState<{ success: {name: string, phone: string}[], failed: {name: string, phone: string, error: string}[] } | null>(null)
+  const [bulkScriptPresetName, setBulkScriptPresetName] = useState('')
+  const [bulkScriptDailyLimit, setBulkScriptDailyLimit] = useState(80)
+  const [bulkScriptBatchSize, setBulkScriptBatchSize] = useState(12)
+  const [bulkScriptBatchBreakMin, setBulkScriptBatchBreakMin] = useState(120) // 2 min
+  const [bulkScriptBatchBreakMax, setBulkScriptBatchBreakMax] = useState(300) // 5 min
+  const [bulkScriptSessionIndex, setBulkScriptSessionIndex] = useState<number | 'auto'>('auto')
+  const [availableWaSessions, setAvailableWaSessions] = useState<{sessionIndex: number, phoneNumber?: string, isReady: boolean}[]>([])
 
   // Fetch all data using TanStack Query
   const {
@@ -243,7 +269,7 @@ export default function FollowUpsPage() {
 
   // Error handling for all queries
   useEffect(() => {
-    const errors = [followUpsError, visitorsError, membersError, dayUseError, invitationsError]
+    const errors = [followUpsError, visitorsError, membersError, dayUseError, invitationsError, staffError]
     const firstError = errors.find(e => e !== null)
 
     if (firstError) {
@@ -257,7 +283,7 @@ export default function FollowUpsPage() {
         toast.error(errorMessage || 'حدث خطأ أثناء جلب البيانات')
       }
     }
-  }, [followUpsError, visitorsError, membersError, dayUseError, invitationsError, toast, router])
+  }, [followUpsError, visitorsError, membersError, dayUseError, invitationsError, staffError, toast, router])
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -318,17 +344,17 @@ export default function FollowUpsPage() {
       })
   }, [allMembers, expiringDays])
 
+  // ✅ تحسين الأداء: تنظيف رقم التليفون (memoized)
+  const normalizePhone = useCallback((phone: string) => {
+    if (!phone) return ''
+    let normalized = phone.replace(/[\s\-\(\)\+]/g, '').trim()
+    if (normalized.startsWith('2')) normalized = normalized.substring(1)
+    if (normalized.startsWith('0')) normalized = normalized.substring(1)
+    return normalized
+  }, [])
+
   // ✅ دمج المتابعات الحقيقية مع الأعضاء المنتهيين + الأعضاء القريبين من الانتهاء + Day Use + Invitations
   const allFollowUps = useMemo(() => {
-    // ✅ تنظيف رقم الهاتف
-    const normalizePhone = (phone: string) => {
-      if (!phone) return ''
-      let normalized = phone.replace(/[\s\-\(\)\+]/g, '').trim()
-      if (normalized.startsWith('2')) normalized = normalized.substring(1)
-      if (normalized.startsWith('0')) normalized = normalized.substring(1)
-      return normalized
-    }
-
     // ✅ إنشاء Set من أرقام المتابعات الحقيقية لتجنب التكرار
     const realFollowUpPhones = new Set<string>()
 
@@ -442,7 +468,7 @@ export default function FollowUpsPage() {
       }))
 
     return [...followUps, ...expiredFollowUps, ...expiringFollowUps, ...dayUseFollowUps, ...invitationFollowUps, ...regularVisitorFollowUps]
-  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors])
+  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone])
 
   const handleSubmit = async (formData: {
     visitorId: string
@@ -521,15 +547,6 @@ export default function FollowUpsPage() {
     setSelectedVisitorId(visitor.id)
     setShowForm(true)
     // لا نحتاج scroll - هيظهر كـ modal
-  }, [])
-
-  // ✅ تحسين الأداء: تنظيف رقم التليفون (memoized)
-  const normalizePhone = useCallback((phone: string) => {
-    if (!phone) return ''
-    let normalized = phone.replace(/[\s\-\(\)\+]/g, '').trim()
-    if (normalized.startsWith('2')) normalized = normalized.substring(1)
-    if (normalized.startsWith('0')) normalized = normalized.substring(1)
-    return normalized
   }, [])
 
   // ✅ تحسين أداء كبير: إنشاء Set من أرقام الأعضاء النشطين مرة واحدة
@@ -634,26 +651,59 @@ export default function FollowUpsPage() {
     }
   }, [selectedVisitorForTemplate, openQuickFollowUp, user, toast, queryClient])
 
+  // 🗑️ حذف دعوة
+  const handleDeleteInvitation = useCallback((invitationId: string, name: string) => {
+    const originalId = invitationId.replace('invitation-', '')
+    setDeleteTarget({ id: originalId, name, type: 'invitation' })
+    setShowDeleteConfirm(true)
+  }, [])
+
   // 🗑️ حذف متابعة
   const handleDeleteFollowUp = useCallback((followUpId: string, visitorName: string) => {
     // لا نحذف المتابعات المولدة تلقائياً (الأعضاء المنتهيين والقريبين من الانتهاء)
-    if (followUpId.startsWith('expired-') || followUpId.startsWith('expiring-') || followUpId.startsWith('dayuse-') || followUpId.startsWith('invitation-')) {
+    if (followUpId.startsWith('expired-') || followUpId.startsWith('expiring-') || followUpId.startsWith('dayuse-')) {
       toast.error(t('followups.messages.cannotDeleteAuto'))
+      return
+    }
+
+    // حذف الدعوة
+    if (followUpId.startsWith('invitation-')) {
+      handleDeleteInvitation(followUpId, visitorName)
       return
     }
 
     setDeleteTarget({ id: followUpId, name: visitorName })
     setShowDeleteConfirm(true)
-  }, [toast, t])
+  }, [toast, t, handleDeleteInvitation])
+
+  const deleteInvitationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/invitations?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete invitation')
+      return res.json()
+    },
+    onSuccess: () => {
+      toast.success('تم حذف الدعوة بنجاح')
+      queryClient.invalidateQueries({ queryKey: ['followups'] })
+      queryClient.invalidateQueries({ queryKey: ['invitations-followups'] })
+    },
+    onError: () => {
+      toast.error('فشل حذف الدعوة')
+    }
+  })
 
   // تأكيد الحذف
   const confirmDelete = useCallback(() => {
     if (deleteTarget) {
-      deleteMutation.mutate(deleteTarget.id)
+      if (deleteTarget.type === 'invitation') {
+        deleteInvitationMutation.mutate(deleteTarget.id)
+      } else {
+        deleteMutation.mutate(deleteTarget.id)
+      }
       setShowDeleteConfirm(false)
       setDeleteTarget(null)
     }
-  }, [deleteTarget, deleteMutation])
+  }, [deleteTarget, deleteMutation, deleteInvitationMutation])
 
   // إلغاء الحذف
   const cancelDelete = useCallback(() => {
@@ -680,6 +730,49 @@ export default function FollowUpsPage() {
     setDeleteVisitorTarget(null)
   }, [])
 
+  // ✏️ تعديل زائر أو دعوة
+  const handleEditFollowUp = useCallback((followUp: any) => {
+    const isInvitation = followUp.id.startsWith('invitation-')
+    const originalId = isInvitation ? followUp.id.replace('invitation-', '') : followUp.visitor.id
+    setEditTarget({
+      id: followUp.id,
+      name: followUp.visitor.name,
+      phone: followUp.visitor.phone,
+      type: isInvitation ? 'invitation' : 'visitor',
+      originalId
+    })
+    setShowEditModal(true)
+  }, [])
+
+  const confirmEdit = useCallback(async () => {
+    if (!editTarget) return
+    try {
+      if (editTarget.type === 'invitation') {
+        const res = await fetch('/api/invitations', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editTarget.originalId, guestName: editTarget.name.trim(), guestPhone: editTarget.phone.trim() })
+        })
+        if (!res.ok) throw new Error('Failed to update invitation')
+      } else {
+        const res = await fetch('/api/visitors', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editTarget.originalId, name: editTarget.name.trim(), phone: editTarget.phone.trim() })
+        })
+        if (!res.ok) throw new Error('Failed to update visitor')
+      }
+      toast.success('تم التعديل بنجاح')
+      queryClient.invalidateQueries({ queryKey: ['followups'] })
+      queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+      queryClient.invalidateQueries({ queryKey: ['invitations-followups'] })
+      setShowEditModal(false)
+      setEditTarget(null)
+    } catch (error) {
+      toast.error('فشل التعديل')
+    }
+  }, [editTarget, toast, queryClient])
+
   // ✅ فتح نموذج الاشتراك السريع
   const openQuickSubscribe = useCallback((visitor: Visitor) => {
     setSelectedVisitorForSubscribe(visitor)
@@ -702,7 +795,7 @@ export default function FollowUpsPage() {
 
     // ترتيب من الأقدم للأحدث عشان الأحدث يكتب فوق الأقدم
     const sortedFollowUps = [...followUps].sort((a, b) =>
-      new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime()
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     )
 
     sortedFollowUps.forEach(fu => {
@@ -710,7 +803,7 @@ export default function FollowUpsPage() {
       if (normalizedPhone && fu.notes && fu.notes.trim()) {
         commentMap.set(normalizedPhone, {
           notes: fu.notes,
-          createdAt: fu.updatedAt || fu.createdAt,
+          createdAt: fu.createdAt,
           salesName: fu.salesName
         })
       }
@@ -860,7 +953,6 @@ export default function FollowUpsPage() {
     // إغلاق modal القوالب وفتح modal التقدم
     setShowTemplateModal(false)
     setBulkSending(true)
-    setBulkSendAborted(false)
     bulkSendAbortedRef.current = false
     setBulkProgress({ current: 0, total: targetVisitors.length, currentName: '' })
 
@@ -943,6 +1035,305 @@ export default function FollowUpsPage() {
       toast.error('❌ فشل الإرسال لجميع الأرقام')
     }
   }, [filteredFollowUps, user, toast, queryClient])
+
+  // ✅ Smart Bulk Script - Daily counter & Last session
+  const getDailyCount = useCallback((): number => {
+    try {
+      const data = JSON.parse(localStorage.getItem('wa-bulk-daily') || '{}')
+      const today = new Date().toISOString().split('T')[0]
+      return data.date === today ? (data.count || 0) : 0
+    } catch { return 0 }
+  }, [])
+
+  const incrementDailyCount = useCallback((amount: number) => {
+    const today = new Date().toISOString().split('T')[0]
+    const current = getDailyCount()
+    localStorage.setItem('wa-bulk-daily', JSON.stringify({ date: today, count: current + amount }))
+  }, [getDailyCount])
+
+  const getLastSession = useCallback((): { date: string, sent: number, filter: string } | null => {
+    try {
+      return JSON.parse(localStorage.getItem('wa-bulk-last-session') || 'null')
+    } catch { return null }
+  }, [])
+
+  const saveLastSession = useCallback((sent: number, filter: string) => {
+    localStorage.setItem('wa-bulk-last-session', JSON.stringify({
+      date: new Date().toLocaleString('ar-EG'),
+      sent,
+      filter
+    }))
+  }, [])
+
+  // ✅ Smart Bulk Script - Text variation (anti-ban)
+  const addTextVariation = useCallback((text: string): string => {
+    const variations = [
+      () => text + ' ',
+      () => text + '\u200B', // zero-width space
+      () => text + '\u200C', // zero-width non-joiner
+      () => text.replace(/\./g, (m, i) => Math.random() > 0.5 ? '.' : '..'),
+      () => text + (Math.random() > 0.5 ? ' .' : ''),
+      () => text.replace(/!/, () => Math.random() > 0.5 ? '!' : '!!'),
+      () => text + '\n',
+    ]
+    const variation = variations[Math.floor(Math.random() * variations.length)]
+    return variation()
+  }, [])
+
+  // ✅ Smart Bulk Script - Presets
+  const getBulkPresets = useCallback((): { name: string, messages: string[] }[] => {
+    try {
+      return JSON.parse(localStorage.getItem('wa-bulk-presets') || '[]')
+    } catch { return [] }
+  }, [])
+
+  const saveBulkPreset = useCallback((name: string, messages: string[]) => {
+    const presets = getBulkPresets()
+    const existing = presets.findIndex(p => p.name === name)
+    if (existing >= 0) presets[existing].messages = messages
+    else presets.push({ name, messages })
+    localStorage.setItem('wa-bulk-presets', JSON.stringify(presets))
+  }, [getBulkPresets])
+
+  const deleteBulkPreset = useCallback((name: string) => {
+    const presets = getBulkPresets().filter(p => p.name !== name)
+    localStorage.setItem('wa-bulk-presets', JSON.stringify(presets))
+  }, [getBulkPresets])
+
+  // ✅ Smart Bulk Script - Get filtered targets
+  const getBulkScriptTargets = useCallback(() => {
+    let targets = filteredFollowUps.map(fu => ({
+      visitor: fu.visitor,
+      contacted: fu.contacted,
+      lastContactedAt: fu.lastContactedAt || fu.createdAt
+    }))
+
+    // Apply contact filter
+    if (bulkScriptContactFilter === 'contacted') {
+      targets = targets.filter(t => t.contacted)
+    } else if (bulkScriptContactFilter === 'not-contacted') {
+      targets = targets.filter(t => !t.contacted)
+    }
+
+    // Apply skip days filter (for contacted & all)
+    if (bulkScriptContactFilter !== 'not-contacted' && bulkScriptSkipDays > 0) {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - bulkScriptSkipDays)
+      targets = targets.filter(t => {
+        if (!t.contacted) return true
+        const lastContact = new Date(t.lastContactedAt)
+        return lastContact < cutoff
+      })
+    }
+
+    return targets
+  }, [filteredFollowUps, bulkScriptContactFilter, bulkScriptSkipDays])
+
+  // ✅ Fetch available WhatsApp sessions when modal opens
+  const fetchWaSessions = useCallback(async () => {
+    try {
+      const res = await fetch('/api/whatsapp/status')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.sessions) {
+          setAvailableWaSessions(data.sessions)
+        }
+      }
+    } catch {}
+  }, [])
+
+  // ✅ Smart Bulk Script - Test message
+  const handleBulkScriptTest = useCallback(async () => {
+    if (!bulkScriptTestPhone.trim() || bulkScriptMessages.every(m => !m.trim())) {
+      toast.error('أدخل رقم التجربة واكتب رسالة واحدة على الأقل')
+      return
+    }
+    try {
+      const msg = bulkScriptMessages.find(m => m.trim()) || ''
+      const message = msg
+        .replace(/\{name\}/g, 'تجربة')
+        .replace(/\{salesName\}/g, user?.name || 'السيلز')
+        .replace(/\{phone\}/g, bulkScriptTestPhone)
+        .replace(/\{date\}/g, new Date().toLocaleDateString('ar-EG'))
+        .replace(/\{time\}/g, new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }))
+
+      const sendBody: any = { phone: bulkScriptTestPhone, message }
+      if (bulkScriptSessionIndex !== 'auto') sendBody.sessionIndex = bulkScriptSessionIndex
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sendBody)
+      })
+      const result = await res.json()
+      if (result.success) toast.success(`✅ تم إرسال رسالة التجربة بنجاح${result.sessionUsed !== undefined ? ` (رقم ${result.sessionUsed + 1})` : ''}`)
+      else toast.error(`❌ فشل: ${result.error || 'خطأ غير معروف'}`)
+    } catch {
+      toast.error('❌ فشل الاتصال بالواتساب')
+    }
+  }, [bulkScriptTestPhone, bulkScriptMessages, user, toast, bulkScriptSessionIndex])
+
+  // ✅ Smart Bulk Script - Main send function
+  const handleBulkScriptStart = useCallback(async (retryTargets?: { visitor: any }[]) => {
+    const validMessages = bulkScriptMessages.filter(m => m.trim())
+    if (validMessages.length === 0) {
+      toast.error('اكتب رسالة واحدة على الأقل')
+      return
+    }
+
+    // Daily limit check
+    const dailySent = getDailyCount()
+    const remaining = bulkScriptDailyLimit - dailySent
+    if (remaining <= 0) {
+      toast.error(`⚠️ وصلت الحد اليومي (${bulkScriptDailyLimit} رسالة). كمّل بكرة!`)
+      return
+    }
+
+    let targets = retryTargets || getBulkScriptTargets().map(t => ({ visitor: t.visitor }))
+    if (targets.length === 0) {
+      toast.error('لا يوجد أشخاص للإرسال إليهم')
+      return
+    }
+
+    // Limit targets to daily remaining
+    if (targets.length > remaining) {
+      targets = targets.slice(0, remaining)
+      toast.warning(`⚠️ سيتم الإرسال لـ ${remaining} فقط (الحد اليومي)`)
+    }
+
+    // Check WhatsApp
+    try {
+      const statusRes = await fetch('/api/whatsapp/status')
+      if (statusRes.ok) {
+        const status = await statusRes.json()
+        if (!status.isReady) {
+          toast.error('❌ الواتساب غير متصل')
+          return
+        }
+      } else {
+        toast.error('❌ الواتساب غير متصل')
+        return
+      }
+    } catch {
+      toast.error('❌ الواتساب غير متصل')
+      return
+    }
+
+    // Fisher-Yates shuffle
+    const shuffled = [...targets]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+
+    setShowBulkScriptModal(false)
+    setBulkScriptRunning(true)
+    setBulkScriptPaused(false)
+    bulkScriptPausedRef.current = false
+    bulkScriptAbortedRef.current = false
+    setBulkScriptReport(null)
+    setBulkScriptProgress({ current: 0, total: shuffled.length, currentName: '', currentMsgIndex: 0, successCount: 0, failCount: 0, countdown: 0 })
+
+    const successList: { name: string, phone: string }[] = []
+    const failedList: { name: string, phone: string, error: string }[] = []
+
+    for (let i = 0; i < shuffled.length; i++) {
+      // Check abort
+      if (bulkScriptAbortedRef.current) break
+
+      // Check pause
+      while (bulkScriptPausedRef.current && !bulkScriptAbortedRef.current) {
+        await new Promise(r => setTimeout(r, 500))
+      }
+      if (bulkScriptAbortedRef.current) break
+
+      // ✅ Batch break - every N messages, take a longer break
+      if (i > 0 && i % bulkScriptBatchSize === 0 && !bulkScriptAbortedRef.current) {
+        const batchBreak = Math.floor(Math.random() * (bulkScriptBatchBreakMax - bulkScriptBatchBreakMin + 1)) + bulkScriptBatchBreakMin
+        setBulkScriptProgress(prev => ({ ...prev, currentName: `⏸️ استراحة مجموعة (${Math.ceil(batchBreak / 60)} دقيقة)...`, countdown: batchBreak }))
+        for (let s = batchBreak; s > 0; s--) {
+          if (bulkScriptAbortedRef.current) break
+          while (bulkScriptPausedRef.current && !bulkScriptAbortedRef.current) {
+            await new Promise(r => setTimeout(r, 500))
+          }
+          if (bulkScriptAbortedRef.current) break
+          setBulkScriptProgress(prev => ({ ...prev, countdown: s }))
+          await new Promise(r => setTimeout(r, 1000))
+        }
+      }
+
+      if (bulkScriptAbortedRef.current) break
+
+      const visitor = shuffled[i].visitor
+      const msgIndex = Math.floor(Math.random() * validMessages.length)
+
+      setBulkScriptProgress(prev => ({ ...prev, current: i + 1, currentName: visitor.name, currentMsgIndex: msgIndex + 1, successCount: successList.length, failCount: failedList.length, countdown: 0 }))
+
+      try {
+        // ✅ Apply text variation for anti-ban
+        let message = validMessages[msgIndex]
+          .replace(/\{name\}/g, visitor.name)
+          .replace(/\{salesName\}/g, user?.name || 'السيلز')
+          .replace(/\{phone\}/g, visitor.phone)
+          .replace(/\{date\}/g, new Date().toLocaleDateString('ar-EG'))
+          .replace(/\{time\}/g, new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }))
+        message = addTextVariation(message)
+
+        const sendBody: any = { phone: visitor.phone, message }
+        if (bulkScriptSessionIndex !== 'auto') sendBody.sessionIndex = bulkScriptSessionIndex
+        const res = await fetch('/api/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sendBody)
+        })
+        const result = await res.json()
+
+        if (result.success) {
+          successList.push({ name: visitor.name, phone: visitor.phone })
+          incrementDailyCount(1)
+          // Update followup
+          try {
+            await fetch('/api/visitors/followups', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                visitorId: visitor.id,
+                notes: `تم إرسال رسالة عبر السكريبت الذكي (إرسال جماعي)`,
+                contacted: true,
+                salesName: user?.name,
+                visitorData: { name: visitor.name, phone: visitor.phone, source: visitor.source }
+              }),
+            })
+          } catch {}
+        } else {
+          failedList.push({ name: visitor.name, phone: visitor.phone, error: result.error || 'خطأ غير معروف' })
+        }
+      } catch (error: any) {
+        failedList.push({ name: visitor.name, phone: visitor.phone, error: error.message || 'خطأ في الاتصال' })
+      }
+
+      // Random delay (except last)
+      if (i < shuffled.length - 1 && !bulkScriptAbortedRef.current) {
+        const delay = Math.floor(Math.random() * (bulkScriptDelayMax - bulkScriptDelayMin + 1)) + bulkScriptDelayMin
+        for (let s = delay; s > 0; s--) {
+          if (bulkScriptAbortedRef.current) break
+          while (bulkScriptPausedRef.current && !bulkScriptAbortedRef.current) {
+            await new Promise(r => setTimeout(r, 500))
+          }
+          if (bulkScriptAbortedRef.current) break
+          setBulkScriptProgress(prev => ({ ...prev, countdown: s, successCount: successList.length, failCount: failedList.length }))
+          await new Promise(r => setTimeout(r, 1000))
+        }
+      }
+    }
+
+    // Done - Save session info
+    saveLastSession(successList.length, sourceFilter)
+    setBulkScriptRunning(false)
+    setBulkScriptProgress(prev => ({ ...prev, countdown: 0, successCount: successList.length, failCount: failedList.length }))
+    setBulkScriptReport({ success: successList, failed: failedList })
+    await queryClient.invalidateQueries({ queryKey: ['followups'] })
+    await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+  }, [bulkScriptMessages, getBulkScriptTargets, bulkScriptDelayMin, bulkScriptDelayMax, bulkScriptDailyLimit, bulkScriptBatchSize, bulkScriptBatchBreakMin, bulkScriptBatchBreakMax, user, toast, queryClient, getDailyCount, incrementDailyCount, addTextVariation, saveLastSession, sourceFilter])
 
   const getResultBadge = useCallback((result?: string) => {
     const badges = {
@@ -1356,7 +1747,7 @@ export default function FollowUpsPage() {
                         </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">{t('followups.analytics.leaderboard.successRate')}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('followups.analytics.leaderboard.successRate')}</p>
                         <p className={`text-2xl font-bold ${
                           stat.conversionRate >= 30 ? 'text-green-600' :
                           stat.conversionRate >= 15 ? 'text-yellow-600' :
@@ -1475,13 +1866,520 @@ export default function FollowUpsPage() {
             {/* Abort Button */}
             <button
               onClick={() => {
-                setBulkSendAborted(true)
                 bulkSendAbortedRef.current = true
               }}
               className="w-full bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-bold"
             >
               🛑 إيقاف الإرسال
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Smart Bulk Script - Setup Modal */}
+      {showBulkScriptModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowBulkScriptModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-5 rounded-t-2xl">
+              <h2 className="text-xl font-bold flex items-center gap-2">🤖 سكريبت إرسال ذكي</h2>
+              <p className="text-sm opacity-90 mt-1">إرسال رسائل متعددة بتبديل عشوائي وتأخير ذكي</p>
+            </div>
+
+            <div className="p-5 space-y-5">
+              {/* Last Session Banner */}
+              {(() => {
+                const lastSession = getLastSession()
+                const dailySent = getDailyCount()
+                if (!lastSession && dailySent === 0) return null
+                return (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 space-y-1">
+                    {lastSession && (
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        📋 آخر إرسال: <span className="font-bold">{lastSession.date}</span> — تم إرسال <span className="font-bold">{lastSession.sent}</span> رسالة
+                      </p>
+                    )}
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      📊 اتبعت النهارده: <span className="font-bold">{dailySent}</span> / <span className="font-bold">{bulkScriptDailyLimit}</span> — متبقي <span className="font-bold text-green-600 dark:text-green-400">{Math.max(0, bulkScriptDailyLimit - dailySent)}</span> رسالة
+                    </p>
+                  </div>
+                )
+              })()}
+
+              {/* WhatsApp Session Picker */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">📱 ابعت من رقم</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setBulkScriptSessionIndex('auto')}
+                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
+                      bulkScriptSessionIndex === 'auto'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-400'
+                        : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+                    }`}
+                  >
+                    🔄 تلقائي
+                  </button>
+                  {availableWaSessions.map((sess) => (
+                    <button
+                      key={sess.sessionIndex}
+                      onClick={() => setBulkScriptSessionIndex(sess.sessionIndex)}
+                      disabled={!sess.isReady}
+                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
+                        bulkScriptSessionIndex === sess.sessionIndex
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-400'
+                          : sess.isReady
+                            ? 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-green-300'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed'
+                      }`}
+                    >
+                      {sess.isReady ? '✅' : '⭕'} رقم {sess.sessionIndex + 1}
+                      {sess.phoneNumber && <span className="text-xs font-mono ms-1" dir="ltr">{sess.phoneNumber}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* B. Contact Filter */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">فلتر التواصل</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'not-contacted' as const, label: 'محدش تواصل معاهم', icon: '🆕' },
+                    { value: 'contacted' as const, label: 'تم التواصل', icon: '📞' },
+                    { value: 'all' as const, label: 'الجميع', icon: '👥' },
+                  ] as const).map(opt => {
+                    const count = opt.value === 'all' ? filteredFollowUps.length
+                      : opt.value === 'contacted' ? filteredFollowUps.filter(f => f.contacted).length
+                      : filteredFollowUps.filter(f => !f.contacted).length
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => setBulkScriptContactFilter(opt.value)}
+                        className={`p-3 rounded-lg text-center transition-all text-sm font-medium border-2 ${
+                          bulkScriptContactFilter === opt.value
+                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                            : 'border-gray-200 dark:border-gray-600 hover:border-purple-300'
+                        }`}
+                      >
+                        <div className="text-lg">{opt.icon}</div>
+                        <div className="mt-1">{opt.label}</div>
+                        <div className="text-xs font-bold text-purple-600 dark:text-purple-400 mt-1">{count}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* C. Skip Days */}
+              {bulkScriptContactFilter !== 'not-contacted' && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                  <label className="flex items-center gap-2 text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                    ⏭️ تخطي اللي اتواصل معاهم في آخر
+                    <input
+                      type="number"
+                      min={0}
+                      value={bulkScriptSkipDays}
+                      onChange={e => setBulkScriptSkipDays(parseInt(e.target.value) || 0)}
+                      className="w-16 px-2 py-1 rounded border border-yellow-300 dark:border-yellow-700 bg-white dark:bg-gray-700 text-center font-bold"
+                    />
+                    يوم
+                  </label>
+                </div>
+              )}
+
+              {/* D. Messages */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">الرسائل ({bulkScriptMessages.length})</label>
+                  {bulkScriptMessages.length < 10 && (
+                    <button
+                      onClick={() => setBulkScriptMessages([...bulkScriptMessages, ''])}
+                      className="text-xs px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg font-bold hover:bg-purple-200"
+                    >
+                      + إضافة رسالة
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {bulkScriptMessages.map((msg, idx) => (
+                    <div key={idx} className="relative">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-purple-600 dark:text-purple-400">رسالة {idx + 1}</span>
+                        {bulkScriptMessages.length > 1 && (
+                          <button
+                            onClick={() => setBulkScriptMessages(bulkScriptMessages.filter((_, i) => i !== idx))}
+                            className="text-xs text-red-500 hover:text-red-700 font-bold"
+                          >
+                            ✕ حذف
+                          </button>
+                        )}
+                      </div>
+                      <textarea
+                        value={msg}
+                        onChange={e => {
+                          const updated = [...bulkScriptMessages]
+                          updated[idx] = e.target.value
+                          setBulkScriptMessages(updated)
+                        }}
+                        rows={3}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder={`اكتب الرسالة ${idx + 1} هنا...`}
+                        dir="rtl"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  💡 المتغيرات المتاحة: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{name}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{salesName}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{date}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{time}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{phone}'}</code>
+                </p>
+              </div>
+
+              {/* E. Presets */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="text"
+                    value={bulkScriptPresetName}
+                    onChange={e => setBulkScriptPresetName(e.target.value)}
+                    placeholder="اسم المجموعة..."
+                    className="flex-1 min-w-[120px] px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!bulkScriptPresetName.trim()) { toast.error('اكتب اسم للمجموعة'); return }
+                      saveBulkPreset(bulkScriptPresetName.trim(), bulkScriptMessages)
+                      toast.success('✅ تم حفظ المجموعة')
+                      setBulkScriptPresetName('')
+                    }}
+                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700"
+                  >
+                    💾 حفظ
+                  </button>
+                  {getBulkPresets().length > 0 && (
+                    <select
+                      onChange={e => {
+                        const preset = getBulkPresets().find(p => p.name === e.target.value)
+                        if (preset) {
+                          setBulkScriptMessages([...preset.messages])
+                          toast.success(`تم تحميل "${preset.name}"`)
+                        }
+                        e.target.value = ''
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>📂 تحميل مجموعة...</option>
+                      {getBulkPresets().map(p => (
+                        <option key={p.name} value={p.name}>{p.name} ({p.messages.length} رسالة)</option>
+                      ))}
+                    </select>
+                  )}
+                  {getBulkPresets().length > 0 && (
+                    <select
+                      onChange={e => {
+                        if (e.target.value) {
+                          deleteBulkPreset(e.target.value)
+                          toast.success('تم حذف المجموعة')
+                        }
+                        e.target.value = ''
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-600 bg-white dark:bg-gray-700 text-sm text-red-600"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>🗑️ حذف مجموعة...</option>
+                      {getBulkPresets().map(p => (
+                        <option key={p.name} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              {/* F. Delay */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">⏰ التأخير العشوائي (ثواني)</label>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-500">من</span>
+                  <input
+                    type="number"
+                    min={5}
+                    value={bulkScriptDelayMin}
+                    onChange={e => setBulkScriptDelayMin(Math.max(5, parseInt(e.target.value) || 5))}
+                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                  />
+                  <span className="text-sm text-gray-500">إلى</span>
+                  <input
+                    type="number"
+                    min={bulkScriptDelayMin}
+                    value={bulkScriptDelayMax}
+                    onChange={e => setBulkScriptDelayMax(Math.max(bulkScriptDelayMin, parseInt(e.target.value) || bulkScriptDelayMin))}
+                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                  />
+                  <span className="text-sm text-gray-500">ثانية</span>
+                </div>
+              </div>
+
+              {/* F2. Batch Break */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">☕ استراحة مجموعة</label>
+                <div className="flex items-center gap-2 flex-wrap text-sm">
+                  <span className="text-gray-500">كل</span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={50}
+                    value={bulkScriptBatchSize}
+                    onChange={e => setBulkScriptBatchSize(Math.max(5, parseInt(e.target.value) || 12))}
+                    className="w-16 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                  />
+                  <span className="text-gray-500">رسالة، استراحة</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={Math.round(bulkScriptBatchBreakMin / 60)}
+                    onChange={e => setBulkScriptBatchBreakMin(Math.max(60, (parseInt(e.target.value) || 2) * 60))}
+                    className="w-14 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                  />
+                  <span className="text-gray-500">إلى</span>
+                  <input
+                    type="number"
+                    min={Math.round(bulkScriptBatchBreakMin / 60)}
+                    value={Math.round(bulkScriptBatchBreakMax / 60)}
+                    onChange={e => setBulkScriptBatchBreakMax(Math.max(bulkScriptBatchBreakMin, (parseInt(e.target.value) || 5) * 60))}
+                    className="w-14 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                  />
+                  <span className="text-gray-500">دقيقة</span>
+                </div>
+              </div>
+
+              {/* F3. Daily Limit */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">🛡️ الحد اليومي</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">أقصى</span>
+                  <input
+                    type="number"
+                    min={10}
+                    max={500}
+                    value={bulkScriptDailyLimit}
+                    onChange={e => setBulkScriptDailyLimit(Math.max(10, parseInt(e.target.value) || 80))}
+                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                  />
+                  <span className="text-sm text-gray-500">رسالة في اليوم</span>
+                  <span className="text-xs text-gray-400 ms-2">(اتبعت النهارده: {getDailyCount()})</span>
+                </div>
+              </div>
+
+              {/* G. Test Message */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <label className="block text-sm font-bold text-blue-800 dark:text-blue-300 mb-2">🧪 رسالة تجربة</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={bulkScriptTestPhone}
+                    onChange={e => setBulkScriptTestPhone(e.target.value)}
+                    placeholder="رقم التجربة (مثل 01012345678)"
+                    className="flex-1 px-3 py-2 rounded-lg border border-blue-300 dark:border-blue-600 bg-white dark:bg-gray-700 text-sm"
+                  />
+                  <button
+                    onClick={handleBulkScriptTest}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 whitespace-nowrap"
+                  >
+                    📤 ابعت تجربة
+                  </button>
+                </div>
+              </div>
+
+              {/* H. Summary */}
+              <div className="bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-300 dark:border-purple-700 rounded-lg p-4">
+                <p className="text-sm font-bold text-purple-800 dark:text-purple-300 text-center">
+                  📊 سيتم إرسال لـ <span className="text-lg">{getBulkScriptTargets().length}</span> شخص، تبديل عشوائي بين <span className="text-lg">{bulkScriptMessages.filter(m => m.trim()).length}</span> رسالة، بفاصل <span className="text-lg">{bulkScriptDelayMin}-{bulkScriptDelayMax}</span> ثانية
+                </p>
+              </div>
+
+              {/* I. Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleBulkScriptStart()}
+                  disabled={bulkScriptMessages.every(m => !m.trim()) || getBulkScriptTargets().length === 0}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold text-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  🚀 ابدأ الإرسال
+                </button>
+                <button
+                  onClick={() => setShowBulkScriptModal(false)}
+                  className="px-6 py-3 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold hover:bg-gray-300 dark:hover:bg-gray-500"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Smart Bulk Script - Progress Modal */}
+      {bulkScriptRunning && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center mb-5">
+              <div className="text-5xl mb-3">{bulkScriptPaused ? '⏸️' : '🤖'}</div>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                {bulkScriptPaused ? 'تم الإيقاف المؤقت' : 'جاري الإرسال الذكي'}
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">
+                {bulkScriptProgress.current} / {bulkScriptProgress.total}
+              </p>
+            </div>
+
+            {/* Main Progress Bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>التقدم الكلي</span>
+                <span>{Math.round((bulkScriptProgress.current / Math.max(bulkScriptProgress.total, 1)) * 100)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-500 ease-out"
+                  style={{ width: `${(bulkScriptProgress.current / Math.max(bulkScriptProgress.total, 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Countdown Bar */}
+            {bulkScriptProgress.countdown > 0 && !bulkScriptPaused && (
+              <div className="mb-4">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>{bulkScriptProgress.countdown > bulkScriptDelayMax ? '☕ استراحة مجموعة' : '⏰ الرسالة الجاية بعد'}</span>
+                  <span>{bulkScriptProgress.countdown > 60 ? `${Math.ceil(bulkScriptProgress.countdown / 60)} دقيقة` : `${bulkScriptProgress.countdown} ثانية`}</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-1000 ease-linear ${bulkScriptProgress.countdown > bulkScriptDelayMax ? 'bg-gradient-to-r from-blue-400 to-purple-400' : 'bg-gradient-to-r from-yellow-400 to-orange-400'}`}
+                    style={{ width: `${(bulkScriptProgress.countdown / (bulkScriptProgress.countdown > bulkScriptDelayMax ? bulkScriptBatchBreakMax : bulkScriptDelayMax)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Current Info */}
+            {bulkScriptProgress.currentName && (
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4 space-y-1 text-sm">
+                <p className="text-primary-600 dark:text-primary-400">
+                  📱 جاري الإرسال إلى: <span className="font-bold">{bulkScriptProgress.currentName}</span>
+                </p>
+                <p className="text-purple-600 dark:text-purple-400">
+                  ✉️ نص رسالة {bulkScriptProgress.currentMsgIndex} من {bulkScriptMessages.filter(m => m.trim()).length}
+                </p>
+              </div>
+            )}
+
+            {/* Success/Fail Counters */}
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-green-600">✅ {bulkScriptProgress.successCount}</p>
+                <p className="text-xs text-green-700 dark:text-green-400">نجاح</p>
+              </div>
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-red-600">❌ {bulkScriptProgress.failCount}</p>
+                <p className="text-xs text-red-700 dark:text-red-400">فشل</p>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  bulkScriptPausedRef.current = !bulkScriptPausedRef.current
+                  setBulkScriptPaused(bulkScriptPausedRef.current)
+                }}
+                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all ${
+                  bulkScriptPaused
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                }`}
+              >
+                {bulkScriptPaused ? '▶️ استكمال' : '⏸️ إيقاف مؤقت'}
+              </button>
+              <button
+                onClick={() => {
+                  bulkScriptAbortedRef.current = true
+                  bulkScriptPausedRef.current = false
+                  setBulkScriptPaused(false)
+                }}
+                className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 font-bold"
+              >
+                🛑 إيقاف نهائي
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Smart Bulk Script - Report Modal */}
+      {bulkScriptReport && !bulkScriptRunning && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setBulkScriptReport(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className={`p-5 rounded-t-2xl ${bulkScriptReport.failed.length === 0 ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-purple-600 to-indigo-600'} text-white`}>
+              <h2 className="text-xl font-bold">📊 تقرير الإرسال</h2>
+              <p className="text-sm opacity-90 mt-1">اكتمل الإرسال الذكي</p>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Summary */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-green-600">✅ {bulkScriptReport.success.length}</p>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">تم الإرسال بنجاح</p>
+                </div>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-red-600">❌ {bulkScriptReport.failed.length}</p>
+                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">فشل الإرسال</p>
+                </div>
+              </div>
+
+              {/* Failed List */}
+              {bulkScriptReport.failed.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-red-600 dark:text-red-400 mb-2 text-sm">الأرقام الفاشلة:</h3>
+                  <div className="bg-red-50 dark:bg-red-900/10 rounded-lg divide-y divide-red-100 dark:divide-red-800 max-h-48 overflow-y-auto">
+                    {bulkScriptReport.failed.map((item, idx) => (
+                      <div key={idx} className="px-3 py-2 text-sm flex justify-between items-center">
+                        <div>
+                          <span className="font-bold text-gray-800 dark:text-gray-200">{item.name}</span>
+                          <span className="text-gray-500 dark:text-gray-400 ms-2">{item.phone}</span>
+                        </div>
+                        <span className="text-xs text-red-500">{item.error}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Retry Button */}
+                  <button
+                    onClick={() => {
+                      const retryTargets = bulkScriptReport!.failed.map(f => ({
+                        visitor: { id: '', name: f.name, phone: f.phone, source: '', status: '' }
+                      }))
+                      setBulkScriptReport(null)
+                      handleBulkScriptStart(retryTargets)
+                    }}
+                    className="w-full mt-3 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-bold hover:from-orange-600 hover:to-red-600 transition-all"
+                  >
+                    🔄 إعادة الإرسال للفاشلين ({bulkScriptReport.failed.length})
+                  </button>
+                </div>
+              )}
+
+              {/* Close */}
+              <button
+                onClick={() => setBulkScriptReport(null)}
+                className="w-full px-4 py-3 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold hover:bg-gray-300 dark:hover:bg-gray-500"
+              >
+                إغلاق
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1510,7 +2408,7 @@ export default function FollowUpsPage() {
 
             <div className="p-4">
               {visitorHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <div className="text-4xl mb-2">📭</div>
                   <p className="text-sm">{t('followups.history.noHistory')}</p>
                 </div>
@@ -1533,7 +2431,7 @@ export default function FollowUpsPage() {
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-xl font-bold text-gray-400 dark:text-gray-500">#{visitorHistory.length - index}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                               {new Date(fu.createdAt).toLocaleDateString('ar-EG')}
                             </span>
                             {fu.contacted ? (
@@ -1691,16 +2589,13 @@ export default function FollowUpsPage() {
             👤 {t('followups.sources.visitors')} ({stats.visitors})
           </button>
 
-          {/* زر الإرسال الجماعي - يظهر فقط عند اختيار الأعضاء المنتهيين */}
-          {sourceFilter === 'expired-member' && filteredFollowUps.length > 0 && (
+          {/* زر سكريبت الإرسال الذكي */}
+          {filteredFollowUps.length > 0 && (
             <button
-              onClick={() => {
-                setSelectedVisitorForTemplate(null as any)
-                setShowTemplateModal(true)
-              }}
-              className="px-4 py-2 rounded-lg font-bold text-sm transition-all bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg hover:from-green-700 hover:to-emerald-700 flex items-center gap-2"
+              onClick={() => { setShowBulkScriptModal(true); fetchWaSessions() }}
+              className="px-4 py-2 rounded-lg font-bold text-sm transition-all bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg hover:from-purple-700 hover:to-indigo-700 flex items-center gap-2"
             >
-              📤 إرسال للكل ({filteredFollowUps.length})
+              🤖 سكريبت إرسال ذكي ({filteredFollowUps.length})
             </button>
           )}
         </div>
@@ -1779,6 +2674,26 @@ export default function FollowUpsPage() {
                           title="تحويل الزائر إلى عضو"
                         >
                           ⚡
+                        </button>
+                      )}
+                      {/* زر تعديل - للزوار والدعوات */}
+                      {!isExpired && !isExpiring && !followUp.id.startsWith('dayuse-') && (
+                        <button
+                          onClick={() => handleEditFollowUp(followUp)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                          title="تعديل"
+                        >
+                          ✏️
+                        </button>
+                      )}
+                      {/* زر حذف - للزوار والدعوات */}
+                      {!isExpired && !isExpiring && !followUp.id.startsWith('dayuse-') && (
+                        <button
+                          onClick={() => handleDeleteFollowUp(followUp.id, followUp.visitor.name)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
+                          title="حذف"
+                        >
+                          🗑️
                         </button>
                       )}
                     </div>
@@ -1928,232 +2843,7 @@ export default function FollowUpsPage() {
             })}
 
             {filteredFollowUps.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                {searchTerm || resultFilter !== 'all' || contactedFilter !== 'all' || priorityFilter !== 'all' ? (
-                  <>
-                    <div className="text-5xl mb-3">🔍</div>
-                    <p>{t('followups.messages.noResults')}</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-5xl mb-3">📝</div>
-                    <p>{t('followups.messages.noFollowups')}</p>
-                    <button
-                      onClick={() => setShowForm(true)}
-                      className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
-                    >
-                      ➕ {t('followups.messages.addFirst')}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Desktop Table View - مخفي، نستخدم Cards بدلاً منه */}
-          <div className="hidden bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-              <thead className="bg-gradient-to-r from-primary-500 to-primary-600 text-white">
-                <tr>
-                  <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.priority')}</th>
-                  <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.visitor')}</th>
-                  <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.phone')}</th>
-                  <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.source')}</th>
-                  <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.sales')}</th>
-                  <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.notes')}</th>
-                  <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.result')}</th>
-                  <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.nextFollowUp')}</th>
-                  <th className={`px-4 py-3 text-${direction === 'rtl' ? 'right' : 'left'}`}>{t('followups.table.actionsColumn')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentFollowUps.map((followUp) => {
-                  const isExpired = followUp.visitor.source === 'expired-member'
-                  const isExpiring = followUp.visitor.source === 'expiring-member'
-
-                  return (
-                  <tr
-                    key={followUp.id}
-                    className={`border-t dark:border-gray-700 transition-colors ${
-                      isExpired
-                        ? 'bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30'
-                        : isExpiring
-                        ? 'bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30'
-                        : 'hover:bg-primary-50 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <td className="px-4 py-3">
-                      {getPriorityBadge(followUp)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className={`font-semibold ${
-                          isExpired ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'
-                        }`}>
-                          {followUp.visitor.name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                          {followUp.contacted ? (
-                            <span className="text-green-600">✅ {t('followups.labels.contactedYes')}</span>
-                          ) : (
-                            <span className="text-orange-600">⏳ {t('followups.labels.contactedNo')}</span>
-                          )}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-3 items-center">
-                        <span className="font-medium">{followUp.visitor.phone}</span>
-                        <button
-                          onClick={() => openTemplateModal(followUp.visitor)}
-                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 py-1 rounded-lg text-sm font-medium"
-                          title="رسائل جاهزة"
-                        >
-                          📝
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className={`${
-                        followUp.visitor.source === 'invitation'
-                          ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-1 rounded-full text-xs font-medium'
-                          : followUp.visitor.source === 'member-invitation'
-                          ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-1 rounded-full text-xs font-medium'
-                          : followUp.visitor.source === 'expired-member'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-2 py-1 rounded-full text-xs font-bold'
-                          : followUp.visitor.source === 'expiring-member'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-1 rounded-full text-xs font-bold'
-                          : 'text-gray-600 dark:text-gray-300'
-                      }`}>
-                        {getSourceLabel(followUp.visitor.source)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {followUp.salesName ? (
-                        <span className="text-orange-600 font-semibold flex items-center gap-1">
-                          <span>👤</span>
-                          <span>{followUp.salesName}</span>
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 dark:text-gray-500">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {(() => {
-                        const lastComment = getLastComment(followUp.visitor.phone)
-                        const displayNotes = lastComment?.notes || followUp.notes
-                        return (
-                          <div>
-                            <p className="text-sm text-gray-700 dark:text-gray-200 max-w-xs" title={displayNotes}>
-                              {displayNotes.length > 50 ? displayNotes.substring(0, 50) + '...' : displayNotes}
-                            </p>
-                            {lastComment && (
-                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                {lastComment.salesName && <span className="text-orange-500">{lastComment.salesName} • </span>}
-                                {new Date(lastComment.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
-                              </p>
-                            )}
-                          </div>
-                        )
-                      })()}
-                    </td>
-                    <td className="px-4 py-3">
-                      {getResultBadge(followUp.result)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {followUp.nextFollowUpDate ? (
-                        <span className="text-sm font-medium">
-                          {new Date(followUp.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 dark:text-gray-500">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2 flex-wrap">
-                        {/* زر تجديد سريع للأعضاء المنتهيين أو القريبين من الانتهاء */}
-                        {(isExpired || isExpiring) && (
-                          <Link
-                            href={`/members?search=${encodeURIComponent(followUp.visitor.phone)}`}
-                            className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
-                            title={t('followups.actions.quickRenew')}
-                          >
-                            🔄 {t('followups.actions.quickRenew')}
-                          </Link>
-                        )}
-
-                        {isExpired && (
-                          <button
-                            onClick={() => openQuickFollowUp(followUp.visitor)}
-                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
-                            title={t('followups.actions.addFollowupRenewal')}
-                          >
-                            ➕ {t('followups.buttons.followup')}
-                          </button>
-                        )}
-                        {!isExpired && (
-                          <button
-                            onClick={() => openQuickFollowUp(followUp.visitor)}
-                            className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-medium px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
-                            title={t('followups.actions.addFollowupNew')}
-                          >
-                            ➕ {t('followups.buttons.followup')}
-                          </button>
-                        )}
-
-                        {/* زر سجل المتابعات */}
-                        <button
-                          onClick={() => openHistoryModal(followUp.visitor)}
-                          className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-medium px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
-                          title={t('followups.actions.viewHistory')}
-                        >
-                          📋 {t('followups.buttons.history')}
-                        </button>
-
-                        {/* زر اشتراك سريع - مخفي للأعضاء القريبين من الانتهاء */}
-                        {!isExpiring && (
-                          <button
-                            onClick={() => openQuickSubscribe(followUp.visitor)}
-                            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
-                            title="تحويل الزائر إلى عضو"
-                          >
-                            {t('followups.quickSubscribe')}
-                          </button>
-                        )}
-
-                        {/* زر الحذف - متاح فقط للمتابعات اليدوية (الزوار) */}
-                        {!isExpired && !isExpiring && !followUp.id.startsWith('dayuse-') && !followUp.id.startsWith('invitation-') && (
-                          <button
-                            onClick={() => handleDeleteFollowUp(followUp.id, followUp.visitor.name)}
-                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
-                            title={t('followups.actions.delete')}
-                          >
-                            🗑️ {t('followups.buttons.delete')}
-                          </button>
-                        )}
-
-                        {/* زر حذف الزائر نهائياً */}
-                        {!isExpired && !isExpiring && !followUp.id.startsWith('dayuse-') && !followUp.id.startsWith('invitation-') && (
-                          <button
-                            onClick={() => handleDeleteVisitor(followUp.visitor.id, followUp.visitor.name)}
-                            className="text-red-700 dark:text-red-500 hover:text-red-900 dark:hover:text-red-400 text-sm font-medium px-3 py-1 rounded bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-900/70 border border-red-300 dark:border-red-700"
-                            title={t('followups.actions.deleteVisitor')}
-                          >
-                            ❌ {t('followups.buttons.deleteVisitor')}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                )}
-              </tbody>
-            </table>
-          </div>
-
-            {filteredFollowUps.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 {searchTerm || resultFilter !== 'all' || contactedFilter !== 'all' || priorityFilter !== 'all' ? (
                   <>
                     <div className="text-5xl mb-3">🔍</div>
@@ -2269,7 +2959,7 @@ export default function FollowUpsPage() {
               </div>
 
               {/* معلومات إضافية */}
-              <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
+              <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
                 {t('followups.pagination.page')} {currentPage} {t('followups.pagination.of')} {totalPages}
               </div>
             </div>
@@ -2341,32 +3031,6 @@ export default function FollowUpsPage() {
         </div>
       )}
 
-      {/* Success Rate */}
-      <div className="mt-6 bg-gradient-to-br from-green-500 to-green-600 border-r-4 border-green-700 p-6 rounded-xl shadow-lg">
-        <h3 className="font-bold text-white mb-4 flex items-center gap-2 text-xl">
-          <span>🎯</span>
-          <span>{t('followups.successRate.title')}</span>
-        </h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800/90 backdrop-blur p-5 rounded-lg shadow-md">
-            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-1">{t('followups.successRate.totalFollowups')}</p>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800/90 backdrop-blur p-5 rounded-lg shadow-md">
-            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-1">{t('followups.successRate.convertedToMembers')}</p>
-            <p className="text-4xl font-bold text-green-600">{stats.convertedToMembers}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800/90 backdrop-blur p-5 rounded-lg shadow-md">
-            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-1">{t('followups.successRate.conversionRate')}</p>
-            <p className="text-4xl font-bold text-primary-600">
-              {stats.total > 0 ? ((stats.convertedToMembers / stats.total) * 100).toFixed(1) : '0'}%
-            </p>
-          </div>
-        </div>
-        <p className="text-sm text-white mt-4 bg-green-700/30 p-3 rounded-lg">
-          💡 <strong>{t('followups.successRate.noteLabel')}:</strong> {t('followups.successRate.noteText')}
-        </p>
-      </div>
 
       {/* Quick Tips */}
       <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 border-r-4 border-primary-500 p-5 rounded-lg">
@@ -2505,6 +3169,64 @@ export default function FollowUpsPage() {
                 className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-bold py-3 px-4 rounded-lg transition-colors"
               >
                 {t('followups.deleteConfirm.cancelButton')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✏️ مودال تعديل الزائر/الدعوة */}
+      {showEditModal && editTarget && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => { setShowEditModal(false); setEditTarget(null) }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+            dir={direction}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="text-3xl">✏️</div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                {editTarget.type === 'invitation' ? 'تعديل الدعوة' : 'تعديل الزائر'}
+              </h3>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">الاسم</label>
+                <input
+                  type="text"
+                  value={editTarget.name}
+                  onChange={(e) => setEditTarget({ ...editTarget, name: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">رقم الموبايل</label>
+                <input
+                  type="tel"
+                  value={editTarget.phone}
+                  onChange={(e) => setEditTarget({ ...editTarget, phone: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={confirmEdit}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors"
+              >
+                حفظ التعديل
+              </button>
+              <button
+                onClick={() => { setShowEditModal(false); setEditTarget(null) }}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-bold py-2.5 px-4 rounded-lg transition-colors"
+              >
+                إلغاء
               </button>
             </div>
           </div>

@@ -138,6 +138,26 @@ export async function GET(request: Request) {
             amount: true,
             type: true
           }
+        },
+        expenses: {
+          where: {
+            type: 'staff_loan',
+            createdAt: {
+              gte: startDate,
+              lte: endDate
+            }
+          },
+          select: {
+            id: true,
+            amount: true,
+            description: true,
+            isPaid: true,
+            createdAt: true,
+            notes: true
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
         }
       }
     })
@@ -226,6 +246,22 @@ export async function GET(request: Request) {
         revenueBreakdown.total += amount
       })
 
+      // حساب السلف
+      const advances = {
+        total: staff.expenses.reduce((sum, e) => sum + e.amount, 0),
+        paid: staff.expenses.filter(e => e.isPaid).reduce((sum, e) => sum + e.amount, 0),
+        unpaid: staff.expenses.filter(e => !e.isPaid).reduce((sum, e) => sum + e.amount, 0),
+        count: staff.expenses.length,
+        items: staff.expenses.map(e => ({
+          id: e.id,
+          amount: e.amount,
+          description: e.description,
+          isPaid: e.isPaid,
+          createdAt: e.createdAt.toISOString(),
+          notes: e.notes
+        }))
+      }
+
       // حساب نسبة العائدات إلى الراتب
       const revenueToSalaryRatio = staff.salary && staff.salary > 0
         ? Math.round((revenueBreakdown.total / staff.salary) * 100) / 100
@@ -261,7 +297,8 @@ export async function GET(request: Request) {
         status,
         alerts,
         revenue: revenueBreakdown,
-        revenueToSalaryRatio
+        revenueToSalaryRatio,
+        advances
       }
     })
 

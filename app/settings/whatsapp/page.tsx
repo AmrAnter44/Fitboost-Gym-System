@@ -8,7 +8,7 @@ import { getWhatsAppBrowserClient, SessionInfo } from '../../../lib/whatsappClie
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const SESSION_COUNT = 1
+const SESSION_COUNT = 4
 
 const SESSION_COLORS: Record<number, { tab: string; ring: string; bg: string; text: string; border: string; dot: string }> = {
   0: {
@@ -18,6 +18,30 @@ const SESSION_COLORS: Record<number, { tab: string; ring: string; bg: string; te
     text: 'text-blue-700 dark:text-blue-300',
     border: 'border-blue-200 dark:border-blue-700',
     dot: 'bg-blue-500',
+  },
+  1: {
+    tab: 'bg-green-500',
+    ring: 'border-green-400',
+    bg: 'bg-green-50 dark:bg-green-900/20',
+    text: 'text-green-700 dark:text-green-300',
+    border: 'border-green-200 dark:border-green-700',
+    dot: 'bg-green-500',
+  },
+  2: {
+    tab: 'bg-purple-500',
+    ring: 'border-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/20',
+    text: 'text-purple-700 dark:text-purple-300',
+    border: 'border-purple-200 dark:border-purple-700',
+    dot: 'bg-purple-500',
+  },
+  3: {
+    tab: 'bg-orange-500',
+    ring: 'border-orange-400',
+    bg: 'bg-orange-50 dark:bg-orange-900/20',
+    text: 'text-orange-700 dark:text-orange-300',
+    border: 'border-orange-200 dark:border-orange-700',
+    dot: 'bg-orange-500',
   },
 }
 
@@ -107,7 +131,7 @@ export default function WhatsAppPage() {
   const toast = useToast()
   const isRTL = t('common.language') === 'ar'
 
-  const activeTab = 0
+  const [activeTab, setActiveTab] = useState(0)
   const [sessions, setSessions] = useState<SessionState[]>(() =>
     Array.from({ length: SESSION_COUNT }, (_, i) => defaultSessionState(i))
   )
@@ -468,16 +492,41 @@ export default function WhatsAppPage() {
           </div>
         )}
 
+        {/* Session Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {sessions.map((sess, idx) => {
+            const colors = SESSION_COLORS[idx] || SESSION_COLORS[0]
+            const connected = !!sess.status?.isReady
+            return (
+              <button
+                key={idx}
+                onClick={() => setActiveTab(idx)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap border-2 ${
+                  activeTab === idx
+                    ? `${colors.bg} ${colors.text} ${colors.border} shadow-md scale-105`
+                    : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${connected ? colors.dot : 'bg-gray-300 dark:bg-gray-600'} ${connected ? 'animate-pulse' : ''}`} />
+                <span>رقم {idx + 1}</span>
+                {connected && sess.status?.phoneNumber && (
+                  <span className="text-xs font-mono opacity-70" dir="ltr">{sess.status.phoneNumber}</span>
+                )}
+                {connected && <span className="text-xs">✅</span>}
+              </button>
+            )
+          })}
+        </div>
+
         {/* Session card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
 
           {/* Session header */}
-          <div className={`flex items-center gap-3 px-5 py-3 border-b ${SESSION_COLORS[0].border} ${SESSION_COLORS[0].bg}`}>
-            <span className={`w-3 h-3 rounded-full flex-shrink-0 ${SESSION_COLORS[0].dot} ${isConnected ? 'animate-pulse' : 'opacity-40'}`} />
-            <span className={`font-bold text-sm ${SESSION_COLORS[0].text}`}>
-              WhatsApp
+          <div className={`flex items-center gap-3 px-5 py-3 border-b ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).border} ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).bg}`}>
+            <span className={`w-3 h-3 rounded-full flex-shrink-0 ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).dot} ${isConnected ? 'animate-pulse' : 'opacity-40'}`} />
+            <span className={`font-bold text-sm ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).text}`}>
+              WhatsApp - رقم {activeTab + 1}
             </span>
-            {/* Phone number when connected */}
             {isConnected && s.status?.phoneNumber && (
               <span className="ms-auto text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 <span>📞</span>

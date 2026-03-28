@@ -26,7 +26,7 @@ export async function fetchMembers() {
   // ✅ تحويل كل الأرقام لـ integers
   const cleanedMembers = data.map(member => ({
     ...member,
-    memberNumber: parseInt(member.memberNumber?.toString() || '0'),
+    memberNumber: member.memberNumber != null ? parseInt(member.memberNumber.toString()) : null,
     inBodyScans: parseInt(member.inBodyScans?.toString() || '0'),
     invitations: parseInt(member.invitations?.toString() || '0'),
     remainingFreezeDays: parseInt(member.remainingFreezeDays?.toString() || '0'),

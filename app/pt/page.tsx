@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import dynamic from 'next/dynamic'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -16,6 +17,8 @@ import { fetchPTSessions, fetchCoaches } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
+
+const SignaturePad = dynamic(() => import('../../components/SignaturePad'), { ssr: false })
 
 interface Staff {
   id: string
@@ -38,8 +41,6 @@ interface PTSession {
   startDate: string | null
   expiryDate: string | null
   createdAt: string
-  qrCode?: string
-  qrCodeImage?: string
 }
 
 export default function PTPage() {
@@ -50,6 +51,7 @@ export default function PTPage() {
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
+  const isCoach = user?.role === 'COACH'
 
   // ✅ استخدام useQuery لجلب جلسات PT
   const {
@@ -81,8 +83,6 @@ export default function PTPage() {
   const [editingSession, setEditingSession] = useState<PTSession | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
-  const [showQRModal, setShowQRModal] = useState(false)
-  const [selectedSession, setSelectedSession] = useState<PTSession | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentSession, setPaymentSession] = useState<PTSession | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<{
@@ -98,6 +98,10 @@ export default function PTPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [filterSessions, setFilterSessions] = useState<'all' | 'low' | 'zero'>('all')
   const [filterType, setFilterType] = useState<'all' | 'regular' | 'dayuse'>('all')
+
+  // حالة الإمضاء للكوتش
+  const [showSignatureModal, setShowSignatureModal] = useState(false)
+  const [signatureSession, setSignatureSession] = useState<PTSession | null>(null)
 
   const [isDayUse, setIsDayUse] = useState(false)
   const [packages, setPackages] = useState<any[]>([])
@@ -409,9 +413,83 @@ export default function PTPage() {
     router.push(`/pt/renew?ptNumber=${session.ptNumber}`)
   }
 
-  const handleRegisterSession = (session: PTSession) => {
-    router.push(`/pt/sessions/register?ptNumber=${session.ptNumber}`)
+  const handleRegisterSession = async (session: PTSession) => {
+    // الكوتش يسجل بإمضاء
+    if (isCoach) {
+      setSignatureSession(session)
+      setShowSignatureModal(true)
+      return
+    }
+
+    // الموظف يسجل بتأكيد عادي
+    const confirmed = await confirm({
+      title: 'تسجيل حضور',
+      message: `هل تريد تسجيل حضور حصة لـ ${session.clientName}؟\nالحصص المتبقية: ${session.sessionsRemaining} من ${session.sessionsPurchased}`,
+      confirmText: 'تسجيل',
+      cancelText: 'إلغاء',
+      type: 'info'
+    })
+    if (!confirmed) return
+
+    try {
+      const res = await fetch('/api/pt/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ptNumber: session.ptNumber,
+          sessionDate: new Date().toISOString()
+        })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        queryClient.setQueryData<any[]>(['pt-sessions'], (old) =>
+          old ? old.map(s =>
+            s.ptNumber === session.ptNumber
+              ? { ...s, sessionsRemaining: s.sessionsRemaining - 1 }
+              : s
+          ) : old
+        )
+        toast.success(`تم تسجيل حصة ${session.clientName} بنجاح`)
+      } else {
+        toast.error(data.error || 'فشل تسجيل الحصة')
+      }
+    } catch {
+      toast.error('حدث خطأ في الاتصال')
+    }
   }
+
+  const handleSignatureConfirm = useCallback(async (signatureDataUrl: string) => {
+    if (!signatureSession) return
+    try {
+      const res = await fetch('/api/pt/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ptNumber: signatureSession.ptNumber,
+          sessionDate: new Date().toISOString(),
+          signature: signatureDataUrl
+        })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        queryClient.setQueryData<any[]>(['pt-sessions'], (old) =>
+          old ? old.map(s =>
+            s.ptNumber === signatureSession.ptNumber
+              ? { ...s, sessionsRemaining: s.sessionsRemaining - 1 }
+              : s
+          ) : old
+        )
+        toast.success(`تم تسجيل حصة ${signatureSession.clientName} بنجاح`)
+      } else {
+        toast.error(data.error || 'فشل تسجيل الحصة')
+      }
+    } catch {
+      toast.error('حدث خطأ في الاتصال')
+    } finally {
+      setShowSignatureModal(false)
+      setSignatureSession(null)
+    }
+  }, [signatureSession, queryClient, toast])
 
   const handleOpenPaymentModal = async (session: PTSession) => {
     setPaymentSession(session)
@@ -536,8 +614,6 @@ export default function PTPage() {
       </div>
     )
   }
-
-  const isCoach = user?.role === 'COACH'
 
   return (
     <div className="container mx-auto p-4 sm:p-6" dir={direction}>
@@ -1110,7 +1186,7 @@ export default function PTPage() {
                     <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.total')}</th>
                     <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.remaining')}</th>
                     <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.dates')}</th>
-                    {!isCoach && <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.actions')}</th>}
+                    <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('pt.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1187,10 +1263,9 @@ export default function PTPage() {
                             )}
                           </div>
                         </td>
-                        {!isCoach && (
-                          <td className="px-4 py-3">
+                        <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-2">
-                              {/* إخفاء زر الحضور للـ Day Use */}
+                              {/* زر تسجيل الحضور - متاح للكوتش والأدمن */}
                               {session.ptNumber >= 0 && (
                                 <button
                                   onClick={() => handleRegisterSession(session)}
@@ -1200,37 +1275,41 @@ export default function PTPage() {
                                   {t('pt.attendance')}
                                 </button>
                               )}
-                              {session.ptNumber >= 0 && (
-                                <button
-                                  onClick={() => handleRenew(session)}
-                                  className="bg-primary-600 text-white px-3 py-1 rounded text-sm hover:bg-primary-700"
-                                >
-                                  {t('pt.renew')}
-                                </button>
+                              {/* أزرار الأدمن فقط */}
+                              {!isCoach && (
+                                <>
+                                  {session.ptNumber >= 0 && (
+                                    <button
+                                      onClick={() => handleRenew(session)}
+                                      className="bg-primary-600 text-white px-3 py-1 rounded text-sm hover:bg-primary-700"
+                                    >
+                                      {t('pt.renew')}
+                                    </button>
+                                  )}
+                                  {(session.remainingAmount || 0) > 0 && (
+                                    <button
+                                      onClick={() => handleOpenPaymentModal(session)}
+                                      className="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700"
+                                    >
+                                      {t('pt.payRemaining')}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleEdit(session)}
+                                    className="bg-primary-600 text-white px-3 py-1 rounded text-sm hover:bg-primary-700 flex items-center gap-1"
+                                  >
+                                    ✏️ {t('pt.edit')}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(session.ptNumber)}
+                                    className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 flex items-center gap-1"
+                                  >
+                                    {t('pt.delete')}
+                                  </button>
+                                </>
                               )}
-                              {(session.remainingAmount || 0) > 0 && (
-                                <button
-                                  onClick={() => handleOpenPaymentModal(session)}
-                                  className="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700"
-                                >
-                                  {t('pt.payRemaining')}
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleEdit(session)}
-                                className="bg-primary-600 text-white px-3 py-1 rounded text-sm hover:bg-primary-700 flex items-center gap-1"
-                              >
-                                ✏️ {t('pt.edit')}
-                              </button>
-                              <button
-                                onClick={() => handleDelete(session.ptNumber)}
-                                className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 flex items-center gap-1"
-                              >
-                                {t('pt.delete')}
-                              </button>
                             </div>
                           </td>
-                        )}
                       </tr>
                     )
                   })}
@@ -1344,51 +1423,54 @@ export default function PTPage() {
                     )}
 
                     {/* Action Buttons */}
-                    {!isCoach && (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        {/* إخفاء أزرار الحضور والتجديد للـ Day Use */}
-                        {session.ptNumber >= 0 && (
-                          <>
-                            <button
-                              onClick={() => handleRegisterSession(session)}
-                              disabled={session.sessionsRemaining === 0}
-                              className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1"
-                            >
-                              {t('pt.attendance')}
-                            </button>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {/* زر تسجيل الحضور - متاح للكوتش والأدمن */}
+                      {session.ptNumber >= 0 && (
+                        <button
+                          onClick={() => handleRegisterSession(session)}
+                          disabled={session.sessionsRemaining === 0}
+                          className={`${isCoach ? 'col-span-2' : ''} bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1`}
+                        >
+                          {t('pt.attendance')}
+                        </button>
+                      )}
+                      {/* أزرار الأدمن فقط */}
+                      {!isCoach && (
+                        <>
+                          {session.ptNumber >= 0 && (
                             <button
                               onClick={() => handleRenew(session)}
                               className="bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700 dark:hover:bg-primary-800 font-bold flex items-center justify-center gap-1"
                             >
                               {t('pt.renew')}
                             </button>
-                          </>
-                        )}
-                        {(session.remainingAmount || 0) > 0 && (
+                          )}
+                          {(session.remainingAmount || 0) > 0 && (
+                            <button
+                              onClick={() => handleOpenPaymentModal(session)}
+                              className="col-span-2 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1"
+                            >
+                              <span>💰</span>
+                              <span>{t('pt.payRemaining').replace('💰 ', '')} ({(session.remainingAmount || 0).toFixed(0)} {t('pt.egp')})</span>
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleOpenPaymentModal(session)}
-                            className="col-span-2 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1"
+                            onClick={() => handleEdit(session)}
+                            className="bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700 dark:hover:bg-primary-800 font-bold flex items-center justify-center gap-1"
                           >
-                            <span>💰</span>
-                            <span>{t('pt.payRemaining').replace('💰 ', '')} ({(session.remainingAmount || 0).toFixed(0)} {t('pt.egp')})</span>
+                            <span>✏️</span>
+                            <span>{t('pt.edit')}</span>
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleEdit(session)}
-                          className="bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700 dark:hover:bg-primary-800 font-bold flex items-center justify-center gap-1"
-                        >
-                          <span>✏️</span>
-                          <span>{t('pt.edit')}</span>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(session.ptNumber)}
-                          className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 dark:hover:bg-red-800 font-bold flex items-center justify-center gap-1"
-                        >
-                          <span>🗑️</span>
-                          <span>{t('pt.deleteSubscription')}</span>
-                        </button>
-                      </div>
-                    )}
+                          <button
+                            onClick={() => handleDelete(session.ptNumber)}
+                            className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 dark:hover:bg-red-800 font-bold flex items-center justify-center gap-1"
+                          >
+                            <span>🗑️</span>
+                            <span>{t('pt.deleteSubscription')}</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -1402,186 +1484,6 @@ export default function PTPage() {
             </div>
           )}
         </>
-      )}
-
-      {/* Barcode Modal */}
-      {showQRModal && selectedSession && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl dark:bg-gray-800 max-w-lg w-full p-6" dir={direction}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">{t('pt.barcodeModal.title')} - {selectedSession.clientName}</h2>
-              <button
-                onClick={() => {
-                  setShowQRModal(false)
-                  setSelectedSession(null)
-                }}
-                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* معلومات الاشتراك */}
-              <div className="bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-300">{t('pt.ptNumber')}:</span>
-                    <span className="font-bold mr-2">#{selectedSession.ptNumber}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-300">{t('pt.coach')}:</span>
-                    <span className="font-bold mr-2">{selectedSession.coachName}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-300">{t('pt.barcodeModal.sessionsRemaining')}</span>
-                    <span className="font-bold mr-2 text-green-600">
-                      {selectedSession.sessionsRemaining} / {selectedSession.sessionsPurchased}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-300">{t('pt.barcodeModal.phone')}</span>
-                    <span className="font-bold mr-2">{selectedSession.phone}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Barcode Image */}
-              {selectedSession.qrCodeImage ? (
-                <div className="flex flex-col items-center bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-lg p-6">
-                  <img
-                    src={selectedSession.qrCodeImage}
-                    alt="Barcode"
-                    className="w-full max-w-md h-auto"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-                    {t('pt.barcodeModal.scanNote')}
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-6 text-center">
-                  <p className="text-gray-500 dark:text-gray-400">{t('pt.barcodeModal.noBarcode')}</p>
-                </div>
-              )}
-
-              {/* Barcode Text */}
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                  {t('pt.barcodeModal.ptCode')}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={selectedSession.qrCode}
-                    readOnly
-                    className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm"
-                    onClick={(e) => (e.target as HTMLInputElement).select()}
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(selectedSession.qrCode || '')
-                      toast.success(t('pt.barcodeModal.codeCopied'))
-                    }}
-                    className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 text-sm font-medium"
-                  >
-                    {t('pt.barcodeModal.copyCode')}
-                  </button>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* زر تحميل Barcode */}
-                <button
-                  onClick={() => {
-                    if (!selectedSession.qrCodeImage) return
-
-                    // تحويل base64 إلى blob
-                    const link = document.createElement('a')
-                    link.href = selectedSession.qrCodeImage
-                    link.download = `PT_${selectedSession.ptNumber}_${selectedSession.clientName}_QR.png`
-                    document.body.appendChild(link)
-                    link.click()
-                    document.body.removeChild(link)
-
-                    toast.success(t('pt.barcodeModal.barcodeDownloaded'))
-                  }}
-                  className="bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center justify-center gap-2"
-                >
-                  {t('pt.barcodeModal.downloadQR')}
-                </button>
-
-                {/* زر مشاركة Barcode (للموبايل) */}
-                <button
-                  onClick={async () => {
-                    if (!selectedSession.qrCodeImage) return
-
-                    try {
-                      // تحويل base64 إلى blob
-                      const response = await fetch(selectedSession.qrCodeImage)
-                      const blob = await response.blob()
-                      const file = new File([blob], `PT_QR_${selectedSession.clientName}.png`, { type: 'image/png' })
-
-                      // استخدام Share API
-                      if (navigator.share && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                          title: `Barcode - ${selectedSession.clientName}`,
-                          text: t('pt.whatsappShareText', {
-                            clientName: selectedSession.clientName,
-                            sessionsRemaining: selectedSession.sessionsRemaining.toString(),
-                            sessionsPurchased: selectedSession.sessionsPurchased.toString(),
-                            coachName: selectedSession.coachName
-                          }),
-                          files: [file]
-                        })
-                        toast.success(t('pt.barcodeModal.barcodeDownloaded'))
-                      } else {
-                        // Fallback: تحميل الصورة
-                        const link = document.createElement('a')
-                        link.href = selectedSession.qrCodeImage
-                        link.download = `PT_${selectedSession.ptNumber}_QR.png`
-                        link.click()
-                        toast.info(t('pt.barcodeModal.shareNotSupported'))
-                      }
-                    } catch (error) {
-                      console.error('Share error:', error)
-                      toast.error(t('pt.barcodeModal.shareFailed'))
-                    }
-                  }}
-                  className="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2"
-                >
-                  {t('pt.barcodeModal.shareQR')}
-                </button>
-
-                {/* زر إرسال رابط واتساب */}
-                <button
-                  onClick={() => {
-                    const checkInUrl = `${window.location.origin}/pt/check-in`
-                    const text = t('pt.whatsappWithLink', {
-                      clientName: selectedSession.clientName,
-                      checkInUrl,
-                      sessionsRemaining: selectedSession.sessionsRemaining.toString(),
-                      sessionsPurchased: selectedSession.sessionsPurchased.toString(),
-                      coachName: selectedSession.coachName
-                    })
-                    const phone = selectedSession.phone.startsWith('0') ? '2' + selectedSession.phone : selectedSession.phone
-                    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
-                    window.open(whatsappUrl, '_blank')
-                  }}
-                  className="col-span-2 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 font-bold flex items-center justify-center gap-2"
-                >
-                  {t('pt.barcodeModal.sendWhatsAppLink')}
-                </button>
-              </div>
-
-              <div className="bg-primary-50 border-r-4 border-primary-500 p-3 rounded">
-                <p className="text-xs text-primary-800">
-                  {t('pt.barcodeModal.note')}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Payment Modal */}
@@ -1742,6 +1644,19 @@ export default function PTPage() {
         onCancel={handleCancel}
         type={options.type}
       />
+
+      {/* SignaturePad Modal - للكوتش فقط */}
+      {showSignatureModal && signatureSession && (
+        <SignaturePad
+          title={`تسجيل حصة - ${signatureSession.clientName}`}
+          subtitle={`الحصص المتبقية: ${signatureSession.sessionsRemaining} من ${signatureSession.sessionsPurchased}`}
+          onConfirm={handleSignatureConfirm}
+          onCancel={() => {
+            setShowSignatureModal(false)
+            setSignatureSession(null)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -37,7 +37,7 @@ const VirtualMemberList = nextDynamic(() => import('../../components/VirtualMemb
 
 interface Member {
   id: string
-  memberNumber: number
+  memberNumber: number | null
   name: string
   phone: string
   profileImage?: string | null
@@ -134,7 +134,7 @@ export default function MembersPage() {
   const debouncedSearchName = useDebounce(searchName, 300)
   const debouncedSearchPhone = useDebounce(searchPhone, 300)
 
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'analytics' | 'banned'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'other' | 'analytics' | 'banned'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [specificDate, setSpecificDate] = useState('')
 
@@ -177,7 +177,7 @@ export default function MembersPage() {
     if (debouncedSearchId || debouncedSearchName || debouncedSearchPhone) {
       filtered = filtered.filter((member) => {
         const idMatch = debouncedSearchId
-          ? member.memberNumber === parseInt(debouncedSearchId) || member.memberNumber.toString() === debouncedSearchId
+          ? member.memberNumber !== null && (member.memberNumber === parseInt(debouncedSearchId) || member.memberNumber.toString() === debouncedSearchId)
           : true
 
         const nameMatch = debouncedSearchName
@@ -206,6 +206,8 @@ export default function MembersPage() {
           return isActiveNow
         } else if (filterStatus === 'has-remaining') {
           return member.remainingAmount > 0
+        } else if (filterStatus === 'other') {
+          return member.memberNumber === null
         }
         return true
       })
@@ -447,6 +449,7 @@ export default function MembersPage() {
     if (filterStatus === 'expiring-soon') return isExpiringSoon && isActiveNow
     if (filterStatus === 'active') return isActiveNow
     if (filterStatus === 'has-remaining') return member.remainingAmount > 0
+    if (filterStatus === 'other') return member.memberNumber === null
     return true
   }
 
@@ -459,6 +462,7 @@ export default function MembersPage() {
       return isMemberActiveNow(m) && daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7
     }).length,
     hasRemaining: membersData.filter(m => m.remainingAmount > 0).length,
+    other: membersData.filter(m => m.memberNumber === null).length,
     packageMonth: membersData.filter(m => {
       if (!filterByStatus(m)) return false
       if (!m.startDate || !m.expiryDate) return false
@@ -553,7 +557,7 @@ export default function MembersPage() {
   const exportToCSV = () => {
     const headers = ['رقم العضو', 'الاسم', 'الهاتف', 'الحالة', 'تاريخ البداية', 'تاريخ الانتهاء', 'المبلغ المدفوع', 'المبلغ المتبقي', 'مجمد']
     const rows = filteredMembers.map(m => [
-      m.memberNumber,
+      m.memberNumber ?? 'Other',
       m.name,
       m.phone,
       m.isActive ? 'نشط' : 'منتهي',
@@ -707,6 +711,21 @@ export default function MembersPage() {
             <div className="text-sm">{t('members.expiredMembers')}</div>
             <div className="text-2xl font-bold">{stats.expired}</div>
           </button>
+
+          {stats.other > 0 && (
+            <button
+              onClick={() => setFilterStatus('other')}
+              className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
+                filterStatus === 'other'
+                  ? 'bg-gradient-to-br from-gray-500 to-gray-600 text-white shadow-xl border-2 border-gray-400'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+              }`}
+            >
+              <div className="text-2xl mb-1">🏷️</div>
+              <div className="text-sm">{locale === 'ar' ? 'بدون عضوية' : 'Non-Members'}</div>
+              <div className="text-2xl font-bold">{stats.other}</div>
+            </button>
+          )}
 
           <button
             onClick={() => setFilterStatus('analytics')}
@@ -1172,7 +1191,16 @@ export default function MembersPage() {
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 font-bold text-primary-600">#{member.memberNumber}</td>
+                        <td className="px-4 py-3 font-bold">
+                          {member.memberNumber !== null ? (
+                            <span className="text-primary-600">#{member.memberNumber}</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-2 py-0.5 rounded-full text-xs">
+                              <span>🏷️</span>
+                              {locale === 'ar' ? 'بدون عضوية' : 'Non-Member'}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span>{member.name}</span>
@@ -1422,8 +1450,12 @@ export default function MembersPage() {
                                 {index > 2 && `#${index + 1}`}
                               </span>
                             </td>
-                            <td className="px-4 py-3 font-mono text-primary-600 font-bold">
-                              #{item.member?.memberNumber || '-'}
+                            <td className="px-4 py-3 font-mono font-bold">
+                              {item.member?.memberNumber != null ? (
+                                <span className="text-primary-600">#{item.member.memberNumber}</span>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
                             </td>
                             <td className="px-4 py-3 font-semibold">{item.member?.name || t('members.unknown')}</td>
                             <td className="px-4 py-3 font-mono">

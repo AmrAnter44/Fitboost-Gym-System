@@ -669,6 +669,21 @@ export async function PUT(request: Request) {
     if (data.freeAssessmentSessions !== undefined) {
       updateData.freeAssessmentSessions = parseInt(data.freeAssessmentSessions.toString())
     }
+    if (data.freeNutritionSessions !== undefined) {
+      updateData.freeNutritionSessions = parseInt(data.freeNutritionSessions.toString())
+    }
+    if (data.freePhysioSessions !== undefined) {
+      updateData.freePhysioSessions = parseInt(data.freePhysioSessions.toString())
+    }
+    if (data.freeGroupClassSessions !== undefined) {
+      updateData.freeGroupClassSessions = parseInt(data.freeGroupClassSessions.toString())
+    }
+    if (data.freeMoreSessions !== undefined) {
+      updateData.freeMoreSessions = parseInt(data.freeMoreSessions.toString())
+    }
+    if (data.coachId !== undefined) {
+      updateData.coachId = data.coachId || null
+    }
     if (data.remainingFreezeDays !== undefined) {
       updateData.remainingFreezeDays = parseInt(data.remainingFreezeDays.toString())
     }

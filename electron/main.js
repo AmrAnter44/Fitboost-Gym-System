@@ -335,6 +335,12 @@ function createWindow() {
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     console.log('🔗 Window open requested for:', url);
 
+    // السماح بفتح نوافذ about:blank للطباعة
+    if (!url || url === 'about:blank') {
+      console.log('🖨️ Allowing blank window for printing');
+      return { action: 'allow' };
+    }
+
     // فتح الرابط في المتصفح الخارجي بدلاً من نافذة Electron جديدة
     require('electron').shell.openExternal(url);
     console.log('✅ Opened in external browser');

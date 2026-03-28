@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     // لو مفيش counter، نعمل واحد
     if (!counter) {
       counter = await prisma.memberCounter.create({
-        data: { id: 1, current: 1001 }
+        data: { id: 1, current: 1 }
       })
     }
 
@@ -98,8 +98,8 @@ export async function GET(request: Request) {
     }
 
     // آخر حل: رقم افتراضي
-    return NextResponse.json({ 
-      nextNumber: 1001,
+    return NextResponse.json({
+      nextNumber: 1,
       message: 'تم استخدام رقم افتراضي',
       fromCounter: false,
       error: error instanceof Error ? error.message : 'Unknown error'

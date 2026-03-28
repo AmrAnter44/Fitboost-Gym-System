@@ -13,7 +13,7 @@ export async function GET() {
     if (!counter) {
       // إنشاء عداد جديد إذا لم يكن موجوداً
       counter = await prisma.receiptCounter.create({
-        data: { current: 1000 }
+        data: { current: 0 }
       })
     }
 
@@ -23,7 +23,7 @@ export async function GET() {
     return NextResponse.json({ nextNumber })
   } catch (error) {
     console.error('Error fetching next receipt number:', error)
-    return NextResponse.json({ nextNumber: 1001 })
+    return NextResponse.json({ nextNumber: 1 })
   }
 }
 

@@ -298,7 +298,13 @@ export default function SearchModal() {
     const expiryDate = member.expiryDate ? new Date(member.expiryDate) : null
     const startDate = member.startDate ? new Date(member.startDate) : null
     const today = new Date()
-    today.setHours(0, 0, 0, 0) // تصفير الوقت للمقارنة بالتاريخ فقط
+    today.setHours(0, 0, 0, 0)
+
+    // ليس عضوية - لا يوجد تاريخ بداية ولا انتهاء
+    if (!startDate && !expiryDate && !isActive && member.memberNumber === null) {
+      playWarningSound()
+      return 'non-member'
+    }
 
     if (isBanned) {
       playBannedHornSound()
@@ -310,8 +316,14 @@ export default function SearchModal() {
       return 'frozen'
     }
 
-    // التحقق من: الاشتراك غير نشط، أو منتهي، أو لم يبدأ بعد
-    if (!isActive || (expiryDate && expiryDate < today) || (startDate && startDate > today)) {
+    // يبدأ بعد X يوم
+    if (startDate && startDate > today) {
+      playWarningSound()
+      return 'future'
+    }
+
+    // منتهي أو غير نشط
+    if (!isActive || (expiryDate && expiryDate < today)) {
       playAlarmSound()
       return 'expired'
     } else if (expiryDate) {
@@ -960,7 +972,7 @@ export default function SearchModal() {
                                   )}
                                   {result.data.memberNumber === null && (
                                     <span className="text-xs sm:text-sm font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
-                                      Other
+                                      🏷️ {locale === 'ar' ? 'ليس عضوية' : 'Non-Member'}
                                     </span>
                                   )}
                                 </div>
@@ -981,38 +993,38 @@ export default function SearchModal() {
                                   <div className="bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
                                     <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.status')}</p>
                                     <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold ${
-                                      result.data.isBanned
-                                        ? 'bg-gray-900 text-white'
-                                        : result.data.isFrozen
-                                          ? 'bg-primary-500 text-white'
-                                          : (() => {
-                                              const today = new Date()
-                                              today.setHours(0, 0, 0, 0)
-                                              const startDate = result.data.startDate ? new Date(result.data.startDate) : null
-                                              const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
-                                              const hasStarted = !startDate || startDate <= today
-                                              const notExpired = !expiryDate || expiryDate >= today
-                                              return result.data.isActive && hasStarted && notExpired
-                                            })()
-                                          ? 'bg-green-500 text-white'
-                                          : 'bg-red-500 text-white animate-pulse'
+                                      (() => {
+                                        const today = new Date()
+                                        today.setHours(0, 0, 0, 0)
+                                        const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+                                        const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
+                                        if (!startDate && !expiryDate && !result.data.isActive && result.data.memberNumber === null) return 'bg-gray-500 text-white'
+                                        if (result.data.isBanned) return 'bg-gray-900 text-white'
+                                        if (result.data.isFrozen) return 'bg-primary-500 text-white'
+                                        if (startDate && startDate > today) return 'bg-blue-500 text-white'
+                                        const hasStarted = !startDate || startDate <= today
+                                        const notExpired = !expiryDate || expiryDate >= today
+                                        if (result.data.isActive && hasStarted && notExpired) return 'bg-green-500 text-white'
+                                        return 'bg-red-500 text-white animate-pulse'
+                                      })()
                                     }`}>
-                                      {result.data.isBanned
-                                        ? `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
-                                        : result.data.isFrozen
-                                          ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
-                                          : (() => {
-                                              const today = new Date()
-                                              today.setHours(0, 0, 0, 0)
-                                              const startDate = result.data.startDate ? new Date(result.data.startDate) : null
-                                              const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
-                                              const hasStarted = !startDate || startDate <= today
-                                              const notExpired = !expiryDate || expiryDate >= today
-                                              return result.data.isActive && hasStarted && notExpired
-                                            })()
-                                            ? `✅ ${t('search.active')}`
-                                            : `🚨 ${t('search.expired')}`
-                                      }
+                                      {(() => {
+                                        const today = new Date()
+                                        today.setHours(0, 0, 0, 0)
+                                        const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+                                        const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
+                                        if (!startDate && !expiryDate && !result.data.isActive && result.data.memberNumber === null) return `🏷️ ${locale === 'ar' ? 'ليس عضوية' : 'Non-Member'}`
+                                        if (result.data.isBanned) return `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
+                                        if (result.data.isFrozen) return `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                                        if (startDate && startDate > today) {
+                                          const diffDays = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                                          return `⏳ ${locale === 'ar' ? `يبدأ بعد ${diffDays} يوم` : `Starts in ${diffDays} days`}`
+                                        }
+                                        const hasStarted = !startDate || startDate <= today
+                                        const notExpired = !expiryDate || expiryDate >= today
+                                        if (result.data.isActive && hasStarted && notExpired) return `✅ ${t('search.active')}`
+                                        return `🚨 ${t('search.expired')}`
+                                      })()}
                                     </span>
                                   </div>
                                 </div>
@@ -1038,6 +1050,22 @@ export default function SearchModal() {
                                       )}
                                     </div>
                                     {(() => {
+                                      const today = new Date()
+                                      today.setHours(0, 0, 0, 0)
+                                      const startDate = result.data.startDate ? new Date(result.data.startDate) : null
+
+                                      // يبدأ بعد X يوم
+                                      if (startDate && startDate > today) {
+                                        const futureDays = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                                        return (
+                                          <div className={`mt-2 pt-2 border-t-2 border-blue-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                                            <p className="text-blue-600 font-bold text-sm sm:text-base md:text-lg">
+                                              ⏳ {locale === 'ar' ? `يبدأ بعد ${futureDays} يوم` : `Starts in ${futureDays} days`}
+                                            </p>
+                                          </div>
+                                        )
+                                      }
+
                                       const days = calculateRemainingDays(result.data.expiryDate)
                                       if (days === null) return null
 

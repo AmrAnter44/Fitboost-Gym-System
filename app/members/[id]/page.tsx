@@ -17,10 +17,11 @@ import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
 import { useServiceSettings } from '../../../contexts/ServiceSettingsContext'
 import FreeSessionModal from '../../../components/FreeSessionModal'
+import CoachSelector from '../../../components/CoachSelector'
 
 interface Member {
   id: string
-  memberNumber: number
+  memberNumber: number | null
   name: string
   phone: string
   backupPhone?: string
@@ -37,6 +38,7 @@ interface Member {
   freePoolSessions: number
   freePadelSessions: number
   freeAssessmentSessions: number
+  freeMoreSessions: number
   remainingFreezeDays: number
   subscriptionPrice: number
   remainingAmount: number
@@ -228,7 +230,15 @@ export default function MemberDetailPage() {
     inBodyScans: 0,
     invitations: 0,
     freePTSessions: 0,
+    freeNutritionSessions: 0,
+    freePhysioSessions: 0,
+    freeGroupClassSessions: 0,
+    freePoolSessions: 0,
+    freePadelSessions: 0,
+    freeAssessmentSessions: 0,
+    freeMoreSessions: 0,
     remainingFreezeDays: 0,
+    coachId: null as string | null,
     notes: '',
     startDate: '',
     expiryDate: ''
@@ -321,7 +331,7 @@ export default function MemberDetailPage() {
         // ✅ تحويل كل الأرقام لـ integers
         const memberWithDefaults = {
           ...foundMember,
-          memberNumber: parseInt(foundMember.memberNumber?.toString() || '0'),
+          memberNumber: foundMember.memberNumber !== null && foundMember.memberNumber !== undefined ? parseInt(foundMember.memberNumber.toString()) : null,
           freePTSessions: parseInt(foundMember.freePTSessions?.toString() || '0'),
           inBodyScans: parseInt(foundMember.inBodyScans?.toString() || '0'),
           invitations: parseInt(foundMember.invitations?.toString() || '0'),
@@ -1145,7 +1155,15 @@ export default function MemberDetailPage() {
           inBodyScans: parseInt(editBasicInfoData.inBodyScans.toString()),
           invitations: parseInt(editBasicInfoData.invitations.toString()),
           freePTSessions: parseInt(editBasicInfoData.freePTSessions.toString()),
+          freeNutritionSessions: parseInt(editBasicInfoData.freeNutritionSessions.toString()),
+          freePhysioSessions: parseInt(editBasicInfoData.freePhysioSessions.toString()),
+          freeGroupClassSessions: parseInt(editBasicInfoData.freeGroupClassSessions.toString()),
+          freePoolSessions: parseInt(editBasicInfoData.freePoolSessions.toString()),
+          freePadelSessions: parseInt(editBasicInfoData.freePadelSessions.toString()),
+          freeAssessmentSessions: parseInt(editBasicInfoData.freeAssessmentSessions.toString()),
+          freeMoreSessions: parseInt(editBasicInfoData.freeMoreSessions.toString()),
           remainingFreezeDays: parseInt(editBasicInfoData.remainingFreezeDays.toString()),
+          coachId: editBasicInfoData.coachId,
           notes: editBasicInfoData.notes.trim() || null,
           startDate: editBasicInfoData.startDate || null,
           expiryDate: editBasicInfoData.expiryDate || null
@@ -1163,7 +1181,15 @@ export default function MemberDetailPage() {
           inBodyScans: 0,
           invitations: 0,
           freePTSessions: 0,
+          freeNutritionSessions: 0,
+          freePhysioSessions: 0,
+          freeGroupClassSessions: 0,
+          freePoolSessions: 0,
+          freePadelSessions: 0,
+          freeAssessmentSessions: 0,
+          freeMoreSessions: 0,
           remainingFreezeDays: 0,
+          coachId: null,
           notes: '',
           startDate: '',
           expiryDate: ''
@@ -1268,7 +1294,7 @@ export default function MemberDetailPage() {
     setConfirmModal({
       show: true,
       title: `⚠️ ${t('memberDetails.deleteModal.title')}`,
-      message: t('memberDetails.deleteModal.confirmMessage', { name: member.name, number: member.memberNumber.toString() }),
+      message: t('memberDetails.deleteModal.confirmMessage', { name: member.name, number: member.memberNumber?.toString() || 'Other' }),
       onConfirm: async () => {
         setConfirmModal(null)
         setLoading(true)
@@ -1317,7 +1343,7 @@ export default function MemberDetailPage() {
           phone: member.phone || null,
           nationalId: (member as any).nationalId || null,
           reason: banReason.trim(),
-          notes: `#${member.memberNumber}`
+          notes: member.memberNumber !== null ? `#${member.memberNumber}` : 'Other'
         })
       })
       if (res.ok) {
@@ -1489,13 +1515,13 @@ export default function MemberDetailPage() {
                     const res = await fetch('/api/barcode', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ text: member.memberNumber.toString() }),
+                      body: JSON.stringify({ text: (member.memberNumber ?? 'Other').toString() }),
                     })
                     const data = await res.json()
 
                     if (data.barcode) {
                       // تحضير الرسالة
-                      const baseMessage = `Membership Barcode #${member.memberNumber} for member ${member.name}`
+                      const baseMessage = `Membership Barcode #${member.memberNumber ?? 'Other'} for member ${member.name}`
                       // إضافة رابط الموقع إذا كان مفعلاً
                       const websiteSection = settings?.showWebsiteOnReceipts && settings?.websiteUrl
                         ? `\n\n🌐 *الموقع الإلكتروني:*\n${settings.websiteUrl}`
@@ -1548,7 +1574,15 @@ export default function MemberDetailPage() {
                       inBodyScans: member.inBodyScans ?? 0,
                       invitations: member.invitations ?? 0,
                       freePTSessions: member.freePTSessions ?? 0,
+                      freeNutritionSessions: member.freeNutritionSessions ?? 0,
+                      freePhysioSessions: member.freePhysioSessions ?? 0,
+                      freeGroupClassSessions: member.freeGroupClassSessions ?? 0,
+                      freePoolSessions: member.freePoolSessions ?? 0,
+                      freePadelSessions: member.freePadelSessions ?? 0,
+                      freeAssessmentSessions: member.freeAssessmentSessions ?? 0,
+                      freeMoreSessions: member.freeMoreSessions ?? 0,
                       remainingFreezeDays: member.remainingFreezeDays ?? 0,
+                      coachId: member.coachId || null,
                       notes: member.notes || '',
                       startDate: member.startDate ? formatDateYMD(member.startDate) : '',
                       expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : ''
@@ -1576,7 +1610,7 @@ export default function MemberDetailPage() {
                 </button>
               )}
             </div>
-            <p className="text-5xl font-bold">#{member.memberNumber}</p>
+            <p className="text-5xl font-bold">{member.memberNumber !== null ? `#${member.memberNumber}` : <span className="bg-white/20 px-3 py-1 rounded-full text-2xl">Other</span>}</p>
           </div>
           <div>
             <p className="text-sm opacity-90 mb-2">{t('memberDetails.memberName')}</p>
@@ -2367,9 +2401,9 @@ export default function MemberDetailPage() {
             if (e.target === e.currentTarget) setActiveModal(null)
           }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full p-4 my-4" onClick={(e) => e.stopPropagation()} dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full p-4 my-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} dir={direction}>
             <div className="flex justify-between items-center mb-3 pb-2 border-b">
-              <h3 className="text-base font-bold">✏️ {t('memberDetails.editModal.title')} #{member.memberNumber}</h3>
+              <h3 className="text-base font-bold">✏️ {t('memberDetails.editModal.title')} {member.memberNumber !== null ? `#${member.memberNumber}` : 'Other'}</h3>
               <button
                 onClick={() => setActiveModal(null)}
                 className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-gray-300 text-2xl leading-none"
@@ -2454,9 +2488,10 @@ export default function MemberDetailPage() {
                 />
               </div>
 
-              {/* Hidden: Additional Services Section */}
-              {false && (
-                <>
+              {/* Benefits Section */}
+              <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
+                <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">البينفيتس والجلسات المجانية</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-medium mb-1">
                       ⚖️ {t('memberDetails.editModal.fields.inBodyScans')}
@@ -2499,6 +2534,114 @@ export default function MemberDetailPage() {
                     />
                   </div>
 
+                  {settings.nutritionEnabled && (
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        🥗 جلسات تغذية مجانية
+                      </label>
+                      <input
+                        type="number"
+                        value={editBasicInfoData.freeNutritionSessions || ''}
+                        onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freeNutritionSessions: parseInt(e.target.value) || 0 })}
+                        className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        placeholder="0"
+                        min="0"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1">
+                      🏥 جلسات علاج طبيعي مجانية
+                    </label>
+                    <input
+                      type="number"
+                      value={editBasicInfoData.freePhysioSessions || ''}
+                      onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freePhysioSessions: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+
+                  {settings.groupClassEnabled && (
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        🏋️ جلسات كلاسات جماعية مجانية
+                      </label>
+                      <input
+                        type="number"
+                        value={editBasicInfoData.freeGroupClassSessions || ''}
+                        onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freeGroupClassSessions: parseInt(e.target.value) || 0 })}
+                        className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        placeholder="0"
+                        min="0"
+                      />
+                    </div>
+                  )}
+
+                  {settings.poolEnabled && (
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        🏊 جلسات حمام سباحة مجانية
+                      </label>
+                      <input
+                        type="number"
+                        value={editBasicInfoData.freePoolSessions || ''}
+                        onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freePoolSessions: parseInt(e.target.value) || 0 })}
+                        className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        placeholder="0"
+                        min="0"
+                      />
+                    </div>
+                  )}
+
+                  {settings.padelEnabled && (
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        🎾 جلسات بادل مجانية
+                      </label>
+                      <input
+                        type="number"
+                        value={editBasicInfoData.freePadelSessions || ''}
+                        onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freePadelSessions: parseInt(e.target.value) || 0 })}
+                        className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        placeholder="0"
+                        min="0"
+                      />
+                    </div>
+                  )}
+
+                  {settings.assessmentEnabled && (
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        📋 جلسات تقييم مجانية
+                      </label>
+                      <input
+                        type="number"
+                        value={editBasicInfoData.freeAssessmentSessions || ''}
+                        onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freeAssessmentSessions: parseInt(e.target.value) || 0 })}
+                        className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        placeholder="0"
+                        min="0"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1">
+                      ➕ جلسات إضافية مجانية
+                    </label>
+                    <input
+                      type="number"
+                      value={editBasicInfoData.freeMoreSessions || ''}
+                      onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, freeMoreSessions: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-xs font-medium mb-1">
                       ❄️ أيام الفريز
@@ -2512,7 +2655,19 @@ export default function MemberDetailPage() {
                       min="0"
                     />
                   </div>
-                </>
+                </div>
+              </div>
+
+              {/* Coach Selector */}
+              {settings.ptCommissionEnabled && (
+                <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
+                  <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">👨‍🏫 الكوتش المسؤول</h4>
+                  <CoachSelector
+                    value={editBasicInfoData.coachId}
+                    onChange={(coachId) => setEditBasicInfoData({ ...editBasicInfoData, coachId })}
+                    required={false}
+                  />
+                </div>
               )}
 
               <div className="col-span-2 md:col-span-3">
@@ -2582,7 +2737,7 @@ export default function MemberDetailPage() {
 
             <div className={`bg-primary-50 dark:bg-primary-900/30 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500 dark:border-primary-400 p-4 rounded-lg mb-6`}>
               <p className="font-bold text-primary-800 dark:text-primary-200">
-                {t('memberDetails.invitationModal.memberLabel', { name: member.name, number: member.memberNumber.toString() })}
+                {t('memberDetails.invitationModal.memberLabel', { name: member.name, number: member.memberNumber?.toString() || 'Other' })}
               </p>
               <p className="text-sm text-primary-700 dark:text-primary-300 mt-1">
                 {t('memberDetails.invitationModal.invitationsRemaining', { count: (member.invitations ?? 0).toString() })}
@@ -2768,7 +2923,7 @@ export default function MemberDetailPage() {
                 <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
                   {locale === 'ar' ? 'حظر العضو' : 'Ban Member'}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{member.name} - #{member.memberNumber}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{member.name} - {member.memberNumber !== null ? `#${member.memberNumber}` : 'Other'}</p>
               </div>
             </div>
 
@@ -2879,7 +3034,7 @@ export default function MemberDetailPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-gray-600 dark:text-gray-300 text-sm">رقم العضوية</p>
-                  <p className="font-bold text-lg">#{member?.memberNumber}</p>
+                  <p className="font-bold text-lg">{member?.memberNumber !== null ? `#${member?.memberNumber}` : 'Other'}</p>
                 </div>
                 <div>
                   <p className="text-gray-600 dark:text-gray-300 text-sm">الاسم</p>
@@ -3061,7 +3216,7 @@ export default function MemberDetailPage() {
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-gray-600 dark:text-gray-300">رقم العضوية</p>
-                    <p className="font-bold">#{fitnessTestData.memberNumber}</p>
+                    <p className="font-bold">{fitnessTestData.memberNumber ? `#${fitnessTestData.memberNumber}` : 'Other'}</p>
                   </div>
                   <div>
                     <p className="text-gray-600 dark:text-gray-300">الاسم</p>
@@ -3326,7 +3481,7 @@ export default function MemberDetailPage() {
                 <span>🧾</span>
                 <span>{locale === 'ar' ? 'سجل الإيصالات' : 'Receipts History'}</span>
               </h2>
-              <p className="text-orange-100 mt-1">{member?.name} - #{member?.memberNumber}</p>
+              <p className="text-orange-100 mt-1">{member?.name} - {member?.memberNumber != null ? `#${member.memberNumber}` : (locale === 'ar' ? 'بدون عضوية' : 'Non-Member')}</p>
             </div>
 
             {/* Content */}
@@ -3454,7 +3609,7 @@ export default function MemberDetailPage() {
                 <span>🏆</span>
                 <span>{t('memberDetails.pointsHistory')}</span>
               </h2>
-              <p className="text-yellow-100 mt-1">{member?.name} - #{member?.memberNumber}</p>
+              <p className="text-yellow-100 mt-1">{member?.name} - {member?.memberNumber != null ? `#${member.memberNumber}` : (locale === 'ar' ? 'بدون عضوية' : 'Non-Member')}</p>
               <p className="text-yellow-100 text-sm mt-1">
                 {t('memberDetails.totalPoints')}: <span className="font-bold text-white">{member?.points ?? 0}</span>
               </p>
@@ -3546,7 +3701,7 @@ export default function MemberDetailPage() {
                 <span>✏️</span>
                 <span>{t('memberDetails.addRemovePoints')}</span>
               </h2>
-              <p className="text-yellow-100 mt-1">{member?.name} - #{member?.memberNumber}</p>
+              <p className="text-yellow-100 mt-1">{member?.name} - {member?.memberNumber != null ? `#${member.memberNumber}` : (locale === 'ar' ? 'بدون عضوية' : 'Non-Member')}</p>
               <p className="text-yellow-100 text-sm mt-1">
                 {t('memberDetails.currentBalance')}: <span className="font-bold text-white">{member?.points ?? 0}</span> {t('memberDetails.point')}
               </p>

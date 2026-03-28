@@ -9,6 +9,9 @@ interface ReceiptData {
   amount: number
   details: any
   date: Date
+  receiptTerms?: string
+  gymLogo?: string | null
+  gymName?: string | null
 }
 
 // دالة لتحويل نوع الإيصال للعربية
@@ -45,7 +48,7 @@ function getPaymentMethodLabel(method: string): string {
 
 // دالة لإنشاء HTML الإيصال الموحد
 function generateReceiptHTML(data: ReceiptData): string {
-  const { receiptNumber, type, amount, details, date } = data
+  const { receiptNumber, type, amount, details, date, receiptTerms, gymLogo, gymName } = data
   
   const formattedDateOnly = date.toLocaleDateString('ar-EG', {
     year: 'numeric',
@@ -85,7 +88,7 @@ function generateReceiptHTML(data: ReceiptData): string {
 <html dir="rtl" lang="ar">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=80mm">
+  <meta name="viewport" content="width=device-width">
   <link href="/fonts/almarai.css" rel="stylesheet">
   <title>إيصال ${receiptNumber}</title>
   <style>
@@ -96,85 +99,76 @@ function generateReceiptHTML(data: ReceiptData): string {
     }
 
     @page {
-      size: 80mm auto;
-      margin: 0;
+      size: A4;
+      margin: 8mm;
     }
 
     body {
       font-family: 'Almarai', Tahoma, 'Segoe UI', Arial, sans-serif;
-      width: 80mm;
+      width: 100%;
+      max-width: 700px;
       padding: 5mm;
       background: #ffffff;
       color: #000;
-      font-size: 15px;
-      line-height: 1.6;
+      font-size: 13px;
+      line-height: 1.3;
       direction: rtl;
       unicode-bidi: bidi-override;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: geometricPrecision;
-      margin: 0;
+      margin: 0 auto;
       box-sizing: border-box;
     }
-    
+
     .header {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px dashed #000;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+      gap: 10px;
+    }
+
+    .header-logo {
+      flex-shrink: 0;
+    }
+
+    .header-text {
+      flex: 1;
       text-align: center;
-      border-bottom: 2px dashed #000;
-      padding-bottom: 15px;
-      margin-bottom: 20px;
     }
-    
+
+    .header-spacer {
+      flex-shrink: 0;
+    }
+
     .header h1 {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: bold;
-      margin-bottom: 6px;
+      margin-bottom: 1px;
     }
-    
+
     .header p {
       font-size: 12px;
-      margin: 3px 0;
+      margin: 1px 0;
       color: #333;
     }
-    
-    .type-badge {
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: bold;
-      display: inline-block;
-      margin: 10px 0;
-      color: white;
-    }
 
-    .type-badge.renewal {
-      background: #10b981;
-    }
-
-    .type-badge.new {
-      background: ${THEME_COLORS.primary[500]};
-    }
-
-    .payment-method-badge {
-      background: #6366f1;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 6px;
+    .payment-method-inline {
       font-size: 12px;
       font-weight: bold;
-      display: block;
-      margin: 8px auto;
-      max-width: 90%;
-      word-wrap: break-word;
-      line-height: 1.4;
+      margin: 2px 0;
+      line-height: 1.3;
     }
 
     .staff-info {
       background: #f3f4f6;
       border: 1px solid #d1d5db;
-      padding: 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      margin: 10px 0;
+      padding: 3px;
+      border-radius: 3px;
+      font-size: 11px;
+      margin: 3px 0;
       text-align: center;
       color: #374151;
     }
@@ -183,13 +177,13 @@ function generateReceiptHTML(data: ReceiptData): string {
       color: #1f2937;
       font-weight: 700;
     }
-    
+
     .info-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin: 15px 0;
-      padding: 10px 0;
+      margin: 2px 0;
+      padding: 1px 0;
       font-size: 12px;
       background: #ffffff;
       white-space: nowrap;
@@ -205,61 +199,61 @@ function generateReceiptHTML(data: ReceiptData): string {
     .info-row span {
       text-align: left;
       white-space: nowrap;
-      font-size: 11px;
+      font-size: 12px;
       flex: 1;
       min-width: 0;
     }
 
     .details {
-      border-top: 2px solid #000;
-      border-bottom: 2px solid #000;
-      padding: 20px 0;
-      margin-top: 25px;
-      margin-bottom: 20px;
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+      padding: 4px 0;
+      margin-top: 4px;
+      margin-bottom: 4px;
     }
 
     .details h3 {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: bold;
-      margin-bottom: 15px;
+      margin-bottom: 3px;
     }
 
     .detail-item {
-      margin: 10px 0;
-      font-size: 14px;
-      line-height: 1.8;
+      margin: 2px 0;
+      font-size: 12px;
+      line-height: 1.3;
     }
 
     .detail-item strong {
       font-weight: 600;
-      margin-left: 8px;
+      margin-left: 4px;
     }
-    
+
     .member-number {
-      font-size: 20px;
+      font-size: 14px;
       font-weight: bold;
       color: ${THEME_COLORS.primary[600]};
       text-align: center;
-      margin: 15px 0;
-      padding: 12px;
+      margin: 3px 0;
+      padding: 4px;
       background: #ffffff;
-      border-radius: 6px;
-      border: 2px solid ${THEME_COLORS.primary[600]};
+      border-radius: 3px;
+      border: 1px solid ${THEME_COLORS.primary[600]};
     }
 
     .date-box {
       background: #ffffff;
-      border: 2px solid ${THEME_COLORS.primary[500]};
-      border-radius: 8px;
-      padding: 14px;
-      margin: 14px 0;
+      border: 1px solid ${THEME_COLORS.primary[500]};
+      border-radius: 3px;
+      padding: 4px;
+      margin: 3px 0;
       font-family: 'Courier New', monospace;
     }
 
     .date-box p {
-      margin: 6px 0;
-      font-size: 13px;
-      line-height: 1.6;
+      margin: 1px 0;
+      font-size: 11px;
+      line-height: 1.3;
     }
 
     .date-value {
@@ -269,46 +263,68 @@ function generateReceiptHTML(data: ReceiptData): string {
 
     .renewal-info {
       background: #ffffff;
-      border: 2px solid #10b981;
-      border-radius: 8px;
-      padding: 14px;
-      margin: 14px 0;
+      border: 1px solid #10b981;
+      border-radius: 3px;
+      padding: 4px;
+      margin: 3px 0;
     }
 
     .renewal-info p {
-      margin: 6px 0;
-      font-size: 13px;
-      line-height: 1.6;
+      margin: 1px 0;
+      font-size: 11px;
+      line-height: 1.3;
     }
-    
+
     .total {
       display: flex;
       justify-content: space-between;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
-      margin: 20px 0;
-      padding: 15px 0;
-      border-top: 3px solid #000;
+      margin: 4px 0;
+      padding: 4px 0;
+      border-top: 2px solid #000;
+    }
+
+    .terms {
+      background: #f9fafb;
+      border: 1px solid #d1d5db;
+      border-radius: 3px;
+      padding: 5px 8px;
+      margin: 5px 0;
+    }
+
+    .terms h4 {
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 2px;
+      color: #1f2937;
+    }
+
+    .terms p {
+      font-size: 10px;
+      line-height: 1.5;
+      color: #374151;
+      white-space: pre-line;
     }
 
     .footer {
       text-align: center;
-      margin-top: 20px;
-      font-size: 13px;
+      margin-top: 5px;
+      font-size: 11px;
       color: #555;
-      border-top: 2px dashed #000;
-      padding-top: 15px;
+      border-top: 1px dashed #000;
+      padding-top: 4px;
     }
-    
+
     .footer p {
-      margin: 4px 0;
+      margin: 1px 0;
     }
-    
+
     .remaining {
       color: #dc2626;
       font-weight: bold;
     }
-    
+
     @media print {
       body {
         -webkit-print-color-adjust: exact;
@@ -319,20 +335,13 @@ function generateReceiptHTML(data: ReceiptData): string {
 </head>
 <body>
   <div class="header">
-    <div>
-      <img src='/assets/icon.png' alt="logo" style="width: 24px; height: 24px; display: inline-block;"/>
-       <img src='/assets/qr.png' alt="logo" style="width: 24px; height: 24px; display: inline-block;"/>
-      <h1>Gym System</h1>
+    ${gymLogo ? `<div class="header-logo"><img src="${gymLogo}" alt="logo" style="width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)) drop-shadow(0 2px 4px rgba(0,0,0,0.4));"/></div>` : ''}
+    <div class="header-text">
+      <h1>${gymName || 'Gym System'}</h1>
+      <p>إيصال استلام</p>
+      <p>${type}</p>
     </div>
-    <p>إيصال استلام</p>
-    <p>${type}</p>
-    
-    ${isRenewal
-      ? '<div class="type-badge renewal">🔄 تجديد اشتراك</div>'
-      : '<div class="type-badge new">✨ اشتراك جديد</div>'
-    }
-
-    <div class="payment-method-badge">${paymentMethodDisplay}</div>
+    ${gymLogo ? `<div class="header-spacer" style="width: 80px;"></div>` : ''}
   </div>
 
   ${staffName ? `<div class="staff-info">👷 <strong>الموظف:</strong> ${staffName}</div>` : ''}
@@ -409,11 +418,9 @@ function generateReceiptHTML(data: ReceiptData): string {
       </div>
     ` : ''}
     
-    ${details.subscriptionPrice ? `
-      <div class="detail-item">
-        <strong>سعر الاشتراك:</strong> ${details.subscriptionPrice} جنيه
-      </div>
-    ` : ''}
+    <div class="payment-method-inline">
+      <strong>طريقة الدفع:</strong> ${paymentMethodDisplay}
+    </div>
     
     ${details.sessionsPurchased ? `
       <div class="detail-item">
@@ -449,31 +456,66 @@ function generateReceiptHTML(data: ReceiptData): string {
         <strong>المبلغ المدفوع:</strong> ${details.paidAmount} جنيه
       </div>
     ` : ''}
-    
+
     ${details.remainingAmount && details.remainingAmount > 0 ? `
       <div class="detail-item remaining">
         <strong>المتبقي:</strong> ${details.remainingAmount} جنيه
       </div>
     ` : ''}
+
+    ${(details.paidAmount !== undefined || (details.remainingAmount && details.remainingAmount > 0)) ? `
+      <div class="total">
+        <span>سعر الاشتراك:</span>
+        <span>${amount} جنيه</span>
+      </div>
+    ` : ''}
   </div>
 
+  ${!(details.paidAmount !== undefined || (details.remainingAmount && details.remainingAmount > 0)) ? `
   <div class="total">
     <span>الإجمالي:</span>
     <span>${amount} جنيه</span>
   </div>
+  ` : ''}
 
   <div class="footer">
     ${isRenewal
       ? '<p style="color: #10b981; font-weight: bold;">تم تجديد اشتراكك بنجاح 🎉</p>'
       : `<p style="color: ${THEME_COLORS.primary[500]}; font-weight: bold;">مرحباً بك معنا 🎉</p>`
     }
-    <p style="font-size: 10px; margin-top: 8px;">
-      مدة استرداد الأشتراك 24 ساعه
+    <p style="font-size: 14px; margin-top: 6px; font-weight: bold; color: #dc2626;">
+      الاشتراك لا يرد
     </p>
   </div>
+
+  ${receiptTerms ? `
+  <div class="terms">
+    <h4>الشروط والأحكام:</h4>
+    <p>${receiptTerms}</p>
+  </div>
+  ` : ''}
 </body>
 </html>
   `
+}
+
+// جلب شروط الإيصال + اللوجو من الإعدادات
+async function fetchReceiptSettings(): Promise<{ receiptTerms: string; gymLogo: string | null; gymName: string | null }> {
+  const defaultTerms = 'الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه'
+  try {
+    const res = await fetch('/api/settings/services')
+    if (res.ok) {
+      const data = await res.json()
+      return {
+        receiptTerms: data.receiptTerms || defaultTerms,
+        gymLogo: data.gymLogo || null,
+        gymName: data.gymName || null
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️ Could not fetch receipt settings:', e)
+  }
+  return { receiptTerms: defaultTerms, gymLogo: null, gymName: null }
 }
 
 // الدالة الرئيسية للطباعة
@@ -485,6 +527,13 @@ export async function printReceipt(
     skipBoth?: boolean   // تخطي الطباعة والـ PDF (للاستخدام الداخلي)
   }
 ): Promise<{ filePath?: string } | void> {
+  // جلب الشروط واللوجو والاسم لو مش موجودين
+  if (!data.receiptTerms || data.gymLogo === undefined || data.gymName === undefined) {
+    const settings = await fetchReceiptSettings()
+    if (!data.receiptTerms) data.receiptTerms = settings.receiptTerms
+    if (data.gymLogo === undefined) data.gymLogo = settings.gymLogo
+    if (data.gymName === undefined) data.gymName = settings.gymName
+  }
   const receiptHTML = generateReceiptHTML(data)
 
   // ✅ حالة 1: طباعة فقط (بدون PDF)
@@ -534,7 +583,7 @@ export async function printReceipt(
 
 // الطباعة التقليدية (كـ fallback)
 function printReceiptTraditional(receiptHTML: string): void {
-  const printWindow = window.open('', '_blank', 'width=302,height=600,scrollbars=no')
+  const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes')
 
   if (!printWindow) {
     // سيتم معالجة الخطأ في المكون المستدعي

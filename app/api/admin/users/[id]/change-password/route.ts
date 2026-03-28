@@ -9,8 +9,9 @@ export const dynamic = 'force-dynamic'
 // POST - تغيير كلمة مرور مستخدم (OWNER فقط)
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const params = await (context.params as any);
   try {
     // التحقق من تسجيل الدخول
     const currentUser = await verifyAuth(request)

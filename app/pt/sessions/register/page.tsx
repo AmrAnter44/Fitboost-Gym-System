@@ -24,9 +24,6 @@ export default function RegisterPTSessionPage() {
   const [submitting, setSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
-  const [generatedQRCode, setGeneratedQRCode] = useState<string | null>(null)
-  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
-  const [showQRModal, setShowQRModal] = useState(false)
 
   // منع الكوتش من الوصول لهذه الصفحة
   if (!permissionsLoading && user?.role === 'COACH') {
@@ -35,15 +32,14 @@ export default function RegisterPTSessionPage() {
 
   const [formData, setFormData] = useState({
     ptNumber: '',
-    date: new Date().toISOString().split('T')[0], // التاريخ الحالي
-    time: new Date().toTimeString().slice(0, 5), // الوقت الحالي
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toTimeString().slice(0, 5),
     notes: ''
   })
 
   useEffect(() => {
     fetchPTSessions()
-    
-    // قراءة ptNumber من URL إذا وجد
+
     const params = new URLSearchParams(window.location.search)
     const ptNumber = params.get('ptNumber')
     if (ptNumber) {
@@ -58,7 +54,6 @@ export default function RegisterPTSessionPage() {
     try {
       const response = await fetch('/api/pt')
       const data = await response.json()
-      // فلترة الجلسات التي لديها جلسات متبقية فقط
       setSessions(data.filter((pt: PTSession) => pt.sessionsRemaining > 0))
     } catch (error) {
       console.error('Error:', error)
@@ -69,10 +64,10 @@ export default function RegisterPTSessionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.ptNumber) return
     setSubmitting(true)
 
     try {
-      // دمج التاريخ والوقت
       const sessionDateTime = `${formData.date}T${formData.time}:00`
 
       const response = await fetch('/api/pt/sessions', {
@@ -88,16 +83,8 @@ export default function RegisterPTSessionPage() {
       const result = await response.json()
 
       if (response.ok) {
-        toast.success('تم تسجيل الحضور بنجاح!')
+        toast.success(`تم تسجيل حضور ${result.session?.clientName || selectedPT?.clientName || ''} بنجاح!`)
 
-        // حفظ QR code وعرض النافذة المنبثقة
-        if (result.qrCode) {
-          setGeneratedQRCode(result.qrCode)
-          setQrCodeImage(result.qrCodeImage || null)
-          setShowQRModal(true)
-        }
-
-        // إعادة تعيين النموذج
         setFormData({
           ptNumber: '',
           date: new Date().toISOString().split('T')[0],
@@ -105,7 +92,6 @@ export default function RegisterPTSessionPage() {
           notes: ''
         })
 
-        // تحديث القائمة
         fetchPTSessions()
       } else {
         toast.error(result.error || 'فشل تسجيل الحضور')
@@ -125,7 +111,6 @@ export default function RegisterPTSessionPage() {
     })
   }
 
-  // فلترة الجلسات حسب البحث
   const filteredSessions = sessions.filter(pt =>
     pt.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
     pt.ptNumber.toString().includes(debouncedSearchTerm) ||
@@ -153,7 +138,7 @@ export default function RegisterPTSessionPage() {
         {/* قائمة الجلسات المتاحة */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-4">جلسات PT المتاحة</h2>
-          
+
           <div className="mb-4">
             <input
               type="text"
@@ -165,9 +150,9 @@ export default function RegisterPTSessionPage() {
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">جاري التحميل...</div>
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">جاري التحميل...</div>
           ) : filteredSessions.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               {searchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد جلسات متاحة'}
             </div>
           ) : (
@@ -238,7 +223,7 @@ export default function RegisterPTSessionPage() {
               />
             </div>
 
-            <div className="bg-gradient-to-br from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            <div className="bg-gradient-to-br from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2 dark:text-gray-100">
                 <span>📅</span>
                 <span>تاريخ ووقت الجلسة</span>
@@ -286,6 +271,17 @@ export default function RegisterPTSessionPage() {
               </div>
             </div>
 
+            {/* اسم المسجل */}
+            <div className="bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg p-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">👤</span>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">تسجيل بواسطة:</p>
+                  <p className="font-bold text-gray-800 dark:text-gray-100">{user?.name || 'غير معروف'}</p>
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium mb-2 dark:text-gray-200">
                 ملاحظات (اختياري)
@@ -309,115 +305,6 @@ export default function RegisterPTSessionPage() {
           </form>
         </div>
       </div>
-
-      {/* QR Code Modal */}
-      {showQRModal && generatedQRCode && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={() => setShowQRModal(false)}
-        >
-          <div
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center">
-              <div className="mb-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full mb-3">
-                  <span className="text-4xl">✅</span>
-                </div>
-                <h3 className="text-2xl font-bold text-green-700 dark:text-green-400 mb-2">
-                  تم إنشاء QR Code بنجاح!
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">
-                  احفظ هذا الكود للعميل أو أرسله عبر WhatsApp
-                </p>
-              </div>
-
-              {/* QR Code Display */}
-              <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-300 dark:border-primary-700 rounded-xl p-6 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                {/* QR Code Image */}
-                {qrCodeImage && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 flex justify-center">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 font-medium">
-                        📷 امسح هذا الكود مع الكوتش:
-                      </p>
-                      <img
-                        src={qrCodeImage}
-                        alt="QR Code"
-                        className="w-64 h-64 mx-auto border-4 border-gray-200 dark:border-gray-600 rounded-lg shadow-lg"
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        وجه الكاميرا نحو الكود لتسجيل حضورك
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 font-medium">
-                  🔐 كود الحصة الآمن (32 حرف ورقم):
-                </p>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-3">
-                  <p className="font-mono text-lg font-bold text-primary-700 dark:text-primary-300 break-all select-all">
-                    {generatedQRCode}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">تنسيق سهل القراءة:</p>
-                  <p className="font-mono text-sm font-medium text-primary-600 dark:text-primary-400 select-all">
-                    {generatedQRCode.match(/.{1,4}/g)?.join('-')}
-                  </p>
-                </div>
-              </div>
-
-              {/* Copy Button */}
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(generatedQRCode)
-                  toast.success('تم نسخ QR Code')
-                }}
-                className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-medium mb-3"
-              >
-                📋 نسخ QR Code
-              </button>
-
-              {/* WhatsApp Button */}
-              <button
-                onClick={() => {
-                  const selectedPT = sessions.find(pt => pt.ptNumber.toString() === formData.ptNumber)
-                  if (selectedPT) {
-                    // رابط صفحة تسجيل الحضور
-                    const checkInUrl = `${window.location.origin}/pt/check-in`
-
-                    const text = `مرحباً ${selectedPT.clientName}! 👋\n\nحصة PT القادمة معك جاهزة 💪\n\n🔐 QR Code الخاص بحصتك:\n${generatedQRCode}\n\n✅ لتسجيل حضورك تلقائياً:\n${checkInUrl}\n\nالصق الكود في الصفحة وسجل حضورك بنفسك!\n\n⏰ موعد الحصة: ${new Date(formData.date + 'T' + formData.time).toLocaleString('ar-EG')}\n\nبالتوفيق! 🏋️`
-
-                    const whatsappUrl = `https://wa.me/${selectedPT.phone}?text=${encodeURIComponent(text)}`
-                    window.open(whatsappUrl, '_blank')
-                  }
-                }}
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium mb-3"
-              >
-                💬 إرسال عبر WhatsApp
-              </button>
-
-              {/* Close Button */}
-              <button
-                onClick={() => setShowQRModal(false)}
-                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium"
-              >
-                إغلاق
-              </button>
-
-              {/* Security Note */}
-              <div className="mt-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3">
-                <p className="text-xs text-yellow-800 dark:text-yellow-300">
-                  <strong>⚠️ تحذير أمني:</strong> هذا الكود فريد وآمن (16 حرف + 16 رقم). لا تشاركه إلا مع العميل المعني فقط.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

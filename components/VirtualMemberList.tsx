@@ -8,7 +8,7 @@ import { getPackageName } from '@/lib/memberUtils'
 
 interface Member {
   id: string
-  memberNumber: number
+  memberNumber: number | null
   name: string
   phone: string
   profileImage?: string | null
@@ -98,7 +98,9 @@ const MemberCardRow = ({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xl font-bold text-white mb-1">#{member.memberNumber}</div>
+              <div className="text-xl font-bold text-white mb-1">
+                {member.memberNumber !== null ? `#${member.memberNumber}` : <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm flex items-center gap-1 w-fit">🏷️ Non-Member</span>}
+              </div>
               <div className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
                 member.isBanned
                   ? 'bg-gray-900 text-white'

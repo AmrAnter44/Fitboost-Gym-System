@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import nextDynamic from 'next/dynamic'
 import { useDebounce } from '../../hooks/useDebounce'
 import { useLanguage } from '../../contexts/LanguageContext'
+
+const SignaturePad = nextDynamic(() => import('../../components/SignaturePad'), { ssr: false })
 
 interface PTData {
   ptNumber: number
@@ -45,6 +48,10 @@ export default function CoachDashboard() {
   const [activeTab, setActiveTab] = useState<'active' | 'expired'>('active')
   const [checkedInPhones, setCheckedInPhones] = useState<Set<string>>(new Set())
   const [checkedInClients, setCheckedInClients] = useState<CheckedInClient[]>([])
+  const [showSignatureModal, setShowSignatureModal] = useState(false)
+  const [selectedPTForSession, setSelectedPTForSession] = useState<PTData | null>(null)
+  const [registeringSession, setRegisteringSession] = useState(false)
+  const [sessionMessage, setSessionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const dateLocale = locale === 'ar' ? 'ar-EG' : 'en-US'
 
@@ -153,6 +160,48 @@ export default function CoachDashboard() {
 
   // عدد العملاء الموجودين في الجيم
   const clientsInGym = activePTs.filter(pt => pt.phone && checkedInPhones.has(pt.phone)).length
+
+  const openSignatureModal = useCallback((pt: PTData) => {
+    setSelectedPTForSession(pt)
+    setShowSignatureModal(true)
+    setSessionMessage(null)
+  }, [])
+
+  const handleSignatureConfirm = useCallback(async (signatureDataUrl: string) => {
+    if (!selectedPTForSession) return
+    setRegisteringSession(true)
+    try {
+      const res = await fetch('/api/pt/sessions/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ptNumber: selectedPTForSession.ptNumber,
+          signature: signatureDataUrl
+        })
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        // تحديث البيانات محلياً
+        setMyPTs(prev => prev.map(pt =>
+          pt.ptNumber === selectedPTForSession.ptNumber
+            ? { ...pt, sessionsRemaining: pt.sessionsRemaining - 1 }
+            : pt
+        ))
+        setShowSignatureModal(false)
+        setSelectedPTForSession(null)
+        setSessionMessage({ type: 'success', text: `تم تسجيل حصة ${selectedPTForSession.clientName} بنجاح ✅` })
+        setTimeout(() => setSessionMessage(null), 4000)
+      } else {
+        setSessionMessage({ type: 'error', text: data.error || 'فشل تسجيل الحصة' })
+        setShowSignatureModal(false)
+      }
+    } catch {
+      setSessionMessage({ type: 'error', text: 'حدث خطأ في الاتصال' })
+      setShowSignatureModal(false)
+    } finally {
+      setRegisteringSession(false)
+    }
+  }, [selectedPTForSession])
 
   if (loading) {
     return (
@@ -440,6 +489,19 @@ export default function CoachDashboard() {
                       </div>
                     )}
 
+                    {/* زر تسجيل حصة بالإمضاء */}
+                    <button
+                      onClick={() => openSignatureModal(pt)}
+                      disabled={pt.sessionsRemaining <= 0}
+                      className={`w-full py-3 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 mb-3 ${
+                        pt.sessionsRemaining <= 0
+                          ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 shadow-lg hover:shadow-xl active:scale-95'
+                      }`}
+                    >
+                      ✍️ {t('coachDashboard.registerSession') || 'تسجيل حصة'}
+                    </button>
+
                     {/* Sessions History */}
                     {pt.sessions && pt.sessions.length > 0 && (
                       <div className="border-t dark:border-gray-600 pt-3 mt-3">
@@ -467,6 +529,30 @@ export default function CoachDashboard() {
           )}
         </div>
       </div>
+
+      {/* SignaturePad Modal */}
+      {showSignatureModal && selectedPTForSession && (
+        <SignaturePad
+          title={`تسجيل حصة - ${selectedPTForSession.clientName}`}
+          subtitle={`الحصص المتبقية: ${selectedPTForSession.sessionsRemaining} من ${selectedPTForSession.sessionsPurchased}`}
+          onConfirm={handleSignatureConfirm}
+          onCancel={() => {
+            setShowSignatureModal(false)
+            setSelectedPTForSession(null)
+          }}
+        />
+      )}
+
+      {/* Session Message Toast */}
+      {sessionMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+          <div className={`px-6 py-3 rounded-xl shadow-2xl font-bold text-white ${
+            sessionMessage.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+          }`}>
+            {sessionMessage.text}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

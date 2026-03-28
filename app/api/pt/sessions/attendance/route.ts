@@ -21,30 +21,32 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canRegisterPTAttendance')
 
     const body = await request.json()
-    const { qrCode, notes } = body
+    const { qrCode, ptNumber, notes, signature } = body
 
-
-    // التحقق من وجود Barcode/رقم PT
-    if (!qrCode || typeof qrCode !== 'string') {
+    // البحث عن PT - بالـ ptNumber أو بالـ qrCode
+    let pt
+    if (ptNumber) {
+      pt = await prisma.pT.findUnique({
+        where: { ptNumber: parseInt(ptNumber) },
+        include: {
+          sessions: { orderBy: { createdAt: 'desc' }, take: 1 }
+        }
+      })
+    } else if (qrCode && typeof qrCode === 'string') {
+      pt = await prisma.pT.findUnique({
+        where: { qrCode: qrCode.trim() },
+        include: {
+          sessions: { orderBy: { createdAt: 'desc' }, take: 1 }
+        }
+      })
+    } else {
       return NextResponse.json(
         { error: 'رقم PT أو Barcode مطلوب' },
         { status: 400 }
       )
     }
 
-    // البحث عن PT subscription بالـ Barcode (رقم PT)
-    const pt = await prisma.pT.findUnique({
-      where: { qrCode: qrCode.trim() },
-      include: {
-        sessions: {
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
-      }
-    })
-
     if (!pt) {
-      console.warn('⚠️ Barcode غير موجود في قاعدة البيانات')
       return NextResponse.json(
         { error: 'رقم PT غير صحيح أو منتهي الصلاحية' },
         { status: 404 }
@@ -83,11 +85,12 @@ export async function POST(request: Request) {
         ptNumber: pt.ptNumber,
         clientName: pt.clientName,
         coachName: pt.coachName,
-        sessionDate: new Date(), // تاريخ ووقت الحضور الفعلي
+        sessionDate: new Date(),
         notes: notes || null,
         attended: true,
         attendedAt: new Date(),
-        attendedBy: user.name
+        attendedBy: user.name,
+        signature: signature || null
       }
     })
 

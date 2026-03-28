@@ -114,7 +114,7 @@ export default function Navbar() {
                 className="flex items-center gap-2"
                 title={t('nav.home')}
               >
-                <span className="font-bold text-base">{t('common.appTitle')}</span>
+                <span className="font-bold text-base">Fitboost System</span>
               </Link>
             </div>
 
@@ -275,7 +275,7 @@ export default function Navbar() {
 
               {/* Title in Center */}
               <div className="flex items-center gap-2 flex-1 justify-center">
-                <span className="font-bold text-lg">{t('common.appTitle')}</span>
+                <span className="font-bold text-lg">Fitboost System</span>
               </div>
 
               {/* Spacer for balance */}

@@ -57,7 +57,11 @@
       "Bash(git check-ignore -v public/uploads/gym-logo.png)",
       "WebFetch(domain:baileys.wiki)",
       "WebFetch(domain:github.com)",
-      "Bash(npx tsc --noEmit app/settings/whatsapp/page.tsx)"
+      "Bash(npx tsc --noEmit app/settings/whatsapp/page.tsx)",
+      "Bash(npx tsc --noEmit lib/printSystem.ts --skipLibCheck --esModuleInterop --jsx preserve --moduleResolution node --module esnext --target es2017)",
+      "Bash(npm rebuild better-sqlite3)",
+      "Bash(# Try to recover by dumping and recreating sqlite3 prisma/gym.db \"\".recover\"\")",
+      "Bash(# Check for processes holding the db lock lsof prisma/gym.db)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",
