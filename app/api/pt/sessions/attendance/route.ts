@@ -55,7 +55,8 @@ export async function POST(request: Request) {
 
     // التحقق من أن الكوتش هو المسؤول عن هذا الاشتراك
     if (user.role === 'COACH') {
-      if (pt.coachUserId !== user.userId) {
+      const isMyClient = pt.coachUserId === user.userId || pt.coachName === user.name
+      if (!isMyClient) {
         return NextResponse.json(
           { error: 'ليس لديك صلاحية تسجيل حضور لهذا العميل. هذا العميل مع كوتش آخر.' },
           { status: 403 }
@@ -94,10 +95,14 @@ export async function POST(request: Request) {
       }
     })
 
-    // تقليل عدد الحصص المتبقية
+    // تقليل عدد الحصص المتبقية + تصحيح coachUserId لو مش موجود
+    const updateData: any = { sessionsRemaining: pt.sessionsRemaining - 1 }
+    if (!pt.coachUserId && user.role === 'COACH') {
+      updateData.coachUserId = user.userId
+    }
     await prisma.pT.update({
       where: { ptNumber: pt.ptNumber },
-      data: { sessionsRemaining: pt.sessionsRemaining - 1 }
+      data: updateData
     })
 
 

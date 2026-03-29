@@ -44,7 +44,7 @@ export default function FollowUpForm({
     salesName: user?.name || '',
     notes: '',
     result: '',
-    nextFollowUpDate: '',
+    nextFollowUpDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     contacted: false,
     assignedTo: '', // فارغ - بدون إسناد تلقائي
     priority: 'medium',
@@ -52,10 +52,9 @@ export default function FollowUpForm({
   })
 
   // جلب الموظفين النشطين - فقط إذا كان لديه صلاحية
+  const canViewStaff = hasPermission('canViewStaff')
   useEffect(() => {
-    if (!hasPermission('canViewStaff')) {
-      return // لا تحاول جلب الموظفين إذا لم يكن لديه صلاحية
-    }
+    if (!canViewStaff) return
 
     fetch('/api/staff')
       .then(res => res.json())
@@ -64,7 +63,7 @@ export default function FollowUpForm({
         setStaff(activeStaff)
       })
       .catch(err => console.error('Error fetching staff:', err))
-  }, [hasPermission])
+  }, [canViewStaff])
 
   // ✅ تعبئة اسم السيلز تلقائياً من المستخدم المسجل
   useEffect(() => {
@@ -128,7 +127,7 @@ export default function FollowUpForm({
         salesName: user?.name || '',
         notes: '',
         result: '',
-        nextFollowUpDate: '',
+        nextFollowUpDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         contacted: false,
         assignedTo: '', // فارغ - بدون إسناد تلقائي
         priority: 'medium',

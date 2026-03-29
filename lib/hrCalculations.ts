@@ -111,6 +111,9 @@ export function generateAlerts(
     daysAbsent: number
     vacationDaysRemaining: number
     performancePercentage: number
+    lateCount?: number
+    totalLateMinutes?: number
+    punctualityScore?: number
   },
   locale: 'ar' | 'en' = 'ar'
 ): string[] {
@@ -160,6 +163,34 @@ export function generateAlerts(
       locale === 'ar'
         ? '🌟 أداء ممتاز! عمل ساعات إضافية'
         : '🌟 Excellent performance! Worked extra hours'
+    )
+  }
+
+  // تنبيهات التأخير
+  if (data.lateCount !== undefined && data.lateCount >= 3) {
+    alerts.push(
+      locale === 'ar'
+        ? `⏰ تأخر ${data.lateCount} مرات هذا الشهر`
+        : `⏰ Late ${data.lateCount} times this month`
+    )
+  }
+
+  if (data.totalLateMinutes !== undefined && data.totalLateMinutes >= 60) {
+    const lateHours = Math.floor(data.totalLateMinutes / 60)
+    const lateMins = data.totalLateMinutes % 60
+    alerts.push(
+      locale === 'ar'
+        ? `⏰ إجمالي التأخير: ${lateHours > 0 ? lateHours + ' ساعة و ' : ''}${lateMins} دقيقة`
+        : `⏰ Total late: ${lateHours > 0 ? lateHours + 'h ' : ''}${lateMins}m`
+    )
+  }
+
+  // تهنئة على الالتزام بالمواعيد
+  if (data.punctualityScore !== undefined && data.punctualityScore === 100 && data.lateCount === 0) {
+    alerts.push(
+      locale === 'ar'
+        ? '🎯 التزام تام بمواعيد الشيفت!'
+        : '🎯 Perfect shift punctuality!'
     )
   }
 

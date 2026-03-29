@@ -109,6 +109,8 @@ export async function GET(request: Request) {
         salary: true,
         workingHours: true,
         monthlyVacationDays: true,
+        shiftStartTime: true,
+        shiftEndTime: true,
         createdAt: true,
         attendance: {
           where: {
@@ -221,6 +223,80 @@ export async function GET(request: Request) {
         }
       })
 
+      // حساب التأخير والخروج المبكر
+      const lateArrivals: { date: string; checkInTime: string; shiftStart: string; lateMinutes: number }[] = []
+      const earlyDepartures: { date: string; checkOutTime: string; shiftEnd: string; earlyMinutes: number }[] = []
+      const attendanceDetails: { date: string; checkIn: string; checkOut: string | null; duration: number | null; status: string; lateMinutes: number; earlyMinutes: number }[] = []
+
+      const shiftStart = staff.shiftStartTime || null // e.g. "09:00"
+      const shiftEnd = staff.shiftEndTime || null // e.g. "17:00"
+
+      staff.attendance.forEach((att) => {
+        const checkInDate = new Date(att.checkIn)
+        const dateStr = checkInDate.toISOString().split('T')[0]
+        const checkInTimeStr = checkInDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
+        const checkOutTimeStr = att.checkOut ? new Date(att.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : null
+
+        let lateMins = 0
+        let earlyMins = 0
+        let dayStatus = 'on-time'
+
+        // حساب التأخير
+        if (shiftStart) {
+          const [shiftH, shiftM] = shiftStart.split(':').map(Number)
+          const checkInH = checkInDate.getHours()
+          const checkInM = checkInDate.getMinutes()
+          const shiftStartMinutes = shiftH * 60 + shiftM
+          const checkInMinutes = checkInH * 60 + checkInM
+          if (checkInMinutes > shiftStartMinutes + 5) { // 5 دقائق سماح
+            lateMins = checkInMinutes - shiftStartMinutes
+            lateArrivals.push({
+              date: dateStr,
+              checkInTime: checkInTimeStr,
+              shiftStart: shiftStart,
+              lateMinutes: lateMins
+            })
+            dayStatus = 'late'
+          }
+        }
+
+        // حساب الخروج المبكر
+        if (shiftEnd && att.checkOut) {
+          const [shiftEH, shiftEM] = shiftEnd.split(':').map(Number)
+          const checkOutDate = new Date(att.checkOut)
+          const checkOutH = checkOutDate.getHours()
+          const checkOutM = checkOutDate.getMinutes()
+          const shiftEndMinutes = shiftEH * 60 + shiftEM
+          const checkOutMinutes = checkOutH * 60 + checkOutM
+          if (checkOutMinutes < shiftEndMinutes - 5) { // 5 دقائق سماح
+            earlyMins = shiftEndMinutes - checkOutMinutes
+            earlyDepartures.push({
+              date: dateStr,
+              checkOutTime: checkOutTimeStr!,
+              shiftEnd: shiftEnd,
+              earlyMinutes: earlyMins
+            })
+            if (dayStatus === 'late') dayStatus = 'late-and-early'
+            else dayStatus = 'early'
+          }
+        }
+
+        attendanceDetails.push({
+          date: dateStr,
+          checkIn: checkInTimeStr,
+          checkOut: checkOutTimeStr,
+          duration: att.duration,
+          status: dayStatus,
+          lateMinutes: lateMins,
+          earlyMinutes: earlyMins
+        })
+      })
+
+      const totalLateMinutes = lateArrivals.reduce((sum, l) => sum + l.lateMinutes, 0)
+      const totalEarlyMinutes = earlyDepartures.reduce((sum, e) => sum + e.earlyMinutes, 0)
+      const onTimeDays = daysAttended - lateArrivals.length
+      const punctualityScore = daysAttended > 0 ? Math.round((onTimeDays / daysAttended) * 100) : 100
+
       // حساب العائدات من الكوميشن
       const revenueBreakdown = {
         pt: 0,
@@ -273,7 +349,10 @@ export async function GET(request: Request) {
           hoursDifference,
           daysAbsent,
           vacationDaysRemaining,
-          performancePercentage
+          performancePercentage,
+          lateCount: lateArrivals.length,
+          totalLateMinutes,
+          punctualityScore
         },
         locale
       )
@@ -298,7 +377,15 @@ export async function GET(request: Request) {
         alerts,
         revenue: revenueBreakdown,
         revenueToSalaryRatio,
-        advances
+        advances,
+        shiftStartTime: shiftStart,
+        shiftEndTime: shiftEnd,
+        lateArrivals,
+        earlyDepartures,
+        attendanceDetails,
+        totalLateMinutes,
+        totalEarlyMinutes,
+        punctualityScore
       }
     })
 

@@ -49,6 +49,7 @@ interface FollowUp {
   result?: string
   salesName?: string
   createdAt: string
+  updatedAt?: string
   visitor: Visitor
   assignedTo?: string
   assignedStaff?: {
@@ -293,6 +294,13 @@ export default function FollowUpsPage() {
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all') // ✅ فلتر المصدر
   const [salesFilter, setSalesFilter] = useState('all') // ✅ فلتر السيلز (all, my-followups, my-overdue, today)
+  const [sortByPriority, setSortByPriority] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('followups-sortByPriority')
+      return saved !== null ? saved === 'true' : true
+    }
+    return true
+  })
   const [expiringDays, setExpiringDays] = useState(30) // عدد الأيام للأعضاء اللي قرب اشتراكهم ينتهي
 
   // Pagination
@@ -795,7 +803,7 @@ export default function FollowUpsPage() {
 
     // ترتيب من الأقدم للأحدث عشان الأحدث يكتب فوق الأقدم
     const sortedFollowUps = [...followUps].sort((a, b) =>
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime()
     )
 
     sortedFollowUps.forEach(fu => {
@@ -803,7 +811,7 @@ export default function FollowUpsPage() {
       if (normalizedPhone && fu.notes && fu.notes.trim()) {
         commentMap.set(normalizedPhone, {
           notes: fu.notes,
-          createdAt: fu.createdAt,
+          createdAt: fu.updatedAt || fu.createdAt,
           salesName: fu.salesName
         })
       }
@@ -895,20 +903,26 @@ export default function FollowUpsPage() {
         return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesSales
       })
       .sort((a, b) => {
-        // ✅ ترتيب جديد حسب الأولوية
-        const aPriority = getFollowUpPriority(a)
-        const bPriority = getFollowUpPriority(b)
+        if (sortByPriority) {
+          // ✅ ترتيب حسب الأولوية ثم الأحدث أولاً
+          const aPriority = getFollowUpPriority(a)
+          const bPriority = getFollowUpPriority(b)
 
-        // ترتيب: overdue > today > upcoming > none
-        const priorityOrder: {[key: string]: number} = { overdue: 0, today: 1, upcoming: 2, none: 3 }
-        return priorityOrder[aPriority] - priorityOrder[bPriority]
+          // ترتيب: overdue > today > upcoming > none
+          const priorityOrder: {[key: string]: number} = { overdue: 0, today: 1, upcoming: 2, none: 3 }
+          const priorityDiff = priorityOrder[aPriority] - priorityOrder[bPriority]
+          if (priorityDiff !== 0) return priorityDiff
+        }
+
+        // ✅ ترتيب حسب تاريخ الإضافة: الأحدث أولاً
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, isVisitorAMember, getFollowUpPriority, user])
+  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, sortByPriority, isVisitorAMember, getFollowUpPriority, user])
 
   // إعادة تعيين الصفحة للأولى عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter])
+  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, sortByPriority])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredFollowUps.length / itemsPerPage)
@@ -1405,7 +1419,7 @@ export default function FollowUpsPage() {
     overdue: allFollowUps.filter(fu => getFollowUpPriority(fu) === 'overdue').length,
     contactedToday: followUps.filter(fu => {
       const today = new Date().toDateString()
-      return fu.contacted && new Date(fu.createdAt).toDateString() === today
+      return fu.contacted && new Date(fu.updatedAt || fu.createdAt).toDateString() === today
     }).length,
     expiredMembers: expiredMembers.length,
     expiringMembers: expiringMembers.length,
@@ -1474,7 +1488,7 @@ export default function FollowUpsPage() {
       const contactedToday = followUps.filter(fu =>
         fu.salesName === salesName &&
         fu.contacted &&
-        new Date(fu.createdAt).toDateString() === today
+        new Date(fu.updatedAt || fu.createdAt).toDateString() === today
       ).length
 
       statsMap.set(salesName, {
@@ -2598,6 +2612,20 @@ export default function FollowUpsPage() {
               🤖 سكريبت إرسال ذكي ({filteredFollowUps.length})
             </button>
           )}
+
+          {/* زر تبديل الترتيب */}
+          <button
+            onClick={() => { const v = !sortByPriority; setSortByPriority(v); localStorage.setItem('followups-sortByPriority', String(v)) }}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+              sortByPriority
+                ? 'bg-orange-600 text-white shadow-lg'
+                : 'bg-primary-600 text-white shadow-lg'
+            }`}
+          >
+            {sortByPriority ? '🔥' : '📅'} {direction === 'rtl'
+              ? (sortByPriority ? 'ترتيب: أولوية' : 'ترتيب: الأحدث')
+              : (sortByPriority ? 'Sort: Priority' : 'Sort: Newest')}
+          </button>
         </div>
       </div>
 
@@ -2831,9 +2859,9 @@ export default function FollowUpsPage() {
                         </div>
                       )}
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">تاريخ الإضافة</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">آخر تحديث</span>
                         <span className="text-[10px] text-gray-600 dark:text-gray-300">
-                          {new Date(followUp.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
+                          {new Date(followUp.updatedAt || followUp.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                     </div>

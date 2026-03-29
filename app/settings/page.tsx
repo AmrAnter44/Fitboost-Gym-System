@@ -818,7 +818,7 @@ export default function SettingsPage() {
       { id: 'receipts', label: t('settingsPage.navigation.receipts'), icon: '📋' },
       { id: 'port-forwarding', label: t('settingsPage.navigation.portForwarding'), icon: '🌐' }
     ] : []),
-    { id: 'whatsapp', label: t('settingsPage.navigation.whatsapp'), icon: '📱' },
+    ...(user?.role !== 'COACH' ? [{ id: 'whatsapp', label: t('settingsPage.navigation.whatsapp'), icon: '📱' }] : []),
     { id: 'display', label: t('settingsPage.navigation.display'), icon: '🎨' },
     ...(user?.role === 'OWNER' ? [
       { id: 'license', label: 'رخصة النظام', icon: '🔑' },

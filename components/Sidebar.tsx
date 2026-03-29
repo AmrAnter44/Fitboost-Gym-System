@@ -42,13 +42,16 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
     return t(`roles.${roleKey}` as any) || role
   }
 
+  const isCoach = user?.role === 'COACH'
+
   // Define navigation groups
   const navigationGroups = [
     {
       title: t('nav.overview'),
       icon: '📊',
       links: [
-        { href: '/', label: t('nav.dashboard'), icon: '🏠', permission: null },
+        { href: isCoach ? '/coach' : '/', label: t('nav.dashboard'), icon: '🏠', permission: null },
+        ...(isCoach ? [{ href: '/coach/my-members', label: locale === 'ar' ? 'أعضائي' : 'My Members', icon: '👥', permission: null }] : []),
       ]
     },
     {
@@ -87,7 +90,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       icon: '⚙️',
       links: [
         { href: '/staff', label: t('nav.staff'), icon: '👷', permission: 'canViewStaff' as keyof Permissions },
-        { href: '/whatsapp-web', label: 'WhatsApp Web', icon: '📱', permission: 'canViewWhatsAppInbox' as keyof Permissions },
+        ...(!isCoach ? [{ href: '/whatsapp-web', label: 'WhatsApp Web', icon: '📱', permission: 'canViewWhatsAppInbox' as keyof Permissions }] : []),
         { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: null },
       ]
     },

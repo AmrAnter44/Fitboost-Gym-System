@@ -134,7 +134,7 @@ export async function POST(request: Request) {
         data: {
           notes: notes?.trim() || existingFollowUp.notes,
           contacted: contacted || existingFollowUp.contacted,
-          nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate) : existingFollowUp.nextFollowUpDate,
+          nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate + 'T12:00:00') : existingFollowUp.nextFollowUpDate,
           result: result?.trim() || existingFollowUp.result,
           salesName: salesName?.trim() || existingFollowUp.salesName,
           assignedTo: assignedTo !== undefined ? assignedTo : existingFollowUp.assignedTo,
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
           visitorId: actualVisitorId,
           notes: notes?.trim() || '',
           contacted: contacted || false,
-          nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate) : null,
+          nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate + 'T12:00:00') : null,
           result: result?.trim(),
           salesName: salesName?.trim(),
           assignedTo: assignedTo || null,
@@ -255,7 +255,7 @@ export async function PUT(request: Request) {
     if (notes !== undefined) updateData.notes = notes.trim()
     if (contacted !== undefined) updateData.contacted = contacted
     if (nextFollowUpDate !== undefined) {
-      updateData.nextFollowUpDate = nextFollowUpDate ? new Date(nextFollowUpDate) : null
+      updateData.nextFollowUpDate = nextFollowUpDate ? new Date(nextFollowUpDate + 'T12:00:00') : null
     }
     if (result !== undefined) updateData.result = result?.trim()
     if (priority !== undefined) updateData.priority = priority

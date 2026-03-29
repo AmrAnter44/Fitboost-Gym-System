@@ -569,7 +569,8 @@
     "registered": "Registered",
     "clientsInGym": "{count} client(s) in gym",
     "checkedInLastHour": "Checked in within the last hour",
-    "clientInGymNow": "In gym now"
+    "clientInGymNow": "In gym now",
+    "registerSession": "Register Session"
   },
   "permissions": {
     "deniedTitle": "Access Denied",

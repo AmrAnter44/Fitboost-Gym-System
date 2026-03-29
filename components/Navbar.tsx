@@ -24,6 +24,7 @@ export default function Navbar() {
   // Memoize links to avoid re-filtering on every render
   const links = useMemo(() => {
     const allLinks = [
+      { href: '/coach/my-members', label: locale === 'ar' ? 'أعضائي' : 'My Members', icon: '👥', permission: null, roleRequired: 'COACH' },
       { href: '/members', label: t('nav.members'), icon: '👥', permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
       { href: '/pt', label: t('nav.pt'), icon: '💪', permission: 'canViewPT' as keyof Permissions, roleRequired: null },
       { href: '/nutrition', label: t('nav.nutrition'), icon: '🥗', permission: 'canViewNutrition' as keyof Permissions, roleRequired: null, enabled: settings.nutritionEnabled },

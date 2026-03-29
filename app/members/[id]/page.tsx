@@ -1306,6 +1306,7 @@ export default function MemberDetailPage() {
 
           if (response.ok) {
             toast.success(t('memberDetails.deleteModal.deleteSuccess'))
+            queryClient.invalidateQueries({ queryKey: ['members'] })
             setTimeout(() => {
               router.push('/members')
             }, 1500)

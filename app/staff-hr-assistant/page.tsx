@@ -40,6 +40,30 @@ interface AdvancesData {
   items: AdvanceItem[]
 }
 
+interface LateArrival {
+  date: string
+  checkInTime: string
+  shiftStart: string
+  lateMinutes: number
+}
+
+interface EarlyDeparture {
+  date: string
+  checkOutTime: string
+  shiftEnd: string
+  earlyMinutes: number
+}
+
+interface AttendanceDetail {
+  date: string
+  checkIn: string
+  checkOut: string | null
+  duration: number | null
+  status: string
+  lateMinutes: number
+  earlyMinutes: number
+}
+
 interface StaffAnalytics {
   staffId: string
   staffCode: string
@@ -61,6 +85,14 @@ interface StaffAnalytics {
   revenue: RevenueBreakdown
   revenueToSalaryRatio: number | null
   advances: AdvancesData
+  shiftStartTime: string | null
+  shiftEndTime: string | null
+  lateArrivals: LateArrival[]
+  earlyDepartures: EarlyDeparture[]
+  attendanceDetails: AttendanceDetail[]
+  totalLateMinutes: number
+  totalEarlyMinutes: number
+  punctualityScore: number
 }
 
 interface AnalyticsResponse {
@@ -568,7 +600,7 @@ export default function StaffHRAssistantPage() {
                       </div>
 
                       {/* Quick Stats */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
+                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mt-6">
                         {/* Attendance */}
                         <div className="bg-white dark:bg-gray-700 rounded-lg p-4 shadow">
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -597,6 +629,21 @@ export default function StaffHRAssistantPage() {
                           <p className="text-lg font-bold text-gray-900 dark:text-white">
                             {staff.actualHoursWorked.toFixed(1)} / {staff.requiredHours.toFixed(0)}
                           </p>
+                        </div>
+
+                        {/* Punctuality Score */}
+                        <div className={`rounded-lg p-4 shadow ${staff.punctualityScore >= 90 ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700' : staff.punctualityScore >= 70 ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-700' : 'bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-700'}`}>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                            🎯 {direction === 'rtl' ? 'الالتزام بالمواعيد' : 'Punctuality'}
+                          </p>
+                          <p className={`text-2xl font-bold ${staff.punctualityScore >= 90 ? 'text-green-600' : staff.punctualityScore >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            {staff.punctualityScore}%
+                          </p>
+                          {staff.lateArrivals.length > 0 && (
+                            <p className="text-xs text-red-500 mt-1">
+                              {direction === 'rtl' ? `تأخر ${staff.lateArrivals.length} مرة` : `Late ${staff.lateArrivals.length} times`}
+                            </p>
+                          )}
                         </div>
 
                         {/* Vacation */}
@@ -868,6 +915,134 @@ export default function StaffHRAssistantPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Late Arrivals */}
+                    {staff.shiftStartTime && (
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                          ⏰ {direction === 'rtl' ? 'أيام التأخير' : 'Late Arrivals'} ({staff.lateArrivals.length})
+                        </h4>
+
+                        {staff.lateArrivals.length === 0 ? (
+                          <p className="text-gray-600 dark:text-gray-300">
+                            🎯 {direction === 'rtl' ? 'لا يوجد تأخير! التزام تام بالمواعيد' : 'No late arrivals! Perfect punctuality'}
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {staff.lateArrivals.map((late, index) => (
+                              <div
+                                key={index}
+                                className={`rounded-lg p-4 shadow flex items-center justify-between ${
+                                  late.lateMinutes > 30 ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700' :
+                                  late.lateMinutes > 15 ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700' :
+                                  'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700'
+                                }`}
+                              >
+                                <div>
+                                  <p className="font-medium text-gray-900 dark:text-white">
+                                    📆 {new Date(late.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
+                                  </p>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    {direction === 'rtl' ? `دخل: ${late.checkInTime} | الموعد: ${late.shiftStart}` : `In: ${late.checkInTime} | Shift: ${late.shiftStart}`}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`font-bold ${late.lateMinutes > 30 ? 'text-red-600' : late.lateMinutes > 15 ? 'text-orange-600' : 'text-yellow-600'}`}>
+                                    {late.lateMinutes} {direction === 'rtl' ? 'دقيقة' : 'min'}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
+                              <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                {direction === 'rtl' ? `إجمالي التأخير: ${staff.totalLateMinutes} دقيقة` : `Total late: ${staff.totalLateMinutes} min`}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Early Departures */}
+                    {staff.shiftEndTime && staff.earlyDepartures.length > 0 && (
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                          🚪 {direction === 'rtl' ? 'أيام الخروج المبكر' : 'Early Departures'} ({staff.earlyDepartures.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {staff.earlyDepartures.map((early, index) => (
+                            <div
+                              key={index}
+                              className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4 shadow flex items-center justify-between"
+                            >
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-white">
+                                  📆 {new Date(early.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {direction === 'rtl' ? `خرج: ${early.checkOutTime} | الموعد: ${early.shiftEnd}` : `Out: ${early.checkOutTime} | Shift: ${early.shiftEnd}`}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-purple-600">
+                                  {early.earlyMinutes} {direction === 'rtl' ? 'دقيقة' : 'min'}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
+                            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                              {direction === 'rtl' ? `إجمالي الخروج المبكر: ${staff.totalEarlyMinutes} دقيقة` : `Total early: ${staff.totalEarlyMinutes} min`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Daily Attendance Log */}
+                    {staff.attendanceDetails.length > 0 && (
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                          📋 {direction === 'rtl' ? 'سجل الحضور اليومي' : 'Daily Attendance Log'}
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-100 dark:bg-gray-700">
+                                <th className="p-2 text-right">{direction === 'rtl' ? 'التاريخ' : 'Date'}</th>
+                                <th className="p-2 text-center">{direction === 'rtl' ? 'الدخول' : 'In'}</th>
+                                <th className="p-2 text-center">{direction === 'rtl' ? 'الخروج' : 'Out'}</th>
+                                <th className="p-2 text-center">{direction === 'rtl' ? 'المدة' : 'Duration'}</th>
+                                <th className="p-2 text-center">{direction === 'rtl' ? 'الحالة' : 'Status'}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {staff.attendanceDetails.map((att, index) => (
+                                <tr key={index} className={`border-b dark:border-gray-600 ${
+                                  att.status === 'late' || att.status === 'late-and-early' ? 'bg-red-50/50 dark:bg-red-900/10' :
+                                  att.status === 'early' ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''
+                                }`}>
+                                  <td className="p-2 font-medium text-gray-900 dark:text-white">
+                                    {new Date(att.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                  </td>
+                                  <td className="p-2 text-center font-mono text-gray-700 dark:text-gray-300">{att.checkIn}</td>
+                                  <td className="p-2 text-center font-mono text-gray-700 dark:text-gray-300">{att.checkOut || '-'}</td>
+                                  <td className="p-2 text-center text-gray-700 dark:text-gray-300">
+                                    {att.duration ? `${(att.duration / 60).toFixed(1)}h` : '-'}
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    {att.status === 'on-time' && <span className="text-green-600 font-bold text-xs">✅</span>}
+                                    {att.status === 'late' && <span className="text-red-600 font-bold text-xs">⏰ -{att.lateMinutes}m</span>}
+                                    {att.status === 'early' && <span className="text-purple-600 font-bold text-xs">🚪 -{att.earlyMinutes}m</span>}
+                                    {att.status === 'late-and-early' && <span className="text-red-600 font-bold text-xs">⏰ -{att.lateMinutes}m 🚪 -{att.earlyMinutes}m</span>}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )})()}

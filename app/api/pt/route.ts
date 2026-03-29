@@ -71,7 +71,22 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json(ptSessions)
+    // جلب صور العملاء من جدول Member بناءً على رقم الهاتف
+    const phones = ptSessions.map(s => s.phone).filter(Boolean)
+    const membersWithImages = phones.length > 0
+      ? await prisma.member.findMany({
+          where: { phone: { in: phones } },
+          select: { phone: true, profileImage: true }
+        })
+      : []
+    const phoneToImage = new Map(membersWithImages.map(m => [m.phone, m.profileImage]))
+
+    const sessionsWithImages = ptSessions.map(s => ({
+      ...s,
+      profileImage: phoneToImage.get(s.phone) || null
+    }))
+
+    return NextResponse.json(sessionsWithImages)
   } catch (error: any) {
     console.error('Error fetching PT sessions:', error)
     

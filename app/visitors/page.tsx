@@ -136,6 +136,8 @@ export default function VisitorsPage() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['visitors'] })
+      queryClient.invalidateQueries({ queryKey: ['followups'] })
+      queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
     }
   })
 
@@ -359,6 +361,8 @@ export default function VisitorsPage() {
           toast.error(t('visitors.messages.deleteError'))
         } else {
           queryClient.invalidateQueries({ queryKey: ['visitors'] })
+          queryClient.invalidateQueries({ queryKey: ['followups'] })
+          queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
         }
       } catch {
         queryClient.setQueryData(queryKey, previousData)

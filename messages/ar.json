@@ -569,7 +569,8 @@
     "registered": "مسجل",
     "clientsInGym": "{count} عميل موجود في الجيم",
     "checkedInLastHour": "سجلوا دخول خلال آخر ساعة",
-    "clientInGymNow": "موجود في الجيم الآن"
+    "clientInGymNow": "موجود في الجيم الآن",
+    "registerSession": "تسجيل حصة"
   },
   "permissions": {
     "deniedTitle": "ممنوع الدخول",
