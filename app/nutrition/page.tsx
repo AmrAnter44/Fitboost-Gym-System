@@ -16,6 +16,7 @@ import { fetchStaff } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import CoachSelector from '../../components/CoachSelector'
+import NutritionRenewalForm from '../../components/NutritionRenewalForm'
 
 interface Staff {
   id: string
@@ -92,6 +93,7 @@ export default function NutritionPage() {
   const [selectedSession, setSelectedSession] = useState<NutritionSession | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentSession, setPaymentSession] = useState<NutritionSession | null>(null)
+  const [renewalSession, setRenewalSession] = useState<NutritionSession | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<{
     paymentAmount: number
     paymentMethod: string | PaymentMethod[]
@@ -416,7 +418,7 @@ export default function NutritionPage() {
   }
 
   const handleRenew = (session: NutritionSession) => {
-    router.push(`/nutrition/renew?nutritionNumber=${session.nutritionNumber}`)
+    setRenewalSession(session)
   }
 
   const handleRegisterSession = (session: NutritionSession) => {
@@ -575,7 +577,8 @@ export default function NutritionPage() {
       </div>
 
       {!isCoach && showForm && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 border-2 border-green-100 dark:border-green-700" dir={direction}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6" dir={direction}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               {editingSession ? t('nutrition.editSession') : t('nutrition.addSession')}
@@ -976,6 +979,7 @@ export default function NutritionPage() {
             </div>
           </form>
         </div>
+        </div>
       )}
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6" dir={direction}>
@@ -1037,15 +1041,15 @@ export default function NutritionPage() {
 
           {/* فلتر النوع (Nutrition عادي / Day Use) */}
           <div>
-            <label className="block text-sm font-medium mb-1.5 text-gray-900 dark:text-gray-100">نوع الجلسة</label>
+            <label className="block text-sm font-medium mb-1.5 text-gray-900 dark:text-gray-100">{t('nutrition.sessionType')}</label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as any)}
               className="w-full px-3 py-2 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
-              <option value="all">الكل</option>
-              <option value="regular">Nutrition عادي</option>
-              <option value="dayuse">🏃 Day Use</option>
+              <option value="all">{t('nutrition.typeAll')}</option>
+              <option value="regular">{t('nutrition.typeRegular')}</option>
+              <option value="dayuse">{t('nutrition.typeDayUse')}</option>
             </select>
           </div>
         </div>
@@ -1072,248 +1076,102 @@ export default function NutritionPage() {
         <div className="text-center py-12">{t('nutrition.loading')}</div>
       ) : (
         <>
-          {/* Desktop Table - Hidden on mobile/tablet */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full" dir={direction}>
-                <thead className="bg-gray-100 dark:bg-gray-700">
-                  <tr>
-                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.nutritionNumber')}</th>
-                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.client')}</th>
-                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.nutritionist')}</th>
-                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.sessions')}</th>
-                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.total')}</th>
-                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.remaining')}</th>
-                    <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.dates')}</th>
-                    {!isCoach && <th className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('nutrition.actions')}</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSessions.map((session) => {
-                    const isExpiringSoon =
-                      session.expiryDate &&
-                      new Date(session.expiryDate) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                    const isExpired = session.expiryDate && new Date(session.expiryDate) < new Date()
-
-                    return (
-                      <tr
-                        key={session.nutritionNumber}
-                        className={`border-t hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                          isExpired ? 'bg-red-50 dark:bg-red-900/20' : isExpiringSoon ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''
-                        }`}
-                      >
-                        <td className="px-4 py-3">
-                          {session.nutritionNumber < 0 ? (
-                            <span className="font-bold text-green-600">🏃 Day Use</span>
-                          ) : (
-                            <span className="font-bold text-green-600">#{session.nutritionNumber}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div>
-                            <p className="font-semibold">{session.clientName}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">{session.phone}</p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">{session.nutritionistName}</td>
-                        <td className="px-4 py-3">
-                          <div className="text-center">
-                            <p
-                              className={`font-bold ${
-                                session.sessionsRemaining === 0
-                                  ? 'text-red-600'
-                                  : session.sessionsRemaining <= 3
-                                  ? 'text-orange-600'
-                                  : 'text-green-600'
-                              }`}
-                            >
-                              {session.sessionsRemaining}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{t('nutrition.of')} {session.sessionsPurchased}</p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-bold text-green-600">
-                          {(session.sessionsPurchased * session.pricePerSession).toFixed(0)} {t('nutrition.egp')}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`font-bold ${
-                              (session.remainingAmount || 0) > 0
-                                ? 'text-orange-600'
-                                : 'text-green-600'
-                            }`}
-                          >
-                            {(session.remainingAmount || 0).toFixed(0)} {t('nutrition.egp')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-xs font-mono">
-                            {session.startDate && (
-                              <p>{t('nutrition.from')} {formatDateYMD(session.startDate)}</p>
-                            )}
-                            {session.expiryDate && (
-                              <p className={isExpired ? 'text-red-600 dark:text-red-400 font-bold' : ''}>
-                                {t('nutrition.to')} {formatDateYMD(session.expiryDate)}
-                              </p>
-                            )}
-                            {isExpired && <p className="text-red-600 dark:text-red-400 font-bold">{t('nutrition.expired')}</p>}
-                            {!isExpired && isExpiringSoon && (
-                              <p className="text-orange-600 dark:text-orange-400 font-bold">{t('nutrition.expiringSoon')}</p>
-                            )}
-                          </div>
-                        </td>
-                        {!isCoach && (
-                          <td className="px-4 py-3">
-                            <div className="flex flex-wrap gap-2">
-                              {/* إخفاء زر الحضور للـ Day Use */}
-                              {session.nutritionNumber >= 0 && (
-                                <button
-                                  onClick={() => handleRegisterSession(session)}
-                                  disabled={session.sessionsRemaining === 0}
-                                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                  {t('nutrition.attendance')}
-                                </button>
-                              )}
-                              {session.nutritionNumber >= 0 && (
-                                <button
-                                  onClick={() => handleRenew(session)}
-                                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                                >
-                                  {t('nutrition.renew')}
-                                </button>
-                              )}
-                              {(session.remainingAmount || 0) > 0 && (
-                                <button
-                                  onClick={() => handleOpenPaymentModal(session)}
-                                  className="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700"
-                                >
-                                  {t('nutrition.payRemaining')}
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleEdit(session)}
-                                className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 flex items-center gap-1"
-                              >
-                                ✏️ {t('nutrition.edit')}
-                              </button>
-                              <button
-                                onClick={() => handleDelete(session.nutritionNumber)}
-                                className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 flex items-center gap-1"
-                              >
-                                {t('nutrition.delete')}
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Mobile/Tablet Cards - Hidden on desktop */}
-          <div className="lg:hidden space-y-3" dir={direction}>
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" dir={direction}>
             {filteredSessions.map((session) => {
               const isExpiringSoon =
                 session.expiryDate &&
                 new Date(session.expiryDate) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
               const isExpired = session.expiryDate && new Date(session.expiryDate) < new Date()
+              const progressPercentage = session.sessionsPurchased > 0
+                ? ((session.sessionsPurchased - session.sessionsRemaining) / session.sessionsPurchased) * 100
+                : 0
 
               return (
                 <div
                   key={session.nutritionNumber}
                   className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg dark:hover:shadow-2xl transition ${
-                    isExpired ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20' : isExpiringSoon ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-600'
+                    isExpired ? 'border-red-300 dark:border-red-700' : isExpiringSoon ? 'border-orange-300 dark:border-orange-700' : 'border-gray-200 dark:border-gray-600'
                   }`}
                 >
                   {/* Header */}
-                  <div className={`p-2.5 ${isExpired ? 'bg-red-600 dark:bg-red-700' : isExpiringSoon ? 'bg-orange-600 dark:bg-orange-700' : 'bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800'}`}>
+                  <div className={`p-3 ${isExpired ? 'bg-red-600 dark:bg-red-700' : isExpiringSoon ? 'bg-orange-600 dark:bg-orange-700' : 'bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800'}`}>
                     <div className="flex items-center justify-between">
-                      <div className="text-xl font-bold text-white">
-                        {session.nutritionNumber < 0 ? '🏃 Day Use' : `#${session.nutritionNumber}`}
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-lg text-white/80">👤</span>
+                        </div>
+                        <div>
+                          <div className="font-bold text-white text-base">{session.clientName}</div>
+                          <div className="text-white/80 text-xs">
+                            {session.nutritionNumber < 0 ? '🏃 Day Use' : `#${session.nutritionNumber}`} • {session.phone}
+                          </div>
+                        </div>
                       </div>
                       <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                         session.sessionsRemaining === 0 ? 'bg-red-500 dark:bg-red-600' : session.sessionsRemaining <= 3 ? 'bg-orange-500 dark:bg-orange-600' : 'bg-green-500 dark:bg-green-600'
                       } text-white`}>
-                        {session.sessionsRemaining} / {session.sessionsPurchased} {t('nutrition.session')}
+                        {session.sessionsRemaining} / {session.sessionsPurchased}
                       </div>
                     </div>
                   </div>
 
                   {/* Card Body */}
                   <div className="p-3 space-y-2.5">
-                    {/* Client Info */}
-                    <div className="pb-2.5 border-b-2 border-gray-100 dark:border-gray-700 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-base">👤</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 font-semibold">{t('nutrition.client')}</span>
+                    {/* Progress Bar */}
+                    <div>
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-300 mb-1">
+                        <span>{t('nutrition.nutritionist')}: {session.nutritionistName}</span>
+                        <span>{Math.round(progressPercentage)}%</span>
                       </div>
-                      <div className="text-base font-bold text-gray-800 dark:text-gray-100">{session.clientName}</div>
-                      <div className="text-sm font-mono text-gray-600 dark:text-gray-300 mt-1">{session.phone}</div>
-                    </div>
-
-                    {/* Nutritionist */}
-                    <div className="pb-2.5 border-b-2 border-gray-100 dark:border-gray-700 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-base">🥗</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 font-semibold">{t('nutrition.nutritionist')}</span>
-                      </div>
-                      <div className="text-base font-bold text-gray-800 dark:text-gray-100">{session.nutritionistName}</div>
-                    </div>
-
-                    {/* Price Info */}
-                    <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-2.5">
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="text-sm">💵</span>
-                        <span className="text-xs text-green-700 dark:text-green-300 font-semibold">{t('nutrition.total')}</span>
-                      </div>
-                      <div className="text-base font-bold text-green-600 dark:text-green-400">
-                        {(session.sessionsPurchased * session.pricePerSession).toFixed(0)} {t('nutrition.egp')}
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${
+                            progressPercentage >= 80 ? 'bg-red-500' :
+                            progressPercentage >= 50 ? 'bg-orange-500' :
+                            'bg-green-500'
+                          }`}
+                          style={{ width: `${progressPercentage}%` }}
+                        />
                       </div>
                     </div>
 
-                    {/* Remaining Amount */}
-                    {(session.remainingAmount || 0) > 0 && (
-                      <div className="bg-orange-50 dark:bg-orange-900/30 border-2 border-orange-300 dark:border-orange-700 rounded-lg p-2.5">
-                        <div className="flex items-center gap-1 mb-1">
-                          <span className="text-sm">⚠️</span>
-                          <span className="text-xs text-orange-700 dark:text-orange-300 font-semibold">{t('nutrition.remainingAmountLabel')}</span>
+                    {/* Info Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-2 text-center">
+                        <div className="text-[10px] text-green-700 dark:text-green-300 font-semibold">{t('nutrition.total')}</div>
+                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                          {(session.sessionsPurchased * session.pricePerSession).toFixed(0)} {t('nutrition.egp')}
                         </div>
-                        <div className="text-base font-bold text-orange-600 dark:text-orange-400">
+                      </div>
+                      <div className={`border rounded-lg p-2 text-center ${
+                        (session.remainingAmount || 0) > 0
+                          ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700'
+                          : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
+                      }`}>
+                        <div className={`text-[10px] font-semibold ${(session.remainingAmount || 0) > 0 ? 'text-orange-700 dark:text-orange-300' : 'text-gray-500 dark:text-gray-400'}`}>{t('nutrition.remaining')}</div>
+                        <div className={`text-sm font-bold ${(session.remainingAmount || 0) > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
                           {(session.remainingAmount || 0).toFixed(0)} {t('nutrition.egp')}
                         </div>
                       </div>
-                    )}
+                    </div>
 
                     {/* Dates */}
                     {(session.startDate || session.expiryDate) && (
-                      <div className={`border-2 rounded-lg p-2.5 ${
-                        isExpired ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                      <div className={`border rounded-lg p-2 text-xs font-mono ${
+                        isExpired ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
                       }`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm">📅</span>
-                          <span className={`text-xs font-semibold ${
-                            isExpired ? 'text-red-700 dark:text-red-400' : isExpiringSoon ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'
-                          }`}>{t('nutrition.period')}</span>
-                        </div>
-                        <div className="space-y-1 text-xs font-mono">
-                          {session.startDate && (
-                            <div className="text-gray-700 dark:text-gray-200">{t('nutrition.from')} {formatDateYMD(session.startDate)}</div>
-                          )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>📅</span>
+                          {session.startDate && <span>{formatDateYMD(session.startDate)}</span>}
+                          {session.startDate && session.expiryDate && <span>→</span>}
                           {session.expiryDate && (
-                            <div className={isExpired ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-700 dark:text-gray-200'}>
-                              {t('nutrition.to')} {formatDateYMD(session.expiryDate)}
-                            </div>
+                            <span className={isExpired ? 'text-red-600 dark:text-red-400 font-bold' : ''}>
+                              {formatDateYMD(session.expiryDate)}
+                            </span>
                           )}
-                          {isExpired && (
-                            <div className="text-red-600 dark:text-red-400 font-bold">{t('nutrition.expired')}</div>
-                          )}
-                          {!isExpired && isExpiringSoon && (
-                            <div className="text-orange-600 dark:text-orange-400 font-bold">{t('nutrition.expiringSoon')}</div>
-                          )}
+                          {isExpired && <span className="text-red-600 dark:text-red-400 font-bold">({t('nutrition.expired')})</span>}
+                          {!isExpired && isExpiringSoon && <span className="text-orange-600 dark:text-orange-400 font-bold">({t('nutrition.expiringSoon')})</span>}
                         </div>
                       </div>
                     )}
@@ -1321,19 +1179,18 @@ export default function NutritionPage() {
                     {/* Action Buttons */}
                     {!isCoach && (
                       <div className="grid grid-cols-2 gap-2 pt-1">
-                        {/* إخفاء أزرار الحضور والتجديد للـ Day Use */}
                         {session.nutritionNumber >= 0 && (
                           <>
                             <button
                               onClick={() => handleRegisterSession(session)}
                               disabled={session.sessionsRemaining === 0}
-                              className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1"
+                              className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1"
                             >
                               {t('nutrition.attendance')}
                             </button>
                             <button
                               onClick={() => handleRenew(session)}
-                              className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 font-bold flex items-center justify-center gap-1"
+                              className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 font-bold flex items-center justify-center gap-1"
                             >
                               {t('nutrition.renew')}
                             </button>
@@ -1342,7 +1199,7 @@ export default function NutritionPage() {
                         {(session.remainingAmount || 0) > 0 && (
                           <button
                             onClick={() => handleOpenPaymentModal(session)}
-                            className="col-span-2 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 font-bold flex items-center justify-center gap-1"
+                            className="col-span-2 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1"
                           >
                             <span>💰</span>
                             <span>{t('nutrition.payRemaining').replace('💰 ', '')} ({(session.remainingAmount || 0).toFixed(0)} {t('nutrition.egp')})</span>
@@ -1350,14 +1207,14 @@ export default function NutritionPage() {
                         )}
                         <button
                           onClick={() => handleEdit(session)}
-                          className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 font-bold flex items-center justify-center gap-1"
+                          className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 font-bold flex items-center justify-center gap-1"
                         >
                           <span>✏️</span>
                           <span>{t('nutrition.edit')}</span>
                         </button>
                         <button
                           onClick={() => handleDelete(session.nutritionNumber)}
-                          className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 font-bold flex items-center justify-center gap-1"
+                          className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 dark:hover:bg-red-800 font-bold flex items-center justify-center gap-1"
                         >
                           <span>🗑️</span>
                           <span>{t('nutrition.deleteSubscription')}</span>
@@ -1718,6 +1575,18 @@ export default function NutritionPage() {
         onCancel={handleCancel}
         type={options.type}
       />
+
+      {/* Renewal Modal */}
+      {renewalSession && (
+        <NutritionRenewalForm
+          session={renewalSession}
+          onSuccess={() => {
+            refetchSessions()
+            setRenewalSession(null)
+          }}
+          onClose={() => setRenewalSession(null)}
+        />
+      )}
     </div>
   )
 }

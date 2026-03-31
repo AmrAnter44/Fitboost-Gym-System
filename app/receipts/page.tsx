@@ -780,8 +780,8 @@ export default function ReceiptsPage() {
 
       {/* Receipts Display */}
       <>
-        {/* Mobile Cards View */}
-        <div className="md:hidden space-y-4 mb-6" dir={direction}>
+        {/* Cards View */}
+        <div className="space-y-3 sm:space-y-4 mb-6" dir={direction}>
           {currentReceipts.map((receipt) => {
             let details: any = {}
             try {
@@ -790,45 +790,100 @@ export default function ReceiptsPage() {
 
             const clientName = details.memberName || details.clientName || details.name || '-'
 
+            // Color based on receipt type
+            const isMembership = receipt.type === 'تجديد عضويه' || receipt.type === 'membershipRenewal' || receipt.type === 'ترقية باكدج' || receipt.type === 'عضوية' || receipt.type === 'Member'
+            const isPT = PT_RECEIPT_TYPES.includes(receipt.type)
+            const isNutrition = NUTRITION_RECEIPT_TYPES.includes(receipt.type)
+            const isPhysio = PHYSIOTHERAPY_RECEIPT_TYPES.includes(receipt.type)
+            const isGroupClass = GROUP_CLASS_RECEIPT_TYPES.includes(receipt.type)
+
+            const borderColor = receipt.isCancelled
+              ? 'border-red-400'
+              : isMembership ? 'border-blue-400'
+              : isPT ? 'border-primary-400'
+              : isNutrition ? 'border-green-400'
+              : isPhysio ? 'border-teal-400'
+              : isGroupClass ? 'border-indigo-400'
+              : 'border-orange-400'
+
+            const gradientFrom = receipt.isCancelled
+              ? 'from-red-50/50 dark:from-red-900/10'
+              : isMembership ? 'from-blue-50/30 dark:from-blue-900/10'
+              : isPT ? 'from-primary-50/30 dark:from-primary-900/10'
+              : isNutrition ? 'from-green-50/30 dark:from-green-900/10'
+              : isPhysio ? 'from-teal-50/30 dark:from-teal-900/10'
+              : isGroupClass ? 'from-indigo-50/30 dark:from-indigo-900/10'
+              : 'from-orange-50/30 dark:from-orange-900/10'
+
             return (
               <div
                 key={receipt.id}
-                className="bg-white dark:bg-gray-800 border-r-4 border-primary-500 rounded-lg shadow-lg p-5"
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-5 border-2 ${borderColor} bg-gradient-to-br ${gradientFrom} to-white dark:to-gray-800 hover:shadow-2xl transition-all duration-300 hover:scale-[1.01]`}
               >
-                {/* Header Section */}
-                <div className="flex justify-between items-start mb-4 pb-3 border-b-2 border-gray-100 dark:border-gray-700">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{t('receipts.card.receiptNumber')}</span>
-                    </div>
-                    <span className="font-bold text-primary-600 dark:text-primary-400 text-xl">#{receipt.receiptNumber}</span>
+                {/* Header: Action Buttons + Receipt Number + Type Badge */}
+                <div className="flex justify-between items-start gap-2 mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className={`font-bold text-xl ${
+                      receipt.isCancelled ? 'text-red-600 dark:text-red-400' : 'text-primary-600 dark:text-primary-400'
+                    }`}>#{receipt.receiptNumber}</span>
+                    {receipt.isCancelled && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">
+                        {t('receipts.cancelled') || 'ملغي'}
+                      </span>
+                    )}
                   </div>
-                  <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300">
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
+                    receipt.isCancelled ? 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
+                    : isMembership ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300'
+                    : isPT ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300'
+                    : isNutrition ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
+                    : isPhysio ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-300'
+                    : isGroupClass ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300'
+                    : 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300'
+                  }`}>
                     {getTypeLabel(receipt.type)}
                   </span>
                 </div>
 
-                {/* Client Info Section */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-4">
-                  <div className="flex items-start gap-2 mb-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">👤 {t('receipts.card.client')}</span>
-                    <div className="flex-1">
-                      <p className="font-bold text-gray-900 dark:text-white text-lg">{clientName}</p>
-                      {details.phone && (
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">📱 {details.phone}</p>
-                      )}
-                      <div className="flex gap-2 mt-2 flex-wrap">
-                        {details.memberNumber && (
-                          <span className="text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2 py-1 rounded-full font-semibold">
-                            {t('receipts.card.membership')} #{details.memberNumber}
-                          </span>
-                        )}
-                        {details.ptNumber && (
-                          <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-1 rounded-full font-semibold">
-                            {details.ptNumber < 0 ? '🏃 Day Use' : `PT #${details.ptNumber}`}
-                          </span>
-                        )}
+                {/* Client Info Section - follow-ups style */}
+                <div className="bg-gradient-to-r from-primary-50 via-white to-primary-50 dark:from-primary-900/20 dark:via-gray-800 dark:to-primary-900/20 p-3 sm:p-4 rounded-xl border-2 border-primary-200 dark:border-primary-700 shadow-sm mb-4">
+                  <div className="flex flex-col gap-2.5">
+                    {/* Client Name */}
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary-500 p-1.5 rounded-lg">
+                        <span className="text-white text-base">👤</span>
                       </div>
+                      <div className="flex-1">
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{t('receipts.card.client')}</div>
+                        <span className="font-bold text-base sm:text-lg text-gray-900 dark:text-gray-100">{clientName}</span>
+                      </div>
+                    </div>
+
+                    {/* Phone */}
+                    {details.phone && (
+                      <div className="flex items-center gap-2">
+                        <div className="bg-green-500 p-1.5 rounded-lg">
+                          <span className="text-white text-base">📱</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{t('receipts.table.client')}</div>
+                          <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200" dir="ltr">{details.phone}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Badges */}
+                    <div className="flex gap-2 flex-wrap">
+                      {details.memberNumber && (
+                        <span className="text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2.5 py-1 rounded-full font-semibold shadow-sm">
+                          {t('receipts.card.membership')} #{details.memberNumber}
+                        </span>
+                      )}
+                      {details.ptNumber && (
+                        <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2.5 py-1 rounded-full font-semibold shadow-sm">
+                          {details.ptNumber < 0 ? 'Day Use' : `PT #${details.ptNumber}`}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1171,17 +1226,20 @@ export default function ReceiptsPage() {
                 </div>
 
                 {/* Footer Info */}
-                <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-600">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
                   {receipt.staffName && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 text-xs">👨‍💼</span>
-                      <span className="text-sm text-gray-700 dark:text-gray-200">{receipt.staffName}</span>
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+                      <div className="bg-gray-400 p-1 rounded-lg">
+                        <span className="text-white text-xs">👨‍💼</span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{receipt.staffName}</span>
                     </div>
                   )}
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-xs">📅</span>
-                    <span className="text-xs text-gray-600 dark:text-gray-300">
+                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+                    <div className="bg-gray-400 p-1 rounded-lg">
+                      <span className="text-white text-xs">📅</span>
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300">
                       {new Date(receipt.createdAt).toLocaleString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
                         year: 'numeric',
                         month: 'short',
@@ -1193,9 +1251,8 @@ export default function ReceiptsPage() {
                   </div>
                 </div>
 
-                {/* Action Buttons - تحسين الترتيب للموبايل */}
-                <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
-                  {/* الصف الأول - الأزرار الأكثر استخداماً */}
+                {/* Action Buttons - follow-ups style */}
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                   <ReceiptWhatsApp
                     receipt={receipt}
                     onDetailsClick={() => setSelectedReceipt(receipt)}
@@ -1203,38 +1260,35 @@ export default function ReceiptsPage() {
 
                   <button
                     onClick={() => handlePrint(receipt, { printOnly: true })}
-                    className="bg-primary-600 text-white px-4 py-2.5 rounded-lg hover:bg-primary-700 text-sm transition shadow-md font-semibold"
-                    title="طباعة فقط"
+                    className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-all"
+                    title={t('receipts.actions.print')}
                   >
                     🖨️ {t('receipts.actions.print')}
                   </button>
 
-                  {/* الصف الثاني - التفاصيل */}
                   <button
                     onClick={() => setSelectedReceipt(receipt)}
-                    className="col-span-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 text-sm transition shadow-md font-semibold"
-                    title="عرض التفاصيل"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all"
+                    title={t('receipts.actions.viewDetails')}
                   >
                     👁️ {t('receipts.actions.viewDetails')}
                   </button>
 
-                  {/* الصف الثالث - التعديل */}
                   {canEdit && !receipt.isCancelled && (
                     <button
                       onClick={() => handleOpenEdit(receipt)}
-                      className="col-span-2 bg-orange-600 text-white px-4 py-2.5 rounded-lg hover:bg-orange-700 text-sm transition shadow-md font-semibold"
+                      className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all"
                       title={t('receipts.actions.edit')}
                     >
                       ✏️ {t('receipts.actions.edit')}
                     </button>
                   )}
 
-                  {/* الصف الرابع - الإلغاء والحذف */}
                   {canCancel && !receipt.isCancelled && (
                     <button
                       onClick={() => handleCancelReceipt(receipt.id)}
-                      className="bg-yellow-600 text-white px-4 py-2.5 rounded-lg hover:bg-yellow-700 text-sm transition shadow-md font-semibold"
-                      title="إلغاء الإيصال"
+                      className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition-all"
+                      title={t('receipts.actions.cancel')}
                     >
                       🚫 {t('receipts.actions.cancel')}
                     </button>
@@ -1243,7 +1297,7 @@ export default function ReceiptsPage() {
                   {canDelete && (
                     <button
                       onClick={() => handleDelete(receipt.id)}
-                      className={`bg-red-600 text-white px-4 py-2.5 rounded-lg hover:bg-red-700 text-sm transition shadow-md font-semibold ${(!canEdit && !canCancel) || receipt.isCancelled ? 'col-span-2' : ''}`}
+                      className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-all"
                       title={t('receipts.actions.delete')}
                     >
                       🗑️ {t('receipts.actions.delete')}
@@ -1253,229 +1307,6 @@ export default function ReceiptsPage() {
               </div>
             )
           })}
-
-          {filteredReceipts.length === 0 && !loading && (
-            <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-              <div className="text-6xl mb-4">🧾</div>
-              <p className="text-xl font-medium mb-2">
-                {searchTerm || filterType !== 'all' || filterPayment !== 'all'
-                  ? t('receipts.empty.noSearchResults')
-                  : t('receipts.empty.noReceipts')}
-              </p>
-              {(searchTerm || filterType !== 'all' || filterPayment !== 'all') && (
-                <button
-                  onClick={() => {
-                    setSearchTerm('')
-                    setFilterType('all')
-                    setFilterPayment('all')
-                  }}
-                  className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
-                >
-                  {t('receipts.empty.clearFilters')}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Desktop Table View */}
-        <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden" dir={direction}>
-          <div className="overflow-x-auto">
-            <table className="w-full" dir={direction}>
-              <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
-                <tr>
-                  <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold dark:text-gray-100`}>{t('receipts.table.receiptNumber')}</th>
-                  <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold dark:text-gray-100`}>{t('receipts.table.type')}</th>
-                  <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold dark:text-gray-100`}>{t('receipts.table.client')}</th>
-                  <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold dark:text-gray-100`}>{t('receipts.table.details')}</th>
-                  <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold dark:text-gray-100`}>{t('receipts.table.amount')}</th>
-                  <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold dark:text-gray-100`}>{t('receipts.table.paymentMethod')}</th>
-                  <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold dark:text-gray-100`}>{t('receipts.table.staff')}</th>
-                  <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold dark:text-gray-100`}>{t('receipts.table.date')}</th>
-                  <th className={`px-4 py-4 ${direction === 'rtl' ? 'text-right' : 'text-left'} font-bold dark:text-gray-100`}>{t('receipts.table.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentReceipts.map((receipt) => {
-                let details: any = {}
-                try {
-                  details = JSON.parse(receipt.itemDetails)
-                } catch {}
-
-                const clientName = details.memberName || details.clientName || details.name || '-'
-
-                return (
-                  <tr
-                    key={receipt.id}
-                    className={`border-t dark:border-gray-700 transition ${
-                      receipt.isCancelled
-                        ? 'bg-red-200 hover:bg-red-300 dark:bg-red-900/30 dark:hover:bg-red-900/50 border-l-4 border-red-600 dark:border-red-500'
-                        : 'hover:bg-primary-50 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <td className="px-4 py-4">
-                      <div>
-                        <span className={`font-bold text-lg ${
-                          receipt.isCancelled ? 'text-red-600 dark:text-red-400' : 'text-primary-600 dark:text-primary-400'
-                        }`}>#{receipt.receiptNumber}</span>
-                        {receipt.isCancelled && (
-                          <div className="mt-1">
-                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 dark:bg-red-700 text-white">
-                              ❌ ملغي
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300">
-                        {getTypeLabel(receipt.type)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div>
-                        <p className="font-bold text-gray-900 dark:text-white">{clientName}</p>
-                        {details.phone && (
-                          <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">{details.phone}</p>
-                        )}
-                        <div className="flex gap-1 mt-1">
-                          {details.memberNumber && (
-                            <span className="text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-full">
-                              عضوية #{details.memberNumber}
-                            </span>
-                          )}
-                          {details.ptNumber && (
-                            <span className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
-                              {details.ptNumber < 0 ? '🏃 Day Use' : `PT #${details.ptNumber}`}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="space-y-1">
-                        {/* مدة الاشتراك للعضويات */}
-                        {(receipt.type === 'تجديد عضويه' || receipt.type === 'عضوية' || receipt.type === 'Member') && (details.duration || details.subscriptionDays) && (
-                          <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700 rounded px-2 py-1">
-                            <p className="text-xs text-orange-700 dark:text-orange-300 font-semibold">
-                              ⏰ {details.duration ? (
-                                `${details.duration} ${details.duration === 1 ? t('receipts.details.month') : t('receipts.details.months')}`
-                              ) : details.subscriptionDays ? (
-                                details.subscriptionDays >= 30 ?
-                                  `${Math.round(details.subscriptionDays / 30)} ${Math.round(details.subscriptionDays / 30) === 1 ? t('receipts.details.month') : t('receipts.details.months')}`
-                                  : `${details.subscriptionDays} ${details.subscriptionDays === 1 ? t('receipts.details.day') : t('receipts.details.days')}`
-                              ) : '-'}
-                            </p>
-                            {(details.endDate || details.expiryDate) && (
-                              <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">
-                                {t('receipts.details.until')} {new Date(details.endDate || details.expiryDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        {/* تفاصيل PT */}
-                        {(receipt.type === 'اشتراك برايفت' || receipt.type === 'تجديد برايفت') && (
-                          <div className="bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded px-2 py-1 space-y-1">
-                            {details.sessionsPurchased && (
-                              <p className="text-xs text-primary-700 dark:text-primary-300 font-semibold">
-                                🎯 {details.sessionsPurchased} {t('receipts.details.session')}
-                              </p>
-                            )}
-                            {details.coachName && (
-                              <p className="text-xs text-primary-600 dark:text-primary-400">
-                                👨‍🏫 {details.coachName}
-                              </p>
-                            )}
-                            {details.subscriptionDays && (
-                              <p className="text-xs text-primary-600 dark:text-primary-400">
-                                ⏰ {details.subscriptionDays} {details.subscriptionDays === 1 ? t('receipts.details.day') : t('receipts.details.days')}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        {details.discount > 0 && (
-                          <p className="text-xs text-red-600 dark:text-red-400 font-semibold">
-                            🏷️ {t('receipts.details.discount')} {details.discount} {t('common.currency')}
-                          </p>
-                        )}
-                        {details.services && details.services.length > 0 && (
-                          <p className="text-xs text-gray-600 dark:text-gray-300">
-                            📋 {details.services.length} {t('receipts.details.service')}
-                          </p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="font-bold text-green-600 dark:text-green-400 text-lg">{receipt.amount.toLocaleString()} {t('common.currency')}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm font-semibold dark:text-gray-200">{getPaymentMethodLabel(receipt.paymentMethod, receipt.amount)}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">{receipt.staffName || '-'}</span>
-                    </td>
-                    <td className="px-4 py-4 text-xs text-gray-600 dark:text-gray-300">
-                      {new Date(receipt.createdAt).toLocaleString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        {/* ✅ WhatsApp Component */}
-                        <ReceiptWhatsApp 
-                          receipt={receipt} 
-                          onDetailsClick={() => setSelectedReceipt(receipt)}
-                        />
-                        
-                        <button
-                          onClick={() => handlePrint(receipt, { printOnly: true })}
-                          className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 text-sm transition shadow-md hover:shadow-lg"
-                          title="طباعة فقط"
-                        >
-                          🖨️
-                        </button>
-
-                        {canEdit && !receipt.isCancelled && (
-                          <button
-                            onClick={() => handleOpenEdit(receipt)}
-                            className="bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 text-sm transition shadow-md hover:shadow-lg"
-                            title={t('receipts.actions.edit')}
-                          >
-                            ✏️
-                          </button>
-                        )}
-
-                        {canCancel && !receipt.isCancelled && (
-                          <button
-                            onClick={() => handleCancelReceipt(receipt.id)}
-                            className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 text-sm transition shadow-md hover:shadow-lg"
-                            title="إلغاء الإيصال"
-                          >
-                            🚫
-                          </button>
-                        )}
-
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDelete(receipt.id)}
-                            className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm transition shadow-md hover:shadow-lg"
-                            title={t('receipts.actions.delete')}
-                          >
-                            🗑️
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
 
           {filteredReceipts.length === 0 && !loading && (
             <div className="text-center py-20 text-gray-500 dark:text-gray-400">

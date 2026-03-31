@@ -47,6 +47,37 @@ export async function GET(request: Request) {
   }
 }
 
+// ✅ الحقول المسموحة في جدول Permission - لتصفية أي حقول غير معروفة
+const VALID_PERMISSION_FIELDS = [
+  'canViewMembers', 'canCreateMembers', 'canEditMembers', 'canDeleteMembers',
+  'canViewPT', 'canCreatePT', 'canEditPT', 'canDeletePT', 'canRegisterPTAttendance',
+  'canViewNutrition', 'canCreateNutrition', 'canEditNutrition', 'canDeleteNutrition', 'canRegisterNutritionAttendance',
+  'canViewPhysiotherapy', 'canCreatePhysiotherapy', 'canEditPhysiotherapy', 'canDeletePhysiotherapy', 'canRegisterPhysioAttendance',
+  'canViewGroupClass', 'canCreateGroupClass', 'canEditGroupClass', 'canDeleteGroupClass', 'canRegisterClassAttendance',
+  'canViewMore', 'canRegisterMoreAttendance', 'canDeleteMore', 'canAccessMoreCommission',
+  'canViewStaff', 'canCreateStaff', 'canEditStaff', 'canDeleteStaff',
+  'canViewReceipts', 'canEditReceipts', 'canDeleteReceipts',
+  'canViewExpenses', 'canCreateExpense', 'canEditExpense', 'canDeleteExpense',
+  'canViewVisitors', 'canCreateVisitor', 'canEditVisitor', 'canDeleteVisitor',
+  'canViewFollowUps', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp',
+  'canViewDayUse', 'canCreateDayUse', 'canEditDayUse', 'canDeleteDayUse',
+  'canViewReports', 'canViewFinancials', 'canViewAttendance', 'canAccessClosing', 'canAccessSettings', 'canAccessAdmin',
+  'canViewSpaBookings', 'canCreateSpaBooking', 'canEditSpaBooking', 'canCancelSpaBooking', 'canViewSpaReports',
+  'canViewWhatsAppInbox', 'canSendWhatsApp', 'canManageWhatsApp',
+  'canViewDeductions', 'canCreateDeduction', 'canEditDeduction', 'canDeleteDeduction',
+  'canManageBannedMembers',
+]
+
+function filterPermissions(perms: Record<string, any>): Record<string, boolean> {
+  const filtered: Record<string, boolean> = {}
+  for (const key of Object.keys(perms)) {
+    if (VALID_PERMISSION_FIELDS.includes(key) && typeof perms[key] === 'boolean') {
+      filtered[key] = perms[key]
+    }
+  }
+  return filtered
+}
+
 // POST - إضافة مستخدم جديد
 export async function POST(request: Request) {
   try {
@@ -154,10 +185,14 @@ export async function POST(request: Request) {
     }
 
     // ✅ استخدام الصلاحيات المخصصة إذا تم إرسالها، وإلا استخدام الافتراضية
+    const permData = permissions && Object.keys(permissions).length > 0
+      ? filterPermissions(permissions)
+      : defaultPermissions
+
     await prisma.permission.create({
       data: {
         userId: user.id,
-        ...(permissions && Object.keys(permissions).length > 0 ? permissions : defaultPermissions)
+        ...permData
       }
     })
     

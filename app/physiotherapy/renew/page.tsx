@@ -14,6 +14,7 @@ interface PhysiotherapySession {
   pricePerSession: number
   startDate?: string
   expiryDate?: string
+  remainingAmount?: number
 }
 
 function PhysiotherapyRenewContent() {

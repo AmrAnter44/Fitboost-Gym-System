@@ -28,6 +28,7 @@ interface PhysiotherapySession {
   pricePerSession: number
   startDate?: string
   expiryDate?: string
+  remainingAmount?: number
 }
 
 interface PhysiotherapyRenewalFormProps {
@@ -276,14 +277,14 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
 
         <div className="p-4">
           {successMessage && (
-            <div className="bg-green-100 text-green-800 p-3 rounded-lg text-center font-medium text-sm mb-4">
+            <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 p-3 rounded-lg text-center font-medium text-sm mb-4">
               {successMessage}
             </div>
           )}
 
           {/* Packages Section */}
-          <div className="bg-gradient-to-br from-teal-50 to-cyan-100 border-2 border-teal-400 rounded-xl p-4 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-            <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-teal-800">
+          <div className="bg-gradient-to-br from-teal-50 to-cyan-100 dark:from-gray-700 dark:to-gray-700 border-2 border-teal-400 dark:border-gray-600 rounded-xl p-4 mb-4 dark:text-white">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-teal-800 dark:text-teal-300">
               <span>⚡</span>
               <span>{t('packages.selectPackage')}</span>
             </h3>
@@ -300,7 +301,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                     key={pkg.id}
                     type="button"
                     onClick={() => applyPackage(pkg)}
-                    className="bg-white dark:bg-gray-800 hover:bg-teal-50 border-2 border-teal-300 hover:border-teal-500 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg"
+                    className="bg-white dark:bg-gray-800 hover:bg-teal-50 dark:hover:bg-teal-900/30 border-2 border-teal-300 dark:border-teal-700 hover:border-teal-500 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg"
                   >
                     <div className="text-center">
                       <div className="text-2xl mb-1">🏥</div>
@@ -343,6 +344,15 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
               </div>
             </div>
 
+            {(session.remainingAmount || 0) > 0 && (
+              <div className="mt-2 pt-2 border-t border-blue-200">
+                <div className="bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg p-2 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">💰 {direction === 'rtl' ? 'المبلغ المتبقي من الاشتراك السابق' : 'Remaining from previous subscription'}</span>
+                  <span className="text-base font-bold text-orange-600 dark:text-orange-400">{(session.remainingAmount || 0).toFixed(0)} {t('physiotherapy.egp')}</span>
+                </div>
+              </div>
+            )}
+
             {session.expiryDate && (
               <div className="mt-2 pt-2 border-t border-blue-200">
                 <p className="text-xs text-gray-600 dark:text-gray-300 inline-block">{t('physiotherapy.renewal.currentExpiryDate')}: </p>
@@ -352,7 +362,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-gradient-to-br from-blue-50 to-primary-50 border-2 border-blue-200 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            <div className="bg-gradient-to-br from-blue-50 to-primary-50 dark:from-gray-700 dark:to-gray-700 border-2 border-blue-200 dark:border-gray-600 rounded-xl p-4 dark:text-white">
               <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                 <span>📋</span>
                 <span>{t('physiotherapy.renewal.renewalData')}</span>
@@ -446,7 +456,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-pink-50 border-2 border-blue-200 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+              <div className="bg-gradient-to-br from-blue-50 to-pink-50 dark:from-gray-700 dark:to-gray-700 border-2 border-blue-200 dark:border-gray-600 rounded-xl p-4 dark:text-white">
                 <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                   <span>📅</span>
                   <span>{t('physiotherapy.renewal.newSubscriptionPeriod')}</span>
@@ -492,7 +502,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                         key={months}
                         type="button"
                         onClick={() => calculateExpiryFromMonths(months)}
-                        className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg text-xs transition font-medium"
+                        className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/40 text-blue-800 dark:text-blue-300 rounded-lg text-xs transition font-medium"
                       >
                         + {months} {months === 1 ? t('physiotherapy.month') : t('physiotherapy.months')}
                       </button>
@@ -501,12 +511,12 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                 </div>
 
                 {duration !== null && formData.expiryDate && (
-                  <div className="bg-white dark:bg-gray-800 border-2 border-blue-300 rounded-lg p-2">
+                  <div className="bg-white dark:bg-gray-800 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-2">
                     {duration > 0 ? (
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">⏱️</span>
                         <div>
-                          <p className="font-bold text-blue-800 text-xs">{t('physiotherapy.renewal.subscriptionDuration')}</p>
+                          <p className="font-bold text-blue-800 dark:text-blue-300 text-xs">{t('physiotherapy.renewal.subscriptionDuration')}</p>
                           <p className="text-base font-mono">
                             {formatDurationInMonths(duration)}
                           </p>
@@ -523,7 +533,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
               </div>
 
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-50 border-2 border-blue-200 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-gray-700 dark:to-gray-700 border-2 border-blue-200 dark:border-gray-600 rounded-xl p-4 dark:text-white">
                   <PaymentMethodSelector
                     value={formData.paymentMethod}
                     onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
@@ -536,15 +546,15 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                   />
                 </div>
 
-                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-gray-700 dark:to-gray-700 border-2 border-yellow-200 dark:border-gray-600 rounded-xl p-4 dark:text-white">
                   <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                     <span>📊</span>
                     <span>{t('physiotherapy.renewal.summary')}</span>
                   </h3>
 
                   <div className="space-y-2">
-                    <div className="bg-blue-50 border-l-4 border-r-4 border-blue-400 p-2 rounded dark:bg-blue-900/20 dark:border-blue-700">
-                      <p className="text-xs text-blue-800">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-r-4 border-blue-400 dark:border-blue-700 p-2 rounded">
+                      <p className="text-xs text-blue-800 dark:text-blue-300">
                         ⚠️ {t('physiotherapy.renewal.replacementWarning', {
                           sessionsRemaining: session.sessionsRemaining.toString()
                         })}
@@ -554,7 +564,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
                       <span className="text-gray-600 dark:text-gray-300">{t('physiotherapy.renewal.newSessionsLabel')}</span>
                       <span className="font-bold text-blue-600">{formData.sessionsPurchased} {t('physiotherapy.session')}</span>
                     </div>
-                    <div className="bg-blue-100 border-l-4 border-r-4 border-blue-500 p-2 rounded">
+                    <div className="bg-blue-100 dark:bg-blue-900/20 border-l-4 border-r-4 border-blue-500 dark:border-blue-700 p-2 rounded">
                       <div className="flex justify-between">
                         <span className="font-bold text-gray-800 dark:text-gray-100 text-sm">{t('physiotherapy.renewal.paidAmount')}</span>
                         <span className="font-bold text-blue-600 text-base">{formData.totalPrice} {t('physiotherapy.egp')}</span>

@@ -1110,274 +1110,146 @@ const handleScan = async (staffCode: string) => {
         <div className="text-center py-12">{t('staff.loading')}</div>
       ) : (
         <>
-          {/* Cards للموبايل */}
-          <div className="lg:hidden space-y-4">
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" dir={direction}>
             {staff.map((staffMember) => (
               <div
                 key={staffMember.id}
-                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md border-r-4 border-orange-500 dark:border-orange-600 overflow-hidden ${
-                  !staffMember.isActive ? 'opacity-60' : ''
-                } ${isStaffCurrentlyInside(staffMember.id) ? 'bg-green-50 dark:bg-green-900/30' : ''}`}
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg dark:hover:shadow-2xl transition ${
+                  !staffMember.isActive ? 'opacity-60 border-gray-300 dark:border-gray-600' : isStaffCurrentlyInside(staffMember.id) ? 'border-green-400 dark:border-green-600' : 'border-gray-200 dark:border-gray-600'
+                }`}
               >
-                {/* Actions في الأعلى */}
-                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 flex justify-between items-center border-b border-gray-200 dark:border-gray-600">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(staffMember)}
-                      className="w-8 h-8 flex items-center justify-center bg-primary-100 dark:bg-primary-900/50 hover:bg-primary-200 dark:hover:bg-primary-800/50 text-primary-600 dark:text-primary-300 rounded-lg transition-all hover:scale-110 active:scale-95"
-                      title={t('staff.table.edit')}
-                    >
-                      ✏️
-                    </button>
-                    {hasPermission('canDeleteStaff') && (
+                {/* Header */}
+                <div className={`p-3 ${!staffMember.isActive ? 'bg-gray-500 dark:bg-gray-600' : isStaffCurrentlyInside(staffMember.id) ? 'bg-gradient-to-r from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800' : 'bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg text-white/80">👤</span>
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-base">{staffMember.name}</div>
+                        <div className="text-white/80 text-xs">
+                          #{staffMember.staffCode} {staffMember.phone ? `• ${staffMember.phone}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isStaffCurrentlyInside(staffMember.id) && (
+                        <span className="bg-green-400 dark:bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse font-bold">
+                          🟢 {t('staff.attendance.inside')}
+                        </span>
+                      )}
                       <button
-                        onClick={() => handleDelete(staffMember)}
-                        className="w-8 h-8 flex items-center justify-center bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-600 dark:text-red-300 rounded-lg transition-all hover:scale-110 active:scale-95"
-                        title={t('staff.table.delete')}
+                        onClick={() => toggleActive(staffMember)}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          staffMember.isActive ? 'bg-green-500 dark:bg-green-600 text-white' : 'bg-red-500 dark:bg-red-600 text-white'
+                        }`}
                       >
-                        🗑️
+                        {staffMember.isActive ? t('staff.table.active') : t('staff.table.inactive')}
                       </button>
-                    )}
+                    </div>
                   </div>
-                  {staffMember.phone && (
-                    <StaffBarcodeWhatsApp
-                      staffCode={staffMember.staffCode}
-                      staffName={staffMember.name}
-                      staffPhone={staffMember.phone}
-                    />
-                  )}
                 </div>
 
-                {/* محتوى الكارت */}
-                <div className="p-4 space-y-3">
-                  {/* الرقم والاسم */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="bg-primary-500 dark:bg-primary-600 text-white px-3 py-1 rounded-lg font-bold text-sm">
-                          #{staffMember.staffCode}
-                        </span>
-                        {isStaffCurrentlyInside(staffMember.id) && (
-                          <span className="bg-green-500 dark:bg-green-600 text-white text-xs px-2 py-1 rounded-full animate-pulse">
-                            🟢 {t('staff.attendance.inside')}
-                          </span>
-                        )}
+                {/* Card Body */}
+                <div className="p-3 space-y-2.5">
+                  {/* Positions */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {staffMember.position ? staffMember.position.split(',').filter(p => p).map((pos, idx) => (
+                      <span
+                        key={idx}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${getPositionColor(pos)}`}
+                      >
+                        <span>{getPositionIcon(pos)}</span>
+                        <span>{getPositionLabel(pos)}</span>
+                      </span>
+                    )) : <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>}
+                  </div>
+
+                  {/* Info Grid */}
+                  <div className={`grid ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
+                    {isAdmin && (
+                      <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-2 text-center">
+                        <div className="text-[10px] text-green-700 dark:text-green-300 font-semibold">{t('staff.table.salary')}</div>
+                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                          {staffMember.salary ? `${staffMember.salary} ${t('common.egp')}` : '-'}
+                        </div>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{staffMember.name}</h3>
-                    </div>
-                  </div>
-
-                  {/* الوظائف المتعددة */}
-                  <div className="flex items-start gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm mt-1">💼</span>
-                    <div className="flex flex-wrap gap-2">
-                      {staffMember.position ? staffMember.position.split(',').filter(p => p).map((pos, idx) => (
-                        <span
-                          key={idx}
-                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getPositionColor(pos)}`}
-                        >
-                          <span>{getPositionIcon(pos)}</span>
-                          <span>{getPositionLabel(pos)}</span>
-                        </span>
-                      )) : <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>}
-                    </div>
-                  </div>
-
-                  {/* الهاتف */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">📱</span>
-                    <span className="text-gray-700 dark:text-gray-200">{staffMember.phone || '-'}</span>
-                  </div>
-
-                  {/* المرتب - للأدمن فقط */}
-                  {isAdmin && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">💰</span>
-                    <span className="font-bold text-green-600 dark:text-green-400">
-                      {staffMember.salary ? `${staffMember.salary} ج.م` : '-'}
-                    </span>
-                  </div>
-                  )}
-
-                  {/* الخصومات */}
-                  {staffMember.deductions && staffMember.deductions.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 text-sm">📉</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-600 dark:text-red-400 font-semibold text-sm">
+                    )}
+                    {staffMember.deductions && staffMember.deductions.length > 0 ? (
+                      <div className={`border rounded-lg p-2 text-center ${
+                        staffMember.deductions.filter(d => !d.isApplied).length > 0
+                          ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700'
+                          : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
+                      }`}>
+                        <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{t('staff.table.deductions')}</div>
+                        <div className="flex items-center justify-center gap-1 mt-0.5">
                           {staffMember.deductions.filter(d => !d.isApplied).length > 0 && (
-                            <span className="bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 px-2 py-1 rounded-lg text-xs">
-                              {staffMember.deductions.filter(d => !d.isApplied).length} خصم معلق
+                            <span className="bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 px-1.5 py-0.5 rounded text-xs font-bold">
+                              {staffMember.deductions.filter(d => !d.isApplied).length} {t('staff.table.pending')}
                             </span>
                           )}
                           {staffMember.deductions.filter(d => d.isApplied).length > 0 && (
-                            <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-lg text-xs mr-1">
-                              {staffMember.deductions.filter(d => d.isApplied).length} مطبق
+                            <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded text-xs font-bold">
+                              {staffMember.deductions.filter(d => d.isApplied).length} {t('staff.table.applied')}
                             </span>
                           )}
-                        </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : !isAdmin ? (
+                      <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-2 text-center">
+                        <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{t('staff.table.deductions')}</div>
+                        <div className="text-sm font-bold text-gray-400 dark:text-gray-500">-</div>
+                      </div>
+                    ) : null}
+                  </div>
 
-                  {/* الحالة */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">📊</span>
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
                     <button
-                      onClick={() => toggleActive(staffMember)}
-                      className={`px-3 py-1 rounded-full text-sm font-semibold transition ${
-                        staffMember.isActive
-                          ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
-                          : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
-                      }`}
+                      onClick={() => handleEdit(staffMember)}
+                      className="bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1 transition-all hover:scale-105 active:scale-95"
                     >
-                      {staffMember.isActive ? `✅ ${t('staff.table.active')}` : `❌ ${t('staff.table.inactive')}`}
+                      <span>✏️</span>
+                      <span>{t('staff.table.edit')}</span>
                     </button>
+                    {hasPermission('canDeleteStaff') ? (
+                      <button
+                        onClick={() => handleDelete(staffMember)}
+                        className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 dark:hover:bg-red-800 font-bold flex items-center justify-center gap-1 transition-all hover:scale-105 active:scale-95"
+                      >
+                        <span>🗑️</span>
+                        <span>{t('staff.table.delete')}</span>
+                      </button>
+                    ) : staffMember.phone ? (
+                      <StaffBarcodeWhatsApp
+                        staffCode={staffMember.staffCode}
+                        staffName={staffMember.name}
+                        staffPhone={staffMember.phone}
+                      />
+                    ) : <div />}
+                    {hasPermission('canDeleteStaff') && staffMember.phone && (
+                      <div className="col-span-2">
+                        <StaffBarcodeWhatsApp
+                          staffCode={staffMember.staffCode}
+                          staffName={staffMember.name}
+                          staffPhone={staffMember.phone}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
-
-            {staff.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <div className="text-6xl mb-4">😕</div>
-                <p className="text-xl">{t('staff.empty.title')}</p>
-                <p className="text-sm mt-2">{t('staff.empty.subtitle')}</p>
-              </div>
-            )}
           </div>
 
-          {/* الجدول للشاشات الكبيرة */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 border-b-2 border-gray-300 dark:border-gray-600">
-                  <tr>
-                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.number')}</th>
-                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.name')}</th>
-                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.phone')}</th>
-                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.position')}</th>
-                    {isAdmin && <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.salary')}</th>}
-                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">📉 الخصومات</th>
-                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.status')}</th>
-                    <th className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-bold">{t('staff.table.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {staff.map((staffMember) => (
-                    <tr
-                      key={staffMember.id}
-                      className={`border-t border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition ${
-                        !staffMember.isActive ? 'opacity-60' : ''
-                      } ${isStaffCurrentlyInside(staffMember.id) ? 'bg-green-50 dark:bg-green-900/30' : 'bg-white dark:bg-gray-800'}`}
-                    >
-                      <td className="px-4 py-3">
-                        <span className="bg-primary-500 dark:bg-primary-600 text-white px-4 py-2 rounded-lg font-bold text-xl">
-                          #{staffMember.staffCode}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">{staffMember.name}</span>
-                          {isStaffCurrentlyInside(staffMember.id) && (
-                            <span className="bg-green-500 dark:bg-green-600 text-white text-xs px-2 py-1 rounded-full animate-pulse">
-                              🟢 {t('staff.attendance.inside')}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{staffMember.phone || '-'}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          {staffMember.position ? staffMember.position.split(',').filter(p => p).map((pos, idx) => (
-                            <span
-                              key={idx}
-                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getPositionColor(pos)}`}
-                            >
-                              <span>{getPositionIcon(pos)}</span>
-                              <span>{getPositionLabel(pos)}</span>
-                            </span>
-                          )) : <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>}
-                        </div>
-                      </td>
-                      {isAdmin && (
-                      <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
-                        {staffMember.salary ? `${staffMember.salary} ج.م` : '-'}
-                      </td>
-                      )}
-                      <td className="px-4 py-3">
-                        {staffMember.deductions && staffMember.deductions.length > 0 ? (
-                          <div className="flex items-center gap-2">
-                            {staffMember.deductions.filter(d => !d.isApplied).length > 0 && (
-                              <span className="bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 px-2 py-1 rounded-lg text-xs font-semibold">
-                                {staffMember.deductions.filter(d => !d.isApplied).length} معلق
-                              </span>
-                            )}
-                            {staffMember.deductions.filter(d => d.isApplied).length > 0 && (
-                              <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-lg text-xs font-semibold">
-                                {staffMember.deductions.filter(d => d.isApplied).length} مطبق
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => toggleActive(staffMember)}
-                          className={`px-3 py-1 rounded-full text-sm font-semibold transition transform hover:scale-105 ${
-                            staffMember.isActive
-                              ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/50'
-                              : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/50'
-                          }`}
-                        >
-                          {staffMember.isActive ? `✅ ${t('staff.table.active')}` : `❌ ${t('staff.table.inactive')}`}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2 items-center">
-                          <button
-                            onClick={() => handleEdit(staffMember)}
-                            className="w-9 h-9 flex items-center justify-center bg-primary-100 dark:bg-primary-900/50 hover:bg-primary-200 dark:hover:bg-primary-800/50 text-primary-600 dark:text-primary-300 rounded-lg transition-all hover:scale-110 active:scale-95"
-                            title={t('staff.table.edit')}
-                          >
-                            ✏️
-                          </button>
-
-                          {hasPermission('canDeleteStaff') && (
-                            <button
-                              onClick={() => handleDelete(staffMember)}
-                              className="w-9 h-9 flex items-center justify-center bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-600 dark:text-red-300 rounded-lg transition-all hover:scale-110 active:scale-95"
-                              title={t('staff.table.delete')}
-                            >
-                              🗑️
-                            </button>
-                          )}
-
-                          {staffMember.phone && (
-                            <StaffBarcodeWhatsApp
-                              staffCode={staffMember.staffCode}
-                              staffName={staffMember.name}
-                              staffPhone={staffMember.phone}
-                            />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {staff.length === 0 && (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <div className="text-6xl mb-4">😕</div>
+              <p className="text-xl">{t('staff.empty.title')}</p>
+              <p className="text-sm mt-2">{t('staff.empty.subtitle')}</p>
             </div>
-
-            {staff.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <div className="text-6xl mb-4">😕</div>
-                <p className="text-xl">{t('staff.empty.title')}</p>
-                <p className="text-sm mt-2">{t('staff.empty.subtitle')}</p>
-              </div>
-            )}
-          </div>
+          )}
         </>
       )}
 

@@ -453,6 +453,15 @@ model Permission {
   canViewWhatsAppInbox    Boolean @default(false)
   canSendWhatsApp         Boolean @default(false)
   canManageWhatsApp       Boolean @default(false)
+  canViewMore             Boolean @default(false)
+  canRegisterMoreAttendance Boolean @default(false)
+  canDeleteMore           Boolean @default(false)
+  canAccessMoreCommission Boolean @default(false)
+  canViewDeductions       Boolean @default(false)
+  canCreateDeduction      Boolean @default(false)
+  canEditDeduction        Boolean @default(false)
+  canDeleteDeduction      Boolean @default(false)
+  canManageBannedMembers  Boolean @default(false)
   user                    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 

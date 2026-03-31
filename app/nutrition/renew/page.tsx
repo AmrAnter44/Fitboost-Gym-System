@@ -14,6 +14,7 @@ interface NutritionSession {
   pricePerSession: number
   startDate?: string
   expiryDate?: string
+  remainingAmount?: number
 }
 
 function NutritionRenewContent() {

@@ -226,6 +226,8 @@ export default function MemberDetailPage() {
     name: '',
     phone: '',
     profileImage: null as string | null,
+    idCardFront: null as string | null,
+    idCardBack: null as string | null,
     subscriptionPrice: 0,
     inBodyScans: 0,
     invitations: 0,
@@ -1152,6 +1154,8 @@ export default function MemberDetailPage() {
           name: editBasicInfoData.name.trim(),
           phone: editBasicInfoData.phone.trim(),
           profileImage: editBasicInfoData.profileImage,
+          idCardFront: editBasicInfoData.idCardFront,
+          idCardBack: editBasicInfoData.idCardBack,
           subscriptionPrice: parseInt(editBasicInfoData.subscriptionPrice.toString()),
           inBodyScans: parseInt(editBasicInfoData.inBodyScans.toString()),
           invitations: parseInt(editBasicInfoData.invitations.toString()),
@@ -1178,6 +1182,8 @@ export default function MemberDetailPage() {
           name: '',
           phone: '',
           profileImage: null,
+          idCardFront: null,
+          idCardBack: null,
           subscriptionPrice: 0,
           inBodyScans: 0,
           invitations: 0,
@@ -1587,7 +1593,9 @@ export default function MemberDetailPage() {
                       coachId: member.coachId || null,
                       notes: member.notes || '',
                       startDate: member.startDate ? formatDateYMD(member.startDate) : '',
-                      expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : ''
+                      expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : '',
+                      idCardFront: member.idCardFront || null,
+                      idCardBack: member.idCardBack || null
                     })
                     setActiveModal('edit-basic-info')
                   }}
@@ -1880,29 +1888,36 @@ export default function MemberDetailPage() {
         </div>
 
         {settings.nutritionEnabled && (
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-lime-500 dark:border-lime-600`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.nutritionSessions')}</p>
-                <p className="text-4xl font-bold text-lime-600 dark:text-lime-400">{member.freeNutritionSessions ?? 0}</p>
+          <div className="bg-gradient-to-br from-lime-500 to-green-600 text-white rounded-xl shadow-2xl p-6 border-4 border-lime-300">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+              <div className="bg-white dark:bg-gray-800/20 p-3 rounded-full w-fit">
+                <span className="text-4xl">🥗</span>
               </div>
-              <div className="text-5xl">🥗</div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold">{t('memberDetails.nutritionSessions')}</h3>
+                <p className="text-sm opacity-90">{t('memberDetails.nutritionSubtitle')}</p>
+              </div>
             </div>
 
-            {/* عرض الجلسات المدفوعة */}
-            {paidSessionCounts.nutrition > 0 && (
-              <div className="bg-lime-50 dark:bg-lime-900/20 border-2 border-lime-200 dark:border-lime-700 rounded-lg p-3 mb-3">
-                <p className="text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.paidNutritionSessions')}</p>
-                <p className="text-2xl font-bold text-lime-600 dark:text-lime-400">{paidSessionCounts.nutrition}</p>
+            <div className={`grid grid-cols-1 ${paidSessionCounts.nutrition > 0 ? 'sm:grid-cols-2' : ''} gap-3 md:gap-4 mt-4`}>
+              <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
+                <p className="text-xs opacity-80 mb-1">{t('memberDetails.freeSessions')}</p>
+                <p className="text-xl md:text-2xl font-bold text-yellow-300">{member.freeNutritionSessions ?? 0}</p>
               </div>
-            )}
 
-            {/* أزرار الخصم */}
-            <div className="space-y-2">
+              {paidSessionCounts.nutrition > 0 && (
+                <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
+                  <p className="text-xs opacity-80 mb-1">{t('memberDetails.paidNutritionSessions')}</p>
+                  <p className="text-xl md:text-2xl font-bold text-yellow-300">{paidSessionCounts.nutrition}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 mt-4">
               <button
                 onClick={handleUseFreeNutrition}
                 disabled={(member.freeNutritionSessions ?? 0) <= 0 || loading}
-                className="w-full bg-lime-600 dark:bg-lime-700 text-white py-2 rounded-lg hover:bg-lime-700 dark:hover:bg-lime-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                className="w-full bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
               >
                 {t('memberDetails.useNutrition')}
               </button>
@@ -1911,7 +1926,7 @@ export default function MemberDetailPage() {
                 <button
                   onClick={handleUsePaidNutrition}
                   disabled={loading}
-                  className="w-full bg-lime-500 dark:bg-lime-600 text-white py-2 rounded-lg hover:bg-lime-600 dark:hover:bg-lime-700 transition-colors"
+                  className="w-full bg-white/20 dark:bg-gray-700/50 text-white py-3 rounded-lg hover:bg-white/30 dark:hover:bg-gray-600/50 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
                 >
                   {t('memberDetails.usePaidSession')}
                 </button>
@@ -1921,29 +1936,36 @@ export default function MemberDetailPage() {
         )}
 
         {settings.physiotherapyEnabled && (
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-blue-500`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.physioSessions')}</p>
-                <p className="text-4xl font-bold text-blue-600">{member.freePhysioSessions ?? 0}</p>
+          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-2xl p-6 border-4 border-blue-300">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+              <div className="bg-white dark:bg-gray-800/20 p-3 rounded-full w-fit">
+                <span className="text-4xl">🏥</span>
               </div>
-              <div className="text-5xl">🏥</div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold">{t('memberDetails.physioSessions')}</h3>
+                <p className="text-sm opacity-90">{t('memberDetails.physioSubtitle')}</p>
+              </div>
             </div>
 
-            {/* عرض الجلسات المدفوعة */}
-            {paidSessionCounts.physio > 0 && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-3 mb-3">
-                <p className="text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.paidPhysioSessions')}</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{paidSessionCounts.physio}</p>
+            <div className={`grid grid-cols-1 ${paidSessionCounts.physio > 0 ? 'sm:grid-cols-2' : ''} gap-3 md:gap-4 mt-4`}>
+              <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
+                <p className="text-xs opacity-80 mb-1">{t('memberDetails.freeSessions')}</p>
+                <p className="text-xl md:text-2xl font-bold text-yellow-300">{member.freePhysioSessions ?? 0}</p>
               </div>
-            )}
 
-            {/* أزرار الخصم */}
-            <div className="space-y-2">
+              {paidSessionCounts.physio > 0 && (
+                <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
+                  <p className="text-xs opacity-80 mb-1">{t('memberDetails.paidPhysioSessions')}</p>
+                  <p className="text-xl md:text-2xl font-bold text-yellow-300">{paidSessionCounts.physio}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 mt-4">
               <button
                 onClick={handleUseFreePhysio}
                 disabled={(member.freePhysioSessions ?? 0) <= 0 || loading}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
               >
                 {t('memberDetails.usePhysio')}
               </button>
@@ -1952,7 +1974,7 @@ export default function MemberDetailPage() {
                 <button
                   onClick={handleUsePaidPhysio}
                   disabled={loading}
-                  className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
+                  className="w-full bg-white/20 dark:bg-gray-700/50 text-white py-3 rounded-lg hover:bg-white/30 dark:hover:bg-gray-600/50 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
                 >
                   {t('memberDetails.usePaidSession')}
                 </button>
@@ -1962,29 +1984,36 @@ export default function MemberDetailPage() {
         )}
 
         {settings.groupClassEnabled && (
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-fuchsia-500`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.groupClassSessions')}</p>
-                <p className="text-4xl font-bold text-fuchsia-600">{member.freeGroupClassSessions ?? 0}</p>
+          <div className="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl shadow-2xl p-6 border-4 border-fuchsia-300">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+              <div className="bg-white dark:bg-gray-800/20 p-3 rounded-full w-fit">
+                <span className="text-4xl">👥</span>
               </div>
-              <div className="text-5xl">👥</div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold">{t('memberDetails.groupClassSessions')}</h3>
+                <p className="text-sm opacity-90">{t('memberDetails.groupClassSubtitle')}</p>
+              </div>
             </div>
 
-            {/* عرض الجلسات المدفوعة */}
-            {paidSessionCounts.groupClass > 0 && (
-              <div className="bg-fuchsia-50 dark:bg-fuchsia-900/20 border-2 border-fuchsia-200 dark:border-fuchsia-700 rounded-lg p-3 mb-3">
-                <p className="text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.paidGroupClassSessions')}</p>
-                <p className="text-2xl font-bold text-fuchsia-600 dark:text-fuchsia-400">{paidSessionCounts.groupClass}</p>
+            <div className={`grid grid-cols-1 ${paidSessionCounts.groupClass > 0 ? 'sm:grid-cols-2' : ''} gap-3 md:gap-4 mt-4`}>
+              <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
+                <p className="text-xs opacity-80 mb-1">{t('memberDetails.freeSessions')}</p>
+                <p className="text-xl md:text-2xl font-bold text-yellow-300">{member.freeGroupClassSessions ?? 0}</p>
               </div>
-            )}
 
-            {/* أزرار الخصم */}
-            <div className="space-y-2">
+              {paidSessionCounts.groupClass > 0 && (
+                <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
+                  <p className="text-xs opacity-80 mb-1">{t('memberDetails.paidGroupClassSessions')}</p>
+                  <p className="text-xl md:text-2xl font-bold text-yellow-300">{paidSessionCounts.groupClass}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 mt-4">
               <button
                 onClick={handleUseFreeGroupClass}
                 disabled={(member.freeGroupClassSessions ?? 0) <= 0 || loading}
-                className="w-full bg-fuchsia-600 text-white py-2 rounded-lg hover:bg-fuchsia-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
               >
                 {t('memberDetails.useGroupClass')}
               </button>
@@ -1993,7 +2022,7 @@ export default function MemberDetailPage() {
                 <button
                   onClick={handleUsePaidGroupClass}
                   disabled={loading}
-                  className="w-full bg-fuchsia-500 text-white py-2 rounded-lg hover:bg-fuchsia-600"
+                  className="w-full bg-white/20 dark:bg-gray-700/50 text-white py-3 rounded-lg hover:bg-white/30 dark:hover:bg-gray-600/50 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
                 >
                   {t('memberDetails.usePaidSession')}
                 </button>
@@ -2422,6 +2451,28 @@ export default function MemberDetailPage() {
                 onImageChange={(imageUrl) => setEditBasicInfoData({ ...editBasicInfoData, profileImage: imageUrl })}
                 disabled={loading}
               />
+            </div>
+
+            {/* تعديل صور البطاقة */}
+            <div className="mb-4 grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium mb-1 text-center">🪪 وجه البطاقة</label>
+                <ImageUpload
+                  currentImage={editBasicInfoData.idCardFront}
+                  onImageChange={(imageUrl) => setEditBasicInfoData({ ...editBasicInfoData, idCardFront: imageUrl })}
+                  disabled={loading}
+                  variant="idCard"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-center">🪪 خلف البطاقة</label>
+                <ImageUpload
+                  currentImage={editBasicInfoData.idCardBack}
+                  onImageChange={(imageUrl) => setEditBasicInfoData({ ...editBasicInfoData, idCardBack: imageUrl })}
+                  disabled={loading}
+                  variant="idCard"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

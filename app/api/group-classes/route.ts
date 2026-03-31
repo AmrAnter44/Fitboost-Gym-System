@@ -70,7 +70,13 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json(groupClassSessions)
+    // Map classNumber to groupClassNumber for frontend compatibility
+    const mapped = groupClassSessions.map(({ classNumber, ...rest }) => ({
+      ...rest,
+      groupClassNumber: classNumber
+    }))
+
+    return NextResponse.json(mapped)
   } catch (error: any) {
     console.error('Error fetching GroupClass sessions:', error)
 
@@ -414,7 +420,8 @@ export async function POST(request: Request) {
         timeout: 15000, // ⏱️ 15 seconds timeout (increased for SQLite performance)
       })
 
-      return NextResponse.json(groupClass, { status: 201 })
+      const { classNumber: cn, ...restGC } = groupClass as any
+      return NextResponse.json({ ...restGC, groupClassNumber: cn }, { status: 201 })
 
     } catch (receiptError: any) {
       console.error('❌ خطأ في إنشاء الاشتراك والإيصال:', receiptError)
@@ -458,7 +465,8 @@ export async function PUT(request: Request) {
     await requirePermission(request, 'canEditGroupClass')
 
     const body = await request.json()
-    const { classNumber, action, ...data } = body
+    const { classNumber: cn, groupClassNumber: gcn, action, ...data } = body
+    const classNumber = cn || gcn
 
     if (action === 'use_session') {
       const groupClass = await prisma.groupClass.findUnique({ where: { classNumber: parseInt(classNumber) } })
@@ -513,7 +521,8 @@ export async function PUT(request: Request) {
         data: updateData,
       })
 
-      return NextResponse.json(groupClass)
+      const { classNumber: cnU, ...restU } = groupClass as any
+      return NextResponse.json({ ...restU, groupClassNumber: cnU })
     }
   } catch (error: any) {
     console.error('Error updating GroupClass:', error)
@@ -543,7 +552,7 @@ export async function DELETE(request: Request) {
     await requirePermission(request, 'canDeleteGroupClass')
 
     const { searchParams } = new URL(request.url)
-    const classNumber = searchParams.get('classNumber')
+    const classNumber = searchParams.get('classNumber') || searchParams.get('groupClassNumber')
 
     if (!classNumber) {
       return NextResponse.json({ error: 'رقم GroupClass مطلوب' }, { status: 400 })

@@ -14,6 +14,7 @@ interface GroupClassSession {
   pricePerSession: number
   startDate?: string
   expiryDate?: string
+  remainingAmount?: number
 }
 
 function GroupClassRenewContent() {

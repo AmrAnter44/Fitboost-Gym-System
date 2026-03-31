@@ -14,6 +14,7 @@ interface PTSession {
   pricePerSession: number
   startDate?: string
   expiryDate?: string
+  remainingAmount?: number
 }
 
 function PTRenewContent() {

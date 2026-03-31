@@ -17,6 +17,7 @@ import { fetchPTSessions, fetchCoaches } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
+import PTRenewalForm from '../../components/PTRenewalForm'
 
 const SignaturePad = dynamic(() => import('../../components/SignaturePad'), { ssr: false })
 
@@ -103,6 +104,7 @@ export default function PTPage() {
   // حالة الإمضاء للكوتش
   const [showSignatureModal, setShowSignatureModal] = useState(false)
   const [signatureSession, setSignatureSession] = useState<PTSession | null>(null)
+  const [renewalSession, setRenewalSession] = useState<PTSession | null>(null)
 
   const [isDayUse, setIsDayUse] = useState(false)
   const [packages, setPackages] = useState<any[]>([])
@@ -411,7 +413,7 @@ export default function PTPage() {
   }
 
   const handleRenew = (session: PTSession) => {
-    router.push(`/pt/renew?ptNumber=${session.ptNumber}`)
+    setRenewalSession(session)
   }
 
   const handleRegisterSession = async (session: PTSession) => {
@@ -424,10 +426,10 @@ export default function PTPage() {
 
     // الموظف يسجل بتأكيد عادي
     const confirmed = await confirm({
-      title: 'تسجيل حضور',
-      message: `هل تريد تسجيل حضور حصة لـ ${session.clientName}؟\nالحصص المتبقية: ${session.sessionsRemaining} من ${session.sessionsPurchased}`,
-      confirmText: 'تسجيل',
-      cancelText: 'إلغاء',
+      title: t('pt.registerAttendance.title'),
+      message: t('pt.registerAttendance.message', { clientName: session.clientName, remaining: session.sessionsRemaining.toString(), total: session.sessionsPurchased.toString() }),
+      confirmText: t('pt.registerAttendance.confirm'),
+      cancelText: t('pt.registerAttendance.cancel'),
       type: 'info'
     })
     if (!confirmed) return
@@ -450,12 +452,12 @@ export default function PTPage() {
               : s
           ) : old
         )
-        toast.success(`تم تسجيل حصة ${session.clientName} بنجاح`)
+        toast.success(t('pt.registerAttendance.success', { clientName: session.clientName }))
       } else {
-        toast.error(data.error || 'فشل تسجيل الحصة')
+        toast.error(data.error || t('pt.registerAttendance.failed'))
       }
     } catch {
-      toast.error('حدث خطأ في الاتصال')
+      toast.error(t('pt.registerAttendance.connectionError'))
     }
   }
 
@@ -480,12 +482,12 @@ export default function PTPage() {
               : s
           ) : old
         )
-        toast.success(`تم تسجيل حصة ${signatureSession.clientName} بنجاح`)
+        toast.success(t('pt.registerAttendance.success', { clientName: signatureSession.clientName }))
       } else {
-        toast.error(data.error || 'فشل تسجيل الحصة')
+        toast.error(data.error || t('pt.registerAttendance.failed'))
       }
     } catch {
-      toast.error('حدث خطأ في الاتصال')
+      toast.error(t('pt.registerAttendance.connectionError'))
     } finally {
       setShowSignatureModal(false)
       setSignatureSession(null)
@@ -655,7 +657,8 @@ export default function PTPage() {
       </div>
 
       {!isCoach && showForm && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-100 dark:border-primary-700" dir={direction}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6" dir={direction}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
               {editingSession ? t('pt.editSession') : t('pt.addSession')}
@@ -1013,6 +1016,7 @@ export default function PTPage() {
             </div>
           </form>
         </div>
+        </div>
       )}
 
       {/* 🔍 البحث والفلاتر السريعة */}
@@ -1032,7 +1036,7 @@ export default function PTPage() {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold flex items-center gap-2">
               <span>🎯</span>
-              <span>فلاتر سريعة</span>
+              <span>{t('pt.quickFilters')}</span>
             </h3>
             {(filterStatus !== 'all' || filterSessions !== 'all') && (
               <button
@@ -1156,15 +1160,15 @@ export default function PTPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">📝 نوع الجلسة</label>
+            <label className="block text-sm font-medium mb-2">📝 {t('pt.sessionType')}</label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as any)}
               className="w-full px-3 py-2.5 border-2 border-primary-200 dark:border-primary-600 rounded-lg focus:border-primary-400 focus:outline-none transition dark:bg-gray-700 dark:text-white"
             >
-              <option value="all">الكل</option>
-              <option value="regular">PT عادي</option>
-              <option value="dayuse">🏃 Day Use</option>
+              <option value="all">{t('pt.typeAll')}</option>
+              <option value="regular">{t('pt.typeRegular')}</option>
+              <option value="dayuse">{t('pt.typeDayUse')}</option>
             </select>
           </div>
         </div>
@@ -1510,6 +1514,18 @@ export default function PTPage() {
             setShowSignatureModal(false)
             setSignatureSession(null)
           }}
+        />
+      )}
+
+      {/* Renewal Modal */}
+      {renewalSession && (
+        <PTRenewalForm
+          session={renewalSession}
+          onSuccess={() => {
+            refetchSessions()
+            setRenewalSession(null)
+          }}
+          onClose={() => setRenewalSession(null)}
         />
       )}
     </div>
