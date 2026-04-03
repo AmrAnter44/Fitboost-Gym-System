@@ -142,7 +142,7 @@ export default function RegisterGroupClassSessionPage() {
           <p className="text-gray-600 dark:text-gray-300">سجل حضور العميل في جلسة جروب كلاسيس</p>
         </div>
         <button
-          onClick={() => router.push('/groupClass/sessions/history')}
+          onClick={() => router.push('/group-classes/sessions/history')}
           className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
         >
           📊 سجل الحضور

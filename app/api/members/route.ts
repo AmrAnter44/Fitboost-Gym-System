@@ -723,6 +723,20 @@ export async function PUT(request: Request) {
       updateData.expiryDate = new Date(data.expiryDate)
     }
 
+    // ✅ تحديث حالة العضو تلقائياً عند تعديل التواريخ
+    if (data.startDate || data.expiryDate) {
+      const currentMember = await prisma.member.findUnique({ where: { id }, select: { startDate: true, expiryDate: true, isFrozen: true } })
+      if (currentMember) {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const newStart = updateData.startDate || currentMember.startDate
+        const newExpiry = updateData.expiryDate || currentMember.expiryDate
+        const hasStarted = !newStart || new Date(newStart) <= today
+        const notExpired = !newExpiry || new Date(newExpiry) >= today
+        updateData.isActive = hasStarted && notExpired
+      }
+    }
+
     const member = await prisma.member.update({
       where: { id },
       data: updateData,

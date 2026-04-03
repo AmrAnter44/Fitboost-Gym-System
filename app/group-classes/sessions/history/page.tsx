@@ -137,7 +137,7 @@ export default function GroupClassSessionHistoryPage() {
         </div>
         {!isCoach && (
           <button
-            onClick={() => router.push('/groupClass/sessions/register')}
+            onClick={() => router.push('/group-classes/sessions/register')}
             className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
           >
             ➕ {t('groupClass.sessionHistory.registerNew')}

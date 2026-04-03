@@ -426,9 +426,11 @@ const handleScan = async (staffCode: string) => {
       const staffNumber = parseInt(numericCode, 10) - 100000000
       const staffCodeWithS = `s${staffNumber.toString().padStart(3, '0')}`
 
+      const { salary: _salary, ...formDataWithoutSalary } = formData
+      const safeFormData = isAdmin ? formData : formDataWithoutSalary
       const body = editingStaff
-        ? { id: editingStaff.id, ...formData, position: finalPosition, staffCode: staffCodeWithS }
-        : { ...formData, position: finalPosition, staffCode: staffCodeWithS }
+        ? { id: editingStaff.id, ...safeFormData, position: finalPosition, staffCode: staffCodeWithS }
+        : { ...safeFormData, position: finalPosition, staffCode: staffCodeWithS }
 
       const response = await fetch(url, {
         method,
@@ -796,34 +798,43 @@ const handleScan = async (staffCode: string) => {
           <button
             onClick={() => {
               resetForm()
-              setShowForm(!showForm)
+              setShowForm(true)
             }}
             className="flex-1 sm:flex-none bg-primary-600 dark:bg-primary-700 text-white px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition transform hover:scale-105 shadow-md"
           >
-            {showForm ? t('staff.hideForm') : `➕ ${t('staff.addNewStaff')}`}
+            ➕ {t('staff.addNewStaff')}
           </button>
         </div>
       </div>
 
-      {/* نموذج الإضافة/التعديل */}
+      {/* نموذج الإضافة/التعديل - Modal */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-100 dark:border-primary-700">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
-            {editingStaff ? (
-              <>
-                <span>✏️</span>
-                <span>{t('staff.editStaff')}</span>
-              </>
-            ) : (
-              <>
-                <span>➕</span>
-                <span>{t('staff.addStaff')}</span>
-              </>
-            )}
-          </h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) resetForm() }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto" dir={direction} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+                {editingStaff ? (
+                  <>
+                    <span>✏️</span>
+                    <span>{t('staff.editStaff')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>➕</span>
+                    <span>{t('staff.addStaff')}</span>
+                  </>
+                )}
+              </h2>
+              <button
+                onClick={resetForm}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-3xl leading-none"
+              >
+                ×
+              </button>
+            </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* ✅ رقم الموظف */}
               <div>
                 <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
@@ -875,12 +886,33 @@ const handleScan = async (staffCode: string) => {
                 />
               </div>
 
+              {/* المرتب - للأدمن فقط */}
+              {isAdmin && (
+              <div>
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
+                  {t('staff.form.salary')}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.salary}
+                  onChange={(e) =>
+                    setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })
+                  }
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder={t('staff.form.salaryPlaceholder')}
+                />
+              </div>
+              )}
+            </div>
+
               {/* الوظيفة - اختيار متعدد */}
               <div>
                 <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
                   {t('staff.form.positionRequired')} (يمكن اختيار أكثر من وظيفة)
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                   {POSITIONS.map((pos) => {
                     const selectedPositions = formData.position ? formData.position.split(',') : []
                     const isSelected = selectedPositions.includes(pos.value)
@@ -888,7 +920,7 @@ const handleScan = async (staffCode: string) => {
                     return (
                       <label
                         key={pos.value}
-                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                        className={`flex items-center gap-2 p-2.5 rounded-lg cursor-pointer transition-all text-sm ${
                           isSelected
                             ? 'bg-primary-100 dark:bg-primary-900/40 border-2 border-primary-500'
                             : 'bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-700'
@@ -900,17 +932,15 @@ const handleScan = async (staffCode: string) => {
                           onChange={() => {
                             const positions = formData.position ? formData.position.split(',').filter(p => p) : []
                             if (positions.includes(pos.value)) {
-                              // Remove position
                               const newPositions = positions.filter(p => p !== pos.value)
                               setFormData({ ...formData, position: newPositions.join(',') })
                             } else {
-                              // Add position
                               setFormData({ ...formData, position: [...positions, pos.value].join(',') })
                             }
                           }}
-                          className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                         />
-                        <span className={`text-lg font-medium ${isSelected ? 'text-primary-900 dark:text-primary-100' : 'text-gray-700 dark:text-gray-200'}`}>
+                        <span className={`font-medium ${isSelected ? 'text-primary-900 dark:text-primary-100' : 'text-gray-700 dark:text-gray-200'}`}>
                           {pos.label}
                         </span>
                       </label>
@@ -938,54 +968,34 @@ const handleScan = async (staffCode: string) => {
                 </div>
               )}
 
-              {/* المرتب - للأدمن فقط */}
-              {isAdmin && (
+            {/* ساعات العمل + أيام الإجازة */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
-                  {t('staff.form.salary')}
-                </label>
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.workingHours')}</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="24"
+                  value={formData.workingHours}
+                  onChange={(e) => setFormData({ ...formData, workingHours: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder={t('staff.form.workingHoursPlaceholder')}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.monthlyVacationDays')}</label>
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
-                  value={formData.salary}
-                  onChange={(e) =>
-                    setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })
-                  }
+                  max="31"
+                  value={formData.monthlyVacationDays}
+                  onChange={(e) => setFormData({ ...formData, monthlyVacationDays: parseInt(e.target.value) || 0 })}
                   className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder={t('staff.form.salaryPlaceholder')}
+                  placeholder={t('staff.form.monthlyVacationDaysPlaceholder')}
                 />
               </div>
-              )}
-            </div>
-
-            {/* ساعات العمل */}
-            <div>
-              <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.workingHours')}</label>
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                max="24"
-                value={formData.workingHours}
-                onChange={(e) => setFormData({ ...formData, workingHours: parseFloat(e.target.value) || 0 })}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder={t('staff.form.workingHoursPlaceholder')}
-              />
-            </div>
-
-            {/* عدد أيام الإجازة شهرياً */}
-            <div>
-              <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.monthlyVacationDays')}</label>
-              <input
-                type="number"
-                min="0"
-                max="31"
-                value={formData.monthlyVacationDays}
-                onChange={(e) => setFormData({ ...formData, monthlyVacationDays: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder={t('staff.form.monthlyVacationDaysPlaceholder')}
-              />
             </div>
 
             {/* ساعة بداية ونهاية الشيفت */}
@@ -1023,25 +1033,24 @@ const handleScan = async (staffCode: string) => {
             </div>
 
             {/* أزرار التحكم */}
-            <div className="flex gap-4">
+            <div className="flex gap-3 pt-2">
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 text-white py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 dark:hover:from-primary-600 dark:hover:to-primary-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transform transition hover:scale-105 active:scale-95 disabled:hover:scale-100"
+                className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 text-white py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 dark:hover:from-primary-600 dark:hover:to-primary-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transform transition hover:scale-105 active:scale-95 disabled:hover:scale-100"
               >
                 {submitting ? `⏳ ${t('staff.form.saving')}` : editingStaff ? `✅ ${t('staff.form.update')}` : `➕ ${t('staff.form.addStaff')}`}
               </button>
-              {editingStaff && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-8 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-200 py-4 rounded-lg hover:from-gray-300 hover:to-gray-400 dark:hover:from-gray-600 dark:hover:to-gray-500 font-bold shadow-lg transform transition hover:scale-105 active:scale-95"
-                >
-                  {t('staff.form.cancel')}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-8 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:from-gray-300 hover:to-gray-400 dark:hover:from-gray-600 dark:hover:to-gray-500 font-bold shadow-lg transform transition hover:scale-105 active:scale-95"
+              >
+                {t('staff.form.cancel')}
+              </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 
@@ -1073,7 +1082,7 @@ const handleScan = async (staffCode: string) => {
             <div>
               <p className="text-primary-100 dark:text-primary-200 text-xs sm:text-sm mb-1">{t('staff.stats.totalSalaries')}</p>
               <p className="text-xl sm:text-3xl font-bold">
-                {staff.reduce((sum, s) => sum + (s.salary || 0), 0).toFixed(0)} ج.م
+                {staff.filter(s => s.isActive).reduce((sum, s) => sum + (s.salary || 0), 0).toFixed(0)} ج.م
               </p>
             </div>
             <div className="text-3xl sm:text-5xl opacity-20">💰</div>

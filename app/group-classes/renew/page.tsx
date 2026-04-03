@@ -34,7 +34,7 @@ function GroupClassRenewContent() {
 
   const fetchSession = async () => {
     try {
-      const response = await fetch('/api/groupClass')
+      const response = await fetch('/api/group-classes')
       const data: GroupClassSession[] = await response.json()
       const foundSession = data.find(s => s.groupClassNumber === parseInt(groupClassNumber!))
 
@@ -52,11 +52,11 @@ function GroupClassRenewContent() {
   }
 
   const handleSuccess = () => {
-    router.push('/groupClass')
+    router.push('/group-classes')
   }
 
   const handleClose = () => {
-    router.push('/groupClass')
+    router.push('/group-classes')
   }
 
   if (!groupClassNumber) {
@@ -67,7 +67,7 @@ function GroupClassRenewContent() {
           <h2 className="text-2xl font-bold mb-2">رقم GroupClass غير محدد</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">يرجى تحديد رقم GroupClass للتجديد</p>
           <button
-            onClick={() => router.push('/groupClass')}
+            onClick={() => router.push('/group-classes')}
             className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
           >
             العودة لصفحة جروب كلاسيس
@@ -93,7 +93,7 @@ function GroupClassRenewContent() {
           <div className="text-6xl mb-4">❌</div>
           <h2 className="text-2xl font-bold mb-2">{error || 'جلسة جروب كلاسيس غير موجودة'}</h2>
           <button
-            onClick={() => router.push('/groupClass')}
+            onClick={() => router.push('/group-classes')}
             className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
           >
             العودة لصفحة جروب كلاسيس

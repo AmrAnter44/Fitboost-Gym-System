@@ -20,11 +20,12 @@ const ReceiptDetailModal = nextDynamic(
   () => import('../../components/ReceiptDetailModal').then(m => ({ default: m.ReceiptDetailModal })),
   { ssr: false, loading: () => <div className="animate-pulse h-40 bg-gray-200 dark:bg-gray-700 rounded-xl" /> }
 )
-import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel as getPaymentLabel } from '../../lib/paymentHelpers'
+import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel as getPaymentLabel, serializePaymentMethods, deserializePaymentMethods, type PaymentMethod } from '../../lib/paymentHelpers'
 import { useToast } from '../../contexts/ToastContext'
 import { fetchReceipts } from '../../lib/api/receipts'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
 import { useDebounce } from '../../hooks/useDebounce'
+import PaymentMethodSelector from '../../components/Paymentmethodselector'
 
 interface Receipt {
   id: string
@@ -106,7 +107,13 @@ export default function ReceiptsPage() {
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null)
   const [editingReceipt, setEditingReceipt] = useState<Receipt | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [editFormData, setEditFormData] = useState({
+  const [editFormData, setEditFormData] = useState<{
+    receiptNumber: number
+    amount: number
+    paymentMethod: string | PaymentMethod[]
+    staffName: string
+    createdAt: string
+  }>({
     receiptNumber: 0,
     amount: 0,
     paymentMethod: 'cash',
@@ -437,11 +444,10 @@ export default function ReceiptsPage() {
       .toISOString()
       .slice(0, 16)
 
-    // ✅ استخراج طريقة الدفع الصحيحة (في حالة الدفع المتعدد نأخذ أول طريقة)
-    let paymentMethodValue = receipt.paymentMethod
+    // ✅ استخراج طريقة الدفع الصحيحة (دعم الدفع المتعدد)
+    let paymentMethodValue: string | PaymentMethod[] = receipt.paymentMethod
     if (isMultiPayment(receipt.paymentMethod)) {
-      const normalized = normalizePaymentMethod(receipt.paymentMethod, receipt.amount)
-      paymentMethodValue = normalized.methods[0]?.method || 'cash'
+      paymentMethodValue = deserializePaymentMethods(receipt.paymentMethod)
     }
 
     setEditFormData({
@@ -457,6 +463,11 @@ export default function ReceiptsPage() {
   const handleSaveEdit = async () => {
     if (!editingReceipt) return
 
+    // ✅ تحويل طريقة الدفع للتخزين
+    const paymentMethodToSave = Array.isArray(editFormData.paymentMethod)
+      ? serializePaymentMethods(editFormData.paymentMethod)
+      : editFormData.paymentMethod
+
     // ✅ Optimistic Update - حدّث الإيصال فوراً
     const previousData = queryClient.getQueryData<any[]>(['receipts'])
     const updatedCreatedAt = editFormData.createdAt ? new Date(editFormData.createdAt).toISOString() : editingReceipt.createdAt
@@ -465,7 +476,7 @@ export default function ReceiptsPage() {
         ...r,
         receiptNumber: editFormData.receiptNumber,
         amount: editFormData.amount,
-        paymentMethod: editFormData.paymentMethod,
+        paymentMethod: paymentMethodToSave,
         staffName: editFormData.staffName,
         createdAt: updatedCreatedAt
       } : r) : old
@@ -481,7 +492,7 @@ export default function ReceiptsPage() {
           receiptId: editingReceipt.id,
           receiptNumber: editFormData.receiptNumber,
           amount: editFormData.amount,
-          paymentMethod: editFormData.paymentMethod,
+          paymentMethod: paymentMethodToSave,
           staffName: editFormData.staffName,
           createdAt: updatedCreatedAt
         })
@@ -651,6 +662,7 @@ export default function ReceiptsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
+          {user?.role === 'OWNER' && (
           <button
             onClick={exportReceiptsCSV}
             title="تصدير CSV"
@@ -661,6 +673,7 @@ export default function ReceiptsPage() {
             </svg>
             CSV
           </button>
+          )}
         </div>
       </div>
 
@@ -781,7 +794,7 @@ export default function ReceiptsPage() {
       {/* Receipts Display */}
       <>
         {/* Cards View */}
-        <div className="space-y-3 sm:space-y-4 mb-6" dir={direction}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-6" dir={direction}>
           {currentReceipts.map((receipt) => {
             let details: any = {}
             try {
@@ -1514,39 +1527,26 @@ export default function ReceiptsPage() {
                 </div>
               </div>
 
-              {/* الصف الثاني: طريقة الدفع واسم الموظف */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* طريقة الدفع */}
-                <div>
-                  <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">
-                    {t('receipts.edit.paymentMethodRequired')}
-                  </label>
-                  <select
-                    value={editFormData.paymentMethod}
-                    onChange={(e) => setEditFormData({ ...editFormData, paymentMethod: e.target.value })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="cash">💵 {t('receipts.paymentMethods.cash')}</option>
-                    <option value="visa">💳 {t('receipts.paymentMethods.visa')}</option>
-                    <option value="wallet">👛 {t('receipts.paymentMethods.wallet')}</option>
-                    <option value="instapay">💸 {t('receipts.paymentMethods.instapay')}</option>
-                    <option value="points">🏆 {t('receipts.paymentMethods.points') || 'نقاط'}</option>
-                  </select>
-                </div>
+              {/* طريقة الدفع (يدعم الدفع المتعدد) */}
+              <PaymentMethodSelector
+                value={editFormData.paymentMethod}
+                onChange={(method) => setEditFormData({ ...editFormData, paymentMethod: method })}
+                totalAmount={editFormData.amount}
+                allowMultiple={true}
+              />
 
-                {/* اسم الموظف */}
-                <div>
-                  <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">
-                    {t('receipts.edit.staffNameOptional')}
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.staffName}
-                    onChange={(e) => setEditFormData({ ...editFormData, staffName: e.target.value })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                    placeholder={t('receipts.edit.staffPlaceholder')}
-                  />
-                </div>
+              {/* اسم الموظف */}
+              <div>
+                <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">
+                  {t('receipts.edit.staffNameOptional')}
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.staffName}
+                  onChange={(e) => setEditFormData({ ...editFormData, staffName: e.target.value })}
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                  placeholder={t('receipts.edit.staffPlaceholder')}
+                />
               </div>
 
               {/* تاريخ الإيصال */}

@@ -22,14 +22,22 @@ export async function GET(request: Request) {
 
       // الكوتشات يمكنهم رؤية إيصالات PT الخاصة بهم فقط
       if (user.role === 'COACH') {
-        // جلب كل PT records الخاصة بهذا الكوتش
+        // جلب اسم الكوتش من جدول Staff (للبحث بالاسم كـ fallback)
+        const coachStaff = user.staffId
+          ? await prisma.staff.findUnique({ where: { id: user.staffId }, select: { name: true } })
+          : null
+
+        // جلب كل PT records الخاصة بهذا الكوتش (بالـ userId أو بالاسم)
+        const whereClause: any = coachStaff
+          ? { OR: [{ coachUserId: user.userId }, { coachName: coachStaff.name }] }
+          : { coachUserId: user.userId }
+
         const coachPTs = await prisma.pT.findMany({
-          where: { coachUserId: user.userId },
+          where: whereClause,
           select: { ptNumber: true }
         })
 
         if (coachPTs.length === 0) {
-          // الكوتش ليس لديه أي PT sessions بعد
           return NextResponse.json([])
         }
 

@@ -65,8 +65,9 @@ export async function GET(request: Request) {
           )
         }
 
-        // إرجاع بيانات الكوتش فقط في array
-        return NextResponse.json([staffRecord])
+        // إرجاع بيانات الكوتش فقط في array (بدون المرتب)
+        const { salary: _salary, ...staffWithoutSalary } = staffRecord as any
+        return NextResponse.json([staffWithoutSalary])
       }
 
       // إذا لم يكن كوتش، نرمي الخطأ الأصلي
@@ -95,6 +96,11 @@ export async function GET(request: Request) {
         }
       }
     })
+    // إخفاء المرتبات لغير الأدمن والأونر
+    if (user.role !== 'OWNER' && user.role !== 'ADMIN') {
+      const staffWithoutSalary = staff.map(({ salary, ...rest }: any) => rest)
+      return NextResponse.json(staffWithoutSalary)
+    }
     return NextResponse.json(staff)
   } catch (error: any) {
     console.error('Error fetching staff:', error)
@@ -148,7 +154,8 @@ export async function POST(request: Request) {
         name,
         phone,
         position,
-        salary,
+        // المرتب للأدمن والأونر فقط
+        salary: (user.role === 'OWNER' || user.role === 'ADMIN') ? salary : undefined,
         notes,
         workingHours: workingHours !== undefined && workingHours !== null && workingHours !== '' ? parseFloat(workingHours) : null,
         monthlyVacationDays: monthlyVacationDays !== undefined && monthlyVacationDays !== null && monthlyVacationDays !== '' ? parseInt(monthlyVacationDays) : null,
@@ -201,7 +208,8 @@ export async function PUT(request: Request) {
     if (name !== undefined) updateData.name = name
     if (phone !== undefined) updateData.phone = phone
     if (position !== undefined) updateData.position = position
-    if (salary !== undefined) updateData.salary = salary
+    // المرتب للأدمن والأونر فقط
+    if (salary !== undefined && (user.role === 'OWNER' || user.role === 'ADMIN')) updateData.salary = salary
     if (notes !== undefined) updateData.notes = notes
     if (isActive !== undefined) updateData.isActive = isActive
     if (workingHours !== undefined) {

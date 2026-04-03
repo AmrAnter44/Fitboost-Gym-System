@@ -91,7 +91,7 @@ function isMemberActiveNow(member: Member): boolean {
 
 export default function MembersPage() {
   const router = useRouter()
-  const { hasPermission, loading: permissionsLoading } = usePermissions()
+  const { hasPermission, loading: permissionsLoading, user } = usePermissions()
   const { customCreatedAt } = useAdminDate()
   const { t, locale, direction } = useLanguage()
   const toast = useToast()
@@ -625,6 +625,7 @@ export default function MembersPage() {
             <span>🏋️</span>
             <span>{t('nav.memberAttendance')}</span>
           </Link>
+          {user?.role === 'OWNER' && (
           <button
             onClick={exportToCSV}
             title={locale === 'ar' ? 'تصدير CSV' : 'Export CSV'}
@@ -635,6 +636,7 @@ export default function MembersPage() {
             </svg>
             CSV
           </button>
+          )}
           <button
             onClick={() => setShowForm(!showForm)}
             className="bg-primary-600 dark:bg-primary-700 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-800 text-xs sm:text-sm font-bold"
@@ -1158,158 +1160,141 @@ export default function MembersPage() {
         <MembersAnalytics members={membersData} />
       ) : (
         <>
-          {/* Desktop Table - Hidden on mobile/tablet */}
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full" dir={direction}>
-                <thead className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700 dark:bg-gray-700 dark:bg-gray-700">
-                  <tr>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.image')}</th>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>ID</th>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.name')}</th>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.phone')}</th>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.price')}</th>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{locale === 'ar' ? 'الباقة' : 'Package'}</th>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.status')}</th>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.startDate')}</th>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.expiryDate')}</th>
-                    <th className={`px-4 py-3 dark:text-gray-200 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>{t('members.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.isArray(visibleMembers) && visibleMembers.map((member) => {
-                    const isActiveNow = isMemberActiveNow(member)
-                    const daysRemaining = calculateRemainingDays(member.expiryDate)
-                    const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7 && isActiveNow
-                    // التحقق من اشتراك لم يبدأ بعد
-                    const startDate = member.startDate ? new Date(member.startDate) : null
-                    const todayCheck = new Date(); todayCheck.setHours(0, 0, 0, 0)
-                    const isNotStartedYet = member.isActive && startDate && startDate > todayCheck
-                    const daysUntilStart = isNotStartedYet ? Math.ceil((startDate!.getTime() - todayCheck.getTime()) / (1000 * 60 * 60 * 24)) : 0
+          {/* Desktop Cards - Hidden on mobile/tablet */}
+          <div className="hidden lg:block" dir={direction}>
+            <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+              {Array.isArray(visibleMembers) && visibleMembers.map((member) => {
+                const isActiveNow = isMemberActiveNow(member)
+                const daysRemaining = calculateRemainingDays(member.expiryDate)
+                const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7 && isActiveNow
+                const startDate = member.startDate ? new Date(member.startDate) : null
+                const todayCheck = new Date(); todayCheck.setHours(0, 0, 0, 0)
+                const isNotStartedYet = member.isActive && startDate && startDate > todayCheck
+                const daysUntilStart = isNotStartedYet ? Math.ceil((startDate!.getTime() - todayCheck.getTime()) / (1000 * 60 * 60 * 24)) : 0
+                const isBanned = member.isBanned
 
-                    const isBanned = member.isBanned
-                    return (
-                      <tr key={member.id} className={`border-t dark:border-gray-700 ${isBanned ? 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50' : 'hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-700/50'}`}>
-                        <td className="px-4 py-3">
-                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 dark:bg-gray-700">
-                            {member.profileImage ? (
-                              <img
-                                src={member.profileImage}
-                                alt={member.name}
-                                loading="lazy"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 dark:text-gray-400">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                              </div>
-                            )}
+                const borderColor = isBanned
+                  ? 'border-gray-800'
+                  : member.isFrozen
+                    ? 'border-blue-400 dark:border-blue-600'
+                    : isNotStartedYet
+                      ? 'border-purple-400 dark:border-purple-600'
+                      : isExpiringSoon
+                        ? 'border-orange-400'
+                        : isActiveNow
+                          ? 'border-green-400'
+                          : 'border-red-400'
+
+                return (
+                  <div
+                    key={member.id}
+                    onClick={() => handleViewDetails(member.id)}
+                    className={`bg-white dark:bg-gray-800 rounded-xl shadow-md border-2 ${borderColor} hover:shadow-xl transition-all cursor-pointer ${isBanned ? 'opacity-75' : ''}`}
+                  >
+                    {/* Header: صورة + اسم + رقم */}
+                    <div className="p-4 flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                        {member.profileImage ? (
+                          <img src={member.profileImage} alt={member.name} loading="lazy" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
                           </div>
-                        </td>
-
-                        <td className="px-4 py-3 font-bold">
-                          {member.memberNumber !== null ? (
-                            <span className="text-primary-600">#{member.memberNumber}</span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-2 py-0.5 rounded-full text-xs">
-                              <span>🏷️</span>
-                              {locale === 'ar' ? 'بدون عضوية' : 'Non-Member'}
-                            </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-gray-900 dark:text-white truncate">{member.name}</h3>
+                          {isBanned && (
+                            <span className="bg-gray-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">🚫</span>
                           )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span>{member.name}</span>
-                            {member.isBanned && (
-                              <span className="bg-gray-900 text-white text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                                🚫 {locale === 'ar' ? 'محظور' : 'Banned'}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {member.memberNumber !== null ? (
+                            <span className="text-primary-600 font-bold text-sm">#{member.memberNumber}</span>
+                          ) : (
+                            <span className="text-gray-500 text-xs">{locale === 'ar' ? 'بدون عضوية' : 'Non-Member'}</span>
+                          )}
+                          <span className="text-gray-400 dark:text-gray-500">|</span>
                           <a
                             href={`https://wa.me/+20${member.phone.startsWith('0') ? member.phone.substring(1) : member.phone}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-green-600 hover:text-green-700 hover:underline font-medium"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-green-600 hover:text-green-700 text-sm font-medium"
                           >
                             {member.phone}
                           </a>
-                        </td>
-                        <td className="px-4 py-3">{member.subscriptionPrice} {t('members.egp')}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-primary-600 font-bold">
-                            {getPackageName(member.startDate, member.expiryDate, locale)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Body: تفاصيل */}
+                    <div className="px-4 pb-3 space-y-2">
+                      {/* Status Badge */}
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-sm ${
+                          isBanned
+                            ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border border-gray-700'
+                            : member.isFrozen
+                              ? 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                              : isNotStartedYet
+                                ? 'bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/40 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                                : isExpiringSoon
+                                  ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300'
+                                  : isActiveNow
+                                    ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300'
+                                    : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
+                        }`}>
+                          {isBanned
+                            ? <><span>🚫</span> {locale === 'ar' ? 'محظور' : 'Banned'}</>
+                            : member.isFrozen
+                              ? <><span>❄️</span> {locale === 'ar' ? 'مجمد' : 'Frozen'}{member.freezeUntil ? <span className="text-[10px] font-normal ms-1">{locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}</span> : null}</>
+                              : isNotStartedYet
+                                ? <><span>🕐</span> {locale === 'ar' ? `يبدأ بعد ${daysUntilStart} يوم` : `Starts in ${daysUntilStart}d`}</>
+                                : isExpiringSoon
+                                  ? <><span>🟡</span> {locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'}</>
+                                  : isActiveNow
+                                    ? <><span>🟢</span> {t('members.active')}</>
+                                    : <><span>🔴</span> {t('members.expired')}</>
+                          }
+                        </span>
+                        <span className="text-primary-600 font-bold text-xs">
+                          {getPackageName(member.startDate, member.expiryDate, locale)}
+                        </span>
+                      </div>
+
+                      {/* Price + Dates */}
+                      <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+                        <div>
+                          <span className="font-bold text-gray-800 dark:text-gray-200">{member.subscriptionPrice}</span> {t('members.egp')}
+                        </div>
+                        <div className="flex items-center gap-1 font-mono">
+                          <span>{formatDateYMD(member.startDate)}</span>
+                          <span className="text-gray-400">→</span>
+                          <span className={isNotStartedYet ? 'text-purple-600 font-bold' : !isActiveNow ? 'text-red-600 font-bold' : isExpiringSoon ? 'text-orange-600 font-bold' : ''}>
+                            {member.expiryDate ? formatDateYMD(member.expiryDate) : '-'}
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-3 py-1.5 rounded-lg text-sm font-bold inline-flex items-center gap-1.5 shadow-sm ${
-                            member.isBanned
-                              ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border border-gray-700'
-                              : member.isFrozen
-                                ? 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
-                                : isNotStartedYet
-                                  ? 'bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/40 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                                  : isExpiringSoon
-                                    ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300'
-                                    : isActiveNow
-                                      ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300'
-                                      : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
-                          }`}>
-                            {member.isBanned
-                              ? <><span className="text-lg">🚫</span> {locale === 'ar' ? 'محظور' : 'Banned'}</>
-                              : member.isFrozen
-                                ? <><span className="text-lg">❄️</span> {locale === 'ar' ? 'مجمد' : 'Frozen'}{member.freezeUntil ? <span className="text-xs font-normal ms-1 text-blue-600 dark:text-blue-400">{locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}</span> : null}</>
-                                : isNotStartedYet
-                                  ? <><span className="text-lg">🕐</span> {locale === 'ar' ? `يبدأ بعد ${daysUntilStart} يوم` : `Starts in ${daysUntilStart}d`}</>
-                                  : isExpiringSoon
-                                    ? <><span className="text-lg">🟡</span> {locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'}</>
-                                    : isActiveNow
-                                      ? <><span className="text-lg">🟢</span> {t('members.active')}</>
-                                      : <><span className="text-lg">🔴</span> {t('members.expired')}</>
-                            }
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-gray-700 dark:text-gray-200 font-mono">
-                            {formatDateYMD(member.startDate)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {member.expiryDate ? (
-                            <div>
-                              <span className={`font-mono ${isNotStartedYet ? 'text-purple-600 font-bold' : !isActiveNow ? 'text-red-600 font-bold' : isExpiringSoon ? 'text-orange-600 font-bold' : ''}`}>
-                                {formatDateYMD(member.expiryDate)}
-                              </span>
-                              {!isNotStartedYet && daysRemaining !== null && daysRemaining > 0 && (
-                                <p className={`text-xs ${isExpiringSoon ? 'text-orange-600' : 'text-gray-500 dark:text-gray-400'}`}>
-                                  {isExpiringSoon && '⚠️ '} {t('members.daysRemaining', { days: daysRemaining.toString() })}
-                                </p>
-                              )}
-                              {!isNotStartedYet && !isActiveNow && daysRemaining !== null && (
-                                <p className="text-xs text-red-600">
-                                  ❌ {t('members.expiredSince', { days: Math.abs(daysRemaining).toString() })}
-                                </p>
-                              )}
-                            </div>
-                          ) : '-'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleViewDetails(member.id)}
-                            className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-700 transition shadow-md hover:shadow-lg font-medium"
-                          >
-                            👁️ {t('members.viewDetails')}
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+
+                      {/* Remaining days info */}
+                      {member.expiryDate && !isNotStartedYet && daysRemaining !== null && daysRemaining > 0 && (
+                        <p className={`text-xs text-center ${isExpiringSoon ? 'text-orange-600 font-bold' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {isExpiringSoon && '⚠️ '}{t('members.daysRemaining', { days: daysRemaining.toString() })}
+                        </p>
+                      )}
+                      {member.expiryDate && !isNotStartedYet && !isActiveNow && daysRemaining !== null && (
+                        <p className="text-xs text-center text-red-600 font-bold">
+                          ❌ {t('members.expiredSince', { days: Math.abs(daysRemaining).toString() })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
             {/* Infinite Scroll Sentinel */}
             {displayCount < filteredMembers.length && (

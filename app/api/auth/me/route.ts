@@ -29,15 +29,20 @@ export async function GET(request: Request) {
       return response
     }
 
-    // ✅ إذا كان المستخدم موظف، جلب الاسم من جدول Staff
+    // ✅ إذا كان المستخدم موظف، جلب الاسم وكود الموظف من جدول Staff
     let displayName = user.name
+    let staffCode: string | null = null
     if (user.staffId) {
       try {
         const staff = await prisma.staff.findUnique({
-          where: { id: user.staffId }
+          where: { id: user.staffId },
+          select: { name: true, staffCode: true }
         })
         if (staff?.name) {
           displayName = staff.name
+        }
+        if (staff?.staffCode) {
+          staffCode = staff.staffCode
         }
       } catch (error) {
         console.error('⚠️ خطأ في جلب اسم الموظف من Staff:', error)
@@ -52,6 +57,7 @@ export async function GET(request: Request) {
       user: {
         ...user,
         name: displayName,  // ✅ استخدام الاسم من Staff
+        staffCode,  // ✅ كود الموظف
         permissions  // ✅ إضافة الصلاحيات
       }
     })

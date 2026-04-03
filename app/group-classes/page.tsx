@@ -44,7 +44,7 @@ interface GroupClassSession {
 export default function GroupClassPage() {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
-  const { t, direction } = useLanguage()
+  const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
@@ -107,6 +107,13 @@ export default function GroupClassPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentSession, setPaymentSession] = useState<GroupClassSession | null>(null)
   const [renewalSession, setRenewalSession] = useState<GroupClassSession | null>(null)
+  // Attendance Modal
+  const [attendanceModal, setAttendanceModal] = useState<{
+    session: GroupClassSession
+    history: any[]
+    loadingHistory: boolean
+    deducting: boolean
+  } | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<{
     paymentAmount: number
     paymentMethod: string | PaymentMethod[]
@@ -430,8 +437,95 @@ export default function GroupClassPage() {
     setRenewalSession(session)
   }
 
-  const handleRegisterSession = (session: GroupClassSession) => {
-    router.push(`/groupClass/sessions/register?groupClassNumber=${session.groupClassNumber}`)
+  const handleOpenAttendance = async (session: GroupClassSession) => {
+    setAttendanceModal({
+      session,
+      history: [],
+      loadingHistory: true,
+      deducting: false
+    })
+
+    try {
+      const res = await fetch(`/api/group-classes/sessions?groupClassNumber=${session.groupClassNumber}`)
+      if (res.ok) {
+        const history = await res.json()
+        setAttendanceModal(prev => prev ? { ...prev, history, loadingHistory: false } : null)
+      } else {
+        setAttendanceModal(prev => prev ? { ...prev, loadingHistory: false } : null)
+      }
+    } catch {
+      setAttendanceModal(prev => prev ? { ...prev, loadingHistory: false } : null)
+    }
+  }
+
+  const handleDeductSession = async () => {
+    if (!attendanceModal || attendanceModal.deducting) return
+
+    setAttendanceModal(prev => prev ? { ...prev, deducting: true } : null)
+
+    try {
+      const res = await fetch('/api/group-classes/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupClassNumber: attendanceModal.session.groupClassNumber,
+          sessionDate: new Date().toISOString()
+        })
+      })
+
+      const result = await res.json()
+
+      if (res.ok) {
+        toast.success(locale === 'ar' ? 'تم خصم حصة بنجاح' : 'Session deducted successfully')
+        refetchSessions()
+
+        // Refresh history
+        const histRes = await fetch(`/api/group-classes/sessions?groupClassNumber=${attendanceModal.session.groupClassNumber}`)
+        const history = histRes.ok ? await histRes.json() : attendanceModal.history
+
+        setAttendanceModal(prev => prev ? {
+          ...prev,
+          session: { ...prev.session, sessionsRemaining: result.sessionsRemaining },
+          history,
+          deducting: false
+        } : null)
+      } else {
+        toast.error(result.error || (locale === 'ar' ? 'فشل خصم الحصة' : 'Failed to deduct session'))
+        setAttendanceModal(prev => prev ? { ...prev, deducting: false } : null)
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'حدث خطأ' : 'An error occurred')
+      setAttendanceModal(prev => prev ? { ...prev, deducting: false } : null)
+    }
+  }
+
+  const handleDeleteAttendance = async (sessionId: string) => {
+    const confirmed = await confirm({
+      title: locale === 'ar' ? 'حذف سجل حضور' : 'Delete Attendance',
+      message: locale === 'ar' ? 'هل أنت متأكد من حذف سجل الحضور؟ سيتم إرجاع الحصة.' : 'Are you sure? The session will be restored.',
+      confirmText: locale === 'ar' ? 'حذف' : 'Delete',
+      type: 'danger'
+    })
+
+    if (!confirmed) return
+
+    try {
+      const res = await fetch(`/api/group-classes/sessions?sessionId=${sessionId}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success(locale === 'ar' ? 'تم حذف سجل الحضور وإرجاع الحصة' : 'Attendance deleted, session restored')
+        refetchSessions()
+
+        setAttendanceModal(prev => prev ? {
+          ...prev,
+          history: prev.history.filter((h: any) => h.id !== sessionId),
+          session: { ...prev.session, sessionsRemaining: prev.session.sessionsRemaining + 1 }
+        } : null)
+      } else {
+        toast.error(locale === 'ar' ? 'فشل حذف السجل' : 'Failed to delete record')
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'حدث خطأ' : 'An error occurred')
+    }
   }
 
   const handleOpenPaymentModal = async (session: GroupClassSession) => {
@@ -640,7 +734,7 @@ export default function GroupClassPage() {
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
           <button
-            onClick={() => router.push('/groupClass/sessions/history')}
+            onClick={() => router.push('/group-classes/sessions/history')}
             className="flex-1 min-w-[140px] sm:flex-none bg-gradient-to-r from-primary-600 to-primary-700 text-white px-3 sm:px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             <span>📊</span>
@@ -1106,7 +1200,7 @@ export default function GroupClassPage() {
                       <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                         session.sessionsRemaining === 0 ? 'bg-red-500 dark:bg-red-600' : session.sessionsRemaining <= 3 ? 'bg-orange-500 dark:bg-orange-600' : 'bg-green-500 dark:bg-green-600'
                       } text-white`}>
-                        {session.sessionsRemaining} / {session.sessionsPurchased}
+                        {session.sessionsPurchased - session.sessionsRemaining} / {session.sessionsPurchased}
                       </div>
                     </div>
                   </div>
@@ -1177,7 +1271,7 @@ export default function GroupClassPage() {
                         {session.groupClassNumber >= 0 && (
                           <>
                             <button
-                              onClick={() => handleRegisterSession(session)}
+                              onClick={() => handleOpenAttendance(session)}
                               disabled={session.sessionsRemaining === 0}
                               className="bg-fuchsia-600 text-white py-2 rounded-lg text-sm hover:bg-fuchsia-700 dark:hover:bg-fuchsia-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1"
                             >
@@ -1703,6 +1797,75 @@ export default function GroupClassPage() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Attendance Modal */}
+      {attendanceModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setAttendanceModal(null) }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-hidden flex flex-col" dir={direction}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-fuchsia-600 to-fuchsia-700 p-4 text-white flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">{attendanceModal.session.clientName}</h2>
+                  <p className="text-sm text-white/80">#{attendanceModal.session.groupClassNumber} • {attendanceModal.session.instructorName}</p>
+                </div>
+                <button onClick={() => setAttendanceModal(null)} className="text-white/80 hover:text-white text-2xl leading-none">×</button>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="bg-white/20 rounded-lg px-3 py-1.5 text-center">
+                  <span className="text-[10px] text-white/70 block">{locale === 'ar' ? 'متبقي' : 'Left'}</span>
+                  <p className="text-xl font-bold">{attendanceModal.session.sessionsRemaining} / {attendanceModal.session.sessionsPurchased}</p>
+                </div>
+                <button
+                  onClick={handleDeductSession}
+                  disabled={attendanceModal.session.sessionsRemaining <= 0 || attendanceModal.deducting}
+                  className="flex-1 bg-white text-fuchsia-700 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {attendanceModal.deducting
+                    ? (locale === 'ar' ? 'جاري الخصم...' : 'Deducting...')
+                    : (locale === 'ar' ? '✓ خصم حصة' : '✓ Deduct Session')}
+                </button>
+              </div>
+            </div>
+
+            {/* History */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <h3 className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-3">
+                {locale === 'ar' ? `سجل الحضور (${attendanceModal.history.length})` : `Attendance Log (${attendanceModal.history.length})`}
+              </h3>
+
+              {attendanceModal.loadingHistory ? (
+                <div className="text-center py-6 text-gray-500">{t('groupClass.loading')}</div>
+              ) : attendanceModal.history.length === 0 ? (
+                <div className="text-center py-6 text-gray-400">
+                  <div className="text-3xl mb-2">📋</div>
+                  <p className="text-sm">{locale === 'ar' ? 'لا يوجد سجلات حضور' : 'No attendance records'}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {attendanceModal.history.map((record: any) => (
+                    <div key={record.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2.5 border border-gray-200 dark:border-gray-600">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                          {new Date(record.sessionDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </p>
+                        {record.notes && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{record.notes}</p>}
+                      </div>
+                      <button
+                        onClick={() => handleDeleteAttendance(record.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 rounded-lg transition text-sm"
+                        title={locale === 'ar' ? 'حذف' : 'Delete'}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

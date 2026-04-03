@@ -101,12 +101,12 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
     setLoading(true)
 
     try {
-      // التحقق من حالة الواتساب
-      const statusResponse = await fetch('/api/whatsapp/status')
-      if (statusResponse.ok) {
-        const status = await statusResponse.json()
+      // محاولة إرسال الصورة عبر API مع إعادة المحاولة 3 مرات
+      const MAX_RETRIES = 3
+      let lastError = ''
 
-        if (status.isReady) {
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
           const sendResponse = await fetch('/api/whatsapp/send-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -121,15 +121,24 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
 
           if (sendResult.success) {
             setToast({ message: '✅ تم إرسال الباركود بنجاح على الواتساب', type: 'success' })
-          } else {
-            setToast({ message: `فشل إرسال الباركود: ${sendResult.error}`, type: 'error' })
+            return
           }
-          return
+
+          lastError = sendResult.error || 'Unknown error'
+        } catch (err) {
+          lastError = (err as Error).message
+        }
+
+        // انتظار قبل إعادة المحاولة
+        if (attempt < MAX_RETRIES) {
+          console.warn(`[BarcodeWhatsApp] send-image attempt ${attempt}/${MAX_RETRIES} failed: ${lastError}. Retrying...`)
+          await new Promise(r => setTimeout(r, 2000))
         }
       }
 
-      // Fallback: الواتساب غير متصل
-      setToast({ message: '⚠️ الواتساب غير متصل. جاري تحميل الصورة وفتح واتساب...', type: 'warning' })
+      // كل المحاولات فشلت - Fallback: تحميل الصورة وفتح واتساب
+      console.error(`[BarcodeWhatsApp] All ${MAX_RETRIES} attempts failed. Last error: ${lastError}`)
+      setToast({ message: '⚠️ فشل الإرسال التلقائي. جاري تحميل الصورة وفتح واتساب...', type: 'warning' })
       handleDownloadBarcode()
 
       setTimeout(async () => {

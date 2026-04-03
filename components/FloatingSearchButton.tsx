@@ -21,6 +21,7 @@ export default function FloatingSearchButton() {
       className={`
         fixed bottom-6 end-6
         z-50
+        hidden sm:flex
         w-14 h-14
         bg-gradient-to-br from-primary-500 to-primary-600
         dark:from-primary-600 dark:to-primary-700
@@ -34,7 +35,7 @@ export default function FloatingSearchButton() {
         transition-all duration-300
         hover:scale-110
         active:scale-95
-        flex items-center justify-center
+        items-center justify-center
         group
       `}
       title={`${t('nav.quickSearch')} (Ctrl+K)`}

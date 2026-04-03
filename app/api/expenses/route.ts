@@ -37,11 +37,11 @@ export async function GET(request: Request) {
           return NextResponse.json([])
         }
 
-        // جلب القروض الخاصة بهذا الكوتش فقط
+        // جلب القروض والرواتب الخاصة بهذا الكوتش فقط
         const expenses = await prisma.expense.findMany({
           where: {
             staffId: userWithStaff.staffId,
-            type: 'staff_loan'  // القروض فقط
+            type: { in: ['staff_loan', 'staff_salary'] }
           },
           orderBy: { createdAt: 'desc' },
           include: {

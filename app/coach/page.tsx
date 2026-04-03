@@ -52,6 +52,7 @@ export default function CoachDashboard() {
   const [selectedPTForSession, setSelectedPTForSession] = useState<PTData | null>(null)
   const [registeringSession, setRegisteringSession] = useState(false)
   const [sessionMessage, setSessionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [coachBarcodeImage, setCoachBarcodeImage] = useState<string | null>(null)
 
   const dateLocale = locale === 'ar' ? 'ar-EG' : 'en-US'
 
@@ -82,6 +83,19 @@ export default function CoachDashboard() {
       if (data.user.role !== 'COACH') {
         router.push('/')
         return
+      }
+
+      // جلب صورة الباركود
+      if (data.user.staffCode) {
+        const numericCode = data.user.staffCode.replace(/[sS]/g, '')
+        const barcodeText = (100000000 + parseInt(numericCode, 10)).toString()
+        fetch('/api/barcode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: barcodeText })
+        }).then(r => r.json()).then(d => {
+          if (d.barcode) setCoachBarcodeImage(d.barcode)
+        }).catch(() => {})
       }
 
       if (data.user.userId || data.user.id) {
@@ -222,6 +236,11 @@ export default function CoachDashboard() {
             </h1>
             <p className="text-gray-600 dark:text-gray-300 mt-2">{t('coachDashboard.subtitle')}</p>
           </div>
+          {coachBarcodeImage && (
+            <div className="flex justify-center mt-4">
+              <img src={coachBarcodeImage} alt="Barcode" className="h-32 w-auto" />
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}

@@ -1214,16 +1214,15 @@ export default function FollowUpsPage() {
       toast.warning(`⚠️ ${t('followups.bulkScript.toast.limitedSend').replace('{count}', String(remaining))}`)
     }
 
-    // Check WhatsApp
+    // Check WhatsApp & get connected sessions for round-robin
+    let connectedSessionIndices: number[] = []
     try {
-      const statusRes = await fetch('/api/whatsapp/status')
-      if (statusRes.ok) {
-        const status = await statusRes.json()
-        if (!status.isReady) {
-          toast.error(`❌ ${t('followups.bulkScript.toast.whatsappNotConnected')}`)
-          return
-        }
-      } else {
+      const sessionsRes = await fetch('/api/whatsapp/sessions')
+      if (sessionsRes.ok) {
+        const sessions = await sessionsRes.json() as { sessionIndex: number; isReady: boolean }[]
+        connectedSessionIndices = sessions.filter((s: any) => s.isReady).map((s: any) => s.sessionIndex)
+      }
+      if (connectedSessionIndices.length === 0) {
         toast.error(`❌ ${t('followups.bulkScript.toast.whatsappNotConnected')}`)
         return
       }
@@ -1293,7 +1292,12 @@ export default function FollowUpsPage() {
         message = addTextVariation(message)
 
         const sendBody: any = { phone: visitor.phone, message }
-        if (bulkScriptSessionIndex !== 'auto') sendBody.sessionIndex = bulkScriptSessionIndex
+        if (bulkScriptSessionIndex !== 'auto') {
+          sendBody.sessionIndex = bulkScriptSessionIndex
+        } else if (connectedSessionIndices.length > 0) {
+          // Round-robin: distribute messages across connected sessions
+          sendBody.sessionIndex = connectedSessionIndices[i % connectedSessionIndices.length]
+        }
         const res = await fetch('/api/whatsapp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

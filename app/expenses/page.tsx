@@ -337,24 +337,20 @@ export default function ExpensesPage() {
           </button>
           <button
             onClick={() => {
-              if (showForm) {
-                setShowForm(false)
-                setEditingExpense(null)
-                setFormData({
-                  type: 'gym_expense',
-                  amount: 0,
-                  description: '',
-                  notes: '',
-                  staffId: '',
-                  createdAt: '',
-                })
-              } else {
-                setShowForm(true)
-              }
+              setEditingExpense(null)
+              setFormData({
+                type: 'gym_expense',
+                amount: 0,
+                description: '',
+                notes: '',
+                staffId: '',
+                createdAt: '',
+              })
+              setShowForm(true)
             }}
             className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition"
           >
-            {showForm ? t('expenses.hideForm') : `➕ ${t('expenses.addExpense')}`}
+            ➕ {t('expenses.addExpense')}
           </button>
         </div>
       </div>
@@ -414,22 +410,31 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* Form */}
+      {/* Form - Modal */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6" dir={direction}>
-          <h2 className="text-xl font-semibold mb-4">
-            {editingExpense ? '✏️ تعديل المصروف' : t('expenses.form.title')}
-          </h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowForm(false); setEditingExpense(null) } }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto" dir={direction} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold dark:text-white">
+                {editingExpense ? '✏️ تعديل المصروف' : t('expenses.form.title')}
+              </h2>
+              <button
+                onClick={() => { setShowForm(false); setEditingExpense(null) }}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-3xl leading-none"
+              >
+                ×
+              </button>
+            </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* نوع المصروف - معطل في وضع التعديل */}
+              {/* نوع المصروف */}
               <div>
-                <label className="block text-sm font-medium mb-1">{t('expenses.form.expenseType')}</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">{t('expenses.form.expenseType')}</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as any, staffId: '' })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   required
                   disabled={!!editingExpense}
                 >
@@ -441,11 +446,11 @@ export default function ExpensesPage() {
 
               {formData.type === 'staff_loan' && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">{t('expenses.form.staff')}</label>
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-200">{t('expenses.form.staff')}</label>
                   <select
                     value={formData.staffId}
                     onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                     required
                     disabled={!!editingExpense}
                   >
@@ -459,9 +464,9 @@ export default function ExpensesPage() {
                 </div>
               )}
 
-              {/* المبلغ - معطل في وضع التعديل */}
+              {/* المبلغ */}
               <div>
-                <label className="block text-sm font-medium mb-1">{t('expenses.form.amount')}</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">{t('expenses.form.amount')}</label>
                 <input
                   type="number"
                   required
@@ -469,22 +474,22 @@ export default function ExpensesPage() {
                   step="0.01"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder={t('expenses.form.amountPlaceholder')}
                   disabled={!!editingExpense}
                 />
               </div>
 
-              {/* الوصف - قابل للتعديل */}
+              {/* الوصف */}
               {formData.type === 'gym_expense' && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">{t('expenses.form.description')}</label>
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-200">{t('expenses.form.description')}</label>
                   <input
                     type="text"
                     required
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                     placeholder={t('expenses.form.descriptionPlaceholder')}
                   />
                 </div>
@@ -493,44 +498,54 @@ export default function ExpensesPage() {
               {/* التاريخ - يظهر فقط في وضع التعديل */}
               {editingExpense && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">📅 التاريخ</label>
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-200">📅 التاريخ</label>
                   <input
                     type="date"
                     required
                     value={formData.createdAt}
                     onChange={(e) => setFormData({ ...formData, createdAt: e.target.value })}
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   />
                 </div>
               )}
             </div>
 
-            {/* الملاحظات - معطل في وضع التعديل */}
+            {/* الملاحظات */}
             <div>
-              <label className="block text-sm font-medium mb-1">{t('expenses.form.notes')}</label>
+              <label className="block text-sm font-medium mb-1 dark:text-gray-200">{t('expenses.form.notes')}</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 rows={3}
                 placeholder={t('expenses.form.notesPlaceholder')}
                 disabled={!!editingExpense}
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 disabled:bg-gray-400"
-            >
-              {submitting
-                ? t('expenses.form.saving')
-                : editingExpense
-                  ? '💾 حفظ التعديل'
-                  : t('expenses.form.submit')
-              }
-            </button>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 bg-orange-600 text-white py-2.5 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 font-bold shadow-lg transition"
+              >
+                {submitting
+                  ? t('expenses.form.saving')
+                  : editingExpense
+                    ? '💾 حفظ التعديل'
+                    : t('expenses.form.submit')
+                }
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowForm(false); setEditingExpense(null) }}
+                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold transition"
+              >
+                {t('expenses.form.cancel') || 'إلغاء'}
+              </button>
+            </div>
           </form>
+          </div>
         </div>
       )}
 

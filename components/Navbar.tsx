@@ -20,6 +20,15 @@ export default function Navbar() {
   const { settings, loading: settingsLoading } = useServiceSettings()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
+  const [drawerClosing, setDrawerClosing] = useState(false)
+
+  const closeDrawer = () => {
+    setDrawerClosing(true)
+    setTimeout(() => {
+      setShowDrawer(false)
+      setDrawerClosing(false)
+    }, 200)
+  }
 
   // Memoize links to avoid re-filtering on every render
   const links = useMemo(() => {
@@ -250,23 +259,23 @@ export default function Navbar() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-[100] lg:hidden animate-fadeIn"
-            onClick={() => setShowDrawer(false)}
+            className={`fixed inset-0 bg-black z-[100] lg:hidden transition-opacity duration-200 ${drawerClosing ? 'opacity-0' : 'opacity-50'}`}
+            onClick={() => closeDrawer()}
           />
 
           {/* Drawer */}
           <div
             dir={locale === 'ar' ? 'rtl' : 'ltr'}
-            className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto border-e-4 border-primary-600 dark:border-primary-500 ${
+            className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto border-e-4 border-primary-600 dark:border-primary-500 transition-transform duration-200 ease-out ${
               locale === 'ar'
-                ? 'right-0 animate-slideRight'
-                : 'left-0 animate-slideLeft'
-            }`}>
+                ? `right-0 ${drawerClosing ? 'translate-x-full' : 'translate-x-0'}`
+                : `left-0 ${drawerClosing ? '-translate-x-full' : 'translate-x-0'}`
+            } ${!drawerClosing ? (locale === 'ar' ? 'animate-slideRight' : 'animate-slideLeft') : ''}`}>
             {/* Header with Logo in Center */}
             <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
               {/* Close Button */}
               <button
-                onClick={() => setShowDrawer(false)}
+                onClick={() => closeDrawer()}
                 className="p-2 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition flex-shrink-0"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -289,7 +298,7 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  onClick={() => setShowDrawer(false)}
+                  onClick={() => closeDrawer()}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                     locale === 'ar' ? 'hover:-translate-x-2' : 'hover:translate-x-2'
                   } relative ${
@@ -321,7 +330,7 @@ export default function Navbar() {
                   {(user.role === 'ADMIN' || user.role === 'OWNER') && (
                     <Link
                       href="/admin/users"
-                      onClick={() => setShowDrawer(false)}
+                      onClick={() => closeDrawer()}
                       className="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition mb-2"
                     >
                       <span>👥</span>

@@ -569,70 +569,20 @@ export default function MemberDetailPage() {
   const fetchServiceSubscriptions = async () => {
     if (!member) return
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    // دالة helper للتحقق من الاشتراك النشط
-    const isSubscriptionActive = (sub: any) => {
-      const hasStarted = !sub.startDate || new Date(sub.startDate) <= today
-      const notExpired = !sub.expiryDate || new Date(sub.expiryDate) >= today
-      return sub.phone === member.phone &&
-        sub.sessionsRemaining > 0 &&
-        hasStarted &&
-        notExpired
-    }
-
     try {
-      // جلب اشتراكات PT
-      const ptRes = await fetch('/api/pt')
-      let memberPTs: any[] = []
-      if (ptRes.ok) {
-        const allPTs = await ptRes.json()
-        memberPTs = allPTs.filter(isSubscriptionActive)
+      // ✅ جلب عدد الجلسات المدفوعة مباشرة من الـ API الجديد (server-side filtering)
+      const res = await fetch(`/api/members/paid-sessions?memberId=${member.id}`)
+      if (res.ok) {
+        const counts = await res.json()
+        setPaidSessionCounts({
+          pt: counts.pt || 0,
+          nutrition: counts.nutrition || 0,
+          physio: counts.physio || 0,
+          groupClass: counts.groupClass || 0
+        })
       }
-
-      // جلب اشتراكات التغذية
-      const nutritionRes = await fetch('/api/nutrition')
-      let memberNutrition: any[] = []
-      if (nutritionRes.ok) {
-        const allNutrition = await nutritionRes.json()
-        memberNutrition = allNutrition.filter(isSubscriptionActive)
-        setNutritionSubscriptions(memberNutrition)
-      }
-
-      // جلب اشتراكات العلاج الطبيعي
-      const physioRes = await fetch('/api/physiotherapy')
-      let memberPhysio: any[] = []
-      if (physioRes.ok) {
-        const allPhysio = await physioRes.json()
-        memberPhysio = allPhysio.filter(isSubscriptionActive)
-        setPhysioSubscriptions(memberPhysio)
-      }
-
-      // جلب اشتراكات جروب كلاسيس
-      const classRes = await fetch('/api/group-classes')
-      let memberClasses: any[] = []
-      if (classRes.ok) {
-        const allClasses = await classRes.json()
-        memberClasses = allClasses.filter(isSubscriptionActive)
-        setGroupClassSubscriptions(memberClasses)
-      }
-
-      // حساب إجمالي الجلسات المدفوعة لكل خدمة
-      const totalPTSessions = memberPTs.reduce((sum, pt) => sum + (pt.sessionsRemaining || 0), 0)
-      const totalNutritionSessions = memberNutrition.reduce((sum, n) => sum + (n.sessionsRemaining || 0), 0)
-      const totalPhysioSessions = memberPhysio.reduce((sum, p) => sum + (p.sessionsRemaining || 0), 0)
-      const totalGroupClassSessions = memberClasses.reduce((sum, c) => sum + (c.sessionsRemaining || 0), 0)
-
-
-      setPaidSessionCounts({
-        pt: totalPTSessions,
-        nutrition: totalNutritionSessions,
-        physio: totalPhysioSessions,
-        groupClass: totalGroupClassSessions
-      })
     } catch (error) {
-      console.error('Error fetching service subscriptions:', error)
+      console.error('Error fetching paid session counts:', error)
     }
   }
 

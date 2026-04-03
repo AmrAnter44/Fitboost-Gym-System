@@ -61,7 +61,14 @@
       "Bash(npx tsc --noEmit lib/printSystem.ts --skipLibCheck --esModuleInterop --jsx preserve --moduleResolution node --module esnext --target es2017)",
       "Bash(npm rebuild better-sqlite3)",
       "Bash(# Try to recover by dumping and recreating sqlite3 prisma/gym.db \"\".recover\"\")",
-      "Bash(# Check for processes holding the db lock lsof prisma/gym.db)"
+      "Bash(# Check for processes holding the db lock lsof prisma/gym.db)",
+      "Bash(git stash)",
+      "Bash(git stash pop)",
+      "Bash(/usr/bin/python3 --version)",
+      "Bash(sudo xcodebuild -license accept)",
+      "Bash(brew install python@3.12)",
+      "Bash(CI=\"\" npx prisma migrate dev --name sync)",
+      "Bash(npx tsc --noEmit app/receipts/page.tsx)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",

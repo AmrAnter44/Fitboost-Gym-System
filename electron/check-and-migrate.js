@@ -61,6 +61,29 @@ function migrateDatabase(dbPath) {
       }
     }
 
+    // ✅ فحص وجود More & Deduction permissions في جدول Permission
+    const morePermissions = [
+      'canViewMore',
+      'canRegisterMoreAttendance',
+      'canDeleteMore',
+      'canAccessMoreCommission',
+      'canViewDeductions',
+      'canCreateDeduction',
+      'canEditDeduction',
+      'canDeleteDeduction',
+      'canManageBannedMembers'
+    ];
+
+    for (const permission of morePermissions) {
+      if (!columnExists(db, 'Permission', permission)) {
+        console.log(`📝 Adding ${permission} column to Permission table...`);
+        db.prepare(`ALTER TABLE Permission ADD COLUMN ${permission} INTEGER NOT NULL DEFAULT 0`).run();
+        console.log(`✅ Migration completed: ${permission} added to Permission table`);
+      } else {
+        console.log(`✅ Permission.${permission} already exists`);
+      }
+    }
+
     db.close();
     console.log('✅ Database schema check completed');
   } catch (error) {

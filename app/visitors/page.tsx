@@ -11,6 +11,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { fetchVisitors, fetchFollowUps } from '../../lib/api/visitors'
 import { fetchMembers } from '../../lib/api/members'
 import { useDebounce } from '../../hooks/useDebounce'
+import { usePermissions } from '../../hooks/usePermissions'
 
 const VirtualVisitorList = dynamic(() => import('../../components/VirtualVisitorList'), {
   ssr: false,
@@ -48,6 +49,7 @@ export default function VisitorsPage() {
   const router = useRouter()
   const { t, direction } = useLanguage()
   const toast = useToast()
+  const { user } = usePermissions()
   const queryClient = useQueryClient()
 
   // Filters
@@ -506,6 +508,7 @@ export default function VisitorsPage() {
             <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base">{t('visitors.subtitle')}</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
+            {user?.role === 'OWNER' && (
             <button
               onClick={exportVisitorsCSV}
               title="تصدير CSV"
@@ -516,6 +519,7 @@ export default function VisitorsPage() {
               </svg>
               CSV
             </button>
+            )}
             <button
               onClick={() => setShowForm(!showForm)}
               className="flex-1 sm:flex-none bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700"

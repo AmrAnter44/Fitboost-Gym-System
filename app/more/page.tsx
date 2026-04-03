@@ -33,7 +33,7 @@ type PaymentMethod = string | PaymentMethodType[]
 
 export default function MorePage() {
   const { hasPermission, user, loading: authLoading } = usePermissions()
-  const { t, direction } = useLanguage()
+  const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
 
@@ -561,42 +561,84 @@ export default function MorePage() {
       ) : filteredSubscriptions.length === 0 ? (
         <div className="text-center py-8 text-gray-500">{t('more.noSubscriptions')}</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-800">
-                <th className="border p-2">{t('more.subscriptionNumber')}</th>
-                <th className="border p-2">{t('more.clientName')}</th>
-                <th className="border p-2">{t('more.phone')}</th>
-                <th className="border p-2">{t('more.coachName')}</th>
-                <th className="border p-2">{t('more.sessions')}</th>
-                <th className="border p-2">{t('more.expiryDate')}</th>
-                <th className="border p-2">{t('more.status')}</th>
-                <th className="border p-2">{t('common.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSubscriptions.map((sub) => (
-                <tr key={sub.moreNumber} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <td className="border p-2 text-center">{sub.moreNumber}</td>
-                  <td className="border p-2">{sub.clientName}</td>
-                  <td className="border p-2">{sub.phone}</td>
-                  <td className="border p-2">{sub.coachName}</td>
-                  <td className="border p-2 text-center">
-                    {sub.sessionsRemaining} / {sub.sessionsPurchased}
-                  </td>
-                  <td className="border p-2 text-center">{formatDateYMD(sub.expiryDate)}</td>
-                  <td className="border p-2 text-center">{getStatusBadge(sub)}</td>
-                  <td className="border p-2 text-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredSubscriptions.map((sub) => {
+            const expired = isExpired(sub.expiryDate)
+            const noSessions = sub.sessionsRemaining === 0
+            const inactive = !sub.isActive
+            const sessionsUsed = sub.sessionsPurchased - sub.sessionsRemaining
+            const progressPercent = sub.sessionsPurchased > 0 ? (sessionsUsed / sub.sessionsPurchased) * 100 : 0
+
+            const borderColor = inactive
+              ? 'border-gray-400'
+              : expired
+                ? 'border-red-400'
+                : noSessions
+                  ? 'border-orange-400'
+                  : 'border-green-400'
+
+            return (
+              <div key={sub.moreNumber} className={`bg-white dark:bg-gray-800 rounded-xl shadow-md border-2 ${borderColor} hover:shadow-lg transition`} dir={direction}>
+                {/* Header */}
+                <div className="p-3 flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-primary-600 font-bold text-sm">#{sub.moreNumber}</span>
+                      <h3 className="font-bold text-gray-900 dark:text-white truncate">{sub.clientName}</h3>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <a
+                        href={`https://wa.me/+20${sub.phone.startsWith('0') ? sub.phone.substring(1) : sub.phone}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-600 hover:text-green-700 text-sm font-medium font-mono"
+                      >
+                        {sub.phone}
+                      </a>
+                      <span className="text-gray-300 dark:text-gray-600">|</span>
+                      <span className="text-gray-600 dark:text-gray-400 text-xs truncate">{sub.coachName}</span>
+                    </div>
+                  </div>
+                  {getStatusBadge(sub)}
+                </div>
+
+                {/* Body */}
+                <div className="px-3 pb-3 space-y-2">
+                  {/* Sessions progress */}
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('more.sessions')}</span>
+                      <span className="font-bold text-gray-800 dark:text-gray-200">{sub.sessionsRemaining} / {sub.sessionsPurchased}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${progressPercent >= 100 ? 'bg-red-500' : progressPercent >= 75 ? 'bg-orange-500' : 'bg-green-500'}`}
+                        style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Price + Expiry */}
+                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+                    <div>
+                      <span className="font-bold text-gray-800 dark:text-gray-200">{sub.pricePerSession}</span> {t('members.egp')}/{locale === 'ar' ? 'جلسة' : 'session'}
+                    </div>
+                    <div className="font-mono">
+                      <span className={expired ? 'text-red-600 font-bold' : ''}>{formatDateYMD(sub.expiryDate)}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-1">
                     <button
                       onClick={() => {
                         setSessionFormData({ moreNumber: sub.moreNumber.toString(), notes: '' })
                         setShowSessionForm(true)
                       }}
-                      disabled={sub.sessionsRemaining === 0 || isExpired(sub.expiryDate) || !sub.isActive}
-                      className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={noSessions || expired || inactive}
+                      className="flex-1 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold transition"
                     >
-                      ✓
+                      ✓ {locale === 'ar' ? 'تسجيل' : 'Check-in'}
                     </button>
                     <button
                       onClick={() => {
@@ -606,23 +648,23 @@ export default function MorePage() {
                         })
                         setShowRenewForm(true)
                       }}
-                      className="px-2 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 mx-1"
+                      className="py-2 px-3 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-bold transition"
                     >
                       🔄
                     </button>
                     {hasPermission('canDeleteMore') && (
                       <button
                         onClick={() => handleDeleteSubscription(sub.moreNumber)}
-                        className="px-2 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                        className="py-2 px-3 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold transition"
                       >
                         ✕
                       </button>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 

@@ -234,6 +234,7 @@ export async function POST(request: Request) {
     const groupClassData: any = {
       clientName,
       phone,
+      memberNumber: memberNumber ? parseInt(memberNumber) : null,  // ✅ حفظ رقم العضوية
       sessionsPurchased,
       sessionsRemaining: sessionsPurchased,
       instructorName,

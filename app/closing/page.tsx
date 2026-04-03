@@ -46,7 +46,7 @@ interface Staff {
 }
 
 export default function ClosingPage() {
-  const { hasPermission, loading: permissionsLoading } = usePermissions()
+  const { hasPermission, isAdmin, loading: permissionsLoading, user } = usePermissions()
   const [dailyData, setDailyData] = useState<DailyData[]>([])
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
@@ -838,107 +838,186 @@ export default function ClosingPage() {
       </div>
 
       {/* Controls */}
-      <div className="mb-4 sm:mb-6 bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-lg shadow-md no-print border dark:border-gray-700">
+      <div className="mb-4 sm:mb-6 no-print">
         <div className="space-y-3 sm:space-y-4">
           {viewMode === 'daily' ? (
             /* اختيار اليوم للعرض اليومي */
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.controls.selectDay')}</label>
-              <input
-                type="date"
-                value={selectedDay}
-                onChange={(e) => setSelectedDay(e.target.value)}
-                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
-              />
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2">
-                {t('closing.controls.viewDayDetails', {
-                  date: new Date(selectedDay).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })
-                })}
-              </p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border dark:border-gray-700 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => {
+                      const d = new Date(selectedDay)
+                      d.setDate(d.getDate() - 1)
+                      setSelectedDay(d.toISOString().split('T')[0])
+                    }}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                  >
+                    {direction === 'rtl' ? '▶' : '◀'}
+                  </button>
+                  <div className="text-center text-white">
+                    <p className="text-lg sm:text-xl font-bold">
+                      {new Date(selectedDay).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const d = new Date(selectedDay)
+                      d.setDate(d.getDate() + 1)
+                      setSelectedDay(d.toISOString().split('T')[0])
+                    }}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                  >
+                    {direction === 'rtl' ? '◀' : '▶'}
+                  </button>
+                </div>
+              </div>
+              <div className="p-3 flex items-center justify-center gap-2">
+                <input
+                  type="date"
+                  value={selectedDay}
+                  onChange={(e) => setSelectedDay(e.target.value)}
+                  className="px-3 py-1.5 border rounded-lg text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                />
+                <button
+                  onClick={() => setSelectedDay(new Date().toISOString().split('T')[0])}
+                  className="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 transition font-medium"
+                >
+                  {t('time.today')}
+                </button>
+              </div>
             </div>
           ) : viewMode === 'monthly' ? (
             /* اختيار الشهر للعرض الشهري */
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.controls.selectMonth')}</label>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
-              />
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2">
-                {t('closing.controls.viewMonthDetails', {
-                  month: new Date(selectedMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })
-                })}
-              </p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border dark:border-gray-700 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => {
+                      const [y, m] = selectedMonth.split('-').map(Number)
+                      const d = new Date(y, m - 2, 1)
+                      setSelectedMonth(d.toISOString().slice(0, 7))
+                    }}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                  >
+                    {direction === 'rtl' ? '▶' : '◀'}
+                  </button>
+                  <div className="text-center text-white">
+                    <p className="text-lg sm:text-xl font-bold">
+                      {new Date(selectedMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const [y, m] = selectedMonth.split('-').map(Number)
+                      const d = new Date(y, m, 1)
+                      setSelectedMonth(d.toISOString().slice(0, 7))
+                    }}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                  >
+                    {direction === 'rtl' ? '◀' : '▶'}
+                  </button>
+                </div>
+              </div>
+              <div className="p-3 flex items-center justify-center gap-2">
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-3 py-1.5 border rounded-lg text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                />
+                <button
+                  onClick={() => setSelectedMonth(new Date().toISOString().slice(0, 7))}
+                  className="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 transition font-medium"
+                >
+                  {t('time.thisMonth')}
+                </button>
+              </div>
             </div>
           ) : viewMode === 'yearly' ? (
             /* اختيار السنة للعرض السنوي */
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.controls.selectYear')}</label>
-              <input
-                type="number"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                min="2020"
-                max="2030"
-                className="w-full sm:w-auto px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
-              />
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2">
-                {t('closing.controls.viewYearDetails', { year: selectedYear })}
-              </p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border dark:border-gray-700 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setSelectedYear((parseInt(selectedYear) - 1).toString())}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                  >
+                    {direction === 'rtl' ? '▶' : '◀'}
+                  </button>
+                  <div className="text-center text-white">
+                    <p className="text-lg sm:text-xl font-bold">{selectedYear}</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedYear((parseInt(selectedYear) + 1).toString())}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                  >
+                    {direction === 'rtl' ? '◀' : '▶'}
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             /* اختيار فترة المقارنة */
-            <div className="space-y-3 sm:space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.comparison.startMonth')}</label>
-                  <input
-                    type="month"
-                    value={comparisonStartMonth}
-                    onChange={(e) => setComparisonStartMonth(e.target.value)}
-                    className="w-full px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">📅 {t('closing.comparison.endMonth')}</label>
-                  <input
-                    type="month"
-                    value={comparisonEndMonth}
-                    onChange={(e) => setComparisonEndMonth(e.target.value)}
-                    className="w-full px-3 sm:px-4 py-2 border-2 rounded-lg font-mono text-sm sm:text-base md:text-lg dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                  />
-                </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border dark:border-gray-700 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 px-4 py-3">
+                <p className="text-center text-white text-lg sm:text-xl font-bold">📊 {t('closing.viewMode.comparison')}</p>
               </div>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                {t('closing.comparison.periodInfo', {
-                  start: new Date(comparisonStartMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
-                  end: new Date(comparisonEndMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
-                  count: monthlyComparison.length.toString()
-                })}
-              </p>
+              <div className="p-3 sm:p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">{t('closing.comparison.startMonth')}</label>
+                    <input
+                      type="month"
+                      value={comparisonStartMonth}
+                      onChange={(e) => setComparisonStartMonth(e.target.value)}
+                      className="w-full px-3 py-1.5 border rounded-lg text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium mb-2 dark:text-gray-200">{t('closing.comparison.endMonth')}</label>
+                    <input
+                      type="month"
+                      value={comparisonEndMonth}
+                      onChange={(e) => setComparisonEndMonth(e.target.value)}
+                      className="w-full px-3 py-1.5 border rounded-lg text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                  {t('closing.comparison.periodInfo', {
+                    start: new Date(comparisonStartMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
+                    end: new Date(comparisonEndMonth + '-01').toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' }),
+                    count: monthlyComparison.length.toString()
+                  })}
+                </p>
+              </div>
             </div>
           )}
 
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3">
             <button
               onClick={handlePrint}
               className="bg-green-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
             >
               🖨️ <span className="hidden sm:inline">{t('closing.buttons.print')}</span>
             </button>
+            {user?.role === 'OWNER' && (
             <button
               onClick={handleExportExcel}
               className="bg-primary-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-800 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
             >
               📊 <span className="hidden sm:inline">{t('closing.buttons.export')}</span>
             </button>
+            )}
             <button
               onClick={fetchData}
               className="bg-primary-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-800 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
@@ -1135,8 +1214,9 @@ export default function ClosingPage() {
             </div>
           ) : (
             <>
-              {/* Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
+              {/* Summary Cards - hidden in daily view */}
+              {viewMode !== 'daily' && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
             <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
               <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalExpenses')}</p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.expenses.toFixed(0)}</p>
@@ -1149,10 +1229,6 @@ export default function ClosingPage() {
               <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalPayments')}</p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.totalPayments.toFixed(0)}</p>
             </div>
-            <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
-              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.numberOfDays')}</p>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{dailyData.length}</p>
-            </div>
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
               <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.dailyAverage')}</p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold">
@@ -1160,8 +1236,10 @@ export default function ClosingPage() {
               </p>
             </div>
           </div>
+              )}
 
-          {/* Payment Methods Summary */}
+          {/* Payment Methods Summary - hidden in daily view */}
+          {viewMode !== 'daily' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
             <div className="bg-white dark:bg-gray-800 border-2 border-green-300 dark:border-green-700 p-3 sm:p-4 rounded-lg shadow-md">
               <div className="flex items-center justify-between">
@@ -1212,6 +1290,8 @@ export default function ClosingPage() {
               </div>
             </div>
           </div>
+          )}
+
             </>
           )}
 

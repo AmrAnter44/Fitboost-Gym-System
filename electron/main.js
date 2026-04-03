@@ -4,7 +4,8 @@ const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const http = require('http');
 const os = require('os');
-const HID = require('node-hid');
+let HID;
+try { HID = require('node-hid'); } catch { HID = null; }
 const { startReverseProxy, stopReverseProxy } = require('./reverse-proxy');
 const { startWhatsAppService, stopWhatsAppService } = require('./whatsapp-service');
 
@@ -207,6 +208,16 @@ async function startProductionServer() {
       }
     } catch (migrationError) {
       console.warn('⚠️ Migration warning:', migrationError.message);
+    }
+
+    // ✅ تشغيل check-and-migrate لإضافة أعمدة ناقصة
+    try {
+      const { migrateDatabase } = require('./check-and-migrate');
+      if (fs.existsSync(dbPath)) {
+        migrateDatabase(dbPath);
+      }
+    } catch (checkMigrateError) {
+      console.warn('⚠️ Check-and-migrate warning:', checkMigrateError.message);
     }
 
     // kill port إذا مش فاضي
@@ -682,7 +693,7 @@ ipcMain.on('enable-barcode-scanner', (event, enabled) => {
 ipcMain.handle('detect-hid-devices', async () => {
   try {
     console.log('🔍 Detecting HID devices...');
-    const devices = HID.devices();
+    const devices = HID ? HID.devices() : [];
 
     console.log(`📱 Found ${devices.length} HID devices`);
 

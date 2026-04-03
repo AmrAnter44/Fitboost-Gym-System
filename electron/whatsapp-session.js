@@ -389,17 +389,32 @@ class WhatsAppSession {
 
   async sendImage(phone, imageBase64, caption = '') {
     if (!this.isReady || !this.sock) return { success: false, error: 'WhatsApp not connected' };
-    try {
-      const b64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-      const jid = this._formatPhone(phone) + '@s.whatsapp.net';
-      const result = await this.sock.sendMessage(jid, {
-        image: Buffer.from(b64, 'base64'),
-        caption
-      });
-      return { success: true, messageId: result?.key?.id };
-    } catch (err) {
-      return { success: false, error: err.message };
+
+    const b64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    const jid = this._formatPhone(phone) + '@s.whatsapp.net';
+    const imageBuffer = Buffer.from(b64, 'base64');
+
+    const MAX_ATTEMPTS = 3;
+    let lastError = '';
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const result = await this.sock.sendMessage(jid, {
+          image: imageBuffer,
+          mimetype: 'image/png',
+          caption
+        });
+        return { success: true, messageId: result?.key?.id };
+      } catch (err) {
+        lastError = err.message;
+        console.warn(`[WhatsApp:${this.sessionIndex}] sendImage attempt ${attempt}/${MAX_ATTEMPTS} failed: ${err.message}`);
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise(r => setTimeout(r, 1500 * attempt));
+        }
+      }
     }
+
+    return { success: false, error: lastError };
   }
 
   async sendAudio(phone, audioBase64, ptt = true) {

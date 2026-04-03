@@ -1,7 +1,7 @@
 // components/ImageUpload.tsx
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useId } from 'react'
 import CameraModal from './CameraModal'
 import { useLanguage } from '../contexts/LanguageContext'
 
@@ -21,6 +21,7 @@ export default function ImageUpload({
   variant = 'profile'
 }: ImageUploadProps) {
   const { t } = useLanguage()
+  const inputId = useId()
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentImage || null)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
@@ -178,7 +179,7 @@ export default function ImageUpload({
               accept="image/jpeg,image/jpg,image/png,image/webp"
               onChange={handleFileSelect}
               className="hidden"
-              id="gallery-upload"
+              id={inputId}
             />
 
             {/* زر الكاميرا */}
@@ -216,7 +217,7 @@ export default function ImageUpload({
 
             {/* زر المعرض */}
             <label
-              htmlFor="gallery-upload"
+              htmlFor={inputId}
               className={`
                 inline-flex items-center gap-2 px-5 py-3
                 bg-gray-600 text-white rounded-lg
