@@ -1,0 +1,1229 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+  previewFeatures = []
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+
+  // ⏱️ تحسين أداء SQLite للتعامل مع transactions الكبيرة
+  relationMode = "prisma"
+}
+
+model Member {
+  id                String       @id @default(cuid())
+  memberNumber      Int?         @unique
+  name              String
+  phone             String       // سيتم التحقق من التكرار في الـ API للأعضاء الجُدد
+  backupPhone       String?
+  email             String?
+  nationalId        String?
+  birthDate         DateTime?
+  source            String?
+  profileImage      String?
+  idCardFront       String?
+  idCardBack        String?
+  inBodyScans       Int          @default(0)
+  invitations       Int          @default(0)
+  freePTSessions    Int          @default(0)
+  freeNutritionSessions   Int    @default(0)
+  freePhysioSessions      Int    @default(0)
+  freeGroupClassSessions  Int    @default(0)
+  freePoolSessions        Int    @default(0)
+  freePadelSessions       Int    @default(0)
+  freeAssessmentSessions  Int    @default(0)
+  freeMoreSessions        Int    @default(0)
+  remainingFreezeDays Int        @default(0)
+  subscriptionPrice Float
+  remainingAmount   Float        @default(0)
+  remainingDueDate  DateTime?
+  points            Int          @default(0)
+  notes             String?
+  pushToken         String?      // Expo push notification token
+  isActive          Boolean      @default(true)
+  isFrozen          Boolean      @default(false)
+  isBanned          Boolean      @default(false)
+  startDate         DateTime?
+  expiryDate        DateTime?
+  coachId           String?
+  salesStaffId      String?
+  createdAt         DateTime     @default(now())
+  invitationRecords    Invitation[]
+  receipts             Receipt[]
+  checkIns             MemberCheckIn[]
+  spaBookings          SpaBooking[]
+  freezeRequests       FreezeRequest[]
+  pointsHistory        PointsHistory[]
+  assessmentHistory    AssessmentHistory[]
+  coach                Staff?       @relation("CoachMembers", fields: [coachId], references: [id], onDelete: SetNull)
+  salesStaff           Staff?       @relation("SalesStaffMembers", fields: [salesStaffId], references: [id], onDelete: SetNull)
+
+  // Free Session Relations
+  ptSessions              PTSession[]
+  nutritionSessions       NutritionSession[]
+  physiotherapySessions   PhysiotherapySession[]
+  groupClassSessions      GroupClassSession[]
+  moreSessions            MoreSession[]
+  moreSubscriptions       More[]
+
+  @@index([coachId])
+  @@index([salesStaffId])
+  @@index([isActive])
+  @@index([phone])
+  @@index([expiryDate])
+}
+
+model MemberCheckIn {
+  id                    String    @id @default(cuid())
+  memberId              String
+  checkInTime           DateTime  @default(now())
+  checkInMethod         String    @default("scan")
+
+  member                Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([checkInTime])
+}
+
+model PT {
+  ptNumber          Int         @id @default(autoincrement())
+  clientName        String
+  phone             String
+  sessionsPurchased Int
+  sessionsRemaining Int
+  coachName         String
+  pricePerSession   Float
+  startDate         DateTime?
+  expiryDate        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  coachUserId       String?
+  qrCode            String?     @unique
+  qrCodeImage       String?
+  remainingAmount   Int?
+  sessions          PTSession[]
+  receipts          Receipt[]
+
+  @@index([coachUserId])
+  @@index([qrCode])
+}
+
+model PTSession {
+  id            String    @id @default(cuid())
+  ptNumber      Int
+  clientName    String
+  coachName     String
+  sessionDate   DateTime
+  notes         String?
+  createdAt     DateTime  @default(now())
+  attended      Boolean   @default(false)
+  attendedAt    DateTime?
+  attendedBy    String?
+  signature     String?
+  pt            PT        @relation(fields: [ptNumber], references: [ptNumber], onDelete: Cascade)
+
+  // Free Session Tracking
+  isFreeSession         Boolean   @default(false)
+  memberId              String?
+  member                Member?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?   // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
+
+  @@index([ptNumber])
+  @@index([sessionDate])
+  @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
+}
+
+model DayUseInBody {
+  id           String    @id @default(cuid())
+  name         String
+  phone        String
+  serviceType  String
+  price        Float
+  staffName    String
+  salesStaffId String?
+  createdAt    DateTime  @default(now())
+  receipts     Receipt[]
+
+  @@index([salesStaffId])
+}
+
+model Visitor {
+  id           String     @id @default(cuid())
+  name         String
+  phone        String     @unique
+  notes        String?
+  source       String     @default("walk-in")
+  interestedIn String?
+  status       String     @default("pending")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  followUps    FollowUp[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([phone])
+}
+
+model FollowUp {
+  id               String    @id @default(cuid())
+  visitorId        String
+  notes            String
+  contacted        Boolean   @default(false)
+  nextFollowUpDate DateTime?
+  result           String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  salesName        String?
+
+  // New fields for enhanced tracking
+  assignedTo       String?      // Staff ID assigned to this followup
+  priority         String?      // 'high', 'medium', 'low'
+  stage            String       @default("new") // Pipeline stage
+  lastContactedAt  DateTime?    // Last contact timestamp
+  contactCount     Int          @default(0)   // Number of contact attempts
+  archived         Boolean      @default(false) // Soft delete for converted
+  archivedAt       DateTime?    // When archived
+  archivedReason   String?      // Why archived ('converted', 'renewed', 'manual')
+
+  visitor          Visitor   @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  assignedStaff    Staff?    @relation("FollowUpAssignments", fields: [assignedTo], references: [id], onDelete: SetNull)
+  activities       FollowUpActivity[]
+
+  @@index([visitorId])
+  @@index([nextFollowUpDate])
+  @@index([contacted])
+  @@index([assignedTo])
+  @@index([stage])
+  @@index([archived])
+}
+
+model Receipt {
+  id            String        @id @default(cuid())
+  receiptNumber Int           @unique
+  type          String
+  amount        Float
+  itemDetails   String
+  paymentMethod String        @default("cash")
+  createdAt     DateTime      @default(now())
+  staffName     String?
+  memberId      String?
+  ptNumber      Int?
+  dayUseId      String?
+  nutritionNumber    Int?
+  physioNumber       Int?
+  classNumber        Int?
+  moreNumber         Int?
+  isCancelled   Boolean       @default(false)
+  cancelledAt   DateTime?
+  cancelledBy   String?
+  cancelReason  String?
+  dayUse        DayUseInBody? @relation(fields: [dayUseId], references: [id], onDelete: SetNull)
+  pt            PT?           @relation(fields: [ptNumber], references: [ptNumber], onDelete: SetNull)
+  member        Member?       @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  nutrition     Nutrition?    @relation(fields: [nutritionNumber], references: [nutritionNumber], onDelete: SetNull)
+  physiotherapy Physiotherapy? @relation(fields: [physioNumber], references: [physioNumber], onDelete: SetNull)
+  groupClass    GroupClass?   @relation(fields: [classNumber], references: [classNumber], onDelete: SetNull)
+  more          More?         @relation(fields: [moreNumber], references: [moreNumber], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([type])
+  @@index([isCancelled])
+  @@index([memberId])
+  @@index([ptNumber])
+  @@index([nutritionNumber])
+  @@index([physioNumber])
+  @@index([classNumber])
+  @@index([moreNumber])
+}
+
+model ReceiptCounter {
+  id      Int @id @default(autoincrement())
+  current Int @default(0)
+}
+
+model MemberCounter {
+  id      Int @id @default(autoincrement())
+  current Int @default(1)
+}
+
+model Offer {
+  id                      String   @id @default(cuid())
+  name                    String
+  duration                Int
+  price                   Float
+  freePTSessions          Int      @default(0)
+  freeNutritionSessions   Int      @default(0)
+  freePhysioSessions      Int      @default(0)
+  freeGroupClassSessions  Int      @default(0)
+  freePoolSessions        Int      @default(0)
+  freePadelSessions       Int      @default(0)
+  freeAssessmentSessions  Int      @default(0)
+  freeMoreSessions        Int      @default(0)
+  nutritionPrice          Float?   @default(0)
+  physioPrice             Float?   @default(0)
+  groupClassPrice         Float?   @default(0)
+  morePrice               Float?   @default(0)
+  inBodyScans             Int      @default(0)
+  invitations             Int      @default(0)
+  freezeDays              Int      @default(0)
+  ptCommission            Float?   @default(0)   // عمولة الكوتش لهذه الباقة
+  icon                    String   @default("📅")
+  isActive                Boolean  @default(true)
+  upgradeEligibilityDays  Int?     @default(7)
+  upgradePoints           Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model Staff {
+  id           String         @id @default(cuid())
+  staffCode    String         @unique
+  name         String
+  phone        String?
+  position     String?        // Can store multiple positions as comma-separated (e.g., "مدرب,ريسبشن,بار")
+  salary       Float?
+  notes        String?
+  workingHours Float?         // عدد ساعات العمل المطلوبة يومياً (e.g., 8)
+  monthlyVacationDays Int?   // عدد أيام الإجازة شهرياً (e.g., 2)
+  shiftStartTime String?     // ساعة بداية الشيفت (e.g., "09:00")
+  shiftEndTime   String?     // ساعة نهاية الشيفت (e.g., "17:00")
+  isActive     Boolean        @default(true)
+  salesTarget          Float?   @default(0)   // التارجت الشهري بالجنيه لموظف السيلز
+  salesCommissionType  String?               // 'fixed' | 'tiered'
+  salesCommissionRate  Float?                // نسبة ثابتة (fixed mode)
+  salesCommissionTiers String?               // JSON: [{target:5000,rate:3},{target:10000,rate:5}]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  attendance          Attendance[]
+  expenses            Expense[]
+  user                User?
+  rotations           Rotation[]
+  commissions         Commission[]
+  members             Member[]       @relation("CoachMembers")
+  salesMembers        Member[]       @relation("SalesStaffMembers")
+  followUpAssignments FollowUp[]     @relation("FollowUpAssignments")
+  followUpActivities  FollowUpActivity[]
+  deductions          StaffDeduction[]
+  whatsappAssignments WhatsAppConversation[] @relation("WhatsAppAssignments")
+
+  @@index([staffCode])
+  @@index([isActive])
+}
+
+model StaffDeduction {
+  id          String    @id @default(cuid())
+  staffId     String
+  staff       Staff     @relation(fields: [staffId], references: [id])
+  amount      Float
+  reason      String
+  notes       String?
+  isApplied   Boolean   @default(false)
+  appliedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Attendance {
+  id        String    @id @default(cuid())
+  staffId   String
+  checkIn   DateTime
+  checkOut  DateTime?
+  duration  Int?
+  notes     String?
+  createdAt DateTime  @default(now())
+  staff     Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+  @@index([checkIn])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  type        String
+  amount      Float
+  description String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  staffId     String?
+  isPaid      Boolean  @default(false)
+  staff       Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([staffId])
+  @@index([type])
+  @@index([isPaid])
+}
+
+model Commission {
+  id          String   @id @default(cuid())
+  staffId     String
+  memberId    String?
+  amount      Float
+  type        String
+  description String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  staff       Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Invitation {
+  id         String   @id @default(cuid())
+  guestName  String
+  guestPhone String
+  notes      String?
+  createdAt  DateTime @default(now())
+  memberId   String
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  password     String
+  role         String        @default("STAFF")
+  isActive     Boolean       @default(true)
+  darkMode     Boolean       @default(false)  // 🌙 إعدادات Dark Mode
+  locale       String        @default("ar")   // 🌐 إعدادات اللغة (ar/en)
+  isSales      Boolean       @default(false)  // 🏷️ حساب سيلز - يشوف متابعاته بس
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  staffId      String?       @unique
+  activityLogs ActivityLog[]
+  permissions  Permission?
+  spaBookings  SpaBooking[]
+  staff        Staff?        @relation(fields: [staffId], references: [id])
+}
+
+model Permission {
+  id                      String  @id @default(cuid())
+  userId                  String  @unique
+  canViewMembers          Boolean @default(false)
+  canCreateMembers        Boolean @default(false)
+  canEditMembers          Boolean @default(false)
+  canDeleteMembers        Boolean @default(false)
+  canViewPT               Boolean @default(false)
+  canCreatePT             Boolean @default(false)
+  canEditPT               Boolean @default(false)
+  canDeletePT             Boolean @default(false)
+  canRegisterPTAttendance Boolean @default(false)
+  canViewNutrition        Boolean @default(false)
+  canCreateNutrition      Boolean @default(false)
+  canEditNutrition        Boolean @default(false)
+  canDeleteNutrition      Boolean @default(false)
+  canRegisterNutritionAttendance Boolean @default(false)
+  canViewPhysiotherapy    Boolean @default(false)
+  canCreatePhysiotherapy  Boolean @default(false)
+  canEditPhysiotherapy    Boolean @default(false)
+  canDeletePhysiotherapy  Boolean @default(false)
+  canRegisterPhysioAttendance Boolean @default(false)
+  canViewGroupClass       Boolean @default(false)
+  canCreateGroupClass     Boolean @default(false)
+  canEditGroupClass       Boolean @default(false)
+  canDeleteGroupClass     Boolean @default(false)
+  canRegisterClassAttendance Boolean @default(false)
+  canViewStaff            Boolean @default(false)
+  canCreateStaff          Boolean @default(false)
+  canEditStaff            Boolean @default(false)
+  canDeleteStaff          Boolean @default(false)
+  canViewReceipts         Boolean @default(false)
+  canEditReceipts         Boolean @default(false)
+  canDeleteReceipts       Boolean @default(false)
+  canViewExpenses         Boolean @default(false)
+  canCreateExpense        Boolean @default(false)
+  canEditExpense          Boolean @default(false)
+  canDeleteExpense        Boolean @default(false)
+  canViewVisitors         Boolean @default(false)
+  canCreateVisitor        Boolean @default(false)
+  canEditVisitor          Boolean @default(false)
+  canDeleteVisitor        Boolean @default(false)
+  canViewFollowUps        Boolean @default(false)
+  canCreateFollowUp       Boolean @default(false)
+  canEditFollowUp         Boolean @default(false)
+  canDeleteFollowUp       Boolean @default(false)
+  canViewDayUse           Boolean @default(false)
+  canCreateDayUse         Boolean @default(false)
+  canEditDayUse           Boolean @default(false)
+  canDeleteDayUse         Boolean @default(false)
+  canViewReports          Boolean @default(false)
+  canViewFinancials       Boolean @default(false)
+  canViewAttendance       Boolean @default(false)
+  canAccessClosing        Boolean @default(false)
+  canAccessSettings       Boolean @default(false)
+  canAccessAdmin          Boolean @default(false)
+  canViewSpaBookings      Boolean @default(false)
+  canCreateSpaBooking     Boolean @default(false)
+  canEditSpaBooking       Boolean @default(false)
+  canCancelSpaBooking     Boolean @default(false)
+  canViewSpaReports       Boolean @default(false)
+  canViewWhatsAppInbox    Boolean @default(false)
+  canSendWhatsApp         Boolean @default(false)
+  canManageWhatsApp       Boolean @default(false)
+  canViewMore             Boolean @default(false)
+  canRegisterMoreAttendance Boolean @default(false)
+  canDeleteMore           Boolean @default(false)
+  canAccessMoreCommission Boolean @default(false)
+  canViewDeductions       Boolean @default(false)
+  canCreateDeduction      Boolean @default(false)
+  canEditDeduction        Boolean @default(false)
+  canDeleteDeduction      Boolean @default(false)
+  canManageBannedMembers  Boolean @default(false)
+  user                    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  resource   String
+  resourceId String?
+  details    String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Rotation {
+  id          String   @id @default(cuid())
+  staffId     String
+  dayOfWeek   String   // Monday, Tuesday, etc.
+  startTime   String   // "09:00"
+  endTime     String   // "17:00"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  staff       Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+  @@index([dayOfWeek])
+}
+
+model FollowUpActivity {
+  id           String    @id @default(cuid())
+  followUpId   String
+  activityType String    // 'call', 'whatsapp', 'visit', 'note', 'stage_change', 'assignment'
+  notes        String?
+  createdBy    String
+  createdAt    DateTime  @default(now())
+
+  followUp     FollowUp  @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  staff        Staff     @relation(fields: [createdBy], references: [id])
+
+  @@index([followUpId])
+  @@index([createdAt])
+}
+
+model LicenseValidation {
+  id            String   @id @default("singleton")
+  isValid       Boolean  @default(true)
+  lastCheckedAt DateTime @default(now())
+  errorMessage  String?
+  signature     String?
+}
+
+// 🔒 Audit Logging System
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  userEmail    String?
+  userName     String?
+  userRole     String?
+  action       String   // LOGIN, LOGOUT, CREATE, UPDATE, DELETE, ACCESS_DENIED, etc.
+  resource     String   // Member, Staff, Receipt, User, etc.
+  resourceId   String?
+  details      String?  // JSON string with additional details
+  ipAddress    String?
+  userAgent    String?
+  status       String   @default("success") // success, failure, warning
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// 🟢 Active Sessions Tracking
+model ActiveSession {
+  id            String   @id @default(cuid())
+  userId        String
+  userEmail     String
+  userName      String
+  userRole      String
+  loginAt       DateTime @default(now())
+  lastActivityAt DateTime @default(now())
+  ipAddress     String?
+  userAgent     String?
+  isActive      Boolean  @default(true)
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([loginAt])
+  @@index([lastActivityAt])
+}
+
+// 🐛 Error Tracking System
+model ErrorLog {
+  id                String    @id @default(cuid())
+
+  // معلومات الخطأ
+  errorType         String    // FRONTEND, BACKEND_API, DATABASE, AUTHENTICATION, UNKNOWN
+  errorCategory     String?   // PRISMA_ERROR, VALIDATION_ERROR, NETWORK_ERROR, JWT_ERROR, etc.
+  severity          String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+
+  // رسائل الخطأ
+  message           String
+  sanitizedMessage  String?
+  errorCode         String?
+  stackTrace        String?
+
+  // السياق
+  endpoint          String?
+  httpMethod        String?
+  statusCode        Int?
+
+  // المستخدم
+  userId            String?
+  userEmail         String?
+  userName          String?
+  userRole          String?
+  staffId           String?
+
+  // الطلب
+  requestBody       String?   // JSON string
+  requestHeaders    String?   // JSON string
+  ipAddress         String?
+  userAgent         String?
+
+  // إضافي
+  additionalContext String?   // JSON string
+  browserInfo       String?   // JSON string
+
+  // النظام
+  environment       String    @default("production")
+  appVersion        String?
+
+  // التوقيت
+  createdAt         DateTime  @default(now())
+  resolvedAt        DateTime?
+  isResolved        Boolean   @default(false)
+
+  // Sync مع Supabase
+  syncedToSupabase  Boolean   @default(false)
+  supabaseId        String?   // UUID from Supabase
+  syncAttempts      Int       @default(0)
+  lastSyncAttempt   DateTime?
+
+  @@index([errorType])
+  @@index([severity])
+  @@index([createdAt])
+  @@index([endpoint])
+  @@index([userId])
+  @@index([isResolved])
+  @@index([syncedToSupabase])
+  @@index([errorCategory])
+}
+
+// 💆 SPA Booking System
+model SpaBooking {
+  id              String    @id @default(cuid())
+
+  // معلومات العضو
+  memberId        String
+  memberName      String
+  memberPhone     String?
+
+  // معلومات الحجز
+  serviceType     String    // 'massage', 'sauna', 'jacuzzi'
+  bookingDate     DateTime  // تاريخ الحجز
+  bookingTime     String    // وقت البدء "10:00"
+  duration        Int       // المدة بالدقائق (30, 60, 90)
+
+  // الحالة
+  status          String    @default("pending")  // pending, confirmed, completed, cancelled
+
+  // ملاحظات
+  notes           String?
+
+  // من قام بالحجز
+  createdBy       String    // اسم الموظف/المدير
+  createdByUserId String?   // ID المستخدم (اختياري)
+
+  // التواريخ
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // العلاقات
+  member          Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  user            User?     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([memberId])
+  @@index([bookingDate])
+  @@index([status])
+  @@index([serviceType])
+}
+
+model FreezeRequest {
+  id          String    @id @default(cuid())
+  memberId    String
+
+  // تفاصيل التجميد
+  startDate   DateTime  // تاريخ بداية التجميد
+  endDate     DateTime  // تاريخ نهاية التجميد
+  days        Int       // عدد أيام التجميد
+
+  // السبب
+  reason      String?
+
+  // الحالة
+  status      String    @default("pending")  // pending, approved, rejected
+
+  // من وافق/رفض
+  approvedBy  String?   // اسم الموظف/المدير
+  approvedAt  DateTime?
+
+  // التواريخ
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // العلاقات
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([status])
+  @@index([startDate])
+}
+
+model CommissionSettings {
+  id          String   @id @default(cuid())
+  // حدود الدخل الشهري
+  tier1Limit  Float    @default(5000)   // أقل من 5000
+  tier2Limit  Float    @default(11000)  // 5000-10999
+  tier3Limit  Float    @default(15000)  // 11000-14999
+  tier4Limit  Float    @default(20000)  // 15000-19999
+  // النسب المئوية لكل مستوى
+  tier1Rate   Float    @default(25)     // 25%
+  tier2Rate   Float    @default(30)     // 30%
+  tier3Rate   Float    @default(35)     // 35%
+  tier4Rate   Float    @default(40)     // 40%
+  tier5Rate   Float    @default(45)     // 45%
+  // تواريخ
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ===== التغذية (Nutrition) =====
+model Nutrition {
+  nutritionNumber   Int         @id @default(autoincrement())
+  clientName        String
+  phone             String
+  memberNumber      Int?        // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
+  sessionsPurchased Int
+  sessionsRemaining Int
+  nutritionistName  String
+  pricePerSession   Float
+  startDate         DateTime?
+  expiryDate        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  coachUserId       String?
+  qrCode            String?     @unique
+  qrCodeImage       String?
+  remainingAmount   Int?
+  sessions          NutritionSession[]
+  receipts          Receipt[]
+
+  @@index([coachUserId])
+  @@index([qrCode])
+  @@index([memberNumber])
+}
+
+model NutritionSession {
+  id              String      @id @default(cuid())
+  nutritionNumber Int?
+  clientName      String
+  nutritionistName String
+  sessionDate     DateTime
+  notes           String?
+  createdAt       DateTime    @default(now())
+  attended        Boolean     @default(false)
+  attendedAt      DateTime?
+  attendedBy      String?
+  nutrition       Nutrition?   @relation(fields: [nutritionNumber], references: [nutritionNumber], onDelete: Cascade)
+
+  // Free Session Tracking
+  isFreeSession         Boolean     @default(false)
+  memberId              String?
+  member                Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?     // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
+
+  @@index([nutritionNumber])
+  @@index([sessionDate])
+  @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
+}
+
+// ===== العلاج الطبيعي (Physiotherapy) =====
+model Physiotherapy {
+  physioNumber      Int         @id @default(autoincrement())
+  clientName        String
+  phone             String
+  memberNumber      Int?        // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
+  sessionsPurchased Int
+  sessionsRemaining Int
+  therapistName     String
+  pricePerSession   Float
+  startDate         DateTime?
+  expiryDate        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  therapistUserId   String?
+  qrCode            String?     @unique
+  qrCodeImage       String?
+  remainingAmount   Int?
+  sessions          PhysiotherapySession[]
+  receipts          Receipt[]
+
+  @@index([therapistUserId])
+  @@index([qrCode])
+  @@index([memberNumber])
+}
+
+model PhysiotherapySession {
+  id            String         @id @default(cuid())
+  physioNumber  Int?
+  clientName    String
+  therapistName String
+  sessionDate   DateTime
+  notes         String?
+  createdAt     DateTime       @default(now())
+  attended      Boolean        @default(false)
+  attendedAt    DateTime?
+  attendedBy    String?
+  physiotherapy Physiotherapy?  @relation(fields: [physioNumber], references: [physioNumber], onDelete: Cascade)
+
+  // Free Session Tracking
+  isFreeSession         Boolean        @default(false)
+  memberId              String?
+  member                Member?        @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?        // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
+
+  @@index([physioNumber])
+  @@index([sessionDate])
+  @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
+}
+
+// ===== جروب كلاسيس (Group Classes) =====
+model GroupClass {
+  classNumber       Int         @id @default(autoincrement())
+  clientName        String
+  phone             String
+  memberNumber      Int?        // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
+  sessionsPurchased Int
+  sessionsRemaining Int
+  instructorName    String
+  pricePerSession   Float
+  startDate         DateTime?
+  expiryDate        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  instructorUserId  String?
+  qrCode            String?     @unique
+  qrCodeImage       String?
+  remainingAmount   Int?
+  sessions          GroupClassSession[]
+  receipts          Receipt[]
+
+  @@index([instructorUserId])
+  @@index([qrCode])
+  @@index([memberNumber])
+}
+
+model GroupClassSession {
+  id             String      @id @default(cuid())
+  classNumber    Int
+  clientName     String
+  instructorName String
+  sessionDate    DateTime
+  notes          String?
+  createdAt      DateTime    @default(now())
+  attended       Boolean     @default(false)
+  attendedAt     DateTime?
+  attendedBy     String?
+  groupClass     GroupClass  @relation(fields: [classNumber], references: [classNumber], onDelete: Cascade)
+
+  // Free Session Tracking
+  isFreeSession         Boolean     @default(false)
+  memberId              String?
+  member                Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?     // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
+
+  @@index([classNumber])
+  @@index([sessionDate])
+  @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
+}
+
+// ===== مزيد (More Services) =====
+model More {
+  moreNumber        Int         @id @default(autoincrement())
+  clientName        String
+  phone             String
+  memberId          String?
+  member            Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  sessionsPurchased Int
+  sessionsRemaining Int
+  coachName         String
+  coachUserId       String?
+  pricePerSession   Float
+  totalAmount       Float
+  startDate         DateTime    @default(now())
+  expiryDate        DateTime
+  remainingAmount   Float       @default(0)
+  notes             String?
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  sessions          MoreSession[]
+  receipts          Receipt[]
+
+  @@index([moreNumber])
+  @@index([phone])
+  @@index([memberId])
+  @@index([coachUserId])
+  @@index([isActive])
+}
+
+model MoreSession {
+  id              String   @id @default(cuid())
+  moreNumber      Int
+  clientName      String
+  coachName       String
+  sessionDate     DateTime @default(now())
+  attended        Boolean  @default(true)
+  attendedAt      DateTime @default(now())
+  attendedBy      String   // المستخدم الذي سجل الحضور
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  more            More     @relation(fields: [moreNumber], references: [moreNumber], onDelete: Cascade)
+
+  // Free Session Tracking
+  isFreeSession         Boolean   @default(false)
+  memberId              String?
+  member                Member?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  collectedInExpenseId  String?   // ID الـ Expense اللي اتحصلت فيه الجلسة المجانية
+
+  @@index([moreNumber])
+  @@index([sessionDate])
+  @@index([attended])
+  @@index([memberId])
+  @@index([isFreeSession])
+  @@index([collectedInExpenseId])
+}
+
+// نظام إعدادات الخدمات
+model SystemSettings {
+  id                    String   @id @default("singleton")
+  nutritionEnabled      Boolean  @default(true)
+  physiotherapyEnabled  Boolean  @default(true)
+  groupClassEnabled     Boolean  @default(true)
+  moreEnabled           Boolean  @default(true)
+  spaEnabled            Boolean  @default(true)
+  inBodyEnabled         Boolean  @default(true)
+  poolEnabled           Boolean  @default(true)
+  padelEnabled          Boolean  @default(true)
+  assessmentEnabled     Boolean  @default(true)
+  pointsEnabled         Boolean  @default(true)
+  pointsPerCheckIn      Int      @default(1)
+  pointsPerInvitation   Int      @default(2)
+  pointsPerReferral     Int      @default(0)    // نقاط إحالة عضو جديد
+  pointsPerEGPSpent     Float    @default(0.1)  // نقاط لكل جنيه يتم دفعه
+  pointsPerBirthday     Int      @default(10)   // نقاط عيد الميلاد للأعضاء النشطين
+  pointsValueInEGP      Float    @default(0.1)
+  websiteUrl            String?  @default("https://www.xgym.website")  // رابط الموقع الإلكتروني
+  showWebsiteOnReceipts Boolean  @default(false)  // عرض رابط الموقع في الإيصالات
+  androidAppUrl         String?  // رابط تطبيق الأندرويد
+  iosAppUrl             String?  // رابط تطبيق الـ iOS
+  showAppLinksOnReceipts Boolean @default(false)  // عرض روابط التطبيق في الإيصالات
+  receiptTerms          String?  @default("الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه")  // شروط وأحكام الإيصال
+
+  // لوجو واسم الجيم المخصص
+  gymName               String?  // اسم الجيم (يظهر في الإيصالات والسايدبار)
+  gymLogo               String?  // مسار لوجو الجيم المرفوع من الأونر
+  primaryColor          String?  // اللون الأساسي المخصص (hex مثل #fbe003)
+
+  // إعدادات الجلسات المجانية
+  trackFreeSessionsCost       Boolean  @default(false)  // تفعيل/تعطيل احتساب تكلفة الجلسات المجانية
+  freePTSessionPrice          Float    @default(0)     // سعر جلسة PT المجانية
+  freeNutritionSessionPrice   Float    @default(0)     // سعر جلسة التغذية المجانية
+  freePhysioSessionPrice      Float    @default(0)     // سعر جلسة العلاج الطبيعي المجانية
+  freeGroupClassSessionPrice  Float    @default(0)     // سعر جلسة الجروب كلاسيس المجانية
+
+  // إعدادات عمولة PT/الكوتش
+  ptCommissionEnabled         Boolean  @default(true)   // تفعيل/تعطيل عمولة الكوتش عند إضافة عضو
+  ptCommissionAmount          Float    @default(50)     // مبلغ العمولة (جنيه)
+
+  // إعدادات عمولة More
+  moreCommissionEnabled       Boolean  @default(true)   // تفعيل/تعطيل عمولة المدرب لخدمة مزيد
+  moreCommissionAmount        Float    @default(50)     // مبلغ العمولة (جنيه)
+
+  // إعدادات عمولة Referral
+  nutritionReferralEnabled    Boolean  @default(false)  // تفعيل/تعطيل Referral للتغذية
+  nutritionReferralPercentage Float    @default(0)      // نسبة عمولة Referral للتغذية (%)
+  physioReferralEnabled       Boolean  @default(false)  // تفعيل/تعطيل Referral للعلاج الطبيعي
+  physioReferralPercentage    Float    @default(0)      // نسبة عمولة Referral للعلاج الطبيعي (%)
+
+  // نظام بواقي الاشتراك
+  remainingEnabled            Boolean  @default(false)  // تفعيل/تعطيل نظام بواقي الاشتراك (التقسيط)
+
+  // نظام نقاط عيد الميلاد التلقائي
+  lastBirthdayPointsCheck     String?  @default("1970-01-01")  // آخر تاريخ تم فيه التحقق من أعياد الميلاد (YYYY-MM-DD)
+
+  updatedAt             DateTime @updatedAt
+  updatedBy             String?
+}
+
+// باقات الخدمات
+model ServicePackage {
+  id            String   @id @default(cuid())
+  name          String
+  serviceType   String   // 'PT', 'Nutrition', 'Physiotherapy', 'GroupClass', 'More'
+  sessions      Int
+  price         Float
+  durationDays  Int      @default(30)  // 📅 مدة الاشتراك بالأيام (افتراضي: 30 يوم)
+  moreCommission Float?  @default(0)  // 💰 عمولة المدرب لباقات مزيد (0 = استخدام الإعدادات الافتراضية)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([serviceType])
+  @@index([isActive])
+}
+
+// نظام النقاط - تاريخ اكتساب النقاط
+model PointsHistory {
+  id          String   @id @default(cuid())
+  memberId    String
+  points      Int      // عدد النقاط المكتسبة
+  action      String   // نوع النشاط: 'check-in', 'invitation'
+  description String?  // وصف اختياري
+  createdAt   DateTime @default(now())
+
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+// نظام التقييمات - تاريخ التقييمات البدنية
+model AssessmentHistory {
+  id          String   @id @default(cuid())
+  memberId    String
+  type        String   // نوع التقييم: 'weight', 'body_fat', 'muscle_mass', 'manual', etc
+  value       Float?   // القيمة (وزن، نسبة دهون، إلخ)
+  notes       String?  // ملاحظات أو سبب التقييم
+  createdAt   DateTime @default(now())
+
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+// جدول مواعيد الجروب كلاسيس الأسبوعية
+model ClassSchedule {
+  id          String   @id @default(cuid())
+  dayOfWeek   Int      // 0=الأحد, 1=الاثنين, 2=الثلاثاء, 3=الأربعاء, 4=الخميس, 5=الجمعة, 6=السبت
+  startTime   String   // "HH:mm" e.g. "09:00"
+  className   String   // نوع الكلاس e.g. "زومبا", "يوجا", "كروسفيت"
+  coachName   String   // اسم الكوتش
+  duration    Int      @default(60) // المدة بالدقائق
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dayOfWeek])
+  @@index([isActive])
+}
+
+// قائمة المحظورين
+model BannedMember {
+  id         String   @id @default(cuid())
+  name       String?
+  phone      String?
+  nationalId String?
+  reason     String?
+  notes      String?
+  bannedBy   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([phone])
+  @@index([nationalId])
+}
+
+// حجوزات كلاسات اليوم
+model ClassBooking {
+  id              String   @id @default(cuid())
+  memberId        String
+  classScheduleId String   // أي كلاس محجوز
+  bookingDate     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([memberId])
+  @@index([bookingDate])
+  @@index([classScheduleId])
+  @@unique([memberId, classScheduleId, bookingDate])
+}
+
+// نظام الترخيص من Supabase
+model SupabaseLicense {
+  id             String   @id @default(cuid())
+  gymId          String
+  gymName        String
+  branchId       String
+  branchName     String
+  systemLicense  String   // 'true', 'false', 'active'
+  licenseMessage String?
+  lastChecked    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([branchId])
+}
+
+// قوالب رسائل الواتساب
+model WhatsAppTemplate {
+  id        String   @id @default(cuid())
+  title     String
+  icon      String   @default("💬")
+  message   String
+  isCustom  Boolean  @default(true)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ===== WhatsApp Multi-Number Inbox System =====
+
+model WhatsAppSession {
+  id                String    @id @default(cuid())
+  sessionIndex      Int       @unique
+  label             String
+  phoneNumber       String?
+  status            String    @default("disconnected")
+  isActive          Boolean   @default(true)
+  warmupComplete    Boolean   @default(false)
+  warmupStartedAt   DateTime?
+  dailyMessageCount Int       @default(0)
+  dailyCountResetAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  conversations WhatsAppConversation[]
+  messages      WhatsAppMessage[]
+  queueItems    WhatsAppQueueItem[]
+
+  @@index([sessionIndex])
+  @@index([status])
+  @@index([isActive])
+}
+
+model WhatsAppConversation {
+  id              String    @id @default(cuid())
+  remotePhone     String    @unique
+  remoteName      String?
+  lastMessageAt   DateTime?
+  lastMessageText String?
+  status          String    @default("open")
+  assignedToId    String?
+  sessionId       String?
+  unreadCount     Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  session    WhatsAppSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  assignedTo Staff?           @relation("WhatsAppAssignments", fields: [assignedToId], references: [id], onDelete: SetNull)
+  messages   WhatsAppMessage[]
+
+  @@index([status])
+  @@index([assignedToId])
+  @@index([lastMessageAt])
+  @@index([sessionId])
+}
+
+model WhatsAppMessage {
+  id             String    @id @default(cuid())
+  conversationId String
+  sessionId      String?
+  direction      String
+  messageType    String    @default("text")
+  content        String
+  mediaUrl       String?
+  whatsappMsgId  String?
+  status         String    @default("pending")
+  sentById       String?
+  createdAt      DateTime  @default(now())
+
+  conversation WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  session      WhatsAppSession?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([direction])
+  @@index([status])
+}
+
+model WhatsAppQueueItem {
+  id          String    @id @default(cuid())
+  sessionId   String
+  phone       String
+  messageType String    @default("text")
+  content     String
+  mediaBase64 String?
+  priority    Int       @default(5)
+  status      String    @default("queued")
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  scheduledAt DateTime  @default(now())
+  sentAt      DateTime?
+  error       String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  session WhatsAppSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([priority])
+}

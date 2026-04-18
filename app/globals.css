@@ -1,0 +1,1615 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   Theme Colors - CSS Variables
+   نظام الألوان المركزي
+   ======================================== */
+:root {
+  /* Primary Colors - الألوان الأساسية */
+  --color-primary-50: #fcfaee;
+  --color-primary-100: #f8f4d8;
+  --color-primary-200: #f0eab2;
+  --color-primary-300: #fded68;
+  --color-primary-400: #fce62b;
+  --color-primary-500: #fbe003;
+  --color-primary-600: #cab402;
+  --color-primary-700: #a19002;
+  --color-primary-800: #7e7002;
+  --color-primary-900: #564e0b;
+  --color-primary-950: #322d06;
+
+  /* RGB Values for transparency */
+  --color-primary-50-rgb: 252, 250, 238;
+  --color-primary-100-rgb: 248, 244, 216;
+  --color-primary-200-rgb: 240, 234, 178;
+  --color-primary-300-rgb: 253, 237, 104;
+  --color-primary-400-rgb: 252, 230, 43;
+  --color-primary-500-rgb: 251, 224, 3;
+  --color-primary-600-rgb: 202, 180, 2;
+  --color-primary-700-rgb: 161, 144, 2;
+  --color-primary-800-rgb: 126, 112, 2;
+  --color-primary-900-rgb: 86, 78, 11;
+  --color-primary-950-rgb: 50, 45, 6;
+
+  /* Other colors */
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 249, 250, 251;
+  --background-end-rgb: 249, 250, 251;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Dark Mode Colors */
+.dark {
+  /* Dark Mode Primary Colors */
+  --color-primary-50: #322d06;
+  --color-primary-100: #564e0b;
+  --color-primary-200: #7e7002;
+  --color-primary-300: #a19002;
+  --color-primary-400: #cab402;
+  --color-primary-500: #fbe003;
+  --color-primary-600: #fce62b;
+  --color-primary-700: #fded68;
+  --color-primary-800: #f0eab2;
+  --color-primary-900: #f8f4d8;
+  --color-primary-950: #fcfaee;
+
+  /* Dark Mode Background & Foreground */
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 17, 24, 39;
+  --background-end-rgb: 17, 24, 39;
+}
+
+/* Dark Mode Body */
+.dark body {
+  background: rgb(17, 24, 39);
+  color: rgb(243, 244, 246);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  user-select: none;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+body {
+  position: relative;
+}
+
+main {
+  max-width: 100vw;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.container {
+  max-width: 100%;
+}
+
+/* RTL/LTR Support */
+[dir="rtl"] {
+  text-align: right;
+  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+[dir="ltr"] {
+  text-align: left;
+}
+
+/* تحسين الخط العربي للعناوين والأزرار */
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] h5,
+[dir="rtl"] h6 {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+[dir="rtl"] button,
+[dir="rtl"] .font-bold {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+}
+
+[dir="rtl"] .font-semibold {
+  font-weight: 700;
+}
+
+[dir="rtl"] strong,
+[dir="rtl"] b {
+  font-weight: 800;
+}
+
+/* RTL Table Support */
+[dir="rtl"] table {
+  direction: rtl;
+  font-weight: 700;
+}
+
+[dir="rtl"] table thead th {
+  font-weight: 800;
+}
+
+[dir="ltr"] table {
+  direction: ltr;
+}
+
+/* تحسين الخط في الـ inputs والـ labels */
+[dir="rtl"] label {
+  font-weight: 700;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] select,
+[dir="rtl"] textarea {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 400;
+}
+
+/* تحسين الخط في الكروت والبطاقات */
+[dir="rtl"] .bg-white,
+[dir="rtl"] .card {
+  font-weight: 700;
+}
+
+/* تحسين الخط في الروابط */
+[dir="rtl"] a {
+  font-weight: 700;
+}
+
+/* RTL Flexbox Support */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* RTL Grid Support */
+[dir="rtl"] .grid {
+  direction: rtl;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* إخفاء عناصر no-print أثناء الطباعة */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* تحسينات للنماذج */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* تحسينات للجداول */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+/* إخفاء scrollbar مع الحفاظ على القدرة على التمرير */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* تحسين المدخلات */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* تحسين الأزرار */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* تحسين الجداول على الموبايل */
+@media (max-width: 768px) {
+  table {
+    font-size: 0.875rem;
+  }
+
+  th, td {
+    padding: 0.5rem !important;
+  }
+
+  /* منع horizontal scroll على الموبايل */
+  body, html, main {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+/* تأثيرات الحركة */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Toast Animations */
+@keyframes slideInToast {
+  from {
+    opacity: 0;
+    transform: translateX(400px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shrinkWidth {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* تحسينات للكروت */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+/* Excel-like table styling */
+.excel-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.excel-table th,
+.excel-table td {
+  border: 1px solid #d1d5db;
+}
+
+/* Dark mode support for excel-table */
+@media (prefers-color-scheme: dark) {
+  .excel-table th,
+  .excel-table td {
+    border-color: #4b5563;
+  }
+}
+
+.dark .excel-table th,
+.dark .excel-table td {
+  border-color: #4b5563;
+}
+
+/* Print styles */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .excel-table {
+    font-size: 9px;
+    page-break-inside: auto;
+  }
+
+  .excel-table tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  .excel-table thead {
+    display: table-header-group;
+  }
+
+  .excel-table th,
+  .excel-table td {
+    padding: 3px 5px !important;
+  }
+}
+
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* PWA Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.4s ease-out;
+}
+
+/* PWA Enhancements - iOS Safe Area */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+/* تحسين المظهر للـ Standalone Mode */
+@media (display-mode: standalone) {
+  body {
+    background: #f9fafb;
+  }
+
+  /* إخفاء شريط العنوان في وضع التطبيق */
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+}
+
+/* منع التكبير على iOS */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Dark Mode Toggle Animations */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+/* Smooth transitions for dark mode toggle */
+.dark-mode-toggle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Notification Toast Animations */
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -100px);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, 10px);
+  }
+  100% {
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+}
+
+/* ========================================
+   Custom Scrollbar Styles
+   تنسيقات شريط التمرير المخصص
+   ======================================== */
+
+/* Webkit Browsers (Chrome, Safari, Edge) */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Dark Mode Scrollbar */
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Firefox Scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.dark .scrollbar-thin {
+  scrollbar-color: #4b5563 transparent;
+}
+
+/* Scrollbar Track Colors */
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+}
+
+.scrollbar-thumb-gray-600::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+/* ========================================
+   Sidebar Responsive Enhancements
+   تحسينات responsive للقائمة الجانبية
+   ======================================== */
+
+/* Smooth sidebar transitions */
+@media (max-width: 1024px) {
+  aside {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Scale hover effect */
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+/* Active scale effect */
+.active\:scale-95:active {
+  transform: scale(0.95);
+}
+
+/* ========================================
+   Modern Toggle Switch (RTL-Compatible)
+   زر تبديل حديث يدعم RTL
+   ======================================== */
+
+/* Toggle Container */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hide default checkbox */
+.toggle-switch input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Toggle Track */
+.toggle-track {
+  position: relative;
+  width: 3.5rem;
+  height: 2rem;
+  background-color: #d1d5db;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease-in-out;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle Thumb */
+.toggle-thumb {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: white;
+  border-radius: 9999px;
+  transition: transform 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Checked State - Track */
+.toggle-switch input[type="checkbox"]:checked + .toggle-track {
+  background-color: #10b981;
+}
+
+/* Checked State - Thumb (LTR) */
+[dir="ltr"] .toggle-switch input[type="checkbox"]:checked + .toggle-track .toggle-thumb {
+  transform: translateX(1.5rem);
+}
+
+/* Checked State - Thumb (RTL) */
+[dir="rtl"] .toggle-switch input[type="checkbox"]:checked + .toggle-track .toggle-thumb {
+  transform: translateX(-1.5rem);
+}
+
+/* RTL Support - Initial Position */
+[dir="rtl"] .toggle-thumb {
+  left: auto;
+  right: 0.25rem;
+}
+
+/* Focus State */
+.toggle-switch input[type="checkbox"]:focus + .toggle-track {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Disabled State */
+.toggle-switch input[type="checkbox"]:disabled + .toggle-track {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Color Variants */
+.toggle-green input[type="checkbox"]:checked + .toggle-track {
+  background-color: #10b981;
+}
+
+.toggle-blue input[type="checkbox"]:checked + .toggle-track {
+  background-color: #3b82f6;
+}
+
+.toggle-yellow input[type="checkbox"]:checked + .toggle-track {
+  background-color: #eab308;
+}
+
+.toggle-purple input[type="checkbox"]:checked + .toggle-track {
+  background-color: #a855f7;
+}
+
+.toggle-pink input[type="checkbox"]:checked + .toggle-track {
+  background-color: #ec4899;
+}
+
+.toggle-indigo input[type="checkbox"]:checked + .toggle-track {
+  background-color: #6366f1;
+}
+
+.toggle-teal input[type="checkbox"]:checked + .toggle-track {
+  background-color: #14b8a6;
+}
+
+/* Dark Mode */
+.dark .toggle-track {
+  background-color: #4b5563;
+}
+
+.dark .toggle-thumb {
+  background-color: #f3f4f6;
+}
+
+/* Hover Effect */
+.toggle-switch:hover .toggle-track {
+  opacity: 0.9;
+}
+
+/* Active (Click) Effect */
+.toggle-switch:active .toggle-thumb {
+  width: 1.75rem;
+}

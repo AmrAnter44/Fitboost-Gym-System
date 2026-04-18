@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.*
+
+# Next.js
+.next/
+out/
+
+# Build artifacts
+dist/
+release/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Database files (تحتوي على بيانات حساسة - لا ترفع على Git)
+prisma/*.db
+prisma/*.db-journal
+prisma/*.db.backup*
+prisma/*.integrity_backup
+*.db-journal
+
+# Electron builds
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.snap
+*.msi
+
+# Logs
+*.log
+logs/
+dev.log
+
+# IDE & OS
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+tmp*
+nul
+
+# Uploads
+public/uploads/
+
+# Claude Code settings
+.claude/settings.local.json
+
+# Chromium resources (too large for GitHub)
+resources/
