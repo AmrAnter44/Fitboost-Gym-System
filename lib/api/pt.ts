@@ -1,0 +1,67 @@
+// API functions for PT (Personal Training)
+
+export async function fetchPTSessions() {
+  const response = await fetch('/api/pt')
+
+  if (response.status === 401) {
+    throw new Error('UNAUTHORIZED')
+  }
+
+  if (response.status === 403) {
+    throw new Error('FORBIDDEN')
+  }
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'فشل جلب جلسات PT')
+  }
+
+  const data = await response.json()
+
+  if (!Array.isArray(data)) {
+    console.error('البيانات المستلمة ليست array:', data)
+    return []
+  }
+
+  return data
+}
+
+// جلب كل الموظفين النشطين (للاستخدام في التغذية والعلاج الطبيعي)
+export async function fetchStaff() {
+  const response = await fetch('/api/staff')
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'فشل جلب بيانات الموظفين')
+  }
+
+  const data = await response.json()
+
+  if (!Array.isArray(data)) {
+    return []
+  }
+
+  // إرجاع كل الموظفين النشطين بدون فلتر
+  return data.filter((staff: any) => staff.isActive)
+}
+
+// جلب المدربين فقط (للاستخدام في PT)
+export async function fetchCoaches() {
+  const response = await fetch('/api/staff')
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'فشل جلب بيانات المدربين')
+  }
+
+  const data = await response.json()
+
+  if (!Array.isArray(data)) {
+    return []
+  }
+
+  // فلترة المدربين فقط (دعم العربي والإنجليزي)
+  return data.filter((staff: any) =>
+    (staff.position === 'مدرب' || staff.position === 'trainer') && staff.isActive
+  )
+}

@@ -1,0 +1,267 @@
+import { NextResponse } from 'next/server'
+import { prisma } from '../../../lib/prisma'
+import { requirePermission } from '../../../lib/auth'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+
+// GET - جلب كل المصروفات
+
+export const dynamic = 'force-dynamic'
+
+export async function GET(request: Request) {
+  try {
+    /**
+     * جلب كل المصروفات
+     * @permission canViewExpenses - صلاحية عرض المصروفات والنفقات
+     */
+    let user
+    try {
+      user = await requirePermission(request, 'canViewExpenses')
+    } catch (permError: any) {
+      // إذا لم يكن لديه صلاحية canViewExpenses، نتحقق إذا كان كوتش يريد رؤية قروضه فقط
+      const { verifyAuth } = await import('../../../lib/auth')
+      user = await verifyAuth(request)
+
+      if (!user) {
+        throw new Error('Unauthorized')
+      }
+
+      // الكوتشات يمكنهم رؤية قروضهم (staff loans) الخاصة فقط
+      if (user.role === 'COACH') {
+        // جلب معلومات المستخدم مع staffId
+        const userWithStaff = await prisma.user.findUnique({
+          where: { id: user.userId },
+          select: { staffId: true }
+        })
+
+        if (!userWithStaff?.staffId) {
+          return NextResponse.json([])
+        }
+
+        // جلب القروض والرواتب الخاصة بهذا الكوتش فقط
+        const expenses = await prisma.expense.findMany({
+          where: {
+            staffId: userWithStaff.staffId,
+            type: { in: ['staff_loan', 'staff_salary'] }
+          },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            staff: true
+          }
+        })
+
+        return NextResponse.json(expenses)
+      }
+
+      // إذا لم يكن كوتش، نرمي الخطأ الأصلي
+      throw permError
+    }
+
+    // ✅ إذا كان لديه صلاحية canViewExpenses، نطبق المنطق العادي
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type')
+    const staffId = searchParams.get('staffId')
+
+    let where: any = {}
+    if (type) where.type = type
+    if (staffId) where.staffId = staffId
+
+    const expenses = await prisma.expense.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        staff: true
+      }
+    })
+
+    return NextResponse.json(expenses)
+  } catch (error: any) {
+    console.error('Error fetching expenses:', error)
+
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
+    if (error.message.includes('Forbidden')) {
+      return NextResponse.json(
+        { error: 'ليس لديك صلاحية عرض المصروفات' },
+        { status: 403 }
+      )
+    }
+
+    return NextResponse.json({ error: 'فشل جلب المصروفات' }, { status: 500 })
+  }
+}
+
+// POST - إضافة مصروف جديد
+export async function POST(request: Request) {
+  try {
+    /**
+     * إضافة مصروف جديد
+     * @permission canCreateExpense - صلاحية إنشاء مصروفات جديدة
+     */
+    const user = await requirePermission(request, 'canCreateExpense')
+
+    const body = await request.json()
+    const { type, amount, description, notes, staffId, customCreatedAt } = body
+
+    if (!type || !amount || !description) {
+      return NextResponse.json(
+        { error: 'البيانات المطلوبة ناقصة' },
+        { status: 400 }
+      )
+    }
+
+    // ✅ تحضير البيانات مع دعم التاريخ المخصص
+    const expenseData: any = {
+      type,
+      amount,
+      description,
+      notes,
+      staffId: staffId || null,
+    }
+
+    // ✅ إضافة التاريخ المخصص إذا كان موجوداً
+    if (customCreatedAt) {
+      expenseData.createdAt = new Date(customCreatedAt)
+    }
+
+    const expense = await prisma.expense.create({
+      data: expenseData,
+      include: {
+        staff: true
+      }
+    })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'CREATE', resource: 'Expense', resourceId: expense.id,
+      details: { type: expense.type, amount: expense.amount, description: expense.description },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json(expense, { status: 201 })
+  } catch (error: any) {
+    console.error('Error creating expense:', error)
+    
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+    
+    if (error.message.includes('Forbidden')) {
+      return NextResponse.json(
+        { error: 'ليس لديك صلاحية إضافة مصروفات' },
+        { status: 403 }
+      )
+    }
+    
+    return NextResponse.json({ error: 'فشل إضافة المصروف' }, { status: 500 })
+  }
+}
+
+// PUT - تحديث مصروف
+export async function PUT(request: Request) {
+  try {
+    // ✅ التحقق من صلاحية تعديل المصروف
+    const user = await requirePermission(request, 'canEditExpense')
+
+    const body = await request.json()
+    const { id, amount, description, createdAt, isPaid } = body
+
+    // تحضير البيانات للتحديث
+    const updateData: any = {}
+
+    if (amount !== undefined && amount !== null && amount !== '') updateData.amount = parseFloat(amount)
+    if (description !== undefined) updateData.description = description
+    if (createdAt !== undefined) updateData.createdAt = new Date(createdAt)
+    if (isPaid !== undefined) updateData.isPaid = isPaid
+
+    const expense = await prisma.expense.update({
+      where: { id },
+      data: updateData,
+      include: {
+        staff: true
+      }
+    })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Expense', resourceId: expense.id,
+      details: { type: expense.type, changes: Object.keys(updateData) },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json(expense)
+  } catch (error: any) {
+    console.error('Error updating expense:', error)
+
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+
+    if (error.message.includes('Forbidden')) {
+      return NextResponse.json(
+        { error: 'ليس لديك صلاحية تعديل المصروفات' },
+        { status: 403 }
+      )
+    }
+
+    return NextResponse.json({ error: 'فشل تحديث المصروف' }, { status: 500 })
+  }
+}
+
+// DELETE - حذف مصروف
+export async function DELETE(request: Request) {
+  try {
+    /**
+     * حذف مصروف
+     * @permission canDeleteExpense - صلاحية حذف المصروفات
+     */
+    const user = await requirePermission(request, 'canDeleteExpense')
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'رقم المصروف مطلوب' }, { status: 400 })
+    }
+
+    const expenseToDelete = await prisma.expense.findUnique({ where: { id }, select: { type: true, amount: true, description: true } })
+    await prisma.expense.delete({ where: { id } })
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'DELETE', resource: 'Expense', resourceId: id,
+      details: { type: expenseToDelete?.type, amount: expenseToDelete?.amount, description: expenseToDelete?.description },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json({ message: 'تم الحذف بنجاح' })
+  } catch (error: any) {
+    console.error('Error deleting expense:', error)
+    
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'يجب تسجيل الدخول أولاً' },
+        { status: 401 }
+      )
+    }
+    
+    if (error.message.includes('Forbidden')) {
+      return NextResponse.json(
+        { error: 'ليس لديك صلاحية حذف المصروفات' },
+        { status: 403 }
+      )
+    }
+    
+    return NextResponse.json({ error: 'فشل حذف المصروف' }, { status: 500 })
+  }
+}

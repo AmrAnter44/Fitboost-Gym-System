@@ -1,0 +1,411 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useState, useEffect, useMemo } from 'react'
+import { usePermissions } from '../hooks/usePermissions'
+import type { Permissions } from '../types/permissions'
+import { useLanguage } from '../contexts/LanguageContext'
+import { useSearch } from '../contexts/SearchContext'
+import NotificationsCenter from './NotificationsCenter'
+// import { useUpdate } from '../contexts/UpdateContext' // ✅ تم تعطيل نظام التحديثات
+import { useServiceSettings } from '../contexts/ServiceSettingsContext'
+
+export default function Navbar() {
+  const pathname = usePathname()
+  const { openSearch } = useSearch()
+  const { hasPermission, user, loading } = usePermissions()
+  const { t, locale } = useLanguage()
+  // const { updateAvailable } = useUpdate() // ✅ تم تعطيل نظام التحديثات
+  const { settings, loading: settingsLoading } = useServiceSettings()
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showDrawer, setShowDrawer] = useState(false)
+  const [drawerClosing, setDrawerClosing] = useState(false)
+
+  const closeDrawer = () => {
+    setDrawerClosing(true)
+    setTimeout(() => {
+      setShowDrawer(false)
+      setDrawerClosing(false)
+    }, 200)
+  }
+
+  // Memoize links to avoid re-filtering on every render
+  const links = useMemo(() => {
+    const allLinks = [
+      { href: '/coach/my-members', label: locale === 'ar' ? 'أعضائي' : 'My Members', icon: '👥', permission: null, roleRequired: 'COACH' },
+      { href: '/members', label: t('nav.members'), icon: '👥', permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
+      { href: '/pt', label: t('nav.pt'), icon: '💪', permission: 'canViewPT' as keyof Permissions, roleRequired: null },
+      { href: '/nutrition', label: t('nav.nutrition'), icon: '🥗', permission: 'canViewNutrition' as keyof Permissions, roleRequired: null, enabled: settings.nutritionEnabled },
+      { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: '🏥', permission: 'canViewPhysiotherapy' as keyof Permissions, roleRequired: null, enabled: settings.physiotherapyEnabled },
+      { href: '/group-classes', label: t('nav.groupClasses'), icon: '👥', permission: 'canViewGroupClass' as keyof Permissions, roleRequired: null, enabled: settings.groupClassEnabled },
+      { href: '/dayuse', label: t('nav.dayUse'), icon: '📊', permission: 'canViewDayUse' as keyof Permissions, roleRequired: null },
+      { href: '/staff', label: t('nav.staff'), icon: '👷', permission: 'canViewStaff' as keyof Permissions, roleRequired: null },
+      { href: '/receipts', label: t('nav.receipts'), icon: '🧾', permission: 'canViewReceipts' as keyof Permissions, roleRequired: null },
+      { href: '/expenses', label: t('nav.expenses'), icon: '💸', permission: 'canViewExpenses' as keyof Permissions, roleRequired: null },
+      { href: '/visitors', label: t('nav.visitors'), icon: '🚶', permission: 'canViewVisitors' as keyof Permissions, roleRequired: null },
+      { href: '/followups', label: t('nav.followups'), icon: '📝', permission: 'canViewFollowUps' as keyof Permissions, roleRequired: null },
+      { href: '/spa-bookings', label: t('nav.spaBookings'), icon: '💆', permission: 'canViewSpaBookings' as keyof Permissions, roleRequired: null, enabled: settings.spaEnabled },
+      { href: '/whatsapp-web', label: 'WhatsApp Web', icon: '📱', permission: 'canViewWhatsAppInbox' as keyof Permissions, roleRequired: null },
+      { href: '/closing', label: t('nav.closing'), icon: '💰', permission: 'canAccessClosing' as keyof Permissions, roleRequired: null },
+      { href: '/settings', label: t('nav.settings'), icon: '⚙️', permission: 'canAccessSettings' as keyof Permissions, roleRequired: null },
+    ]
+
+    return allLinks.filter(link => {
+      if ('enabled' in link && !link.enabled) return false
+      if (link.permission && !hasPermission(link.permission)) return false
+      if (link.roleRequired && user?.role !== link.roleRequired) return false
+      return true
+    })
+  }, [t, settings.nutritionEnabled, settings.physiotherapyEnabled, settings.groupClassEnabled, settings.spaEnabled, hasPermission, user?.role])
+
+  // ❌ Keyboard shortcuts معطلة بناءً على طلب المستخدم
+  // Open search modal with Ctrl+K - DISABLED
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+  //       e.preventDefault()
+  //       openSearch()
+  //     }
+  //   }
+
+  //   document.addEventListener('keydown', handleKeyDown)
+  //   return () => document.removeEventListener('keydown', handleKeyDown)
+  // }, [openSearch])
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      window.location.href = '/login'
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
+  const getRoleLabel = (role: string) => {
+    const roleKey = role.toLowerCase()
+    return t(`roles.${roleKey}` as any) || role
+  }
+
+  // Don't show navbar if no user is logged in
+  if (!loading && !user) {
+    return null
+  }
+
+  return (
+    <>
+      {/* ✅ Navbar أفقية مع أيقونات عمودية على اليمين */}
+      <nav
+        dir={locale === 'ar' ? 'rtl' : 'ltr'}
+        className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 text-white shadow-xl sticky top-0 z-40 border-b-2 border-primary-800 dark:border-primary-950"
+      >
+        <div className="w-full px-2 sm:px-4 relative z-10">
+          <div className="flex items-center justify-between gap-2">
+            {/* Mobile: Hamburger على اليسار/اليمين حسب اللغة */}
+            <div className="flex items-center gap-2 flex-shrink-0 py-1.5 lg:hidden">
+              <button
+                onClick={() => setShowDrawer(!showDrawer)}
+                className="p-1.5 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition-all hover:scale-110 active:scale-95"
+                aria-label={t('nav.menu')}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Desktop: spacer */}
+            <div className="hidden lg:block flex-shrink-0 py-1.5" />
+
+            {/* Mobile: Title في المنتصف */}
+            <div className="flex lg:hidden items-center justify-center flex-1 py-1.5">
+              <Link
+                href={user?.role === 'COACH' ? '/coach' : '/'}
+                className="flex items-center gap-2"
+                title={t('nav.home')}
+              >
+                <span className="font-bold text-base">Fitboost System</span>
+              </Link>
+            </div>
+
+            {/* روابط التنقل - في الوسط على Desktop */}
+            <div className="hidden lg:flex lg:justify-center lg:flex-wrap gap-1 xl:gap-1.5 py-1.5 flex-1">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-3 xl:px-4 py-2 xl:py-2.5 rounded-lg transition-all hover:bg-white/15 dark:hover:bg-gray-700 text-center flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 border border-transparent relative ${
+                    pathname === link.href ? 'bg-white/20 dark:bg-gray-800 font-bold border-white/30 dark:border-gray-600 shadow-lg' : 'hover:border-white/20 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <span className="text-base xl:text-lg drop-shadow">{link.icon}</span>
+                  <span className="text-sm xl:text-base font-bold whitespace-nowrap">{link.label}</span>
+                  {/* Update badge disabled - نظام التحديثات معطل */}
+                  {/* {link.href === '/settings' && updateAvailable && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-primary-700 dark:border-gray-900 animate-pulse"></span>
+                  )} */}
+                </Link>
+              ))}
+            </div>
+
+            {/* الأيقونات أفقية على اليمين */}
+            <div className="flex flex-row gap-2 items-center py-1">
+              {/* User Icon - Dropdown */}
+              {user && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center justify-center bg-white/10 dark:bg-gray-700 backdrop-blur-sm p-1.5 rounded-full hover:bg-white/20 dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 border border-white/20 dark:border-gray-600"
+                    title={user.name}
+                  >
+                    <div className="w-7 h-7 bg-gradient-to-br from-white/40 to-white/20 dark:from-gray-500 dark:to-gray-600 rounded-full flex items-center justify-center font-bold text-sm shadow-lg">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showUserMenu && (
+                    <>
+                      {/* Backdrop to close menu */}
+                      <div
+                        className="fixed inset-0 z-30"
+                        onClick={() => setShowUserMenu(false)}
+                      />
+
+                      {/* Menu */}
+                      <div
+                        dir={locale === 'ar' ? 'rtl' : 'ltr'}
+                        className={`absolute mt-2 w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg rounded-xl shadow-2xl overflow-hidden z-40 border-2 border-gray-500/50 dark:border-gray-600 ${
+                          locale === 'ar' ? 'left-0' : 'right-0'
+                        }`}>
+                        {/* User Info */}
+                        <div className="bg-primary-700 dark:bg-gray-900 text-white p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white/30 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-lg">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-bold">{user.name}</p>
+                              <p className="text-xs text-white/80 dark:text-gray-300">{user.email}</p>
+                              <p className="text-xs mt-1">{getRoleLabel(user.role)}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Menu Items */}
+                        <div className="py-2">
+                          {(user.role === 'ADMIN' || user.role === 'OWNER') && (
+                            <>
+                            <Link
+                              href="/admin/users"
+                              onClick={() => setShowUserMenu(false)}
+                              className={`px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700 transition-all flex items-center gap-2 ${
+                                locale === 'ar' ? 'hover:translate-x-1' : 'hover:-translate-x-1'
+                              }`}
+                            >
+                              <span>👥</span>
+                              <span>{t('auth.manageUsers')}</span>
+                            </Link>
+                            <Link
+                              href="/admin/audit"
+                              onClick={() => setShowUserMenu(false)}
+                              className={`px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700 transition-all flex items-center gap-2 ${
+                                locale === 'ar' ? 'hover:translate-x-1' : 'hover:-translate-x-1'
+                              }`}
+                            >
+                              <span>📝</span>
+                              <span>{locale === 'ar' ? 'سجل النشاط' : 'Activity Log'}</span>
+                            </Link>
+                            </>
+                          )}
+
+                          {/* Separator before logout */}
+                          <div className="border-t border-gray-200 dark:border-gray-600 my-1" />
+
+                          <button
+                            onClick={handleLogout}
+                            className={`w-full px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/30 transition-all flex items-center gap-2 font-bold text-start ${
+                              locale === 'ar' ? 'hover:translate-x-1' : 'hover:-translate-x-1'
+                            }`}
+                          >
+                            <span>🚪</span>
+                            <span>{t('auth.logout')}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Notifications Center */}
+              <NotificationsCenter />
+
+              {/* Quick Search Button */}
+              <button
+                onClick={() => openSearch()}
+                className="w-9 h-9 bg-white/10 dark:bg-gray-700 backdrop-blur-sm rounded-full hover:bg-white/20 dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 flex items-center justify-center font-bold flex-shrink-0 border border-white/20 dark:border-gray-600 shadow-lg"
+                title="بحث سريع (Ctrl+K)"
+              >
+                <span className="text-base">🔍</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile/Tablet Drawer - ينزلق حسب اللغة */}
+      {showDrawer && (
+        <>
+          {/* Backdrop */}
+          <div
+            className={`fixed inset-0 bg-black z-[100] lg:hidden transition-opacity duration-200 ${drawerClosing ? 'opacity-0' : 'opacity-50'}`}
+            onClick={() => closeDrawer()}
+          />
+
+          {/* Drawer */}
+          <div
+            dir={locale === 'ar' ? 'rtl' : 'ltr'}
+            className={`fixed top-0 h-full w-72 sm:w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg z-[101] shadow-2xl lg:hidden overflow-y-auto border-e-4 border-primary-600 dark:border-primary-500 transition-transform duration-200 ease-out ${
+              locale === 'ar'
+                ? `right-0 ${drawerClosing ? 'translate-x-full' : 'translate-x-0'}`
+                : `left-0 ${drawerClosing ? '-translate-x-full' : 'translate-x-0'}`
+            } ${!drawerClosing ? (locale === 'ar' ? 'animate-slideRight' : 'animate-slideLeft') : ''}`}>
+            {/* Header with Logo in Center */}
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 text-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-lg">
+              {/* Close Button */}
+              <button
+                onClick={() => closeDrawer()}
+                className="p-2 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition flex-shrink-0"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* Title in Center */}
+              <div className="flex items-center gap-2 flex-1 justify-center">
+                <span className="font-bold text-lg">Fitboost System</span>
+              </div>
+
+              {/* Spacer for balance */}
+              <div className="w-10"></div>
+            </div>
+
+            {/* Navigation Links */}
+            <div className="p-4 space-y-2">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => closeDrawer()}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                    locale === 'ar' ? 'hover:-translate-x-2' : 'hover:translate-x-2'
+                  } relative ${
+                    pathname === link.href
+                      ? `bg-gradient-to-${locale === 'ar' ? 'l' : 'r'} from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 text-primary-700 dark:text-primary-400 font-bold shadow-md border-e-4 border-primary-600 dark:border-primary-500`
+                      : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700/80'
+                  }`}
+                >
+                  <span className="text-2xl drop-shadow">{link.icon}</span>
+                  <span className="text-base">{link.label}</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* User Info at Bottom */}
+            {user && (
+              <div className="p-4 border-t dark:border-gray-700 mt-4">
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-gray-600 dark:bg-gray-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800 dark:text-gray-100">{user.name}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">{getRoleLabel(user.role)}</p>
+                    </div>
+                  </div>
+
+                  {(user.role === 'ADMIN' || user.role === 'OWNER') && (
+                    <Link
+                      href="/admin/users"
+                      onClick={() => closeDrawer()}
+                      className="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition mb-2"
+                    >
+                      <span>👥</span>
+                      <span className="text-sm">{t('auth.manageUsers')}</span>
+                    </Link>
+                  )}
+
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500 dark:bg-red-600 text-white rounded-lg hover:bg-red-600 dark:hover:bg-red-700 transition font-bold"
+                  >
+                    <span>🚪</span>
+                    <span>{t('auth.logout')}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      <style jsx global>{`
+        @keyframes slideRight {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slideLeft {
+          from {
+            transform: translateX(-100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes logoBreathing {
+          0%, 100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 15px rgba(var(--color-primary-rgb), 0.6));
+          }
+          50% {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 30px rgba(var(--color-primary-rgb), 0.9));
+          }
+        }
+
+        .logo-breathing {
+          display: inline-block;
+          animation: logoBreathing 3s ease-in-out infinite;
+          transition: all 0.3s ease;
+        }
+
+        .logo-breathing:hover {
+          animation: none;
+          transform: scale(1.15) rotate(5deg);
+          filter: drop-shadow(0 0 35px rgba(var(--color-primary-rgb), 1));
+        }
+
+        .logo-breathing:active {
+          transform: scale(0.95);
+        }
+
+        .animate-slideRight {
+          animation: slideRight 0.2s ease-out;
+        }
+
+        .animate-slideLeft {
+          animation: slideLeft 0.2s ease-out;
+        }
+      `}</style>
+    </>
+  )
+}

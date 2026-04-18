@@ -1,0 +1,81 @@
+name: Electron Build
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-electron:
+    name: Build Electron App
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build system
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Copy static files
+        run: |
+          xcopy /E /I /Y "public" ".next\standalone\public"
+          xcopy /E /I /Y ".next\static" ".next\standalone\.next\static"
+
+      - name: Package Electron app
+        run: npm run electron:build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ⚠️ تم تعطيل Artifacts بسبب امتلاء Storage Quota
+      # للحصول على ملف الـ Setup:
+      # 1. اعمل Git Tag: git tag v1.x.x && git push origin v1.x.x
+      # 2. الملف سيُرفع تلقائياً في Releases
+      #
+      # - name: Upload Electron installer
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: electron-installer
+      #     path: dist/*.exe
+      #     retention-days: 1
+      #   if: always()
+
+      # 📊 عرض معلومات الملف المبني
+      - name: Show build info
+        if: success()
+        run: |
+          echo "✅ Build completed successfully!"
+          echo ""
+          echo "📦 Built files:"
+          dir dist\*.exe
+          echo ""
+          echo "ℹ️ To get the setup file:"
+          echo "   1. Create a release: git tag v1.x.x && git push origin v1.x.x"
+          echo "   2. Download from: https://github.com/AmrAnter44/sys-Xgym/releases"
+
+      - name: Create Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/latest.yml
+          draft: false
+          prerelease: false
+          generate_release_notes: true

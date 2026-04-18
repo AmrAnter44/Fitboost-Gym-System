@@ -1,0 +1,881 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { usePermissions } from '@/hooks/usePermissions'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useToast } from '@/contexts/ToastContext'
+import { useServiceSettings } from '@/contexts/ServiceSettingsContext'
+import { formatDateYMD, calculateDaysBetween } from '@/lib/dateFormatter'
+import PaymentMethodSelector from '@/components/Paymentmethodselector'
+import type { PaymentMethod as PaymentMethodType } from '@/lib/paymentHelpers'
+
+interface More {
+  moreNumber: number
+  clientName: string
+  phone: string
+  email?: string
+  sessionsPurchased: number
+  sessionsRemaining: number
+  coachName: string
+  coachUserId?: string
+  pricePerSession: number
+  totalAmount: number
+  startDate: string
+  expiryDate: string
+  remainingAmount: number
+  notes?: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+type PaymentMethod = string | PaymentMethodType[]
+
+export default function MorePage() {
+  const { hasPermission, user } = usePermissions()
+  const { t, direction } = useLanguage()
+  const toast = useToast()
+  const { settings } = useServiceSettings()
+
+  const [moreSubscriptions, setMoreSubscriptions] = useState<More[]>([])
+  const [filteredSubscriptions, setFilteredSubscriptions] = useState<More[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  // Form states
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [showSessionForm, setShowSessionForm] = useState(false)
+  const [showRenewForm, setShowRenewForm] = useState(false)
+  const [selectedMore, setSelectedMore] = useState<More | null>(null)
+
+  // Form data for new subscription
+  const [formData, setFormData] = useState({
+    clientName: '',
+    phone: '',
+    email: '',
+    sessionsPurchased: '',
+    coachName: '',
+    coachUserId: '',
+    pricePerSession: '',
+    startDate: formatDateYMD(new Date()),
+    expiryDate: '',
+    notes: '',
+    paymentMethod: 'cash' as string | PaymentMethod[],
+    remainingAmount: '',
+    staffName: '',
+    moreCommissionAmount: ''
+  })
+
+  // Session form data
+  const [sessionFormData, setSessionFormData] = useState({
+    moreNumber: '',
+    notes: ''
+  })
+
+  // Renew form data
+  const [renewFormData, setRenewFormData] = useState({
+    oldMoreNumber: '',
+    sessionsPurchased: '',
+    totalPrice: '',
+    remainingAmount: '',
+    startDate: formatDateYMD(new Date()),
+    expiryDate: '',
+    notes: '',
+    paymentMethod: 'cash' as string | PaymentMethod[],
+    staffName: '',
+    moreCommissionAmount: ''
+  })
+
+  // Staff list for selection
+  const [staffList, setStaffList] = useState<any[]>([])
+  const [packages, setPackages] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!settings.moreEnabled) {
+      toast.error(t('more.serviceDisabled'))
+      return
+    }
+
+    if (!hasPermission('canViewMore')) {
+      toast.error(t('common.noPermission'))
+      return
+    }
+
+    fetchMoreSubscriptions()
+    fetchStaff()
+    fetchPackages()
+  }, [settings.moreEnabled])
+
+  useEffect(() => {
+    filterSubscriptions()
+  }, [searchTerm, statusFilter, moreSubscriptions])
+
+  const fetchMoreSubscriptions = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/more')
+      if (response.ok) {
+        const data = await response.json()
+        setMoreSubscriptions(data)
+      } else {
+        toast.error(t('more.fetchError'))
+      }
+    } catch (error) {
+      console.error('Error fetching More subscriptions:', error)
+      toast.error(t('more.fetchError'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchStaff = async () => {
+    try {
+      const response = await fetch('/api/staff')
+      if (response.ok) {
+        const data = await response.json()
+        setStaffList(data.filter((s: any) => s.isActive))
+      }
+    } catch (error) {
+      console.error('Error fetching staff:', error)
+    }
+  }
+
+  const fetchPackages = async () => {
+    try {
+      const response = await fetch('/api/settings/packages?serviceType=More')
+      if (response.ok) {
+        const data = await response.json()
+        setPackages(data)
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error)
+    }
+  }
+
+  const filterSubscriptions = () => {
+    let filtered = [...moreSubscriptions]
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(sub =>
+        sub.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.phone.includes(searchTerm) ||
+        sub.moreNumber.toString().includes(searchTerm) ||
+        sub.coachName.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Status filter
+    if (statusFilter === 'active') {
+      filtered = filtered.filter(sub => sub.isActive && new Date(sub.expiryDate) > new Date())
+    } else if (statusFilter === 'expired') {
+      filtered = filtered.filter(sub => new Date(sub.expiryDate) <= new Date())
+    } else if (statusFilter === 'inactive') {
+      filtered = filtered.filter(sub => !sub.isActive)
+    } else if (statusFilter === 'noSessions') {
+      filtered = filtered.filter(sub => sub.sessionsRemaining === 0)
+    }
+
+    setFilteredSubscriptions(filtered)
+  }
+
+  const handleAddSubscription = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!formData.clientName || !formData.phone || !formData.sessionsPurchased || !formData.coachName) {
+      toast.error(t('more.fillRequired'))
+      return
+    }
+
+    try {
+      const response = await fetch('/api/more', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          sessionsPurchased: parseInt(formData.sessionsPurchased),
+          pricePerSession: parseFloat(formData.pricePerSession) || 0,
+          remainingAmount: parseFloat(formData.remainingAmount) || 0,
+          moreCommissionAmount: parseFloat(formData.moreCommissionAmount) || undefined
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success(t('more.addSuccess'))
+        setShowAddForm(false)
+        resetForm()
+        fetchMoreSubscriptions()
+      } else {
+        toast.error(data.error || t('more.addError'))
+      }
+    } catch (error) {
+      console.error('Error adding subscription:', error)
+      toast.error(t('more.addError'))
+    }
+  }
+
+  const handleRegisterSession = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!sessionFormData.moreNumber) {
+      toast.error(t('more.enterNumber'))
+      return
+    }
+
+    try {
+      const response = await fetch('/api/more/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          moreNumber: parseInt(sessionFormData.moreNumber),
+          notes: sessionFormData.notes
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success(t('more.sessionRegistered'))
+        setShowSessionForm(false)
+        setSessionFormData({ moreNumber: '', notes: '' })
+        fetchMoreSubscriptions()
+      } else {
+        toast.error(data.error || t('more.sessionError'))
+      }
+    } catch (error) {
+      console.error('Error registering session:', error)
+      toast.error(t('more.sessionError'))
+    }
+  }
+
+  const handleRenewSubscription = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!renewFormData.oldMoreNumber || !renewFormData.sessionsPurchased) {
+      toast.error(t('more.fillRequired'))
+      return
+    }
+
+    try {
+      const response = await fetch('/api/more/renew', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...renewFormData,
+          oldMoreNumber: parseInt(renewFormData.oldMoreNumber),
+          sessionsPurchased: parseInt(renewFormData.sessionsPurchased),
+          totalPrice: parseFloat(renewFormData.totalPrice) || 0,
+          remainingAmount: parseFloat(renewFormData.remainingAmount) || 0,
+          moreCommissionAmount: parseFloat(renewFormData.moreCommissionAmount) || undefined
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success(t('more.renewSuccess'))
+        setShowRenewForm(false)
+        setRenewFormData({
+          oldMoreNumber: '',
+          sessionsPurchased: '',
+          totalPrice: '',
+          remainingAmount: '',
+          startDate: formatDateYMD(new Date()),
+          expiryDate: '',
+          notes: '',
+          paymentMethod: 'cash',
+          staffName: '',
+          moreCommissionAmount: ''
+        })
+        fetchMoreSubscriptions()
+      } else {
+        toast.error(data.error || t('more.renewError'))
+      }
+    } catch (error) {
+      console.error('Error renewing subscription:', error)
+      toast.error(t('more.renewError'))
+    }
+  }
+
+  const handleDeleteSubscription = async (moreNumber: number) => {
+    if (!confirm(t('more.confirmDelete'))) return
+
+    try {
+      const response = await fetch(`/api/more?moreNumber=${moreNumber}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        toast.success(t('more.deleteSuccess'))
+        fetchMoreSubscriptions()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || t('more.deleteError'))
+      }
+    } catch (error) {
+      console.error('Error deleting subscription:', error)
+      toast.error(t('more.deleteError'))
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      clientName: '',
+      phone: '',
+      email: '',
+      sessionsPurchased: '',
+      coachName: '',
+      coachUserId: '',
+      pricePerSession: '',
+      startDate: formatDateYMD(new Date()),
+      expiryDate: '',
+      notes: '',
+      paymentMethod: 'cash',
+      remainingAmount: '',
+      staffName: '',
+      moreCommissionAmount: ''
+    })
+  }
+
+  const handleStaffChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const staffId = e.target.value
+    const staff = staffList.find(s => s.id === staffId)
+    if (staff) {
+      setFormData({
+        ...formData,
+        coachUserId: staff.user?.id || '',
+        coachName: staff.name
+      })
+    }
+  }
+
+  const handlePackageSelect = (pkg: any) => {
+    const totalPrice = pkg.sessions * pkg.pricePerSession
+    setFormData({
+      ...formData,
+      sessionsPurchased: pkg.sessions.toString(),
+      pricePerSession: pkg.pricePerSession.toString(),
+      moreCommissionAmount: pkg.moreCommission?.toString() || ''
+    })
+    toast.success(`تم تطبيق باقة: ${pkg.name}`)
+  }
+
+  const calculateExpiryFromMonths = (months: number) => {
+    if (!formData.startDate) {
+      toast.error('يرجى تحديد تاريخ البداية أولاً')
+      return
+    }
+
+    const start = new Date(formData.startDate)
+    const expiry = new Date(start)
+    expiry.setMonth(expiry.getMonth() + months)
+
+    setFormData(prev => ({
+      ...prev,
+      expiryDate: formatDateYMD(expiry)
+    }))
+  }
+
+  const isExpired = (expiryDate: string) => {
+    return new Date(expiryDate) <= new Date()
+  }
+
+  const getStatusBadge = (sub: More) => {
+    if (!sub.isActive) {
+      return <span className="px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-700">{t('more.inactive')}</span>
+    }
+    if (isExpired(sub.expiryDate)) {
+      return <span className="px-2 py-1 text-xs rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">{t('more.expired')}</span>
+    }
+    if (sub.sessionsRemaining === 0) {
+      return <span className="px-2 py-1 text-xs rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">{t('more.noSessions')}</span>
+    }
+    return <span className="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">{t('more.active')}</span>
+  }
+
+  if (!settings.moreEnabled) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-600 dark:text-red-400">{t('more.serviceDisabled')}</p>
+      </div>
+    )
+  }
+
+  if (!hasPermission('canViewMore')) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-600 dark:text-red-400">{t('common.noPermission')}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-6" dir={direction}>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">➕ {t('more.title')}</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowSessionForm(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            ✓ {t('more.registerSession')}
+          </button>
+          <button
+            onClick={() => setShowRenewForm(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          >
+            🔄 {t('more.renewSubscription')}
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            + {t('more.addSubscription')}
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-4 flex gap-4">
+        <input
+          type="text"
+          placeholder={t('more.search')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1 px-4 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-4 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+        >
+          <option value="all">{t('more.allSubscriptions')}</option>
+          <option value="active">{t('more.active')}</option>
+          <option value="expired">{t('more.expired')}</option>
+          <option value="inactive">{t('more.inactive')}</option>
+          <option value="noSessions">{t('more.noSessions')}</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div className="text-center py-8">{t('common.loading')}</div>
+      ) : filteredSubscriptions.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">{t('more.noSubscriptions')}</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100 dark:bg-gray-800">
+                <th className="border p-2">{t('more.subscriptionNumber')}</th>
+                <th className="border p-2">{t('more.clientName')}</th>
+                <th className="border p-2">{t('more.phone')}</th>
+                <th className="border p-2">{t('more.coachName')}</th>
+                <th className="border p-2">{t('more.sessions')}</th>
+                <th className="border p-2">{t('more.expiryDate')}</th>
+                <th className="border p-2">{t('more.status')}</th>
+                <th className="border p-2">{t('common.actions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSubscriptions.map((sub) => (
+                <tr key={sub.moreNumber} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <td className="border p-2 text-center">{sub.moreNumber}</td>
+                  <td className="border p-2">{sub.clientName}</td>
+                  <td className="border p-2">{sub.phone}</td>
+                  <td className="border p-2">{sub.coachName}</td>
+                  <td className="border p-2 text-center">
+                    {sub.sessionsRemaining} / {sub.sessionsPurchased}
+                  </td>
+                  <td className="border p-2 text-center">{formatDateYMD(sub.expiryDate)}</td>
+                  <td className="border p-2 text-center">{getStatusBadge(sub)}</td>
+                  <td className="border p-2 text-center">
+                    <button
+                      onClick={() => {
+                        setSessionFormData({ moreNumber: sub.moreNumber.toString(), notes: '' })
+                        setShowSessionForm(true)
+                      }}
+                      disabled={sub.sessionsRemaining === 0 || isExpired(sub.expiryDate) || !sub.isActive}
+                      className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={() => {
+                        setRenewFormData({
+                          ...renewFormData,
+                          oldMoreNumber: sub.moreNumber.toString()
+                        })
+                        setShowRenewForm(true)
+                      }}
+                      className="px-2 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 mx-1"
+                    >
+                      🔄
+                    </button>
+                    {hasPermission('canDeleteMore') && (
+                      <button
+                        onClick={() => handleDeleteSubscription(sub.moreNumber)}
+                        className="px-2 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 📝 نموذج إضافة اشتراك */}
+      {showAddForm && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 mb-6 border-2 border-pink-200 dark:border-pink-700" dir={direction}>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-pink-600 dark:text-pink-400 flex items-center gap-2">
+              <span>➕</span>
+              <span>{t('more.addSubscription')}</span>
+            </h2>
+            <button
+              onClick={() => setShowAddForm(false)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleAddSubscription} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1">{t('more.clientName')} *</label>
+                  <input
+                    type="text"
+                    value={formData.clientName}
+                    onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.phone')} *</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.email')}</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.selectCoach')} *</label>
+                  <select
+                    value={formData.coachUserId}
+                    onChange={handleStaffChange}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    required
+                  >
+                    <option value="">{t('more.selectCoach')}</option>
+                    {staffList.map((staff) => (
+                      <option key={staff.id} value={staff.id}>
+                        {staff.name} - {staff.position}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.selectPackage')}</label>
+                  <select
+                    onChange={handlePackageSelect}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  >
+                    <option value="">{t('more.selectPackage')}</option>
+                    {packages.map((pkg) => (
+                      <option key={pkg.id} value={pkg.id}>
+                        {pkg.name} - {pkg.sessions} {t('more.sessions')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.sessionsPurchased')} *</label>
+                  <input
+                    type="number"
+                    value={formData.sessionsPurchased}
+                    onChange={(e) => setFormData({ ...formData, sessionsPurchased: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    required
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.pricePerSession')}</label>
+                  <input
+                    type="number"
+                    value={formData.pricePerSession}
+                    onChange={(e) => setFormData({ ...formData, pricePerSession: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.remainingAmount')}</label>
+                  <input
+                    type="number"
+                    value={formData.remainingAmount}
+                    onChange={(e) => setFormData({ ...formData, remainingAmount: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.startDate')}</label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.expiryDate')}</label>
+                  <input
+                    type="date"
+                    value={formData.expiryDate}
+                    onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.paymentMethod')}</label>
+                  <select
+                    value={typeof formData.paymentMethod === 'string' ? formData.paymentMethod : 'mixed'}
+                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  >
+                    <option value="cash">{t('common.cash')}</option>
+                    <option value="card">{t('common.card')}</option>
+                    <option value="instapay">{t('common.instapay')}</option>
+                    <option value="wallet">{t('common.wallet')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.coachCommission')}</label>
+                  <input
+                    type="number"
+                    value={formData.moreCommissionAmount}
+                    onChange={(e) => setFormData({ ...formData, moreCommissionAmount: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    step="0.01"
+                    placeholder={settings.moreCommissionAmount?.toString() || '50'}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block mb-1">{t('more.notes')}</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="px-4 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  {t('common.save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Session Registration Modal */}
+      {showSessionForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowSessionForm(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold mb-4">{t('more.registerSession')}</h2>
+            <form onSubmit={handleRegisterSession} className="space-y-4">
+              <div>
+                <label className="block mb-1">{t('more.subscriptionNumber')} *</label>
+                <input
+                  type="number"
+                  value={sessionFormData.moreNumber}
+                  onChange={(e) => setSessionFormData({ ...sessionFormData, moreNumber: e.target.value })}
+                  className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block mb-1">{t('more.notes')}</label>
+                <textarea
+                  value={sessionFormData.notes}
+                  onChange={(e) => setSessionFormData({ ...sessionFormData, notes: e.target.value })}
+                  className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowSessionForm(false)}
+                  className="px-4 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  {t('more.registerSession')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Renew Modal */}
+      {showRenewForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowRenewForm(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold mb-4">{t('more.renewSubscription')}</h2>
+            <form onSubmit={handleRenewSubscription} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1">{t('more.oldSubscriptionNumber')} *</label>
+                  <input
+                    type="number"
+                    value={renewFormData.oldMoreNumber}
+                    onChange={(e) => setRenewFormData({ ...renewFormData, oldMoreNumber: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.sessionsPurchased')} *</label>
+                  <input
+                    type="number"
+                    value={renewFormData.sessionsPurchased}
+                    onChange={(e) => setRenewFormData({ ...renewFormData, sessionsPurchased: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    required
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.totalPrice')}</label>
+                  <input
+                    type="number"
+                    value={renewFormData.totalPrice}
+                    onChange={(e) => setRenewFormData({ ...renewFormData, totalPrice: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.remainingAmount')}</label>
+                  <input
+                    type="number"
+                    value={renewFormData.remainingAmount}
+                    onChange={(e) => setRenewFormData({ ...renewFormData, remainingAmount: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.startDate')}</label>
+                  <input
+                    type="date"
+                    value={renewFormData.startDate}
+                    onChange={(e) => setRenewFormData({ ...renewFormData, startDate: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.expiryDate')}</label>
+                  <input
+                    type="date"
+                    value={renewFormData.expiryDate}
+                    onChange={(e) => setRenewFormData({ ...renewFormData, expiryDate: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.paymentMethod')}</label>
+                  <select
+                    value={typeof renewFormData.paymentMethod === 'string' ? renewFormData.paymentMethod : 'mixed'}
+                    onChange={(e) => setRenewFormData({ ...renewFormData, paymentMethod: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  >
+                    <option value="cash">{t('common.cash')}</option>
+                    <option value="card">{t('common.card')}</option>
+                    <option value="instapay">{t('common.instapay')}</option>
+                    <option value="wallet">{t('common.wallet')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block mb-1">{t('more.coachCommission')}</label>
+                  <input
+                    type="number"
+                    value={renewFormData.moreCommissionAmount}
+                    onChange={(e) => setRenewFormData({ ...renewFormData, moreCommissionAmount: e.target.value })}
+                    className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    step="0.01"
+                    placeholder={settings.moreCommissionAmount?.toString() || '50'}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block mb-1">{t('more.notes')}</label>
+                <textarea
+                  value={renewFormData.notes}
+                  onChange={(e) => setRenewFormData({ ...renewFormData, notes: e.target.value })}
+                  className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowRenewForm(false)}
+                  className="px-4 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                >
+                  {t('more.renewSubscription')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
