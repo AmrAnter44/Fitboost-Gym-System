@@ -11,7 +11,7 @@ import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../../lib/points'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
 import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
-import { logBackendError } from '../../../../lib/errorTracking/errorTrackingService'
+import { logError } from '../../../../lib/errorLogger'
 
 export const dynamic = 'force-dynamic'
 
@@ -239,7 +239,7 @@ export async function POST(request: Request) {
       })
 
       // إرجاع البيانات المحدثة حتى لو فشل الإيصال
-      logBackendError({ error: receiptError, endpoint: '/api/nutrition/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed' } }).catch(() => {})
+      logError({ error: receiptError, endpoint: '/api/nutrition/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed' } })
       return NextResponse.json({
         nutrition: updatedNutrition,
         error: 'تم التجديد بنجاح ولكن فشل إنشاء الإيصال. يرجى إنشاء الإيصال يدوياً.',
@@ -249,7 +249,7 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('❌ خطأ في تجديد جلسة Nutrition:', error)
-    logBackendError({ error, endpoint: '/api/nutrition/renew', method: 'POST', statusCode: 500 }).catch(() => {})
+    logError({ error, endpoint: '/api/nutrition/renew', method: 'POST', statusCode: 500 })
     return NextResponse.json({ error: 'فشل تجديد جلسة التغذية' }, { status: 500 })
   }
 }

@@ -1059,7 +1059,23 @@
     "errorGenerating": "An error occurred while generating the barcode",
     "mustGenerateFirst": "You must generate the barcode first",
     "whatsappMessage": "Membership Barcode #{memberNumber} for member {memberName}",
-    "downloadedOpenWhatsApp": "✅ Barcode image downloaded!\n📱 WhatsApp will open now, attach the downloaded image with the message."
+    "downloadedOpenWhatsApp": "✅ Barcode image downloaded!\n📱 WhatsApp will open now, attach the downloaded image with the message.",
+    "staff": {
+      "staffBarcode": "🔢 Staff Barcode",
+      "staffLabel": "Staff",
+      "viewStaffBarcode": "View Barcode",
+      "sendStaffBarcode": "Send Barcode via WhatsApp",
+      "sending": "Sending...",
+      "sendViaWhatsApp": "Send via WhatsApp",
+      "sentSuccess": "✅ Barcode sent successfully via WhatsApp",
+      "sendFailedFallback": "⚠️ Auto-send failed. Downloading image and opening WhatsApp...",
+      "openedAttachManually": "Image downloaded and WhatsApp opened. Please attach the image manually.",
+      "whatsappOpenFailed": "Failed to open WhatsApp",
+      "sendError": "An error occurred while sending the barcode",
+      "whatsappCaption": "Staff Barcode #{code} ({name})",
+      "websiteSection": "🌐 *Website:*",
+      "invalidStaffCode": "Invalid staff code"
+    }
   },
   "attendance": {
     "verifyMembership": "Verify Membership",
@@ -1771,6 +1787,7 @@
     "hrAssistant": {
       "title": "🤖 Your HR Personal Assistant",
       "subtitle": "Staff performance analysis and attendance tracking",
+      "partialMonthNotice": "Performance is calculated <strong>up to day {day} of the current month</strong> only — the report will be completed at the end of the month",
       "overview": "Overview",
       "totalStaff": "Total Staff",
       "excellent": "Excellent",
@@ -2091,7 +2108,10 @@
       "notes": "Notes",
       "notesPlaceholder": "Additional notes...",
       "saving": "Saving...",
-      "submit": "Add Expense"
+      "submit": "Add Expense",
+      "cancel": "Cancel",
+      "editTitle": "Edit Expense",
+      "saveChanges": "Save Changes"
     },
     "types": {
       "gymExpense": "Gym Expense",
@@ -4668,9 +4688,31 @@
       "portForwarding": "Remote Access",
       "display": "Appearance & Language",
       "database": "Database",
+      "license": "System License",
       "support": "Technical Support",
       "whatsapp": "WhatsApp",
       "updates": "System Updates"
+    },
+    "license": {
+      "title": "System License",
+      "subtitle": "Select the gym and branch for this system",
+      "activated": "System is currently activated",
+      "gym": "Gym",
+      "branch": "Branch",
+      "licenseStatus": "License Status",
+      "statusActive": "Active ✓",
+      "statusExpired": "Expired ✗",
+      "selectGymAndBranch": "Select Gym and Branch",
+      "diagnosticInfo": "🔍 Diagnostic Information",
+      "testConnection": "Test Connection",
+      "loadedGymsCount": "Loaded gyms count",
+      "loadingStatus": "Loading status",
+      "loading": "Loading...",
+      "complete": "Complete",
+      "userRole": "User role",
+      "undefined": "Undefined",
+      "gymLabel": "Gym *",
+      "selectGym": "-- Select Gym --"
     },
     "services": {
       "title": "Services Settings",

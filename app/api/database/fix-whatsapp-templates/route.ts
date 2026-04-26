@@ -6,9 +6,13 @@ import { NextResponse } from 'next/server'
 import Database from 'better-sqlite3'
 import path from 'path'
 import fs from 'fs'
+import { requireAdmin } from '../../../../lib/auth'
 
-export async function POST() {
+export const dynamic = 'force-dynamic'
+
+export async function POST(request: Request) {
   try {
+    await requireAdmin(request)
 
     // تحديد مسار قاعدة البيانات
     let dbPath = path.join(process.cwd(), 'prisma', 'gym.db')
@@ -131,12 +135,15 @@ export async function POST() {
     })
 
   } catch (error) {
-    console.error('Error fixing WhatsApp templates:', error)
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    console.error('Error fixing WhatsApp templates:', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { success: false, error: 'فشل تحديث جدول WhatsApp Templates' },
       { status: 500 }
     )
   }

@@ -17,6 +17,13 @@ const MAX_DELAY_MS = 40000;  // 40 seconds
 const POLL_INTERVAL = 5000;  // Check queue every 5s
 const API_BASE = 'http://127.0.0.1:4001';
 
+function internalHeaders() {
+  const tok = process.env.INTERNAL_API_TOKEN;
+  const headers = { 'Content-Type': 'application/json' };
+  if (tok) headers['x-internal-token'] = tok;
+  return headers;
+}
+
 class WhatsAppQueue {
   constructor(sessions) {
     this.sessions = sessions;  // Map<number, WhatsAppSession>
@@ -28,7 +35,7 @@ class WhatsAppQueue {
     try {
       const res = await fetch(`${API_BASE}/api/whatsapp/internal/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: internalHeaders(),
         body: JSON.stringify(data || {}),
       });
       return await res.json();

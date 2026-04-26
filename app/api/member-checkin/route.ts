@@ -52,6 +52,39 @@ export async function POST(request: Request) {
       )
     }
 
+    // 🕐 التحقق من ساعات الدخول المسموح بها (لو مفعّلة)
+    const allowedStart = (member as any).allowedCheckInStart as string | null
+    const allowedEnd = (member as any).allowedCheckInEnd as string | null
+
+    if (allowedStart && allowedEnd) {
+      const timeRegex = /^([01]?\d|2[0-3]):[0-5]\d$/
+      if (timeRegex.test(allowedStart) && timeRegex.test(allowedEnd)) {
+        const nowDate = new Date()
+        const [startH, startM] = allowedStart.split(':').map(Number)
+        const [endH, endM] = allowedEnd.split(':').map(Number)
+        const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes()
+        const startMinutes = startH * 60 + startM
+        const endMinutes = endH * 60 + endM
+
+        // دعم الفترات اللي بتتعدى منتصف الليل (مثلاً 22:00 إلى 06:00)
+        const withinAllowed = startMinutes <= endMinutes
+          ? (currentMinutes >= startMinutes && currentMinutes <= endMinutes)
+          : (currentMinutes >= startMinutes || currentMinutes <= endMinutes)
+
+        if (!withinAllowed) {
+          return NextResponse.json(
+            {
+              error: `⏰ تجاوزت للوقت المحدد. ساعات الدخول المسموح بها: ${allowedStart} - ${allowedEnd}`,
+              outOfAllowedHours: true,
+              allowedStart,
+              allowedEnd,
+            },
+            { status: 403 }
+          )
+        }
+      }
+    }
+
     // التحقق من أن العضو لم يسجل حضوره اليوم
     const now = new Date()
     const startOfToday = new Date(now)

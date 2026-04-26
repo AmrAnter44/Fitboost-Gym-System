@@ -1060,7 +1060,23 @@
     "errorGenerating": "حدث خطأ أثناء توليد الباركود",
     "mustGenerateFirst": "يجب توليد الباركود أولاً",
     "whatsappMessage": "Barcode العضوية #{memberNumber} للعضو {memberName}",
-    "downloadedOpenWhatsApp": "✅ تم تحميل صورة الباركود!\n📱 سيتم فتح واتساب الآن، قم بإرفاق الصورة المحملة مع الرسالة."
+    "downloadedOpenWhatsApp": "✅ تم تحميل صورة الباركود!\n📱 سيتم فتح واتساب الآن، قم بإرفاق الصورة المحملة مع الرسالة.",
+    "staff": {
+      "staffBarcode": "🔢 Barcode الموظف",
+      "staffLabel": "الموظف",
+      "viewStaffBarcode": "عرض Barcode",
+      "sendStaffBarcode": "إرسال Barcode عبر واتساب",
+      "sending": "جاري الإرسال...",
+      "sendViaWhatsApp": "إرسال عبر واتساب",
+      "sentSuccess": "✅ تم إرسال الباركود بنجاح على الواتساب",
+      "sendFailedFallback": "⚠️ فشل الإرسال التلقائي. جاري تحميل الصورة وفتح واتساب...",
+      "openedAttachManually": "تم تحميل الصورة وفتح واتساب. يرجى إرفاق الصورة يدوياً.",
+      "whatsappOpenFailed": "فشل فتح واتساب",
+      "sendError": "حدث خطأ أثناء إرسال الباركود",
+      "whatsappCaption": "Barcode الموظف #{code} ({name})",
+      "websiteSection": "🌐 *الموقع الإلكتروني:*",
+      "invalidStaffCode": "رقم الموظف غير صحيح"
+    }
   },
   "attendance": {
     "verifyMembership": "التحقق من العضوية",
@@ -1772,6 +1788,7 @@
     "hrAssistant": {
       "title": "🤖 مساعدك الشخصي في HR",
       "subtitle": "تحليل أداء الموظفين ومتابعة الحضور والغياب",
+      "partialMonthNotice": "الأداء محسوب <strong>حتى يوم {day} من الشهر الحالي</strong> فقط — سيكتمل التقرير عند نهاية الشهر",
       "overview": "نظرة عامة",
       "totalStaff": "إجمالي الموظفين",
       "excellent": "متميزون",
@@ -2092,7 +2109,10 @@
       "notes": "ملاحظات",
       "notesPlaceholder": "ملاحظات إضافية...",
       "saving": "جاري الحفظ...",
-      "submit": "إضافة مصروف"
+      "submit": "إضافة مصروف",
+      "cancel": "إلغاء",
+      "editTitle": "تعديل المصروف",
+      "saveChanges": "حفظ التعديلات"
     },
     "types": {
       "gymExpense": "مصروف جيم",
@@ -4619,9 +4639,31 @@
       "portForwarding": "الوصول عن بُعد",
       "display": "المظهر واللغة",
       "database": "قاعدة البيانات",
+      "license": "رخصة النظام",
       "support": "الدعم الفني",
       "whatsapp": "الواتساب",
       "updates": "تحديثات النظام"
+    },
+    "license": {
+      "title": "رخصة النظام",
+      "subtitle": "اختر الصالة والفرع التابع لها هذا النظام",
+      "activated": "النظام مفعّل حالياً",
+      "gym": "الصالة",
+      "branch": "الفرع",
+      "licenseStatus": "حالة الترخيص",
+      "statusActive": "نشط ✓",
+      "statusExpired": "منتهي ✗",
+      "selectGymAndBranch": "اختيار الصالة والفرع",
+      "diagnosticInfo": "🔍 معلومات التشخيص",
+      "testConnection": "اختبار الاتصال",
+      "loadedGymsCount": "عدد الصالات المحملة",
+      "loadingStatus": "حالة التحميل",
+      "loading": "جاري التحميل...",
+      "complete": "مكتمل",
+      "userRole": "دور المستخدم",
+      "undefined": "غير محدد",
+      "gymLabel": "الصالة الرياضية *",
+      "selectGym": "-- اختر الصالة --"
     },
     "services": {
       "title": "إعدادات الخدمات",

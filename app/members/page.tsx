@@ -143,8 +143,6 @@ export default function MembersPage() {
 
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'other' | 'analytics' | 'banned'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
-  const [filterSalesStaff, setFilterSalesStaff] = useState<string>('all')
-  const [salesStaffList, setSalesStaffList] = useState<{ id: string; name: string; staffCode: string }[]>([])
   const [specificDate, setSpecificDate] = useState('')
 
   // سجل الإيصالات
@@ -255,16 +253,8 @@ export default function MembersPage() {
       })
     }
 
-    if (filterSalesStaff !== 'all') {
-      filtered = filtered.filter((member: any) =>
-        filterSalesStaff === 'none'
-          ? !member.salesStaffId
-          : member.salesStaffId === filterSalesStaff
-      )
-    }
-
     return filtered
-  }, [debouncedSearch, filterStatus, filterPackage, specificDate, filterSalesStaff, membersData])
+  }, [debouncedSearch, filterStatus, filterPackage, specificDate, membersData])
 
   // ✅ جلب المحظورين عند التحميل (لو عنده صلاحية)
   useEffect(() => {
@@ -446,22 +436,8 @@ export default function MembersPage() {
     setSearch('')
     setFilterStatus('all')
     setFilterPackage('all')
-    setFilterSalesStaff('all')
     setSpecificDate('')
   }
-
-  // جلب موظفي السيلز
-  useEffect(() => {
-    fetch('/api/staff')
-      .then(r => r.ok ? r.json() : [])
-      .then((data: any[]) => {
-        const sales = Array.isArray(data)
-          ? data.filter(s => s.isActive && s.position && s.position.split(',').map((p: string) => p.trim()).includes('sales'))
-          : []
-        setSalesStaffList(sales.map(s => ({ id: s.id, name: s.name, staffCode: s.staffCode })))
-      })
-      .catch(() => {})
-  }, [])
 
   // دالة مساعدة لفلترة الأعضاء حسب الحالة
   const filterByStatus = (member: Member) => {
@@ -877,50 +853,6 @@ export default function MembersPage() {
             </button>
           </div>
         </div>
-
-        {salesStaffList.length > 0 && (
-          <div className="border-t dark:border-gray-700 pt-4 mt-4">
-            <h4 className="text-lg font-bold mb-3 flex items-center gap-2 dark:text-white">
-              <span>💼</span>
-              <span>{locale === 'ar' ? 'فلترة حسب موظف السيلز' : 'Filter by Sales Staff'}</span>
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setFilterSalesStaff('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  filterSalesStaff === 'all'
-                    ? 'bg-orange-500 text-white shadow'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:border-orange-400'
-                }`}
-              >
-                {locale === 'ar' ? 'الكل' : 'All'} ({membersData.length})
-              </button>
-              {salesStaffList.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => setFilterSalesStaff(filterSalesStaff === s.id ? 'all' : s.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    filterSalesStaff === s.id
-                      ? 'bg-orange-500 text-white shadow'
-                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:border-orange-400'
-                  }`}
-                >
-                  💼 {s.name} ({(membersData as any[]).filter(m => m.salesStaffId === s.id).length})
-                </button>
-              ))}
-              <button
-                onClick={() => setFilterSalesStaff(filterSalesStaff === 'none' ? 'all' : 'none')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  filterSalesStaff === 'none'
-                    ? 'bg-gray-500 text-white shadow'
-                    : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                }`}
-              >
-                {locale === 'ar' ? 'بدون موظف' : 'No Staff'} ({(membersData as any[]).filter(m => !m.salesStaffId).length})
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="border-t dark:border-gray-700 pt-4 mt-4">
           <label className="block text-sm font-medium mb-2 dark:text-gray-200">

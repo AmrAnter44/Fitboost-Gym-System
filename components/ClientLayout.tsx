@@ -23,7 +23,6 @@ import KeyboardShortcuts from './KeyboardShortcuts'
 import Breadcrumb from './Breadcrumb'
 import BackToTop from './BackToTop'
 import LicenseLockedScreen from './LicenseLockedScreen'
-import ErrorTrackingProvider from './ErrorTrackingProvider'
 import Link from 'next/link'
 
 function LayoutContent({ children }: { children: ReactNode }) {
@@ -111,28 +110,26 @@ function LayoutContent({ children }: { children: ReactNode }) {
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <ErrorTrackingProvider>
-      <QueryProvider>
-        <DarkModeProvider>
-          <LanguageProvider>
-            <ServiceSettingsProvider>
-              <DeviceSettingsProvider>
-                <SearchProvider>
-                  <ToastProvider>
-                    <UpdateProvider>
-                      <AdminDateProvider>
-                        <LicenseProvider>
-                          <LayoutContent>{children}</LayoutContent>
-                        </LicenseProvider>
-                      </AdminDateProvider>
-                    </UpdateProvider>
-                  </ToastProvider>
-                </SearchProvider>
-              </DeviceSettingsProvider>
-            </ServiceSettingsProvider>
-          </LanguageProvider>
-        </DarkModeProvider>
-      </QueryProvider>
-    </ErrorTrackingProvider>
+    <QueryProvider>
+      <DarkModeProvider>
+        <LanguageProvider>
+          <ServiceSettingsProvider>
+            <DeviceSettingsProvider>
+              <SearchProvider>
+                <ToastProvider>
+                  <UpdateProvider>
+                    <AdminDateProvider>
+                      <LicenseProvider>
+                        <LayoutContent>{children}</LayoutContent>
+                      </LicenseProvider>
+                    </AdminDateProvider>
+                  </UpdateProvider>
+                </ToastProvider>
+              </SearchProvider>
+            </DeviceSettingsProvider>
+          </ServiceSettingsProvider>
+        </LanguageProvider>
+      </DarkModeProvider>
+    </QueryProvider>
   )
 }

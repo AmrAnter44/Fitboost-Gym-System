@@ -1,35 +1,51 @@
-// scripts/create-admin.ts - إنشاء حساب أدمن (مع نظام التتبع)
+// scripts/create-admin.ts - إنشاء حساب أدمن أولي
+// Usage: ADMIN_EMAIL=x@y.com ADMIN_PASSWORD='StrongPass!' node scripts/create-admin.ts
+// - لا توجد كلمة مرور افتراضية (كان admin123 — تمت إزالتها)
+// - يرفض كلمات المرور الضعيفة
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { runScript } from '../lib/scriptManager'
 
 const prisma = new PrismaClient()
 
-async function createAdminScript() {
-  // Check if admin exists
-  const existing = await prisma.user.findUnique({
-    where: { email: 'admin@gym.com' }
-  })
+function validatePassword(password: string): string | null {
+  if (!password || password.length < 12) return 'Password must be at least 12 characters'
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) return 'Password must contain letters and numbers'
+  if (!/[^a-zA-Z0-9]/.test(password)) return 'Password must contain at least one symbol'
+  return null
+}
 
+async function createAdminScript() {
+  const email = process.env.ADMIN_EMAIL?.trim()
+  const password = process.env.ADMIN_PASSWORD
+  const name = process.env.ADMIN_NAME?.trim() || 'Admin'
+
+  if (!email || !password) {
+    throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD env variables are required')
+  }
+  const passErr = validatePassword(password)
+  if (passErr) {
+    throw new Error(passErr)
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
-    console.log('✅ Admin already exists!')
+    console.log(`✅ Admin (${email}) already exists!`)
     return
   }
 
-  // Create admin
-  const hashedPassword = await bcrypt.hash('admin123', 10)
+  const hashedPassword = await bcrypt.hash(password, 12)
 
   const admin = await prisma.user.create({
     data: {
-      email: 'admin@gym.com',
-      name: 'Admin',
+      email,
+      name,
       password: hashedPassword,
       role: 'ADMIN',
       isActive: true
     }
   })
 
-  // Create permissions
   await prisma.permission.create({
     data: {
       userId: admin.id,
@@ -54,14 +70,11 @@ async function createAdminScript() {
     }
   })
 
-  console.log('✅ Admin created successfully!')
-  console.log('📧 Email: admin@gym.com')
-  console.log('🔐 Password: admin123')
+  console.log(`✅ Admin created: ${email}`)
 }
 
-// ✅ تنفيذ السكريبت مع التتبع
 runScript('create-admin', createAdminScript)
-  .then(result => {
+  .then((result) => {
     if (result.success) {
       console.log('✅ السكريبت اكتمل بنجاح')
     } else {
@@ -69,7 +82,7 @@ runScript('create-admin', createAdminScript)
     }
     process.exit(result.success ? 0 : 1)
   })
-  .catch(error => {
-    console.error('❌ خطأ غير متوقع:', error)
+  .catch((error) => {
+    console.error('❌ خطأ غير متوقع:', error?.message || 'unknown')
     process.exit(1)
   })

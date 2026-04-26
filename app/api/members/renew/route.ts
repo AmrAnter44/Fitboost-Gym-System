@@ -12,7 +12,7 @@ import { addPointsForPayment } from '../../../../lib/points'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
 import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
-import { logBackendError } from '../../../../lib/errorTracking/errorTrackingService'
+import { logError } from '../../../../lib/errorLogger'
 
 export const dynamic = 'force-dynamic'
 
@@ -269,7 +269,7 @@ export async function POST(request: Request) {
 
     } catch (receiptError: any) {
       console.error('❌ خطأ في إنشاء إيصال التجديد:', receiptError)
-      logBackendError({ error: receiptError, endpoint: '/api/members/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed', memberId } }).catch(() => {})
+      logError({ error: receiptError, endpoint: '/api/members/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed', memberId } })
       return NextResponse.json({
         member: updatedMember,
         receipt: null,
@@ -279,7 +279,7 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('❌ خطأ في تجديد الاشتراك:', error)
-    logBackendError({ error, endpoint: '/api/members/renew', method: 'POST', statusCode: 500 }).catch(() => {})
+    logError({ error, endpoint: '/api/members/renew', method: 'POST', statusCode: 500 })
     
     if (error.message === 'Unauthorized') {
       return NextResponse.json(

@@ -64,7 +64,7 @@ export interface ErrorLogParams {
 }
 
 /**
- * تسجيل الخطأ في الملف + إرسال إلى Supabase Error Tracker
+ * تسجيل الخطأ في ملف محلي (logs/errors.log)
  */
 export function logError(params: ErrorLogParams): void {
   try {
@@ -127,40 +127,9 @@ export function logError(params: ErrorLogParams): void {
 
   } catch (loggerError) {
     // Fallback: إذا فشل التسجيل في الملف، اطبع في console فقط
-    console.error('⚠️ Logger failed to write to file:', loggerError)
-    console.error('Original error:', params.error)
+    console.error('⚠️ Logger failed to write to file:', loggerError instanceof Error ? loggerError.message : 'unknown')
+    console.error('Original error:', params.error instanceof Error ? params.error.message : String(params.error))
   }
-
-  // ✅ إرسال الخطأ إلى Supabase Error Tracker (non-blocking)
-  forwardToSupabaseTracker(params)
-}
-
-/**
- * إرسال الخطأ إلى Supabase عبر errorTrackingService (non-blocking)
- * يُستدعى تلقائياً من logError - لا حاجة لتعديل أي route
- */
-function forwardToSupabaseTracker(params: ErrorLogParams): void {
-  // Dynamic import لتجنب circular imports
-  import('./errorTracking/errorTrackingService')
-    .then(({ logBackendError }) => {
-      logBackendError({
-        error: params.error,
-        endpoint: params.endpoint,
-        method: params.method,
-        statusCode: params.statusCode,
-        userId: params.userId,
-        userEmail: params.userEmail,
-        userRole: params.userRole,
-        staffId: params.staffId,
-        requestBody: params.requestBody,
-        additionalContext: params.additionalContext,
-      }).catch(() => {
-        // تجاهل أخطاء الإرسال لـ Supabase - لا نريد كسر الـ logger
-      })
-    })
-    .catch(() => {
-      // تجاهل أخطاء الاستيراد
-    })
 }
 
 /**

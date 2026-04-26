@@ -47,6 +47,13 @@ export function middleware(request: NextRequest) {
     return response
   }
 
+  // ⚠️ WhatsApp internal endpoints: الحماية بالتوكين مُعطّلة مؤقتاً
+  //    (INTERNAL_API_TOKEN check اتشال لحد ما نرجّع تفعيله)
+  //    نعفيها من فحص CSRF لأنها server-to-server calls
+  if (pathname.startsWith('/api/whatsapp/internal/')) {
+    return response
+  }
+
   // 🔒 CSRF Protection: تحقق من Origin على طلبات التعديل
   if (
     pathname.startsWith('/api/') &&

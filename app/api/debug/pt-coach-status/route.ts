@@ -88,9 +88,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Debug PT coach status error:', error);
+    console.error('Debug PT coach status error:', error instanceof Error ? error.message : 'unknown');
     return NextResponse.json(
-      { error: 'حدث خطأ في الخادم', details: String(error) },
+      { error: 'حدث خطأ في الخادم' },
       { status: 500 }
     );
   }

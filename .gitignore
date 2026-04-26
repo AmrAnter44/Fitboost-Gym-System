@@ -56,6 +56,18 @@ nul
 # Uploads
 public/uploads/
 
+# Archived data (sensitive)
+public/photos.zip
+public/photos/*.zip
+data/archived/
+/test-supabase.js.bak
+/.internal-api-token
+
+# Sensitive scripts / old backups (never commit)
+*.db.backup*
+*.integrity_backup
+prisma/gym.db.pre-vacuum-*
+
 # Claude Code settings
 .claude/settings.local.json
 

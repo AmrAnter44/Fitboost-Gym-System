@@ -108,6 +108,22 @@ function migrateDatabase(dbPath) {
     } else {
     }
 
+    // 🕐 Member.allowedCheckInStart/End — ساعات الدخول المسموح بها
+    if (!columnExists(db, 'Member', 'allowedCheckInStart')) {
+      db.prepare('ALTER TABLE Member ADD COLUMN allowedCheckInStart TEXT').run();
+    }
+    if (!columnExists(db, 'Member', 'allowedCheckInEnd')) {
+      db.prepare('ALTER TABLE Member ADD COLUMN allowedCheckInEnd TEXT').run();
+    }
+
+    // 🕐 Offer.allowedCheckInStart/End — ساعات الدخول المسموح بها (template للعرض)
+    if (tableExists(db, 'Offer') && !columnExists(db, 'Offer', 'allowedCheckInStart')) {
+      db.prepare('ALTER TABLE Offer ADD COLUMN allowedCheckInStart TEXT').run();
+    }
+    if (tableExists(db, 'Offer') && !columnExists(db, 'Offer', 'allowedCheckInEnd')) {
+      db.prepare('ALTER TABLE Offer ADD COLUMN allowedCheckInEnd TEXT').run();
+    }
+
     // ✅ DayUseInBody.salesStaffId — ربط عملية الـ Day Use بموظف سيلز
     if (!columnExists(db, 'DayUseInBody', 'salesStaffId')) {
       db.prepare('ALTER TABLE DayUseInBody ADD COLUMN salesStaffId TEXT').run();
@@ -621,11 +637,7 @@ function migrateDatabase(dbPath) {
           appVersion TEXT,
           createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
           resolvedAt DATETIME,
-          isResolved INTEGER NOT NULL DEFAULT 0,
-          syncedToSupabase INTEGER NOT NULL DEFAULT 0,
-          supabaseId TEXT,
-          syncAttempts INTEGER NOT NULL DEFAULT 0,
-          lastSyncAttempt DATETIME
+          isResolved INTEGER NOT NULL DEFAULT 0
         );
         CREATE INDEX IF NOT EXISTS ErrorLog_errorType_idx ON ErrorLog(errorType);
         CREATE INDEX IF NOT EXISTS ErrorLog_severity_idx ON ErrorLog(severity);

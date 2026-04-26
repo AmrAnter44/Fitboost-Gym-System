@@ -258,7 +258,9 @@ export default function MemberDetailPage() {
     salesStaffId: null as string | null,
     notes: '',
     startDate: '',
-    expiryDate: ''
+    expiryDate: '',
+    allowedCheckInStart: '' as string,
+    allowedCheckInEnd: '' as string
   })
 
   const [addRemainingAmountData, setAddRemainingAmountData] = useState({
@@ -1178,7 +1180,9 @@ export default function MemberDetailPage() {
           salesStaffId: editBasicInfoData.salesStaffId || null,
           notes: editBasicInfoData.notes.trim() || null,
           startDate: editBasicInfoData.startDate || null,
-          expiryDate: editBasicInfoData.expiryDate || null
+          expiryDate: editBasicInfoData.expiryDate || null,
+          allowedCheckInStart: editBasicInfoData.allowedCheckInStart || null,
+          allowedCheckInEnd: editBasicInfoData.allowedCheckInEnd || null
         })
       })
 
@@ -1209,7 +1213,9 @@ export default function MemberDetailPage() {
           notes: '',
           startDate: '',
           expiryDate: '',
-          salesStaffId: null
+          salesStaffId: null,
+          allowedCheckInStart: '',
+          allowedCheckInEnd: ''
         })
         setActiveModal(null)
         fetchMember()
@@ -1631,7 +1637,9 @@ export default function MemberDetailPage() {
                       startDate: member.startDate ? formatDateYMD(member.startDate) : '',
                       expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : '',
                       idCardFront: member.idCardFront || null,
-                      idCardBack: member.idCardBack || null
+                      idCardBack: member.idCardBack || null,
+                      allowedCheckInStart: (member as any).allowedCheckInStart || '',
+                      allowedCheckInEnd: (member as any).allowedCheckInEnd || ''
                     })
                     setActiveModal('edit-basic-info')
                   }}
@@ -2827,6 +2835,55 @@ export default function MemberDetailPage() {
                   value={editBasicInfoData.salesStaffId}
                   onChange={(salesStaffId) => setEditBasicInfoData({ ...editBasicInfoData, salesStaffId })}
                 />
+              </div>
+
+              {/* 🕐 ساعات الدخول المسموح بها */}
+              <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
+                <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                  🕐 {locale === 'ar' ? 'ساعات الدخول المسموح بها (اختياري)' : 'Allowed Check-in Hours (Optional)'}
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  {locale === 'ar'
+                    ? 'لو حددت وقت، العضو مش هيقدر يعمل سكان خارج الفترة دي. سيبها فاضية عشان يدخل أي وقت.'
+                    : 'If set, member cannot check in outside these hours. Leave empty for no restriction.'}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">
+                      {locale === 'ar' ? 'من' : 'From'}
+                    </label>
+                    <input
+                      type="time"
+                      value={editBasicInfoData.allowedCheckInStart}
+                      onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, allowedCheckInStart: e.target.value })}
+                      className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">
+                      {locale === 'ar' ? 'إلى' : 'To'}
+                    </label>
+                    <input
+                      type="time"
+                      value={editBasicInfoData.allowedCheckInEnd}
+                      onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, allowedCheckInEnd: e.target.value })}
+                      className="w-full px-2 py-1.5 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+                {(editBasicInfoData.allowedCheckInStart || editBasicInfoData.allowedCheckInEnd) && (
+                  <button
+                    type="button"
+                    onClick={() => setEditBasicInfoData({
+                      ...editBasicInfoData,
+                      allowedCheckInStart: '',
+                      allowedCheckInEnd: ''
+                    })}
+                    className="mt-2 text-xs text-red-600 hover:underline"
+                  >
+                    ✕ {locale === 'ar' ? 'إلغاء التحديد' : 'Clear'}
+                  </button>
+                )}
               </div>
 
               <div className="col-span-2 md:col-span-3">

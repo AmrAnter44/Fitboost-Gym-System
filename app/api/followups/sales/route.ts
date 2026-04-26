@@ -11,10 +11,41 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // بداية ونهاية الشهر الحالي
+    // 📅 نطاق التاريخ — لو مش معيّن من الـ query، نستخدم الشهر الحالي
+    // ملاحظة: نبني التواريخ من المكوّنات (year, month, day) لتجنّب timezone drift
+    // اللي بيحصل لما نستخدم `new Date("2026-04-01")` (UTC) ثم setHours (local).
+    const { searchParams } = new URL(request.url)
+    const fromParam = searchParams.get('from') // YYYY-MM-DD
+    const toParam = searchParams.get('to')
+
+    const parseDateLocal = (s: string | null): Date | null => {
+      if (!s) return null
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
+      if (!m) return null
+      const y = parseInt(m[1], 10)
+      const mo = parseInt(m[2], 10) - 1
+      const d = parseInt(m[3], 10)
+      const dt = new Date(y, mo, d)
+      return isNaN(dt.getTime()) ? null : dt
+    }
+
     const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    const fromDate = parseDateLocal(fromParam)
+    const toDate = parseDateLocal(toParam)
+
+    let startOfMonth = fromDate
+      ? new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate(), 0, 0, 0, 0)
+      : new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+
+    let endOfMonth = toDate
+      ? new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate(), 23, 59, 59, 999)
+      : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+
+    // حماية: لو endOfMonth < startOfMonth، رجّعهم للقيم الافتراضية (الشهر الحالي)
+    if (endOfMonth.getTime() < startOfMonth.getTime()) {
+      startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+      endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    }
 
     // جلب كل الموظفين النشطين
     const allStaff = await prisma.staff.findMany({
@@ -35,9 +66,13 @@ export async function GET(request: Request) {
       orderBy: { name: 'asc' }
     })
 
-    // جلب جميع المتابعات النشطة (غير archived) مع بيانات الفيزيتور
+    // جلب جميع المتابعات النشطة (غير archived) داخل النطاق الزمني المختار
+    // فلتر التاريخ بيقفل على createdAt — يعني ليدز اتعملت في النطاق المحدد
     const activeFollowUps = await prisma.followUp.findMany({
-      where: { archived: false },
+      where: {
+        archived: false,
+        createdAt: { gte: startOfMonth, lte: endOfMonth }
+      },
       select: {
         id: true,
         assignedTo: true,
@@ -92,7 +127,10 @@ export async function GET(request: Request) {
     // بناء النتيجة لكل موظف
     const result = allStaff.map(staff => {
       const leads = activeFollowUps.filter(f => f.assignedTo === staff.id)
-      const members = salesMembers.filter(m => m.salesStaffId === staff.id)
+      // ✅ نقتصر على الأعضاء اللي حصّلنا منهم فعلاً في النطاق الزمني (collected > 0)
+      //    عشان لما المستخدم يغيّر التاريخ، عدد الأعضاء وقائمتهم تتحدّث برضو
+      const allAssignedMembers = salesMembers.filter(m => m.salesStaffId === staff.id)
+      const members = allAssignedMembers.filter(m => (memberRevenueMap[m.id] || 0) > 0)
       const collectedThisMonth = members.reduce((sum, m) => sum + (memberRevenueMap[m.id] || 0), 0)
 
       return {
@@ -202,6 +240,10 @@ export async function GET(request: Request) {
         followUpsCount: unassignedFollowUps,
         dayUseCount: unassignedDayUse,
         invitationCount: unassignedInvitations,
+      },
+      range: {
+        from: startOfMonth.toISOString(),
+        to: endOfMonth.toISOString(),
       }
     })
   } catch (error: any) {

@@ -1,43 +1,87 @@
 // app/api/serve-image/route.ts
-// خدمة الصور من مسار userData في Electron
+// خدمة الصور من مسارات Electron userData / public/uploads
+// حماية ضد path traversal عبر allowlist للجذور المسموح بها.
 import { NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
-import { existsSync } from 'fs'
+import { existsSync, statSync } from 'fs'
 import path from 'path'
 
 export const dynamic = 'force-dynamic'
 
-// حل المسار الفعلي للصورة - يدور في أكتر من مكان
-function resolveImagePath(imagePath: string): string | null {
-  // 1. لو المسار absolute وموجود → استخدمه مباشرة
-  if (path.isAbsolute(imagePath) && existsSync(imagePath)) {
-    return imagePath
+const ALLOWED_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif'])
+const TRANSPARENT_PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64'
+)
+
+function transparentResponse() {
+  return new NextResponse(TRANSPARENT_PIXEL, {
+    status: 200,
+    headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache' }
+  })
+}
+
+/** الجذور المسموح قراءة الصور منها */
+function allowedRoots(): string[] {
+  const roots: string[] = []
+  if (process.env.UPLOADS_PATH) roots.push(path.resolve(process.env.UPLOADS_PATH))
+  roots.push(path.resolve(process.cwd(), 'public', 'uploads'))
+  roots.push(path.resolve(process.cwd(), 'public', 'photos'))
+  roots.push(path.resolve(process.cwd(), 'uploads'))
+  return roots
+}
+
+/** هل الـ resolved path داخل واحد من الجذور المسموحة */
+function isInsideAllowedRoot(resolved: string): boolean {
+  return allowedRoots().some((root) => {
+    const withSep = root.endsWith(path.sep) ? root : root + path.sep
+    return resolved === root || resolved.startsWith(withSep)
+  })
+}
+
+/**
+ * يتحقق أن الملف الناتج:
+ *   1) داخل أحد الجذور المسموحة (مش path traversal خارج الـ uploads)
+ *   2) موجود فعلاً
+ *   3) له امتداد صورة مسموح
+ */
+function validateResolvedFile(resolved: string): string | null {
+  if (!isInsideAllowedRoot(resolved)) return null
+  if (!existsSync(resolved)) return null
+  try { if (!statSync(resolved).isFile()) return null } catch { return null }
+  const ext = path.extname(resolved).toLowerCase()
+  if (!ALLOWED_EXTS.has(ext)) return null
+  return resolved
+}
+
+/**
+ * يقبل:
+ *   - absolute path (جاي من upload-image في Electron) — ما دام داخل UPLOADS_PATH
+ *   - relative path (مثل "uploads/members/xxx.jpg") — يحلّها داخل الجذور المسموحة
+ */
+function resolveSafeImagePath(imagePath: string): string | null {
+  // absolute path → لازم يكون داخل جذر مسموح
+  if (path.isAbsolute(imagePath)) {
+    const resolved = path.resolve(imagePath)
+    return validateResolvedFile(resolved)
   }
 
-  // 2. لو المسار نسبي (مثل /uploads/members/1.jpg) → دور عليه
-  const relativePath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath
+  // relative path
+  const cleaned = imagePath.replace(/^\/+/, '')
+  if (cleaned.includes('..')) return null // أي محاولة traversal → رفض
 
-  // محاولة 1: مسار Electron userData (UPLOADS_PATH)
-  if (process.env.UPLOADS_PATH) {
-    // UPLOADS_PATH = userData/uploads → نحتاج ننزل لـ members/file
-    const uploadsBase = process.env.UPLOADS_PATH
-    const filename = path.basename(relativePath)
-    const subdir = path.basename(path.dirname(relativePath)) // members, etc
-    const electronPath = path.join(uploadsBase, subdir, filename)
-    if (existsSync(electronPath)) return electronPath
-
-    // محاولة مباشرة بالمسار النسبي من uploads
-    const directPath = path.join(uploadsBase, relativePath.replace(/^uploads\//, ''))
-    if (existsSync(directPath)) return directPath
+  for (const root of allowedRoots()) {
+    const withoutUploadsPrefix = cleaned.replace(/^uploads[\/\\]/, '')
+    const candidates = [
+      path.resolve(root, cleaned),
+      path.resolve(root, withoutUploadsPrefix),
+      path.resolve(root, path.basename(path.dirname(cleaned)), path.basename(cleaned))
+    ]
+    for (const candidate of candidates) {
+      const ok = validateResolvedFile(candidate)
+      if (ok) return ok
+    }
   }
-
-  // محاولة 2: مجلد public
-  const publicPath = path.join(process.cwd(), 'public', relativePath)
-  if (existsSync(publicPath)) return publicPath
-
-  // محاولة 3: من root المشروع
-  const rootPath = path.join(process.cwd(), relativePath)
-  if (existsSync(rootPath)) return rootPath
 
   return null
 }
@@ -45,79 +89,35 @@ function resolveImagePath(imagePath: string): string | null {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const imagePath = searchParams.get('path')
+    const imagePath = searchParams.get('path') || ''
 
-    if (!imagePath) {
-      return NextResponse.json(
-        { error: 'مسار الصورة مطلوب' },
-        { status: 400 }
-      )
+    if (!imagePath || imagePath.length > 1024) {
+      return NextResponse.json({ error: 'مسار الصورة مطلوب' }, { status: 400 })
     }
 
-    // التحقق من أن الصورة في مسار uploads فقط (أمان)
-    if (!imagePath.includes('uploads')) {
-      return NextResponse.json(
-        { error: 'مسار غير صالح' },
-        { status: 400 }
-      )
-    }
-
-    // حل المسار الفعلي
-    const resolvedPath = resolveImagePath(imagePath)
-
+    const resolvedPath = resolveSafeImagePath(imagePath)
     if (!resolvedPath) {
-      // بدلاً من إرجاع 404، نرجع صورة شفافة 1x1 pixel
-      // عشان ما يطلعش error في الـ console
-      const transparentPixel = Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-        'base64'
-      )
-
-      return new NextResponse(transparentPixel, {
-        status: 200,
-        headers: {
-          'Content-Type': 'image/png',
-          'Cache-Control': 'no-cache',
-        }
-      })
+      return transparentResponse()
     }
 
-    // قراءة الملف
     const imageBuffer = await readFile(resolvedPath)
-
-    // تحديد نوع الملف من الامتداد
     const ext = path.extname(resolvedPath).toLowerCase()
-    const contentTypes: { [key: string]: string } = {
+    const contentTypes: Record<string, string> = {
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
       '.png': 'image/png',
       '.webp': 'image/webp',
       '.gif': 'image/gif'
     }
-    const contentType = contentTypes[ext] || 'application/octet-stream'
 
-    // إرجاع الصورة
     return new NextResponse(imageBuffer, {
       status: 200,
       headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000', // cache لمدة سنة
+        'Content-Type': contentTypes[ext] || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=31536000'
       }
     })
-
-  } catch (error) {
-    // بدلاً من إرجاع error، نرجع صورة شفافة (silent failure)
-    const transparentPixel = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-      'base64'
-    )
-
-    return new NextResponse(transparentPixel, {
-      status: 200,
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'no-cache',
-      }
-    })
+  } catch {
+    return transparentResponse()
   }
 }

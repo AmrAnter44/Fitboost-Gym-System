@@ -1657,44 +1657,130 @@ export default function FollowUpsPage() {
     return null
   }, [getFollowUpPriority, t])
 
-  // ✅ counters للـ quick filter buttons - pass واحد بدلاً من 4
+  // ✅ counters للـ quick filter buttons — تتحدّث ديناميكياً مع باقي الفلاتر
+  //    (source, priority, search, result, assignedStaff) — لكن مش بتفلتر بـ contacted نفسه
+  //    عشان لما المستخدم يختار "اعضاء منتهين" يشوف عددهم في "تم التواصل" / "لم يتم التواصل"
   const quickFilterCounts = useMemo(() => {
     let myFollowUps = 0
     let todayCount = 0
     let notContacted = 0
     let contacted = 0
     const isSales = !!user?.isSales
+
+    // فلتر مرة على كل المتابعات لتطبيق الفلاتر الأخرى (ما عدا contacted)
+    const searchNormalized = normalizeArabic(debouncedSearchTerm)
+
     for (const fu of allFollowUps) {
       const mine = isMyFollowUp(fu)
       if (mine) myFollowUps++
+
       const visibleForUser = !isSales || mine
       if (!visibleForUser) continue
-      if (getFollowUpPriority(fu) === 'today') todayCount++
+
+      // 🔍 search
+      if (debouncedSearchTerm) {
+        const ok =
+          normalizeArabic(fu.visitor.name).includes(searchNormalized) ||
+          fu.visitor.phone.includes(debouncedSearchTerm) ||
+          normalizeArabic(fu.notes).includes(searchNormalized) ||
+          (fu.salesName && normalizeArabic(fu.salesName).includes(searchNormalized))
+        if (!ok) continue
+      }
+
+      // 📊 result
+      if (resultFilter !== 'all' && fu.result !== resultFilter) continue
+
+      // 🎯 priority
+      const priority = getFollowUpPriority(fu)
+      if (priorityFilter !== 'all' && priority !== priorityFilter) continue
+
+      // 🧑‍💼 sales filter
+      if (salesFilter === 'my-followups' && !isMyFollowUp(fu)) continue
+      if (salesFilter === 'my-overdue' && (!isMyFollowUp(fu) || priority !== 'overdue')) continue
+      if (salesFilter === 'today' && priority !== 'today') continue
+
+      // 👤 assigned staff
+      if (assignedStaffFilter !== 'all') {
+        if (assignedStaffFilter === '__unassigned__') {
+          if (fu.assignedTo) continue
+        } else if (fu.assignedTo !== assignedStaffFilter) {
+          continue
+        }
+      }
+
+      // 🏷️ source
+      if (sourceFilter !== 'all') {
+        const src = fu.visitor.source
+        if (sourceFilter === 'expired-member' && src !== 'expired-member') continue
+        else if (sourceFilter === 'expiring-member' && src !== 'expiring-member') continue
+        else if (sourceFilter === 'member-invitation' && src !== 'member-invitation') continue
+        else if (sourceFilter === 'dayuse' && src !== 'invitation') continue
+        else if (sourceFilter === 'visitors' && ['expired-member', 'expiring-member', 'member-invitation', 'invitation'].includes(src)) continue
+      }
+
+      if (priority === 'today') todayCount++
       if (fu.contacted) contacted++
       else notContacted++
     }
     return { myFollowUps, todayCount, notContacted, contacted }
-  }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales])
+  }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter])
+
+  // ✅ قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) — تُستخدم لحساب أرقام أزرار المصدر
+  // عشان لما المستخدم يختار priority/contacted/search، الأرقام في أزرار المصدر تتحدّث برضو
+  const followUpsFilteredExceptSource = useMemo(() => {
+    return allFollowUps.filter(fu => {
+      const searchNormalized = normalizeArabic(debouncedSearchTerm)
+      const matchesSearch =
+        normalizeArabic(fu.visitor.name).includes(searchNormalized) ||
+        fu.visitor.phone.includes(debouncedSearchTerm) ||
+        normalizeArabic(fu.notes).includes(searchNormalized) ||
+        (fu.salesName && normalizeArabic(fu.salesName).includes(searchNormalized))
+
+      const matchesResult = resultFilter === 'all' || fu.result === resultFilter
+      const matchesContacted = contactedFilter === 'all' ||
+        (contactedFilter === 'contacted' && fu.contacted) ||
+        (contactedFilter === 'not-contacted' && !fu.contacted)
+
+      const priority = getFollowUpPriority(fu)
+      const matchesPriority = priorityFilter === 'all' || priority === priorityFilter
+
+      let matchesSales = true
+      if (salesFilter === 'my-followups') {
+        matchesSales = isMyFollowUp(fu)
+      } else if (salesFilter === 'my-overdue') {
+        matchesSales = isMyFollowUp(fu) && priority === 'overdue'
+      } else if (salesFilter === 'today') {
+        matchesSales = priority === 'today'
+      }
+
+      const matchesAssignedStaff = assignedStaffFilter === 'all'
+        || (assignedStaffFilter === '__unassigned__' ? !fu.assignedTo : fu.assignedTo === assignedStaffFilter)
+
+      return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSales && matchesAssignedStaff
+    })
+  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, salesFilter, assignedStaffFilter, getFollowUpPriority, isMyFollowUp])
 
   // Stats - memoized لتجنب إعادة الحساب في كل render
+  // الأرقام تتحدّث ديناميكياً مع باقي الفلاتر
   const stats = useMemo(() => {
     const todayStr = new Date().toDateString()
+    const base = followUpsFilteredExceptSource
     return {
-      total: allFollowUps.length,
-      today: allFollowUps.filter(fu => getFollowUpPriority(fu) === 'today').length,
-      overdue: allFollowUps.filter(fu => getFollowUpPriority(fu) === 'overdue').length,
+      total: base.length,
+      today: base.filter(fu => getFollowUpPriority(fu) === 'today').length,
+      overdue: base.filter(fu => getFollowUpPriority(fu) === 'overdue').length,
       contactedToday: followUps.filter(fu =>
         fu.contacted && new Date(fu.updatedAt || fu.createdAt).toDateString() === todayStr
       ).length,
-      // ✅ الأرقام تيجي من allFollowUps مباشرة عشان تتطابق مع الـ source filter
-      expiredMembers: allFollowUps.filter(fu => fu.visitor.source === 'expired-member').length,
-      expiringMembers: allFollowUps.filter(fu => fu.visitor.source === 'expiring-member').length,
-      dayUse: allFollowUps.filter(fu => fu.visitor.source === 'invitation').length,
-      invitations: allFollowUps.filter(fu => fu.visitor.source === 'member-invitation').length,
-      visitors: allFollowUps.filter(fu => !['expired-member', 'expiring-member', 'member-invitation', 'invitation'].includes(fu.visitor.source)).length,
+      // ✅ counts تحترم الفلاتر الأخرى (priority, contacted, search, إلخ)
+      expiredMembers: base.filter(fu => fu.visitor.source === 'expired-member').length,
+      expiringMembers: base.filter(fu => fu.visitor.source === 'expiring-member').length,
+      dayUse: base.filter(fu => fu.visitor.source === 'invitation').length,
+      invitations: base.filter(fu => fu.visitor.source === 'member-invitation').length,
+      visitors: base.filter(fu => !['expired-member', 'expiring-member', 'member-invitation', 'invitation'].includes(fu.visitor.source)).length,
       convertedToMembers: followUps.filter(fu => isVisitorAMember(fu.visitor.phone)).length,
     }
-  }, [allFollowUps, followUps, isVisitorAMember, getFollowUpPriority])
+  }, [followUpsFilteredExceptSource, followUps, isVisitorAMember, getFollowUpPriority])
 
   // 🎂 أعضاء عيد ميلادهم اليوم — للنشطين فقط
   const birthdayMembers = useMemo(() => {
@@ -2728,7 +2814,7 @@ export default function FollowUpsPage() {
         {/* Row 2: Source filter pills */}
         <div className={`px-3 sm:px-4 py-2 flex flex-wrap gap-1.5 ${user?.name ? 'border-t border-gray-100 dark:border-gray-700' : 'pt-3'}`}>
           <button onClick={() => setSourceFilter('all')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'all' ? 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-800' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
-            {t('followups.filters.all')} ({allFollowUps.length})
+            {t('followups.filters.all')} ({stats.total})
           </button>
           <button onClick={() => setSourceFilter('expired-member')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'expired-member' ? 'bg-red-600 text-white' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50'}`}>
             ❌ {t('followups.sources.expiredMembers')} ({stats.expiredMembers})

@@ -1,5 +1,6 @@
 // app/api/auth/login/route.ts
 import { NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { prisma } from '../../../../lib/prisma'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
@@ -7,6 +8,7 @@ import { logError } from '../../../../lib/errorLogger'
 import { checkRateLimit, getClientIdentifier } from '../../../../lib/rateLimit'
 import { logLogin, logLoginFailure, logRateLimitHit, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 import { DEFAULT_PERMISSIONS } from '../../../../types/permissions'
+import { validateLicense } from '../../../../lib/license'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +18,19 @@ if (!JWT_SECRET) {
 }
 if (JWT_SECRET.length < 32) {
   throw new Error('JWT_SECRET must be at least 32 characters')
+}
+
+/** Cookies must be marked secure in production regardless of NEXT_PUBLIC_APP_URL value */
+function cookieSecure(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
+
+/** Timing-safe string equality (constant-time) */
+function timingSafeEqualStrings(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) return false
+  return crypto.timingSafeEqual(bufA, bufB)
 }
 
 export async function POST(request: Request) {
@@ -48,10 +63,26 @@ export async function POST(request: Request) {
     const { email, password } = await request.json()
 
     // 🔐 Fallback Account - حساب احتياطي ثابت (خارج قاعدة البيانات)
+    // - يدعم OWNER_PASSWORD_HASH (bcrypt) كالاختيار الموصى به
+    // - OWNER_PASSWORD (plain) يُقبل فقط للـ backward compat؛ يُقارَن بشكل timing-safe
     const OWNER_EMAIL = process.env.OWNER_EMAIL?.trim()
+    const OWNER_PASSWORD_HASH = process.env.OWNER_PASSWORD_HASH?.trim()
     const OWNER_PASSWORD = process.env.OWNER_PASSWORD?.trim()
 
-    if (OWNER_EMAIL && OWNER_PASSWORD && email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+    let ownerMatch = false
+    if (OWNER_EMAIL && email === OWNER_EMAIL && typeof password === 'string') {
+      if (OWNER_PASSWORD_HASH) {
+        try {
+          ownerMatch = await bcrypt.compare(password, OWNER_PASSWORD_HASH)
+        } catch {
+          ownerMatch = false
+        }
+      } else if (OWNER_PASSWORD) {
+        ownerMatch = timingSafeEqualStrings(password, OWNER_PASSWORD)
+      }
+    }
+
+    if (ownerMatch) {
       const fallbackUser = {
         id: 'fallback-fitboost-account',
         name: 'FitBoost Admin',
@@ -81,7 +112,7 @@ export async function POST(request: Request) {
 
       response.cookies.set('auth-token', token, {
         httpOnly: true,
-        secure: process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://') ?? false,
+        secure: cookieSecure(),
         sameSite: 'strict',
         path: '/',
         maxAge: 60 * 60 * 24 * 7 // 7 days
@@ -167,6 +198,31 @@ export async function POST(request: Request) {
       )
     }
 
+    // 🔒 فحص الرخصة — OWNER فقط يدخل عند انتهاء الرخصة، غيره يُرفض
+    if (user.role !== 'OWNER') {
+      try {
+        const licenseResult = await validateLicense()
+        if (!licenseResult.valid) {
+          await logLoginFailure({
+            email: user.email,
+            reason: 'License expired',
+            ipAddress: getIpAddress(request),
+            userAgent: getUserAgent(request)
+          })
+          return NextResponse.json(
+            {
+              error: 'الرخصة منتهية — لا يمكن تسجيل الدخول. تواصل مع مالك النظام (OWNER).',
+              licenseExpired: true,
+              message: licenseResult.message
+            },
+            { status: 403 }
+          )
+        }
+      } catch {
+        // لو فشل فحص الرخصة بسبب خطأ غير متوقع، اسمح بالدخول (fail-open للـ availability)
+      }
+    }
+
     // ✅ استخدام الاسم من جدول Staff إذا كان المستخدم موظف
     const displayName = user.staff?.name || user.name
 
@@ -220,7 +276,7 @@ export async function POST(request: Request) {
     // حفظ التوكن في الكوكيز
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://') ?? false, // ✅ Only secure on HTTPS sites
+      secure: cookieSecure(), // ✅ secure في production دائماً
       sameSite: 'strict', // ✅ حماية أقوى من CSRF attacks
       path: '/',
       maxAge: 60 * 60 * 24 * 7 // 7 days
@@ -239,9 +295,10 @@ export async function POST(request: Request) {
     return response
     
   } catch (error) {
-    console.error('Login error:', error)
+    // Don't leak stack traces to console/client
+    const errMsg = error instanceof Error ? error.message : 'unknown'
+    console.error('Login error:', errMsg)
 
-    // Log error to file
     logError({
       error,
       endpoint: '/api/auth/login',

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Toast from './Toast';
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel } from '../lib/paymentHelpers';
 import { sendWhatsAppMessage } from '../lib/whatsappHelper';
+import { ANDROID_APP_URL, IOS_APP_URL } from '../lib/constants';
 
 interface ReceiptWhatsAppProps {
   receipt: {
@@ -29,8 +30,9 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [showWebsite, setShowWebsite] = useState(false);
-  const [androidAppUrl, setAndroidAppUrl] = useState('');
-  const [iosAppUrl, setIosAppUrl] = useState('');
+  // 🔒 روابط التطبيق ثابتة - من lib/constants.ts
+  const androidAppUrl = ANDROID_APP_URL;
+  const iosAppUrl = IOS_APP_URL;
   const [showAppLinks, setShowAppLinks] = useState(false);
   const [receiptTerms, setReceiptTerms] = useState('الساده الاعضاء حرصا منا على تقديم خدمه افضل وحفاظا على سير النظام العام للمكان بشكل مرضى يرجى الالتزام بالتعليمات الاتيه :\n\n١- الاشتراك لا يرد الا خلال ٢٤ ساعه بعد خصم قيمه الحصه\n٢- لا يجوز التمرين بخلاف الزى الرياضى\n٣- ممنوع اصطحاب الاطفال او الماكولات داخل الجيم\n٤- الاداره غير مسئوله عن المتعلقات الشخصيه');
 
@@ -59,8 +61,6 @@ export default function ReceiptWhatsApp({ receipt, onDetailsClick }: ReceiptWhat
           const data = await response.json();
           if (data.websiteUrl) setWebsiteUrl(data.websiteUrl);
           if (typeof data.showWebsiteOnReceipts === 'boolean') setShowWebsite(data.showWebsiteOnReceipts);
-          if (data.androidAppUrl) setAndroidAppUrl(data.androidAppUrl);
-          if (data.iosAppUrl) setIosAppUrl(data.iosAppUrl);
           if (typeof data.showAppLinksOnReceipts === 'boolean') setShowAppLinks(data.showAppLinksOnReceipts);
           if (data.receiptTerms) setReceiptTerms(data.receiptTerms);
         }

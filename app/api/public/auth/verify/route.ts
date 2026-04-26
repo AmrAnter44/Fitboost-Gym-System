@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // 🔒 Rate limit: 10 محاولات / 5 دقايق لكل IP لمنع brute-force
+    const clientId = getClientIdentifier(request);
+    const rl = checkRateLimit(clientId, {
+      id: 'public-verify',
+      limit: 10,
+      windowMs: 5 * 60 * 1000
+    });
+    if (!rl.success) {
+      return NextResponse.json(
+        { success: false, error: rl.error || 'محاولات كثيرة، حاول بعد قليل' },
+        { status: 429 }
+      );
+    }
+
     const { memberNumber, phoneNumber } = await request.json();
 
     // Validate input
@@ -50,7 +67,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Verify member error:', error);
+    console.error('Verify member error:', error instanceof Error ? error.message : 'unknown');
     return NextResponse.json(
       { success: false, error: 'حدث خطأ في الخادم' },
       { status: 500 }

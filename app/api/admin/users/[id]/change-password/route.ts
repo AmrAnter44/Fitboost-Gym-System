@@ -42,10 +42,12 @@ export async function POST(
       )
     }
 
-    // التحقق من طول كلمة المرور الجديدة
-    if (newPassword.length < 6) {
+    // 🔒 Strong password policy
+    const { validatePasswordStrength } = await import('../../../../../../lib/inputValidation')
+    const strength = validatePasswordStrength(newPassword)
+    if (!strength.isValid) {
       return NextResponse.json(
-        { error: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' },
+        { error: strength.errors.join(' • ') },
         { status: 400 }
       )
     }
@@ -95,7 +97,7 @@ export async function POST(
         )
       }
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10)
+      const hashedPassword = await bcrypt.hash(newPassword, 12)
 
       await prisma.user.update({
         where: { id: params.id },

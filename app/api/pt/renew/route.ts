@@ -9,7 +9,7 @@ import {
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
 import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
-import { logBackendError } from '../../../../lib/errorTracking/errorTrackingService'
+import { logError } from '../../../../lib/errorLogger'
 
 export const dynamic = 'force-dynamic'
 
@@ -206,7 +206,7 @@ export async function POST(request: Request) {
       })
 
       // إرجاع البيانات المحدثة حتى لو فشل الإيصال
-      logBackendError({ error: receiptError, endpoint: '/api/pt/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed' } }).catch(() => {})
+      logError({ error: receiptError, endpoint: '/api/pt/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed' } })
       return NextResponse.json({
         pt: updatedPT,
         error: 'تم التجديد بنجاح ولكن فشل إنشاء الإيصال. يرجى إنشاء الإيصال يدوياً.',
@@ -216,7 +216,7 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('❌ خطأ في تجديد جلسة PT:', error)
-    logBackendError({ error, endpoint: '/api/pt/renew', method: 'POST', statusCode: 500 }).catch(() => {})
+    logError({ error, endpoint: '/api/pt/renew', method: 'POST', statusCode: 500 })
     return NextResponse.json({ error: 'فشل تجديد جلسة PT' }, { status: 500 })
   }
 }

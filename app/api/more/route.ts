@@ -430,10 +430,24 @@ export async function PUT(request: Request) {
       )
     }
 
-    // تحديث البيانات
+    // تحديث البيانات — whitelist للحقول المسموح بتعديلها
+    const allowedFields: any = {}
+    if (updateData.clientName !== undefined) allowedFields.clientName = String(updateData.clientName)
+    if (updateData.phone !== undefined) allowedFields.phone = String(updateData.phone)
+    if (updateData.coachName !== undefined) allowedFields.coachName = String(updateData.coachName)
+    if (updateData.sessionsPurchased !== undefined) allowedFields.sessionsPurchased = parseInt(updateData.sessionsPurchased)
+    if (updateData.sessionsRemaining !== undefined) allowedFields.sessionsRemaining = parseInt(updateData.sessionsRemaining)
+    if (updateData.pricePerSession !== undefined) allowedFields.pricePerSession = parseFloat(updateData.pricePerSession)
+    if (updateData.totalAmount !== undefined) allowedFields.totalAmount = parseFloat(updateData.totalAmount)
+    if (updateData.remainingAmount !== undefined) allowedFields.remainingAmount = parseFloat(updateData.remainingAmount)
+    if (updateData.notes !== undefined) allowedFields.notes = updateData.notes ? String(updateData.notes) : null
+    if (updateData.startDate) allowedFields.startDate = new Date(updateData.startDate)
+    if (updateData.expiryDate) allowedFields.expiryDate = new Date(updateData.expiryDate)
+    if (updateData.isActive !== undefined) allowedFields.isActive = Boolean(updateData.isActive)
+
     const updatedMore = await prisma.more.update({
       where: { moreNumber: parseInt(moreNumber) },
-      data: updateData
+      data: allowedFields
     })
 
     // Audit log
