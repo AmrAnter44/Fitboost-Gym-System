@@ -150,17 +150,17 @@ export async function POST(request: Request) {
       },
     })
 
-    // إذا كان هناك انصراف خلال آخر 10 دقائق، منع تسجيل حضور جديد
+    // إذا كان هناك انصراف خلال آخر دقيقة، منع تسجيل حضور جديد (منع الـ accidental double-scan)
     if (lastCheckOut && lastCheckOut.checkOut) {
       const minutesSinceCheckOut = (now.getTime() - lastCheckOut.checkOut.getTime()) / (1000 * 60)
 
-      if (minutesSinceCheckOut < 10) {
-        const remainingMinutes = Math.ceil(10 - minutesSinceCheckOut)
+      if (minutesSinceCheckOut < 1) {
+        const remainingSeconds = Math.ceil(60 - (minutesSinceCheckOut * 60))
         return NextResponse.json(
           {
-            error: `⏳ يجب الانتظار ${remainingMinutes} دقيقة قبل تسجيل حضور جديد`,
+            error: `⏳ يجب الانتظار ${remainingSeconds} ثانية قبل تسجيل حضور جديد`,
             action: 'error',
-            remainingMinutes,
+            remainingSeconds,
           },
           { status: 400 }
         )

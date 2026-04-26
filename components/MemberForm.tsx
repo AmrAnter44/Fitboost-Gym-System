@@ -27,6 +27,8 @@ interface MemberFormProps {
 
 export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: MemberFormProps) {
   const { user } = usePermissions()
+  // 🔒 الأدمن والـ OWNER فقط هم اللي يقدروا يعدلوا التواريخ يدوياً
+  const canEditDates = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const { t, direction } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
@@ -81,7 +83,9 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     coachId: null as string | null,  // 👨‍🏫 معرف الكوتش
     salesStaffId: null as string | null,  // 💼 موظف السيلز
     ptCommissionAmount: null as number | null,  // 💰 عمولة الكوتش من الباقة (null = استخدام الافتراضي من الإعدادات)
-    referralMemberNumber: ''  // 👥 رقم العضو المُحيل
+    referralMemberNumber: '',  // 👥 رقم العضو المُحيل
+    allowedCheckInStart: '',   // 🕐 ساعة بداية الدخول المسموح بها
+    allowedCheckInEnd: ''      // 🕐 ساعة نهاية الدخول المسموح بها
   })
 
   useEffect(() => {
@@ -351,7 +355,9 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       coachId: formData.coachId,  // 👨‍🏫 إرسال معرف الكوتش
       salesStaffId: formData.salesStaffId || null,  // 💼 موظف السيلز
       ptCommissionAmount: formData.ptCommissionAmount,  // 💰 عمولة الباقة (null أو رقم)
-      referralMemberNumber: formData.referralMemberNumber  // 👥 رقم العضو المُحيل
+      referralMemberNumber: formData.referralMemberNumber,  // 👥 رقم العضو المُحيل
+      allowedCheckInStart: formData.allowedCheckInStart || null,  // 🕐 ساعات الدخول
+      allowedCheckInEnd: formData.allowedCheckInEnd || null
     }
 
     try {
@@ -458,6 +464,8 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       invitations: offer.invitations,
       remainingFreezeDays: offer.freezeDays,
       ptCommissionAmount: offer.ptCommission || null,  // 💰 حفظ عمولة الباقة
+      allowedCheckInStart: offer.allowedCheckInStart || '',  // 🕐 نسخ ساعات الدخول من العرض
+      allowedCheckInEnd: offer.allowedCheckInEnd || '',
       startDate,
       expiryDate: formatDateYMD(expiryDate)
     }))
@@ -823,13 +831,15 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           <div>
             <label className="block text-xs font-medium mb-1">
               {t('members.startDate')} <span className="text-xs text-gray-500 dark:text-gray-400">(yyyy-mm-dd)</span>
+              {!canEditDates && <span className="text-xs text-amber-600 dark:text-amber-400 mr-1">🔒</span>}
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                className="flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white"
+                readOnly={!canEditDates}
+                className={`flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white ${!canEditDates ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
                 placeholder="2025-11-18"
                 pattern="\d{4}-\d{2}-\d{2}"
               />
@@ -837,9 +847,10 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                className="px-3 py-2 border-2 border-blue-600 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-sm font-medium"
+                disabled={!canEditDates}
+                className={`px-3 py-2 border-2 text-white rounded-lg transition-colors text-sm font-medium ${canEditDates ? 'border-blue-600 bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'border-gray-400 bg-gray-400 cursor-not-allowed opacity-60'}`}
                 style={{ colorScheme: 'dark', width: '45px' }}
-                title={t('members.form.selectDate')}
+                title={canEditDates ? t('members.form.selectDate') : 'صلاحية الأدمن فقط'}
               />
             </div>
           </div>
@@ -847,13 +858,15 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           <div>
             <label className="block text-xs font-medium mb-1">
               {t('members.expiryDate')} <span className="text-xs text-gray-500 dark:text-gray-400">(yyyy-mm-dd)</span>
+              {!canEditDates && <span className="text-xs text-amber-600 dark:text-amber-400 mr-1">🔒</span>}
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                className="flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white"
+                readOnly={!canEditDates}
+                className={`flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white ${!canEditDates ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
                 placeholder="2025-12-18"
                 pattern="\d{4}-\d{2}-\d{2}"
               />
@@ -861,29 +874,38 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                 type="date"
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                className="px-3 py-2 border-2 border-blue-600 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-sm font-medium"
+                disabled={!canEditDates}
+                className={`px-3 py-2 border-2 text-white rounded-lg transition-colors text-sm font-medium ${canEditDates ? 'border-blue-600 bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'border-gray-400 bg-gray-400 cursor-not-allowed opacity-60'}`}
                 style={{ colorScheme: 'dark', width: '45px' }}
-                title={t('members.form.selectDate')}
+                title={canEditDates ? t('members.form.selectDate') : 'صلاحية الأدمن فقط'}
               />
             </div>
           </div>
         </div>
 
-        <div className="mb-2">
-          <p className="text-xs font-medium mb-2">⚡ {t('members.form.quickAdd')}:</p>
-          <div className="flex flex-wrap gap-1">
-            {[1, 2, 3, 6, 9, 12].map(months => (
-              <button
-                key={months}
-                type="button"
-                onClick={() => calculateExpiryFromMonths(months)}
-                className="px-2 py-1 bg-primary-100 dark:bg-primary-900/40 hover:bg-primary-200 dark:hover:bg-primary-800/50 text-primary-800 dark:text-primary-300 rounded-lg text-xs transition"
-              >
-                + {months} {months === 1 ? t('members.form.month') : t('members.form.months')}
-              </button>
-            ))}
+        {!canEditDates && (
+          <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+            🔒 التواريخ بيتم تحديدها تلقائياً من العرض المختار — للتعديل اليدوي لازم صلاحية الأدمن.
           </div>
-        </div>
+        )}
+
+        {canEditDates && (
+          <div className="mb-2">
+            <p className="text-xs font-medium mb-2">⚡ {t('members.form.quickAdd')}:</p>
+            <div className="flex flex-wrap gap-1">
+              {[1, 2, 3, 6, 9, 12].map(months => (
+                <button
+                  key={months}
+                  type="button"
+                  onClick={() => calculateExpiryFromMonths(months)}
+                  className="px-2 py-1 bg-primary-100 dark:bg-primary-900/40 hover:bg-primary-200 dark:hover:bg-primary-800/50 text-primary-800 dark:text-primary-300 rounded-lg text-xs transition"
+                >
+                  + {months} {months === 1 ? t('members.form.month') : t('members.form.months')}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {duration !== null && (
           <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-2">

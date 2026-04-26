@@ -66,6 +66,20 @@ export default function CollectionDashboard() {
   const [loading, setLoading] = useState(true)
   const [expandedStaff, setExpandedStaff] = useState<string | null>(null)
 
+  // 📅 Date range filter — defaults to current month
+  const todayDate = new Date()
+  const firstOfMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1)
+  const lastOfMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0)
+  // ⚠️ مش نستخدم toISOString() عشان بتـ shift للتوقيت العالمي؛ هنبني YYYY-MM-DD محلياً
+  const fmt = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+  const [dateFrom, setDateFrom] = useState<string>(fmt(firstOfMonth))
+  const [dateTo, setDateTo] = useState<string>(fmt(lastOfMonth))
+
   // Commission editing
   const [editingCommission, setEditingCommission] = useState<string | null>(null) // staffId
   const [commForm, setCommForm] = useState<{
@@ -78,19 +92,41 @@ export default function CollectionDashboard() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/followups/sales')
+      const params = new URLSearchParams()
+      if (dateFrom) params.set('from', dateFrom)
+      if (dateTo) params.set('to', dateTo)
+      const res = await fetch(`/api/followups/sales?${params.toString()}`, { cache: 'no-store' })
       if (res.ok) {
         const json = await res.json()
         setData(json?.staff ?? [])
       }
     } catch (e) {
-      console.error(e)
+      console.error('CollectionDashboard fetch failed:', e instanceof Error ? e.message : 'unknown')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [dateFrom, dateTo])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const setQuickRange = (kind: 'this-month' | 'last-month' | 'this-week' | 'today') => {
+    const t = new Date()
+    if (kind === 'this-month') {
+      setDateFrom(fmt(new Date(t.getFullYear(), t.getMonth(), 1)))
+      setDateTo(fmt(new Date(t.getFullYear(), t.getMonth() + 1, 0)))
+    } else if (kind === 'last-month') {
+      setDateFrom(fmt(new Date(t.getFullYear(), t.getMonth() - 1, 1)))
+      setDateTo(fmt(new Date(t.getFullYear(), t.getMonth(), 0)))
+    } else if (kind === 'this-week') {
+      const day = t.getDay()
+      const start = new Date(t); start.setDate(t.getDate() - day)
+      setDateFrom(fmt(start))
+      setDateTo(fmt(t))
+    } else {
+      setDateFrom(fmt(t))
+      setDateTo(fmt(t))
+    }
+  }
 
   const openCommEditor = (staff: SalesStaffData) => {
     setEditingCommission(staff.staffId)
@@ -142,7 +178,22 @@ export default function CollectionDashboard() {
   }
 
   const now = new Date()
-  const monthName = now.toLocaleString(ar ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })
+  // عرض النطاق المختار (لو يغطي شهر كامل بالظبط، اعرض اسم الشهر — وإلا اعرض النطاق)
+  const rangeLabel = (() => {
+    try {
+      const fromD = new Date(dateFrom)
+      const toD = new Date(dateTo)
+      const sameMonth = fromD.getFullYear() === toD.getFullYear() && fromD.getMonth() === toD.getMonth()
+      const isFullMonth = sameMonth && fromD.getDate() === 1 && toD.getDate() === new Date(toD.getFullYear(), toD.getMonth() + 1, 0).getDate()
+      if (isFullMonth) {
+        return fromD.toLocaleString(ar ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })
+      }
+      return `${fromD.toLocaleDateString()} - ${toD.toLocaleDateString()}`
+    } catch {
+      return now.toLocaleString(ar ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' })
+    }
+  })()
+  const monthName = rangeLabel
 
   if (loading) {
     return (
@@ -164,6 +215,51 @@ export default function CollectionDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* 📅 Date Range Filter */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">{ar ? 'من' : 'From'}</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">{ar ? 'إلى' : 'To'}</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button onClick={() => setQuickRange('today')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+              {ar ? 'اليوم' : 'Today'}
+            </button>
+            <button onClick={() => setQuickRange('this-week')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+              {ar ? 'هذا الأسبوع' : 'This Week'}
+            </button>
+            <button onClick={() => setQuickRange('this-month')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+              {ar ? 'الشهر الحالي' : 'This Month'}
+            </button>
+            <button onClick={() => setQuickRange('last-month')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+              {ar ? 'الشهر الماضي' : 'Last Month'}
+            </button>
+          </div>
+          <button
+            onClick={() => fetchData()}
+            disabled={loading}
+            className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
+          >
+            {loading ? '...' : (ar ? '🔄 تحديث' : '🔄 Refresh')}
+          </button>
+        </div>
+      </div>
+
       {/* Summary header */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl p-4 text-center">

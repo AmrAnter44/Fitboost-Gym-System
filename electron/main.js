@@ -9,6 +9,13 @@ try { HID = require('node-hid'); } catch { HID = null; }
 const { startReverseProxy, stopReverseProxy } = require('./reverse-proxy');
 const { startWhatsAppService, stopWhatsAppService } = require('./whatsapp-service');
 
+// 🔑 Load .env so GH_TOKEN / INTERNAL_API_TOKEN / etc. are available to main process
+try {
+  require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+} catch {
+  // dotenv قد لا يكون متوفراً في الإنتاج - غير حرج
+}
+
 // Fix electron-is-dev issue - check manually (use process.env or defaultAppPaths)
 const isDev = process.env.NODE_ENV === 'development' || process.defaultApp || /[\\/]electron-prebuilt[\\/]/.test(process.execPath) || /[\\/]electron[\\/]/.test(process.execPath);
 
@@ -252,6 +259,25 @@ async function startProductionServer() {
       fs.mkdirSync(uploadsPath, { recursive: true });
     }
 
+    // 🔒 Internal API token — shared secret between Next.js and the WhatsApp sidecar
+    // يُولَّد مرة واحدة ويُخزَّن في userData؛ نفس القيمة تُصَدَّر لكل الـ child processes
+    const tokenFile = path.join(userDataPath, '.internal-api-token');
+    if (!process.env.INTERNAL_API_TOKEN) {
+      try {
+        if (fs.existsSync(tokenFile)) {
+          process.env.INTERNAL_API_TOKEN = fs.readFileSync(tokenFile, 'utf-8').trim();
+        }
+      } catch {}
+      if (!process.env.INTERNAL_API_TOKEN || process.env.INTERNAL_API_TOKEN.length < 16) {
+        const { randomBytes } = require('crypto');
+        const generated = randomBytes(32).toString('hex');
+        try {
+          fs.writeFileSync(tokenFile, generated, { mode: 0o600 });
+        } catch {}
+        process.env.INTERNAL_API_TOKEN = generated;
+      }
+    }
+
 
     // Use server-wrapper.js to properly set up module resolution
     // In production, wrapper is copied to standalone directory
@@ -271,10 +297,13 @@ async function startProductionServer() {
         ...process.env,
         NODE_ENV: 'production',
         PORT: '4001',
-        HOSTNAME: '0.0.0.0',
+        // LAN access مطلوب لأجهزة الموظفين. الحماية للـ internal endpoints
+        // بتتم عبر INTERNAL_API_TOKEN في middleware.ts
+        HOSTNAME: process.env.HOSTNAME || '0.0.0.0',
         DATABASE_URL: DATABASE_URL,
         UPLOADS_PATH: uploadsPath,
-        ELECTRON_RUN_AS_NODE: '1' // Run Electron as Node.js, not as Electron app
+        INTERNAL_API_TOKEN: process.env.INTERNAL_API_TOKEN,
+        ELECTRON_RUN_AS_NODE: '1'
       },
       shell: false,
       stdio: 'pipe'
@@ -712,6 +741,24 @@ function setupAutoUpdater() {
   autoUpdater.autoDownload = false; // لا تحمل تلقائياً، نخلي المستخدم يوافق الأول
   autoUpdater.autoInstallOnAppQuit = true; // تثبيت عند إغلاق التطبيق
   autoUpdater.allowDowngrade = true; // السماح بالرجوع لإصدار أقدم لو حصلت مشكلة
+
+  // 🔑 لو الـ repo خاص (private)، لازم نمرر GH_TOKEN عشان autoUpdater يقدر يحمّل
+  const ghToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+  if (ghToken) {
+    try {
+      autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: 'AmrAnter44',
+        repo: 'Fitboost-Gym-System',
+        private: true,
+        token: ghToken
+      });
+      // fallback — في حالة الـ provider العادي لسه ما يقبلش الـ token
+      autoUpdater.requestHeaders = { Authorization: `token ${ghToken}` };
+    } catch (err) {
+      console.error('⚠️ Failed to configure autoUpdater with GH_TOKEN:', err.message);
+    }
+  }
 
   // عند اكتشاف تحديث جديد
   autoUpdater.on('update-available', (info) => {

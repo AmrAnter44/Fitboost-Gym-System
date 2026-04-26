@@ -302,6 +302,13 @@ export default function SettingsPage() {
   const [syncingDatabase, setSyncingDatabase] = useState(false)
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string; steps?: any[] } | null>(null)
 
+  // Database Optimize (VACUUM) state
+  const [optimizingDb, setOptimizingDb] = useState(false)
+  const [optimizeMessage, setOptimizeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [dbFiles, setDbFiles] = useState<Array<{ name: string; sizeMB: number; sizeBytes: number; isLive: boolean; modified: string }>>([])
+  const [dbFilesTotalMB, setDbFilesTotalMB] = useState<number>(0)
+  const [loadingDbFiles, setLoadingDbFiles] = useState(false)
+
   // Save notification state
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -334,6 +341,13 @@ export default function SettingsPage() {
       fetchGyms()
     }
   }, [user])
+
+  // Fetch DB files list when database section is opened
+  useEffect(() => {
+    if (activeSection === 'database' && user?.role === 'OWNER') {
+      fetchDbFiles()
+    }
+  }, [activeSection, user])
 
   const checkAuth = async () => {
     try {
@@ -677,6 +691,72 @@ export default function SettingsPage() {
     }
   }
 
+  const fetchDbFiles = async () => {
+    setLoadingDbFiles(true)
+    try {
+      const res = await fetch('/api/settings/database/optimize')
+      if (res.ok) {
+        const data = await res.json()
+        setDbFiles(Array.isArray(data.files) ? data.files : [])
+        setDbFilesTotalMB(Number(data.totalMB) || 0)
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingDbFiles(false)
+    }
+  }
+
+  const handleOptimizeDb = async (target?: string, all?: boolean) => {
+    const isLive = !target || target === 'gym.db'
+    const confirmMsg = all
+      ? '⚠️ هل تريد تنظيف كل النسخ الاحتياطية القديمة؟\n\nالعملية بتشغّل VACUUM على كل ملفات gym.db.backup-* وبتصغّر حجمها.\nالملف الأساسي (gym.db) مش هيتأثر.'
+      : isLive
+        ? '⚠️ هل تريد تنظيف ملف قاعدة البيانات الأساسي (gym.db)؟\n\nالعملية آمنة وبتصغّر الحجم من غير ما تغيّر في البيانات.\nيُفضَّل عمل نسخة احتياطية قبلها من زر "النسخ الاحتياطي".'
+        : `⚠️ هل تريد تنظيف الملف "${target}"؟`
+
+    if (!confirm(confirmMsg)) return
+
+    setOptimizingDb(true)
+    setOptimizeMessage(null)
+    try {
+      const res = await fetch('/api/settings/database/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(all ? { all: true } : { target: target || 'gym.db' }),
+      })
+      const data = await res.json()
+
+      if (!res.ok || data.success === false) {
+        setOptimizeMessage({ type: 'error', text: data.error || 'فشل تنظيف الملف' })
+        return
+      }
+
+      if (all) {
+        const lines = (data.results || []).map((r: any) =>
+          r.success
+            ? `✅ ${r.name}: ${r.before?.mb} MB → ${r.after?.mb} MB (وفّر ${r.saved?.mb} MB)`
+            : `❌ ${r.name}: ${r.error || 'فشل'}`
+        )
+        setOptimizeMessage({
+          type: 'success',
+          text: `تم تنظيف ${data.results?.length || 0} ملف\nالإجمالي المُوفَّر: ${data.totalSavedMB} MB\n\n${lines.join('\n')}`,
+        })
+      } else {
+        const msg = data.success
+          ? `✅ ${data.target}: ${data.before?.mb} MB → ${data.after?.mb} MB\nوفّر ${data.saved?.mb} MB (${data.saved?.percent}%)`
+          : data.error || 'فشل التنظيف'
+        setOptimizeMessage({ type: data.success ? 'success' : 'error', text: msg })
+      }
+
+      fetchDbFiles()
+    } catch (err: any) {
+      setOptimizeMessage({ type: 'error', text: err.message || 'حدث خطأ أثناء التنظيف' })
+    } finally {
+      setOptimizingDb(false)
+    }
+  }
+
   const fetchLocalIP = async () => {
     setIsLoadingIP(true)
     try {
@@ -703,7 +783,6 @@ export default function SettingsPage() {
           setCurrentLicense(data.license)
           setSelectedGymId(data.license.gymId)
           setSelectedBranchId(data.license.branchId)
-          // ✅ جلب الفروع للـ gym المحفوظ لعرض الـ branch الصحيح
           if (data.license.gymId) {
             fetchBranches(data.license.gymId)
           }
@@ -718,7 +797,6 @@ export default function SettingsPage() {
     setLoadingGyms(true)
     try {
       const response = await fetch('/api/license/gyms')
-
       if (response.ok) {
         const data = await response.json()
         setGyms(data.gyms || [])
@@ -726,9 +804,7 @@ export default function SettingsPage() {
           setSaveMessage({ type: 'error', text: '⚠️ لا توجد صالات متاحة في قاعدة البيانات' })
         }
       } else {
-        const errorData = await response.json()
-        console.error('❌ Fetch gyms error - Status:', response.status)
-        console.error('❌ Error data:', errorData)
+        const errorData = await response.json().catch(() => ({}))
         setSaveMessage({ type: 'error', text: errorData.error || 'فشل جلب الصالات' })
       }
     } catch (error) {
@@ -822,7 +898,7 @@ export default function SettingsPage() {
     ...(user?.role !== 'COACH' ? [{ id: 'whatsapp', label: t('settingsPage.navigation.whatsapp'), icon: '📱' }] : []),
     { id: 'display', label: t('settingsPage.navigation.display'), icon: '🎨' },
     ...(user?.role === 'OWNER' ? [
-      { id: 'license', label: 'رخصة النظام', icon: '🔑' },
+      { id: 'license', label: t('settingsPage.navigation.license'), icon: '🔑' },
       { id: 'database', label: t('settingsPage.navigation.database'), icon: '💾' }
     ] : []),
     ...(typeof window !== 'undefined' && (window as any).electron?.isElectron ? [{ id: 'updates', label: t('settingsPage.navigation.updates'), icon: '🔄' }] : []),
@@ -1164,24 +1240,15 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* روابط التطبيق */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                  <span className="text-2xl">📱</span>
-                  روابط التطبيق في الإيصالات
-                </h3>
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🤖 رابط تطبيق Android (Google Play)</label>
-                  <input type="url" value={(serviceSettings as any).androidAppUrl || ''} onChange={(e) => updateSetting('androidAppUrl', e.target.value)} placeholder="https://play.google.com/store/apps/details?id=..." className="w-full px-4 py-2 border-2 border-green-300 dark:border-green-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" dir="ltr" />
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🍎 رابط تطبيق iOS (App Store)</label>
-                  <input type="url" value={(serviceSettings as any).iosAppUrl || ''} onChange={(e) => updateSetting('iosAppUrl', e.target.value)} placeholder="https://apps.apple.com/..." className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" dir="ltr" />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              {/* عرض QR التطبيق في الإيصالات (الروابط ثابتة - مخفية) */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-semibold text-gray-800 dark:text-gray-100">عرض QR التطبيق في الإيصال المطبوع والواتساب</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">يظهر QR code الأندرويد والـ iOS في أسفل الإيصال</p>
+                    <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                      <span className="text-2xl">📱</span>
+                      عرض QR التطبيق في الإيصال المطبوع والواتساب
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">يظهر QR code الأندرويد والـ iOS في أسفل الإيصال</p>
                   </div>
                   <label className="toggle-switch toggle-indigo">
                     <input type="checkbox" checked={(serviceSettings as any).showAppLinksOnReceipts || false} onChange={() => updateSetting('showAppLinksOnReceipts', !(serviceSettings as any).showAppLinksOnReceipts)} />
@@ -1640,8 +1707,8 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3">
                   <span className="text-4xl">🔑</span>
                   <div>
-                    <h2 className="text-2xl font-bold">رخصة النظام</h2>
-                    <p className="text-purple-50 text-sm mt-1">اختر الصالة والفرع التابع لها هذا النظام</p>
+                    <h2 className="text-2xl font-bold">{t('settingsPage.license.title')}</h2>
+                    <p className="text-purple-50 text-sm mt-1">{t('settingsPage.license.subtitle')}</p>
                   </div>
                 </div>
               </div>
@@ -1651,21 +1718,21 @@ export default function SettingsPage() {
                 <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-2xl">✅</span>
-                    <h3 className="text-lg font-bold text-green-800 dark:text-green-300">النظام مفعّل حالياً</h3>
+                    <h3 className="text-lg font-bold text-green-800 dark:text-green-300">{t('settingsPage.license.activated')}</h3>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">الصالة:</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('settingsPage.license.gym')}:</span>
                       <span className="font-bold text-gray-900 dark:text-gray-100">{currentLicense.gymName}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">الفرع:</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('settingsPage.license.branch')}:</span>
                       <span className="font-bold text-gray-900 dark:text-gray-100">{currentLicense.branchName}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">حالة الترخيص:</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('settingsPage.license.licenseStatus')}:</span>
                       <span className={`font-bold ${currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active' ? 'text-green-600' : 'text-red-600'}`}>
-                        {currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active' ? 'نشط ✓' : 'منتهي ✗'}
+                        {currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active' ? t('settingsPage.license.statusActive') : t('settingsPage.license.statusExpired')}
                       </span>
                     </div>
                   </div>
@@ -1676,14 +1743,14 @@ export default function SettingsPage() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                   <span className="text-2xl">🏢</span>
-                  اختيار الصالة والفرع
+                  {t('settingsPage.license.selectGymAndBranch')}
                 </h3>
 
                 {/* Debug Info */}
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      🔍 معلومات التشخيص
+                      {t('settingsPage.license.diagnosticInfo')}
                     </span>
                     <button
                       onClick={async () => {
@@ -1698,20 +1765,20 @@ export default function SettingsPage() {
                       }}
                       className="text-xs px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded"
                     >
-                      اختبار الاتصال
+                      {t('settingsPage.license.testConnection')}
                     </button>
                   </div>
                   <div className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
-                    <div>عدد الصالات المحملة: <span className="font-bold">{gyms.length}</span></div>
-                    <div>حالة التحميل: <span className="font-bold">{loadingGyms ? 'جاري التحميل...' : 'مكتمل'}</span></div>
-                    <div>دور المستخدم: <span className="font-bold">{user?.role || 'غير محدد'}</span></div>
+                    <div>{t('settingsPage.license.loadedGymsCount')}: <span className="font-bold">{gyms.length}</span></div>
+                    <div>{t('settingsPage.license.loadingStatus')}: <span className="font-bold">{loadingGyms ? t('settingsPage.license.loading') : t('settingsPage.license.complete')}</span></div>
+                    <div>{t('settingsPage.license.userRole')}: <span className="font-bold">{user?.role || t('settingsPage.license.undefined')}</span></div>
                   </div>
                 </div>
 
                 {/* Gym Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    الصالة الرياضية *
+                    {t('settingsPage.license.gymLabel')}
                   </label>
                   <select
                     value={selectedGymId}
@@ -1719,7 +1786,7 @@ export default function SettingsPage() {
                     disabled={loadingGyms}
                     className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 disabled:opacity-50"
                   >
-                    <option value="">-- اختر الصالة --</option>
+                    <option value="">{t('settingsPage.license.selectGym')}</option>
                     {gyms.map(gym => (
                       <option key={gym.id} value={gym.id}>
                         {gym.name_ar || gym.name_en}
@@ -1941,6 +2008,124 @@ export default function SettingsPage() {
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     💡 <strong>آمن تماماً:</strong> هذا الزر يقوم بجميع العمليات بالترتيب الصحيح ولن يؤثر على بياناتك الموجودة. إذا فشلت أي خطوة، سيتوقف تلقائياً ويعرض رسالة الخطأ. يُنصح بتطبيق التحديثات بعد كل تحديث للنظام.
                   </p>
+                </div>
+              </div>
+
+              {/* 🧼 تنظيف وتصغير ملف قاعدة البيانات (VACUUM) */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                  <span>🧼</span>
+                  <span>تنظيف وتصغير ملف قاعدة البيانات</span>
+                </h3>
+
+                <div className="p-4 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border-2 border-teal-200 dark:border-teal-700 rounded-lg space-y-2">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    مع مرور الوقت، ملف قاعدة البيانات بيحتوي على صفحات فارغة (free pages) ناتجة عن الحذف والتعديل.
+                    الزر ده بيشغّل <strong>VACUUM</strong> اللي بيعيد بناء الملف بدون الصفحات الفاضية — بيصغّر الحجم بنسبة 50-90% أحياناً.
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    ✅ آمن تماماً — البيانات بتفضل زي ما هي.<br />
+                    ✅ بيعمل فحص سلامة (integrity check) قبل التنظيف، ولو الملف فيه مشكلة بيوقف.<br />
+                    ⚠️ يُفضَّل عمل Backup (من زر النسخ الاحتياطي) قبل تنظيف الملف الأساسي.
+                  </p>
+                </div>
+
+                {loadingDbFiles ? (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">⏳ جاري تحميل قائمة الملفات...</div>
+                ) : dbFiles.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 px-2">
+                      <span>عدد الملفات: <strong>{dbFiles.length}</strong></span>
+                      <span>الحجم الإجمالي: <strong>{dbFilesTotalMB} MB</strong></span>
+                    </div>
+
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300">
+                          <tr>
+                            <th className="px-3 py-2 text-start font-medium">الملف</th>
+                            <th className="px-3 py-2 text-start font-medium">الحجم</th>
+                            <th className="px-3 py-2 text-start font-medium">آخر تعديل</th>
+                            <th className="px-3 py-2 text-start font-medium">الإجراء</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dbFiles.map((f) => (
+                            <tr key={f.name} className="border-t border-gray-200 dark:border-gray-700">
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-800 dark:text-gray-200 font-mono text-xs">{f.name}</span>
+                                  {f.isLive && (
+                                    <span className="px-2 py-0.5 text-[10px] rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">الأساسي</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{f.sizeMB} MB</td>
+                              <td className="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs">
+                                {new Date(f.modified).toLocaleString()}
+                              </td>
+                              <td className="px-3 py-2">
+                                <button
+                                  onClick={() => handleOptimizeDb(f.name)}
+                                  disabled={optimizingDb}
+                                  className="px-3 py-1.5 text-xs bg-teal-500 hover:bg-teal-600 text-white rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  🧼 تنظيف
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">مفيش ملفات.</div>
+                )}
+
+                {optimizeMessage && (
+                  <div
+                    className={`p-3 rounded-lg text-sm whitespace-pre-line font-mono ${
+                      optimizeMessage.type === 'success'
+                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-300'
+                        : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300'
+                    }`}
+                  >
+                    {optimizeMessage.text}
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => handleOptimizeDb('gym.db')}
+                    disabled={optimizingDb}
+                    className={`flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${
+                      optimizingDb ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'
+                    }`}
+                  >
+                    {optimizingDb ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        <span>جاري التنظيف...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🧼</span>
+                        <span>تنظيف الملف الأساسي (gym.db)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => handleOptimizeDb(undefined, true)}
+                    disabled={optimizingDb || dbFiles.filter((f) => !f.isLive).length === 0}
+                    className={`flex-1 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${
+                      optimizingDb || dbFiles.filter((f) => !f.isLive).length === 0 ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'
+                    }`}
+                  >
+                    <span>📦</span>
+                    <span>تنظيف كل النسخ القديمة ({dbFiles.filter((f) => !f.isLive).length})</span>
+                  </button>
                 </div>
               </div>
 

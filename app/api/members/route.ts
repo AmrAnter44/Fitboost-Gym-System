@@ -230,7 +230,9 @@ export async function POST(request: Request) {
       coachId,
       salesStaffId,
       ptCommissionAmount,
-      referralMemberNumber
+      referralMemberNumber,
+      allowedCheckInStart,
+      allowedCheckInEnd
     } = body as any
 
 
@@ -373,6 +375,8 @@ export async function POST(request: Request) {
       expiryDate: expiryDate ? new Date(expiryDate) : null,
       coachId: coachId || null,
       salesStaffId: salesStaffId || null,
+      allowedCheckInStart: allowedCheckInStart || null,
+      allowedCheckInEnd: allowedCheckInEnd || null,
     }
 
     // إذا كان هناك تاريخ مخصص من الأدمن، استخدمه
@@ -716,6 +720,16 @@ export async function PUT(request: Request) {
     }
     if (data.salesStaffId !== undefined) {
       updateData.salesStaffId = data.salesStaffId || null
+    }
+    // 🕐 ساعات الدخول المسموح بها
+    const timeFormatRegex = /^([01]?\d|2[0-3]):[0-5]\d$/
+    if (data.allowedCheckInStart !== undefined) {
+      const val = data.allowedCheckInStart
+      updateData.allowedCheckInStart = (val && typeof val === 'string' && timeFormatRegex.test(val)) ? val : null
+    }
+    if (data.allowedCheckInEnd !== undefined) {
+      const val = data.allowedCheckInEnd
+      updateData.allowedCheckInEnd = (val && typeof val === 'string' && timeFormatRegex.test(val)) ? val : null
     }
     if (data.remainingFreezeDays !== undefined) {
       updateData.remainingFreezeDays = parseInt(data.remainingFreezeDays.toString())

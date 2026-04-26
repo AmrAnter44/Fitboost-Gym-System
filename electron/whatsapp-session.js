@@ -9,6 +9,13 @@ const path = require('path');
 
 const API_BASE = 'http://127.0.0.1:4001';
 
+function internalHeaders() {
+  const tok = process.env.INTERNAL_API_TOKEN;
+  const headers = { 'Content-Type': 'application/json' };
+  if (tok) headers['x-internal-token'] = tok;
+  return headers;
+}
+
 class WhatsAppSession {
   constructor(sessionIndex, authBasePath, { broadcast, loadDeps }) {
     if (!Number.isInteger(sessionIndex) || sessionIndex < 0 || sessionIndex >= 10) {
@@ -36,7 +43,7 @@ class WhatsAppSession {
     try {
       const res = await fetch(`${API_BASE}/api/whatsapp/internal/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: internalHeaders(),
         body: JSON.stringify(data),
       });
       return await res.json();
@@ -110,7 +117,7 @@ class WhatsAppSession {
             if (!key.id) return undefined;
             const res = await fetch(`${API_BASE}/api/whatsapp/internal/get-message`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: internalHeaders(),
               body: JSON.stringify({ whatsappMsgId: key.id }),
             });
             const data = await res.json();
@@ -437,7 +444,7 @@ class WhatsAppSession {
       // Get the oldest message we have per conversation to request history before it
       const res = await fetch(`${API_BASE}/api/whatsapp/internal/oldest-messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: internalHeaders(),
         body: JSON.stringify({ sessionIndex: this.sessionIndex }),
       });
       const data = await res.json();

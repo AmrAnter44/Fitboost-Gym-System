@@ -50,8 +50,9 @@ export async function verifyAuth(request: Request): Promise<UserPayload | null> 
     const decoded = jwt.verify(token, getJWTSecret()) as UserPayload
     return decoded
   } catch (error) {
-    console.error('❌ Auth verification error:', error)
-    // Mark this as an invalid token error so we can clear cookies
+    // لا تطبع محتوى التوكن أو الـ payload — فقط نوع الخطأ
+    const errName = error instanceof Error ? error.name : 'UnknownError'
+    console.error('❌ Auth verification error:', errName)
     if (error instanceof jwt.JsonWebTokenError) {
       (error as any).clearCookies = true
     }

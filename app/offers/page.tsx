@@ -92,7 +92,9 @@ export default function OffersPage() {
     ptCommission: '0',  // 💰 عمولة الكوتش
     icon: '📅',
     upgradeEligibilityDays: '7',
-    upgradePoints: '0'
+    upgradePoints: '0',
+    allowedCheckInStart: '',  // 🕐 ساعات الدخول المسموح بها
+    allowedCheckInEnd: ''
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,7 +155,9 @@ export default function OffersPage() {
       ptCommission: offer.ptCommission?.toString() || '0',  // 💰 عمولة الكوتش
       icon: offer.icon,
       upgradeEligibilityDays: offer.upgradeEligibilityDays?.toString() || '7',
-      upgradePoints: offer.upgradePoints?.toString() || '0'
+      upgradePoints: offer.upgradePoints?.toString() || '0',
+      allowedCheckInStart: (offer as any).allowedCheckInStart || '',
+      allowedCheckInEnd: (offer as any).allowedCheckInEnd || ''
     })
     setShowForm(true)
   }
@@ -237,7 +241,9 @@ export default function OffersPage() {
       ptCommission: '0',  // 💰 عمولة الكوتش
       icon: '📅',
       upgradeEligibilityDays: '7',
-      upgradePoints: '0'
+      upgradePoints: '0',
+      allowedCheckInStart: '',
+      allowedCheckInEnd: ''
     })
     setEditingOffer(null)
     setShowForm(false)
@@ -509,6 +515,45 @@ export default function OffersPage() {
                     </p>
                   </div>
                 )}
+
+                {/* 🕐 ساعات الدخول المسموح بها */}
+                <div className="md:col-span-2 border-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-1">
+                    🕐 ساعات الدخول المسموح بها (اختياري)
+                  </label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                    لو حددت ساعات، كل عضو يشترك في العرض ده هيتحدد له نفس الساعات تلقائياً. سيب فاضي عشان يدخل أي وقت.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">من</label>
+                      <input
+                        type="time"
+                        value={formData.allowedCheckInStart}
+                        onChange={(e) => setFormData({ ...formData, allowedCheckInStart: e.target.value })}
+                        className="w-full p-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">إلى</label>
+                      <input
+                        type="time"
+                        value={formData.allowedCheckInEnd}
+                        onChange={(e) => setFormData({ ...formData, allowedCheckInEnd: e.target.value })}
+                        className="w-full p-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                  {(formData.allowedCheckInStart || formData.allowedCheckInEnd) && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, allowedCheckInStart: '', allowedCheckInEnd: '' })}
+                      className="mt-2 text-xs text-red-600 hover:underline"
+                    >
+                      ✕ إلغاء التحديد
+                    </button>
+                  )}
+                </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">{t('offers.icon')}</label>

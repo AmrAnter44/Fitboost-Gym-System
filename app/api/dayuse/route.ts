@@ -20,13 +20,9 @@ export async function GET(request: Request) {
      */
     const user = await requirePermission(request, 'canViewDayUse')
 
-    // 🔒 لو اليوزر سيلز → بيشوف عمليات الـ Day Use بتاعته بس
-    const salesOnlyFilter = (user.isSales && user.staffId)
-      ? { salesStaffId: user.staffId }
-      : {}
-
+    // ملاحظة: فلتر السيلز شُيل من صفحة Day Use / Check-in
+    // الفلترة حسب salesStaffId بتتم في صفحة المتابعات فقط
     const dayUses = await prisma.dayUseInBody.findMany({
-      where: salesOnlyFilter,
       orderBy: { id: "desc" },
       include: {
         receipts: {

@@ -108,16 +108,36 @@ export default function PTSessionHistoryPage() {
 
   // فلترة السجلات
   const filteredSessions = sessions.filter(session => {
-    const matchesSearch = 
-      session.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      session.coachName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      session.ptNumber.toString().includes(debouncedSearchTerm)
-    
-    const matchesPTNumber = !filterPTNumber || session.ptNumber.toString() === filterPTNumber
-    
-    const sessionDate = new Date(session.sessionDate)
-    const matchesDateFrom = !dateFrom || sessionDate >= new Date(dateFrom)
-    const matchesDateTo = !dateTo || sessionDate <= new Date(dateTo)
+    const term = debouncedSearchTerm.toLowerCase()
+    const matchesSearch = !term ||
+      (session.clientName && session.clientName.toLowerCase().includes(term)) ||
+      (session.coachName && session.coachName.toLowerCase().includes(term)) ||
+      (session.ptNumber && session.ptNumber.toString().includes(term)) ||
+      (session.member?.name && session.member.name.toLowerCase().includes(term)) ||
+      (session.member?.memberNumber && session.member.memberNumber.toString().includes(term))
+
+    const matchesPTNumber = !filterPTNumber || (session.ptNumber && session.ptNumber.toString() === filterPTNumber)
+
+    const sessionDate = session.sessionDate ? new Date(session.sessionDate) : null
+    if (!sessionDate || isNaN(sessionDate.getTime())) {
+      // لو الـ sessionDate غير صالح، اعرضه فقط لو مفيش date filter
+      return matchesSearch && matchesPTNumber && !dateFrom && !dateTo
+    }
+
+    // 🔧 الـ dateFrom = من بداية اليوم، dateTo = لآخر اليوم (23:59:59)
+    let matchesDateFrom = true
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom)
+      fromDate.setHours(0, 0, 0, 0)
+      matchesDateFrom = sessionDate >= fromDate
+    }
+
+    let matchesDateTo = true
+    if (dateTo) {
+      const toDate = new Date(dateTo)
+      toDate.setHours(23, 59, 59, 999)
+      matchesDateTo = sessionDate <= toDate
+    }
 
     return matchesSearch && matchesPTNumber && matchesDateFrom && matchesDateTo
   })

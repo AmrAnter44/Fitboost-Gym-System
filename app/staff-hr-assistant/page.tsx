@@ -465,9 +465,11 @@ export default function StaffHRAssistantPage() {
         {analytics?.isPartialMonth && (
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-xl p-3 mb-4 flex items-center gap-2 text-blue-800 dark:text-blue-200 text-sm">
             <span className="text-lg">📅</span>
-            <span>
-              الأداء محسوب <strong>حتى يوم {analytics.dataUpToDay} من الشهر الحالي</strong> فقط — سيكتمل التقرير عند نهاية الشهر
-            </span>
+            <span
+              dangerouslySetInnerHTML={{
+                __html: t('staff.hrAssistant.partialMonthNotice', { day: String(analytics.dataUpToDay) })
+              }}
+            />
           </div>
         )}
 

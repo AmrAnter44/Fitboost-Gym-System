@@ -42,3 +42,7 @@ export const NATIONAL_ID_REGEX = /^[0-9]{14}$/
 // ─── Error Tracking ───────────────────────────────────────────────────────
 export const MAX_STACK_TRACE_LENGTH = 3000
 export const MAX_ERROR_MESSAGE_LENGTH = 200
+
+// ─── Mobile App Links (ثابتة - مش قابلة للتعديل من الإعدادات) ──────────
+export const ANDROID_APP_URL = 'https://play.google.com/store/apps/details?id=com.fitboost.app'
+export const IOS_APP_URL = 'https://apps.apple.com/eg/app/fit-boost/id6760668273'

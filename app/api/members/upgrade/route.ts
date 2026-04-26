@@ -11,7 +11,7 @@ import {
 import { addPointsForPayment, addPoints } from '../../../../lib/points'
 import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
-import { logBackendError } from '../../../../lib/errorTracking/errorTrackingService'
+import { logError } from '../../../../lib/errorLogger'
 
 export const dynamic = 'force-dynamic'
 
@@ -279,7 +279,7 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('❌ خطأ في ترقية الباكدج:', error)
-    logBackendError({ error, endpoint: '/api/members/upgrade', method: 'POST', statusCode: 500 }).catch(() => {})
+    logError({ error, endpoint: '/api/members/upgrade', method: 'POST', statusCode: 500 })
     return NextResponse.json({
       error: error.message || 'حدث خطأ أثناء ترقية الباكدج'
     }, { status: 500 })

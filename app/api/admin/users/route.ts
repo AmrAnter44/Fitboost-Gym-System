@@ -78,6 +78,8 @@ function filterPermissions(perms: Record<string, any>): Record<string, boolean> 
   return filtered
 }
 
+const ALLOWED_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'STAFF', 'COACH'] as const
+
 // POST - إضافة مستخدم جديد
 export async function POST(request: Request) {
   try {
@@ -92,6 +94,22 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'جميع الحقول مطلوبة' },
         { status: 400 }
+      )
+    }
+
+    // 🔒 تحقق من صحة الـ role
+    if (!ALLOWED_ROLES.includes(role)) {
+      return NextResponse.json(
+        { error: 'دور غير صالح' },
+        { status: 400 }
+      )
+    }
+
+    // 🔒 OWNER/ADMIN creation محصور على OWNER فقط
+    if ((role === 'OWNER' || role === 'ADMIN') && adminUser.role !== 'OWNER') {
+      return NextResponse.json(
+        { error: 'إنشاء حساب OWNER أو ADMIN محصور على المالك (OWNER) فقط' },
+        { status: 403 }
       )
     }
 
@@ -125,10 +143,12 @@ export async function POST(request: Request) {
       }
     }
     
-    // التحقق من طول كلمة المرور
-    if (password.length < 6) {
+    // 🔒 Strong password policy (unified)
+    const { validatePasswordStrength } = await import('../../../../lib/inputValidation')
+    const strength = validatePasswordStrength(password)
+    if (!strength.isValid) {
       return NextResponse.json(
-        { error: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' },
+        { error: strength.errors.join(' • ') },
         { status: 400 }
       )
     }
@@ -145,8 +165,8 @@ export async function POST(request: Request) {
       )
     }
     
-    // تشفير كلمة المرور
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // 🔒 bcrypt cost 12
+    const hashedPassword = await bcrypt.hash(password, 12)
     
     // إنشاء المستخدم
     const user = await prisma.user.create({

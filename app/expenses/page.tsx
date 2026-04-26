@@ -564,177 +564,95 @@ export default function ExpensesPage() {
         </select>
       </div>
 
-      {/* Table */}
+      {/* Cards Grid */}
       {loading ? (
         <div className="text-center py-12">{t('expenses.loading')}</div>
+      ) : filteredExpenses.length === 0 ? (
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          <div className="text-6xl mb-4">💸</div>
+          <p className="text-xl">{t('expenses.empty')}</p>
+        </div>
       ) : (
-        <>
-          {/* Cards للموبايل */}
-          <div className="md:hidden space-y-4" dir={direction}>
-            {filteredExpenses.map((expense) => (
-              <div
-                key={expense.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-r-4 border-red-500 overflow-hidden"
-              >
-                {/* Actions في الأعلى */}
-                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 flex justify-between items-center border-b">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(expense.type)}`}>
-                    {getTypeLabel(expense.type)}
-                  </span>
-                  <div className="flex gap-2">
-                    {hasPermission('canEditExpense') && (
-                      <button
-                        onClick={() => handleEdit(expense)}
-                        className="text-primary-600 hover:text-primary-800 font-bold text-sm"
-                      >
-                        ✏️ {t('expenses.actions.edit')}
-                      </button>
-                    )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" dir={direction}>
+          {filteredExpenses.map((expense) => (
+            <div
+              key={expense.id}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition"
+            >
+              {/* Header */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2.5 flex justify-between items-center border-b dark:border-gray-700">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(expense.type)}`}>
+                  {getTypeLabel(expense.type)}
+                </span>
+                <div className="flex gap-3 text-sm">
+                  {hasPermission('canEditExpense') && (
                     <button
-                      onClick={() => handleDelete(expense)}
-                      className="text-red-600 hover:text-red-800 font-bold text-sm"
+                      onClick={() => handleEdit(expense)}
+                      className="text-primary-600 hover:text-primary-800 font-bold"
                     >
-                      🗑️ {t('expenses.actions.delete')}
+                      ✏️ {t('expenses.actions.edit')}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(expense)}
+                    className="text-red-600 hover:text-red-800 font-bold"
+                  >
+                    🗑️ {t('expenses.actions.delete')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-4 space-y-3">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 line-clamp-2">{expense.description}</h3>
+                  {expense.staff && (
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">👤 {expense.staff.name}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2.5 border border-orange-100 dark:border-orange-800">
+                    <p className="text-xs text-orange-700 dark:text-orange-400 mb-1">💰 {t('expenses.table.amount')}</p>
+                    <p className="text-xl font-bold text-orange-600 dark:text-orange-300">
+                      {expense.amount} {t('common.currency')}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-2.5">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">📅 {t('expenses.table.date')}</p>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                      {new Date(expense.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
+                    </p>
+                  </div>
+                </div>
+
+                {expense.type === 'staff_loan' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">📊 {t('expenses.table.status')}:</span>
+                    <button
+                      onClick={() => togglePaid(expense)}
+                      className={`px-3 py-1 rounded-full text-sm font-semibold transition ${
+                        expense.isPaid
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                      }`}
+                    >
+                      {expense.isPaid ? `✅ ${t('expenses.status.paid')}` : `❌ ${t('expenses.status.unpaid')}`}
                     </button>
                   </div>
-                </div>
+                )}
 
-                {/* محتوى الكارت */}
-                <div className="p-4 space-y-3">
-                  {/* الوصف */}
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{expense.description}</h3>
-                    {expense.staff && (
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">👤 {expense.staff.name}</p>
-                    )}
+                {expense.notes && (
+                  <div className="bg-gray-50 dark:bg-gray-700 p-2.5 rounded-lg">
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                      <span className="font-semibold">📝 {t('expenses.form.notes')}:</span> {expense.notes}
+                    </p>
                   </div>
-
-                  {/* المبلغ */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">💰</span>
-                    <span className="text-2xl font-bold text-orange-600">{expense.amount} {t('common.currency')}</span>
-                  </div>
-
-                  {/* التاريخ */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📅</span>
-                    <span className="text-gray-700 dark:text-gray-200">
-                      {new Date(expense.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
-                    </span>
-                  </div>
-
-                  {/* الحالة للسلف */}
-                  {expense.type === 'staff_loan' && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📊</span>
-                      <button
-                        onClick={() => togglePaid(expense)}
-                        className={`px-3 py-1 rounded-full text-sm font-semibold transition ${
-                          expense.isPaid
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {expense.isPaid ? `✅ ${t('expenses.status.paid')}` : `❌ ${t('expenses.status.unpaid')}`}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* الملاحظات */}
-                  {expense.notes && (
-                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        <span className="font-semibold">📝 ملاحظات:</span> {expense.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            ))}
-
-            {filteredExpenses.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                <div className="text-6xl mb-4">💸</div>
-                <p className="text-xl">{t('expenses.empty')}</p>
-              </div>
-            )}
-          </div>
-
-          {/* الجدول للشاشات الكبيرة */}
-          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden" dir={direction}>
-            <table className="w-full" dir={direction}>
-              <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
-                <tr>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('expenses.table.type')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('expenses.table.staff')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('expenses.table.description')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('expenses.table.amount')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('expenses.table.status')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('expenses.table.date')}</th>
-                  <th className={`px-4 py-3 ${direction === 'rtl' ? 'text-right' : 'text-left'} dark:text-gray-100`}>{t('expenses.table.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredExpenses.map((expense) => (
-                  <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-4 py-3">
-                      <span className={`px-3 py-1 rounded text-sm ${getTypeColor(expense.type)}`}>
-                        {getTypeLabel(expense.type)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {expense.staff ? expense.staff.name : '-'}
-                    </td>
-                    <td className="px-4 py-3">{expense.description}</td>
-                    <td className="px-4 py-3 font-bold text-orange-600">{expense.amount} {t('common.currency')}</td>
-                    <td className="px-4 py-3">
-                      {expense.type === 'staff_loan' && (
-                        <button
-                          onClick={() => togglePaid(expense)}
-                          className={`px-3 py-1 rounded text-sm ${
-                            expense.isPaid
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {expense.isPaid ? `✅ ${t('expenses.status.paid')}` : `❌ ${t('expenses.status.unpaid')}`}
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {new Date(expense.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        {hasPermission('canEditExpense') && (
-                          <button
-                            onClick={() => handleEdit(expense)}
-                            className="text-primary-600 hover:text-primary-800 font-bold"
-                          >
-                            ✏️ {t('expenses.actions.edit')}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(expense)}
-                          className="text-red-600 hover:text-red-800 font-bold"
-                        >
-                          🗑️ {t('expenses.actions.delete')}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {filteredExpenses.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                <div className="text-6xl mb-4">💸</div>
-                <p className="text-xl">{t('expenses.empty')}</p>
-              </div>
-            )}
-          </div>
-        </>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Delete Confirmation Popup */}

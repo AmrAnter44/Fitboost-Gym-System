@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Toast from './Toast'
 import { sendWhatsAppMessage } from '../lib/whatsappHelper'
+import { useLanguage } from '../contexts/LanguageContext'
 
 interface StaffBarcodeWhatsAppProps {
   staffCode: string
@@ -11,14 +12,14 @@ interface StaffBarcodeWhatsAppProps {
 }
 
 export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone }: StaffBarcodeWhatsAppProps) {
+  const { t } = useLanguage()
   const [showBarcodeModal, setShowBarcodeModal] = useState(false)
   const [barcodeImage, setBarcodeImage] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
-  const [websiteUrl, setWebsiteUrl] = useState('') // ✅ يتم جلب القيمة من الإعدادات
-  const [showWebsite, setShowWebsite] = useState(false) // ✅ البداية false عشان ميظهرش لحد ما نجيب الإعدادات
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [showWebsite, setShowWebsite] = useState(false)
 
-  // جلب إعدادات الموقع
   useEffect(() => {
     const fetchWebsiteSettings = async () => {
       try {
@@ -34,24 +35,32 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
         }
       } catch (error) {
         console.error('Error fetching website settings:', error)
-        // في حالة الخطأ، نتأكد إنه ميظهرش
         setShowWebsite(false)
       }
     }
     fetchWebsiteSettings()
   }, [])
 
+  // 🔧 استخراج الرقم من staffCode بشكل آمن (يمنع NaN)
+  const getNumericCode = (code: string | null | undefined): number | null => {
+    if (!code) return null
+    const digitsOnly = String(code).replace(/\D/g, '')
+    if (!digitsOnly) return null
+    const parsed = parseInt(digitsOnly, 10)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
   // توليد الباركود عن طريق API
   const handleGenerateBarcode = async () => {
+    const numericCode = getNumericCode(staffCode)
+    if (numericCode === null) {
+      setToast({ message: t('barcode.staff.invalidStaffCode'), type: 'error' })
+      return
+    }
+
     setLoading(true)
     try {
-      // ✅ نستخرج الرقم من staffCode (بدون s أو S)
-      // مثال: s22 -> 22, s001 -> 1, s444 -> 444
-      const numericCode = staffCode.replace(/[sS]/g, '')
-
-      // ✅ الموظفين: 9 أرقام (100000000 + الرقم)
-      // s022 -> 100000022, s444 -> 100000444, s007 -> 100000007
-      const barcodeText = (100000000 + parseInt(numericCode, 10)).toString()
+      const barcodeText = (100000000 + numericCode).toString()
 
       const res = await fetch('/api/barcode', {
         method: 'POST',
@@ -64,11 +73,11 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
         setBarcodeImage(data.barcode)
         setShowBarcodeModal(true)
       } else {
-        setToast({ message: 'حدث خطأ أثناء توليد الباركود', type: 'error' })
+        setToast({ message: t('barcode.errorGenerating'), type: 'error' })
       }
     } catch (error) {
       console.error('Error generating barcode:', error)
-      setToast({ message: 'حدث خطأ أثناء توليد الباركود', type: 'error' })
+      setToast({ message: t('barcode.errorGenerating'), type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -84,21 +93,21 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
 
   const handleSendBarcode = async () => {
     if (!barcodeImage) {
-      setToast({ message: 'يجب توليد الباركود أولاً', type: 'warning' })
+      setToast({ message: t('barcode.mustGenerateFirst'), type: 'warning' })
       return
     }
 
-    const displayCode = staffCode.toLowerCase().startsWith('s')
-      ? staffCode.toUpperCase()
-      : `S${staffCode}`
+    const safeCode = String(staffCode || '')
+    const displayCode = safeCode.toLowerCase().startsWith('s')
+      ? safeCode.toUpperCase()
+      : `S${safeCode}`
 
-    const websiteSection = showWebsite && websiteUrl ? `\n\n🌐 *الموقع الإلكتروني:*\n${websiteUrl}` : ''
-    const caption = `Barcode الموظف #${displayCode} (${staffName})${websiteSection}`
+    const websiteSection = showWebsite && websiteUrl ? `\n\n${t('barcode.staff.websiteSection')}\n${websiteUrl}` : ''
+    const caption = `${t('barcode.staff.whatsappCaption', { code: displayCode, name: staffName })}${websiteSection}`
 
     setLoading(true)
 
     try {
-      // محاولة إرسال الصورة عبر API مع إعادة المحاولة 3 مرات
       const MAX_RETRIES = 3
       let lastError = ''
 
@@ -117,7 +126,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
           const sendResult = await sendResponse.json()
 
           if (sendResult.success) {
-            setToast({ message: '✅ تم إرسال الباركود بنجاح على الواتساب', type: 'success' })
+            setToast({ message: t('barcode.staff.sentSuccess'), type: 'success' })
             return
           }
 
@@ -126,45 +135,47 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
           lastError = (err as Error).message
         }
 
-        // انتظار قبل إعادة المحاولة
         if (attempt < MAX_RETRIES) {
           await new Promise(r => setTimeout(r, 2000))
         }
       }
 
-      // كل المحاولات فشلت - Fallback
       console.error(`[StaffBarcodeWhatsApp] All ${MAX_RETRIES} attempts failed. Last error: ${lastError}`)
-      setToast({ message: '⚠️ فشل الإرسال التلقائي. جاري تحميل الصورة وفتح واتساب...', type: 'warning' })
+      setToast({ message: t('barcode.staff.sendFailedFallback'), type: 'warning' })
       handleDownloadBarcode()
 
       setTimeout(async () => {
         const success = await sendWhatsAppMessage(staffPhone, caption, true)
         if (success) {
-          setToast({ message: 'تم تحميل الصورة وفتح واتساب. يرجى إرفاق الصورة يدوياً.', type: 'info' })
+          setToast({ message: t('barcode.staff.openedAttachManually'), type: 'info' })
         } else {
-          setToast({ message: 'فشل فتح واتساب', type: 'error' })
+          setToast({ message: t('barcode.staff.whatsappOpenFailed'), type: 'error' })
         }
       }, 500)
 
     } catch (error) {
       console.error('Error sending barcode:', error)
-      setToast({ message: 'حدث خطأ أثناء إرسال الباركود', type: 'error' })
+      setToast({ message: t('barcode.staff.sendError'), type: 'error' })
     } finally {
       setLoading(false)
     }
   }
 
+  const safeStaffCode = String(staffCode || '')
+  const displayCodeTop = safeStaffCode.toLowerCase().startsWith('s')
+    ? safeStaffCode.toUpperCase()
+    : `S${safeStaffCode}`
+
   return (
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* أزرار مدمجة صغيرة */}
       <div className="flex gap-2">
         <button
           onClick={handleGenerateBarcode}
           disabled={loading}
           className="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 text-sm flex items-center gap-1"
-          title="عرض Barcode"
+          title={t('barcode.staff.viewStaffBarcode')}
         >
           🔢
         </button>
@@ -173,13 +184,12 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
           onClick={handleSendBarcode}
           disabled={loading}
           className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 text-sm flex items-center gap-1"
-          title="إرسال Barcode عبر واتساب"
+          title={t('barcode.staff.sendStaffBarcode')}
         >
           📲
         </button>
       </div>
 
-      {/* Modal عرض الباركود */}
       {showBarcodeModal && barcodeImage && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
@@ -188,7 +198,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
         >
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold">🔢 Barcode الموظف</h3>
+              <h3 className="text-2xl font-bold">{t('barcode.staff.staffBarcode')}</h3>
               <button
                 onClick={() => setShowBarcodeModal(false)}
                 className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
@@ -199,14 +209,13 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
             </div>
 
             <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 mb-6 text-center dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-              <p className="text-sm text-primary-600 mb-2">الموظف</p>
+              <p className="text-sm text-primary-600 mb-2">{t('barcode.staff.staffLabel')}</p>
               <p className="text-xl font-bold text-primary-800">{staffName}</p>
               <p className="text-3xl font-bold text-primary-600 mt-2">
-                #{staffCode.toLowerCase().startsWith('s') ? staffCode.toUpperCase() : `S${staffCode}`}
+                #{displayCodeTop}
               </p>
             </div>
 
-            {/* Logo أعلى الباركود */}
             <div className="flex justify-center mb-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 border-2 border-primary-400">
                 <img
@@ -217,11 +226,10 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
               </div>
             </div>
 
-            {/* الباركود بدون تداخل */}
             <div className="bg-white dark:bg-gray-800 border-2 border-primary-200 rounded-lg p-6 mb-6 flex justify-center">
               <img
                 src={barcodeImage}
-                alt={`Barcode S${staffCode}`}
+                alt={`Barcode ${displayCodeTop}`}
                 className="max-w-full h-auto"
                 style={{ minWidth: '300px' }}
               />
@@ -233,7 +241,7 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
                 className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center justify-center gap-2"
               >
                 <span>💾</span>
-                <span>تحميل الصورة</span>
+                <span>{t('barcode.downloadImage')}</span>
               </button>
 
               <button
@@ -245,14 +253,14 @@ export default function StaffBarcodeWhatsApp({ staffCode, staffName, staffPhone 
                 className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
               >
                 <span>📲</span>
-                <span>{loading ? 'جاري الإرسال...' : 'إرسال عبر واتساب'}</span>
+                <span>{loading ? t('barcode.staff.sending') : t('barcode.staff.sendViaWhatsApp')}</span>
               </button>
 
               <button
                 onClick={() => setShowBarcodeModal(false)}
                 className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
               >
-                إغلاق
+                {t('barcode.close')}
               </button>
             </div>
           </div>

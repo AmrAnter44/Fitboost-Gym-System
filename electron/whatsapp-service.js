@@ -27,6 +27,13 @@ let httpServer = null;
 
 const API_BASE = 'http://127.0.0.1:4001';
 
+function internalHeaders() {
+  const tok = process.env.INTERNAL_API_TOKEN;
+  const headers = { 'Content-Type': 'application/json' };
+  if (tok) headers['x-internal-token'] = tok;
+  return headers;
+}
+
 // ── Lazy-load Baileys ──────────────────────────────────────────────────────
 let baileys = null;
 
@@ -302,7 +309,7 @@ async function handleRequest(req, res) {
       try {
         await fetch(`${API_BASE}/api/whatsapp/internal/update-session`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: internalHeaders(),
           body: JSON.stringify({ sessionIndex: idx, label }),
         });
         return sendJSON(res, 200, { success: true });

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, upgradeEligibilityDays, upgradePoints } = body
+    const { name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
 
     // التحقق من البيانات المطلوبة
     if (!name || !duration || price === undefined) {
@@ -41,6 +41,10 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const timeFormatRegex = /^([01]?\d|2[0-3]):[0-5]\d$/
+    const validStart = allowedCheckInStart && typeof allowedCheckInStart === 'string' && timeFormatRegex.test(allowedCheckInStart) ? allowedCheckInStart : null
+    const validEnd = allowedCheckInEnd && typeof allowedCheckInEnd === 'string' && timeFormatRegex.test(allowedCheckInEnd) ? allowedCheckInEnd : null
 
     const offer = await prisma.offer.create({
       data: {
@@ -63,7 +67,9 @@ export async function POST(request: Request) {
         ptCommission: parseFloat(ptCommission) || 0,
         icon: icon || '📅',
         upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null,
-        upgradePoints: parseInt(upgradePoints) || 0
+        upgradePoints: parseInt(upgradePoints) || 0,
+        allowedCheckInStart: validStart,
+        allowedCheckInEnd: validEnd
       }
     })
 
@@ -103,7 +109,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { id, name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, isActive, upgradeEligibilityDays, upgradePoints } = body
+    const { id, name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, isActive, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
 
     if (!id) {
       return NextResponse.json(
@@ -111,6 +117,10 @@ export async function PUT(request: Request) {
         { status: 400 }
       )
     }
+
+    const timeFormatRegex = /^([01]?\d|2[0-3]):[0-5]\d$/
+    const validStart = allowedCheckInStart && typeof allowedCheckInStart === 'string' && timeFormatRegex.test(allowedCheckInStart) ? allowedCheckInStart : null
+    const validEnd = allowedCheckInEnd && typeof allowedCheckInEnd === 'string' && timeFormatRegex.test(allowedCheckInEnd) ? allowedCheckInEnd : null
 
     const offer = await prisma.offer.update({
       where: { id },
@@ -135,7 +145,9 @@ export async function PUT(request: Request) {
         icon: icon || '📅',
         isActive: isActive !== undefined ? isActive : true,
         upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null,
-        upgradePoints: upgradePoints !== undefined ? parseInt(upgradePoints) || 0 : 0
+        upgradePoints: upgradePoints !== undefined ? parseInt(upgradePoints) || 0 : 0,
+        allowedCheckInStart: validStart,
+        allowedCheckInEnd: validEnd
       }
     })
 

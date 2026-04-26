@@ -9,7 +9,7 @@ import {
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
-import { logBackendError } from '../../../../lib/errorTracking/errorTrackingService'
+import { logError } from '../../../../lib/errorLogger'
 
 export const dynamic = 'force-dynamic'
 
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     return NextResponse.json(receipt)
   } catch (error: any) {
     console.error('Error creating payment receipt:', error)
-    logBackendError({ error, endpoint: '/api/receipts/create-payment', method: 'POST', statusCode: 500 }).catch(() => {})
+    logError({ error, endpoint: '/api/receipts/create-payment', method: 'POST', statusCode: 500 })
     
     if (error.message === 'Unauthorized') {
       return NextResponse.json(

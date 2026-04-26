@@ -1,17 +1,14 @@
 // ==========================================
-// Next.js Instrumentation - Server-side Error Tracking
+// Next.js Instrumentation - Server-side uncaught-error logger
 // ==========================================
 
 export async function register() {
-  // Only run on Node.js runtime (server-side)
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { logBackendError } = await import('./lib/errorTracking/errorTrackingService')
+    const { logError } = await import('./lib/errorLogger')
 
-    // Catch uncaught exceptions
     process.on('uncaughtException', (error) => {
-      console.error('[Instrumentation] Uncaught Exception:', error)
-
-      logBackendError({
+      console.error('[Instrumentation] Uncaught Exception:', error?.message || 'unknown')
+      logError({
         error,
         endpoint: 'process/uncaughtException',
         method: 'SYSTEM',
@@ -20,18 +17,13 @@ export async function register() {
           type: 'uncaught_exception',
           processUptime: process.uptime(),
         },
-      }).catch(() => {
-        // Ignore logging errors to prevent infinite loops
       })
     })
 
-    // Catch unhandled promise rejections
     process.on('unhandledRejection', (reason: any) => {
-      console.error('[Instrumentation] Unhandled Rejection:', reason)
-
+      console.error('[Instrumentation] Unhandled Rejection:', reason?.message || String(reason))
       const error = reason instanceof Error ? reason : new Error(String(reason))
-
-      logBackendError({
+      logError({
         error,
         endpoint: 'process/unhandledRejection',
         method: 'SYSTEM',
@@ -40,10 +32,7 @@ export async function register() {
           type: 'unhandled_rejection',
           processUptime: process.uptime(),
         },
-      }).catch(() => {
-        // Ignore logging errors to prevent infinite loops
       })
     })
-
   }
 }

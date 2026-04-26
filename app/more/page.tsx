@@ -52,6 +52,28 @@ export default function MorePage() {
   const [showRenewForm, setShowRenewForm] = useState(false)
   const [selectedMore, setSelectedMore] = useState<More | null>(null)
 
+  // Edit modal state
+  const [editingMore, setEditingMore] = useState<More | null>(null)
+  const [editFormData, setEditFormData] = useState({
+    clientName: '',
+    phone: '',
+    coachName: '',
+    sessionsPurchased: 0,
+    sessionsRemaining: 0,
+    pricePerSession: 0,
+    totalAmount: 0,
+    remainingAmount: 0,
+    startDate: '',
+    expiryDate: '',
+    notes: ''
+  })
+  const [editSubmitting, setEditSubmitting] = useState(false)
+
+  // Payment modal state (دفع المبلغ المتبقي)
+  const [paymentMore, setPaymentMore] = useState<More | null>(null)
+  const [paymentAmount, setPaymentAmount] = useState(0)
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
+
   // Form data for new subscription
   const [formData, setFormData] = useState({
     clientName: '',
@@ -336,6 +358,99 @@ export default function MorePage() {
     } catch (error) {
       console.error('Error deleting subscription:', error)
       toast.error(t('more.deleteError'))
+    }
+  }
+
+  // 📝 فتح نموذج التعديل
+  const handleOpenEdit = (sub: More) => {
+    setEditingMore(sub)
+    setEditFormData({
+      clientName: sub.clientName,
+      phone: sub.phone,
+      coachName: sub.coachName,
+      sessionsPurchased: sub.sessionsPurchased,
+      sessionsRemaining: sub.sessionsRemaining,
+      pricePerSession: sub.pricePerSession,
+      totalAmount: sub.totalAmount,
+      remainingAmount: sub.remainingAmount || 0,
+      startDate: formatDateYMD(sub.startDate),
+      expiryDate: formatDateYMD(sub.expiryDate),
+      notes: sub.notes || ''
+    })
+  }
+
+  // 💾 حفظ التعديل
+  const handleSaveEdit = async () => {
+    if (!editingMore) return
+    setEditSubmitting(true)
+    try {
+      const response = await fetch('/api/more', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          moreNumber: editingMore.moreNumber,
+          ...editFormData
+        })
+      })
+      const data = await response.json()
+      if (response.ok) {
+        toast.success('✅ تم تحديث الاشتراك بنجاح')
+        setEditingMore(null)
+        fetchMoreSubscriptions()
+      } else {
+        toast.error(data.error || 'فشل التحديث')
+      }
+    } catch (error) {
+      console.error('Error updating subscription:', error)
+      toast.error('حدث خطأ أثناء التحديث')
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  // 💰 فتح نموذج دفع المبلغ المتبقي
+  const handleOpenPayment = (sub: More) => {
+    setPaymentMore(sub)
+    setPaymentAmount(sub.remainingAmount || 0)
+  }
+
+  // 💾 تأكيد الدفع (تخفيض المتبقي)
+  const handleConfirmPayment = async () => {
+    if (!paymentMore) return
+    if (paymentAmount <= 0) {
+      toast.error('المبلغ لازم يكون أكبر من صفر')
+      return
+    }
+    if (paymentAmount > (paymentMore.remainingAmount || 0)) {
+      toast.error('المبلغ أكبر من المتبقي')
+      return
+    }
+
+    setPaymentSubmitting(true)
+    try {
+      const newRemaining = Math.max(0, (paymentMore.remainingAmount || 0) - paymentAmount)
+      const response = await fetch('/api/more', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          moreNumber: paymentMore.moreNumber,
+          remainingAmount: newRemaining
+        })
+      })
+      const data = await response.json()
+      if (response.ok) {
+        toast.success(`✅ تم تسجيل دفع ${paymentAmount} جنيه`)
+        setPaymentMore(null)
+        setPaymentAmount(0)
+        fetchMoreSubscriptions()
+      } else {
+        toast.error(data.error || 'فشل تسجيل الدفع')
+      }
+    } catch (error) {
+      console.error('Error recording payment:', error)
+      toast.error('حدث خطأ')
+    } finally {
+      setPaymentSubmitting(false)
     }
   }
 
@@ -628,17 +743,45 @@ export default function MorePage() {
                     </div>
                   </div>
 
+                  {/* 💰 المبلغ المتبقي */}
+                  {(sub.remainingAmount || 0) > 0 && (
+                    <div className="flex items-center justify-between text-xs bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg px-3 py-2">
+                      <span className="text-orange-700 dark:text-orange-300 font-semibold">
+                        💰 {locale === 'ar' ? 'متبقي' : 'Remaining'}
+                      </span>
+                      <span className="font-bold text-orange-700 dark:text-orange-300">
+                        {(sub.remainingAmount || 0).toFixed(0)} {t('members.egp')}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Actions */}
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-2 pt-1 flex-wrap">
                     <button
                       onClick={() => {
                         setSessionFormData({ moreNumber: sub.moreNumber.toString(), notes: '' })
                         setShowSessionForm(true)
                       }}
                       disabled={noSessions || expired || inactive}
-                      className="flex-1 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold transition"
+                      className="flex-1 min-w-[80px] py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold transition"
                     >
                       ✓ {locale === 'ar' ? 'تسجيل' : 'Check-in'}
+                    </button>
+                    {(sub.remainingAmount || 0) > 0 && (
+                      <button
+                        onClick={() => handleOpenPayment(sub)}
+                        className="py-2 px-3 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-bold transition"
+                        title={locale === 'ar' ? 'دفع المتبقي' : 'Pay remaining'}
+                      >
+                        💰
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleOpenEdit(sub)}
+                      className="py-2 px-3 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-bold transition"
+                      title={locale === 'ar' ? 'تعديل' : 'Edit'}
+                    >
+                      ✏️
                     </button>
                     <button
                       onClick={() => {
@@ -649,6 +792,7 @@ export default function MorePage() {
                         setShowRenewForm(true)
                       }}
                       className="py-2 px-3 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-bold transition"
+                      title={locale === 'ar' ? 'تجديد' : 'Renew'}
                     >
                       🔄
                     </button>
@@ -668,22 +812,264 @@ export default function MorePage() {
         </div>
       )}
 
-      {/* 📝 نموذج إضافة اشتراك */}
+      {/* ✏️ Edit Modal */}
+      {editingMore && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                ✏️ {locale === 'ar' ? `تعديل الاشتراك #${editingMore.moreNumber}` : `Edit Subscription #${editingMore.moreNumber}`}
+              </h3>
+              <button
+                onClick={() => setEditingMore(null)}
+                disabled={editSubmitting}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'اسم العميل' : 'Client Name'}</label>
+                <input
+                  type="text"
+                  value={editFormData.clientName}
+                  onChange={(e) => setEditFormData({ ...editFormData, clientName: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'الهاتف' : 'Phone'}</label>
+                <input
+                  type="text"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'الكوتش' : 'Coach'}</label>
+                <input
+                  type="text"
+                  value={editFormData.coachName}
+                  onChange={(e) => setEditFormData({ ...editFormData, coachName: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'جلسات متبقية' : 'Sessions Remaining'}</label>
+                <input
+                  type="number"
+                  value={editFormData.sessionsRemaining}
+                  onChange={(e) => setEditFormData({ ...editFormData, sessionsRemaining: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'إجمالي الجلسات' : 'Total Sessions'}</label>
+                <input
+                  type="number"
+                  value={editFormData.sessionsPurchased}
+                  onChange={(e) => setEditFormData({ ...editFormData, sessionsPurchased: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'سعر الجلسة' : 'Price / Session'}</label>
+                <input
+                  type="number"
+                  value={editFormData.pricePerSession}
+                  onChange={(e) => setEditFormData({ ...editFormData, pricePerSession: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'الإجمالي' : 'Total Amount'}</label>
+                <input
+                  type="number"
+                  value={editFormData.totalAmount}
+                  onChange={(e) => setEditFormData({ ...editFormData, totalAmount: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">💰 {locale === 'ar' ? 'المتبقي' : 'Remaining Amount'}</label>
+                <input
+                  type="number"
+                  value={editFormData.remainingAmount}
+                  onChange={(e) => setEditFormData({ ...editFormData, remainingAmount: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border-2 border-orange-300 dark:border-orange-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'تاريخ البداية' : 'Start Date'}</label>
+                <input
+                  type="date"
+                  value={editFormData.startDate}
+                  onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'تاريخ الانتهاء' : 'Expiry Date'}</label>
+                <input
+                  type="date"
+                  value={editFormData.expiryDate}
+                  onChange={(e) => setEditFormData({ ...editFormData, expiryDate: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium mb-1">{locale === 'ar' ? 'ملاحظات' : 'Notes'}</label>
+                <textarea
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t dark:border-gray-700 flex gap-3 sticky bottom-0 bg-white dark:bg-gray-800">
+              <button
+                onClick={handleSaveEdit}
+                disabled={editSubmitting}
+                className="flex-1 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                {editSubmitting ? '⏳ ...' : `💾 ${locale === 'ar' ? 'حفظ التعديلات' : 'Save Changes'}`}
+              </button>
+              <button
+                onClick={() => setEditingMore(null)}
+                disabled={editSubmitting}
+                className="px-6 py-3 bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-400"
+              >
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 💰 Payment Modal */}
+      {paymentMore && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4" dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="p-6 border-b dark:border-gray-700 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                💰 {locale === 'ar' ? 'دفع المتبقي' : 'Pay Remaining'}
+              </h3>
+              <button
+                onClick={() => setPaymentMore(null)}
+                disabled={paymentSubmitting}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-sm">
+                <p><strong>{locale === 'ar' ? 'العميل:' : 'Client:'}</strong> {paymentMore.clientName}</p>
+                <p><strong>{locale === 'ar' ? 'رقم الاشتراك:' : 'Subscription #:'}</strong> {paymentMore.moreNumber}</p>
+              </div>
+
+              <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 rounded-lg p-3">
+                <p className="text-sm text-orange-700 dark:text-orange-300 font-semibold mb-1">
+                  {locale === 'ar' ? 'المبلغ المتبقي الحالي:' : 'Current Remaining:'}
+                </p>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                  {(paymentMore.remainingAmount || 0).toFixed(0)} {t('members.egp')}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {locale === 'ar' ? 'المبلغ المدفوع' : 'Payment Amount'}
+                </label>
+                <input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                  min="0"
+                  max={paymentMore.remainingAmount || 0}
+                  step="0.01"
+                  className="w-full px-3 py-3 border-2 border-green-300 dark:border-green-600 rounded-lg text-lg font-bold dark:bg-gray-700 dark:text-white focus:border-green-500"
+                  autoFocus
+                />
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentAmount(paymentMore.remainingAmount || 0)}
+                    className="text-xs px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded hover:bg-green-200"
+                  >
+                    {locale === 'ar' ? 'دفع كل المتبقي' : 'Pay All'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-sm">
+                <div className="flex justify-between">
+                  <span>{locale === 'ar' ? 'المتبقي بعد الدفع:' : 'Remaining After:'}</span>
+                  <span className="font-bold">
+                    {Math.max(0, (paymentMore.remainingAmount || 0) - paymentAmount).toFixed(0)} {t('members.egp')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t dark:border-gray-700 flex gap-3">
+              <button
+                onClick={handleConfirmPayment}
+                disabled={paymentSubmitting || paymentAmount <= 0 || paymentAmount > (paymentMore.remainingAmount || 0)}
+                className="flex-1 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                {paymentSubmitting ? '⏳ ...' : `💾 ${locale === 'ar' ? 'تأكيد الدفع' : 'Confirm'}`}
+              </button>
+              <button
+                onClick={() => setPaymentMore(null)}
+                disabled={paymentSubmitting}
+                className="px-6 py-3 bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-400"
+              >
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📝 نموذج إضافة اشتراك (Popup) */}
       {showAddForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 mb-6 border-2 border-pink-200 dark:border-pink-700" dir={direction}>
-          <div className="flex justify-between items-center mb-6">
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddForm(false) }}
+          dir={direction}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border-2 border-pink-200 dark:border-pink-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+          <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 flex justify-between items-center p-6 border-b dark:border-gray-700">
             <h2 className="text-2xl font-bold text-pink-600 dark:text-pink-400">
               {t('more.addSubscription')}
             </h2>
             <button
               type="button"
               onClick={() => setShowAddForm(false)}
-              className="text-2xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              className="text-3xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors leading-none"
             >
-              ✕
+              ×
             </button>
           </div>
-          <form onSubmit={handleAddSubscription} className="space-y-6">
+          <form onSubmit={handleAddSubscription} className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -917,6 +1303,7 @@ export default function MorePage() {
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 

@@ -140,29 +140,6 @@ export function isValidDate(dateString: string): boolean {
 }
 
 /**
- * منع SQL Injection في النصوص
- */
-export function preventSQLInjection(input: string): string {
-  if (typeof input !== 'string') {
-    return ''
-  }
-
-  // إزالة الكلمات المفتاحية الخطرة
-  const dangerousPatterns = [
-    /(\bDROP\b|\bDELETE\b|\bTRUNCATE\b|\bEXEC\b|\bEXECUTE\b)/gi,
-    /(\bUNION\b.*\bSELECT\b)/gi,
-    /(;|\-\-|\/\*|\*\/)/g
-  ]
-
-  let cleaned = input
-  dangerousPatterns.forEach(pattern => {
-    cleaned = cleaned.replace(pattern, '')
-  })
-
-  return cleaned.trim()
-}
-
-/**
  * التحقق من طول النص
  */
 export function isValidLength(

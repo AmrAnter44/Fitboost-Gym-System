@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { verifyAuth } from '../../../../lib/auth'
 import { prisma } from '../../../../lib/prisma'
 import { DEFAULT_PERMISSIONS } from '../../../../types/permissions'
+import { getCachedLicenseStatus } from '../../../../lib/license'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,9 +21,9 @@ export async function GET(request: Request) {
 
       response.cookies.set('auth-token', '', {
         httpOnly: true,
-        secure: process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://') ?? false, // ✅ Only secure on HTTPS sites
-        sameSite: 'lax',
-        maxAge: 0, // Expire immediately
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 0,
         path: '/'
       })
 
@@ -60,14 +61,26 @@ export async function GET(request: Request) {
     // ✅ استخدام DEFAULT_PERMISSIONS إذا لم تكن موجودة في JWT
     const permissions = user.permissions || DEFAULT_PERMISSIONS[user.role]
 
-    // إرجاع بيانات المستخدم مع الاسم المحدث والصلاحيات
+    // 🔒 فحص الرخصة (cached — بدون Supabase call)
+    let licenseValid = true
+    let licenseMessage = ''
+    try {
+      const l = await getCachedLicenseStatus()
+      licenseValid = l.valid
+      licenseMessage = l.message
+    } catch { /* ignore */ }
+
     return NextResponse.json({
       user: {
         ...user,
-        name: displayName,  // ✅ استخدام الاسم من Staff
-        staffCode,  // ✅ كود الموظف
-        isSales,    // ✅ تحديد إذا كان الموظف سيلز
-        permissions  // ✅ إضافة الصلاحيات
+        name: displayName,
+        staffCode,
+        isSales,
+        permissions
+      },
+      license: {
+        valid: licenseValid,
+        message: licenseMessage
       }
     })
   } catch (error) {
