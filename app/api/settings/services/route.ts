@@ -54,22 +54,22 @@ export async function GET(request: Request) {
 
     return NextResponse.json(settings)
   } catch (error: any) {
-    console.error('Error fetching service settings:', error)
-
-    if (error.message === 'Unauthorized') {
+    // 🔇 Unauthorized عادي قبل تسجيل الدخول — مش lazem نسجّله كـ error
+    if (error?.message === 'Unauthorized') {
       return NextResponse.json(
         { error: 'يجب تسجيل الدخول أولاً' },
         { status: 401 }
       )
     }
 
-    if (error.message.includes('Forbidden')) {
+    if (error?.message?.includes?.('Forbidden')) {
       return NextResponse.json(
         { error: 'ليس لديك صلاحية الوصول للإعدادات' },
         { status: 403 }
       )
     }
 
+    console.error('Error fetching service settings:', error?.message || 'unknown')
     return NextResponse.json({ error: 'فشل جلب إعدادات الخدمات' }, { status: 500 })
   }
 }

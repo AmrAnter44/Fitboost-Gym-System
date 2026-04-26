@@ -27,8 +27,8 @@ interface MemberFormProps {
 
 export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: MemberFormProps) {
   const { user } = usePermissions()
-  // 🔒 الأدمن والـ OWNER فقط هم اللي يقدروا يعدلوا التواريخ يدوياً
-  const canEditDates = user?.role === 'OWNER' || user?.role === 'ADMIN'
+  // ✅ كل المستخدمين يقدروا يعدلوا التواريخ في فورم إضافة العضو
+  const canEditDates = true
   const { t, direction } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
