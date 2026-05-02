@@ -27,9 +27,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'بيانات غير صحيحة' }, { status: 400 })
     }
 
-    // جلب بيانات العضو
+    // جلب بيانات العضو + اسم السيلز عشان يظهر في الإيصال
     const member = await prisma.member.findUnique({
-      where: { id: memberId }
+      where: { id: memberId },
+      include: { salesStaff: { select: { name: true } } }
     })
 
     if (!member) {
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
       remainingAmount: member.remainingAmount - amount,
       paymentMethod: finalPaymentMethod,
       staffName: user.name,
+      salesPersonName: member.salesStaff?.name || null,
       notes: notes || ''
     }
 

@@ -300,6 +300,9 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     if (details.staffName) {
       message += `*الموظف:* ${details.staffName}\n`
     }
+    if (details.salesPersonName) {
+      message += `*السيلز:* ${details.salesPersonName}\n`
+    }
     message += `━━━━━━━━━━━━━━━━━━━━\n\n`
 
     message += `شكرا لثقتكم بنا\n`

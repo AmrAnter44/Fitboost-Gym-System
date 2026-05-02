@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { ReceiptToPrint } from '../../../components/ReceiptToPrint'
 import PaymentMethodSelector from '../../../components/Paymentmethodselector'
@@ -155,6 +155,7 @@ const getPackageName = (startDate: string | undefined, expiryDate: string | unde
 export default function MemberDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const memberId = params.id as string
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const { t, direction, locale } = useLanguage()
@@ -164,6 +165,8 @@ export default function MemberDetailPage() {
 
   const [member, setMember] = useState<Member | null>(null)
   const [loading, setLoading] = useState(true)
+  // 🔄 Auto-open renewal modal لو URL فيه ?action=renew
+  const autoOpenRenewal = searchParams?.get('action') === 'renew'
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptData, setReceiptData] = useState<any>(null)
   const [showRenewalForm, setShowRenewalForm] = useState(false)
@@ -637,7 +640,18 @@ export default function MemberDetailPage() {
     if (member) {
       fetchPTSubscription()
       fetchServiceSubscriptions()
+      // 🔄 لو URL فيه ?action=renew، افتح modal التجديد تلقائياً (مرة واحدة بعد ما العضو يتحمّل)
+      if (autoOpenRenewal && !showRenewalForm) {
+        setShowRenewalForm(true)
+        // نظّف الـ query string عشان ما يفتحش الـ modal تاني عند refresh
+        try {
+          const url = new URL(window.location.href)
+          url.searchParams.delete('action')
+          window.history.replaceState({}, '', url.toString())
+        } catch { /* ignore */ }
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [member])
 
   useEffect(() => {
@@ -2834,6 +2848,7 @@ export default function MemberDetailPage() {
                 <SalesStaffSelector
                   value={editBasicInfoData.salesStaffId}
                   onChange={(salesStaffId) => setEditBasicInfoData({ ...editBasicInfoData, salesStaffId })}
+                  requireConfirmIfChanging
                 />
               </div>
 

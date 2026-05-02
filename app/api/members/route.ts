@@ -508,6 +508,16 @@ export async function POST(request: Request) {
         subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
       }
 
+      // 💼 جلب اسم السيلز عشان يظهر في الإيصال (مش بس اسم الكاشير)
+      let salesPersonName: string | null = null
+      if (salesStaffId) {
+        const salesStaff = await prisma.staff.findUnique({
+          where: { id: salesStaffId },
+          select: { name: true }
+        })
+        salesPersonName = salesStaff?.name || null
+      }
+
       let receiptData: any = {
         receiptNumber: receiptNumber,
         type: 'Member',
@@ -529,6 +539,7 @@ export async function POST(request: Request) {
           expiryDate: expiryDate,
           subscriptionDays: subscriptionDays,
           staffName: staffName.trim(),
+          salesPersonName,
           isOther: isOther === true,
         }),
         memberId: member.id,
@@ -718,8 +729,29 @@ export async function PUT(request: Request) {
     if (data.coachId !== undefined) {
       updateData.coachId = data.coachId || null
     }
+    // قبل ما نطبق salesStaffId الجديد، نسجل القيمة القديمة عشان audit log واضح
+    let salesStaffChange: { from: string | null; to: string | null; fromId: string | null; toId: string | null } | null = null
     if (data.salesStaffId !== undefined) {
-      updateData.salesStaffId = data.salesStaffId || null
+      const newSalesId: string | null = data.salesStaffId || null
+      const existingMember = await prisma.member.findUnique({
+        where: { id },
+        select: { salesStaffId: true }
+      })
+      const oldSalesId = existingMember?.salesStaffId || null
+      if (oldSalesId !== newSalesId) {
+        const ids = [oldSalesId, newSalesId].filter((x): x is string => !!x)
+        const staffNames = ids.length
+          ? await prisma.staff.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })
+          : []
+        const nameOf = (id: string | null) => (id ? staffNames.find(s => s.id === id)?.name || null : null)
+        salesStaffChange = {
+          fromId: oldSalesId,
+          toId: newSalesId,
+          from: nameOf(oldSalesId),
+          to: nameOf(newSalesId)
+        }
+      }
+      updateData.salesStaffId = newSalesId
     }
     // 🕐 ساعات الدخول المسموح بها
     const timeFormatRegex = /^([01]?\d|2[0-3]):[0-5]\d$/
@@ -799,7 +831,12 @@ export async function PUT(request: Request) {
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'UPDATE', resource: 'Member', resourceId: member.id,
-      details: { memberNumber: member.memberNumber, name: member.name, changes: Object.keys(updateData) },
+      details: {
+        memberNumber: member.memberNumber,
+        name: member.name,
+        changes: Object.keys(updateData),
+        ...(salesStaffChange ? { salesStaffChange } : {})
+      },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 

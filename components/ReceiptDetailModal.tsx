@@ -152,6 +152,13 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
                 </div>
               )}
 
+              {details.salesPersonName && (
+                <div className="flex justify-between py-1 border-b dark:border-gray-600 text-sm">
+                  <span className="text-gray-600 dark:text-gray-300">السيلز</span>
+                  <span className="font-bold dark:text-gray-100">💼 {details.salesPersonName}</span>
+                </div>
+              )}
+
               {details.serviceType && (
                 <div className="flex justify-between py-1 border-b dark:border-gray-600 text-sm">
                   <span className="text-gray-600 dark:text-gray-300">{t('receipts.detail.serviceType')}</span>

@@ -1112,18 +1112,49 @@ model ClassBooking {
 
 // نظام الترخيص من Supabase
 model SupabaseLicense {
-  id             String   @id @default(cuid())
-  gymId          String
-  gymName        String
-  branchId       String
-  branchName     String
-  systemLicense  String   // 'true', 'false', 'active'
-  licenseMessage String?
-  lastChecked    DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  gymId               String
+  gymName             String
+  branchId            String
+  branchName          String
+  systemLicense       String   // 'true', 'false', 'active'
+  licenseMessage      String?
+  offlineModeEnabled  Boolean  @default(false)
+  lastChecked         DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([branchId])
+}
+
+// تتبع الـ leads اللي اتجابت من ويبسايت الجيم (website_leads على Supabase)
+// عشان لما نـpoll نعرف اللي اتجاب فعلاً ومانعمل visitors duplicate
+model WebsiteLeadImport {
+  id          String   @id @default(cuid())
+  remoteId    String   @unique  // UUID from Supabase website_leads.id
+  visitorId   String?            // الـ Visitor المحلي اللي اتعمل
+  importedAt  DateTime @default(now())
+
+  @@index([remoteId])
+}
+
+// قائمة الانتظار لمزامنة الإيصالات والمصروفات مع Supabase
+// (لما الإنترنت يقطع، البيانات تتراكم هنا وتتبعت لما يرجع)
+model SyncQueueItem {
+  id           String    @id @default(cuid())
+  resource     String    // 'receipt' | 'expense'
+  operation    String    // 'upsert' | 'delete'
+  resourceId   String    // local id (Receipt.id / Expense.id)
+  payload      String    // JSON snapshot of the row
+  attempts     Int       @default(0)
+  lastError    String?
+  status       String    @default("pending")  // pending | sent | failed
+  createdAt    DateTime  @default(now())
+  sentAt       DateTime?
+
+  @@index([status])
+  @@index([resource])
+  @@index([createdAt])
 }
 
 // قوالب رسائل الواتساب

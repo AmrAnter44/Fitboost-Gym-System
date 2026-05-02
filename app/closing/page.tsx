@@ -934,8 +934,10 @@ export default function ClosingPage() {
                   <button
                     onClick={() => {
                       const [y, m] = selectedMonth.split('-').map(Number)
+                      // الشهر اللي قبله — نستخدم getFullYear/getMonth بدل toISOString
+                      // عشان توقيت القاهرة UTC+2/+3 كان بيرجّع اليوم لـ UTC ويدّينا شهر غلط
                       const d = new Date(y, m - 2, 1)
-                      setSelectedMonth(d.toISOString().slice(0, 7))
+                      setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
                     }}
                     className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
                   >
@@ -953,7 +955,7 @@ export default function ClosingPage() {
                     onClick={() => {
                       const [y, m] = selectedMonth.split('-').map(Number)
                       const d = new Date(y, m, 1)
-                      setSelectedMonth(d.toISOString().slice(0, 7))
+                      setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
                     }}
                     className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
                   >

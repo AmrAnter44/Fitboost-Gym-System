@@ -28,7 +28,7 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
 
       const supabasePromise = supabaseAdmin
         .from('branches')
-        .select('system_license')
+        .select('system_license, offline_mode_enabled')
         .eq('id', license.branchId)
         .single()
 
@@ -43,7 +43,8 @@ export async function validateLicense(): Promise<{ valid: boolean; message: stri
           where: { id: license.id },
           data: {
             lastChecked: new Date(),
-            systemLicense: data?.system_license?.toString() || 'false'
+            systemLicense: data?.system_license?.toString() || 'false',
+            offlineModeEnabled: data?.offline_mode_enabled === true
           }
         })
 

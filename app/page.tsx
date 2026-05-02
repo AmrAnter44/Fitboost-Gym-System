@@ -56,12 +56,39 @@ export default function HomePage() {
   const [todayClasses, setTodayClasses] = useState<any[]>([])
   const [classBookings, setClassBookings] = useState<any[]>([])
 
+  // 🌐 زوار الموقع - مأخوذ من Supabase حسب الـ branch المربوط بالرخصة
+  const [websiteVisits, setWebsiteVisits] = useState<{ branch: number; gym: number; configured: boolean; branchName?: string; gymName?: string }>({
+    branch: 0,
+    gym: 0,
+    configured: false
+  })
+
   useEffect(() => {
     checkAuth()
     fetchTodayClasses()
     fetchClassBookings()
+    fetchWebsiteVisits() // 🌐 زوار الموقع
     autoBirthdayCheck() // 🎂 التحقق التلقائي من أعياد الميلاد
   }, [])
+
+  const fetchWebsiteVisits = async () => {
+    try {
+      const res = await fetch('/api/dashboard/website-visits')
+      if (!res.ok) return
+      const data = await res.json()
+      if (data?.configured) {
+        setWebsiteVisits({
+          branch: data.branchVisits || 0,
+          gym: data.gymVisits || 0,
+          configured: true,
+          branchName: data.branchName,
+          gymName: data.gymName
+        })
+      }
+    } catch {
+      // silent — يفضل الكارت يعرض 0 لو فشل
+    }
+  }
 
   // إعادة تحميل البيانات عند تغيير اللغة
   useEffect(() => {
@@ -573,6 +600,28 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* 🌐 زوار الموقع - آخر 30 يوم (إجمالي كل فروع الجيم) */}
+        {websiteVisits.configured && (
+          <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/30 dark:to-fuchsia-900/30 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow border-2 border-purple-300 dark:border-purple-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-700 dark:text-purple-300 text-sm font-semibold">
+                  {locale === 'ar' ? 'زوار الموقع' : 'Website Visitors'}
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-4xl font-bold text-purple-800 dark:text-purple-100">{websiteVisits.gym}</p>
+                </div>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                  {locale === 'ar' ? 'كل الفروع - آخر 30 يوم' : 'All branches - last 30 days'}
+                </p>
+              </div>
+              <div className="bg-purple-100 dark:bg-purple-800/50 p-4 rounded-full">
+                <div className="text-4xl">🌐</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 📊 الجرافات */}
