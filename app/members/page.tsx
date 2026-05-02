@@ -3,7 +3,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
@@ -156,10 +156,6 @@ export default function MembersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
 
-  // Infinite Scroll
-  const [displayCount, setDisplayCount] = useState(30)
-  const sentinelRef = useRef<HTMLDivElement>(null)
-
   // WhatsApp جماعي
   const [showBulkWA, setShowBulkWA] = useState(false)
 
@@ -183,12 +179,18 @@ export default function MembersPage() {
 
     if (debouncedSearch) {
       const q = debouncedSearch.trim()
+      const isAllDigits = /^\d+$/.test(q)
+
       filtered = filtered.filter((member) => {
-        const idMatch = member.memberNumber !== null &&
-          (member.memberNumber === parseInt(q) || member.memberNumber.toString().includes(q))
-        const nameMatch = fuzzyMatch(member.name, q)
-        const phoneMatch = member.phone.includes(q)
-        return idMatch || nameMatch || phoneMatch
+        if (isAllDigits) {
+          // أرقام بتبدأ بصفر → تليفون. غير كده → رقم عضوية.
+          if (q.startsWith('0')) {
+            return member.phone.includes(q)
+          }
+          return member.memberNumber !== null && member.memberNumber === parseInt(q)
+        }
+        // نص (اسم) → بحث بالاسم
+        return fuzzyMatch(member.name, q)
       })
     }
 
@@ -388,36 +390,16 @@ export default function MembersPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading])
 
-  // إعادة تعيين الصفحة عند تغيير الفلاتر (مش البيانات)
+  // إعادة تعيين الصفحة عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-    setDisplayCount(30)
   }, [search, filterStatus, filterPackage, specificDate])
 
-  // ✅ Infinite Scroll - IntersectionObserver for desktop table
-  useEffect(() => {
-    const el = sentinelRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting) {
-          setDisplayCount(c => Math.min(c + 20, filteredMembers.length))
-        }
-      },
-      { threshold: 0.1 }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [filteredMembers.length])
-
-  // حساب الصفحات (للـ pagination controls القديمة - محتفظ بها للـ backward compat)
+  // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const currentMembers = filteredMembers.slice(startIndex, endIndex)
-
-  // ✅ Infinite Scroll - visible members for desktop table
-  const visibleMembers = filteredMembers.slice(0, displayCount)
 
   const handleViewDetails = (memberId: string) => {
     router.push(`/members/${memberId}`)
@@ -1242,7 +1224,7 @@ export default function MembersPage() {
           {/* Desktop Cards - Hidden on mobile/tablet */}
           <div className="hidden lg:block" dir={direction}>
             <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-              {Array.isArray(visibleMembers) && visibleMembers.map((member) => {
+              {Array.isArray(currentMembers) && currentMembers.map((member) => {
                 const isActiveNow = isMemberActiveNow(member)
                 const daysRemaining = calculateRemainingDays(member.expiryDate)
                 const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 7 && isActiveNow
@@ -1375,19 +1357,12 @@ export default function MembersPage() {
                 )
               })}
             </div>
-            {/* Infinite Scroll Sentinel */}
-            {displayCount < filteredMembers.length && (
-              <div ref={sentinelRef} className="flex items-center justify-center py-4 gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
-                <span>{locale === 'ar' ? `جاري تحميل المزيد... (${visibleMembers.length} من ${filteredMembers.length})` : `Loading more... (${visibleMembers.length} of ${filteredMembers.length})`}</span>
-              </div>
-            )}
           </div>
 
           {/* Mobile/Tablet Cards - Hidden on desktop (Virtualized) */}
           <div className="lg:hidden">
             <VirtualMemberList
-              members={filteredMembers}
+              members={currentMembers}
               lastReceipts={lastReceipts}
               onViewDetails={handleViewDetails}
               onShowReceipts={handleShowReceipts}
@@ -1399,12 +1374,96 @@ export default function MembersPage() {
         </>
       )}
 
-      {/* Results Summary */}
-      {!loading && filteredMembers.length > 0 && displayCount >= filteredMembers.length && (
-        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400 py-3">
-          ✅ {locale === 'ar'
-            ? `تم عرض كل ${filteredMembers.length} عضو`
-            : `All ${filteredMembers.length} members shown`}
+      {/* Pagination Controls */}
+      {!loading && filteredMembers.length > 0 && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg" dir={direction}>
+          <div className="text-sm text-gray-600 dark:text-gray-300">
+            {locale === 'ar'
+              ? `عرض ${startIndex + 1} - ${Math.min(endIndex, filteredMembers.length)} من ${filteredMembers.length} عضو`
+              : `Showing ${startIndex + 1} - ${Math.min(endIndex, filteredMembers.length)} of ${filteredMembers.length} members`}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => goToPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
+            >
+              {locale === 'ar' ? 'الأولى' : 'First'}
+            </button>
+
+            <button
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
+            >
+              {locale === 'ar' ? 'السابقة' : 'Previous'}
+            </button>
+
+            <div className="flex gap-1">
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let pageNum
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => goToPage(pageNum)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-primary-600 text-white'
+                        : 'hover:bg-gray-200 dark:hover:bg-gray-600 dark:text-gray-100'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
+            >
+              {locale === 'ar' ? 'التالية' : 'Next'}
+            </button>
+
+            <button
+              onClick={() => goToPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors dark:text-gray-100"
+            >
+              {locale === 'ar' ? 'الأخيرة' : 'Last'}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm">
+            <label className="text-gray-600 dark:text-gray-300">
+              {locale === 'ar' ? 'عدد العناصر' : 'Items per page'}:
+            </label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value))
+                setCurrentPage(1)
+              }}
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
       )}
 

@@ -47,6 +47,9 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   const [referrerLoading, setReferrerLoading] = useState(false)
   const [referrerError, setReferrerError] = useState<string | null>(null)
 
+  // 📞 FollowUp lookup by phone — يعرض اسم السيلز الموكّل من المتابعة
+  const [matchedFollowUp, setMatchedFollowUp] = useState<{ salesStaffId: string; salesStaffName: string; visitorName: string | null } | null>(null)
+
   const [formData, setFormData] = useState({
     memberNumber: '',
     name: '',
@@ -160,6 +163,45 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       setFormData(prev => ({ ...prev, staffName: user.name }))
     }
   }, [user])
+
+  // 📞 FollowUp lookup by phone — debounced
+  // لما المستخدم يكتب رقم تليفون موجود في المتابعات، نعرض اسم السيلز الموكّل
+  // عشان الريسبشن يفتكر يحطه ويتأكد إنه ما يتغيّرش بالغلط.
+  useEffect(() => {
+    const phone = formData.phone.trim()
+    if (phone.length < 10) {
+      setMatchedFollowUp(null)
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/followups/by-phone?phone=${encodeURIComponent(phone)}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled) return
+        if (data.found && data.salesStaffId) {
+          setMatchedFollowUp({
+            salesStaffId: data.salesStaffId,
+            salesStaffName: data.salesStaffName,
+            visitorName: data.visitorName
+          })
+          // auto-apply only if reception didn't already set someone
+          setFormData(prev => prev.salesStaffId
+            ? prev
+            : { ...prev, salesStaffId: data.salesStaffId })
+        } else {
+          setMatchedFollowUp(null)
+        }
+      } catch {
+        // silent — lookup is a hint, not blocking
+      }
+    }, 400)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [formData.phone])
 
   // 👥 Validate referral member number
   useEffect(() => {
@@ -653,6 +695,24 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
               placeholder="01234567890"
               dir="ltr"
             />
+            {/* 📋 لو الرقم متطابق مع متابعة موكّل ليها سيلز، نعرض اسمه هنا */}
+            {matchedFollowUp && (
+              <div className="mt-2 flex items-center justify-between gap-2 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg px-3 py-2 text-xs">
+                <span className="text-orange-800 dark:text-orange-200">
+                  📋 {direction === 'rtl' ? 'جايلك من متابعة سيلز' : 'From follow-up by sales'}: <strong>{matchedFollowUp.salesStaffName}</strong>
+                  {matchedFollowUp.visitorName ? <span className="text-orange-600 dark:text-orange-400 mx-1">({matchedFollowUp.visitorName})</span> : null}
+                </span>
+                {formData.salesStaffId !== matchedFollowUp.salesStaffId && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, salesStaffId: matchedFollowUp.salesStaffId }))}
+                    className="text-orange-700 dark:text-orange-300 hover:text-orange-900 dark:hover:text-orange-100 font-bold whitespace-nowrap"
+                  >
+                    {direction === 'rtl' ? 'تعيين' : 'Assign'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div>

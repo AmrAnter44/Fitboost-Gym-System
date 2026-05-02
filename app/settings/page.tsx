@@ -327,6 +327,22 @@ export default function SettingsPage() {
   const [loadingBranches, setLoadingBranches] = useState(false)
   const [savingLicense, setSavingLicense] = useState(false)
 
+  // Offline Mode states
+  const [offlineStatus, setOfflineStatus] = useState<{
+    offlineModeEnabled: boolean
+    stats: {
+      pending: number
+      failed: number
+      sent: number
+      lastSentAt: string | null
+      lastError?: string | null
+      lastErrorResource?: string | null
+      lastErrorAttempts?: number
+    }
+  } | null>(null)
+  const [offlineToggling, setOfflineToggling] = useState(false)
+  const [flushingSync, setFlushingSync] = useState(false)
+
   useEffect(() => {
     checkAuth()
     fetchServiceSettings()
@@ -339,8 +355,16 @@ export default function SettingsPage() {
     if (user?.role === 'OWNER') {
       fetchCurrentLicense()
       fetchGyms()
+      fetchOfflineStatus()
     }
   }, [user])
+
+  // Refresh offline sync stats every 30s while on the license tab
+  useEffect(() => {
+    if (user?.role !== 'OWNER' || activeSection !== 'license') return
+    const interval = setInterval(fetchOfflineStatus, 30_000)
+    return () => clearInterval(interval)
+  }, [user, activeSection])
 
   // Fetch DB files list when database section is opened
   useEffect(() => {
@@ -790,6 +814,71 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error fetching current license:', error)
+    }
+  }
+
+  // Offline Mode functions
+  const fetchOfflineStatus = async () => {
+    try {
+      const res = await fetch('/api/offline-mode/status')
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.configured) {
+        setOfflineStatus({
+          offlineModeEnabled: data.offlineModeEnabled,
+          stats: data.stats
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching offline status:', error)
+    }
+  }
+
+  const flushSyncQueue = async () => {
+    setFlushingSync(true)
+    try {
+      const res = await fetch('/api/offline-mode/flush', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'فشل الإرسال')
+      } else {
+        await fetchOfflineStatus()
+        alert(`تم: ${data.sent} ناجح، ${data.failed} فشل`)
+      }
+    } catch (error) {
+      console.error('Flush sync error:', error)
+      alert('خطأ في الاتصال')
+    } finally {
+      setFlushingSync(false)
+    }
+  }
+
+  const toggleOfflineMode = async () => {
+    if (!offlineStatus) return
+    const next = !offlineStatus.offlineModeEnabled
+    const confirmMsg = next
+      ? 'تفعيل وضع الأوفلاين؟ كل إيصال ومصروف هيتبعت لـ Fitboost dashboard تلقائياً.'
+      : 'إيقاف وضع الأوفلاين؟ مش هيتبعت أي إيصال جديد بعد كده.'
+    if (!confirm(confirmMsg)) return
+
+    setOfflineToggling(true)
+    try {
+      const res = await fetch('/api/offline-mode/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'فشل التبديل')
+      } else {
+        await fetchOfflineStatus()
+      }
+    } catch (error) {
+      console.error('Toggle offline mode error:', error)
+      alert('خطأ في الاتصال')
+    } finally {
+      setOfflineToggling(false)
     }
   }
 
@@ -1736,6 +1825,107 @@ export default function SettingsPage() {
                       </span>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Offline Mode Toggle */}
+              {currentLicense && offlineStatus && (
+                <div className={`rounded-xl p-6 border-2 ${offlineStatus.offlineModeEnabled
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
+                    : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700'
+                  }`}>
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">{offlineStatus.offlineModeEnabled ? '☁️' : '📴'}</span>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                          وضع الأوفلاين (Offline Mode)
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          لما تفعّله، كل إيصال ومصروف هيتبعت تلقائياً لـ Fitboost dashboard
+                          <br />
+                          عشان تقدر تتابع الـ closing من غير ما الجهاز يكون فاتح
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={toggleOfflineMode}
+                      disabled={offlineToggling}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition shrink-0 ${offlineStatus.offlineModeEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                        } ${offlineToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${offlineStatus.offlineModeEnabled ? 'translate-x-6' : 'translate-x-1'
+                        }`} />
+                    </button>
+                  </div>
+
+                  {/* Sync Stats */}
+                  {offlineStatus.offlineModeEnabled && (
+                    <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                        <div className="bg-white dark:bg-gray-900 p-3 rounded-lg">
+                          <div className="text-gray-500 dark:text-gray-400">في الانتظار</div>
+                          <div className={`text-xl font-bold ${offlineStatus.stats.pending > 0 ? 'text-orange-600' : 'text-gray-700 dark:text-gray-200'}`}>
+                            {offlineStatus.stats.pending}
+                          </div>
+                        </div>
+                        <div className="bg-white dark:bg-gray-900 p-3 rounded-lg">
+                          <div className="text-gray-500 dark:text-gray-400">تم الإرسال</div>
+                          <div className="text-xl font-bold text-green-600">
+                            {offlineStatus.stats.sent}
+                          </div>
+                        </div>
+                        <div className="bg-white dark:bg-gray-900 p-3 rounded-lg">
+                          <div className="text-gray-500 dark:text-gray-400">فشل</div>
+                          <div className={`text-xl font-bold ${offlineStatus.stats.failed > 0 ? 'text-red-600' : 'text-gray-700 dark:text-gray-200'}`}>
+                            {offlineStatus.stats.failed}
+                          </div>
+                        </div>
+                        <div className="bg-white dark:bg-gray-900 p-3 rounded-lg">
+                          <div className="text-gray-500 dark:text-gray-400">آخر إرسال</div>
+                          <div className="text-sm font-bold text-gray-700 dark:text-gray-200">
+                            {offlineStatus.stats.lastSentAt
+                              ? new Date(offlineStatus.stats.lastSentAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+                              : '—'}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Last error (if any) — surfaces stuck items so they're easy to debug */}
+                      {offlineStatus.stats.lastError && (
+                        <div className="mt-3 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <span className="text-lg">⚠️</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-bold text-red-800 dark:text-red-300 mb-1">
+                                خطأ في الإرسال ({offlineStatus.stats.lastErrorResource} — {offlineStatus.stats.lastErrorAttempts} محاولة)
+                              </div>
+                              <div className="text-xs text-red-700 dark:text-red-400 break-all font-mono">
+                                {offlineStatus.stats.lastError}
+                              </div>
+                              <div className="text-xs text-red-600 dark:text-red-400 mt-2">
+                                💡 لو الجداول لسه ما اتعملتش على Supabase، شغّل ملف{' '}
+                                <code className="bg-red-100 dark:bg-red-900/40 px-1 rounded">offline-mode-system.sql</code>{' '}
+                                الأول، وبعدين اضغط "إرسال يدوي".
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between mt-3 gap-2">
+                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                          💡 البيانات بتتمسح تلقائياً بعد ٦٠ يوم - بنخزن الإجمالي بس
+                        </p>
+                        <button
+                          onClick={flushSyncQueue}
+                          disabled={flushingSync}
+                          className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium disabled:opacity-50 shrink-0"
+                        >
+                          {flushingSync ? '⏳ جاري...' : '🔄 إرسال يدوي'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

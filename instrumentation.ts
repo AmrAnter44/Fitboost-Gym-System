@@ -34,5 +34,15 @@ export async function register() {
         },
       })
     })
+
+    // Background sync worker — drains pending receipt/expense pushes to Supabase
+    // Runs every 60s. processSyncQueue is a no-op when nothing is pending or
+    // when offline mode is disabled, so it's cheap to leave running.
+    const { processSyncQueue } = await import('./lib/offline-sync')
+    setInterval(() => {
+      processSyncQueue().catch((err) =>
+        console.error('[OfflineSync] worker error:', err?.message || err)
+      )
+    }, 60_000)
   }
 }

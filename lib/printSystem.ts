@@ -85,8 +85,9 @@ function generateReceiptHTML(data: ReceiptData): string {
     paymentMethodDisplay = getPaymentMethodLabel(paymentMethodRaw)
   }
 
-  // اسم الموظف
+  // اسم الموظف + اسم السيلز
   const staffName = details.staffName || ''
+  const salesPersonName = details.salesPersonName || ''
 
   return `
 <!DOCTYPE html>
@@ -350,6 +351,7 @@ function generateReceiptHTML(data: ReceiptData): string {
   </div>
 
   ${staffName ? `<div class="staff-info">👷 <strong>الموظف:</strong> ${staffName}</div>` : ''}
+  ${salesPersonName ? `<div class="staff-info">💼 <strong>السيلز:</strong> ${salesPersonName}</div>` : ''}
 
   <div class="info-row">
     <strong>رقم الإيصال:</strong>

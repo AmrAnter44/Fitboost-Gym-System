@@ -43,9 +43,10 @@ export async function POST(request: Request) {
     } = body
 
 
-    // جلب بيانات العضو
+    // جلب بيانات العضو + اسم السيلز عشان يظهر في الإيصال
     const member = await prisma.member.findUnique({
-      where: { id: memberId }
+      where: { id: memberId },
+      include: { salesStaff: { select: { name: true } } }
     })
 
     if (!member) {
@@ -210,6 +211,7 @@ export async function POST(request: Request) {
             subscriptionDays: subscriptionDays,
             isRenewal: true,
             staffName: staffName.trim(),
+            salesPersonName: member.salesStaff?.name || null,
           }),
           memberId: member.id,
         },

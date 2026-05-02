@@ -13,9 +13,11 @@ interface StaffOption {
 interface SalesStaffSelectorProps {
   value: string | null
   onChange: (salesStaffId: string | null) => void
+  /** When true, prompts the user to confirm before swapping an already-set sales staff. */
+  requireConfirmIfChanging?: boolean
 }
 
-export default function SalesStaffSelector({ value, onChange }: SalesStaffSelectorProps) {
+export default function SalesStaffSelector({ value, onChange, requireConfirmIfChanging = false }: SalesStaffSelectorProps) {
   const { locale } = useLanguage()
   const [staff, setStaff] = useState<StaffOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +37,20 @@ export default function SalesStaffSelector({ value, onChange }: SalesStaffSelect
   }, [])
 
   const selectedStaff = staff.find(s => s.id === value)
+  const nameOf = (id: string | null) => (id ? staff.find(s => s.id === id)?.name || '—' : '—')
+
+  // يلف الـ onChange بـ confirmation modal لو الـ value الحالية مش null والقيمة الجديدة مختلفة
+  const guardedChange = (next: string | null) => {
+    if (requireConfirmIfChanging && value && next !== value) {
+      const fromName = nameOf(value)
+      const toName = next ? nameOf(next) : (locale === 'ar' ? 'بدون سيلز' : 'No sales staff')
+      const msg = locale === 'ar'
+        ? `هتغيّر السيلز من «${fromName}» لـ «${toName}»؟\nالعملية دي بتتسجل في الـ audit log.`
+        : `Change sales staff from "${fromName}" to "${toName}"?\nThis change will be recorded in the audit log.`
+      if (!confirm(msg)) return
+    }
+    onChange(next)
+  }
 
   return (
     <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-3">
@@ -51,7 +67,7 @@ export default function SalesStaffSelector({ value, onChange }: SalesStaffSelect
         <div className="space-y-2">
           <select
             value={value || ''}
-            onChange={e => onChange(e.target.value || null)}
+            onChange={e => guardedChange(e.target.value || null)}
             className="w-full px-3 py-2 border border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
           >
             <option value="">{locale === 'ar' ? '— بدون موظف سيلز —' : '— No Sales Staff —'}</option>
@@ -69,7 +85,7 @@ export default function SalesStaffSelector({ value, onChange }: SalesStaffSelect
               </span>
               <button
                 type="button"
-                onClick={() => onChange(null)}
+                onClick={() => guardedChange(null)}
                 className="text-xs text-orange-600 dark:text-orange-400 hover:text-red-500"
               >
                 ✕

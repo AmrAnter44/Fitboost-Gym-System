@@ -318,6 +318,49 @@ export default function FollowUpsPage() {
     }
   })
 
+  // 🌐 Pull website leads from Supabase → create local Visitors with source=website
+  // يتشغل مرة عند فتح الصفحة + كل 5 دقايق طول ما الصفحة مفتوحة
+  const [websiteSyncing, setWebsiteSyncing] = useState(false)
+  const syncWebsiteLeads = useCallback(async (showToastWhenEmpty = false) => {
+    setWebsiteSyncing(true)
+    try {
+      const res = await fetch('/api/visitors/sync-website-leads', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data?.error || 'فشل الـ sync')
+        return
+      }
+      if (data?.imported > 0) {
+        queryClient.invalidateQueries({ queryKey: ['followups'] })
+        queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+        toast.success(
+          locale === 'ar'
+            ? `وصل ${data.imported} زائر جديد من الموقع`
+            : `${data.imported} new website lead${data.imported > 1 ? 's' : ''} imported`
+        )
+      } else if (showToastWhenEmpty) {
+        // عرض تشخيص واضح لما المستخدم يدوس manual sync ويلاقي مفيش حاجة جديدة
+        const lines: string[] = []
+        if (data?.message) lines.push(data.message)
+        if (data?.found !== undefined) lines.push(`Leads على Supabase لجيمك: ${data.found}`)
+        if (data?.totalAcrossGyms !== undefined) lines.push(`Leads على Supabase لكل الجيمات: ${data.totalAcrossGyms}`)
+        if (data?.alreadyImported) lines.push(`متجابة قبل كده: ${data.alreadyImported}`)
+        if (data?.gymName) lines.push(`الجيم في الرخصة: ${data.gymName}`)
+        toast.info(lines.join(' • ') || 'مفيش leads جديدة')
+      }
+    } catch (err: any) {
+      toast.error('خطأ في الاتصال: ' + (err?.message || ''))
+    } finally {
+      setWebsiteSyncing(false)
+    }
+  }, [queryClient, toast, locale])
+
+  useEffect(() => {
+    syncWebsiteLeads(false)
+    const interval = setInterval(() => syncWebsiteLeads(false), 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [syncWebsiteLeads])
+
   // Error handling for all queries
   useEffect(() => {
     const errors = [followUpsError, visitorsError, membersError, dayUseError, invitationsError, staffError]
@@ -1046,6 +1089,21 @@ export default function FollowUpsPage() {
     return activeMemberPhones.has(normalizedVisitorPhone)
   }, [activeMemberPhones, normalizePhone])
 
+  // 🔍 مساعد للبحث عن memberId بالهاتف — يُستخدم في زر "تجديد سريع"
+  const phoneToMemberId = useMemo(() => {
+    const map = new Map<string, string>()
+    allMembersData.forEach((m: Member) => {
+      if (m.phone && m.id) {
+        map.set(normalizePhone(m.phone), m.id)
+      }
+    })
+    return map
+  }, [allMembersData, normalizePhone])
+
+  const getMemberIdByPhone = useCallback((phone: string): string | null => {
+    return phoneToMemberId.get(normalizePhone(phone)) || null
+  }, [phoneToMemberId, normalizePhone])
+
   // ✅ تحسين الأداء: حساب أولوية المتابعة (memoized)
   // todayMidnight بيتحدث مع بيانات المتابعات (كل ما الداتا اتجابت من جديد)
   const todayMidnight = useMemo(() => {
@@ -1117,9 +1175,11 @@ export default function FollowUpsPage() {
             matchesSource = fu.visitor.source === 'member-invitation'
           } else if (sourceFilter === 'dayuse') {
             matchesSource = fu.visitor.source === 'invitation'
+          } else if (sourceFilter === 'website') {
+            matchesSource = fu.visitor.source === 'website'
           } else if (sourceFilter === 'visitors') {
-            // زوار عاديين (walk-in, social-media, etc.)
-            matchesSource = !['expired-member', 'expiring-member', 'member-invitation', 'invitation'].includes(fu.visitor.source)
+            // زوار عاديين (walk-in, social-media, etc.) — مش website ولا الفئات اللي ليها زرار مخصص
+            matchesSource = !['expired-member', 'expiring-member', 'member-invitation', 'invitation', 'website'].includes(fu.visitor.source)
           }
         }
 
@@ -1626,9 +1686,10 @@ export default function FollowUpsPage() {
       'instagram': t('followups.sources.instagram'),
       'friend': t('followups.sources.friend'),
       'other': t('followups.sources.other'),
+      'website': locale === 'ar' ? '🌐 موقع الويب' : '🌐 Website',
     }
     return labels[source] || source
-  }, [t])
+  }, [t, locale])
 
   const getPriorityBadge = useCallback((followUp: FollowUp) => {
     const priority = getFollowUpPriority(followUp)
@@ -1715,7 +1776,8 @@ export default function FollowUpsPage() {
         else if (sourceFilter === 'expiring-member' && src !== 'expiring-member') continue
         else if (sourceFilter === 'member-invitation' && src !== 'member-invitation') continue
         else if (sourceFilter === 'dayuse' && src !== 'invitation') continue
-        else if (sourceFilter === 'visitors' && ['expired-member', 'expiring-member', 'member-invitation', 'invitation'].includes(src)) continue
+        else if (sourceFilter === 'website' && src !== 'website') continue
+        else if (sourceFilter === 'visitors' && ['expired-member', 'expiring-member', 'member-invitation', 'invitation', 'website'].includes(src)) continue
       }
 
       if (priority === 'today') todayCount++
@@ -1777,7 +1839,8 @@ export default function FollowUpsPage() {
       expiringMembers: base.filter(fu => fu.visitor.source === 'expiring-member').length,
       dayUse: base.filter(fu => fu.visitor.source === 'invitation').length,
       invitations: base.filter(fu => fu.visitor.source === 'member-invitation').length,
-      visitors: base.filter(fu => !['expired-member', 'expiring-member', 'member-invitation', 'invitation'].includes(fu.visitor.source)).length,
+      website: base.filter(fu => fu.visitor.source === 'website').length,
+      visitors: base.filter(fu => !['expired-member', 'expiring-member', 'member-invitation', 'invitation', 'website'].includes(fu.visitor.source)).length,
       convertedToMembers: followUps.filter(fu => isVisitorAMember(fu.visitor.phone)).length,
     }
   }, [followUpsFilteredExceptSource, followUps, isVisitorAMember, getFollowUpPriority])
@@ -2831,6 +2894,17 @@ export default function FollowUpsPage() {
           <button onClick={() => setSourceFilter('visitors')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'visitors' ? 'bg-primary-600 text-white' : 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50'}`}>
             👤 {t('followups.sources.visitors')} ({stats.visitors})
           </button>
+          <button onClick={() => setSourceFilter('website')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'website' ? 'bg-cyan-600 text-white' : 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'}`}>
+            🌐 {locale === 'ar' ? 'موقع الويب' : 'Website'} ({stats.website})
+          </button>
+          <button
+            onClick={() => syncWebsiteLeads(true)}
+            disabled={websiteSyncing}
+            title={locale === 'ar' ? 'جلب الـ leads من السيرفر دلوقتي' : 'Pull leads from server now'}
+            className="px-3 py-1 rounded-full text-xs font-semibold transition-all bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50"
+          >
+            {websiteSyncing ? '⏳' : '🔄'} {locale === 'ar' ? 'جلب الـ leads' : 'Pull leads'}
+          </button>
         </div>
 
         {/* Row 3: Search + dropdowns + smart script */}
@@ -2957,15 +3031,24 @@ export default function FollowUpsPage() {
                       {getPriorityBadge(followUp)}
                     </div>
                     <div className="flex gap-1.5 sm:gap-2">
-                      {/* زر تجديد سريع */}
-                      {(isExpired || isExpiring) && (
-                        <Link
-                          href={`/members?search=${encodeURIComponent(followUp.visitor.phone)}`}
-                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
-                        >
-                          🔄
-                        </Link>
-                      )}
+                      {/* زر تجديد سريع — يفتح صفحة تفاصيل العضو مع modal التجديد */}
+                      {(isExpired || isExpiring) && (() => {
+                        const mid = getMemberIdByPhone(followUp.visitor.phone)
+                        // لو لقينا الـ memberId، روح على صفحة العضو مع ?action=renew
+                        // لو ما لقينش (نادر)، fallback على البحث في صفحة الأعضاء
+                        const href = mid
+                          ? `/members/${mid}?action=renew`
+                          : `/members?search=${encodeURIComponent(followUp.visitor.phone)}`
+                        return (
+                          <Link
+                            href={href}
+                            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
+                            title={locale === 'ar' ? 'تجديد سريع' : 'Quick Renew'}
+                          >
+                            🔄
+                          </Link>
+                        )
+                      })()}
                       {isExpired && (
                         <button
                           onClick={() => openQuickFollowUp(followUp.visitor)}
@@ -3078,6 +3161,8 @@ export default function FollowUpsPage() {
                             ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-3 py-1 rounded-full text-xs font-bold shadow-sm'
                             : followUp.visitor.source === 'expiring-member'
                             ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-3 py-1 rounded-full text-xs font-bold shadow-sm'
+                            : followUp.visitor.source === 'website'
+                            ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-cyan-300 dark:border-cyan-700'
                             : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium'
                         }`}>
                           {getSourceLabel(followUp.visitor.source)}

@@ -663,6 +663,66 @@ function migrateDatabase(dbPath) {
     } else {
     }
 
+    // ✅ SupabaseLicense — رخصة الجيم من Supabase
+    if (!tableExists(db, 'SupabaseLicense')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS SupabaseLicense (
+          id TEXT PRIMARY KEY,
+          gymId TEXT NOT NULL,
+          gymName TEXT NOT NULL,
+          branchId TEXT NOT NULL,
+          branchName TEXT NOT NULL,
+          systemLicense TEXT NOT NULL,
+          licenseMessage TEXT,
+          offlineModeEnabled INTEGER NOT NULL DEFAULT 0,
+          lastChecked DATETIME NOT NULL DEFAULT (datetime('now')),
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS SupabaseLicense_branchId_idx ON SupabaseLicense(branchId);
+      `);
+    } else {
+      // ✅ SupabaseLicense.offlineModeEnabled — flag وضع الأوفلاين
+      if (!columnExists(db, 'SupabaseLicense', 'offlineModeEnabled')) {
+        db.prepare('ALTER TABLE SupabaseLicense ADD COLUMN offlineModeEnabled INTEGER NOT NULL DEFAULT 0').run();
+      }
+    }
+
+    // ✅ WebsiteLeadImport — تتبع الـ leads المستوردة من ويبسايت الجيم
+    if (!tableExists(db, 'WebsiteLeadImport')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS WebsiteLeadImport (
+          id         TEXT PRIMARY KEY,
+          remoteId   TEXT NOT NULL UNIQUE,
+          visitorId  TEXT,
+          importedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS WebsiteLeadImport_remoteId_idx ON WebsiteLeadImport(remoteId);
+      `);
+    }
+
+    // ✅ SyncQueueItem — قائمة الانتظار لمزامنة الإيصالات والمصاريف مع Supabase
+    if (!tableExists(db, 'SyncQueueItem')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS SyncQueueItem (
+          id TEXT PRIMARY KEY,
+          resource TEXT NOT NULL,
+          operation TEXT NOT NULL,
+          resourceId TEXT NOT NULL,
+          payload TEXT NOT NULL,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          lastError TEXT,
+          status TEXT NOT NULL DEFAULT 'pending',
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          sentAt DATETIME
+        );
+        CREATE INDEX IF NOT EXISTS SyncQueueItem_status_idx ON SyncQueueItem(status);
+        CREATE INDEX IF NOT EXISTS SyncQueueItem_resource_idx ON SyncQueueItem(resource);
+        CREATE INDEX IF NOT EXISTS SyncQueueItem_createdAt_idx ON SyncQueueItem(createdAt);
+      `);
+    } else {
+    }
+
     // ClassSchedule — إن لم تكن موجودة
     if (!tableExists(db, 'ClassSchedule')) {
       db.exec(`
