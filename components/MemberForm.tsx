@@ -186,10 +186,9 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
             salesStaffName: data.salesStaffName,
             visitorName: data.visitorName
           })
-          // auto-apply only if reception didn't already set someone
-          setFormData(prev => prev.salesStaffId
-            ? prev
-            : { ...prev, salesStaffId: data.salesStaffId })
+          // 🔒 force-apply — متى وُجد match، السيلز لازم يكون هو ده، حتى لو
+          // الريسبشن غيّره يدوياً قبل ما يدخل التليفون. السيرفر هيغصبه برضو.
+          setFormData(prev => ({ ...prev, salesStaffId: data.salesStaffId }))
         } else {
           setMatchedFollowUp(null)
         }
@@ -695,24 +694,24 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
               placeholder="01234567890"
               dir="ltr"
             />
-            {/* 📋 لو الرقم متطابق مع متابعة موكّل ليها سيلز، نعرض اسمه هنا */}
-            {matchedFollowUp && (
-              <div className="mt-2 flex items-center justify-between gap-2 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg px-3 py-2 text-xs">
-                <span className="text-orange-800 dark:text-orange-200">
-                  📋 {direction === 'rtl' ? 'جايلك من متابعة سيلز' : 'From follow-up by sales'}: <strong>{matchedFollowUp.salesStaffName}</strong>
-                  {matchedFollowUp.visitorName ? <span className="text-orange-600 dark:text-orange-400 mx-1">({matchedFollowUp.visitorName})</span> : null}
-                </span>
-                {formData.salesStaffId !== matchedFollowUp.salesStaffId && (
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, salesStaffId: matchedFollowUp.salesStaffId }))}
-                    className="text-orange-700 dark:text-orange-300 hover:text-orange-900 dark:hover:text-orange-100 font-bold whitespace-nowrap"
-                  >
-                    {direction === 'rtl' ? 'تعيين' : 'Assign'}
-                  </button>
-                )}
-              </div>
-            )}
+            {/* 🔒 لو الرقم متطابق مع متابعة موكّل ليها سيلز، نعرض رسالة مختلفة حسب الصلاحية */}
+            {matchedFollowUp && (() => {
+              const canOverride = user?.role === 'OWNER' || user?.role === 'ADMIN'
+              return (
+                <div className="mt-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                  📋 {direction === 'rtl'
+                    ? canOverride
+                      ? <>المتابع للزائر ده: <strong>{matchedFollowUp.salesStaffName}</strong> — تقدر تغيّره لو محتاج</>
+                      : <>السيلز هيترصد للموظف اللي كان بيتابع: <strong>{matchedFollowUp.salesStaffName}</strong> 🔒</>
+                    : canOverride
+                      ? <>Following up with this visitor: <strong>{matchedFollowUp.salesStaffName}</strong> — you can change it if needed</>
+                      : <>Sale will be credited to: <strong>{matchedFollowUp.salesStaffName}</strong> 🔒</>}
+                  {matchedFollowUp.visitorName && (
+                    <span className="text-amber-600 dark:text-amber-400 mx-1">({matchedFollowUp.visitorName})</span>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           <div>
@@ -801,10 +800,15 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         />
       )}
 
-      {/* 💼 اختيار موظف السيلز */}
+      {/* 💼 اختيار موظف السيلز — مقفول لغير OWNER/ADMIN لما الرقم متطابق مع متابعة */}
       <SalesStaffSelector
         value={formData.salesStaffId}
         onChange={(salesStaffId) => setFormData({ ...formData, salesStaffId })}
+        locked={
+          matchedFollowUp && !(user?.role === 'OWNER' || user?.role === 'ADMIN')
+            ? { reason: `${direction === 'rtl' ? 'الموظف اللي كان بيتابع المتابعة' : 'The sales rep already following up'}: ${matchedFollowUp.salesStaffName}` }
+            : undefined
+        }
       />
 
       <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-3">

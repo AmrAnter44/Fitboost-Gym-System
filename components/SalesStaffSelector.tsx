@@ -15,9 +15,11 @@ interface SalesStaffSelectorProps {
   onChange: (salesStaffId: string | null) => void
   /** When true, prompts the user to confirm before swapping an already-set sales staff. */
   requireConfirmIfChanging?: boolean
+  /** When set, the selector is read-only. The server enforces this assignment regardless. */
+  locked?: { reason: string }
 }
 
-export default function SalesStaffSelector({ value, onChange, requireConfirmIfChanging = false }: SalesStaffSelectorProps) {
+export default function SalesStaffSelector({ value, onChange, requireConfirmIfChanging = false, locked }: SalesStaffSelectorProps) {
   const { locale } = useLanguage()
   const [staff, setStaff] = useState<StaffOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,10 +67,21 @@ export default function SalesStaffSelector({ value, onChange, requireConfirmIfCh
         </div>
       ) : (
         <div className="space-y-2">
+          {locked && (
+            <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+              🔒 {locale === 'ar' ? 'محجوز' : 'Locked'}: {locked.reason}
+            </div>
+          )}
+
           <select
             value={value || ''}
             onChange={e => guardedChange(e.target.value || null)}
-            className="w-full px-3 py-2 border border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            disabled={!!locked}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none ${
+              locked
+                ? 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                : 'border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-400'
+            }`}
           >
             <option value="">{locale === 'ar' ? '— بدون موظف سيلز —' : '— No Sales Staff —'}</option>
             {staff.map(s => (
@@ -83,13 +96,15 @@ export default function SalesStaffSelector({ value, onChange, requireConfirmIfCh
               <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
                 💼 {selectedStaff.name}
               </span>
-              <button
-                type="button"
-                onClick={() => guardedChange(null)}
-                className="text-xs text-orange-600 dark:text-orange-400 hover:text-red-500"
-              >
-                ✕
-              </button>
+              {!locked && (
+                <button
+                  type="button"
+                  onClick={() => guardedChange(null)}
+                  className="text-xs text-orange-600 dark:text-orange-400 hover:text-red-500"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           )}
         </div>

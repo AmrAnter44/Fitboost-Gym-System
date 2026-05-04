@@ -305,7 +305,7 @@ export async function DELETE(request: Request) {
     }
 
     // حذف الأنشطة أولاً (deleteMany مش بيعمل cascade)
-    // حذف الأنشطة والمتابعات والزائر في transaction واحد
+    // حذف الأنشطة والمتابعات والزائر + الـ WebsiteLeadImport في transaction واحد
     await prisma.$transaction(async (tx) => {
       const followUpIds = (await tx.followUp.findMany({
         where: { visitorId: id },
@@ -319,6 +319,15 @@ export async function DELETE(request: Request) {
       }
 
       await tx.followUp.deleteMany({ where: { visitorId: id } })
+
+      // ✅ لو الزائر جاي من الموقع، نخلي الـ remoteId في WebsiteLeadImport
+      // محفوظ (عشان الـ background sync ميرجعش يجيبه تاني)، بس ننظف الـ FK
+      // عشان مفيش orphan reference لزائر مش موجود.
+      await tx.websiteLeadImport.updateMany({
+        where: { visitorId: id },
+        data: { visitorId: null }
+      })
+
       await tx.visitor.delete({ where: { id } })
     })
 

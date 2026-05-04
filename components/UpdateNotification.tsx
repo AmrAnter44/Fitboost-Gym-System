@@ -21,6 +21,7 @@ export default function UpdateNotification() {
   const [downloadProgress, setDownloadProgress] = useState(0)
   const [isUpToDate, setIsUpToDate] = useState(false)
   const [updateDownloaded, setUpdateDownloaded] = useState(false)
+  const [isInstalling, setIsInstalling] = useState(false)
 
   // Get current version dynamically from Electron
   const [currentVersion, setCurrentVersion] = useState('...')
@@ -140,10 +141,21 @@ export default function UpdateNotification() {
     const electron = (window as any).electron
     if (!electron?.isElectron) return
 
+    // 🔒 Show fullscreen overlay BEFORE quitAndInstall fires.
+    // Without this, the window vanishes instantly and the user stares at a
+    // blank desktop while the silent installer runs (5–30s).
+    setIsInstalling(true)
+    setUpdateDownloaded(false) // hide the smaller "ready to install" toast
+
+    // Give the overlay ~2s to render and be readable, then fire install.
+    // The window will quit immediately after this call.
+    await new Promise((r) => setTimeout(r, 2000))
+
     try {
       await electron.installUpdate?.()
     } catch (err: any) {
       console.error('Error installing update:', err)
+      setIsInstalling(false)
       setError(err.message || 'فشل تثبيت التحديث')
       setTimeout(() => setError(null), 5000)
     }
@@ -358,6 +370,37 @@ export default function UpdateNotification() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔒 Installing overlay — لو المستخدم دوس Restart Now، نملأ الشاشة بـ
+           "جاري التثبيت" عشان ميشوفش شاشة فاضية لما النافذة تتقفل */}
+      {isInstalling && (
+        <div
+          className="fixed inset-0 z-[99999] bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center"
+          dir={direction}
+        >
+          <div className="text-center text-white px-6 max-w-lg">
+            <div className="text-7xl mb-6 animate-pulse">🔄</div>
+            <h2 className="text-3xl font-bold mb-3">
+              {direction === 'rtl' ? 'جاري تثبيت التحديث...' : 'Installing update...'}
+            </h2>
+            <p className="text-lg opacity-90 mb-6">
+              {direction === 'rtl'
+                ? 'التطبيق هيقفل ويفتح تاني تلقائياً خلال لحظات'
+                : 'The app will close and reopen automatically in a moment'}
+            </p>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-3 h-3 rounded-full bg-white animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-3 h-3 rounded-full bg-white animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-3 h-3 rounded-full bg-white animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <p className="text-sm opacity-75 mt-4">
+              ⚠️ {direction === 'rtl'
+                ? 'متقفلش التطبيق ولا الجهاز خلال التثبيت'
+                : 'Do not close the app or shut down the device during installation'}
+            </p>
           </div>
         </div>
       )}
