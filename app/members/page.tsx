@@ -143,7 +143,9 @@ export default function MembersPage() {
 
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'other' | 'analytics' | 'banned'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
-  const [specificDate, setSpecificDate] = useState('')
+  const [filterSalesId, setFilterSalesId] = useState<string>('all')   // 💼 فلتر السيلز ('all' / '__none__' / staff.id)
+  const [filterCoachId, setFilterCoachId] = useState<string>('all')   // 👨‍🏫 فلتر الكوتش ('all' / '__none__' / staff.id)
+  const [staffList, setStaffList] = useState<Array<{ id: string; name: string; position: string | null }>>([])
 
   // سجل الإيصالات
   const [showReceiptsModal, setShowReceiptsModal] = useState(false)
@@ -241,22 +243,24 @@ export default function MembersPage() {
       })
     }
 
-    if (specificDate) {
+    // 💼 فلتر السيلز ('__none__' = اللي مش محدد لهم سيلز)
+    if (filterSalesId !== 'all') {
       filtered = filtered.filter((member) => {
-        if (!member.expiryDate) return false
-        const expiryDate = new Date(member.expiryDate)
-        const selectedDate = new Date(specificDate)
+        if (filterSalesId === '__none__') return !member.salesStaffId
+        return member.salesStaffId === filterSalesId
+      })
+    }
 
-        return (
-          expiryDate.getFullYear() === selectedDate.getFullYear() &&
-          expiryDate.getMonth() === selectedDate.getMonth() &&
-          expiryDate.getDate() === selectedDate.getDate()
-        )
+    // 👨‍🏫 فلتر الكوتش
+    if (filterCoachId !== 'all') {
+      filtered = filtered.filter((member) => {
+        if (filterCoachId === '__none__') return !member.coachId
+        return member.coachId === filterCoachId
       })
     }
 
     return filtered
-  }, [debouncedSearch, filterStatus, filterPackage, specificDate, membersData])
+  }, [debouncedSearch, filterStatus, filterPackage, filterSalesId, filterCoachId, membersData])
 
   // ✅ جلب المحظورين عند التحميل (لو عنده صلاحية)
   useEffect(() => {
@@ -264,6 +268,18 @@ export default function MembersPage() {
       fetchBannedMembers()
     }
   }, [permissionsLoading])
+
+  // ✅ جلب الموظفين عشان نملي الفلاتر (سيلز + كوتش)
+  useEffect(() => {
+    fetch('/api/staff')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: Array<{ id: string; name: string; position: string | null; isActive?: boolean }>) => {
+        if (Array.isArray(data)) {
+          setStaffList(data.filter(s => s.isActive !== false))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // ✅ Set سريع للبحث عن المحظورين بالهاتف
   const bannedPhones = useMemo(
@@ -393,7 +409,7 @@ export default function MembersPage() {
   // إعادة تعيين الصفحة عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, filterStatus, filterPackage, specificDate])
+  }, [search, filterStatus, filterPackage, filterSalesId, filterCoachId])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
@@ -418,7 +434,8 @@ export default function MembersPage() {
     setSearch('')
     setFilterStatus('all')
     setFilterPackage('all')
-    setSpecificDate('')
+    setFilterSalesId('all')
+    setFilterCoachId('all')
   }
 
   // دالة مساعدة لفلترة الأعضاء حسب الحالة
@@ -603,6 +620,17 @@ export default function MembersPage() {
             <span>🏋️</span>
             <span>{t('nav.memberAttendance')}</span>
           </Link>
+          <button
+            onClick={() => setFilterStatus(filterStatus === 'analytics' ? 'all' : 'analytics')}
+            className={`px-4 sm:px-6 py-2 rounded-lg transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-xs sm:text-sm font-bold ${
+              filterStatus === 'analytics'
+                ? 'bg-gradient-to-r from-purple-700 to-purple-800 text-white'
+                : 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white'
+            }`}
+          >
+            <span>📈</span>
+            <span>{locale === 'ar' ? 'التحليلات' : 'Analytics'}</span>
+          </button>
           {user?.role === 'OWNER' && (
           <button
             onClick={exportToCSV}
@@ -643,12 +671,13 @@ export default function MembersPage() {
             <span>🎯</span>
             <span>{t('members.quickFilters')}</span>
           </h3>
-          {(filterStatus !== 'all' || filterPackage !== 'all' || specificDate) && (
+          {(filterStatus !== 'all' || filterPackage !== 'all' || filterSalesId !== 'all' || filterCoachId !== 'all') && (
             <button
               onClick={() => {
                 setFilterStatus('all')
                 setFilterPackage('all')
-                setSpecificDate('')
+                setFilterSalesId('all')
+                setFilterCoachId('all')
               }}
               className="bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 px-4 py-2 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-800/50 text-sm font-medium"
             >
@@ -657,268 +686,129 @@ export default function MembersPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-          <button
-            onClick={() => setFilterStatus('all')}
-            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
-              filterStatus === 'all'
-                ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-xl border-2 border-primary-400'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
-            }`}
-          >
-            <div className="text-2xl mb-1">📊</div>
-            <div className="text-sm">{t('members.all')}</div>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </button>
-
-          <button
-            onClick={() => setFilterStatus('active')}
-            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
-              filterStatus === 'active'
-                ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-xl border-2 border-green-400'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500'
-            }`}
-          >
-            <div className="text-2xl mb-1">🟢</div>
-            <div className="text-sm">{t('members.active')}</div>
-            <div className="text-2xl font-bold">{stats.active}</div>
-          </button>
-
-          <button
-            onClick={() => setFilterStatus('expiring-soon')}
-            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
-              filterStatus === 'expiring-soon'
-                ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl border-2 border-orange-400'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-orange-400 dark:hover:border-orange-500'
-            }`}
-          >
-            <div className="text-2xl mb-1">🟡</div>
-            <div className="text-sm">{t('members.expiringSoon7Days')}</div>
-            <div className="text-2xl font-bold">{stats.expiringSoon}</div>
-          </button>
-
-          <button
-            onClick={() => setFilterStatus('expired')}
-            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
-              filterStatus === 'expired'
-                ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-xl border-2 border-red-400'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500'
-            }`}
-          >
-            <div className="text-2xl mb-1">🔴</div>
-            <div className="text-sm">{t('members.expiredMembers')}</div>
-            <div className="text-2xl font-bold">{stats.expired}</div>
-          </button>
-
-          {stats.other > 0 && (
-            <button
-              onClick={() => setFilterStatus('other')}
-              className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
-                filterStatus === 'other'
-                  ? 'bg-gradient-to-br from-gray-500 to-gray-600 text-white shadow-xl border-2 border-gray-400'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
-            >
-              <div className="text-2xl mb-1">🏷️</div>
-              <div className="text-sm">{locale === 'ar' ? 'بدون عضوية' : 'Non-Members'}</div>
-              <div className="text-2xl font-bold">{stats.other}</div>
-            </button>
-          )}
-
-          {settings.remainingEnabled && stats.hasRemaining > 0 && (
-            <button
-              onClick={() => setFilterStatus('has-remaining')}
-              className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
-                filterStatus === 'has-remaining'
-                  ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl border-2 border-orange-400'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-orange-400 dark:hover:border-orange-500'
-              }`}
-            >
-              <div className="text-2xl mb-1">💰</div>
-              <div className="text-sm">{locale === 'ar' ? 'عليهم بواقي' : 'Has Remaining'}</div>
-              <div className="text-2xl font-bold">{stats.hasRemaining}</div>
-            </button>
-          )}
-
-          <button
-            onClick={() => setFilterStatus('analytics')}
-            className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
-              filterStatus === 'analytics'
-                ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-xl border-2 border-purple-400'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500'
-            }`}
-          >
-            <div className="text-2xl mb-1">📈</div>
-            <div className="text-sm">{locale === 'ar' ? 'التحليلات' : 'Analytics'}</div>
-          </button>
-
-          {hasPermission('canManageBannedMembers') && (
-            <button
-              onClick={() => { setFilterStatus('banned'); fetchBannedMembers() }}
-              className={`px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 ${
-                filterStatus === 'banned'
-                  ? 'bg-gradient-to-br from-red-700 to-red-800 text-white shadow-xl border-2 border-red-600'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500'
-              }`}
-            >
-              <div className="text-2xl mb-1">🚫</div>
-              <div className="text-sm">{locale === 'ar' ? 'المحظورون' : 'Banned'}</div>
-              <div className="text-2xl font-bold">{bannedMembers.length || ''}</div>
-            </button>
-          )}
-        </div>
-
-        <div className="border-t dark:border-gray-700 pt-4 mt-4">
-          <h4 className="text-lg font-bold mb-3 flex items-center gap-2 dark:text-white">
-            <span>📦</span>
-            <span>{locale === 'ar' ? 'فلترة حسب الباقة' : 'Filter by Package'}</span>
-          </h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <button
-              onClick={() => setFilterPackage('all')}
-              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
-                filterPackage === 'all'
-                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
-              }`}
-            >
-              <div className="text-base">{locale === 'ar' ? 'الكل' : 'All'}</div>
-              <div className="text-lg font-bold mt-1">{membersData.length}</div>
-            </button>
-
-            <button
-              onClick={() => setFilterPackage('month')}
-              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
-                filterPackage === 'month'
-                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
-              }`}
-            >
-              <div className="text-base">{locale === 'ar' ? 'شهر' : 'Month'}</div>
-              <div className="text-lg font-bold mt-1">{stats.packageMonth}</div>
-            </button>
-
-            <button
-              onClick={() => setFilterPackage('3-months')}
-              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
-                filterPackage === '3-months'
-                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
-              }`}
-            >
-              <div className="text-base">{locale === 'ar' ? '3 شهور' : '3 Months'}</div>
-              <div className="text-lg font-bold mt-1">{stats.package3Months}</div>
-            </button>
-
-            <button
-              onClick={() => setFilterPackage('6-months')}
-              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
-                filterPackage === '6-months'
-                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
-              }`}
-            >
-              <div className="text-base">{locale === 'ar' ? '6 شهور' : '6 Months'}</div>
-              <div className="text-lg font-bold mt-1">{stats.package6Months}</div>
-            </button>
-
-            <button
-              onClick={() => setFilterPackage('year')}
-              className={`px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 ${
-                filterPackage === 'year'
-                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
-              }`}
-            >
-              <div className="text-base">{locale === 'ar' ? 'سنة' : 'Year'}</div>
-              <div className="text-lg font-bold mt-1">{stats.packageYear}</div>
-            </button>
-          </div>
-        </div>
-
-        <div className="border-t dark:border-gray-700 pt-4 mt-4">
-          <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-            📅 {t('members.filterByExpiryDate')}
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="date"
-              value={specificDate}
-              onChange={(e) => setSpecificDate(e.target.value)}
-              className="flex-1 px-3 py-2 md:px-4 md:py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none transition"
-              dir={direction}
-            />
-            {specificDate && (
-              <button
-                onClick={() => setSpecificDate('')}
-                className="px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
-              >
-                ✖️
-              </button>
-            )}
-          </div>
-          {specificDate && (
-            <p className="text-sm text-primary-600 dark:text-primary-400 mt-2">
-              🔍 {t('members.showingMembersExpiring')}: {new Date(specificDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 border-2 border-primary-200 dark:border-primary-700" dir={direction}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold flex items-center gap-2 dark:text-white">
-            <span>🔍</span>
-            <span>{t('members.directSearch')}</span>
-          </h3>
-          {search && (
-            <button
-              onClick={clearSearch}
-              className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-800/50 text-sm font-medium"
-            >
-              ✖️ {t('members.clearSearch')}
-            </button>
-          )}
-        </div>
-
-        <div className="relative">
-          <span className="absolute inset-y-0 right-3 flex items-center text-gray-400 pointer-events-none text-lg">🔍</span>
+        {/* 🔍 سيرش مدمج جمب الفلاتر */}
+        <div className="relative mb-3">
+          <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none text-base`}>🔍</span>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-3 pr-10 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:border-primary-500 focus:outline-none transition text-base"
+            className={`w-full ${direction === 'rtl' ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none text-sm`}
             placeholder={locale === 'ar' ? 'ابحث بالاسم أو الرقم أو التليفون...' : 'Search by name, number or phone...'}
             dir={direction}
-            autoFocus
           />
           {search && (
             <button
               onClick={clearSearch}
-              className="absolute inset-y-0 left-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className={`absolute inset-y-0 ${direction === 'rtl' ? 'left-3' : 'right-3'} flex items-center text-gray-400 hover:text-red-500`}
+              title={t('members.clearSearch')}
             >
               ✕
             </button>
           )}
         </div>
 
-        {search && (
-          <div className="mt-4 text-center">
-            {search !== debouncedSearch ? (
-              <span className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                🔍 {locale === 'ar' ? 'جاري البحث...' : 'Searching...'}
-              </span>
-            ) : (
-              <span className="bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 px-4 py-2 rounded-lg text-sm font-medium">
-                📊 {t('members.showing', { count: filteredMembers.length.toString(), total: membersData.length.toString() })}
-              </span>
-            )}
+        {/* Quick filters — pill chips بتلف على أكتر من سطر لو محتاجة */}
+        <div className="flex flex-wrap gap-2 mb-1">
+          {([
+            { id: 'all',          icon: '📊', label: t('members.all'),                                                   count: stats.total,          activeBg: 'bg-primary-600 border-primary-600 text-white',                                          inactiveBg: 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-900/40' },
+            { id: 'active',       icon: '🟢', label: t('members.active'),                                                count: stats.active,         activeBg: 'bg-green-600 border-green-600 text-white',                                              inactiveBg: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/40' },
+            { id: 'expiring-soon',icon: '🟡', label: t('members.expiringSoon7Days'),                                     count: stats.expiringSoon,   activeBg: 'bg-orange-500 border-orange-500 text-white',                                            inactiveBg: 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/40' },
+            { id: 'expired',      icon: '🔴', label: t('members.expiredMembers'),                                        count: stats.expired,        activeBg: 'bg-red-600 border-red-600 text-white',                                                  inactiveBg: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/40' },
+            ...(stats.other > 0 ? [{ id: 'other', icon: '🏷️', label: locale === 'ar' ? 'بدون عضوية' : 'Non-Members',     count: stats.other,          activeBg: 'bg-gray-600 border-gray-600 text-white',                                                inactiveBg: 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700' }] : []),
+            ...(settings.remainingEnabled && stats.hasRemaining > 0 ? [{ id: 'has-remaining', icon: '💰', label: locale === 'ar' ? 'بواقي' : 'Has Remaining', count: stats.hasRemaining, activeBg: 'bg-amber-600 border-amber-600 text-white',                                              inactiveBg: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' }] : []),
+            ...(hasPermission('canManageBannedMembers') ? [{ id: 'banned', icon: '🚫', label: locale === 'ar' ? 'محظورون' : 'Banned', count: bannedMembers.length, activeBg: 'bg-red-800 border-red-800 text-white',                                                  inactiveBg: 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/40' }] : [])
+          ] as const).map(chip => {
+            const isActive = filterStatus === chip.id
+            return (
+              <button
+                key={chip.id}
+                onClick={() => {
+                  setFilterStatus(chip.id as any)
+                  if (chip.id === 'banned') fetchBannedMembers()
+                }}
+                className={`shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-full border-2 text-sm font-semibold transition ${
+                  isActive ? chip.activeBg + ' shadow-md scale-[1.02]' : chip.inactiveBg
+                }`}
+              >
+                <span className="text-base leading-none">{chip.icon}</span>
+                <span>{chip.label}</span>
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.5rem] text-center ${
+                  isActive ? 'bg-white/25' : 'bg-white dark:bg-gray-900/40'
+                }`}>
+                  {chip.count || 0}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* فلاتر مدمجة: الباقة + السيلز + الكوتش */}
+        <div className="border-t dark:border-gray-700 pt-4 mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-sm font-medium mb-1.5 dark:text-gray-200 flex items-center gap-1.5">
+              <span>📦</span>
+              <span>{locale === 'ar' ? 'الباقة' : 'Package'}</span>
+            </label>
+            <select
+              value={filterPackage}
+              onChange={(e) => setFilterPackage(e.target.value as any)}
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none"
+            >
+              <option value="all">{locale === 'ar' ? '— كل الباقات —' : '— All Packages —'} ({membersData.length})</option>
+              <option value="month">{locale === 'ar' ? 'شهر' : 'Month'} ({stats.packageMonth})</option>
+              <option value="3-months">{locale === 'ar' ? '3 شهور' : '3 Months'} ({stats.package3Months})</option>
+              <option value="6-months">{locale === 'ar' ? '6 شهور' : '6 Months'} ({stats.package6Months})</option>
+              <option value="year">{locale === 'ar' ? 'سنة' : 'Year'} ({stats.packageYear})</option>
+            </select>
           </div>
-        )}
+
+          <div>
+            <label className="block text-sm font-medium mb-1.5 dark:text-gray-200 flex items-center gap-1.5">
+              <span>💼</span>
+              <span>{locale === 'ar' ? 'السيلز' : 'Sales'}</span>
+            </label>
+            <select
+              value={filterSalesId}
+              onChange={(e) => setFilterSalesId(e.target.value)}
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none"
+            >
+              <option value="all">{locale === 'ar' ? '— كل السيلز —' : '— All Sales —'}</option>
+              <option value="__none__">{locale === 'ar' ? '🚫 بدون سيلز' : '🚫 No Sales'}</option>
+              {staffList
+                .filter(s => s.position && s.position.split(',').map(p => p.trim()).includes('sales'))
+                .map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1.5 dark:text-gray-200 flex items-center gap-1.5">
+              <span>👨‍🏫</span>
+              <span>{locale === 'ar' ? 'الكوتش' : 'Coach'}</span>
+            </label>
+            <select
+              value={filterCoachId}
+              onChange={(e) => setFilterCoachId(e.target.value)}
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none"
+            >
+              <option value="all">{locale === 'ar' ? '— كل الكوتشات —' : '— All Coaches —'}</option>
+              <option value="__none__">{locale === 'ar' ? '🚫 بدون كوتش' : '🚫 No Coach'}</option>
+              {staffList
+                .filter(s => s.position && (
+                  s.position.split(',').map(p => p.trim()).includes('coach') ||
+                  s.position.split(',').map(p => p.trim()).includes('مدرب')
+                ))
+                .map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      {(search || filterStatus !== 'all' || filterPackage !== 'all' || specificDate) && (
+      {(search || filterStatus !== 'all' || filterPackage !== 'all' || filterSalesId !== 'all' || filterCoachId !== 'all') && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 p-4 rounded-xl mb-6 flex flex-wrap items-center justify-between gap-2" dir={direction}>
           <div className="flex items-center gap-2">
             <span className="text-2xl">🔎</span>
@@ -1341,6 +1231,22 @@ export default function MembersPage() {
                         </div>
                       </div>
 
+                      {/* 💼 سيلز / 👨‍🏫 كوتش tags — تظهر فقط لو في تخصيص */}
+                      {(member.salesStaff?.name || member.coach?.name) && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {member.salesStaff?.name && (
+                            <span className="inline-flex items-center gap-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                              💼 {member.salesStaff.name}
+                            </span>
+                          )}
+                          {member.coach?.name && (
+                            <span className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                              👨‍🏫 {member.coach.name}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       {/* Remaining days info */}
                       {member.expiryDate && !isNotStartedYet && daysRemaining !== null && daysRemaining > 0 && (
                         <p className={`text-xs text-center ${isExpiringSoon ? 'text-orange-600 font-bold' : 'text-gray-500 dark:text-gray-400'}`}>
@@ -1469,7 +1375,7 @@ export default function MembersPage() {
 
       {filteredMembers.length === 0 && !loading && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center text-gray-500 dark:text-gray-400" dir={direction}>
-          {(search || filterStatus !== 'all' || specificDate) ? (
+          {(search || filterStatus !== 'all' || filterPackage !== 'all' || filterSalesId !== 'all' || filterCoachId !== 'all') ? (
             <>
               <div className="text-6xl mb-4">🔍</div>
               <p className="text-xl">{t('members.noMatchingResults')}</p>

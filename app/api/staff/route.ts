@@ -231,8 +231,14 @@ export async function PUT(request: Request) {
     if (salesCommissionRate !== undefined) updateData.salesCommissionRate = salesCommissionRate !== null && salesCommissionRate !== '' ? parseFloat(salesCommissionRate) : null
     if (salesCommissionTiers !== undefined) updateData.salesCommissionTiers = salesCommissionTiers || null
 
-    // ✅ إذا كان في تحديث للـ staffCode، تحقق من عدم التكرار
+    // ✅ إذا كان في تحديث للـ staffCode — مسموح فقط للـ OWNER/ADMIN
     if (staffCode !== undefined) {
+      if (user.role !== 'OWNER' && user.role !== 'ADMIN') {
+        return NextResponse.json({
+          error: 'تغيير رقم الموظف مسموح للأدمن والأونر فقط'
+        }, { status: 403 })
+      }
+
       const existingStaff = await prisma.staff.findUnique({
         where: { staffCode: staffCode }
       })

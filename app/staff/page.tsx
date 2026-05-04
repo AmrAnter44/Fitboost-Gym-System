@@ -858,11 +858,13 @@ const handleScan = async (staffCode: string) => {
                   minLength={9}
                   maxLength={9}
                   pattern="\d{9}"
-                  disabled={!!editingStaff}
+                  disabled={!!editingStaff && !isAdmin}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {editingStaff
-                    ? t('staff.form.staffNumberLocked')
+                    ? isAdmin
+                      ? (direction === 'rtl' ? '✏️ تقدر تغيّر الرقم — مسموح للأدمن والأونر فقط' : '✏️ You can change the number — admin/owner only')
+                      : t('staff.form.staffNumberLocked')
                     : t('staff.form.staffNumberHint')}
                 </p>
               </div>

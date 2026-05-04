@@ -78,7 +78,6 @@ export default function SearchModal() {
   const [searchMode, setSearchMode] = useState<SearchMode>('id')
   const [memberId, setMemberId] = useState('')
   const [searchName, setSearchName] = useState('')
-  const [searchPhone, setSearchPhone] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
@@ -522,7 +521,8 @@ export default function SearchModal() {
   }, [isOpen, searchValue, searched, handleSearchById])
 
   const handleSearchByName = async (silent: boolean = false) => {
-    if (!searchName.trim() && !searchPhone.trim()) {
+    const query = searchName.trim()
+    if (!query) {
       if (!silent) playAlarmSound()
       setAttendanceMessage({
         type: 'error',
@@ -544,29 +544,19 @@ export default function SearchModal() {
       const ptRes = await fetch('/api/pt')
       const ptSessions = await ptRes.json()
 
-      const filteredMembers = members.filter((m: any) => {
-        const nameMatch = searchName.trim()
-          ? m.name.toLowerCase().includes(searchName.trim().toLowerCase())
-          : true
-        const phoneMatch = searchPhone.trim()
-          ? m.phone.includes(searchPhone.trim())
-          : true
-        return nameMatch && phoneMatch
-      })
+      // البحث الموحّد: نطابق الاسم أو رقم التليفون لنفس القيمة
+      const queryLower = query.toLowerCase()
+      const filteredMembers = members.filter((m: any) =>
+        m.name.toLowerCase().includes(queryLower) || (m.phone || '').includes(query)
+      )
 
       filteredMembers.forEach((member: any) => {
         foundResults.push({ type: 'member', data: member })
       })
 
-      const filteredPT = ptSessions.filter((pt: any) => {
-        const nameMatch = searchName.trim()
-          ? pt.clientName.toLowerCase().includes(searchName.trim().toLowerCase())
-          : true
-        const phoneMatch = searchPhone.trim()
-          ? pt.phone.includes(searchPhone.trim())
-          : true
-        return nameMatch && phoneMatch
-      })
+      const filteredPT = ptSessions.filter((pt: any) =>
+        pt.clientName.toLowerCase().includes(queryLower) || (pt.phone || '').includes(query)
+      )
 
       filteredPT.forEach((pt: any) => {
         foundResults.push({ type: 'pt', data: pt })
@@ -849,38 +839,25 @@ export default function SearchModal() {
                       </div>
 
                       <div className="flex-1">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
-                          <div>
-                            <label className="block text-xs font-medium mb-0.5 text-gray-700 dark:text-gray-200">{t('search.name')}</label>
-                            <input
-                              ref={nameRef}
-                              type="text"
-                              value={searchName}
-                              onChange={(e) => setSearchName(e.target.value)}
-                              onKeyPress={handleNameKeyPress}
-                              className="w-full px-2 py-1.5 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 dark:focus:ring-green-700 transition"
-                              placeholder={t('search.namePlaceholder')}
-                              data-search-input
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-medium mb-0.5 text-gray-700 dark:text-gray-200">{t('search.phoneNumber')}</label>
-                            <input
-                              type="tel"
-                              value={searchPhone}
-                              onChange={(e) => setSearchPhone(e.target.value)}
-                              onKeyPress={handleNameKeyPress}
-                              className="w-full px-2 py-1.5 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 dark:focus:ring-green-700 transition"
-                              placeholder={t('search.phonePlaceholder')}
-                              data-search-input
-                            />
-                          </div>
+                        <div className="mb-2">
+                          <label className="block text-xs font-medium mb-0.5 text-gray-700 dark:text-gray-200">
+                            {direction === 'rtl' ? 'الاسم أو رقم الهاتف' : 'Name or Phone'}
+                          </label>
+                          <input
+                            ref={nameRef}
+                            type="text"
+                            value={searchName}
+                            onChange={(e) => setSearchName(e.target.value)}
+                            onKeyPress={handleNameKeyPress}
+                            className="w-full px-3 py-2 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 dark:focus:ring-green-700 transition"
+                            placeholder={direction === 'rtl' ? 'اكتب الاسم أو رقم الهاتف...' : 'Type name or phone number...'}
+                            data-search-input
+                          />
                         </div>
 
                         <button
                           onClick={() => handleSearchByName()}
-                          disabled={loading || (!searchName.trim() && !searchPhone.trim())}
+                          disabled={loading || !searchName.trim()}
                           className="w-full px-3 py-2 bg-green-600 text-white text-sm sm:text-base font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
                         >
                           🔍 {t('search.search')}
@@ -889,7 +866,7 @@ export default function SearchModal() {
                     </div>
 
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5">
-                      💡 {t('search.searchTip')}
+                      💡 {direction === 'rtl' ? 'هتلاقى نتائج تطابق الاسم أو رقم الهاتف للقيمة دي' : 'Searches both name and phone for this value'}
                     </p>
                   </div>
                 </div>
@@ -916,7 +893,7 @@ export default function SearchModal() {
                       <p className="text-sm text-red-500 dark:text-red-300 px-3">
                         {searchMode === 'id'
                           ? `${t('search.searchingFor')} "${memberId}"`
-                          : `${t('search.searchingFor')} "${searchName || searchPhone}"`
+                          : `${t('search.searchingFor')} "${searchName}"`
                         }
                       </p>
                     </div>

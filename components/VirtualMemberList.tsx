@@ -20,6 +20,8 @@ interface Member {
   freezeUntil?: string
   startDate?: string
   expiryDate?: string
+  salesStaff?: { id: string; name: string } | null
+  coach?: { id: string; name: string } | null
 }
 
 interface MemberCardRowProps {
@@ -182,6 +184,22 @@ const MemberCardRow = ({
               </span>
             </div>
           </div>
+
+          {/* 💼 سيلز / 👨‍🏫 كوتش tags */}
+          {(member.salesStaff?.name || member.coach?.name) && (
+            <div className="flex flex-wrap gap-1.5">
+              {member.salesStaff?.name && (
+                <span className="inline-flex items-center gap-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                  💼 {member.salesStaff.name}
+                </span>
+              )}
+              {member.coach?.name && (
+                <span className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                  👨‍🏫 {member.coach.name}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Days remaining */}
           {member.expiryDate && !isNotStartedYet && daysRemaining !== null && daysRemaining > 0 && (

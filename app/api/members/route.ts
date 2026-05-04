@@ -111,7 +111,7 @@ export async function GET(request: Request) {
       data: { isActive: false }
     })
 
-    // جلب كل الأعضاء (مع فلتر السيلز لو موجود)
+    // جلب كل الأعضاء (مع فلتر السيلز لو موجود) + اسم السيلز/الكوتش للتاج في الكروت
     const members = await prisma.member.findMany({
       where: salesOnlyFilter,
       orderBy: { memberNumber: 'desc' },
@@ -122,7 +122,9 @@ export async function GET(request: Request) {
           orderBy: { endDate: 'desc' },
           take: 1,
           select: { endDate: true }
-        }
+        },
+        salesStaff: { select: { id: true, name: true } },
+        coach: { select: { id: true, name: true } }
       }
     })
 
@@ -344,6 +346,37 @@ export async function POST(request: Request) {
       referrerId = referrer.id
     }
 
+    // 🔒 قفل تخصيص السيلز: لو رقم التليفون ده موجود في متابعة لسه مش مؤرشفة
+    // ومعيّن لها سيلز، الـ Member الجديد بيترصد لنفس السيلز بالقوة — لكن
+    // الـ OWNER والـ ADMIN يقدروا يعدّلوه يدوياً (ويتسجل في audit log).
+    const submittedSalesStaffId: string | null = salesStaffId || null
+    let forcedFromFollowUp: { from: string | null; to: string } | null = null
+    let adminOverride: { from: string; to: string | null; role: string } | null = null
+    let effectiveSalesStaffId: string | null = submittedSalesStaffId
+    const isPrivileged = user.role === 'OWNER' || user.role === 'ADMIN'
+    {
+      const trimmedPhone = (phone || '').trim()
+      if (trimmedPhone) {
+        const matched = await prisma.followUp.findFirst({
+          where: { archived: false, visitor: { phone: trimmedPhone } },
+          orderBy: { createdAt: 'desc' },
+          select: { assignedTo: true }
+        })
+        if (matched?.assignedTo) {
+          if (!isPrivileged) {
+            // ريسبشن وموظفين عاديين: السيرفر بيغصب التخصيص بغض النظر عن اللي اتبعت
+            if (matched.assignedTo !== submittedSalesStaffId) {
+              forcedFromFollowUp = { from: submittedSalesStaffId, to: matched.assignedTo }
+              effectiveSalesStaffId = matched.assignedTo
+            }
+          } else if (matched.assignedTo !== submittedSalesStaffId) {
+            // OWNER/ADMIN قرروا يغيروا — نحترم القرار ونسجله
+            adminOverride = { from: matched.assignedTo, to: submittedSalesStaffId, role: user.role }
+          }
+        }
+      }
+    }
+
     // إنشاء العضو
     const memberData: any = {
       memberNumber: cleanMemberNumber,
@@ -374,7 +407,7 @@ export async function POST(request: Request) {
       startDate: startDate ? new Date(startDate) : null,
       expiryDate: expiryDate ? new Date(expiryDate) : null,
       coachId: coachId || null,
-      salesStaffId: salesStaffId || null,
+      salesStaffId: effectiveSalesStaffId,
       allowedCheckInStart: allowedCheckInStart || null,
       allowedCheckInEnd: allowedCheckInEnd || null,
     }
@@ -392,7 +425,13 @@ export async function POST(request: Request) {
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'CREATE', resource: 'Member', resourceId: member.id,
-      details: { memberNumber: member.memberNumber, name: member.name, phone: member.phone },
+      details: {
+        memberNumber: member.memberNumber,
+        name: member.name,
+        phone: member.phone,
+        ...(forcedFromFollowUp ? { salesStaffForced: forcedFromFollowUp } : {}),
+        ...(adminOverride ? { salesStaffAdminOverride: adminOverride } : {})
+      },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
@@ -509,10 +548,11 @@ export async function POST(request: Request) {
       }
 
       // 💼 جلب اسم السيلز عشان يظهر في الإيصال (مش بس اسم الكاشير)
+      // نستخدم effectiveSalesStaffId اللي ممكن يكون اتغصب من المتابعة
       let salesPersonName: string | null = null
-      if (salesStaffId) {
+      if (effectiveSalesStaffId) {
         const salesStaff = await prisma.staff.findUnique({
-          where: { id: salesStaffId },
+          where: { id: effectiveSalesStaffId },
           select: { name: true }
         })
         salesPersonName = salesStaff?.name || null

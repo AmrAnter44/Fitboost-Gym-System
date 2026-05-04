@@ -118,11 +118,15 @@ export default function ExpensesPage() {
         return
       }
 
-      // إذا كانت سلفة موظف، ضع اسم الموظف في الوصف تلقائياً
+      // إذا كانت سلفة أو مرتب، نملي الوصف تلقائياً لو الـ user ساب الحقل فاضي
       const dataToSend: any = { ...formData }
-      if (formData.type === 'staff_loan' && formData.staffId) {
-        const selectedStaff = staffList.find(s => s.id === formData.staffId)
-        if (selectedStaff) {
+      if (!dataToSend.description || !dataToSend.description.trim()) {
+        const selectedStaff = formData.staffId
+          ? staffList.find(s => s.id === formData.staffId)
+          : null
+        if (formData.type === 'staff_salary') {
+          dataToSend.description = selectedStaff ? `مرتب: ${selectedStaff.name}` : 'مرتب'
+        } else if (formData.type === 'staff_loan' && selectedStaff) {
           dataToSend.description = selectedStaff.name
         }
       }
@@ -456,6 +460,27 @@ export default function ExpensesPage() {
                     disabled={!!editingExpense}
                   >
                     <option value="">{t('expenses.form.selectStaff')}</option>
+                    {(staffList || []).map((staff) => (
+                      <option key={staff.id} value={staff.id}>
+                        {staff.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {formData.type === 'staff_salary' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-200">
+                    {t('expenses.form.staff')} <span className="text-xs text-gray-500">(اختياري)</span>
+                  </label>
+                  <select
+                    value={formData.staffId}
+                    onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    disabled={!!editingExpense}
+                  >
+                    <option value="">— بدون اختيار موظف —</option>
                     {(staffList || []).map((staff) => (
                       <option key={staff.id} value={staff.id}>
                         {staff.name}
