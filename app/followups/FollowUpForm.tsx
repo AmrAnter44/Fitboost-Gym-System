@@ -38,9 +38,8 @@ export default function FollowUpForm({
   onClose
 }: FollowUpFormProps) {
   const { t, direction } = useLanguage()
-  const { user, hasPermission } = usePermissions()
+  const { user } = usePermissions()
   const [loading, setLoading] = useState(false)
-  const [staff, setStaff] = useState<any[]>([])
   const [formData, setFormData] = useState({
     visitorId: initialVisitorId,
     salesName: user?.name || '',
@@ -48,47 +47,21 @@ export default function FollowUpForm({
     result: '',
     nextFollowUpDate: initialDate,
     contacted: true,
-    assignedTo: '', // فارغ - بدون إسناد تلقائي
+    assignedTo: '',
     priority: 'medium',
     stage: 'new'
   })
 
-  // جلب الموظفين النشطين - فقط إذا كان لديه صلاحية
-  const canViewStaff = hasPermission('canViewStaff')
-  useEffect(() => {
-    if (!canViewStaff) return
-
-    fetch('/api/staff')
-      .then(res => res.json())
-      .then(data => {
-        const activeStaff = data.filter((s: any) => s.isActive)
-        setStaff(activeStaff)
-      })
-      .catch(err => console.error('Error fetching staff:', err))
-  }, [canViewStaff])
-
-  // ✅ تعبئة اسم السيلز وmoظف السيلز تلقائياً من المستخدم المسجل
+  // ✅ المتابعة دائماً تُسند للمستخدم المسجل دخول حالياً
   useEffect(() => {
     if (user?.name) {
       setFormData(prev => ({
         ...prev,
         salesName: user.name,
-        // أي يوزر عنده staffId يتضبط تلقائياً
         ...(user.staffId ? { assignedTo: user.staffId } : {})
       }))
     }
   }, [user])
-
-  // لما الـ staff list تتحمل، حدّث salesName بناءً على assignedTo
-  useEffect(() => {
-    if (staff.length === 0) return
-    setFormData(prev => {
-      if (!prev.assignedTo) return prev
-      const matched = staff.find(s => s.id === prev.assignedTo)
-      if (!matched) return prev
-      return { ...prev, salesName: matched.name }
-    })
-  }, [staff])
 
   // تحديث visitorId لما يتغير من الخارج
   useEffect(() => {
@@ -152,7 +125,7 @@ export default function FollowUpForm({
         result: '',
         nextFollowUpDate: '',
         contacted: true,
-        assignedTo: (user?.isSales && user?.staffId) ? user.staffId : '',
+        assignedTo: user?.staffId || '',
         priority: 'medium',
         stage: 'new'
       })
@@ -261,36 +234,6 @@ export default function FollowUpForm({
               />
             </div>
           </div>
-
-          {/* موظف السيلز */}
-          {canViewStaff && !user?.isSales && (
-            <div>
-              <label className="block text-sm font-medium mb-1 dark:text-gray-100">
-                💼 موظف السيلز (اختياري)
-              </label>
-              <select
-                value={formData.assignedTo}
-                onChange={(e) => {
-                  const selected = staff.find(s => s.id === e.target.value)
-                  setFormData({
-                    ...formData,
-                    assignedTo: e.target.value,
-                    salesName: selected ? selected.name : (user?.name || '')
-                  })
-                }}
-                className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">— بدون موظف سيلز —</option>
-                {staff
-                  .filter(s => s.position && s.position.split(',').map((p: string) => p.trim()).includes('sales'))
-                  .map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} — #{s.staffCode}
-                    </option>
-                  ))}
-              </select>
-            </div>
-          )}
 
           <button
             type="submit"

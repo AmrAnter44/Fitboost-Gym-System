@@ -157,7 +157,8 @@ export default function MemberDetailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const memberId = params.id as string
-  const { hasPermission, loading: permissionsLoading } = usePermissions()
+  const { hasPermission, user: currentUser, loading: permissionsLoading } = usePermissions()
+  const canOverrideInvitationSales = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN'
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
@@ -177,6 +178,11 @@ export default function MemberDetailPage() {
   const [lastReceiptNumber, setLastReceiptNumber] = useState<number | null>(null)
   const [ptSubscription, setPtSubscription] = useState<any>(null)
   const [showIdCardModal, setShowIdCardModal] = useState(false)
+  const [missingImageUpload, setMissingImageUpload] = useState<
+    | { field: 'profileImage' | 'idCardFront' | 'idCardBack'; label: string }
+    | null
+  >(null)
+  const [missingImageUploading, setMissingImageUploading] = useState(false)
   const [nutritionSubscriptions, setNutritionSubscriptions] = useState<any[]>([])
   const [physioSubscriptions, setPhysioSubscriptions] = useState<any[]>([])
   const [groupClassSubscriptions, setGroupClassSubscriptions] = useState<any[]>([])
@@ -384,6 +390,35 @@ export default function MemberDetailPage() {
       toast.error(t('memberDetails.errorLoadingData'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 📸 رفع صورة ناقصة (شخصية أو بطاقة) — يعمل لأي مستخدم مسجل دخول طالما الحقل فاضي
+  const uploadMissingImage = async (
+    field: 'profileImage' | 'idCardFront' | 'idCardBack',
+    imageUrl: string | null
+  ) => {
+    if (!imageUrl || !member?.id) return
+    setMissingImageUploading(true)
+    try {
+      const response = await fetch(`/api/members/${member.id}/upload-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field, imageUrl })
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        toast.error(data?.error || (locale === 'ar' ? 'فشل رفع الصورة' : 'Failed to upload image'))
+        return
+      }
+      toast.success(locale === 'ar' ? 'تم رفع الصورة بنجاح' : 'Image uploaded successfully')
+      setMissingImageUpload(null)
+      await fetchMember()
+    } catch (error) {
+      console.error('Error uploading missing image:', error)
+      toast.error(locale === 'ar' ? 'فشل رفع الصورة' : 'Failed to upload image')
+    } finally {
+      setMissingImageUploading(false)
     }
   }
 
@@ -664,13 +699,21 @@ export default function MemberDetailPage() {
           .filter((s: any) => s.position?.split(',').map((p: string) => p.trim()).includes('sales'))
           .map((s: any) => ({ id: s.staffId, name: s.name, leadsCount: s.leadsCount ?? 0 }))
         setInvitationSalesStaff(list)
+        // 🔒 الافتراضي = السيلز المرتبط بالعضو نفسه (لو موجود).
+        // لو العضو مفيهوش سيلز، ساعتها بس نـfallback للأقل ليدز.
         if (list.length > 0) {
-          const least = [...list].sort((a: any, b: any) => a.leadsCount - b.leadsCount)[0]
-          setInvitationData(prev => ({ ...prev, salesStaffId: least.id }))
+          const memberSalesId = (member as any)?.salesStaffId
+          const memberSalesInList = memberSalesId ? list.find((s: any) => s.id === memberSalesId) : null
+          if (memberSalesInList) {
+            setInvitationData(prev => ({ ...prev, salesStaffId: memberSalesId }))
+          } else {
+            const least = [...list].sort((a: any, b: any) => a.leadsCount - b.leadsCount)[0]
+            setInvitationData(prev => ({ ...prev, salesStaffId: least.id }))
+          }
         }
       })
       .catch(() => {})
-  }, [activeModal])
+  }, [activeModal, member])
 
   const handlePayment = async () => {
     if (!member || paymentData.amount <= 0) {
@@ -1558,7 +1601,7 @@ export default function MemberDetailPage() {
 
       <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white rounded-2xl shadow-2xl p-8 mb-6">
         {/* صورة العضو */}
-        <div className="flex justify-center mb-6">
+        <div className="flex flex-col items-center mb-6">
           <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-white dark:border-gray-300 shadow-2xl bg-white dark:bg-gray-800">
             {member.profileImage ? (
               <img
@@ -1574,6 +1617,15 @@ export default function MemberDetailPage() {
               </div>
             )}
           </div>
+          {!member.profileImage && (
+            <button
+              type="button"
+              onClick={() => setMissingImageUpload({ field: 'profileImage', label: locale === 'ar' ? 'الصورة الشخصية' : 'Profile Image' })}
+              className="mt-3 bg-white/90 hover:bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-full shadow-md transition"
+            >
+              📷 {locale === 'ar' ? 'إضافة صورة شخصية' : 'Add Profile Image'}
+            </button>
+          )}
         </div>
 
         <div className={(member.coach || (member as any).salesStaff) ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "grid grid-cols-1 md:grid-cols-3 gap-6"}>
@@ -1666,17 +1718,15 @@ export default function MemberDetailPage() {
                   </svg>
                 </button>
               )}
-              {(member.idCardFront || member.idCardBack) && (
-                <button
-                  onClick={() => setShowIdCardModal(true)}
-                  className="bg-secondary-500 hover:bg-secondary-600 text-white rounded-full p-1.5 transition-all hover:scale-110"
-                  title={t('memberDetails.viewIdCardImages')}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                  </svg>
-                </button>
-              )}
+              <button
+                onClick={() => setShowIdCardModal(true)}
+                className="bg-secondary-500 hover:bg-secondary-600 text-white rounded-full p-1.5 transition-all hover:scale-110"
+                title={t('memberDetails.viewIdCardImages')}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                </svg>
+              </button>
             </div>
             <p className="text-5xl font-bold">{member.memberNumber !== null ? `#${member.memberNumber}` : <span className="bg-white/20 px-3 py-1 rounded-full text-2xl">Other</span>}</p>
           </div>
@@ -2948,34 +2998,32 @@ export default function MemberDetailPage() {
             }
           }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} dir={direction}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold flex items-center gap-2">
-                <span>🎟️</span>
-                <span>{t('memberDetails.invitationModal.title')}</span>
-              </h3>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()} dir={direction}>
+            {/* Header — ثابت */}
+            <div className="flex justify-between items-center px-5 pt-4 pb-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <span>🎟️</span>
+                  <span>{t('memberDetails.invitationModal.title')}</span>
+                </h3>
+                <p className="text-xs text-primary-700 dark:text-primary-300 mt-0.5 truncate">
+                  <strong>{member.name}</strong> (#{member.memberNumber || '—'}) — {t('memberDetails.invitationModal.invitationsRemaining', { count: (member.invitations ?? 0).toString() })}
+                </p>
+              </div>
               <button
                 onClick={() => {
                   setActiveModal(null)
                   setInvitationData({ guestName: '', guestPhone: '', notes: '', salesStaffId: '' })
                 }}
-                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-3xl leading-none"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-3xl leading-none shrink-0 mr-2"
                 type="button"
               >
                 ×
               </button>
             </div>
 
-            <div className={`bg-primary-50 dark:bg-primary-900/30 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500 dark:border-primary-400 p-4 rounded-lg mb-6`}>
-              <p className="font-bold text-primary-800 dark:text-primary-200">
-                {t('memberDetails.invitationModal.memberLabel', { name: member.name, number: member.memberNumber?.toString() || 'Other' })}
-              </p>
-              <p className="text-sm text-primary-700 dark:text-primary-300 mt-1">
-                {t('memberDetails.invitationModal.invitationsRemaining', { count: (member.invitations ?? 0).toString() })}
-              </p>
-            </div>
-
-            <div className="space-y-4">
+            {/* Body — scrollable */}
+            <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('memberDetails.invitationModal.guestName')} <span className="text-red-600 dark:text-red-400">{t('memberDetails.invitationModal.required')}</span>
@@ -3004,28 +3052,45 @@ export default function MemberDetailPage() {
                 />
               </div>
 
-              {invitationSalesStaff.length > 0 && (
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-100 mb-2">
-                    💼 موظف السيلز المسؤول
-                  </label>
-                  <select
-                    value={invitationData.salesStaffId}
-                    onChange={(e) => setInvitationData({ ...invitationData, salesStaffId: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
-                  >
-                    <option value="">— بدون تعيين (تلقائي) —</option>
-                    {invitationSalesStaff.map(s => {
-                      const isLeast = s.id === [...invitationSalesStaff].sort((a, b) => a.leadsCount - b.leadsCount)[0]?.id
-                      return (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({s.leadsCount} ليد){isLeast ? ' ✨ مقترح' : ''}
-                        </option>
-                      )
-                    })}
-                  </select>
-                </div>
-              )}
+              {invitationSalesStaff.length > 0 && (() => {
+                const memberSalesId = (member as any)?.salesStaffId
+                const lockToMemberSales = !!memberSalesId && !canOverrideInvitationSales
+                const memberSalesName = memberSalesId
+                  ? invitationSalesStaff.find(s => s.id === memberSalesId)?.name || '—'
+                  : null
+                return (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-100 mb-2">
+                      💼 موظف السيلز المسؤول
+                    </label>
+                    {lockToMemberSales && (
+                      <div className="mb-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                        🔒 محجوز للسيلز المسؤول عن العضو: <strong>{memberSalesName}</strong>
+                      </div>
+                    )}
+                    <select
+                      value={lockToMemberSales ? memberSalesId : invitationData.salesStaffId}
+                      onChange={(e) => setInvitationData({ ...invitationData, salesStaffId: e.target.value })}
+                      disabled={lockToMemberSales}
+                      className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none ${
+                        lockToMemberSales
+                          ? 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                          : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-primary-500 dark:focus:border-primary-400'
+                      }`}
+                    >
+                      <option value="">— بدون تعيين (تلقائي) —</option>
+                      {invitationSalesStaff.map(s => {
+                        const isLeast = s.id === [...invitationSalesStaff].sort((a, b) => a.leadsCount - b.leadsCount)[0]?.id
+                        return (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({s.leadsCount} ليد){isLeast ? ' ✨ مقترح' : ''}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
+                )
+              })()}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('memberDetails.invitationModal.notes')}</label>
@@ -3038,38 +3103,34 @@ export default function MemberDetailPage() {
                 />
               </div>
 
-              <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
-                  <span className="text-xl">✅</span>
-                  <div>
-                    <p className="font-semibold">{t('memberDetails.invitationModal.actionsSummary')}</p>
-                    <p className="text-sm">{t('memberDetails.invitationModal.action1')}</p>
-                    <p className="text-sm">{t('memberDetails.invitationModal.action2')}</p>
-                    <p className="text-sm">{t('memberDetails.invitationModal.action3')}</p>
-                  </div>
-                </div>
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg px-3 py-2 text-xs text-green-800 dark:text-green-200">
+                <p className="font-semibold mb-0.5">✅ {t('memberDetails.invitationModal.actionsSummary')}</p>
+                <p>{t('memberDetails.invitationModal.action1')}</p>
+                <p>{t('memberDetails.invitationModal.action2')}</p>
+                <p>{t('memberDetails.invitationModal.action3')}</p>
               </div>
+            </div>
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleSubmitInvitation}
-                  disabled={loading || !invitationData.guestName.trim() || !invitationData.guestPhone.trim()}
-                  className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
-                >
-                  {loading ? t('memberDetails.invitationModal.saving') : `✅ ${t('memberDetails.invitationModal.registerInvitation')}`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveModal(null)
-                    setInvitationData({ guestName: '', guestPhone: '', notes: '', salesStaffId: '' })
-                  }}
-                  className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
-                >
-                  {t('memberDetails.invitationModal.cancel')}
-                </button>
-              </div>
+            {/* Footer — sticky buttons */}
+            <div className="flex gap-2 px-5 py-3 border-t border-gray-200 dark:border-gray-700 shrink-0">
+              <button
+                type="button"
+                onClick={handleSubmitInvitation}
+                disabled={loading || !invitationData.guestName.trim() || !invitationData.guestPhone.trim()}
+                className="flex-1 bg-primary-600 text-white py-2.5 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold text-sm"
+              >
+                {loading ? t('memberDetails.invitationModal.saving') : `✅ ${t('memberDetails.invitationModal.registerInvitation')}`}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModal(null)
+                  setInvitationData({ guestName: '', guestPhone: '', notes: '', salesStaffId: '' })
+                }}
+                className="px-4 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-sm"
+              >
+                {t('memberDetails.invitationModal.cancel')}
+              </button>
             </div>
           </div>
         </div>
@@ -4135,12 +4196,7 @@ export default function MemberDetailPage() {
 
             {/* Content */}
             <div className="p-6">
-              {!member?.idCardFront && !member?.idCardBack ? (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">📭</div>
-                  <p className="text-xl text-gray-600 dark:text-gray-300">{t('memberDetails.idCardModal.noImages')}</p>
-                </div>
-              ) : (
+              {(
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* الوجه الأمامي */}
                   <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-300 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
@@ -4163,7 +4219,14 @@ export default function MemberDetailPage() {
                         <svg className="w-20 h-20 mx-auto mb-3 text-gray-400 dark:text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                         </svg>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{t('memberDetails.idCardModal.noFrontImage')}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 mb-3">{t('memberDetails.idCardModal.noFrontImage')}</p>
+                        <button
+                          type="button"
+                          onClick={() => setMissingImageUpload({ field: 'idCardFront', label: locale === 'ar' ? 'وجه البطاقة' : 'ID Card Front' })}
+                          className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm px-4 py-2 rounded-full shadow-md transition"
+                        >
+                          🆔 {locale === 'ar' ? 'إضافة صورة' : 'Add Image'}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -4189,7 +4252,14 @@ export default function MemberDetailPage() {
                         <svg className="w-20 h-20 mx-auto mb-3 text-gray-400 dark:text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                         </svg>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{t('memberDetails.idCardModal.noBackImage')}</p>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 mb-3">{t('memberDetails.idCardModal.noBackImage')}</p>
+                        <button
+                          type="button"
+                          onClick={() => setMissingImageUpload({ field: 'idCardBack', label: locale === 'ar' ? 'خلف البطاقة' : 'ID Card Back' })}
+                          className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm px-4 py-2 rounded-full shadow-md transition"
+                        >
+                          🆔 {locale === 'ar' ? 'إضافة صورة' : 'Add Image'}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -4213,6 +4283,44 @@ export default function MemberDetailPage() {
                 {t('memberDetails.idCardModal.close')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📸 رفع صورة ناقصة (متاح لأي مستخدم مسجل دخول) */}
+      {missingImageUpload && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+          style={{ zIndex: 10000 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !missingImageUploading) setMissingImageUpload(null)
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-5" dir={direction}>
+            <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
+              <h3 className="text-base font-bold dark:text-white">
+                📷 {locale === 'ar' ? 'إضافة' : 'Add'} {missingImageUpload.label}
+              </h3>
+              <button
+                type="button"
+                onClick={() => !missingImageUploading && setMissingImageUpload(null)}
+                disabled={missingImageUploading}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none disabled:opacity-50"
+              >
+                ×
+              </button>
+            </div>
+            <ImageUpload
+              currentImage={null}
+              onImageChange={(imageUrl) => uploadMissingImage(missingImageUpload.field, imageUrl)}
+              disabled={missingImageUploading}
+              variant={missingImageUpload.field === 'profileImage' ? 'profile' : 'idCard'}
+            />
+            {missingImageUploading && (
+              <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                {locale === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
+              </p>
+            )}
           </div>
         </div>
       )}

@@ -15,6 +15,7 @@ interface Offer {
   name: string
   duration: number
   price: number
+  minPrice?: number | null  // 💰 الحد الأدنى للسعر بعد الخصم
   freePTSessions: number
   inBodyScans: number
   invitations: number
@@ -74,6 +75,7 @@ export default function OffersPage() {
     name: '',
     duration: '',
     price: '',
+    minPrice: '',
     freePTSessions: '',
     freeNutritionSessions: '',
     freePhysioSessions: '',
@@ -137,6 +139,7 @@ export default function OffersPage() {
       name: offer.name,
       duration: offer.duration.toString(),
       price: offer.price.toString(),
+      minPrice: offer.minPrice != null ? offer.minPrice.toString() : '',
       freePTSessions: offer.freePTSessions.toString(),
       freeNutritionSessions: (offer as any).freeNutritionSessions?.toString() || '0',
       freePhysioSessions: (offer as any).freePhysioSessions?.toString() || '0',
@@ -223,6 +226,7 @@ export default function OffersPage() {
       name: '',
       duration: '',
       price: '',
+      minPrice: '',
       freePTSessions: '',
       freeNutritionSessions: '',
       freePhysioSessions: '',
@@ -323,6 +327,26 @@ export default function OffersPage() {
                     placeholder={t('offers.pricePlaceholder')}
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+                    💰 {direction === 'rtl' ? 'الحد الأدنى للسعر بعد الخصم' : 'Minimum Price After Discount'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.minPrice}
+                    onChange={(e) => setFormData({ ...formData, minPrice: e.target.value })}
+                    className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 focus:outline-none dark:bg-gray-700 dark:text-white"
+                    placeholder={direction === 'rtl' ? 'سيب فاضي = مفيش حد أدنى' : 'Leave empty = no minimum'}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {direction === 'rtl'
+                      ? 'الريسبشن مش هيقدر يخفّض السعر تحت ده'
+                      : 'Reception cannot discount below this price'}
+                  </p>
                 </div>
 
                 <div>

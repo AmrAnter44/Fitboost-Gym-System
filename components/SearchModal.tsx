@@ -87,7 +87,7 @@ export default function SearchModal() {
   const nameRef = useRef<HTMLInputElement>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
 
-  const [invitationModal, setInvitationModal] = useState<{isOpen: boolean, memberId: string, memberName: string}>({ isOpen: false, memberId: '', memberName: '' })
+  const [invitationModal, setInvitationModal] = useState<{isOpen: boolean, memberId: string, memberName: string, memberSalesStaffId?: string | null}>({ isOpen: false, memberId: '', memberName: '' })
   const [serviceModal, setServiceModal] = useState<{isOpen: boolean, type: 'freePT' | 'inBody' | 'nutrition' | 'physio' | 'groupClass', memberId: string, memberName: string}>({ isOpen: false, type: 'freePT', memberId: '', memberName: '' })
 
   // Reset when modal opens/closes
@@ -1120,7 +1120,7 @@ export default function SearchModal() {
                                               </div>
                                             </div>
                                             <button
-                                              onClick={() => setInvitationModal({ isOpen: true, memberId: result.data.id, memberName: result.data.name })}
+                                              onClick={() => setInvitationModal({ isOpen: true, memberId: result.data.id, memberName: result.data.name, memberSalesStaffId: result.data.salesStaffId })}
                                               className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                             >
                                               {t('search.use')}
@@ -1321,6 +1321,7 @@ export default function SearchModal() {
         isOpen={invitationModal.isOpen}
         memberId={invitationModal.memberId}
         memberName={invitationModal.memberName}
+        memberSalesStaffId={invitationModal.memberSalesStaffId}
         onClose={() => setInvitationModal({ isOpen: false, memberId: '', memberName: '' })}
         onSuccess={() => refreshResults()}
       />

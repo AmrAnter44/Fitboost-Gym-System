@@ -116,6 +116,24 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
               </h3>
 
               <div className="space-y-1">
+              {/* 💰 السعر الأصلي قبل الخصم (يظهر فقط لو فيه خصم) */}
+              {details.discount && details.discount > 0 && details.originalPrice && (
+                <div className="flex justify-between py-1 border-b dark:border-gray-600 text-sm">
+                  <span className="text-gray-600 dark:text-gray-300">السعر الأصلي</span>
+                  <span className="font-medium text-gray-500 line-through dark:text-gray-400">
+                    {details.originalPrice} {t('common.currency')}
+                  </span>
+                </div>
+              )}
+              {/* 💸 الخصم */}
+              {details.discount && details.discount > 0 && (
+                <div className="flex justify-between py-1 border-b dark:border-gray-600 text-sm">
+                  <span className="text-gray-600 dark:text-gray-300">💸 الخصم</span>
+                  <span className="font-bold text-orange-600 dark:text-orange-400">
+                    - {details.discount} {t('common.currency')}
+                  </span>
+                </div>
+              )}
               {details.subscriptionPrice && (
                 <div className="flex justify-between py-1 border-b dark:border-gray-600 text-sm">
                   <span className="text-gray-600 dark:text-gray-300">{t('receipts.detail.subscriptionPrice')}</span>

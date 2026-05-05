@@ -315,6 +315,7 @@ function migrateDatabase(dbPath) {
       { col: 'icon',                    def: "TEXT NOT NULL DEFAULT '📅'" },
       { col: 'upgradeEligibilityDays',  def: 'INTEGER DEFAULT 7' },
       { col: 'upgradePoints',           def: 'INTEGER NOT NULL DEFAULT 0' },
+      { col: 'minPrice',                def: 'REAL' },  // 💰 الحد الأدنى لسعر الاشتراك بعد الخصم
     ];
     for (const { col, def } of offerCols) {
       if (!columnExists(db, 'Offer', col)) {

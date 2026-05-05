@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { addPoints } from '../../../lib/points'
 import { verifyAuth } from '../../../lib/auth'
+import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 // GET: جلب جميع الدعوات أو دعوات عضو معين
 
@@ -76,6 +77,32 @@ export async function POST(request: Request) {
 
     if (member.invitations <= 0) {
       return NextResponse.json({ error: 'No invitations remaining' }, { status: 400 })
+    }
+
+    // 🔒 قفل تخصيص السيلز للدعوة: السيلز المسؤول عن الدعوة لازم يكون
+    // نفس السيلز المرتبط بالعضو، إلا لو OWNER/ADMIN قرر يغيره يدوياً.
+    const submittedSalesStaffId: string | null = salesStaffId || null
+    const isPrivileged = user.role === 'OWNER' || user.role === 'ADMIN'
+    let effectiveSalesStaffId: string | null = submittedSalesStaffId
+    let invitationSalesForced: { from: string | null; to: string } | null = null
+    let invitationSalesAdminOverride: { from: string | null; to: string | null; role: string } | null = null
+
+    if (member.salesStaffId) {
+      if (!isPrivileged) {
+        if (submittedSalesStaffId !== member.salesStaffId) {
+          invitationSalesForced = { from: submittedSalesStaffId, to: member.salesStaffId }
+        }
+        effectiveSalesStaffId = member.salesStaffId
+      } else if (submittedSalesStaffId && submittedSalesStaffId !== member.salesStaffId) {
+        invitationSalesAdminOverride = {
+          from: member.salesStaffId,
+          to: submittedSalesStaffId,
+          role: user.role
+        }
+      } else if (!submittedSalesStaffId) {
+        // حتى لو الأدمن ما حدّدش، نستخدم سيلز العضو كافتراضي
+        effectiveSalesStaffId = member.salesStaffId
+      }
     }
 
     // التحقق من أن رقم الهاتف ليس مسجلاً كعضو
@@ -165,7 +192,11 @@ export async function POST(request: Request) {
         })
 
         if (!activeFollowUp) {
-          let assignedTo: string | null = salesStaffId || null
+          // 🔒 الـ effectiveSalesStaffId أعلى بياخد في الاعتبار قفل الدور:
+          // - الريسبشن مجبر على سيلز العضو
+          // - الأدمن/الأونر بيقدر يغيره
+          // - فولباك أخير: round-robin لو مفيش سيلز للعضو ولا اتبعت في الـ body
+          let assignedTo: string | null = effectiveSalesStaffId
           if (!assignedTo) {
             try {
               const salesStaffList = await prisma.staff.findMany({
@@ -214,6 +245,29 @@ export async function POST(request: Request) {
     } catch (pointsError) {
       console.error('Error adding invitation points:', pointsError)
       // لا نوقف العملية إذا فشلت إضافة النقاط
+    }
+
+    // 📝 Audit log — فقط لو حصل override (force أو admin) للسيلز
+    if (invitationSalesForced || invitationSalesAdminOverride) {
+      createAuditLog({
+        userId: user.userId,
+        userEmail: user.email,
+        userName: user.name,
+        userRole: user.role,
+        action: 'CREATE',
+        resource: 'Invitation',
+        resourceId: invitation.id,
+        details: {
+          memberId,
+          memberName: member.name,
+          guestName,
+          ...(invitationSalesForced ? { invitationSalesForced } : {}),
+          ...(invitationSalesAdminOverride ? { invitationSalesAdminOverride } : {})
+        },
+        ipAddress: getIpAddress(request),
+        userAgent: getUserAgent(request),
+        status: 'success'
+      })
     }
 
     return NextResponse.json({ invitation, updatedMember })

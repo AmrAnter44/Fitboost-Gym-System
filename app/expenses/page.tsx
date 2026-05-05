@@ -60,6 +60,11 @@ export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [filterType, setFilterType] = useState<'all' | 'gym_expense' | 'staff_loan' | 'staff_salary'>('all')
+  // 🔍 بحث بالاسم (الوصف) أو بالمبلغ
+  const [searchQuery, setSearchQuery] = useState('')
+  // 📅 فلتر التاريخ — 'all' / 'month' / 'day'
+  const [dateFilterMode, setDateFilterMode] = useState<'all' | 'month' | 'day'>('all')
+  const [dateFilterValue, setDateFilterValue] = useState<string>('') // YYYY-MM للشهر، YYYY-MM-DD لليوم
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; expenseId: string | null; expenseName: string }>({
     show: false,
     expenseId: null,
@@ -247,9 +252,43 @@ export default function ExpensesPage() {
     }
   }
 
-  const filteredExpenses = filterType === 'all'
-    ? expenses
-    : expenses.filter(e => e.type === filterType)
+  const filteredExpenses = (() => {
+    let list = filterType === 'all' ? expenses : expenses.filter(e => e.type === filterType)
+
+    // 🔍 search — يطابق الوصف (اسم/notes) أو المبلغ
+    const q = searchQuery.trim()
+    if (q) {
+      const qLower = q.toLowerCase()
+      const numericQ = Number(q)
+      const isNumeric = !isNaN(numericQ) && q !== ''
+      list = list.filter(e => {
+        const desc = (e.description || '').toLowerCase()
+        const notes = (e.notes || '').toLowerCase()
+        const staffName = (e.staff?.name || '').toLowerCase()
+        if (desc.includes(qLower) || notes.includes(qLower) || staffName.includes(qLower)) return true
+        if (isNumeric && Number(e.amount) === numericQ) return true
+        return false
+      })
+    }
+
+    // 📅 date filter — month أو day
+    if (dateFilterMode !== 'all' && dateFilterValue) {
+      list = list.filter(e => {
+        const d = new Date(e.createdAt)
+        if (dateFilterMode === 'month') {
+          // dateFilterValue = "YYYY-MM"
+          const [y, m] = dateFilterValue.split('-').map(Number)
+          return d.getFullYear() === y && d.getMonth() === m - 1
+        } else {
+          // day — dateFilterValue = "YYYY-MM-DD"
+          const [y, m, day] = dateFilterValue.split('-').map(Number)
+          return d.getFullYear() === y && d.getMonth() === m - 1 && d.getDate() === day
+        }
+      })
+    }
+
+    return list
+  })()
 
   // فلترة المصروفات للشهر الحالي فقط للإحصائيات
   const currentMonthExpenses = expenses.filter(expense => {
@@ -574,20 +613,145 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* Filter */}
-      <div className="mb-4" dir={direction}>
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value as any)}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
-          dir={direction}
-        >
-          <option value="all">{t('expenses.filter.all')}</option>
-          <option value="gym_expense">{t('expenses.filter.gymExpenses')}</option>
-          <option value="staff_loan">{t('expenses.filter.staffLoans')}</option>
-          <option value="staff_salary">{t('expenses.filter.staffSalaries')}</option>
-        </select>
-      </div>
+      {/* Filters card */}
+      {(() => {
+        const hasActiveFilters = !!searchQuery || filterType !== 'all' || dateFilterMode !== 'all'
+        const filteredTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount), 0)
+        return (
+          <div className="mb-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" dir={direction}>
+            {/* الفلاتر */}
+            <div className="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+              {/* 🔍 search — lg:col-span-5 */}
+              <div className="lg:col-span-5">
+                <div className="relative">
+                  <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none text-base`}>
+                    🔍
+                  </span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={direction === 'rtl' ? 'ابحث بالاسم، الموظف، أو المبلغ…' : 'Search by name, staff, or amount…'}
+                    className={`w-full ${direction === 'rtl' ? 'pr-10 pl-9' : 'pl-10 pr-9'} py-2.5 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:border-primary-500 focus:outline-none transition`}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className={`absolute inset-y-0 ${direction === 'rtl' ? 'left-2' : 'right-2'} flex items-center text-gray-400 hover:text-red-500 px-1 rounded transition`}
+                      title={direction === 'rtl' ? 'مسح' : 'Clear'}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* type filter — lg:col-span-3 */}
+              <div className="lg:col-span-3">
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as any)}
+                  className="w-full px-3 py-2.5 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:border-primary-500 focus:outline-none transition cursor-pointer"
+                  dir={direction}
+                >
+                  <option value="all">🏷️ {t('expenses.filter.all')}</option>
+                  <option value="gym_expense">🏢 {t('expenses.filter.gymExpenses')}</option>
+                  <option value="staff_loan">💳 {t('expenses.filter.staffLoans')}</option>
+                  <option value="staff_salary">💼 {t('expenses.filter.staffSalaries')}</option>
+                </select>
+              </div>
+
+              {/* 📅 date filter — lg:col-span-4 */}
+              <div className="lg:col-span-4">
+                <div className="flex gap-1.5 h-full">
+                  {/* mode pills */}
+                  <div className="inline-flex rounded-lg border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 p-0.5 shrink-0">
+                    {([
+                      { v: 'all',   label: direction === 'rtl' ? 'الكل' : 'All' },
+                      { v: 'month', label: direction === 'rtl' ? '📅 شهر' : '📅 Month' },
+                      { v: 'day',   label: direction === 'rtl' ? '☀️ يوم' : '☀️ Day' }
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => {
+                          setDateFilterMode(opt.v)
+                          if (opt.v === 'all') {
+                            setDateFilterValue('')
+                          } else if (opt.v === 'month' && !dateFilterValue.match(/^\d{4}-\d{2}$/)) {
+                            const now = new Date()
+                            setDateFilterValue(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+                          } else if (opt.v === 'day' && !dateFilterValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                            const now = new Date()
+                            setDateFilterValue(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`)
+                          }
+                        }}
+                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition ${
+                          dateFilterMode === opt.v
+                            ? 'bg-primary-600 text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* date picker — يظهر فقط مع شهر أو يوم */}
+                  {dateFilterMode === 'month' && (
+                    <input
+                      type="month"
+                      value={dateFilterValue}
+                      onChange={(e) => setDateFilterValue(e.target.value)}
+                      className="flex-1 min-w-0 px-2.5 py-2 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:border-primary-500 focus:outline-none transition"
+                    />
+                  )}
+                  {dateFilterMode === 'day' && (
+                    <input
+                      type="date"
+                      value={dateFilterValue}
+                      onChange={(e) => setDateFilterValue(e.target.value)}
+                      className="flex-1 min-w-0 px-2.5 py-2 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:border-primary-500 focus:outline-none transition"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Filter summary — يظهر فقط لما يكون فيه فلتر شغال */}
+            {hasActiveFilters && (
+              <div className="border-t border-gray-200 dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20 px-3 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-yellow-800 dark:text-yellow-200">
+                  <span className="inline-flex items-center gap-1.5">
+                    🔎 <strong>{filteredExpenses.length}</strong>
+                    <span className="opacity-70">/</span>
+                    <span className="opacity-70">{expenses.length}</span>
+                  </span>
+                  {filteredExpenses.length > 0 && (
+                    <span className="inline-flex items-center gap-1.5">
+                      💰
+                      <strong>{filteredTotal.toLocaleString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</strong>
+                      <span className="opacity-70 text-xs">{t('members.egp')}</span>
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setFilterType('all')
+                    setDateFilterMode('all')
+                    setDateFilterValue('')
+                  }}
+                  className="text-xs px-3 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-yellow-300 dark:border-yellow-700 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/40 font-medium transition"
+                >
+                  ✕ {direction === 'rtl' ? 'مسح الفلاتر' : 'Clear all'}
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Cards Grid */}
       {loading ? (

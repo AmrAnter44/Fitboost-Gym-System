@@ -813,12 +813,21 @@ function setupAutoUpdater() {
   });
 
   // التحقق من التحديثات عند بدء التطبيق
+  // ❗ مهم: الـ renderer بيستدعي check-for-updates IPC من useEffect بعد ما
+  // يـregister الـ listeners. ده بيمنع race condition كان بيخلي الـ
+  // update-available event يضيع (الـ events مش بتتـqueue).
+  // بنخلي backup هنا بعد 15s فقط لو الـ renderer ما اتصلش (مثلاً crash أو hang)
+  // عشان لو حصل، التحديث ما يفضلش متعلق.
   setTimeout(() => {
+    if (rendererTriggeredCheck) return // الـ renderer بدأ بالفعل، ما نعملش double check
     autoUpdater.checkForUpdates().catch(err => {
-      console.error('❌ Failed to check for updates:', err);
+      console.error('❌ Backup update check failed:', err);
     });
-  }, 3000); // انتظر 3 ثواني بعد بدء التطبيق
+  }, 15000);
 }
+
+// flag يبيّن لو الـ renderer استدعى الـ check (عشان ما نعملش backup)
+let rendererTriggeredCheck = false;
 
 // ------------------ IPC Handlers for Updates ------------------
 
@@ -827,6 +836,10 @@ ipcMain.handle('check-for-updates', async () => {
   if (isDev) {
     return { error: 'Updates disabled in development mode' };
   }
+
+  // 🟢 الـ renderer استدعى الـ check بعد ما الـ listeners اتـregisterت.
+  // علّم الـ flag عشان الـ backup setTimeout ما يدوّر تاني.
+  rendererTriggeredCheck = true;
 
   try {
     const result = await autoUpdater.checkForUpdates();
@@ -858,7 +871,10 @@ ipcMain.handle('install-update', () => {
     return { error: 'Updates disabled in development mode' };
   }
 
-  autoUpdater.quitAndInstall(true, true); // silent install عشان ما يظهرش اختيار مسار التثبيت
+  // ✅ isSilent=false → نافذة NSIS تظهر مع progress bar أثناء التثبيت
+  // (مع oneClick:true + allowToChangeInstallationDirectory:false → مفيش ضغطات/اختيار مسار)
+  // isForceRunAfter=true → التطبيق يفتح تلقائياً بعد التثبيت
+  autoUpdater.quitAndInstall(false, true);
 });
 
 // فتح WhatsApp مع PDF جاهز للمشاركة

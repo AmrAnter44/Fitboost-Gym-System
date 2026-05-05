@@ -87,7 +87,7 @@ export default function SearchPage() {
   const audioContextRef = useRef<AudioContext | null>(null)
 
   // حالة الـ modals
-  const [invitationModal, setInvitationModal] = useState<{isOpen: boolean, memberId: string, memberName: string}>({ isOpen: false, memberId: '', memberName: '' })
+  const [invitationModal, setInvitationModal] = useState<{isOpen: boolean, memberId: string, memberName: string, memberSalesStaffId?: string | null}>({ isOpen: false, memberId: '', memberName: '' })
   const [serviceModal, setServiceModal] = useState<{isOpen: boolean, type: 'freePT' | 'inBody' | 'nutrition' | 'physio' | 'groupClass', memberId: string, memberName: string}>({ isOpen: false, type: 'freePT', memberId: '', memberName: '' })
 
   // حفظ آخر بحث للتحديث
@@ -1028,7 +1028,7 @@ export default function SearchPage() {
                                       </div>
                                     </div>
                                     <button
-                                      onClick={() => setInvitationModal({ isOpen: true, memberId: result.data.id, memberName: result.data.name })}
+                                      onClick={() => setInvitationModal({ isOpen: true, memberId: result.data.id, memberName: result.data.name, memberSalesStaffId: result.data.salesStaffId })}
                                       className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                     >
                                       {t('search.use')}
@@ -1230,6 +1230,7 @@ export default function SearchPage() {
         isOpen={invitationModal.isOpen}
         memberId={invitationModal.memberId}
         memberName={invitationModal.memberName}
+        memberSalesStaffId={invitationModal.memberSalesStaffId}
         onClose={() => setInvitationModal({ isOpen: false, memberId: '', memberName: '' })}
         onSuccess={() => {
           // تحديث البيانات بدون صوت
