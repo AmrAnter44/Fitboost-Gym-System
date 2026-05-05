@@ -234,7 +234,9 @@ export async function POST(request: Request) {
       ptCommissionAmount,
       referralMemberNumber,
       allowedCheckInStart,
-      allowedCheckInEnd
+      allowedCheckInEnd,
+      discount,         // 💸 خصم على سعر الباقة (يظهر في الإيصال)
+      originalPrice     // 💰 السعر الأصلي قبل الخصم
     } = body as any
 
 
@@ -581,6 +583,11 @@ export async function POST(request: Request) {
           staffName: staffName.trim(),
           salesPersonName,
           isOther: isOther === true,
+          // 💸 الخصم — يظهر في الإيصال
+          ...(discount && Number(discount) > 0 ? {
+            discount: Number(discount),
+            originalPrice: originalPrice ? Number(originalPrice) : (cleanSubscriptionPrice + Number(discount))
+          } : {}),
         }),
         memberId: member.id,
       }

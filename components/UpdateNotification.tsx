@@ -78,8 +78,19 @@ export default function UpdateNotification() {
       setUpdateAvailable(false)
     })
 
+    // 🟢 لما الـ listeners اتـregisterت، نطلب check للتحديثات.
+    // ده بيحل race condition قديم: لو الـ main process عمل check قبل ما
+    // الـ React listeners تتـmount، الـ events كانت بتضيع (IPC ما بيـqueueش)
+    // والمستخدم ما كانش بيشوف progress bar أو notification أبداً.
+    const checkTimer = setTimeout(() => {
+      electron.checkForUpdates?.().catch((err: any) =>
+        console.warn('Update check failed:', err)
+      )
+    }, 4000)
+
     // Cleanup listeners
     return () => {
+      clearTimeout(checkTimer)
       electron.offUpdateListeners?.()
     }
   }, [setGlobalUpdateAvailable])
@@ -143,13 +154,14 @@ export default function UpdateNotification() {
 
     // 🔒 Show fullscreen overlay BEFORE quitAndInstall fires.
     // Without this, the window vanishes instantly and the user stares at a
-    // blank desktop while the silent installer runs (5–30s).
+    // blank desktop until the NSIS installer window appears.
     setIsInstalling(true)
     setUpdateDownloaded(false) // hide the smaller "ready to install" toast
 
-    // Give the overlay ~2s to render and be readable, then fire install.
-    // The window will quit immediately after this call.
-    await new Promise((r) => setTimeout(r, 2000))
+    // ⏳ نسيب الـ overlay يفضل ظاهر ٥ ثواني قبل ما نقفل التطبيق،
+    // علشان يبقى في انتقال سلس من overlay التطبيق لنافذة NSIS الـprogress
+    // (NSIS هتفتح بعد ثانية تقريباً من quitAndInstall، فالـ gap بيبقى minimal)
+    await new Promise((r) => setTimeout(r, 5000))
 
     try {
       await electron.installUpdate?.()

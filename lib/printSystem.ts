@@ -488,6 +488,15 @@ function generateReceiptHTML(data: ReceiptData): string {
       </div>
     ` : ''}
 
+    ${details.discount && details.discount > 0 && details.originalPrice ? `
+      <div class="detail-item" style="color: #6b7280;">
+        <strong>السعر الأصلي:</strong> <span style="text-decoration: line-through;">${details.originalPrice} جنيه</span>
+      </div>
+      <div class="detail-item" style="color: #ea580c;">
+        <strong>💸 الخصم:</strong> - ${details.discount} جنيه
+      </div>
+    ` : ''}
+
     ${details.paidAmount !== undefined ? `
       <div class="detail-item">
         <strong>المبلغ المدفوع:</strong> ${details.paidAmount} جنيه

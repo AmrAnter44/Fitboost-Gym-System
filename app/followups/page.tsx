@@ -321,15 +321,27 @@ export default function FollowUpsPage() {
   // 🌐 Pull website leads from Supabase → create local Visitors with source=website
   // يتشغل مرة عند فتح الصفحة + كل 5 دقايق طول ما الصفحة مفتوحة
   const [websiteSyncing, setWebsiteSyncing] = useState(false)
+  // ⏸️ لو الـ Supabase راجع 502 (مثلاً quota exceeded)، نوقف auto-sync فوراً
+  // عشان ما نهلكش الـ logs ولا نضرب طلبات في الفراغ كل دقيقة
+  const websitePauseUntilRef = useRef<number>(0)
   const syncWebsiteLeads = useCallback(async (showToastWhenEmpty = false) => {
+    // لو في فترة pause بسبب fail سابق، نتجاهل auto-sync
+    if (!showToastWhenEmpty && Date.now() < websitePauseUntilRef.current) return
+
     setWebsiteSyncing(true)
     try {
       const res = await fetch('/api/visitors/sync-website-leads', { method: 'POST' })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(data?.error || 'فشل الـ sync')
+        // 5xx → الـ Supabase نفسه فاشل (quota / network). نوقف الـ auto-sync ساعة
+        if (res.status >= 500) {
+          websitePauseUntilRef.current = Date.now() + 60 * 60 * 1000
+        }
+        // ⚠️ مفيش toast نهائي عند الفشل — السكوت أفضل
         return
       }
+      // success → نشيل الـ pause لو كان مفعل
+      websitePauseUntilRef.current = 0
       if (data?.imported > 0) {
         queryClient.invalidateQueries({ queryKey: ['followups'] })
         queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
@@ -338,18 +350,11 @@ export default function FollowUpsPage() {
             ? `وصل ${data.imported} زائر جديد من الموقع`
             : `${data.imported} new website lead${data.imported > 1 ? 's' : ''} imported`
         )
-      } else if (showToastWhenEmpty) {
-        // عرض تشخيص واضح لما المستخدم يدوس manual sync ويلاقي مفيش حاجة جديدة
-        const lines: string[] = []
-        if (data?.message) lines.push(data.message)
-        if (data?.found !== undefined) lines.push(`Leads على Supabase لجيمك: ${data.found}`)
-        if (data?.totalAcrossGyms !== undefined) lines.push(`Leads على Supabase لكل الجيمات: ${data.totalAcrossGyms}`)
-        if (data?.alreadyImported) lines.push(`متجابة قبل كده: ${data.alreadyImported}`)
-        if (data?.gymName) lines.push(`الجيم في الرخصة: ${data.gymName}`)
-        toast.info(lines.join(' • ') || 'مفيش leads جديدة')
       }
-    } catch (err: any) {
-      toast.error('خطأ في الاتصال: ' + (err?.message || ''))
+      // ✅ مفيش toast لو مفيش leads جديدة — حتى لما الـ user يدوس manual sync
+    } catch {
+      // network error → نوقف الـ auto-sync ساعة. مفيش toast.
+      websitePauseUntilRef.current = Date.now() + 60 * 60 * 1000
     } finally {
       setWebsiteSyncing(false)
     }

@@ -62,7 +62,9 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateFollowUp')
 
     const body = await request.json()
-    const { visitorId, notes, contacted, nextFollowUpDate, result, salesName, visitorData, assignedTo, priority, stage } = body
+    const { visitorId, notes, contacted, nextFollowUpDate, result, salesName, visitorData, priority, stage } = body
+    // ✅ المتابعة دائماً تُسند للمستخدم المسجل دخول، أيًا كانت قيمة assignedTo في body
+    const assignedTo: string | null = user.staffId || null
 
     if (!visitorId) {
       return NextResponse.json(

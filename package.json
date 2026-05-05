@@ -1,6 +1,6 @@
 {
   "name": "fitboost-system",
-  "version": "6.7.8",
+  "version": "6.7.10",
   "description": "FitBoost - Professional Gym Management System",
   "private": true,
   "main": "electron/main.js",
@@ -169,7 +169,7 @@
       "icon": "public/icon.ico"
     },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,

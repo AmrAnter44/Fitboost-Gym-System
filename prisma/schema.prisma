@@ -259,6 +259,7 @@ model Offer {
   name                    String
   duration                Int
   price                   Float
+  minPrice                Float?   // 💰 الحد الأدنى لسعر الاشتراك بعد الخصم — يحدّه الأونر/الأدمن
   freePTSessions          Int      @default(0)
   freeNutritionSessions   Int      @default(0)
   freePhysioSessions      Int      @default(0)

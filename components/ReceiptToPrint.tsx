@@ -266,6 +266,10 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     message += `*التفاصيل المالية*\n`
     message += `━━━━━━━━━━━━━━━━━━━━\n`
 
+    if (details.discount && details.discount > 0 && details.originalPrice) {
+      message += `- السعر الأصلي: ${details.originalPrice} ج.م\n`
+      message += `- 💸 الخصم: ${details.discount} ج.م\n`
+    }
     if (details.subscriptionPrice > 0) {
       message += `- سعر الاشتراك: ${details.subscriptionPrice} ج.م\n`
     }

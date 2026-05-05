@@ -40,6 +40,7 @@ export type AuditResource =
   | 'Nutrition'
   | 'Physiotherapy'
   | 'More'
+  | 'Invitation'
 
 export type AuditStatus = 'success' | 'failure' | 'warning'
 

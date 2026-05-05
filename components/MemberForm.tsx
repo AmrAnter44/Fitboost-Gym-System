@@ -91,6 +91,15 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     allowedCheckInEnd: ''      // 🕐 ساعة نهاية الدخول المسموح بها
   })
 
+  // 📦 مدة الباقة المُطبَّقة (للحساب التلقائي للتاريخ النهاية لما البداية تتغير)
+  const [appliedOfferDuration, setAppliedOfferDuration] = useState<number | null>(null)
+  // 💰 سعر الباقة الأصلي + الحد الأدنى (للتحقق من الخصم)
+  const [appliedOfferPrice, setAppliedOfferPrice] = useState<number | null>(null)
+  const [appliedOfferMinPrice, setAppliedOfferMinPrice] = useState<number | null>(null)
+  // 💸 الخصم اللي حطه الـ user (للأكونتات اللي مش OWNER/ADMIN)
+  const [discount, setDiscount] = useState<number>(0)
+  const isPrivilegedUser = user?.role === 'OWNER' || user?.role === 'ADMIN'
+
   useEffect(() => {
     const fetchNextNumber = async () => {
       try {
@@ -340,16 +349,40 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
 
   const calculateExpiryFromMonths = (months: number) => {
     if (!formData.startDate) return
-    
+
     const start = new Date(formData.startDate)
     const expiry = new Date(start)
     expiry.setMonth(expiry.getMonth() + months)
-    
-    setFormData(prev => ({ 
-      ...prev, 
+
+    setFormData(prev => ({
+      ...prev,
       expiryDate: formatDateYMD(expiry)
     }))
   }
+
+  // 📅 لو الـ user اختار باقة، نـحدّث تاريخ النهاية تلقائياً لما البداية تتغير
+  // (الـ expiry بقى read-only في الـ UI لو فيه باقة مطبَّقة)
+  useEffect(() => {
+    if (appliedOfferDuration === null || !formData.startDate) return
+    const start = new Date(formData.startDate)
+    const expiry = new Date(start)
+    expiry.setDate(expiry.getDate() + appliedOfferDuration)
+    const newExpiry = formatDateYMD(expiry)
+    if (newExpiry !== formData.expiryDate) {
+      setFormData(prev => ({ ...prev, expiryDate: newExpiry }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.startDate, appliedOfferDuration])
+
+  // 💸 للموظفين العاديين: لما الخصم يتغير، نحدّث subscriptionPrice = offerPrice - discount
+  useEffect(() => {
+    if (isPrivilegedUser || appliedOfferPrice === null) return
+    const newPrice = Math.max(0, appliedOfferPrice - discount)
+    if (newPrice !== formData.subscriptionPrice) {
+      setFormData(prev => ({ ...prev, subscriptionPrice: newPrice }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [discount, appliedOfferPrice, isPrivilegedUser])
 
   const calculateDuration = () => {
     if (!formData.startDate || !formData.expiryDate) return null
@@ -389,6 +422,9 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       freeAssessmentSessions: parseInt(formData.freeAssessmentSessions.toString()),
       remainingFreezeDays: parseInt(formData.remainingFreezeDays.toString()),
       subscriptionPrice: parseInt(formData.subscriptionPrice.toString()),
+      // 💸 الخصم (يظهر في الإيصال) — السعر الأصلي للباقة قبل الخصم
+      discount: !isPrivilegedUser && discount > 0 ? discount : 0,
+      originalPrice: !isPrivilegedUser && discount > 0 && appliedOfferPrice !== null ? appliedOfferPrice : null,
       remainingAmount: formData.remainingAmount || 0,
       remainingDueDate: formData.remainingDueDate || null,
       staffName: user?.name || '',
@@ -489,6 +525,12 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     const startDate = formData.startDate || formatDateYMD(new Date())
     const expiryDate = new Date(startDate)
     expiryDate.setDate(expiryDate.getDate() + offer.duration)
+
+    // 📦 نخزّن الـ duration والسعر الأصلي والحد الأدنى عشان الـ expiry والخصم يتحدّثوا
+    setAppliedOfferDuration(offer.duration)
+    setAppliedOfferPrice(offer.price)
+    setAppliedOfferMinPrice(offer.minPrice ?? null)
+    setDiscount(0) // إعادة الخصم لـ 0 عند تطبيق باقة جديدة
 
     setFormData(prev => ({
       ...prev,
@@ -922,15 +964,16 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           <div>
             <label className="block text-xs font-medium mb-1">
               {t('members.expiryDate')} <span className="text-xs text-gray-500 dark:text-gray-400">(yyyy-mm-dd)</span>
-              {!canEditDates && <span className="text-xs text-amber-600 dark:text-amber-400 mr-1">🔒</span>}
+              {(!canEditDates || appliedOfferDuration !== null) && <span className="text-xs text-amber-600 dark:text-amber-400 mr-1">🔒</span>}
             </label>
             <div className="flex gap-2">
+              {/* 📅 لو الـ user مختار باقة، الـ expiry بيتحسب تلقائياً من start + duration ومش قابل للتعديل */}
               <input
                 type="text"
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                readOnly={!canEditDates}
-                className={`flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white ${!canEditDates ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
+                readOnly={!canEditDates || appliedOfferDuration !== null}
+                className={`flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white ${(!canEditDates || appliedOfferDuration !== null) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
                 placeholder="2025-12-18"
                 pattern="\d{4}-\d{2}-\d{2}"
               />
@@ -938,12 +981,19 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                 type="date"
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                disabled={!canEditDates}
-                className={`px-3 py-2 border-2 text-white rounded-lg transition-colors text-sm font-medium ${canEditDates ? 'border-blue-600 bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'border-gray-400 bg-gray-400 cursor-not-allowed opacity-60'}`}
+                disabled={!canEditDates || appliedOfferDuration !== null}
+                className={`px-3 py-2 border-2 text-white rounded-lg transition-colors text-sm font-medium ${(canEditDates && appliedOfferDuration === null) ? 'border-blue-600 bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'border-gray-400 bg-gray-400 cursor-not-allowed opacity-60'}`}
                 style={{ colorScheme: 'dark', width: '45px' }}
-                title={canEditDates ? t('members.form.selectDate') : 'صلاحية الأدمن فقط'}
+                title={canEditDates ? (appliedOfferDuration !== null ? 'بيتحسب تلقائياً من تاريخ البداية + مدة الباقة' : t('members.form.selectDate')) : 'صلاحية الأدمن فقط'}
               />
             </div>
+            {appliedOfferDuration !== null && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                {direction === 'rtl'
+                  ? `🔒 بيتحسب تلقائياً (${appliedOfferDuration} يوم من تاريخ البداية). غيّر الباقة لو محتاج فترة مختلفة.`
+                  : `🔒 Auto-computed (${appliedOfferDuration} days from start). Change package if you need a different duration.`}
+              </p>
+            )}
           </div>
         </div>
 
@@ -1045,18 +1095,79 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           <span>{t('members.form.financialInformation')}</span>
         </h3>
 
-        <div className="mb-2">
-          <label className="block text-xs font-medium mb-1">{t('members.form.subscriptionPriceRequired')}</label>
-          <input
-            type="number"
-            required
-            min="0"
-            value={formData.subscriptionPrice}
-            onChange={(e) => setFormData({ ...formData, subscriptionPrice: parseInt(e.target.value) || 0 })}
-            className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
-            placeholder="0"
-          />
-        </div>
+        {isPrivilegedUser ? (
+          /* OWNER/ADMIN: حقل السعر مفتوح بالكامل */
+          <div className="mb-2">
+            <label className="block text-xs font-medium mb-1">{t('members.form.subscriptionPriceRequired')}</label>
+            <input
+              type="number"
+              required
+              min="0"
+              value={formData.subscriptionPrice}
+              onChange={(e) => setFormData({ ...formData, subscriptionPrice: parseInt(e.target.value) || 0 })}
+              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              placeholder="0"
+            />
+          </div>
+        ) : (
+          /* ريسبشن وغيرهم: السعر مقفول، يقدر يحط خصم فقط في الحد المسموح */
+          <div className="mb-2 space-y-2">
+            <div>
+              <label className="block text-xs font-medium mb-1">
+                {direction === 'rtl' ? 'سعر الباقة' : 'Package Price'}
+              </label>
+              <input
+                type="number"
+                value={appliedOfferPrice ?? formData.subscriptionPrice}
+                readOnly
+                className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-800 dark:text-gray-300 bg-gray-100 cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1 text-orange-700 dark:text-orange-400">
+                💸 {direction === 'rtl' ? 'خصم (جنيه)' : 'Discount (EGP)'}
+                {appliedOfferMinPrice !== null && appliedOfferPrice !== null && (
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 mx-1">
+                    {direction === 'rtl'
+                      ? `الحد الأقصى للخصم: ${appliedOfferPrice - appliedOfferMinPrice}`
+                      : `Max discount: ${appliedOfferPrice - appliedOfferMinPrice}`}
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                min="0"
+                max={appliedOfferPrice !== null && appliedOfferMinPrice !== null ? appliedOfferPrice - appliedOfferMinPrice : undefined}
+                value={discount}
+                onChange={(e) => {
+                  let v = parseInt(e.target.value) || 0
+                  if (v < 0) v = 0
+                  // كلامب لو الـ user كتب أكتر من المسموح (نخلي الـ field يعرض الحد الأقصى)
+                  if (appliedOfferPrice !== null && appliedOfferMinPrice !== null) {
+                    const maxDiscount = appliedOfferPrice - appliedOfferMinPrice
+                    if (v > maxDiscount) v = maxDiscount
+                  } else if (appliedOfferPrice !== null && v > appliedOfferPrice) {
+                    v = appliedOfferPrice
+                  }
+                  setDiscount(v)
+                }}
+                disabled={appliedOfferPrice === null}
+                className="w-full px-3 py-2 border-2 border-orange-300 dark:border-orange-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
+                placeholder="0"
+              />
+              {appliedOfferPrice !== null && (
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {direction === 'rtl' ? 'الصافي بعد الخصم' : 'Net after discount'}: <strong className="text-green-700 dark:text-green-400">{formData.subscriptionPrice}</strong> {direction === 'rtl' ? 'جنيه' : 'EGP'}
+                </p>
+              )}
+              {appliedOfferPrice === null && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  {direction === 'rtl' ? 'اختار باقة الأول عشان تقدر تطبّق خصم' : 'Pick a package first to apply a discount'}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {settings.remainingEnabled && (
           <div className="mb-2 space-y-2">

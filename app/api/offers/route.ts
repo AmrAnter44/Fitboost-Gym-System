@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
+    const { name, duration, price, minPrice, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
 
     // التحقق من البيانات المطلوبة
     if (!name || !duration || price === undefined) {
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
         name,
         duration: parseInt(duration),
         price: parseFloat(price),
+        minPrice: minPrice !== undefined && minPrice !== null && minPrice !== '' ? parseFloat(minPrice) : null,
         freePTSessions: parseInt(freePTSessions) || 0,
         freeNutritionSessions: parseInt(freeNutritionSessions) || 0,
         freePhysioSessions: parseInt(freePhysioSessions) || 0,
@@ -109,7 +110,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { id, name, duration, price, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, isActive, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
+    const { id, name, duration, price, minPrice, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, isActive, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
 
     if (!id) {
       return NextResponse.json(
@@ -128,6 +129,7 @@ export async function PUT(request: Request) {
         name,
         duration: parseInt(duration),
         price: parseFloat(price),
+        minPrice: minPrice !== undefined && minPrice !== null && minPrice !== '' ? parseFloat(minPrice) : null,
         freePTSessions: parseInt(freePTSessions) || 0,
         freeNutritionSessions: parseInt(freeNutritionSessions) || 0,
         freePhysioSessions: parseInt(freePhysioSessions) || 0,
