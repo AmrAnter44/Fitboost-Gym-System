@@ -309,6 +309,12 @@ export default function SettingsPage() {
   const [dbFilesTotalMB, setDbFilesTotalMB] = useState<number>(0)
   const [loadingDbFiles, setLoadingDbFiles] = useState(false)
 
+  // 🗜️ Base64 Image Migration state
+  const [cleanupInfo, setCleanupInfo] = useState<{ candidates: number; currentDbSizeMb: number; estimatedBase64Mb: number } | null>(null)
+  const [cleanupLoading, setCleanupLoading] = useState(false)
+  const [cleanupRunning, setCleanupRunning] = useState(false)
+  const [cleanupResult, setCleanupResult] = useState<{ migrated: number; failed: number; before: { mb: number }; after: { mb: number }; saved: { mb: number; percent: number }; failures: Array<{ id: string; name: string; reason: string }>; backup?: { filename: string }; vacuumError?: string | null } | null>(null)
+
   // Save notification state
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -370,6 +376,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (activeSection === 'database' && user?.role === 'OWNER') {
       fetchDbFiles()
+      fetchCleanupInfo()
     }
   }, [activeSection, user])
 
@@ -778,6 +785,57 @@ export default function SettingsPage() {
       setOptimizeMessage({ type: 'error', text: err.message || 'حدث خطأ أثناء التنظيف' })
     } finally {
       setOptimizingDb(false)
+    }
+  }
+
+  // 🗜️ Base64 image cleanup — preflight + run
+  const fetchCleanupInfo = async () => {
+    setCleanupLoading(true)
+    try {
+      const res = await fetch('/api/settings/database/migrate-base64-images')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success) {
+          setCleanupInfo({
+            candidates: data.candidates,
+            currentDbSizeMb: data.currentDbSizeMb,
+            estimatedBase64Mb: data.estimatedBase64Mb,
+          })
+        }
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setCleanupLoading(false)
+    }
+  }
+
+  const handleRunCleanup = async () => {
+    if (!cleanupInfo || cleanupInfo.candidates === 0) return
+    if (!confirm(
+      `⚠️ هذه العملية ستقوم بالتالي:\n\n` +
+      `1️⃣ حفظ نسخة احتياطية من قاعدة البيانات\n` +
+      `2️⃣ نقل ${cleanupInfo.candidates} صورة من قاعدة البيانات لملفات\n` +
+      `3️⃣ ضغط قاعدة البيانات (VACUUM)\n\n` +
+      `الوقت المتوقع: ١-٢ دقيقة. تأكد إن مفيش حد بيستخدم النظام.\n\n` +
+      `هل تريد المتابعة؟`
+    )) return
+
+    setCleanupRunning(true)
+    setCleanupResult(null)
+    try {
+      const res = await fetch('/api/settings/database/migrate-base64-images', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        setCleanupResult(data)
+        await fetchCleanupInfo()
+      } else {
+        alert(`❌ فشل التنظيف: ${data.error || 'خطأ غير معروف'}`)
+      }
+    } catch (err: any) {
+      alert(`❌ حدث خطأ أثناء التنظيف: ${err.message}`)
+    } finally {
+      setCleanupRunning(false)
     }
   }
 
@@ -2317,6 +2375,104 @@ export default function SettingsPage() {
                     <span>تنظيف كل النسخ القديمة ({dbFiles.filter((f) => !f.isLive).length})</span>
                   </button>
                 </div>
+              </div>
+
+              {/* 🗜️ تنظيف قاعدة البيانات (نقل صور base64 لملفات) */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                  <span className="text-2xl">🗜️</span>
+                  تنظيف قاعدة البيانات (الصور القديمة)
+                </h3>
+
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg text-sm">
+                  <p className="font-bold mb-2 text-gray-800 dark:text-gray-100">💡 ايه ده؟</p>
+                  <p className="text-gray-700 dark:text-gray-200 leading-relaxed">
+                    النظام بيخزن صور الأعضاء القديمة كنصوص <strong>base64</strong> جوه قاعدة البيانات نفسها — ده بيخلي ملف <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">gym.db</code> يكبر بشكل كبير. التنظيف ده بينقل الصور دي لملفات منفصلة في فولدر <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">uploads/</code> ويرجّع حجم قاعدة البيانات لطبيعته. مفيش بيانات هتضيع.
+                  </p>
+                </div>
+
+                {cleanupLoading && (
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                    <span className="animate-spin">⏳</span>
+                    جاري فحص حالة قاعدة البيانات...
+                  </div>
+                )}
+
+                {!cleanupLoading && cleanupInfo && cleanupInfo.candidates === 0 && (
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg text-sm">
+                    <p className="text-green-800 dark:text-green-200">
+                      ✅ قاعدة البيانات نضيفة، مفيش صور قديمة تحتاج نقل.
+                      <br />
+                      📦 الحجم الحالي: <strong>{cleanupInfo.currentDbSizeMb} MB</strong>
+                    </p>
+                  </div>
+                )}
+
+                {!cleanupLoading && cleanupInfo && cleanupInfo.candidates > 0 && (
+                  <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg text-sm">
+                    <p className="font-bold mb-2 text-gray-800 dark:text-gray-100">⚠️ وُجدت بيانات قديمة:</p>
+                    <ul className="list-disc list-inside space-y-1 text-orange-900 dark:text-orange-200">
+                      <li>عدد الصور القديمة: <strong>{cleanupInfo.candidates}</strong></li>
+                      <li>الحجم في قاعدة البيانات: <strong>{cleanupInfo.estimatedBase64Mb} MB</strong></li>
+                      <li>الحجم الكلي لـ <code className="bg-orange-100 dark:bg-orange-900/40 px-1 rounded">gym.db</code>: <strong>{cleanupInfo.currentDbSizeMb} MB</strong></li>
+                      <li>الحجم المتوقع بعد التنظيف: <strong>~{Math.max(0.5, +(cleanupInfo.currentDbSizeMb - cleanupInfo.estimatedBase64Mb).toFixed(1))} MB</strong></li>
+                    </ul>
+                  </div>
+                )}
+
+                {cleanupResult && (
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg text-sm">
+                    <p className="font-bold mb-2 text-gray-800 dark:text-gray-100">📊 نتيجة آخر عملية تنظيف:</p>
+                    <ul className="list-disc list-inside space-y-1 text-green-900 dark:text-green-200">
+                      <li>تم نقل: <strong>{cleanupResult.migrated}</strong> صورة</li>
+                      {cleanupResult.failed > 0 && (
+                        <li>فشل: <strong>{cleanupResult.failed}</strong> صورة</li>
+                      )}
+                      <li>قبل: <strong>{cleanupResult.before.mb} MB</strong> ← بعد: <strong>{cleanupResult.after.mb} MB</strong></li>
+                      <li>وفّرت: <strong>{cleanupResult.saved.mb} MB</strong> ({cleanupResult.saved.percent}%)</li>
+                      {cleanupResult.backup && (
+                        <li>النسخة الاحتياطية: <code className="bg-green-100 dark:bg-green-900/40 px-1 rounded text-xs">{cleanupResult.backup.filename}</code></li>
+                      )}
+                    </ul>
+                    {cleanupResult.vacuumError && (
+                      <p className="mt-3 text-orange-800 dark:text-orange-300">
+                        ⚠️ تحذير: VACUUM فشل ({cleanupResult.vacuumError}). البيانات اتنقلت بس الحجم ما اتقللش — اعمل "تنظيف الملف الأساسي" يدوياً من الـ section اللي فوق.
+                      </p>
+                    )}
+                    {cleanupResult.failures.length > 0 && (
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-orange-700 dark:text-orange-400 font-medium">عرض الأعضاء اللي فشل نقلهم ({cleanupResult.failures.length})</summary>
+                        <ul className="mt-2 ml-4 space-y-1 text-xs text-gray-700 dark:text-gray-300">
+                          {cleanupResult.failures.map((f) => (
+                            <li key={f.id}>
+                              <strong>{f.name}</strong> ({f.id.slice(0, 8)}…): {f.reason}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleRunCleanup}
+                  disabled={cleanupRunning || cleanupLoading || !cleanupInfo || cleanupInfo.candidates === 0}
+                  className={`w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${
+                    cleanupRunning || cleanupLoading || !cleanupInfo || cleanupInfo.candidates === 0 ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'
+                  }`}
+                >
+                  {cleanupRunning ? (
+                    <>
+                      <span className="animate-spin">⏳</span>
+                      <span>جاري التنظيف... (ممكن ياخد دقيقة أو اتنين)</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🗜️</span>
+                      <span>ابدأ التنظيف</span>
+                    </>
+                  )}
+                </button>
               </div>
 
             </div>

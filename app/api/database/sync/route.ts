@@ -140,6 +140,19 @@ export async function POST(request: Request) {
         steps[steps.length - 1] = { step: 'migrations', status: 'success', message: 'جميع Migrations مطبقة مسبقاً ✅' }
       } else {
         let appliedCount = 0
+        let skippedCount = 0
+        const skipReasons: string[] = []
+
+        // الأخطاء اللي بنتجاهلها: schema بقى متطبق فعلاً (غالباً عبر prisma db push)
+        // فالـ migration ما تطبقتش بس الـ schema موجود بالشكل الصحيح، فبنسجلها applied.
+        const isAlreadyAppliedError = (msg: string): boolean => {
+          const m = msg.toLowerCase()
+          return (
+            m.includes('duplicate column name') ||
+            m.includes('already exists') ||
+            m.includes('no such column') === false && m.includes('column') && m.includes('exists')
+          )
+        }
 
         for (const migrationFile of migrationsToApply) {
           try {
@@ -150,25 +163,48 @@ export async function POST(request: Request) {
             db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(migrationFile)
             appliedCount++
           } catch (error: any) {
+            const errMsg = error?.message || String(error)
+            if (isAlreadyAppliedError(errMsg)) {
+              // الـ schema موجود فعلاً — سجّل الـ migration كـ applied واكمل
+              try {
+                db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(migrationFile)
+                skippedCount++
+                skipReasons.push(`${migrationFile}: ${errMsg}`)
+                continue
+              } catch {
+                // لو حتى التسجيل فشل، نكمل بدون توقف
+                skippedCount++
+                skipReasons.push(`${migrationFile}: ${errMsg}`)
+                continue
+              }
+            }
+
+            // خطأ حقيقي مش "موجود فعلاً" → نوقف
             db.close()
             steps[steps.length - 1] = {
               step: 'migrations',
               status: 'error',
-              message: `فشل تطبيق ${migrationFile}: ${error.message}`
+              message: `فشل تطبيق ${migrationFile}: ${errMsg}`
             }
             return NextResponse.json({
               success: false,
               error: `فشل تطبيق migration: ${migrationFile}`,
-              errorDetails: error.message,
+              errorDetails: errMsg,
               steps
             }, { status: 500 })
           }
         }
 
+        const total = appliedCount + skippedCount
+        const summary = skippedCount > 0
+          ? `تم تطبيق ${appliedCount}, تخطي ${skippedCount} (موجود فعلاً) ✅`
+          : `تم تطبيق ${appliedCount} migrations ✅`
+
         steps[steps.length - 1] = {
           step: 'migrations',
           status: 'success',
-          message: `تم تطبيق ${appliedCount} migrations ✅`
+          message: summary,
+          ...(skipReasons.length > 0 ? { details: skipReasons } : {}),
         }
       }
     }
