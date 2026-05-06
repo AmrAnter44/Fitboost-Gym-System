@@ -4,6 +4,7 @@ import path from 'path';
 import Database from 'better-sqlite3';
 import { requireAdmin } from '../../../../../lib/auth';
 import { prisma } from '../../../../../lib/prisma';
+import { clearReadonlyOnWindows } from '../../../../../lib/dbFilePermissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -168,6 +169,9 @@ async function vacuumFile(
       try { await prisma.$executeRaw`PRAGMA wal_checkpoint(FULL)`; } catch { /* ignore */ }
       try { await prisma.$disconnect(); } catch { /* ignore */ }
     }
+
+    // 🪟 Windows: شيل readonly attribute علشان VACUUM يقدر يكتب على الملف
+    clearReadonlyOnWindows(filePath);
 
     const db = new Database(filePath);
     let integrity: string = 'unknown';

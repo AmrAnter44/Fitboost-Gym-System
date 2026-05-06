@@ -5,6 +5,7 @@ import { existsSync } from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { verifyAuth } from '../../../lib/auth'
+import { getMembersUploadsDir, isPathInsideMembersUploads } from '../../../lib/uploadsPath'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,19 +34,6 @@ function verifyMagicBytes(buffer: Buffer, claimedMime: string): boolean {
   )
 }
 
-function getUploadsDir(): string {
-  const isElectron = process.env.UPLOADS_PATH !== undefined
-  if (isElectron && process.env.UPLOADS_PATH) {
-    return path.join(process.env.UPLOADS_PATH, 'members')
-  }
-  return path.join(process.cwd(), 'public', 'uploads', 'members')
-}
-
-function isPathInsideUploads(filepath: string): boolean {
-  const resolved = path.resolve(filepath)
-  const uploadsRoot = path.resolve(getUploadsDir())
-  return resolved.startsWith(uploadsRoot + path.sep) || resolved === uploadsRoot
-}
 
 export async function POST(request: Request) {
   try {
@@ -91,7 +79,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const uploadsDir = getUploadsDir()
+    const uploadsDir = getMembersUploadsDir()
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true })
     }
@@ -104,7 +92,7 @@ export async function POST(request: Request) {
     const filepath = path.join(uploadsDir, filename)
 
     // تأكيد إضافي: المسار النهائي جوه الـ uploads folder
-    if (!isPathInsideUploads(filepath)) {
+    if (!isPathInsideMembersUploads(filepath)) {
       return NextResponse.json({ error: 'مسار غير صحيح' }, { status: 400 })
     }
 
@@ -154,13 +142,13 @@ export async function DELETE(request: Request) {
       if (filename !== imageUrl.replace('/uploads/members/', '')) {
         return NextResponse.json({ error: 'مسار غير صحيح' }, { status: 400 })
       }
-      filepath = path.join(getUploadsDir(), filename)
+      filepath = path.join(getMembersUploadsDir(), filename)
     } else {
       return NextResponse.json({ error: 'مسار غير مسموح به' }, { status: 400 })
     }
 
     // 🔒 تأكيد إن الملف جوه الـ uploads folder (منع path traversal)
-    if (!isPathInsideUploads(filepath)) {
+    if (!isPathInsideMembersUploads(filepath)) {
       return NextResponse.json({ error: 'مسار خارج النطاق المسموح' }, { status: 403 })
     }
 

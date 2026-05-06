@@ -1,8 +1,17 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const dbPath = path.join(__dirname, 'prisma', 'prisma', 'gym.db');
 
+// 🪟 Windows: شيل readonly attribute لو موجود قبل ما نفتح للكتابة
+if (process.platform === 'win32') {
+  try {
+    execSync(`attrib -R "${dbPath}"`, { stdio: 'ignore' });
+  } catch (err) {
+    console.warn('[optimize-database] attrib -R failed:', err.message);
+  }
+}
 
 try {
   const db = new Database(dbPath);

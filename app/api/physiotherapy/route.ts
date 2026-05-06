@@ -12,8 +12,6 @@ import { addPointsForPayment } from '../../../lib/points'
 import { RECEIPT_TYPES } from '../../../lib/receiptTypes'
 import { getNextReceiptNumber } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
-// @ts-ignore
-import bwipjs from 'bwip-js'
 
 export const dynamic = 'force-dynamic'
 
@@ -185,39 +183,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // توليد Barcode من 16 رقم عشوائي
-    let barcodeText = ''
-    let isUnique = false
-
-    // التأكد من أن الـ barcode فريد
-    while (!isUnique) {
-      barcodeText = Array.from({ length: 16 }, () => Math.floor(Math.random() * 10)).join('')
-      const existing = await prisma.physiotherapy.findUnique({
-        where: { qrCode: barcodeText }
-      })
-      if (!existing) {
-        isUnique = true
-      }
-    }
-
-
-    // توليد Barcode كصورة
-    let qrCodeImage = ''
-    try {
-      const png = await bwipjs.toBuffer({
-        bcid: 'code128',
-        text: barcodeText,
-        scale: 5,
-        height: 15,
-        includetext: true,
-      })
-
-      const base64 = png.toString('base64')
-      qrCodeImage = `data:image/png;base64,${base64}`
-    } catch (barcodeError) {
-      console.error('❌ فشل توليد صورة Barcode:', barcodeError)
-    }
-
     // إنشاء جلسة Physiotherapy
     const physiotherapyData: any = {
       clientName,
@@ -229,9 +194,7 @@ export async function POST(request: Request) {
       pricePerSession,
       remainingAmount: remainingAmount || 0,  // ✅ الباقي من الفلوس
       startDate: startDate ? new Date(startDate) : null,
-      expiryDate: expiryDate ? new Date(expiryDate) : null,
-      qrCode: barcodeText,
-      qrCodeImage: qrCodeImage
+      expiryDate: expiryDate ? new Date(expiryDate) : null
     }
 
     // إضافة physioNumber
