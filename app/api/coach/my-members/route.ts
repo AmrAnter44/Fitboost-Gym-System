@@ -38,6 +38,7 @@ export async function GET(request: Request) {
         startDate: true,
         expiryDate: true,
         freePTSessions: true,
+        subscriptionPrice: true,
       },
       orderBy: { memberNumber: 'desc' },
     })

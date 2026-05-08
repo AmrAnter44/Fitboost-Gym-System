@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requirePermission } from '../../../lib/auth'
+import { requirePermission, requireAnyPermission } from '../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 // GET - جلب كل المصروفات
@@ -11,11 +11,11 @@ export async function GET(request: Request) {
   try {
     /**
      * جلب كل المصروفات
-     * @permission canViewExpenses - صلاحية عرض المصروفات والنفقات
+     * @permission canViewExpenses أو canAccessClosing
      */
     let user
     try {
-      user = await requirePermission(request, 'canViewExpenses')
+      user = await requireAnyPermission(request, ['canViewExpenses', 'canAccessClosing'])
     } catch (permError: any) {
       // إذا لم يكن لديه صلاحية canViewExpenses، نتحقق إذا كان كوتش يريد رؤية قروضه فقط
       const { verifyAuth } = await import('../../../lib/auth')
