@@ -15,6 +15,7 @@ interface AssignedMember {
   startDate: string | null
   expiryDate: string | null
   freePTSessions: number
+  subscriptionPrice: number
 }
 
 export default function CoachMyMembers() {
@@ -140,7 +141,7 @@ export default function CoachMyMembers() {
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                  👥 {locale === 'ar' ? 'أعضائي' : 'My Members'}
+                  👥 {locale === 'ar' ? 'أعضاء محتملين' : 'Potential Members'}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {locale === 'ar' ? `${members.length} عضو معين لك` : `${members.length} members assigned to you`}
@@ -285,11 +286,43 @@ export default function CoachMyMembers() {
                       </div>
                     )}
 
-                    {/* Expiry Date */}
-                    {member.expiryDate && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                        📅 {locale === 'ar' ? 'ينتهي:' : 'Expires:'} {new Date(member.expiryDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
-                      </p>
+                    {/* Subscription Info: Start / End / Package */}
+                    {(member.startDate || member.expiryDate || member.subscriptionPrice) && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2 space-y-1.5">
+                        <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-1">
+                          📋 {locale === 'ar' ? 'بيانات الاشتراك' : 'Subscription Info'}
+                        </p>
+                        {member.startDate && (
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-gray-600 dark:text-gray-300">
+                              📅 {locale === 'ar' ? 'البدء:' : 'Start:'}
+                            </span>
+                            <span className="font-bold text-gray-800 dark:text-gray-100">
+                              {new Date(member.startDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                            </span>
+                          </div>
+                        )}
+                        {member.expiryDate && (
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-gray-600 dark:text-gray-300">
+                              📅 {locale === 'ar' ? 'النهاية:' : 'End:'}
+                            </span>
+                            <span className={`font-bold ${isExpired ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                              {new Date(member.expiryDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                            </span>
+                          </div>
+                        )}
+                        {member.subscriptionPrice > 0 && (
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-gray-600 dark:text-gray-300">
+                              💼 {locale === 'ar' ? 'الباكدج:' : 'Package:'}
+                            </span>
+                            <span className="font-bold text-green-700 dark:text-green-400">
+                              {Math.round(member.subscriptionPrice)} {locale === 'ar' ? 'ج' : 'EGP'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
