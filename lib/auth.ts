@@ -3,16 +3,18 @@ import jwt from 'jsonwebtoken'
 import { Permissions } from '../types/permissions'
 import { logError } from './errorLogger'
 
-const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required')
-}
-if (JWT_SECRET.length < 32) {
-  throw new Error('JWT_SECRET must be at least 32 characters')
-}
-
+// JWT secret is validated lazily at first use, not at module load.
+// This lets `next build` succeed in CI environments that don't set the env var
+// (the build only needs to compile routes — actual JWT operations happen at runtime).
 function getJWTSecret(): string {
-  return JWT_SECRET!
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required')
+  }
+  if (secret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters')
+  }
+  return secret
 }
 
 export interface UserPayload {

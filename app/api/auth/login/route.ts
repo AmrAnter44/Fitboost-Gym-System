@@ -12,12 +12,17 @@ import { validateLicense } from '../../../../lib/license'
 
 export const dynamic = 'force-dynamic'
 
-const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required')
-}
-if (JWT_SECRET.length < 32) {
-  throw new Error('JWT_SECRET must be at least 32 characters')
+// JWT secret is read lazily inside the handler so `next build` can compile this
+// route in CI environments that don't set the env var.
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required')
+  }
+  if (secret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters')
+  }
+  return secret
 }
 
 /** Cookies must be marked secure in production regardless of NEXT_PUBLIC_APP_URL value */
@@ -101,7 +106,7 @@ export async function POST(request: Request) {
           staffId: null,
           permissions: DEFAULT_PERMISSIONS.OWNER
         },
-        JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: '7d' }
       )
 
@@ -257,7 +262,7 @@ export async function POST(request: Request) {
         isSales: user.isSales ?? false,  // ✅ تضمين isSales في الـ JWT
         permissions
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     )
 
