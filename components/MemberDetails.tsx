@@ -114,50 +114,41 @@ export default function MemberDetailPage() {
     setLoading(true)
 
     try {
-      const newRemaining = member.remainingAmount - paymentData.amount
-
-      const response = await fetch('/api/members', {
-        method: 'PUT',
+      // endpoint موحّد: تحديث الباقي + إنشاء الإيصال في request واحد
+      // (يسمح للموظفين بقبول الدفع بدون permissions canEditMembers/canEditReceipts)
+      const response = await fetch('/api/members/pay-remaining', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: member.id,
-          remainingAmount: newRemaining
-        })
+          memberId: member.id,
+          amount: paymentData.amount,
+          paymentMethod: paymentData.paymentMethod,
+          notes: paymentData.notes,
+        }),
       })
 
-      if (response.ok) {
-        const receiptResponse = await fetch('/api/receipts/create-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            memberId: member.id,
-            amount: paymentData.amount,
-            paymentMethod: paymentData.paymentMethod,
-            notes: paymentData.notes
-          })
-        })
+      const data = await response.json()
 
-        if (receiptResponse.ok) {
-          const receipt = await receiptResponse.json()
+      if (response.ok && data.success) {
+        if (data.receipt) {
           setReceiptData({
-            receiptNumber: receipt.receiptNumber,
+            receiptNumber: data.receipt.receiptNumber,
             type: 'Payment',
-            amount: receipt.amount,
-            details: JSON.parse(receipt.itemDetails),
-            date: new Date(receipt.createdAt),
-            paymentMethod: paymentData.paymentMethod
+            amount: data.receipt.amount,
+            details: JSON.parse(data.receipt.itemDetails),
+            date: new Date(data.receipt.createdAt),
+            paymentMethod: paymentData.paymentMethod,
           })
           setShowReceipt(true)
           queryClient.invalidateQueries({ queryKey: ['receipts'] })
         }
 
         toast.success(t('memberDetails.paymentModal.paymentSuccess'))
-
         setPaymentData({ amount: 0, paymentMethod: 'cash', notes: '' })
         setActiveModal(null)
         fetchMember()
       } else {
-        toast.error(t('memberDetails.paymentModal.paymentFailed'))
+        toast.error(data.error || t('memberDetails.paymentModal.paymentFailed'))
       }
     } catch (error) {
       console.error(error)

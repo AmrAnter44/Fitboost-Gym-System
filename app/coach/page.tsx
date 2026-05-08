@@ -6,6 +6,7 @@ import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
 import { useDebounce } from '../../hooks/useDebounce'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useToast } from '../../contexts/ToastContext'
 
 const SignaturePad = nextDynamic(() => import('../../components/SignaturePad'), { ssr: false })
 
@@ -37,6 +38,36 @@ interface CheckedInClient {
   checkInTime: string
 }
 
+interface CoachNotification {
+  type: 'PT' | 'Nutrition' | 'Physiotherapy' | 'GroupClass' | 'More'
+  memberName: string
+  subscriptionId: number
+}
+
+interface RenewalNotification extends CoachNotification {
+  amount: number
+  daysAgo: number
+}
+
+interface ExpiringNotification extends CoachNotification {
+  daysLeft: number
+  sessionsRemaining: number
+}
+
+interface HalfTimeNotification extends CoachNotification {
+  sessionsUsed: number
+  sessionsTotal: number
+  remainingAmount: number
+}
+
+interface NewAssignmentNotification {
+  type: 'PT' | 'Nutrition' | 'Physiotherapy' | 'GroupClass' | 'More' | 'Member'
+  memberName: string
+  subscriptionId?: number
+  memberId?: string
+  daysAgo: number
+}
+
 interface MoreSubscription {
   moreNumber: number
   clientName: string
@@ -55,6 +86,7 @@ interface MoreSubscription {
 export default function CoachDashboard() {
   const router = useRouter()
   const { t, locale } = useLanguage()
+  const { addToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [myPTs, setMyPTs] = useState<PTData[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -70,6 +102,12 @@ export default function CoachDashboard() {
   const [sessionMessage, setSessionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [coachBarcodeImage, setCoachBarcodeImage] = useState<string | null>(null)
   const [myMore, setMyMore] = useState<MoreSubscription[]>([])
+  const [coachNotifications, setCoachNotifications] = useState<{
+    renewals: RenewalNotification[]
+    expiringSoon: ExpiringNotification[]
+    halfTimeWithBalance: HalfTimeNotification[]
+    newAssignments: NewAssignmentNotification[]
+  } | null>(null)
 
   const dateLocale = locale === 'ar' ? 'ar-EG' : 'en-US'
 
@@ -118,6 +156,7 @@ export default function CoachDashboard() {
       if (data.user.userId || data.user.id) {
         fetchMyPTs(data.user.userId || data.user.id)
         fetchMyMore()
+        fetchCoachNotifications(data.user.userId || data.user.id)
       } else {
         setLoading(false)
       }
@@ -151,6 +190,42 @@ export default function CoachDashboard() {
       }
     } catch (error) {
       console.error('Error fetching More subscriptions:', error)
+    }
+  }
+
+  const fetchCoachNotifications = async (userId: string) => {
+    try {
+      const response = await fetch('/api/coach/notifications')
+      if (!response.ok) return
+      const data = await response.json()
+      setCoachNotifications(data)
+
+      // سجّل الإشعارات في الـ NotificationsCenter (الجرس) بدون toast مزعج
+      // dedupe key باليوم الحالي + userId — مرة واحدة باليوم بس
+      const todayKey = `coach-notifications-seen-${userId}-${new Date().toISOString().split('T')[0]}`
+      if (typeof window !== 'undefined' && !localStorage.getItem(todayKey)) {
+        const subTypeName = (t: string) => locale === 'ar'
+          ? ({ PT: 'PT', Nutrition: 'تغذية', Physiotherapy: 'علاج طبيعي', GroupClass: 'جروب كلاس', More: 'More' } as any)[t] || t
+          : t
+
+        ;(data.renewals || []).forEach((r: RenewalNotification) =>
+          addToast(`✅ ${r.memberName} جدّد اشتراك ${subTypeName(r.type)}`, 'success', 0)
+        )
+        ;(data.expiringSoon || []).forEach((e: ExpiringNotification) =>
+          addToast(`⏰ ${e.memberName} — اشتراك ${subTypeName(e.type)} ينتهي خلال ${e.daysLeft} يوم`, 'warning', 0)
+        )
+        ;(data.halfTimeWithBalance || []).forEach((h: HalfTimeNotification) =>
+          addToast(`💰 ${h.memberName} — استخدم نص جلسات ${subTypeName(h.type)} وعليه ${Math.round(h.remainingAmount)} ج`, 'warning', 0)
+        )
+        ;(data.newAssignments || []).forEach((n: NewAssignmentNotification) => {
+          const label = n.type === 'Member' ? 'عضو جديد' : `اشتراك ${subTypeName(n.type as any)} جديد`
+          addToast(`🎉 ${n.memberName} — ${label} اتأسند ليك`, 'info', 0)
+        })
+
+        localStorage.setItem(todayKey, '1')
+      }
+    } catch (error) {
+      console.error('Error fetching coach notifications:', error)
     }
   }
 
@@ -315,6 +390,146 @@ export default function CoachDashboard() {
             </div>
           )}
         </div>
+
+        {/* 🔔 Coach Notifications Banner */}
+        {coachNotifications && (
+          coachNotifications.renewals.length > 0 ||
+          coachNotifications.expiringSoon.length > 0 ||
+          coachNotifications.halfTimeWithBalance.length > 0 ||
+          coachNotifications.newAssignments.length > 0
+        ) && (
+          <>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+              <span>🔔</span>
+              {locale === 'ar' ? 'إشعارات' : 'Notifications'}
+            </h2>
+            <Link href="/coach/notifications" className="text-sm text-primary-600 dark:text-primary-400 hover:underline font-medium">
+              {locale === 'ar' ? 'عرض الكل ←' : 'View all →'}
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* Renewals */}
+            {coachNotifications.renewals.length > 0 && (
+              <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-2xl p-4 shadow-lg">
+                <h3 className="font-bold text-green-800 dark:text-green-200 mb-3 flex items-center gap-2">
+                  <span className="text-2xl">✅</span>
+                  <span>{locale === 'ar' ? 'تجديدات أخيرة' : 'Recent Renewals'} ({coachNotifications.renewals.length})</span>
+                </h3>
+                <ul className="text-sm space-y-2 text-gray-800 dark:text-gray-200">
+                  {coachNotifications.renewals.slice(0, 5).map((r, i) => (
+                    <li key={i} className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                      <span className="font-medium">{r.memberName}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">·</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-300">{r.type}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">·</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-300">
+                        {r.daysAgo === 0 ? (locale === 'ar' ? 'النهاردة' : 'today') : `${r.daysAgo} ${locale === 'ar' ? 'يوم' : 'days'}`}
+                      </span>
+                    </li>
+                  ))}
+                  {coachNotifications.renewals.length > 5 && (
+                    <li className="text-xs text-gray-500 dark:text-gray-400 italic">
+                      +{coachNotifications.renewals.length - 5} {locale === 'ar' ? 'تاني' : 'more'}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {/* Expiring Soon */}
+            {coachNotifications.expiringSoon.length > 0 && (
+              <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 rounded-2xl p-4 shadow-lg">
+                <h3 className="font-bold text-orange-800 dark:text-orange-200 mb-3 flex items-center gap-2">
+                  <span className="text-2xl">⏰</span>
+                  <span>{locale === 'ar' ? 'قارب على الانتهاء' : 'Expiring Soon'} ({coachNotifications.expiringSoon.length})</span>
+                </h3>
+                <ul className="text-sm space-y-2 text-gray-800 dark:text-gray-200">
+                  {coachNotifications.expiringSoon.slice(0, 5).map((e, i) => (
+                    <li key={i} className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                      <span className="font-medium">{e.memberName}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">·</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-300">{e.type}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">·</span>
+                      <span className={`text-xs font-bold ${e.daysLeft <= 2 ? 'text-red-600' : 'text-orange-600'}`}>
+                        {e.daysLeft === 0
+                          ? (locale === 'ar' ? 'النهاردة' : 'today')
+                          : `${e.daysLeft} ${locale === 'ar' ? 'يوم' : 'days'}`}
+                      </span>
+                    </li>
+                  ))}
+                  {coachNotifications.expiringSoon.length > 5 && (
+                    <li className="text-xs text-gray-500 dark:text-gray-400 italic">
+                      +{coachNotifications.expiringSoon.length - 5} {locale === 'ar' ? 'تاني' : 'more'}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {/* Half-time + Balance */}
+            {coachNotifications.halfTimeWithBalance.length > 0 && (
+              <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-2xl p-4 shadow-lg">
+                <h3 className="font-bold text-red-800 dark:text-red-200 mb-3 flex items-center gap-2">
+                  <span className="text-2xl">💰</span>
+                  <span>{locale === 'ar' ? 'نص الوقت + بواقي' : 'Half-time + Balance'} ({coachNotifications.halfTimeWithBalance.length})</span>
+                </h3>
+                <ul className="text-sm space-y-2 text-gray-800 dark:text-gray-200">
+                  {coachNotifications.halfTimeWithBalance.slice(0, 5).map((h, i) => (
+                    <li key={i} className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{h.memberName}</span>
+                        <span className="text-xs font-bold text-red-600">{Math.round(h.remainingAmount)} {locale === 'ar' ? 'ج' : 'EGP'}</span>
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                        {h.type} · {h.sessionsUsed}/{h.sessionsTotal} {locale === 'ar' ? 'حصة' : 'sessions'}
+                      </div>
+                    </li>
+                  ))}
+                  {coachNotifications.halfTimeWithBalance.length > 5 && (
+                    <li className="text-xs text-gray-500 dark:text-gray-400 italic">
+                      +{coachNotifications.halfTimeWithBalance.length - 5} {locale === 'ar' ? 'تاني' : 'more'}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {/* New Assignments */}
+            {coachNotifications.newAssignments.length > 0 && (
+              <div className="bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-300 dark:border-purple-700 rounded-2xl p-4 shadow-lg">
+                <h3 className="font-bold text-purple-800 dark:text-purple-200 mb-3 flex items-center gap-2">
+                  <span className="text-2xl">🎉</span>
+                  <span>{locale === 'ar' ? 'اتأسند ليك' : 'Newly Assigned'} ({coachNotifications.newAssignments.length})</span>
+                </h3>
+                <ul className="text-sm space-y-2 text-gray-800 dark:text-gray-200">
+                  {coachNotifications.newAssignments.slice(0, 5).map((n, i) => {
+                    const label = n.type === 'Member'
+                      ? (locale === 'ar' ? 'عضو' : 'Member')
+                      : n.type
+                    return (
+                      <li key={i} className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                        <span className="font-medium">{n.memberName}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">·</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-300">{label}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">·</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-300">
+                          {n.daysAgo === 0 ? (locale === 'ar' ? 'النهاردة' : 'today') : `${n.daysAgo} ${locale === 'ar' ? 'يوم' : 'days'}`}
+                        </span>
+                      </li>
+                    )
+                  })}
+                  {coachNotifications.newAssignments.length > 5 && (
+                    <li className="text-xs text-gray-500 dark:text-gray-400 italic">
+                      +{coachNotifications.newAssignments.length - 5} {locale === 'ar' ? 'تاني' : 'more'}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+          </>
+        )}
 
         {/* Quick Actions */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 mb-6">

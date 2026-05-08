@@ -51,7 +51,11 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       icon: '📊',
       links: [
         { href: isCoach ? '/coach' : '/', label: t('nav.dashboard'), icon: '🏠', permission: null },
-        ...(isCoach ? [{ href: '/coach/my-members', label: locale === 'ar' ? 'أعضائي' : 'My Members', icon: '👥', permission: null }] : []),
+        ...(isCoach ? [
+          { href: '/coach/my-members', label: locale === 'ar' ? 'أعضاء محتملين' : 'Potential Members', icon: '👥', permission: null },
+          { href: '/coach/more', label: locale === 'ar' ? 'اشتراكات More' : 'My More', icon: '➕', permission: null },
+          { href: '/coach/notifications', label: locale === 'ar' ? 'إشعاراتي' : 'My Notifications', icon: '🔔', permission: null },
+        ] : []),
       ]
     },
     {

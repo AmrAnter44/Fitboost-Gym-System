@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requirePermission } from '../../../lib/auth'
+import { requirePermission, verifyAuth } from '../../../lib/auth'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -109,8 +109,15 @@ export async function GET(request: Request) {
 // POST - إضافة جلسة PT جديدة
 export async function POST(request: Request) {
   try {
-    // ✅ التحقق من صلاحية إنشاء PT
-    const user = await requirePermission(request, 'canCreatePT')
+    // ✅ إنشاء PT متاح لأي موظف مسجّل دخول (مش الكوتش) — مع أو بدون باقي
+    // الـ audit log بيسجّل من قام بالعملية. لو محتاج تقييد، استخدم role-based filter.
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
+    }
+    if (user.role === 'COACH') {
+      return NextResponse.json({ error: 'الكوتش غير مسموح له بإنشاء اشتراكات' }, { status: 403 })
+    }
     
     const body = await request.json()
     const {

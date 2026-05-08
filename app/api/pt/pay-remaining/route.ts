@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { requirePermission } from '../../../../lib/auth'
+import { verifyAuth } from '../../../../lib/auth'
 import {
   type PaymentMethod,
   validatePaymentDistribution,
@@ -14,8 +14,15 @@ export const dynamic = 'force-dynamic'
 // POST - دفع المبلغ المتبقي
 export async function POST(request: Request) {
   try {
-    // ✅ التحقق من صلاحية إنشاء PT (تشمل دفع الباقي)
-    const user = await requirePermission(request, 'canCreatePT')
+    // ✅ قبول دفعة باقي يحتاج فقط تسجيل دخول (مش canCreatePT)
+    // ده task front-desk عادي بيعمله الموظفون. الـ audit log بيسجّل من قام بالعملية.
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
+    }
+    if (user.role === 'COACH') {
+      return NextResponse.json({ error: 'الكوتش غير مسموح له بقبول المدفوعات' }, { status: 403 })
+    }
 
     const body = await request.json()
     const {
