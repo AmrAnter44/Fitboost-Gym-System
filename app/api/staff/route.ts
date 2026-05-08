@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requirePermission } from '../../../lib/auth'
+import { requirePermission, requireAnyPermission } from '../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 
 // GET - جلب كل الموظفين
@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
-    // ✅ محاولة التحقق من صلاحية عرض الموظفين
+    // ✅ التحقق من صلاحية عرض الموظفين (أو صلاحية التقفيل اللي محتاجة بيانات الموظفين)
     let user
     try {
-      user = await requirePermission(request, 'canViewStaff')
+      user = await requireAnyPermission(request, ['canViewStaff', 'canAccessClosing'])
     } catch (permError: any) {
       // إذا لم يكن لديه صلاحية canViewStaff، نتحقق إذا كان كوتش يريد رؤية بياناته فقط
       const { verifyAuth } = await import('../../../lib/auth')

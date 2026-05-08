@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
-import { requirePermission } from '../../../lib/auth'
+import { requireAnyPermission } from '../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 
 export async function GET(request: Request) {
   try {
-    // ✅ محاولة التحقق من صلاحية عرض الإيصالات
+    // ✅ التحقق من صلاحية عرض الإيصالات (أو صلاحية التقفيل اللي محتاجة الإيصالات)
     let user
     try {
-      user = await requirePermission(request, 'canViewReceipts')
+      user = await requireAnyPermission(request, ['canViewReceipts', 'canAccessClosing'])
     } catch (permError: any) {
       // إذا لم يكن لديه صلاحية canViewReceipts، نتحقق إذا كان كوتش يريد رؤية إيصالات PT الخاصة به فقط
       const { verifyAuth } = await import('../../../lib/auth')

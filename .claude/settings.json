@@ -80,7 +80,8 @@
       "Bash(# Check the Electron userData path ELECTRON_PATH=\"\"$HOME/Library/Application Support/fitboost-system/uploads/members\"\" echo \"\"Electron path: $ELECTRON_PATH\"\" ls \"\"$ELECTRON_PATH\"\")",
       "Read(//Users/amranter250.4/Desktop/Gyms/More/Fitboost-System/app/followups/**)",
       "Bash(npx tsc *)",
-      "Bash(npm rebuild *)"
+      "Bash(npm rebuild *)",
+      "Read(//Users/amranter450444/Desktop/Gyms/More/Fitboost-System/app/coach/**)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",

@@ -85,11 +85,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const addToast = useCallback((message: string, type: ToastType = 'info', duration: number = 4000) => {
     const id = Math.random().toString(36).substring(2, 9)
-    const newToast: ToastMessage = { id, message, type, duration }
 
-    setToasts((prev) => [...prev, newToast])
+    // duration === 0 → silent: persist في NotificationsCenter بس، من غير transient toast
+    // (مفيد للـ background notifications اللي ما نعزش نزعج بيها المستخدم وقت ما يفتح صفحة)
+    const isSilent = duration === 0
 
-    // Also save to persistent notifications
+    if (!isSilent) {
+      const newToast: ToastMessage = { id, message, type, duration }
+      setToasts((prev) => [...prev, newToast])
+    }
+
+    // Always save to persistent notifications (الجرس)
     const newNotification: Notification = {
       id,
       message,

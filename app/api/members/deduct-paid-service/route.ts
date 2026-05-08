@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { requirePermission } from '../../../../lib/auth'
+import { verifyAuth } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 // POST - خصم جلسة مدفوعة من اشتراك نشط
 export async function POST(request: Request) {
   try {
-    // التحقق من صلاحية تعديل الأعضاء
-    await requirePermission(request, 'canEditMembers')
+    // ✅ خصم جلسة مدفوعة متاح لأي موظف مسجّل دخول (مش الكوتش)
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
+    }
+    if (user.role === 'COACH') {
+      return NextResponse.json({ error: 'الكوتش غير مسموح له بخصم جلسات من هنا' }, { status: 403 })
+    }
 
     const body = await request.json()
     const { memberId, serviceType } = body
