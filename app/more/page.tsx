@@ -41,7 +41,9 @@ export default function MorePage() {
   const [filteredSubscriptions, setFilteredSubscriptions] = useState<More[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
+  const [filterCoach, setFilterCoach] = useState('')
+  const [filterSessions, setFilterSessions] = useState<'all' | 'low' | 'zero'>('all')
 
   // Debounce timeout للبحث عن العضو
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -139,7 +141,7 @@ export default function MorePage() {
 
   useEffect(() => {
     filterSubscriptions()
-  }, [searchTerm, statusFilter, moreSubscriptions])
+  }, [searchTerm, statusFilter, moreSubscriptions, filterCoach, filterSessions])
 
   // تنظيف timeout عند unmount
   useEffect(() => {
@@ -205,14 +207,29 @@ export default function MorePage() {
       )
     }
 
-    // Status filter
+    // Status quick filter
+    const now = new Date()
+    const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     if (statusFilter === 'active') {
-      filtered = filtered.filter(sub => sub.isActive && new Date(sub.expiryDate) > new Date())
+      filtered = filtered.filter(sub => new Date(sub.expiryDate) > sevenDays)
+    } else if (statusFilter === 'expiring') {
+      filtered = filtered.filter(sub => {
+        const exp = new Date(sub.expiryDate)
+        return exp > now && exp <= sevenDays
+      })
     } else if (statusFilter === 'expired') {
-      filtered = filtered.filter(sub => new Date(sub.expiryDate) <= new Date())
-    } else if (statusFilter === 'inactive') {
-      filtered = filtered.filter(sub => !sub.isActive)
-    } else if (statusFilter === 'noSessions') {
+      filtered = filtered.filter(sub => new Date(sub.expiryDate) <= now)
+    }
+
+    // Coach filter
+    if (filterCoach) {
+      filtered = filtered.filter(sub => sub.coachName === filterCoach)
+    }
+
+    // Sessions filter
+    if (filterSessions === 'low') {
+      filtered = filtered.filter(sub => sub.sessionsRemaining > 0 && sub.sessionsRemaining <= 3)
+    } else if (filterSessions === 'zero') {
       filtered = filtered.filter(sub => sub.sessionsRemaining === 0)
     }
 
@@ -257,6 +274,27 @@ export default function MorePage() {
     } catch (error) {
       console.error('Error adding subscription:', error)
       toast.error(t('more.addError'))
+    }
+  }
+
+  const handleQuickAttendance = async (moreNumber: number) => {
+    try {
+      const response = await fetch('/api/more/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moreNumber, notes: '' })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success(t('more.sessionRegistered'))
+        fetchMoreSubscriptions()
+      } else {
+        toast.error(data.error || t('more.sessionError'))
+      }
+    } catch {
+      toast.error(t('more.sessionError'))
     }
   }
 
@@ -648,26 +686,158 @@ export default function MorePage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="mb-4 flex gap-4">
-        <input
-          type="text"
-          placeholder={t('more.search')}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 px-4 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-        >
-          <option value="all">{t('more.allSubscriptions')}</option>
-          <option value="active">{t('more.active')}</option>
-          <option value="expired">{t('more.expired')}</option>
-          <option value="inactive">{t('more.inactive')}</option>
-          <option value="noSessions">{t('more.noSessions')}</option>
-        </select>
+      {/* 🔍 البحث والفلاتر السريعة */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border-2 border-primary-200 dark:border-primary-700" dir={direction}>
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder={`🔍 ${locale === 'ar' ? 'بحث (اسم العميل، الكوتش، رقم الاشتراك، هاتف)...' : 'Search (client, coach, number, phone)...'}`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-3 border-2 border-primary-200 dark:border-primary-600 rounded-lg text-lg focus:border-primary-400 focus:outline-none transition dark:bg-gray-700 dark:text-white"
+          />
+        </div>
+
+        {/* 🎯 فلاتر الحالة السريعة */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <span>🎯</span>
+              <span>{locale === 'ar' ? 'فلاتر سريعة' : 'Quick Filters'}</span>
+            </h3>
+            {(statusFilter !== 'all' || filterSessions !== 'all') && (
+              <button
+                onClick={() => {
+                  setStatusFilter('all')
+                  setFilterSessions('all')
+                }}
+                className="bg-primary-100 text-primary-600 px-3 py-1.5 rounded-lg hover:bg-primary-200 text-sm font-medium"
+              >
+                ✖️ {locale === 'ar' ? 'إعادة تعيين' : 'Reset'}
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+                statusFilter === 'all'
+                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-xl border-2 border-primary-400'
+                  : 'bg-white dark:bg-gray-800 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 shadow-md'
+              }`}
+            >
+              <div className="text-xl mb-1">📊</div>
+              <div className="text-xs">{locale === 'ar' ? 'كل الحالات' : 'All Statuses'}</div>
+              <div className="text-lg font-bold dark:text-white">{moreSubscriptions.length}</div>
+            </button>
+
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+                statusFilter === 'active'
+                  ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-xl border-2 border-green-400'
+                  : 'bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-green-700 text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/50 hover:border-green-300 shadow-md'
+              }`}
+            >
+              <div className="text-xl mb-1">🟢</div>
+              <div className="text-xs">{locale === 'ar' ? 'نشط' : 'Active'}</div>
+              <div className="text-lg font-bold dark:text-white">
+                {moreSubscriptions.filter(s => new Date(s.expiryDate) > new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).length}
+              </div>
+            </button>
+
+            <button
+              onClick={() => setStatusFilter('expiring')}
+              className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+                statusFilter === 'expiring'
+                  ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl border-2 border-orange-400'
+                  : 'bg-white dark:bg-gray-800 border-2 border-orange-200 dark:border-orange-700 text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-orange-900/50 hover:border-orange-300 shadow-md'
+              }`}
+            >
+              <div className="text-xl mb-1">🟡</div>
+              <div className="text-xs">{locale === 'ar' ? 'قريب الانتهاء' : 'Expiring Soon'}</div>
+              <div className="text-lg font-bold dark:text-white">
+                {moreSubscriptions.filter(s => {
+                  const exp = new Date(s.expiryDate)
+                  const now = new Date()
+                  return exp > now && exp <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                }).length}
+              </div>
+            </button>
+
+            <button
+              onClick={() => setStatusFilter('expired')}
+              className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+                statusFilter === 'expired'
+                  ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-xl border-2 border-red-400'
+                  : 'bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-700 text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/50 hover:border-red-300 shadow-md'
+              }`}
+            >
+              <div className="text-xl mb-1">🔴</div>
+              <div className="text-xs">{locale === 'ar' ? 'منتهي' : 'Expired'}</div>
+              <div className="text-lg font-bold dark:text-white">
+                {moreSubscriptions.filter(s => new Date(s.expiryDate) <= new Date()).length}
+              </div>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <button
+              onClick={() => setFilterSessions('all')}
+              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+                filterSessions === 'all'
+                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
+                  : 'bg-white dark:bg-gray-800 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 shadow'
+              }`}
+            >
+              <div className="text-sm">{locale === 'ar' ? 'كل الجلسات' : 'All Sessions'}</div>
+            </button>
+
+            <button
+              onClick={() => setFilterSessions('low')}
+              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+                filterSessions === 'low'
+                  ? 'bg-gradient-to-br from-yellow-500 to-yellow-600 text-white shadow-lg border-2 border-yellow-400'
+                  : 'bg-white dark:bg-gray-800 border-2 border-yellow-200 dark:border-yellow-700 text-gray-700 dark:text-gray-200 hover:bg-yellow-50 dark:hover:bg-yellow-900/50 hover:border-yellow-300 shadow'
+              }`}
+            >
+              <div className="text-sm">{locale === 'ar' ? 'جلسات منخفضة (≤3)' : 'Low Sessions (≤3)'}</div>
+              <div className="text-xs opacity-70">
+                ({moreSubscriptions.filter(s => s.sessionsRemaining > 0 && s.sessionsRemaining <= 3).length})
+              </div>
+            </button>
+
+            <button
+              onClick={() => setFilterSessions('zero')}
+              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+                filterSessions === 'zero'
+                  ? 'bg-gradient-to-br from-gray-600 to-gray-700 text-white shadow-lg border-2 border-gray-500'
+                  : 'bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 shadow'
+              }`}
+            >
+              <div className="text-sm">{locale === 'ar' ? 'جلسات منتهية' : 'Zero Sessions'}</div>
+              <div className="text-xs opacity-70">
+                ({moreSubscriptions.filter(s => s.sessionsRemaining === 0).length})
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* 👨‍🏫 فلتر المدربين */}
+        <div>
+          <label className="block text-sm font-medium mb-2">👨‍🏫 {locale === 'ar' ? 'تصفية حسب الكوتش' : 'Filter by Coach'}</label>
+          <select
+            value={filterCoach}
+            onChange={(e) => setFilterCoach(e.target.value)}
+            className="w-full px-3 py-2.5 border-2 border-primary-200 dark:border-primary-600 rounded-lg focus:border-primary-400 focus:outline-none transition dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">{locale === 'ar' ? 'كل الكوتشات' : 'All Coaches'}</option>
+            {(Array.from(new Set(moreSubscriptions.map(s => s.coachName).filter((name): name is string => !!name))) as string[]).sort().map(coach => (
+              <option key={coach} value={coach}>{coach}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Table */}
@@ -679,109 +849,165 @@ export default function MorePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredSubscriptions.map((sub) => {
             const expired = isExpired(sub.expiryDate)
+            const isExpiringSoon =
+              sub.expiryDate &&
+              !expired &&
+              new Date(sub.expiryDate) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
             const noSessions = sub.sessionsRemaining === 0
             const inactive = !sub.isActive
             const sessionsUsed = sub.sessionsPurchased - sub.sessionsRemaining
             const progressPercent = sub.sessionsPurchased > 0 ? (sessionsUsed / sub.sessionsPurchased) * 100 : 0
 
-            const borderColor = inactive
-              ? 'border-gray-400'
-              : expired
-                ? 'border-red-400'
-                : noSessions
-                  ? 'border-orange-400'
-                  : 'border-green-400'
-
             return (
-              <div key={sub.moreNumber} className={`bg-white dark:bg-gray-800 rounded-xl shadow-md border-2 ${borderColor} hover:shadow-lg transition`} dir={direction}>
+              <div
+                key={sub.moreNumber}
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg dark:hover:shadow-2xl transition ${
+                  expired
+                    ? 'border-red-300 dark:border-red-700'
+                    : isExpiringSoon
+                      ? 'border-orange-300 dark:border-orange-700'
+                      : 'border-gray-200 dark:border-gray-600'
+                }`}
+                dir={direction}
+              >
                 {/* Header */}
-                <div className="p-3 flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-primary-600 font-bold text-sm">#{sub.moreNumber}</span>
-                      <h3 className="font-bold text-gray-900 dark:text-white truncate">{sub.clientName}</h3>
+                <div
+                  className={`p-3 ${
+                    expired
+                      ? 'bg-red-600 dark:bg-red-700'
+                      : isExpiringSoon
+                        ? 'bg-orange-600 dark:bg-orange-700'
+                        : 'bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg text-white/80">👤</span>
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-base">{sub.clientName}</div>
+                        <div className="text-white/80 text-xs">
+                          #{sub.moreNumber} • {sub.phone}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <a
-                        href={`https://wa.me/+20${sub.phone.startsWith('0') ? sub.phone.substring(1) : sub.phone}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-green-600 hover:text-green-700 text-sm font-medium font-mono"
-                      >
-                        {sub.phone}
-                      </a>
-                      <span className="text-gray-300 dark:text-gray-600">|</span>
-                      <span className="text-gray-600 dark:text-gray-400 text-xs truncate">{sub.coachName}</span>
+                    <div
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-bold text-white ${
+                        sub.sessionsRemaining === 0
+                          ? 'bg-red-500 dark:bg-red-600'
+                          : sub.sessionsRemaining <= 3
+                            ? 'bg-orange-500 dark:bg-orange-600'
+                            : 'bg-green-500 dark:bg-green-600'
+                      }`}
+                    >
+                      {sub.sessionsRemaining} / {sub.sessionsPurchased}
                     </div>
                   </div>
-                  {getStatusBadge(sub)}
                 </div>
 
-                {/* Body */}
-                <div className="px-3 pb-3 space-y-2">
-                  {/* Sessions progress */}
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('more.sessions')}</span>
-                      <span className="font-bold text-gray-800 dark:text-gray-200">{sub.sessionsRemaining} / {sub.sessionsPurchased}</span>
+                {/* Card Body */}
+                <div className="p-3 space-y-2.5">
+                  {/* Progress Bar with coach */}
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-600 dark:text-gray-300 mb-1">
+                      <span>{locale === 'ar' ? 'الكوتش' : 'Coach'}: {sub.coachName}</span>
+                      <span>{Math.round(progressPercent)}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full transition-all ${progressPercent >= 100 ? 'bg-red-500' : progressPercent >= 75 ? 'bg-orange-500' : 'bg-green-500'}`}
-                        style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                        className={`h-2 rounded-full transition-all ${
+                          progressPercent >= 80
+                            ? 'bg-red-500'
+                            : progressPercent >= 50
+                              ? 'bg-orange-500'
+                              : 'bg-green-500'
+                        }`}
+                        style={{ width: `${progressPercent}%` }}
                       />
                     </div>
                   </div>
 
-                  {/* Price + Expiry */}
-                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
-                    <div>
-                      <span className="font-bold text-gray-800 dark:text-gray-200">{sub.pricePerSession}</span> {t('members.egp')}/{locale === 'ar' ? 'جلسة' : 'session'}
+                  {/* Total + Remaining */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-2 text-center">
+                      <div className="text-[10px] text-green-700 dark:text-green-300 font-semibold">
+                        {locale === 'ar' ? 'الإجمالي' : 'Total'}
+                      </div>
+                      <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                        {(sub.totalAmount || sub.sessionsPurchased * sub.pricePerSession).toFixed(0)} {t('members.egp')}
+                      </div>
                     </div>
-                    <div className="font-mono">
-                      <span className={expired ? 'text-red-600 font-bold' : ''}>{formatDateYMD(sub.expiryDate)}</span>
+                    <div
+                      className={`border rounded-lg p-2 text-center ${
+                        (sub.remainingAmount || 0) > 0
+                          ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700'
+                          : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
+                      }`}
+                    >
+                      <div
+                        className={`text-[10px] font-semibold ${
+                          (sub.remainingAmount || 0) > 0
+                            ? 'text-orange-700 dark:text-orange-300'
+                            : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                      >
+                        {locale === 'ar' ? 'الباقي' : 'Remaining'}
+                      </div>
+                      <div
+                        className={`text-sm font-bold ${
+                          (sub.remainingAmount || 0) > 0
+                            ? 'text-orange-600 dark:text-orange-400'
+                            : 'text-green-600 dark:text-green-400'
+                        }`}
+                      >
+                        {(sub.remainingAmount || 0).toFixed(0)} {t('members.egp')}
+                      </div>
                     </div>
                   </div>
 
-                  {/* 💰 المبلغ المتبقي */}
-                  {(sub.remainingAmount || 0) > 0 && (
-                    <div className="flex items-center justify-between text-xs bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg px-3 py-2">
-                      <span className="text-orange-700 dark:text-orange-300 font-semibold">
-                        💰 {locale === 'ar' ? 'متبقي' : 'Remaining'}
-                      </span>
-                      <span className="font-bold text-orange-700 dark:text-orange-300">
-                        {(sub.remainingAmount || 0).toFixed(0)} {t('members.egp')}
-                      </span>
+                  {/* Dates */}
+                  {(sub.startDate || sub.expiryDate) && (
+                    <div
+                      className={`border rounded-lg p-2 text-xs font-mono ${
+                        expired
+                          ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
+                          : isExpiringSoon
+                            ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700'
+                            : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>📅</span>
+                        {sub.startDate && <span>{formatDateYMD(sub.startDate)}</span>}
+                        {sub.startDate && sub.expiryDate && <span>→</span>}
+                        {sub.expiryDate && (
+                          <span className={expired ? 'text-red-600 dark:text-red-400 font-bold' : ''}>
+                            {formatDateYMD(sub.expiryDate)}
+                          </span>
+                        )}
+                        {expired && (
+                          <span className="text-red-600 dark:text-red-400 font-bold">
+                            ({locale === 'ar' ? 'منتهي' : 'Expired'})
+                          </span>
+                        )}
+                        {!expired && isExpiringSoon && (
+                          <span className="text-orange-600 dark:text-orange-400 font-bold">
+                            ({locale === 'ar' ? 'ينتهي قريباً' : 'Expiring Soon'})
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
                     <button
-                      onClick={() => {
-                        setSessionFormData({ moreNumber: sub.moreNumber.toString(), notes: '' })
-                        setShowSessionForm(true)
-                      }}
+                      onClick={() => handleQuickAttendance(sub.moreNumber)}
                       disabled={noSessions || expired || inactive}
-                      className="flex-1 min-w-[80px] py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold transition"
+                      className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1"
                     >
-                      ✓ {locale === 'ar' ? 'تسجيل' : 'Check-in'}
-                    </button>
-                    {(sub.remainingAmount || 0) > 0 && (
-                      <button
-                        onClick={() => handleOpenPayment(sub)}
-                        className="py-2 px-3 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-bold transition"
-                        title={locale === 'ar' ? 'دفع المتبقي' : 'Pay remaining'}
-                      >
-                        💰
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleOpenEdit(sub)}
-                      className="py-2 px-3 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-bold transition"
-                      title={locale === 'ar' ? 'تعديل' : 'Edit'}
-                    >
-                      ✏️
+                      ✅ {locale === 'ar' ? 'حضور' : 'Attend'}
                     </button>
                     <button
                       onClick={() => {
@@ -791,17 +1017,35 @@ export default function MorePage() {
                         })
                         setShowRenewForm(true)
                       }}
-                      className="py-2 px-3 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-bold transition"
-                      title={locale === 'ar' ? 'تجديد' : 'Renew'}
+                      className="bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700 dark:hover:bg-primary-800 font-bold flex items-center justify-center gap-1"
                     >
-                      🔄
+                      🔄 {locale === 'ar' ? 'تجديد' : 'Renew'}
+                    </button>
+                    {(sub.remainingAmount || 0) > 0 && (
+                      <button
+                        onClick={() => handleOpenPayment(sub)}
+                        className="col-span-2 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1"
+                      >
+                        <span>💰</span>
+                        <span>
+                          {locale === 'ar' ? 'دفع الباقي' : 'Pay Remaining'} ({(sub.remainingAmount || 0).toFixed(0)} {t('members.egp')})
+                        </span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleOpenEdit(sub)}
+                      className="bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700 dark:hover:bg-primary-800 font-bold flex items-center justify-center gap-1"
+                    >
+                      <span>✏️</span>
+                      <span>{locale === 'ar' ? 'تعديل' : 'Edit'}</span>
                     </button>
                     {hasPermission('canDeleteMore') && (
                       <button
                         onClick={() => handleDeleteSubscription(sub.moreNumber)}
-                        className="py-2 px-3 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold transition"
+                        className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 dark:hover:bg-red-800 font-bold flex items-center justify-center gap-1"
                       >
-                        ✕
+                        <span>🗑️</span>
+                        <span>{locale === 'ar' ? 'حذف الاشتراك' : 'Delete'}</span>
                       </button>
                     )}
                   </div>

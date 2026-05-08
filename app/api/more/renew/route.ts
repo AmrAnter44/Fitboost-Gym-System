@@ -225,32 +225,32 @@ export async function POST(request: Request) {
           }
         }
 
-        // Audit log
-        await createAuditLog({
-          userId: user.userId,
-          userEmail: user.email,
-          userName: user.name,
-          userRole: user.role,
-          action: 'CREATE',
-          resource: 'More',
-          resourceId: newMore.moreNumber.toString(),
-          details: {
-            renewalFrom: oldMore.moreNumber,
-            clientName: oldMore.clientName,
-            sessionsPurchased,
-            totalAmount,
-            paidAmount
-          },
-          ipAddress: getIpAddress(request),
-          userAgent: getUserAgent(request),
-          status: 'success'
-        })
-
         return newMore
       }, {
-        maxWait: 10000,
-        timeout: 10000,
+        maxWait: 60000,  // 60 ثانية
+        timeout: 60000,  // 60 ثانية
       })
+
+      // ✅ Audit log خارج Transaction (غير حرج)
+      createAuditLog({
+        userId: user.userId,
+        userEmail: user.email,
+        userName: user.name,
+        userRole: user.role,
+        action: 'CREATE',
+        resource: 'More',
+        resourceId: newMore.moreNumber.toString(),
+        details: {
+          renewalFrom: oldMore.moreNumber,
+          clientName: oldMore.clientName,
+          sessionsPurchased,
+          totalAmount,
+          paidAmount
+        },
+        ipAddress: getIpAddress(request),
+        userAgent: getUserAgent(request),
+        status: 'success'
+      }).catch(err => console.error('⚠️ فشل Audit Log:', err))
 
       return NextResponse.json({
         message: 'تم تجديد الاشتراك بنجاح',

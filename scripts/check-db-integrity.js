@@ -29,10 +29,24 @@ function sqlite(db, sql) {
   return { stdout: result.stdout?.trim(), stderr: result.stderr?.trim(), code: result.status };
 }
 
+// On Windows the `sqlite3` CLI is usually not installed. `better-sqlite3` is
+// already a project dependency, so use it for the integrity check and fall
+// back to the CLI only if the native module isn't available.
 function checkIntegrity(dbPath) {
-  const result = sqlite(dbPath, 'PRAGMA integrity_check;');
-  if (result.code !== 0 || result.stderr?.includes('malformed')) return false;
-  return result.stdout === 'ok';
+  try {
+    const Database = require('better-sqlite3');
+    const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+    try {
+      const rows = db.prepare('PRAGMA integrity_check').all();
+      return rows.length === 1 && rows[0].integrity_check === 'ok';
+    } finally {
+      db.close();
+    }
+  } catch (e) {
+    const result = sqlite(dbPath, 'PRAGMA integrity_check;');
+    if (result.code !== 0 || result.stderr?.includes('malformed')) return false;
+    return result.stdout === 'ok';
+  }
 }
 
 function checkpointWAL(dbPath) {

@@ -47,10 +47,13 @@ export default function AdminUsersPage() {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     role: 'STAFF' as 'ADMIN' | 'OWNER' | 'MANAGER' | 'STAFF' | 'COACH',
     staffId: '',
     isSales: false
   })
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false)
+  const [showNewUserConfirmPassword, setShowNewUserConfirmPassword] = useState(false)
   const [newUserPermissions, setNewUserPermissions] = useState<Partial<Permissions>>({})
   
   // State للـ Modal تعديل الصلاحيات
@@ -117,6 +120,11 @@ export default function AdminUsersPage() {
       return
     }
 
+    if (newUserData.password !== newUserData.confirmPassword) {
+      toast.error('كلمتا المرور غير متطابقتين')
+      return
+    }
+
     if (newUserData.role === 'COACH' && !newUserData.staffId) {
       toast.warning(t('adminUsers.toast.coachNeedsStaff'))
       return
@@ -129,11 +137,12 @@ export default function AdminUsersPage() {
 
     setLoading(true)
     try {
+      const { confirmPassword, ...userPayload } = newUserData
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...newUserData,
+          ...userPayload,
           permissions: newUserPermissions  // ✅ إرسال الصلاحيات مع البيانات
         })
       })
@@ -143,7 +152,9 @@ export default function AdminUsersPage() {
       if (response.ok) {
         toast.success(t('adminUsers.toast.addSuccess'))
         setShowAddModal(false)
-        setNewUserData({ name: '', email: '', password: '', role: 'STAFF', staffId: '', isSales: false })
+        setNewUserData({ name: '', email: '', password: '', confirmPassword: '', role: 'STAFF', staffId: '', isSales: false })
+        setShowNewUserPassword(false)
+        setShowNewUserConfirmPassword(false)
         setNewUserPermissions({})
         fetchUsers()
       } else {
@@ -577,13 +588,73 @@ export default function AdminUsersPage() {
                 <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
                   {t('adminUsers.addModal.password')} <span className="text-red-600">*</span>
                 </label>
-                <input
-                  type="password"
-                  value={newUserData.password}
-                  onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                  placeholder={t('adminUsers.addModal.passwordPlaceholder')}
-                />
+                <div className="relative">
+                  <input
+                    type={showNewUserPassword ? 'text' : 'password'}
+                    value={newUserData.password}
+                    onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                    className="w-full px-3 py-2 pr-10 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                    placeholder={t('adminUsers.addModal.passwordPlaceholder')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewUserPassword(v => !v)}
+                    className="absolute inset-y-0 left-0 px-3 flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                    title={showNewUserPassword ? 'إخفاء' : 'إظهار'}
+                    aria-label={showNewUserPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  >
+                    {showNewUserPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
+                  تأكيد كلمة المرور <span className="text-red-600">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewUserConfirmPassword ? 'text' : 'password'}
+                    value={newUserData.confirmPassword}
+                    onChange={(e) => setNewUserData({ ...newUserData, confirmPassword: e.target.value })}
+                    className={`w-full px-3 py-2 pr-10 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:text-white ${
+                      newUserData.confirmPassword && newUserData.password !== newUserData.confirmPassword
+                        ? 'border-red-400 dark:border-red-600'
+                        : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                    placeholder="أعد إدخال كلمة المرور"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewUserConfirmPassword(v => !v)}
+                    className="absolute inset-y-0 left-0 px-3 flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                    title={showNewUserConfirmPassword ? 'إخفاء' : 'إظهار'}
+                    aria-label={showNewUserConfirmPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  >
+                    {showNewUserConfirmPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                {newUserData.confirmPassword && newUserData.password !== newUserData.confirmPassword && (
+                  <p className="text-red-600 dark:text-red-400 text-xs mt-1">⚠️ كلمتا المرور غير متطابقتين</p>
+                )}
               </div>
 
               <div>

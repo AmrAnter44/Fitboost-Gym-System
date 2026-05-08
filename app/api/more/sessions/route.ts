@@ -111,20 +111,28 @@ export async function POST(request: Request) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // التحقق من تاريخ البداية
-    if (more.startDate && new Date(more.startDate) > today) {
-      return NextResponse.json(
-        { error: 'الاشتراك لم يبدأ بعد' },
-        { status: 400 }
-      )
+    // التحقق من تاريخ البداية (نقارن باليوم فقط بغض النظر عن الوقت)
+    if (more.startDate) {
+      const startDay = new Date(more.startDate)
+      startDay.setHours(0, 0, 0, 0)
+      if (startDay > today) {
+        return NextResponse.json(
+          { error: 'الاشتراك لم يبدأ بعد' },
+          { status: 400 }
+        )
+      }
     }
 
-    // التحقق من تاريخ الانتهاء
-    if (more.expiryDate && new Date(more.expiryDate) < today) {
-      return NextResponse.json(
-        { error: 'الاشتراك منتهي' },
-        { status: 400 }
-      )
+    // التحقق من تاريخ الانتهاء (نقارن باليوم فقط)
+    if (more.expiryDate) {
+      const expiryDay = new Date(more.expiryDate)
+      expiryDay.setHours(0, 0, 0, 0)
+      if (expiryDay < today) {
+        return NextResponse.json(
+          { error: 'الاشتراك منتهي' },
+          { status: 400 }
+        )
+      }
     }
 
     // إنشاء جلسة + تقليل الجلسات المتبقية
