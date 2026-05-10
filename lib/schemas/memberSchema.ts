@@ -29,7 +29,11 @@ const isoDateString = z.string().refine(
 )
 
 export const memberCreateSchema = z.object({
-  memberNumber: optionalSafeNumber(1, 9_999_999),
+  memberNumber: z.union([z.string(), z.number()])
+    .transform(v => v === null || v === undefined || v === '' ? undefined : String(v).trim())
+    .pipe(z.string().regex(/^\d+$/, 'رقم العضوية يجب أن يكون أرقاماً فقط').max(20, 'رقم العضوية طويل جداً').optional())
+    .optional()
+    .nullable(),
 
   name: z.string()
     .trim()

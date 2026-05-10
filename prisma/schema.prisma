@@ -14,7 +14,7 @@ datasource db {
 
 model Member {
   id                String       @id @default(cuid())
-  memberNumber      Int?         @unique
+  memberNumber      String?      @unique
   name              String
   phone             String       // سيتم التحقق من التكرار في الـ API للأعضاء الجُدد
   backupPhone       String?
@@ -741,7 +741,7 @@ model Nutrition {
   nutritionNumber   Int         @id @default(autoincrement())
   clientName        String
   phone             String
-  memberNumber      Int?        // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
+  memberNumber      String?     // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
   sessionsPurchased Int
   sessionsRemaining Int
   nutritionistName  String
@@ -794,7 +794,7 @@ model Physiotherapy {
   physioNumber      Int         @id @default(autoincrement())
   clientName        String
   phone             String
-  memberNumber      Int?        // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
+  memberNumber      String?     // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
   sessionsPurchased Int
   sessionsRemaining Int
   therapistName     String
@@ -847,7 +847,7 @@ model GroupClass {
   classNumber       Int         @id @default(autoincrement())
   clientName        String
   phone             String
-  memberNumber      Int?        // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
+  memberNumber      String?     // رقم العضوية (للربط مع جدول الأعضاء ونظام النقاط)
   sessionsPurchased Int
   sessionsRemaining Int
   instructorName    String

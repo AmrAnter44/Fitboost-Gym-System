@@ -40,7 +40,7 @@ export async function GET(request: Request) {
         freePTSessions: true,
         subscriptionPrice: true,
       },
-      orderBy: { memberNumber: 'desc' },
+      orderBy: { createdAt: 'desc' },
     })
 
     return NextResponse.json(members)

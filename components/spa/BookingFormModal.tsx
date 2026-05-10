@@ -25,7 +25,7 @@ interface Member {
   id: string
   name: string
   phone: string
-  memberNumber?: number
+  memberNumber?: string
   isActive: boolean
 }
 

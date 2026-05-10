@@ -43,7 +43,7 @@ export default function GroupClassRenewalForm({ session, onSuccess, onClose }: G
   const toast = useToast()
   const { settings } = useServiceSettings()
   const [memberPoints, setMemberPoints] = useState(0)
-  const [memberNumber, setMemberNumber] = useState<number | null>(null)
+  const [memberNumber, setMemberNumber] = useState<string | null>(null)
   const [instructors, setInstructors] = useState<Staff[]>([])
   const [coachesLoading, setCoachesLoading] = useState(true)
   const [packages, setPackages] = useState<any[]>([])

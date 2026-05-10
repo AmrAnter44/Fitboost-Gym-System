@@ -22,7 +22,7 @@ import SalesStaffSelector from '../../../components/SalesStaffSelector'
 
 interface Member {
   id: string
-  memberNumber: number | null
+  memberNumber: string | null
   name: string
   phone: string
   backupPhone?: string
@@ -75,7 +75,7 @@ interface Receipt {
   paymentMethod: string
   createdAt: string
   itemDetails: {
-    memberNumber?: number
+    memberNumber?: string
     memberName?: string
     subscriptionPrice?: number
     paidAmount?: number
@@ -364,10 +364,10 @@ export default function MemberDetailPage() {
       const foundMember = await response.json()
 
       if (foundMember) {
-        // ✅ تحويل كل الأرقام لـ integers
+        // ✅ تحويل كل الأرقام لـ integers (مع إبقاء memberNumber كـ string عشان نحافظ على الأصفار في الأول لو موجودة في الـ DB)
         const memberWithDefaults = {
           ...foundMember,
-          memberNumber: foundMember.memberNumber !== null && foundMember.memberNumber !== undefined ? parseInt(foundMember.memberNumber.toString()) : null,
+          memberNumber: foundMember.memberNumber ?? null,
           freePTSessions: parseInt(foundMember.freePTSessions?.toString() || '0'),
           inBodyScans: parseInt(foundMember.inBodyScans?.toString() || '0'),
           invitations: parseInt(foundMember.invitations?.toString() || '0'),
@@ -2999,7 +2999,7 @@ export default function MemberDetailPage() {
                   <span>{t('memberDetails.invitationModal.title')}</span>
                 </h3>
                 <p className="text-xs text-primary-700 dark:text-primary-300 mt-0.5 truncate">
-                  <strong>{member.name}</strong> (#{member.memberNumber || '—'}) — {t('memberDetails.invitationModal.invitationsRemaining', { count: (member.invitations ?? 0).toString() })}
+                  <strong>{member.name}</strong> (#{member.memberNumber ? member.memberNumber : '—'}) — {t('memberDetails.invitationModal.invitationsRemaining', { count: (member.invitations ?? 0).toString() })}
                 </p>
               </div>
               <button

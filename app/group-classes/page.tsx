@@ -131,13 +131,13 @@ export default function GroupClassPage() {
   const [packages, setPackages] = useState<any[]>([])
   const [loadingPackages, setLoadingPackages] = useState(false)
   const [memberPoints, setMemberPoints] = useState(0)
-  const [memberNumber, setMemberNumber] = useState<number | null>(null)
+  const [memberNumber, setMemberNumber] = useState<string | null>(null)
 
   const [formData, setFormData] = useState<{
     groupClassNumber: string
     clientName: string
     phone: string
-    memberNumber?: number | null
+    memberNumber?: string | null
     sessionsPurchased: number
     sessionsRemaining: number
     instructorName: string

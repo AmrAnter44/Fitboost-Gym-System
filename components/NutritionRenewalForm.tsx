@@ -43,7 +43,7 @@ export default function NutritionRenewalForm({ session, onSuccess, onClose }: Nu
   const toast = useToast()
   const { settings } = useServiceSettings()
   const [memberPoints, setMemberPoints] = useState(0)
-  const [memberNumber, setMemberNumber] = useState<number | null>(null)
+  const [memberNumber, setMemberNumber] = useState<string | null>(null)
   const [nutritionists, setNutritionists] = useState<Staff[]>([])
   const [coachesLoading, setCoachesLoading] = useState(true)
   const [packages, setPackages] = useState<any[]>([])

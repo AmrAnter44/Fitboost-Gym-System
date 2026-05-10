@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
     while (attempts < MAX_ATTEMPTS) {
       const existingMember = await prisma.member.findUnique({
-        where: { memberNumber: nextNumber }
+        where: { memberNumber: String(nextNumber) }
       })
 
       if (!existingMember) {
@@ -80,14 +80,15 @@ export async function GET(request: Request) {
     try {
       const members = await prisma.member.findMany({
         where: { memberNumber: { not: null } },
-        orderBy: { memberNumber: 'desc' },
+        orderBy: { createdAt: 'desc' },
         select: { memberNumber: true },
         take: 1
       })
 
       if (members[0] && members[0].memberNumber) {
-        const nextNum = parseInt(members[0].memberNumber.toString()) + 1
-        return NextResponse.json({ 
+        const lastNum = parseInt(members[0].memberNumber)
+        const nextNum = isNaN(lastNum) ? 1 : lastNum + 1
+        return NextResponse.json({
           nextNumber: nextNum,
           message: 'تم جلب الرقم من آخر عضو',
           fromCounter: false
@@ -125,7 +126,7 @@ export async function POST(request: Request) {
 
     // التحقق من عدم وجود رقم عضوية بهذا الرقم
     const existingMember = await prisma.member.findUnique({
-      where: { memberNumber: parsedNumber }
+      where: { memberNumber: String(parsedNumber) }
     })
 
     if (existingMember) {

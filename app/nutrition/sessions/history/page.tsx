@@ -27,7 +27,7 @@ interface NutritionSessionRecord {
   } | null
   member?: {
     name: string
-    memberNumber: number
+    memberNumber: string
     phone: string
   } | null
 }

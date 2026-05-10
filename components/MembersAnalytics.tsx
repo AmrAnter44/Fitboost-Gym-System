@@ -6,7 +6,7 @@ import { formatDateYMD } from '../lib/dateFormatter'
 
 interface Member {
   id: string
-  memberNumber: number
+  memberNumber: string
   name: string
   phone: string
   subscriptionPrice: number

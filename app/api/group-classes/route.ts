@@ -190,7 +190,7 @@ export async function POST(request: Request) {
     const groupClassData: any = {
       clientName,
       phone,
-      memberNumber: memberNumber ? parseInt(memberNumber) : null,  // ✅ حفظ رقم العضوية
+      memberNumber: memberNumber ? String(memberNumber).trim() : null,  // ✅ حفظ رقم العضوية
       sessionsPurchased,
       sessionsRemaining: sessionsPurchased,
       instructorName,
@@ -329,7 +329,7 @@ export async function POST(request: Request) {
             let member = null
             if (memberNumber) {
               member = await tx.member.findUnique({
-                where: { memberNumber: parseInt(memberNumber) },
+                where: { memberNumber: String(memberNumber).trim() },
                 select: { id: true, name: true }
               })
             }

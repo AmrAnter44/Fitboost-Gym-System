@@ -24,7 +24,7 @@ interface SalesStaffData {
   }>
   membersCount: number
   members: Array<{
-    id: string; name: string; phone: string; memberNumber: number | null
+    id: string; name: string; phone: string; memberNumber: string | null
     isActive: boolean; expiryDate: string | null; collectedThisMonth: number
   }>
 }
