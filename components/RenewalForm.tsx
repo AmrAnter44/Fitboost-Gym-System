@@ -12,7 +12,7 @@ import type { PaymentMethod } from '../lib/paymentHelpers'
 
 interface Member {
   id: string
-  memberNumber: number
+  memberNumber: string
   name: string
   phone: string
   inBodyScans: number
@@ -35,7 +35,7 @@ interface Receipt {
   paymentMethod: string
   createdAt: string
   itemDetails: {
-    memberNumber?: number
+    memberNumber?: string
     memberName?: string
     subscriptionPrice?: number
     paidAmount?: number

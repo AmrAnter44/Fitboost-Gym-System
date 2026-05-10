@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     // ✅ البحث برقم العضوية (الأولوية الأولى)
     if (memberNumber) {
       const member = await prisma.member.findFirst({
-        where: { memberNumber: parseInt(memberNumber), ...salesOnlyFilter },
+        where: { memberNumber: memberNumber, ...salesOnlyFilter },
         include: { receipts: true }
       })
 
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
       const members = await prisma.member.findMany({
         where: { phone, ...salesOnlyFilter },
         include: { receipts: true },
-        orderBy: { memberNumber: 'desc' }
+        orderBy: { createdAt: 'desc' }
       })
       return NextResponse.json(members, { status: 200 })
     }
@@ -112,9 +112,13 @@ export async function GET(request: Request) {
     })
 
     // جلب كل الأعضاء (مع فلتر السيلز لو موجود) + اسم السيلز/الكوتش للتاج في الكروت
+    // ✅ ترتيب مزدوج: createdAt desc (الأساسي) ثم id desc (cuid فيه timestamp فيـ break الـ ties)
     const members = await prisma.member.findMany({
       where: salesOnlyFilter,
-      orderBy: { memberNumber: 'desc' },
+      orderBy: [
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ],
       include: {
         receipts: true,
         freezeRequests: {
@@ -293,7 +297,7 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       }
-      cleanMemberNumber = parseInt(memberNumber.toString())
+      cleanMemberNumber = String(memberNumber).trim()
     }
     
     const cleanInBodyScans = parseInt((inBodyScans || 0).toString())
@@ -341,7 +345,7 @@ export async function POST(request: Request) {
     let referrerId = null
     if (referralMemberNumber && referralMemberNumber.trim() !== '') {
       const referrer = await prisma.member.findUnique({
-        where: { memberNumber: parseInt(referralMemberNumber.trim()) }
+        where: { memberNumber: referralMemberNumber.trim() }
       })
 
       if (!referrer) {
@@ -747,7 +751,7 @@ export async function PUT(request: Request) {
     
     // تحويل كل الأرقام لـ integers
     if (data.memberNumber !== undefined) {
-      updateData.memberNumber = data.memberNumber ? parseInt(data.memberNumber.toString()) : null
+      updateData.memberNumber = data.memberNumber ? String(data.memberNumber).trim() : null
     }
     if (data.inBodyScans !== undefined) {
       updateData.inBodyScans = parseInt(data.inBodyScans.toString())

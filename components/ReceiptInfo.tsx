@@ -2,7 +2,7 @@
 
 interface ReceiptInfoProps {
   receiptNumber: number
-  memberNumber?: number
+  memberNumber?: string
   amount: number
 }
 

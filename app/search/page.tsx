@@ -407,10 +407,14 @@ export default function SearchPage() {
       const membersRes = await fetch('/api/members')
       const members = await membersRes.json()
       
-      // البحث برقم العضوية (يستثني Other لأنهم memberNumber = null)
-      const filteredMembers = members.filter((m: any) => 
-        m.memberNumber !== null && m.memberNumber.toString() === inputValue
-      )
+      // ✅ البحث برقم العضوية — يطابق الرقم بصيغته الخام أو بأصفار في الأول
+      const inputAsInt = /^\d+$/.test(inputValue) ? parseInt(inputValue, 10) : null
+      const filteredMembers = members.filter((m: any) => {
+        if (m.memberNumber == null) return false
+        if (m.memberNumber.toString() === inputValue) return true
+        if (inputAsInt !== null && parseInt(m.memberNumber.toString(), 10) === inputAsInt) return true
+        return false
+      })
       
       filteredMembers.forEach((member: any) => {
         foundResults.push({ type: 'member', data: member })

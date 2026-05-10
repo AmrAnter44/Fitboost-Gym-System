@@ -38,7 +38,7 @@ const VirtualMemberList = nextDynamic(() => import('../../components/VirtualMemb
 
 interface Member {
   id: string
-  memberNumber: number | null
+  memberNumber: string | null
   name: string
   phone: string
   profileImage?: string | null
@@ -119,6 +119,7 @@ export default function MembersPage() {
     enabled: !permissionsLoading && hasPermission('canViewMembers'),
     retry: 1,
     staleTime: 2 * 60 * 1000, // البيانات تعتبر fresh لمدة دقيقتين
+    refetchOnMount: 'always',  // إعادة جلب البيانات عند فتح الصفحة (لضمان الترتيب الجديد)
   })
 
   const [showForm, setShowForm] = useState(false)
@@ -185,11 +186,14 @@ export default function MembersPage() {
 
       filtered = filtered.filter((member) => {
         if (isAllDigits) {
-          // أرقام بتبدأ بصفر → تليفون. غير كده → رقم عضوية.
-          if (q.startsWith('0')) {
-            return member.phone.includes(q)
-          }
-          return member.memberNumber !== null && member.memberNumber === parseInt(q)
+          // أرقام → ابحث في memberNumber + phone في نفس الوقت
+          // ده بيخلي "001" يلاقي العضو #1، و "0123" يلاقي تليفون 0123...
+          const qNum = parseInt(q, 10)
+          const matchByNumber =
+            member.memberNumber !== null &&
+            parseInt(member.memberNumber as any, 10) === qNum
+          const matchByPhone = member.phone.includes(q)
+          return matchByNumber || matchByPhone
         }
         // نص (اسم) → بحث بالاسم
         return fuzzyMatch(member.name, q)
@@ -259,7 +263,28 @@ export default function MembersPage() {
       })
     }
 
-    return filtered
+    // ✅ ترتيب الأعضاء — الأحدث أولاً
+    // استراتيجية مزدوجة عشان مضمون يشتغل:
+    // 1. createdAt desc (الأساسي)
+    // 2. id desc (الـ cuid فيه timestamp prefix فبيتـ-sort زمنياً)
+    // 3. memberNumber desc (آخر tiebreaker)
+    const sorted = [...filtered].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      if (bTime !== aTime) return bTime - aTime
+
+      // الـ cuid (id) فيه timestamp prefix، فالـ string compare descending = newest first
+      const aId = String(a.id || '')
+      const bId = String(b.id || '')
+      if (aId !== bId) return bId.localeCompare(aId)
+
+      // آخر fallback
+      const aNum = a.memberNumber ? parseInt(a.memberNumber, 10) || 0 : 0
+      const bNum = b.memberNumber ? parseInt(b.memberNumber, 10) || 0 : 0
+      return bNum - aNum
+    })
+
+    return sorted
   }, [debouncedSearch, filterStatus, filterPackage, filterSalesId, filterCoachId, membersData])
 
   // ✅ جلب المحظورين عند التحميل (لو عنده صلاحية)
@@ -364,7 +389,7 @@ export default function MembersPage() {
     }
   }
 
-  const fetchMemberReceipts = async (memberNumber: number) => {
+  const fetchMemberReceipts = async (memberNumber: string) => {
     setReceiptsLoading(true)
     try {
       const response = await fetch('/api/receipts')
@@ -392,7 +417,7 @@ export default function MembersPage() {
     }
   }
 
-  const handleShowReceipts = (memberId: string, memberNumber: number) => {
+  const handleShowReceipts = (memberId: string, memberNumber: string) => {
     setSelectedMemberId(memberId)
     fetchMemberReceipts(memberNumber)
     setShowReceiptsModal(true)

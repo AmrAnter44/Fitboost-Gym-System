@@ -17,7 +17,7 @@ interface Invitation {
   notes?: string
   createdAt: string
   member: {
-    memberNumber: number
+    memberNumber: string
     name: string
     phone: string
   }

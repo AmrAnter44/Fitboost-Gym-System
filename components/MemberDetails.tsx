@@ -15,7 +15,7 @@ import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 
 interface Member {
   id: string
-  memberNumber: number
+  memberNumber: string
   name: string
   phone: string
   profileImage?: string | null

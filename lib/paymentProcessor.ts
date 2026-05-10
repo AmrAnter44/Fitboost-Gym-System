@@ -54,7 +54,7 @@ export async function processPaymentWithPoints(
       // البحث برقم العضوية فقط
       if (memberNumber) {
         const member = await prisma.member.findUnique({
-          where: { memberNumber: typeof memberNumber === 'string' ? parseInt(memberNumber) : memberNumber },
+          where: { memberNumber: String(memberNumber).trim() },
           select: { id: true, name: true, points: true }
         })
 

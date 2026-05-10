@@ -34,7 +34,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
-  const [nextMemberNumber, setNextMemberNumber] = useState<number | null>(null)
+  const [nextMemberNumber, setNextMemberNumber] = useState<string | null>(null)
   const [nextReceiptNumber, setNextReceiptNumber] = useState<number | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
   const [idCardFrontPreview, setIdCardFrontPreview] = useState<string>('')
@@ -43,7 +43,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 👥 Referral validation states
-  const [referrerInfo, setReferrerInfo] = useState<{ name: string; memberNumber: number } | null>(null)
+  const [referrerInfo, setReferrerInfo] = useState<{ name: string; memberNumber: string } | null>(null)
   const [referrerLoading, setReferrerLoading] = useState(false)
   const [referrerError, setReferrerError] = useState<string | null>(null)
 
@@ -108,15 +108,16 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
 
 
         if (data.nextNumber !== undefined && data.nextNumber !== null) {
-          setNextMemberNumber(data.nextNumber)
-          setFormData(prev => ({ ...prev, memberNumber: data.nextNumber.toString() }))
+          const nextStr = String(data.nextNumber)
+          setNextMemberNumber(nextStr)
+          setFormData(prev => ({ ...prev, memberNumber: nextStr }))
         } else {
-          setNextMemberNumber(1001)
+          setNextMemberNumber('1001')
           setFormData(prev => ({ ...prev, memberNumber: '1001' }))
         }
       } catch (error) {
         console.error('❌ خطأ في جلب رقم العضوية:', error)
-        setNextMemberNumber(1001)
+        setNextMemberNumber('1001')
         setFormData(prev => ({ ...prev, memberNumber: '1001' }))
         toast.warning(t('members.form.errorFetchingNumber'))
       }
@@ -409,7 +410,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       isOther: formData.isOther,
       memberNumber: formData.isOther
         ? null
-        : (formData.memberNumber ? parseInt(formData.memberNumber) : nextMemberNumber),
+        : (formData.memberNumber ? String(formData.memberNumber).trim() : (nextMemberNumber != null ? String(nextMemberNumber) : null)),
       inBodyScans: parseInt(formData.inBodyScans.toString()),
       invitations: parseInt(formData.invitations.toString()),
       freePTSessions: parseInt(formData.freePTSessions.toString()),
@@ -623,12 +624,14 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
             </div>
           ) : (
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="\d*"
               required={!formData.isOther}
               value={formData.memberNumber}
-              onChange={(e) => setFormData({ ...formData, memberNumber: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, memberNumber: e.target.value.replace(/\D/g, '') })}
               className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-              placeholder="مثال: 1001"
+              placeholder="مثال: 01001"
               disabled={formData.isOther}
             />
           )}

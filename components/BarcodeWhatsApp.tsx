@@ -6,7 +6,7 @@ import Toast from './Toast'
 import { sendWhatsAppMessage } from '../lib/whatsappHelper'
 
 interface BarcodeWhatsAppProps {
-  memberNumber: number
+  memberNumber: string
   memberName: string
   memberPhone: string
 }

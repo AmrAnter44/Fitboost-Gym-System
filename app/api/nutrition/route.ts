@@ -340,7 +340,7 @@ export async function POST(request: Request) {
             let member = null
             if (memberNumber) {
               member = await tx.member.findUnique({
-                where: { memberNumber: parseInt(memberNumber) },
+                where: { memberNumber: String(memberNumber).trim() },
                 select: { id: true, name: true }
               })
             }

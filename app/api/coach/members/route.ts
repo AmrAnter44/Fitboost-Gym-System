@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
     // جلب جميع الأعضاء مع معلومات اختبار اللياقة
     const members = await prisma.member.findMany({
-      orderBy: { memberNumber: 'desc' },
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         memberNumber: true,

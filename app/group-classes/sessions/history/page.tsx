@@ -27,7 +27,7 @@ interface GroupClassSessionRecord {
   } | null
   member?: {
     name: string
-    memberNumber: number
+    memberNumber: string
     phone: string
   } | null
 }

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Find member by memberNumber AND phone
     const member = await prisma.member.findFirst({
       where: {
-        memberNumber: parseInt(memberNumber),
+        memberNumber: String(memberNumber).trim(),
         phone: {
           contains: cleanPhone,
         },

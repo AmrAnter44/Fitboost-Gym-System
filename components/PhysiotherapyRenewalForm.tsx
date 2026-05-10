@@ -43,7 +43,7 @@ export default function PhysiotherapyRenewalForm({ session, onSuccess, onClose }
   const toast = useToast()
   const { settings } = useServiceSettings()
   const [memberPoints, setMemberPoints] = useState(0)
-  const [memberNumber, setMemberNumber] = useState<number | null>(null)
+  const [memberNumber, setMemberNumber] = useState<string | null>(null)
   const [therapists, setTherapists] = useState<Staff[]>([])
   const [coachesLoading, setCoachesLoading] = useState(true)
   const [packages, setPackages] = useState<any[]>([])

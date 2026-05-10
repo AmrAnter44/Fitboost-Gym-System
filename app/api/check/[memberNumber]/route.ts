@@ -21,7 +21,7 @@ export async function GET(
     // البحث عن العضو برقم العضوية
     const member = await prisma.member.findFirst({
       where: {
-        memberNumber: parseInt(memberNumber)
+        memberNumber: memberNumber
       },
       select: {
         name: true,

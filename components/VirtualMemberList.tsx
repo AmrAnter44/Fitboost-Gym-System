@@ -8,7 +8,7 @@ import { getPackageName } from '@/lib/memberUtils'
 
 interface Member {
   id: string
-  memberNumber: number | null
+  memberNumber: string | null
   name: string
   phone: string
   profileImage?: string | null
@@ -28,7 +28,7 @@ interface MemberCardRowProps {
   members: Member[]
   lastReceipts: Record<string, any>
   onViewDetails: (id: string) => void
-  onShowReceipts: (id: string, memberNumber: number) => void
+  onShowReceipts: (id: string, memberNumber: string) => void
   onPrefetch: (id: string) => void
   t: (key: string, params?: Record<string, string>) => string
   locale: string
@@ -240,7 +240,7 @@ interface VirtualMemberListProps {
   members: Member[]
   lastReceipts: Record<string, any>
   onViewDetails: (id: string) => void
-  onShowReceipts: (id: string, memberNumber: number) => void
+  onShowReceipts: (id: string, memberNumber: string) => void
   t: (key: string, params?: Record<string, string>) => string
   locale: string
   direction: string

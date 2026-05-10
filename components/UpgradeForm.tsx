@@ -8,7 +8,7 @@ import type { PaymentMethod } from '../lib/paymentHelpers'
 
 interface Member {
   id: string
-  memberNumber: number
+  memberNumber: string
   name: string
   phone: string
   subscriptionPrice: number

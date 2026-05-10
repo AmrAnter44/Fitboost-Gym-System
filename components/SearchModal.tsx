@@ -463,9 +463,14 @@ export default function SearchModal() {
       const membersRes = await fetch('/api/members')
       const members = await membersRes.json()
 
-      const filteredMembers = members.filter((m: any) =>
-        m.memberNumber !== null && m.memberNumber.toString() === inputValue
-      )
+      // ✅ يطابق الرقم بصيغته الخام أو بأصفار في الأول (مثلاً "01313" → 1313)
+      const inputAsInt = /^\d+$/.test(inputValue) ? parseInt(inputValue, 10) : null
+      const filteredMembers = members.filter((m: any) => {
+        if (m.memberNumber == null) return false
+        if (m.memberNumber.toString() === inputValue) return true
+        if (inputAsInt !== null && parseInt(m.memberNumber.toString(), 10) === inputAsInt) return true
+        return false
+      })
 
       filteredMembers.forEach((member: any) => {
         foundResults.push({ type: 'member', data: member })

@@ -7,7 +7,7 @@ import { useLanguage } from '../../../contexts/LanguageContext'
 
 interface AssignedMember {
   id: string
-  memberNumber: number | null
+  memberNumber: string | null
   name: string
   phone: string | null
   profileImage: string | null

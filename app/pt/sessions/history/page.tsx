@@ -29,7 +29,7 @@ interface PTSessionRecord {
   } | null
   member?: {
     name: string
-    memberNumber: number
+    memberNumber: string
     phone: string
   } | null
 }
