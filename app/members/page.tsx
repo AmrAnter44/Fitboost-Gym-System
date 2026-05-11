@@ -264,24 +264,30 @@ export default function MembersPage() {
     }
 
     // ✅ ترتيب الأعضاء — الأحدث أولاً
-    // استراتيجية مزدوجة عشان مضمون يشتغل:
-    // 1. createdAt desc (الأساسي)
-    // 2. id desc (الـ cuid فيه timestamp prefix فبيتـ-sort زمنياً)
-    // 3. memberNumber desc (آخر tiebreaker)
+    // الأساس: memberNumber desc (لأن العضو الجديد بياخد رقم أعلى من اللي قبله)
+    // لو memberNumber null (Other) → في الآخر
+    // tiebreakers: createdAt desc → id desc
     const sorted = [...filtered].sort((a, b) => {
+      // Other members (no memberNumber) دايماً في الآخر
+      const aHasNum = a.memberNumber != null && a.memberNumber !== ''
+      const bHasNum = b.memberNumber != null && b.memberNumber !== ''
+      if (aHasNum && !bHasNum) return -1
+      if (!aHasNum && bHasNum) return 1
+
+      // الأساسي: memberNumber desc (الأعلى رقم = الأحدث)
+      if (aHasNum && bHasNum) {
+        const aNum = parseInt(a.memberNumber as any, 10) || 0
+        const bNum = parseInt(b.memberNumber as any, 10) || 0
+        if (aNum !== bNum) return bNum - aNum
+      }
+
+      // tiebreaker 1: createdAt desc
       const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
       if (bTime !== aTime) return bTime - aTime
 
-      // الـ cuid (id) فيه timestamp prefix، فالـ string compare descending = newest first
-      const aId = String(a.id || '')
-      const bId = String(b.id || '')
-      if (aId !== bId) return bId.localeCompare(aId)
-
-      // آخر fallback
-      const aNum = a.memberNumber ? parseInt(a.memberNumber, 10) || 0 : 0
-      const bNum = b.memberNumber ? parseInt(b.memberNumber, 10) || 0 : 0
-      return bNum - aNum
+      // tiebreaker 2: id desc (cuid time-ordered prefix)
+      return String(b.id || '').localeCompare(String(a.id || ''))
     })
 
     return sorted

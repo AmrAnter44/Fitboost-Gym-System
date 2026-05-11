@@ -10,6 +10,7 @@ import RenewalForm from '../../../components/RenewalForm'
 import UpgradeForm from '../../../components/UpgradeForm'
 import ImageUpload from '../../../components/ImageUpload'
 import { formatDateYMD, calculateRemainingDays } from '../../../lib/dateFormatter'
+import { prepareReceiptMessage } from '../../../lib/whatsappReceiptMessage'
 import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
 import type { PaymentMethod } from '../../../lib/paymentHelpers'
@@ -460,28 +461,35 @@ export default function MemberDetailPage() {
     }
   }
 
-  const fetchMemberReceipts = async () => {
+  const fetchMemberReceipts = async (memberOverride?: any) => {
     setReceiptsLoading(true)
     try {
       const response = await fetch('/api/receipts')
       const allReceipts = await response.json()
 
-      if (!member) {
+      const m = memberOverride || member
+      if (!m) {
         setMemberReceipts([])
         setReceiptsLoading(false)
         return
       }
 
+      // ✅ شامل: كل إيصال متعلق بالعضو ده — سواء memberId/memberNumber في الـ FK
+      // أو في تفاصيل الـ itemDetails (للداتا القديمة)
       const filtered = allReceipts.filter((receipt: any) => {
-        if (receipt.type === 'Member' || receipt.type === 'تجديد عضويه') {
-          try {
-            const itemDetails = JSON.parse(receipt.itemDetails)
-            // البحث برقم العضوية (memberNumber) بدلاً من memberId
-            return itemDetails.memberNumber === member.memberNumber
-          } catch (error) {
-            return false
+        // الـ FK المباشر
+        if (receipt.memberId === m.id) return true
+
+        // قديم: البحث في itemDetails بـ memberNumber
+        try {
+          const itemDetails = typeof receipt.itemDetails === 'string'
+            ? JSON.parse(receipt.itemDetails)
+            : receipt.itemDetails
+          if (itemDetails && m.memberNumber && itemDetails.memberNumber === m.memberNumber) {
+            return true
           }
-        }
+        } catch { /* ignore */ }
+
         return false
       })
 
@@ -1620,106 +1628,119 @@ export default function MemberDetailPage() {
           )}
         </div>
 
+        {/* 🎯 Action Bar — أزرار سريعة بـ labels واضحة */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+          {/* Barcode + WhatsApp */}
+          <button
+            onClick={async () => {
+              setBarcodePopup({ show: true, step: 'generating', image: '', error: '' })
+              try {
+                const res = await fetch('/api/barcode', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ text: (member.memberNumber ?? 'Other').toString() }),
+                })
+                const data = await res.json()
+
+                if (!data.barcode) {
+                  setBarcodePopup(p => ({ ...p, step: 'error', error: 'فشل إنشاء صورة الباركود' }))
+                  return
+                }
+
+                const isValid = await new Promise<boolean>((resolve) => {
+                  const img = new Image()
+                  img.onload = () => resolve(img.width > 0 && img.height > 0)
+                  img.onerror = () => resolve(false)
+                  img.src = data.barcode
+                })
+
+                if (!isValid) {
+                  setBarcodePopup(p => ({ ...p, step: 'error', error: 'الصورة غير صالحة' }))
+                  return
+                }
+
+                setBarcodePopup({ show: true, step: 'ready', image: data.barcode, error: '' })
+              } catch (error) {
+                console.error('Error:', error)
+                setBarcodePopup(p => ({ ...p, step: 'error', error: 'حدث خطأ أثناء إنشاء الباركود' }))
+              }
+            }}
+            className="bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all hover:scale-105 backdrop-blur-sm border border-white/20"
+            title={locale === 'ar' ? 'إرسال الباركود على واتساب' : 'Send Barcode via WhatsApp'}
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            <span className="font-semibold text-sm">
+              {locale === 'ar' ? 'إرسال الباركود' : 'Send Barcode'}
+            </span>
+          </button>
+
+          {/* ID Card Images */}
+          <button
+            onClick={() => setShowIdCardModal(true)}
+            className="bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all hover:scale-105 backdrop-blur-sm border border-white/20"
+            title={t('memberDetails.viewIdCardImages')}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+            </svg>
+            <span className="font-semibold text-sm">
+              {locale === 'ar' ? 'صور البطاقة' : 'ID Card'}
+            </span>
+          </button>
+
+          {/* Edit Member */}
+          {hasPermission('canEditMembers') && (
+            <button
+              onClick={() => {
+                setEditBasicInfoData({
+                  name: member.name,
+                  phone: member.phone,
+                  profileImage: member.profileImage || null,
+                  subscriptionPrice: member.subscriptionPrice,
+                  inBodyScans: member.inBodyScans ?? 0,
+                  invitations: member.invitations ?? 0,
+                  freePTSessions: member.freePTSessions ?? 0,
+                  freeNutritionSessions: member.freeNutritionSessions ?? 0,
+                  freePhysioSessions: member.freePhysioSessions ?? 0,
+                  freeGroupClassSessions: member.freeGroupClassSessions ?? 0,
+                  freePoolSessions: member.freePoolSessions ?? 0,
+                  freePadelSessions: member.freePadelSessions ?? 0,
+                  freeAssessmentSessions: member.freeAssessmentSessions ?? 0,
+                  freeMoreSessions: member.freeMoreSessions ?? 0,
+                  remainingFreezeDays: member.remainingFreezeDays ?? 0,
+                  remainingAmount: member.remainingAmount ?? 0,
+                  remainingDueDate: (member as any).remainingDueDate ? formatDateYMD((member as any).remainingDueDate) : '',
+                  coachId: member.coachId || null,
+                  salesStaffId: (member as any).salesStaffId || null,
+                  notes: member.notes || '',
+                  startDate: member.startDate ? formatDateYMD(member.startDate) : '',
+                  expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : '',
+                  idCardFront: member.idCardFront || null,
+                  idCardBack: member.idCardBack || null,
+                  allowedCheckInStart: (member as any).allowedCheckInStart || '',
+                  allowedCheckInEnd: (member as any).allowedCheckInEnd || ''
+                })
+                setActiveModal('edit-basic-info')
+              }}
+              disabled={loading}
+              className="bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all hover:scale-105 backdrop-blur-sm border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t('memberDetails.editModal.title')}
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+              </svg>
+              <span className="font-semibold text-sm">
+                {locale === 'ar' ? 'تعديل البيانات' : 'Edit Info'}
+              </span>
+            </button>
+          )}
+        </div>
+
         <div className={(member.coach || (member as any).salesStaff) ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "grid grid-cols-1 md:grid-cols-3 gap-6"}>
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <p className="text-sm opacity-90">{t('memberDetails.membershipNumber')}</p>
-              <button
-                onClick={async () => {
-                  // Step 1: فتح popup وتوليد الصورة
-                  setBarcodePopup({ show: true, step: 'generating', image: '', error: '' })
-                  try {
-                    const res = await fetch('/api/barcode', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ text: (member.memberNumber ?? 'Other').toString() }),
-                    })
-                    const data = await res.json()
-
-                    if (!data.barcode) {
-                      setBarcodePopup(p => ({ ...p, step: 'error', error: 'فشل إنشاء صورة الباركود' }))
-                      return
-                    }
-
-                    // التحقق من صحة الصورة
-                    const isValid = await new Promise<boolean>((resolve) => {
-                      const img = new Image()
-                      img.onload = () => resolve(img.width > 0 && img.height > 0)
-                      img.onerror = () => resolve(false)
-                      img.src = data.barcode
-                    })
-
-                    if (!isValid) {
-                      setBarcodePopup(p => ({ ...p, step: 'error', error: 'الصورة غير صالحة' }))
-                      return
-                    }
-
-                    // الصورة جاهزة - عرضها للتأكيد
-                    setBarcodePopup({ show: true, step: 'ready', image: data.barcode, error: '' })
-                  } catch (error) {
-                    console.error('Error:', error)
-                    setBarcodePopup(p => ({ ...p, step: 'error', error: 'حدث خطأ أثناء إنشاء الباركود' }))
-                  }
-                }}
-                className="bg-green-500 hover:bg-green-600 text-white rounded-full p-1.5 transition-all hover:scale-110"
-                title="Send Barcode via WhatsApp"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                </svg>
-              </button>
-              {hasPermission('canEditMembers') && (
-                <button
-                  onClick={() => {
-                    setEditBasicInfoData({
-                      name: member.name,
-                      phone: member.phone,
-                      profileImage: member.profileImage || null,
-                      subscriptionPrice: member.subscriptionPrice,
-                      inBodyScans: member.inBodyScans ?? 0,
-                      invitations: member.invitations ?? 0,
-                      freePTSessions: member.freePTSessions ?? 0,
-                      freeNutritionSessions: member.freeNutritionSessions ?? 0,
-                      freePhysioSessions: member.freePhysioSessions ?? 0,
-                      freeGroupClassSessions: member.freeGroupClassSessions ?? 0,
-                      freePoolSessions: member.freePoolSessions ?? 0,
-                      freePadelSessions: member.freePadelSessions ?? 0,
-                      freeAssessmentSessions: member.freeAssessmentSessions ?? 0,
-                      freeMoreSessions: member.freeMoreSessions ?? 0,
-                      remainingFreezeDays: member.remainingFreezeDays ?? 0,
-                      remainingAmount: member.remainingAmount ?? 0,
-                      remainingDueDate: (member as any).remainingDueDate ? formatDateYMD((member as any).remainingDueDate) : '',
-                      coachId: member.coachId || null,
-                      salesStaffId: (member as any).salesStaffId || null,
-                      notes: member.notes || '',
-                      startDate: member.startDate ? formatDateYMD(member.startDate) : '',
-                      expiryDate: member.expiryDate ? formatDateYMD(member.expiryDate) : '',
-                      idCardFront: member.idCardFront || null,
-                      idCardBack: member.idCardBack || null,
-                      allowedCheckInStart: (member as any).allowedCheckInStart || '',
-                      allowedCheckInEnd: (member as any).allowedCheckInEnd || ''
-                    })
-                    setActiveModal('edit-basic-info')
-                  }}
-                  disabled={loading}
-                  className="bg-primary-500 hover:bg-primary-600 text-white rounded-full p-1.5 transition-all hover:scale-110 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  title={t('memberDetails.editModal.title')}
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                  </svg>
-                </button>
-              )}
-              <button
-                onClick={() => setShowIdCardModal(true)}
-                className="bg-secondary-500 hover:bg-secondary-600 text-white rounded-full p-1.5 transition-all hover:scale-110"
-                title={t('memberDetails.viewIdCardImages')}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                </svg>
-              </button>
-            </div>
+            <p className="text-sm opacity-90 mb-2">{t('memberDetails.membershipNumber')}</p>
             <p className="text-5xl font-bold">{member.memberNumber !== null ? `#${member.memberNumber}` : <span className="bg-white/20 px-3 py-1 rounded-full text-2xl">Other</span>}</p>
           </div>
           <div>
@@ -3894,6 +3915,42 @@ export default function MemberDetailPage() {
                 <div className="space-y-3">
                   {memberReceipts.map((receipt) => {
                     const itemDetails = JSON.parse(receipt.itemDetails)
+                    const paymentMethodLabel = receipt.paymentMethod === 'cash' ? (locale === 'ar' ? 'كاش 💵' : 'Cash 💵')
+                      : receipt.paymentMethod === 'visa' ? (locale === 'ar' ? 'فيزا 💳' : 'Visa 💳')
+                      : receipt.paymentMethod === 'instapay' ? (locale === 'ar' ? 'إنستاباي 📱' : 'Instapay 📱')
+                      : (locale === 'ar' ? 'محفظة 💰' : 'Wallet 💰')
+
+                    const sendReceiptOnWhatsApp = () => {
+                      if (!member?.phone) {
+                        toast.error(locale === 'ar' ? 'العضو ليس لديه رقم تليفون' : 'Member has no phone number')
+                        return
+                      }
+                      // ✅ نستخدم نفس صياغة الإيصال المستخدمة في صفحة الإيصالات بظبط
+                      const message = prepareReceiptMessage(
+                        {
+                          receiptNumber: receipt.receiptNumber,
+                          type: receipt.type,
+                          amount: receipt.amount,
+                          date: receipt.createdAt,
+                          paymentMethod: receipt.paymentMethod,
+                          staffName: receipt.staffName,
+                          details: itemDetails,
+                          memberPhoneFallback: member.phone,
+                        },
+                        {
+                          websiteUrl: settings?.websiteUrl,
+                          showWebsite: settings?.showWebsiteOnReceipts,
+                        }
+                      )
+                      const cancelledNote = receipt.isCancelled
+                        ? `\n\n⚠️ *${locale === 'ar' ? 'هذا الإيصال ملغي' : 'This receipt is cancelled'}*\n`
+                        : ''
+                      const finalMessage = message + cancelledNote
+                      const phone = member.phone.replace(/^0/, '20')
+                      const url = `https://wa.me/${phone}?text=${encodeURIComponent(finalMessage)}`
+                      window.open(url, '_blank')
+                    }
+
                     return (
                       <div
                         key={receipt.id}
@@ -3923,13 +3980,7 @@ export default function MemberDetailPage() {
                               </div>
                               <div>
                                 <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الطريقة:' : 'Method:'}</span>
-                                <span className="font-semibold dark:text-gray-200 mr-2">
-                                  {receipt.paymentMethod === 'cash' ? (locale === 'ar' ? 'كاش 💵' : 'Cash 💵')
-                                    : receipt.paymentMethod === 'visa' ? (locale === 'ar' ? 'فيزا 💳' : 'Visa 💳')
-                                    : receipt.paymentMethod === 'instapay' ? (locale === 'ar' ? 'إنستاباي 📱' : 'Instapay 📱')
-                                    : (locale === 'ar' ? 'محفظة 💰' : 'Wallet 💰')
-                                  }
-                                </span>
+                                <span className="font-semibold dark:text-gray-200 mr-2">{paymentMethodLabel}</span>
                               </div>
                               {itemDetails.packageType && (
                                 <div>
@@ -3962,6 +4013,21 @@ export default function MemberDetailPage() {
                                     {new Date(itemDetails.expiryDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                                   </span>
                                 </div>
+                              </div>
+                            )}
+                            {/* زر إرسال على واتساب */}
+                            {member?.phone && (
+                              <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600 flex justify-end">
+                                <button
+                                  onClick={sendReceiptOnWhatsApp}
+                                  className="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2 transition-all active:scale-95"
+                                  title={locale === 'ar' ? 'إرسال الإيصال على واتساب' : 'Send receipt via WhatsApp'}
+                                >
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                                  </svg>
+                                  <span>{locale === 'ar' ? 'إرسال على واتساب' : 'Send on WhatsApp'}</span>
+                                </button>
                               </div>
                             )}
                           </div>
@@ -4416,8 +4482,74 @@ export default function MemberDetailPage() {
                     className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2 text-lg"
                   >
                     <span>📲</span>
-                    <span>إرسال عبر واتساب</span>
+                    <span>إرسال الباركود فقط</span>
                   </button>
+
+                  {/* 🧾 إرسال الباركود + آخر إيصال في رسالة واحدة */}
+                  {lastReceipt && (
+                    <button
+                      onClick={async () => {
+                        setBarcodePopup(p => ({ ...p, step: 'sending' }))
+                        try {
+                          let receiptDetails: any = {}
+                          try {
+                            receiptDetails = typeof lastReceipt.itemDetails === 'string'
+                              ? JSON.parse(lastReceipt.itemDetails)
+                              : lastReceipt.itemDetails || {}
+                          } catch { /* ignore */ }
+
+                          // ✅ نفس صياغة الإيصال المستخدمة في صفحة الإيصالات
+                          const caption = prepareReceiptMessage(
+                            {
+                              receiptNumber: lastReceipt.receiptNumber,
+                              type: lastReceipt.type,
+                              amount: lastReceipt.amount,
+                              date: lastReceipt.createdAt,
+                              paymentMethod: lastReceipt.paymentMethod,
+                              staffName: lastReceipt.staffName,
+                              details: receiptDetails,
+                              memberPhoneFallback: member.phone,
+                            },
+                            {
+                              websiteUrl: settings?.websiteUrl,
+                              showWebsite: settings?.showWebsiteOnReceipts,
+                            }
+                          )
+
+                          const sendResult = await fetch('/api/whatsapp/send-image', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              phone: member.phone,
+                              imageBase64: barcodePopup.image,
+                              caption
+                            })
+                          })
+                          const sendData = await sendResult.json()
+
+                          if (sendData.success) {
+                            setBarcodePopup(p => ({ ...p, step: 'success' }))
+                            setTimeout(() => {
+                              setBarcodePopup({ show: false, step: 'generating', image: '', error: '' })
+                            }, 2000)
+                          } else {
+                            const errorMessage = sendData.error || 'فشل إرسال الصورة'
+                            const msg = errorMessage.includes('not ready') || errorMessage.includes('not initialized')
+                              ? 'الواتساب غير متصل. افتح الإعدادات → الواتساب لمسح QR code'
+                              : errorMessage
+                            setBarcodePopup(p => ({ ...p, step: 'error', error: msg }))
+                          }
+                        } catch (err) {
+                          setBarcodePopup(p => ({ ...p, step: 'error', error: 'حدث خطأ أثناء الإرسال' }))
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 font-bold flex items-center justify-center gap-2 text-base shadow-md"
+                    >
+                      <span>📲🧾</span>
+                      <span>إرسال الباركود + آخر إيصال</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => setBarcodePopup({ show: false, step: 'generating', image: '', error: '' })}
                     className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
