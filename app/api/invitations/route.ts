@@ -164,17 +164,35 @@ export async function POST(request: Request) {
       return [inv, updated] as const
     })
 
-    // ✅ إضافة الضيف في الزوار تلقائياً (إذا لم يكن موجوداً)
-    try {
-      const existingVisitor = await prisma.visitor.findUnique({
-        where: { phone: guestPhone },
-      })
+    // ✅ إضافة الضيف في الزوار + followup في transaction واحد
+    // الكود القديم كان بيعمل findUnique ثم create (race condition) وبيـ swallow الأخطاء
+    // فلو الـ followup فشل، الدعوة بتتسجل من غير متابعة → "متابعات مش بتتسجل"
 
-      // تحديد الزائر (موجود أو جديد)
-      let targetVisitor = existingVisitor
-      if (!existingVisitor) {
-        targetVisitor = await prisma.visitor.create({
-          data: {
+    // قرار الـ assignedTo قبل الـ transaction (الـ staff query بياخد وقت)
+    let assignedToForInvitation: string | null = effectiveSalesStaffId
+    if (!assignedToForInvitation) {
+      try {
+        const salesStaffList = await prisma.staff.findMany({
+          where: { isActive: true, position: { contains: 'sales' } },
+          select: {
+            id: true,
+            _count: { select: { followUpAssignments: { where: { archived: false } } } }
+          }
+        })
+        if (salesStaffList.length > 0) {
+          const sorted = [...salesStaffList].sort((a, b) => a._count.followUpAssignments - b._count.followUpAssignments)
+          assignedToForInvitation = sorted[0].id
+        }
+      } catch {}
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        // upsert بدل findUnique→create عشان نتجنب race condition
+        const visitor = await tx.visitor.upsert({
+          where: { phone: guestPhone },
+          update: {},
+          create: {
             name: guestName.trim(),
             phone: guestPhone.trim(),
             source: "member-invitation",
@@ -183,49 +201,28 @@ export async function POST(request: Request) {
             status: "pending",
           },
         })
-      }
 
-      if (targetVisitor) {
         // إنشاء متابعة فقط إذا لم تكن هناك متابعة نشطة
-        const activeFollowUp = await prisma.followUp.findFirst({
-          where: { visitorId: targetVisitor.id, archived: false },
+        const activeFollowUp = await tx.followUp.findFirst({
+          where: { visitorId: visitor.id, archived: false },
         })
 
         if (!activeFollowUp) {
-          // 🔒 الـ effectiveSalesStaffId أعلى بياخد في الاعتبار قفل الدور:
-          // - الريسبشن مجبر على سيلز العضو
-          // - الأدمن/الأونر بيقدر يغيره
-          // - فولباك أخير: round-robin لو مفيش سيلز للعضو ولا اتبعت في الـ body
-          let assignedTo: string | null = effectiveSalesStaffId
-          if (!assignedTo) {
-            try {
-              const salesStaffList = await prisma.staff.findMany({
-                where: { isActive: true, position: { contains: 'sales' } },
-                select: {
-                  id: true,
-                  _count: { select: { followUpAssignments: { where: { archived: false } } } }
-                }
-              })
-              if (salesStaffList.length > 0) {
-                const sorted = [...salesStaffList].sort((a, b) => a._count.followUpAssignments - b._count.followUpAssignments)
-                assignedTo = sorted[0].id
-              }
-            } catch {}
-          }
-
-          await prisma.followUp.create({
+          await tx.followUp.create({
             data: {
-              visitorId: targetVisitor.id,
+              visitorId: visitor.id,
               notes: `دعوة من العضو ${member.name} - في انتظار المتابعة من فريق المبيعات`,
               nextFollowUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
-              assignedTo,
+              assignedTo: assignedToForInvitation,
             },
           })
         }
-      }
+      })
     } catch (visitorError) {
-      // في حالة فشل إنشاء الزائر، نستمر (لأن Invitation تم إنشاؤه بنجاح)
-      console.error("⚠️ تحذير: فشل إنشاء الزائر من الدعوة:", visitorError)
+      // الـ Invitation اتسجلت بالفعل في الـ transaction اللي فوق.
+      // لو الـ visitor/followup فشلوا، نـ log بوضوح والأدمن يقدر يستخدم
+      // زرار "توزيع غير المُسنَّدين" يصلح الموقف.
+      console.error("⚠️ فشل إنشاء visitor+followup من الدعوة:", visitorError)
     }
 
     // إضافة نقاط عند استخدام دعوة (إذا كان نظام النقاط مفعل)

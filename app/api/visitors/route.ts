@@ -169,26 +169,30 @@ export async function POST(request: Request) {
       )
     }
 
-    // إنشاء الزائر
-    const visitor = await prisma.visitor.create({
-      data: {
-        name: name.trim(),
-        phone: phone.trim(),
-        notes: notes?.trim(),
-        source: source || 'walk-in', // walk-in, facebook, instagram, friend, other
-        interestedIn: interestedIn?.trim(),
-        status: 'pending', // pending, contacted, subscribed, rejected
-      },
-    })
+    // ✅ إنشاء الزائر + أول متابعة في transaction واحد عشان لو الـ followup فشل
+    // الزائر يترجع، عشان ما يحصلش "visitor موجود من غير followup" (silent orphan).
+    const visitor = await prisma.$transaction(async (tx) => {
+      const v = await tx.visitor.create({
+        data: {
+          name: name.trim(),
+          phone: phone.trim(),
+          notes: notes?.trim(),
+          source: source || 'walk-in', // walk-in, facebook, instagram, friend, other
+          interestedIn: interestedIn?.trim(),
+          status: 'pending', // pending, contacted, subscribed, rejected
+        },
+      })
 
-    // إنشاء أول متابعة تلقائياً
-    await prisma.followUp.create({
-      data: {
-        visitorId: visitor.id,
-        notes: 'زيارة أولية - في انتظار التواصل',
-        nextFollowUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // بعد 24 ساعة
-        ...(salesStaffId ? { assignedTo: salesStaffId } : {})
-      },
+      await tx.followUp.create({
+        data: {
+          visitorId: v.id,
+          notes: 'زيارة أولية - في انتظار التواصل',
+          nextFollowUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // بعد 24 ساعة
+          ...(salesStaffId ? { assignedTo: salesStaffId } : {})
+        },
+      })
+
+      return v
     })
 
     createAuditLog({

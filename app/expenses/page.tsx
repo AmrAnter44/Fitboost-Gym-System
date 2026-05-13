@@ -287,7 +287,10 @@ export default function ExpensesPage() {
       })
     }
 
-    return list
+    // 🔽 ترتيب: الأحدث أولاً حسب التاريخ
+    return [...list].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
   })()
 
   // فلترة المصروفات للشهر الحالي فقط للإحصائيات

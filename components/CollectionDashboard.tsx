@@ -109,6 +109,14 @@ export default function CollectionDashboard() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  // ✅ إعادة الجلب تلقائياً لما يتم نقل ميمبر/أعضاء لسيلز تاني
+  // (يطلق من SalesMgmtPanel أو من صفحة تعديل العضو)
+  useEffect(() => {
+    const handler = () => { fetchData() }
+    window.addEventListener('sales-data-changed', handler)
+    return () => window.removeEventListener('sales-data-changed', handler)
+  }, [fetchData])
+
   const setQuickRange = (kind: 'this-month' | 'last-month' | 'this-week' | 'today') => {
     const t = new Date()
     if (kind === 'this-month') {

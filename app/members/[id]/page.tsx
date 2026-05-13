@@ -247,6 +247,7 @@ export default function MemberDetailPage() {
   const [editBasicInfoData, setEditBasicInfoData] = useState({
     name: '',
     phone: '',
+    memberNumber: '',
     profileImage: null as string | null,
     idCardFront: null as string | null,
     idCardBack: null as string | null,
@@ -1216,6 +1217,7 @@ export default function MemberDetailPage() {
           id: member.id,
           name: editBasicInfoData.name.trim(),
           phone: editBasicInfoData.phone.trim(),
+          memberNumber: editBasicInfoData.memberNumber.trim() || null,
           profileImage: editBasicInfoData.profileImage,
           idCardFront: editBasicInfoData.idCardFront,
           idCardBack: editBasicInfoData.idCardBack,
@@ -1246,9 +1248,17 @@ export default function MemberDetailPage() {
       if (response.ok) {
         toast.success(t('memberDetails.editModal.updateSuccess'))
 
+        // 📢 لو الـ salesStaffId اتغيّر، نخبر CollectionDashboard إنه يعيد احتساب التارجت
+        const oldSalesId = (member as any).salesStaffId || null
+        const newSalesId = editBasicInfoData.salesStaffId || null
+        if (oldSalesId !== newSalesId) {
+          window.dispatchEvent(new Event('sales-data-changed'))
+        }
+
         setEditBasicInfoData({
           name: '',
           phone: '',
+          memberNumber: '',
           profileImage: null,
           idCardFront: null,
           idCardBack: null,
@@ -1368,15 +1378,13 @@ export default function MemberDetailPage() {
     }
   }
 
-  const handleUnfreeze = async () => {
+  const handleUnfreeze = () => {
     if (!member) return
+    setActiveModal('unfreeze')
+  }
 
-    const confirmed = window.confirm(
-      locale === 'ar'
-        ? 'متأكد تفك الفريز؟ الأيام اللي ماتستخدمتش هترجع لرصيد الفريز تلقائياً.'
-        : 'Confirm unfreeze? Unused days will be returned to freeze balance.'
-    )
-    if (!confirmed) return
+  const confirmUnfreeze = async () => {
+    if (!member) return
 
     setLoading(true)
     try {
@@ -1390,6 +1398,7 @@ export default function MemberDetailPage() {
 
       if (response.ok) {
         toast.success(result.message || (locale === 'ar' ? 'تم فك الفريز بنجاح' : 'Unfreeze successful'))
+        setActiveModal(null)
         fetchMember()
       } else {
         toast.error(result.error || (locale === 'ar' ? 'فشل فك الفريز' : 'Unfreeze failed'))
@@ -1599,10 +1608,11 @@ export default function MemberDetailPage() {
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white rounded-2xl shadow-2xl p-8 mb-6">
-        {/* صورة العضو */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-white dark:border-gray-300 shadow-2xl bg-white dark:bg-gray-800">
+      <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white rounded-2xl shadow-2xl p-6 mb-6">
+        {/* 📌 الـ Header: صورة + اسم + رقم + أزرار سريعة */}
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-6">
+          {/* صورة العضو — أصغر شوية وعلى الجانب */}
+          <div className="relative w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-white dark:border-gray-300 shadow-2xl bg-white dark:bg-gray-800 shrink-0">
             {member.profileImage ? (
               <img
                 src={member.profileImage}
@@ -1610,26 +1620,40 @@ export default function MemberDetailPage() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-400 bg-gray-100 dark:bg-gray-700">
-                <svg className="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
+              <>
+                <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-400 bg-gray-100 dark:bg-gray-700">
+                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMissingImageUpload({ field: 'profileImage', label: locale === 'ar' ? 'الصورة الشخصية' : 'Profile Image' })}
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 hover:bg-black/55 text-white font-bold transition group"
+                  title={locale === 'ar' ? 'إضافة صورة شخصية' : 'Add Profile Image'}
+                >
+                  <span className="text-2xl transition group-hover:scale-110">📷</span>
+                  <span className="text-xs font-semibold">
+                    {locale === 'ar' ? 'إضافة صورة' : 'Add Photo'}
+                  </span>
+                </button>
+              </>
             )}
           </div>
-          {!member.profileImage && (
-            <button
-              type="button"
-              onClick={() => setMissingImageUpload({ field: 'profileImage', label: locale === 'ar' ? 'الصورة الشخصية' : 'Profile Image' })}
-              className="mt-3 bg-white/90 hover:bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-full shadow-md transition"
-            >
-              📷 {locale === 'ar' ? 'إضافة صورة شخصية' : 'Add Profile Image'}
-            </button>
-          )}
-        </div>
 
-        {/* 🎯 Action Bar — أزرار سريعة بـ labels واضحة */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+          {/* الاسم + الرقم + الأزرار */}
+          <div className="flex-1 min-w-0 w-full">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-3">
+              <div className="text-center md:text-start">
+                <p className="text-sm opacity-90 mb-1">{t('memberDetails.membershipNumber')}</p>
+                <p className="text-4xl md:text-5xl font-bold">
+                  {member.memberNumber !== null ? `#${member.memberNumber}` : <span className="bg-white/20 px-3 py-1 rounded-full text-2xl">Other</span>}
+                </p>
+                <p className="text-2xl md:text-3xl font-bold mt-2 truncate">{member.name}</p>
+              </div>
+
+              {/* ⚡ Action Buttons */}
+              <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 shrink-0">
           {/* Barcode + WhatsApp */}
           <button
             onClick={async () => {
@@ -1697,6 +1721,7 @@ export default function MemberDetailPage() {
                 setEditBasicInfoData({
                   name: member.name,
                   phone: member.phone,
+                  memberNumber: member.memberNumber != null ? String(member.memberNumber) : '',
                   profileImage: member.profileImage || null,
                   subscriptionPrice: member.subscriptionPrice,
                   inBodyScans: member.inBodyScans ?? 0,
@@ -1736,55 +1761,52 @@ export default function MemberDetailPage() {
               </span>
             </button>
           )}
-        </div>
+              </div>{/* end Action Buttons */}
+            </div>{/* end info+buttons row */}
+          </div>{/* end right side container */}
+        </div>{/* end profile+info header */}
 
-        <div className={(member.coach || (member as any).salesStaff) ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "grid grid-cols-1 md:grid-cols-3 gap-6"}>
-          <div>
-            <p className="text-sm opacity-90 mb-2">{t('memberDetails.membershipNumber')}</p>
-            <p className="text-5xl font-bold">{member.memberNumber !== null ? `#${member.memberNumber}` : <span className="bg-white/20 px-3 py-1 rounded-full text-2xl">Other</span>}</p>
-          </div>
-          <div>
-            <p className="text-sm opacity-90 mb-2">{t('memberDetails.memberName')}</p>
-            <p className="text-3xl font-bold">{member.name}</p>
-          </div>
-          <div>
-            <p className="text-sm opacity-90 mb-2">{t('memberDetails.phoneNumber')}</p>
-            <p className="text-2xl font-mono">{member.phone}</p>
+        {/* 📋 معلومات إضافية */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+          {/* رقم التليفون — دايماً ظاهر */}
+          <div className="bg-white/10 rounded-lg p-3">
+            <p className="text-xs opacity-80 mb-1">📱 {t('memberDetails.phoneNumber')}</p>
+            <p className="text-base font-mono font-semibold" dir="ltr">{member.phone}</p>
           </div>
           {member.backupPhone && (
-            <div>
-              <p className="text-sm opacity-90 mb-2">{t('memberDetails.backupPhone')}</p>
-              <p className="text-2xl font-mono">{member.backupPhone}</p>
+            <div className="bg-white/10 rounded-lg p-3">
+              <p className="text-xs opacity-80 mb-1">{t('memberDetails.backupPhone')}</p>
+              <p className="text-base font-mono" dir="ltr">{member.backupPhone}</p>
             </div>
           )}
           {member.email && (
-            <div>
-              <p className="text-sm opacity-90 mb-2">📧 البريد الإلكتروني</p>
-              <p className="text-2xl font-mono">{member.email}</p>
+            <div className="bg-white/10 rounded-lg p-3">
+              <p className="text-xs opacity-80 mb-1">📧 {locale === 'ar' ? 'البريد' : 'Email'}</p>
+              <p className="text-base font-mono break-all">{member.email}</p>
             </div>
           )}
           {member.nationalId && (
-            <div>
-              <p className="text-sm opacity-90 mb-2">{t('memberDetails.nationalId')}</p>
-              <p className="text-2xl font-mono">{member.nationalId}</p>
+            <div className="bg-white/10 rounded-lg p-3">
+              <p className="text-xs opacity-80 mb-1">{t('memberDetails.nationalId')}</p>
+              <p className="text-base font-mono">{member.nationalId}</p>
             </div>
           )}
           {member.birthDate && (
-            <div>
-              <p className="text-sm opacity-90 mb-2">{t('memberDetails.birthDate')}</p>
-              <p className="text-2xl font-mono">
+            <div className="bg-white/10 rounded-lg p-3">
+              <p className="text-xs opacity-80 mb-1">{t('memberDetails.birthDate')}</p>
+              <p className="text-base font-mono">
                 {new Date(member.birthDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
                   year: 'numeric',
-                  month: 'long',
+                  month: 'short',
                   day: 'numeric'
                 })}
               </p>
             </div>
           )}
           {member.source && (
-            <div>
-              <p className="text-sm opacity-90 mb-2">{t('memberDetails.memberSource')}</p>
-              <p className="text-2xl">
+            <div className="bg-white/10 rounded-lg p-3">
+              <p className="text-xs opacity-80 mb-1">{t('memberDetails.memberSource')}</p>
+              <p className="text-base font-semibold">
                 {(() => {
                   const sourcesAr: { [key: string]: string } = {
                     'facebook': 'فيسبوك',
@@ -1807,17 +1829,17 @@ export default function MemberDetailPage() {
             </div>
           )}
           {member.coach && (
-            <div>
-              <p className="text-sm opacity-90 mb-2">👨‍🏫 المدرب</p>
-              <p className="text-3xl font-bold">{member.coach.name}</p>
-              <p className="text-sm opacity-75">#{member.coach.staffCode}</p>
+            <div className="bg-white/10 rounded-lg p-3">
+              <p className="text-xs opacity-80 mb-1">👨‍🏫 {locale === 'ar' ? 'المدرب' : 'Coach'}</p>
+              <p className="text-base font-bold">{member.coach.name}</p>
+              <p className="text-xs opacity-75">#{member.coach.staffCode}</p>
             </div>
           )}
           {(member as any).salesStaff && (
-            <div>
-              <p className="text-sm opacity-90 mb-2">💼 {locale === 'ar' ? 'موظف السيلز' : 'Sales Staff'}</p>
-              <p className="text-3xl font-bold">{(member as any).salesStaff.name}</p>
-              <p className="text-sm opacity-75">#{(member as any).salesStaff.staffCode}</p>
+            <div className="bg-white/10 rounded-lg p-3">
+              <p className="text-xs opacity-80 mb-1">💼 {locale === 'ar' ? 'موظف السيلز' : 'Sales Staff'}</p>
+              <p className="text-base font-bold">{(member as any).salesStaff.name}</p>
+              <p className="text-xs opacity-75">#{(member as any).salesStaff.staffCode}</p>
             </div>
           )}
         </div>
@@ -1918,151 +1940,138 @@ export default function MemberDetailPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
-        {settings.pointsEnabled && (
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.points')}</p>
-                <p className="text-4xl font-bold text-primary-600 dark:text-primary-400">{member.points ?? 0}</p>
+      {/* 🎁 المكافآت والخصائص */}
+      <div className="mb-6">
+        <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+          <span>🎁</span>
+          {locale === 'ar' ? 'المكافآت والخصائص' : 'Rewards & Features'}
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {settings.pointsEnabled && (
+            <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.points')}</p>
+                <span className="text-2xl">🏆</span>
               </div>
-              <div className="text-5xl">🏆</div>
-            </div>
-            <div className="space-y-2">
-              <button
-                onClick={handleShowPointsHistory}
-                className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                {t('memberDetails.viewPointsHistory')}
-              </button>
-              <button
-                onClick={() => setShowAddPointsModal(true)}
-                className="w-full bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 flex items-center justify-center gap-2 transition-colors"
-              >
-                <span>➕</span>
-                <span>{t('memberDetails.addRemovePoints')}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500`}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.invitations')}</p>
-              <p className="text-4xl font-bold text-primary-600">{member.invitations ?? 0}</p>
-            </div>
-            <div className="text-5xl">🎟️</div>
-          </div>
-          <button
-            onClick={handleUseInvitation}
-            disabled={(member.invitations ?? 0) <= 0 || loading}
-            className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {t('memberDetails.useInvitation')}
-          </button>
-        </div>
-
-        {settings.inBodyEnabled && (
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-green-500`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.inBody')}</p>
-                <p className="text-4xl font-bold text-green-600">{member.inBodyScans ?? 0}</p>
+              <p className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-3">{member.points ?? 0}</p>
+              <div className="flex gap-1">
+                <button
+                  onClick={handleShowPointsHistory}
+                  className="flex-1 bg-primary-600 hover:bg-primary-700 text-white text-xs py-1.5 rounded transition-colors"
+                  title={t('memberDetails.viewPointsHistory')}
+                >
+                  📜
+                </button>
+                <button
+                  onClick={() => setShowAddPointsModal(true)}
+                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs py-1.5 rounded transition-colors"
+                  title={t('memberDetails.addRemovePoints')}
+                >
+                  ➕
+                </button>
               </div>
-              <div className="text-5xl">⚖️</div>
-            </div>
-            <button
-              onClick={handleUseInBody}
-              disabled={(member.inBodyScans ?? 0) <= 0 || loading}
-              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {t('memberDetails.useSession')}
-            </button>
-          </div>
-        )}
-
-        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-orange-500`}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.freePTSessions')}</p>
-              <p className="text-4xl font-bold text-orange-600">{member.freePTSessions ?? 0}</p>
-            </div>
-            <div className="text-5xl">💪</div>
-          </div>
-
-          {/* عرض الجلسات المدفوعة */}
-          {paidSessionCounts.pt > 0 && (
-            <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-3 mb-3">
-              <p className="text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.paidPTSessions')}</p>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{paidSessionCounts.pt}</p>
             </div>
           )}
 
-          {/* أزرار الخصم */}
-          <div className="space-y-2">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-primary-500`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.invitations')}</p>
+              <span className="text-2xl">🎟️</span>
+            </div>
+            <p className="text-3xl font-bold text-primary-600 mb-3">{member.invitations ?? 0}</p>
             <button
-              onClick={handleUseFreePT}
-              disabled={(member.freePTSessions ?? 0) <= 0 || loading}
-              className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              onClick={handleUseInvitation}
+              disabled={(member.invitations ?? 0) <= 0 || loading}
+              className="w-full bg-primary-600 text-white text-xs py-1.5 rounded hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {t('memberDetails.useInvitation')}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 💪 الجلسات المجانية */}
+      <div className="mb-6">
+        <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+          <span>💪</span>
+          {locale === 'ar' ? 'الجلسات المجانية' : 'Free Sessions'}
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {settings.inBodyEnabled && (
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-green-500`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.inBody')}</p>
+              <span className="text-2xl">⚖️</span>
+            </div>
+            <p className="text-3xl font-bold text-green-600 mb-3">{member.inBodyScans ?? 0}</p>
+            <button
+              onClick={handleUseInBody}
+              disabled={(member.inBodyScans ?? 0) <= 0 || loading}
+              className="w-full bg-green-600 text-white text-xs py-1.5 rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {t('memberDetails.useSession')}
             </button>
+          </div>
+        )}
 
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-orange-500`}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.freePTSessions')}</p>
+            <span className="text-2xl">💪</span>
+          </div>
+          <p className="text-3xl font-bold text-orange-600 mb-1">{member.freePTSessions ?? 0}</p>
+          {paidSessionCounts.pt > 0 && (
+            <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold mb-2">
+              + {paidSessionCounts.pt} {locale === 'ar' ? 'مدفوعة' : 'paid'}
+            </p>
+          )}
+          <div className="flex gap-1 mt-2">
+            <button
+              onClick={handleUseFreePT}
+              disabled={(member.freePTSessions ?? 0) <= 0 || loading}
+              className="flex-1 bg-orange-600 text-white text-xs py-1.5 rounded hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {locale === 'ar' ? 'مجاني' : 'Free'}
+            </button>
             {paidSessionCounts.pt > 0 && (
               <button
                 onClick={handleUsePaidPT}
                 disabled={loading}
-                className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600"
+                className="flex-1 bg-orange-400 text-white text-xs py-1.5 rounded hover:bg-orange-500"
               >
-                {t('memberDetails.usePaidSession')}
+                {locale === 'ar' ? 'مدفوع' : 'Paid'}
               </button>
             )}
           </div>
         </div>
 
         {settings.nutritionEnabled && (
-          <div className="bg-gradient-to-br from-lime-500 to-green-600 text-white rounded-xl shadow-2xl p-6 border-4 border-lime-300">
-            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
-              <div className="bg-white dark:bg-gray-800/20 p-3 rounded-full w-fit">
-                <span className="text-4xl">🥗</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-2xl font-bold">{t('memberDetails.nutritionSessions')}</h3>
-                <p className="text-sm opacity-90">{t('memberDetails.nutritionSubtitle')}</p>
-              </div>
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-lime-500`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.nutritionSessions')}</p>
+              <span className="text-2xl">🥗</span>
             </div>
-
-            <div className={`grid grid-cols-1 ${paidSessionCounts.nutrition > 0 ? 'sm:grid-cols-2' : ''} gap-3 md:gap-4 mt-4`}>
-              <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
-                <p className="text-xs opacity-80 mb-1">{t('memberDetails.freeSessions')}</p>
-                <p className="text-xl md:text-2xl font-bold text-yellow-300">{member.freeNutritionSessions ?? 0}</p>
-              </div>
-
-              {paidSessionCounts.nutrition > 0 && (
-                <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
-                  <p className="text-xs opacity-80 mb-1">{t('memberDetails.paidNutritionSessions')}</p>
-                  <p className="text-xl md:text-2xl font-bold text-yellow-300">{paidSessionCounts.nutrition}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2 mt-4">
+            <p className="text-3xl font-bold text-lime-600 dark:text-lime-400 mb-1">{member.freeNutritionSessions ?? 0}</p>
+            {paidSessionCounts.nutrition > 0 && (
+              <p className="text-xs text-lime-600 dark:text-lime-400 font-semibold mb-2">
+                + {paidSessionCounts.nutrition} {locale === 'ar' ? 'مدفوعة' : 'paid'}
+              </p>
+            )}
+            <div className="flex gap-1 mt-2">
               <button
                 onClick={handleUseFreeNutrition}
                 disabled={(member.freeNutritionSessions ?? 0) <= 0 || loading}
-                className="w-full bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                className="flex-1 bg-lime-600 text-white text-xs py-1.5 rounded hover:bg-lime-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {t('memberDetails.useNutrition')}
+                {locale === 'ar' ? 'مجاني' : 'Free'}
               </button>
-
               {paidSessionCounts.nutrition > 0 && (
                 <button
                   onClick={handleUsePaidNutrition}
                   disabled={loading}
-                  className="w-full bg-white/20 dark:bg-gray-700/50 text-white py-3 rounded-lg hover:bg-white/30 dark:hover:bg-gray-600/50 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+                  className="flex-1 bg-lime-400 text-white text-xs py-1.5 rounded hover:bg-lime-500"
                 >
-                  {t('memberDetails.usePaidSession')}
+                  {locale === 'ar' ? 'مدفوع' : 'Paid'}
                 </button>
               )}
             </div>
@@ -2070,47 +2079,32 @@ export default function MemberDetailPage() {
         )}
 
         {settings.physiotherapyEnabled && (
-          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-2xl p-6 border-4 border-blue-300">
-            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
-              <div className="bg-white dark:bg-gray-800/20 p-3 rounded-full w-fit">
-                <span className="text-4xl">🏥</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-2xl font-bold">{t('memberDetails.physioSessions')}</h3>
-                <p className="text-sm opacity-90">{t('memberDetails.physioSubtitle')}</p>
-              </div>
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-blue-500`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.physioSessions')}</p>
+              <span className="text-2xl">🏥</span>
             </div>
-
-            <div className={`grid grid-cols-1 ${paidSessionCounts.physio > 0 ? 'sm:grid-cols-2' : ''} gap-3 md:gap-4 mt-4`}>
-              <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
-                <p className="text-xs opacity-80 mb-1">{t('memberDetails.freeSessions')}</p>
-                <p className="text-xl md:text-2xl font-bold text-yellow-300">{member.freePhysioSessions ?? 0}</p>
-              </div>
-
-              {paidSessionCounts.physio > 0 && (
-                <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
-                  <p className="text-xs opacity-80 mb-1">{t('memberDetails.paidPhysioSessions')}</p>
-                  <p className="text-xl md:text-2xl font-bold text-yellow-300">{paidSessionCounts.physio}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2 mt-4">
+            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">{member.freePhysioSessions ?? 0}</p>
+            {paidSessionCounts.physio > 0 && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-2">
+                + {paidSessionCounts.physio} {locale === 'ar' ? 'مدفوعة' : 'paid'}
+              </p>
+            )}
+            <div className="flex gap-1 mt-2">
               <button
                 onClick={handleUseFreePhysio}
                 disabled={(member.freePhysioSessions ?? 0) <= 0 || loading}
-                className="w-full bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                className="flex-1 bg-blue-600 text-white text-xs py-1.5 rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {t('memberDetails.usePhysio')}
+                {locale === 'ar' ? 'مجاني' : 'Free'}
               </button>
-
               {paidSessionCounts.physio > 0 && (
                 <button
                   onClick={handleUsePaidPhysio}
                   disabled={loading}
-                  className="w-full bg-white/20 dark:bg-gray-700/50 text-white py-3 rounded-lg hover:bg-white/30 dark:hover:bg-gray-600/50 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+                  className="flex-1 bg-blue-400 text-white text-xs py-1.5 rounded hover:bg-blue-500"
                 >
-                  {t('memberDetails.usePaidSession')}
+                  {locale === 'ar' ? 'مدفوع' : 'Paid'}
                 </button>
               )}
             </div>
@@ -2118,47 +2112,32 @@ export default function MemberDetailPage() {
         )}
 
         {settings.groupClassEnabled && (
-          <div className="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl shadow-2xl p-6 border-4 border-fuchsia-300">
-            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
-              <div className="bg-white dark:bg-gray-800/20 p-3 rounded-full w-fit">
-                <span className="text-4xl">👥</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-2xl font-bold">{t('memberDetails.groupClassSessions')}</h3>
-                <p className="text-sm opacity-90">{t('memberDetails.groupClassSubtitle')}</p>
-              </div>
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-fuchsia-500`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.groupClassSessions')}</p>
+              <span className="text-2xl">👥</span>
             </div>
-
-            <div className={`grid grid-cols-1 ${paidSessionCounts.groupClass > 0 ? 'sm:grid-cols-2' : ''} gap-3 md:gap-4 mt-4`}>
-              <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
-                <p className="text-xs opacity-80 mb-1">{t('memberDetails.freeSessions')}</p>
-                <p className="text-xl md:text-2xl font-bold text-yellow-300">{member.freeGroupClassSessions ?? 0}</p>
-              </div>
-
-              {paidSessionCounts.groupClass > 0 && (
-                <div className="bg-white/10 dark:bg-gray-800/20 rounded-lg p-3 md:p-4 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-gray-700/40 transition">
-                  <p className="text-xs opacity-80 mb-1">{t('memberDetails.paidGroupClassSessions')}</p>
-                  <p className="text-xl md:text-2xl font-bold text-yellow-300">{paidSessionCounts.groupClass}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2 mt-4">
+            <p className="text-3xl font-bold text-fuchsia-600 dark:text-fuchsia-400 mb-1">{member.freeGroupClassSessions ?? 0}</p>
+            {paidSessionCounts.groupClass > 0 && (
+              <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400 font-semibold mb-2">
+                + {paidSessionCounts.groupClass} {locale === 'ar' ? 'مدفوعة' : 'paid'}
+              </p>
+            )}
+            <div className="flex gap-1 mt-2">
               <button
                 onClick={handleUseFreeGroupClass}
                 disabled={(member.freeGroupClassSessions ?? 0) <= 0 || loading}
-                className="w-full bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                className="flex-1 bg-fuchsia-600 text-white text-xs py-1.5 rounded hover:bg-fuchsia-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {t('memberDetails.useGroupClass')}
+                {locale === 'ar' ? 'مجاني' : 'Free'}
               </button>
-
               {paidSessionCounts.groupClass > 0 && (
                 <button
                   onClick={handleUsePaidGroupClass}
                   disabled={loading}
-                  className="w-full bg-white/20 dark:bg-gray-700/50 text-white py-3 rounded-lg hover:bg-white/30 dark:hover:bg-gray-600/50 font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+                  className="flex-1 bg-fuchsia-400 text-white text-xs py-1.5 rounded hover:bg-fuchsia-500"
                 >
-                  {t('memberDetails.usePaidSession')}
+                  {locale === 'ar' ? 'مدفوع' : 'Paid'}
                 </button>
               )}
             </div>
@@ -2166,18 +2145,16 @@ export default function MemberDetailPage() {
         )}
 
         {settings.poolEnabled && (
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-teal-500`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.poolSessions')}</p>
-                <p className="text-4xl font-bold text-teal-600 dark:text-teal-400">{member.freePoolSessions ?? 0}</p>
-              </div>
-              <div className="text-5xl">🏊</div>
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-teal-500`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.poolSessions')}</p>
+              <span className="text-2xl">🏊</span>
             </div>
+            <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 mb-3">{member.freePoolSessions ?? 0}</p>
             <button
               onClick={handleUsePool}
               disabled={(member.freePoolSessions ?? 0) <= 0 || loading}
-              className="w-full bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-teal-600 text-white text-xs py-1.5 rounded hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {t('memberDetails.useSession')}
             </button>
@@ -2185,18 +2162,16 @@ export default function MemberDetailPage() {
         )}
 
         {settings.padelEnabled && (
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-amber-500`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.padelSessions')}</p>
-                <p className="text-4xl font-bold text-amber-600 dark:text-amber-400">{member.freePadelSessions ?? 0}</p>
-              </div>
-              <div className="text-5xl">🎾</div>
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-amber-500`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.padelSessions')}</p>
+              <span className="text-2xl">🎾</span>
             </div>
+            <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-3">{member.freePadelSessions ?? 0}</p>
             <button
               onClick={handleUsePadel}
               disabled={(member.freePadelSessions ?? 0) <= 0 || loading}
-              className="w-full bg-amber-600 text-white py-2 rounded-lg hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-amber-600 text-white text-xs py-1.5 rounded hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {t('memberDetails.useSession')}
             </button>
@@ -2204,51 +2179,46 @@ export default function MemberDetailPage() {
         )}
 
         {settings.assessmentEnabled && (
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-indigo-500`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.assessmentSessions')}</p>
-                <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{member.freeAssessmentSessions ?? 0}</p>
-              </div>
-              <div className="text-5xl">📊</div>
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-indigo-500`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.assessmentSessions')}</p>
+              <span className="text-2xl">📊</span>
             </div>
+            <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-3">{member.freeAssessmentSessions ?? 0}</p>
             <button
               onClick={handleUseAssessment}
               disabled={(member.freeAssessmentSessions ?? 0) <= 0 || loading}
-              className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-indigo-600 text-white text-xs py-1.5 rounded hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {t('memberDetails.useSession')}
             </button>
           </div>
         )}
 
-        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} ${member.isFrozen ? 'border-orange-500' : 'border-cyan-500'}`}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">{t('memberDetails.freezeDays')}</p>
-              <p className="text-4xl font-bold text-cyan-600">{member.remainingFreezeDays ?? 0}</p>
-            </div>
-            <div className="text-5xl">{member.isFrozen ? '🧊' : '❄️'}</div>
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} ${member.isFrozen ? 'border-orange-500' : 'border-cyan-500'}`}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.freezeDays')}</p>
+            <span className="text-2xl">{member.isFrozen ? '🧊' : '❄️'}</span>
           </div>
+          <p className="text-3xl font-bold text-cyan-600 mb-3">{member.remainingFreezeDays ?? 0}</p>
           {member.isFrozen ? (
             <button
               onClick={handleUnfreeze}
               disabled={loading}
-              className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
+              className="w-full bg-orange-600 text-white text-xs py-1.5 rounded hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
             >
-              {loading
-                ? (locale === 'ar' ? 'جاري...' : 'Processing...')
-                : (locale === 'ar' ? '🔓 فك الفريز وتنشيط الاشتراك' : '🔓 Unfreeze & Activate')}
+              {loading ? (locale === 'ar' ? '...' : '...') : (locale === 'ar' ? '🔓 فك التجميد' : '🔓 Unfreeze')}
             </button>
           ) : (
             <button
               onClick={() => setActiveModal('freeze')}
               disabled={!member.expiryDate || loading || (member.remainingFreezeDays ?? 0) <= 0}
-              className="w-full bg-cyan-600 text-white py-2 rounded-lg hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-cyan-600 text-white text-xs py-1.5 rounded hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {t('memberDetails.freezeSubscription')}
             </button>
           )}
+        </div>
         </div>
       </div>
 
@@ -2340,111 +2310,100 @@ export default function MemberDetailPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        {/* Upgrade Package - متاح دايماً لو عنده startDate */}
-        {hasPermission('canCreateMembers') && member?.startDate && (
-          <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/30 border-2 border-orange-300 dark:border-orange-700 rounded-xl shadow-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-orange-200 dark:bg-orange-800 p-3 rounded-full">
-                <span className="text-3xl">🚀</span>
+      {/* ⚙️ إجراءات العضوية */}
+      <div className="mb-6">
+        <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+          <span>⚙️</span>
+          {locale === 'ar' ? 'إجراءات العضوية' : 'Membership Actions'}
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {/* Renewal */}
+          {hasPermission('canCreateMembers') && (
+            <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-green-500`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">{t('renewall.title')}</p>
+                <span className="text-2xl">🔄</span>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-orange-800 dark:text-orange-200">{t('upgrade.upgradePackage')}</h3>
-                <p className="text-sm text-orange-700 dark:text-orange-300">{t('upgrade.upgradeDescription')}</p>
-              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 min-h-[2rem]">{t('renewall.subtitle')}</p>
+              {member?.isBanned ? (
+                <div className="w-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs py-1.5 rounded text-center font-bold">
+                  🚫 {locale === 'ar' ? 'محظور' : 'Banned'}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowRenewalForm(true)}
+                  disabled={loading}
+                  className="w-full bg-green-600 text-white text-xs py-1.5 rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
+                >
+                  🔄 {locale === 'ar' ? 'تجديد' : 'Renew'}
+                </button>
+              )}
             </div>
+          )}
 
-            {/* تحذير لو الاشتراك منتهي */}
-            {member?.expiryDate && new Date(member.expiryDate) < new Date() && (
-              <div className="mb-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-600 rounded-lg px-3 py-2 text-sm text-red-700 dark:text-red-300 font-medium">
-                ⚠️ {locale === 'ar' ? 'الاشتراك منتهي — سيُحسب السعر كاملاً' : 'Subscription expired — full price applies'}
+          {/* Upgrade */}
+          {hasPermission('canCreateMembers') && member?.startDate && (
+            <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-orange-500`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">{t('upgrade.upgradePackage')}</p>
+                <span className="text-2xl">🚀</span>
               </div>
-            )}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2 min-h-[2rem]">{t('upgrade.upgradeDescription')}</p>
+              {member?.expiryDate && new Date(member.expiryDate) < new Date() && (
+                <p className="text-[10px] text-red-600 dark:text-red-400 font-medium mb-2">
+                  ⚠️ {locale === 'ar' ? 'منتهي — سعر كامل' : 'Expired — full price'}
+                </p>
+              )}
+              {member?.isBanned ? (
+                <div className="w-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs py-1.5 rounded text-center font-bold">
+                  🚫 {locale === 'ar' ? 'محظور' : 'Banned'}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowUpgradeForm(true)}
+                  disabled={loading}
+                  className="w-full bg-orange-600 text-white text-xs py-1.5 rounded hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
+                >
+                  🚀 {locale === 'ar' ? 'ترقية' : 'Upgrade'}
+                </button>
+              )}
+            </div>
+          )}
 
-            {member?.isBanned ? (
-              <div className="w-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-3 rounded-lg font-bold text-lg text-center border-2 border-red-300 dark:border-red-700">
-                🚫 {locale === 'ar' ? 'محظور - لا يمكن الترقية' : 'Banned - Cannot Upgrade'}
+          {/* Ban */}
+          {hasPermission('canManageBannedMembers') && (
+            <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-gray-700`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">{locale === 'ar' ? 'حظر العضو' : 'Ban Member'}</p>
+                <span className="text-2xl">🚫</span>
               </div>
-            ) : (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 min-h-[2rem]">{locale === 'ar' ? 'إضافة لقائمة المحظورين' : 'Add to banned list'}</p>
               <button
-                onClick={() => setShowUpgradeForm(true)}
+                onClick={handleBan}
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-lg hover:from-orange-700 hover:to-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg transition-all"
+                className="w-full bg-gray-700 hover:bg-gray-800 text-white text-xs py-1.5 rounded disabled:opacity-50 disabled:cursor-not-allowed font-bold"
               >
-                🚀 {t('upgrade.upgradePackage')}
+                🚫 {locale === 'ar' ? 'حظر' : 'Ban'}
               </button>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Renewal Form - Show only for users with canCreateMembers permission */}
-        {hasPermission('canCreateMembers') && (
-          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-900/40 border-2 border-green-300 dark:border-green-700 rounded-xl shadow-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-green-200 dark:bg-green-800 p-3 rounded-full">
-                <span className="text-3xl">🔄</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-green-800 dark:text-green-200">{t('renewall.title')}</h3>
-                <p className="text-sm text-green-700 dark:text-green-300">{t('renewall.subtitle')}</p>
-              </div>
+          {/* Delete */}
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-red-500`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">{t('memberDetails.deleteModal.title')}</p>
+              <span className="text-2xl">🗑️</span>
             </div>
-            {member?.isBanned ? (
-              <div className="w-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-3 rounded-lg font-bold text-lg text-center border-2 border-red-300 dark:border-red-700">
-                🚫 {locale === 'ar' ? 'محظور - لا يمكن التجديد' : 'Banned - Cannot Renew'}
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowRenewalForm(true)}
-                disabled={loading}
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg"
-              >
-                🔄 {t('renewall.renewButton')}
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-900/40 border-2 border-red-300 dark:border-red-700 rounded-xl shadow-lg p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-red-200 dark:bg-red-800 p-3 rounded-full">
-              <span className="text-3xl">🗑️</span>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-red-800 dark:text-red-200">{t('memberDetails.deleteModal.title')}</h3>
-              <p className="text-sm text-red-700 dark:text-red-300">{t('memberDetails.deleteModal.subtitle')}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleDelete}
-            disabled={loading}
-            className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg"
-          >
-            🗑️ {t('memberDetails.deleteModal.deleteButton')}
-          </button>
-        </div>
-
-        {/* بطاقة الحظر */}
-        {hasPermission('canManageBannedMembers') && (
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-950 dark:to-gray-900 border-2 border-gray-700 dark:border-gray-600 rounded-xl shadow-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-gray-700 p-3 rounded-full">
-                <span className="text-3xl">🚫</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">{locale === 'ar' ? 'حظر العضو' : 'Ban Member'}</h3>
-                <p className="text-sm text-gray-400">{locale === 'ar' ? 'إضافة رقم هاتفه/رقمه القومي لقائمة المحظورين' : 'Add phone/national ID to banned list'}</p>
-              </div>
-            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 min-h-[2rem]">{t('memberDetails.deleteModal.subtitle')}</p>
             <button
-              onClick={handleBan}
+              onClick={handleDelete}
               disabled={loading}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-md hover:shadow-lg border border-gray-600 transition-colors"
+              className="w-full bg-red-600 text-white text-xs py-1.5 rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
             >
-              🚫 {locale === 'ar' ? 'إضافة للمحظورين' : 'Add to Banned List'}
+              🗑️ {locale === 'ar' ? 'حذف' : 'Delete'}
             </button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Confirmation Modal */}
@@ -2653,6 +2612,20 @@ export default function MemberDetailPage() {
                   onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, phone: e.target.value })}
                   className="w-full px-2 py-1.5 border rounded text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   placeholder={t('memberDetails.editModal.fields.phonePlaceholder')}
+                  dir="ltr"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1">
+                  🔢 {locale === 'ar' ? 'رقم العضوية' : 'Member Number'}
+                </label>
+                <input
+                  type="text"
+                  value={editBasicInfoData.memberNumber}
+                  onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, memberNumber: e.target.value })}
+                  className="w-full px-2 py-1.5 border rounded text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  placeholder={locale === 'ar' ? 'مثال: 1313 أو اتركه فارغاً' : 'e.g., 1313 or leave empty'}
                   dir="ltr"
                 />
               </div>
@@ -3234,6 +3207,74 @@ export default function MemberDetailPage() {
                   {t('common.cancel')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unfreeze Modal */}
+      {activeModal === 'unfreeze' && member && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null) }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="bg-cyan-100 dark:bg-cyan-900/40 p-3 rounded-full">
+                <span className="text-3xl">🔓</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  {locale === 'ar' ? 'فك تجميد الاشتراك' : 'Unfreeze Subscription'}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {member.name} {member.memberNumber !== null ? `- #${member.memberNumber}` : ''}
+                </p>
+              </div>
+            </div>
+
+            <div className={`bg-cyan-50 dark:bg-cyan-900/20 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-cyan-500 dark:border-cyan-700 p-4 rounded-lg mb-4`}>
+              <p className="text-sm text-cyan-800 dark:text-cyan-300 leading-relaxed">
+                {locale === 'ar'
+                  ? 'هل أنت متأكد من فك التجميد؟ الأيام اللي ما اتستخدمتش هترجع لرصيد الفريز تلقائياً.'
+                  : 'Are you sure you want to unfreeze? Unused days will be returned to the freeze balance automatically.'}
+              </p>
+            </div>
+
+            {member.freezeRequests?.[0]?.endDate && (
+              <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 mb-5 text-sm">
+                <p className="text-gray-600 dark:text-gray-300">
+                  ❄️ {locale === 'ar' ? 'التجميد ينتهي' : 'Freeze ends'}:{' '}
+                  <strong className="text-gray-800 dark:text-gray-100">
+                    {new Date(member.freezeRequests[0].endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                  </strong>
+                </p>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">
+                  💳 {locale === 'ar' ? 'رصيد الفريز الحالي' : 'Current freeze balance'}:{' '}
+                  <strong className="text-gray-800 dark:text-gray-100">
+                    {member.remainingFreezeDays ?? 0} {t('common.day')}
+                  </strong>
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={confirmUnfreeze}
+                disabled={loading}
+                className="flex-1 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
+              >
+                {loading
+                  ? (locale === 'ar' ? '⏳ جاري التنفيذ...' : '⏳ Processing...')
+                  : `🔓 ${locale === 'ar' ? 'تأكيد فك التجميد' : 'Confirm Unfreeze'}`}
+              </button>
+              <button
+                onClick={() => setActiveModal(null)}
+                disabled={loading}
+                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40"
+              >
+                {t('common.cancel')}
+              </button>
             </div>
           </div>
         </div>

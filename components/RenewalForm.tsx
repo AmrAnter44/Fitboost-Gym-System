@@ -578,7 +578,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               value={paymentMethod}
               onChange={setPaymentMethod}
               allowMultiple={true}
-              totalAmount={parseInt(subscriptionPrice) || 0}
+              totalAmount={Math.max((parseInt(subscriptionPrice) || 0) - (parseInt(remainingAmount) || 0), 0)}
               memberPoints={member.points || 0}
               pointsValueInEGP={settings.pointsValueInEGP}
               pointsEnabled={settings.pointsEnabled}

@@ -126,11 +126,18 @@ export async function POST(request: Request) {
         const phone = (lead.phone || '').trim()
         if (!phone) continue
 
-        let visitor = await prisma.visitor.findUnique({ where: { phone } })
+        // ✅ كل lead في transaction واحد عشان visitor + followup + import marker
+        //    يتسجلوا مع بعض. لو الـ followup فشل، الزائر يترجع والـ marker ما يتسجلش
+        //    عشان السينك الجاي يحاول تاني (بدل ما الـ lead يضيع silently).
+        // ✅ بنستخدم upsert على الزائر عشان نتجنب race condition (طلبين سينك متوازيين).
+        // ✅ بنتأكد إن مفيش followup نشط قبل ما نخلق واحد جديد، عشان ما نكررش.
+        await prisma.$transaction(async (tx) => {
+          const before = await tx.visitor.findUnique({ where: { phone }, select: { id: true } })
 
-        if (!visitor) {
-          visitor = await prisma.visitor.create({
-            data: {
+          const visitor = await tx.visitor.upsert({
+            where: { phone },
+            update: {},
+            create: {
               name: (lead.name || '').trim() || 'زائر من الموقع',
               phone,
               source: 'website',
@@ -139,24 +146,33 @@ export async function POST(request: Request) {
               notes: lead.interested_in ? `مهتم بـ: ${lead.interested_in}` : null
             }
           })
-        } else {
-          skippedExistingVisitor++
-        }
 
-        await prisma.followUp.create({
-          data: {
-            visitorId: visitor.id,
-            notes: [
-              'وصل من الموقع الإلكتروني',
-              lead.interested_in ? `مهتم بـ: ${lead.interested_in}` : null,
-              `وصل في: ${new Date(lead.created_at).toLocaleString('ar-EG')}`
-            ].filter(Boolean).join('\n'),
-            stage: 'new'
+          if (before) {
+            skippedExistingVisitor++
           }
-        })
 
-        await prisma.websiteLeadImport.create({
-          data: { remoteId: lead.id, visitorId: visitor.id }
+          const activeFollowUp = await tx.followUp.findFirst({
+            where: { visitorId: visitor.id, archived: false },
+            select: { id: true }
+          })
+
+          if (!activeFollowUp) {
+            await tx.followUp.create({
+              data: {
+                visitorId: visitor.id,
+                notes: [
+                  'وصل من الموقع الإلكتروني',
+                  lead.interested_in ? `مهتم بـ: ${lead.interested_in}` : null,
+                  `وصل في: ${new Date(lead.created_at).toLocaleString('ar-EG')}`
+                ].filter(Boolean).join('\n'),
+                stage: 'new'
+              }
+            })
+          }
+
+          await tx.websiteLeadImport.create({
+            data: { remoteId: lead.id, visitorId: visitor.id }
+          })
         })
 
         importedCount++

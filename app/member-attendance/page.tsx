@@ -236,7 +236,22 @@ export default function MemberAttendancePage() {
                         {item.member?.memberNumber || '-'}
                       </span>
                     </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-50">{item.member?.name || t('memberAttendance.unknown')}</td>
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                          {item.member?.profileImage ? (
+                            <img src={item.member.profileImage} alt={item.member?.name || ''} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <span>{item.member?.name || t('memberAttendance.unknown')}</span>
+                      </div>
+                    </td>
                     <td className="px-4 sm:px-6 py-3 sm:py-4">
                       <span className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-800/80 dark:to-emerald-800/80 text-gray-900 dark:text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-base sm:text-lg shadow-sm border border-green-400 dark:border-green-600">
                         {item.visits}
@@ -296,7 +311,20 @@ export default function MemberAttendancePage() {
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-50">
-                        {checkIn.member?.name || t('memberAttendance.unknown')}
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                            {checkIn.member?.profileImage ? (
+                              <img src={checkIn.member.profileImage} alt={checkIn.member?.name || ''} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <span>{checkIn.member?.name || t('memberAttendance.unknown')}</span>
+                        </div>
                       </td>
                       <td className="px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base text-gray-700 dark:text-gray-100">
                         {checkInTime.toLocaleDateString('ar-EG', {

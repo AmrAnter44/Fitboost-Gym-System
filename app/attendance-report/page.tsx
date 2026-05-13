@@ -27,7 +27,7 @@ interface Attendance {
 
 export default function AttendanceReportPage() {
   const router = useRouter()
-  const { hasPermission, loading: permissionsLoading } = usePermissions()
+  const { hasPermission, isAdmin, loading: permissionsLoading } = usePermissions()
   const { t, direction } = useLanguage()
 
   const getPositionLabel = (position: string | null | undefined): string => {
@@ -64,6 +64,97 @@ export default function AttendanceReportPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [attendanceToDelete, setAttendanceToDelete] = useState<Attendance | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  // Manual entry / edit modal
+  const [showManualModal, setShowManualModal] = useState(false)
+  const [manualEditId, setManualEditId] = useState<string | null>(null)
+  const [manualForm, setManualForm] = useState({
+    staffId: '',
+    date: '',
+    checkInTime: '',
+    checkOutTime: '',
+    notes: '',
+  })
+  const [manualSaving, setManualSaving] = useState(false)
+
+  const todayYMD = () => {
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  const openManualAdd = () => {
+    setManualEditId(null)
+    setManualForm({ staffId: '', date: todayYMD(), checkInTime: '', checkOutTime: '', notes: '' })
+    setShowManualModal(true)
+  }
+
+  const openManualEdit = (att: Attendance) => {
+    const inD = new Date(att.checkIn)
+    const outD = att.checkOut ? new Date(att.checkOut) : null
+    const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const fmtTime = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    setManualEditId(att.id)
+    setManualForm({
+      staffId: att.staffId,
+      date: fmtDate(inD),
+      checkInTime: fmtTime(inD),
+      checkOutTime: outD ? fmtTime(outD) : '',
+      notes: att.notes || '',
+    })
+    setShowManualModal(true)
+  }
+
+  const closeManualModal = () => {
+    if (manualSaving) return
+    setShowManualModal(false)
+    setManualEditId(null)
+  }
+
+  const submitManualForm = async () => {
+    if (!manualForm.staffId || !manualForm.date || !manualForm.checkInTime) {
+      alert(direction === 'rtl' ? 'الموظف والتاريخ ووقت الحضور مطلوبين' : 'Staff, date, and check-in time are required')
+      return
+    }
+    const checkInISO = new Date(`${manualForm.date}T${manualForm.checkInTime}:00`).toISOString()
+    let checkOutISO: string | null = null
+    if (manualForm.checkOutTime) {
+      // لو وقت الانصراف قبل الحضور بالعدد (نص الليل مثلاً) — نخليه نفس التاريخ، ولو طلع <= الحضور هيرجّع خطأ من السيرفر
+      checkOutISO = new Date(`${manualForm.date}T${manualForm.checkOutTime}:00`).toISOString()
+    }
+
+    setManualSaving(true)
+    try {
+      const url = '/api/attendance'
+      const method = manualEditId ? 'PUT' : 'POST'
+      const body: any = manualEditId
+        ? { id: manualEditId, checkIn: checkInISO, checkOut: checkOutISO, notes: manualForm.notes }
+        : { staffId: manualForm.staffId, checkIn: checkInISO, checkOut: checkOutISO, notes: manualForm.notes }
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        alert(data.error || (direction === 'rtl' ? 'فشل الحفظ' : 'Save failed'))
+        return
+      }
+
+      setShowManualModal(false)
+      setManualEditId(null)
+      fetchAttendance()
+    } catch (e) {
+      console.error(e)
+      alert(direction === 'rtl' ? 'حدث خطأ في الاتصال' : 'Connection error')
+    } finally {
+      setManualSaving(false)
+    }
+  }
 
   const fetchAttendance = async () => {
     setLoading(true)
@@ -265,12 +356,23 @@ export default function AttendanceReportPage() {
           <h1 className="text-3xl font-bold mb-2">📊 {t('attendanceReport.title')}</h1>
           <p className="text-gray-600 dark:text-gray-300">{t('attendanceReport.subtitle')}</p>
         </div>
-        <button
-          onClick={() => router.push('/staff')}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition"
-        >
-          {direction === 'rtl' ? '←' : '→'} {t('attendanceReport.backToStaff')}
-        </button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={openManualAdd}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+            >
+              <span>➕</span>
+              <span>{direction === 'rtl' ? 'إدخال حضور يدوي' : 'Add Manual Attendance'}</span>
+            </button>
+          )}
+          <button
+            onClick={() => router.push('/staff')}
+            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition"
+          >
+            {direction === 'rtl' ? '←' : '→'} {t('attendanceReport.backToStaff')}
+          </button>
+        </div>
       </div>
 
       {/* اختيار الشهر والسنة */}
@@ -492,14 +594,25 @@ export default function AttendanceReportPage() {
                       </p>
                     </div>
 
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => deleteAttendance(att)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
-                    >
-                      <span>🗑️</span>
-                      <span className="text-sm font-semibold">{t('attendanceReport.delete')}</span>
-                    </button>
+                    {/* Edit + Delete Buttons */}
+                    <div className="flex items-center gap-2">
+                      {isAdmin && (
+                        <button
+                          onClick={() => openManualEdit(att)}
+                          className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+                        >
+                          <span>✏️</span>
+                          <span className="text-sm font-semibold">{direction === 'rtl' ? 'تعديل' : 'Edit'}</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteAttendance(att)}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+                      >
+                        <span>🗑️</span>
+                        <span className="text-sm font-semibold">{t('attendanceReport.delete')}</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* الأوقات والساعات */}
@@ -647,6 +760,126 @@ export default function AttendanceReportPage() {
         itemName={attendanceToDelete ? `${attendanceToDelete.staff.name} - ${new Date(attendanceToDelete.checkIn).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}` : ''}
         loading={deleteLoading}
       />
+
+      {/* Manual Add / Edit Modal — Admin only */}
+      {showManualModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) closeManualModal() }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6" dir={direction}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{manualEditId ? '✏️' : '➕'}</span>
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  {direction === 'rtl'
+                    ? (manualEditId ? 'تعديل سجل حضور' : 'إدخال حضور يدوي')
+                    : (manualEditId ? 'Edit Attendance' : 'Add Manual Attendance')}
+                </h3>
+              </div>
+              <button
+                onClick={closeManualModal}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-3xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">
+                  {direction === 'rtl' ? 'الموظف' : 'Staff'} <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={manualForm.staffId}
+                  onChange={(e) => setManualForm({ ...manualForm, staffId: e.target.value })}
+                  disabled={!!manualEditId}
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white disabled:opacity-60"
+                >
+                  <option value="">{direction === 'rtl' ? '— اختر الموظف —' : '— Select staff —'}</option>
+                  {staff.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      #{s.staffCode} - {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">
+                  {direction === 'rtl' ? 'التاريخ' : 'Date'} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={manualForm.date}
+                  onChange={(e) => setManualForm({ ...manualForm, date: e.target.value })}
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">
+                    🕐 {direction === 'rtl' ? 'وقت الحضور' : 'Check-in'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={manualForm.checkInTime}
+                    onChange={(e) => setManualForm({ ...manualForm, checkInTime: e.target.value })}
+                    className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">
+                    🕐 {direction === 'rtl' ? 'وقت الانصراف' : 'Check-out'}
+                  </label>
+                  <input
+                    type="time"
+                    value={manualForm.checkOutTime}
+                    onChange={(e) => setManualForm({ ...manualForm, checkOutTime: e.target.value })}
+                    className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white font-mono"
+                    placeholder={direction === 'rtl' ? 'اختياري' : 'optional'}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">
+                  📝 {direction === 'rtl' ? 'ملاحظات' : 'Notes'}
+                </label>
+                <textarea
+                  value={manualForm.notes}
+                  onChange={(e) => setManualForm({ ...manualForm, notes: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white resize-none"
+                  placeholder={direction === 'rtl' ? 'مثال: تأخّر بسبب الترافيك...' : 'e.g., late due to traffic...'}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={submitManualForm}
+                disabled={manualSaving}
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition"
+              >
+                {manualSaving
+                  ? (direction === 'rtl' ? '⏳ جاري الحفظ...' : '⏳ Saving...')
+                  : (manualEditId
+                      ? (direction === 'rtl' ? '✅ حفظ التعديلات' : '✅ Save Changes')
+                      : (direction === 'rtl' ? '✅ تسجيل الحضور' : '✅ Add Record'))}
+              </button>
+              <button
+                onClick={closeManualModal}
+                disabled={manualSaving}
+                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+              >
+                {direction === 'rtl' ? 'إلغاء' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

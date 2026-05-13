@@ -53,11 +53,58 @@ export async function GET(request: Request) {
   }
 }
 
-// POST - تسجيل حضور وانصراف (Toggle)
+// POST - تسجيل حضور وانصراف (Toggle) أو إدخال يدوي بواسطة الأدمن
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { staffCode } = body
+    const { staffCode, staffId, checkIn, checkOut, notes } = body
+
+    // 🛠 وضع الإدخال اليدوي — الأدمن فقط
+    // يتم تفعيله لما يكون staffId + checkIn موجودين (بدل staffCode)
+    if (staffId && checkIn) {
+      const { requireAdmin } = await import('../../../lib/auth')
+      await requireAdmin(request)
+
+      const staff = await prisma.staff.findUnique({ where: { id: staffId } })
+      if (!staff) {
+        return NextResponse.json({ error: 'الموظف غير موجود' }, { status: 404 })
+      }
+
+      const inDate = new Date(checkIn)
+      if (isNaN(inDate.getTime())) {
+        return NextResponse.json({ error: 'تاريخ/وقت الحضور غير صحيح' }, { status: 400 })
+      }
+
+      let outDate: Date | null = null
+      let duration: number | null = null
+      if (checkOut) {
+        outDate = new Date(checkOut)
+        if (isNaN(outDate.getTime())) {
+          return NextResponse.json({ error: 'تاريخ/وقت الانصراف غير صحيح' }, { status: 400 })
+        }
+        if (outDate.getTime() <= inDate.getTime()) {
+          return NextResponse.json({ error: 'وقت الانصراف لازم يكون بعد الحضور' }, { status: 400 })
+        }
+        duration = Math.round((outDate.getTime() - inDate.getTime()) / (1000 * 60))
+      }
+
+      const created = await prisma.attendance.create({
+        data: {
+          staffId,
+          checkIn: inDate,
+          checkOut: outDate,
+          duration,
+          notes: notes?.trim() || null,
+        },
+        include: { staff: true },
+      })
+
+      return NextResponse.json({
+        action: 'manual-add',
+        message: `✅ تم تسجيل حضور ${staff.name} يدوياً`,
+        attendance: created,
+      })
+    }
 
     if (!staffCode) {
       return NextResponse.json({ error: 'رقم الموظف مطلوب' }, { status: 400 })
@@ -188,10 +235,98 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Error recording attendance:', error)
 
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً', action: 'error' }, { status: 401 })
+    }
+    if (error.message?.includes('Forbidden')) {
+      return NextResponse.json({ error: 'الإدخال اليدوي للأدمن فقط', action: 'error' }, { status: 403 })
+    }
+
     return NextResponse.json(
       { error: 'فشل تسجيل الحضور', action: 'error' },
       { status: 500 }
     )
+  }
+}
+
+// PUT - تعديل سجل حضور (Admin فقط)
+export async function PUT(request: Request) {
+  try {
+    const { requireAdmin } = await import('../../../lib/auth')
+    await requireAdmin(request)
+
+    const body = await request.json()
+    const { id, checkIn, checkOut, notes } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'معرف السجل مطلوب' }, { status: 400 })
+    }
+
+    const existing = await prisma.attendance.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: 'السجل غير موجود' }, { status: 404 })
+    }
+
+    const updateData: any = {}
+
+    let nextIn = existing.checkIn
+    let nextOut = existing.checkOut
+
+    if (checkIn !== undefined) {
+      if (checkIn === null) {
+        return NextResponse.json({ error: 'وقت الحضور مطلوب' }, { status: 400 })
+      }
+      const d = new Date(checkIn)
+      if (isNaN(d.getTime())) {
+        return NextResponse.json({ error: 'تاريخ/وقت الحضور غير صحيح' }, { status: 400 })
+      }
+      updateData.checkIn = d
+      nextIn = d
+    }
+
+    if (checkOut !== undefined) {
+      if (checkOut === null || checkOut === '') {
+        updateData.checkOut = null
+        nextOut = null
+      } else {
+        const d = new Date(checkOut)
+        if (isNaN(d.getTime())) {
+          return NextResponse.json({ error: 'تاريخ/وقت الانصراف غير صحيح' }, { status: 400 })
+        }
+        updateData.checkOut = d
+        nextOut = d
+      }
+    }
+
+    if (nextOut) {
+      if (nextOut.getTime() <= nextIn.getTime()) {
+        return NextResponse.json({ error: 'وقت الانصراف لازم يكون بعد الحضور' }, { status: 400 })
+      }
+      updateData.duration = Math.round((nextOut.getTime() - nextIn.getTime()) / (1000 * 60))
+    } else if (checkOut !== undefined) {
+      updateData.duration = null
+    }
+
+    if (notes !== undefined) {
+      updateData.notes = notes?.trim() || null
+    }
+
+    const updated = await prisma.attendance.update({
+      where: { id },
+      data: updateData,
+      include: { staff: true },
+    })
+
+    return NextResponse.json({ action: 'manual-edit', attendance: updated })
+  } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
+    }
+    if (error.message?.includes('Forbidden')) {
+      return NextResponse.json({ error: 'ليس لديك صلاحية تعديل سجلات الحضور' }, { status: 403 })
+    }
+    console.error('Error updating attendance:', error)
+    return NextResponse.json({ error: 'فشل تعديل السجل' }, { status: 500 })
   }
 }
 

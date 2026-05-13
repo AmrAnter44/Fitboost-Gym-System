@@ -278,6 +278,27 @@ async function startProductionServer() {
       }
     }
 
+    // 🔒 JWT secret — يُستخدم في توقيع التوكينات للمصادقة
+    // نفس الـ pattern: يُولَّد مرة واحدة ويُخزَّن في userData
+    // المتطلب: 32 حرف على الأقل (MIN_JWT_SECRET_LENGTH في lib/constants.ts)
+    const jwtSecretFile = path.join(userDataPath, '.jwt-secret');
+    if (!process.env.JWT_SECRET) {
+      try {
+        if (fs.existsSync(jwtSecretFile)) {
+          process.env.JWT_SECRET = fs.readFileSync(jwtSecretFile, 'utf-8').trim();
+        }
+      } catch {}
+      if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+        const { randomBytes } = require('crypto');
+        // 48 bytes → 96 hex chars (well above the 32-char minimum)
+        const generated = randomBytes(48).toString('hex');
+        try {
+          fs.writeFileSync(jwtSecretFile, generated, { mode: 0o600 });
+        } catch {}
+        process.env.JWT_SECRET = generated;
+      }
+    }
+
 
     // Use server-wrapper.js to properly set up module resolution
     // In production, wrapper is copied to standalone directory
@@ -303,6 +324,7 @@ async function startProductionServer() {
         DATABASE_URL: DATABASE_URL,
         UPLOADS_PATH: uploadsPath,
         INTERNAL_API_TOKEN: process.env.INTERNAL_API_TOKEN,
+        JWT_SECRET: process.env.JWT_SECRET,
         ELECTRON_RUN_AS_NODE: '1'
       },
       shell: false,

@@ -42,6 +42,7 @@ export async function GET(request: Request) {
             name: true,
             memberNumber: true,
             phone: true,
+            profileImage: true,
           },
         },
       },
@@ -111,7 +112,7 @@ export async function GET(request: Request) {
       const topMemberIds = topMembers.map(item => item.memberId)
       const membersInfo = await prisma.member.findMany({
         where: { id: { in: topMemberIds } },
-        select: { id: true, name: true, memberNumber: true },
+        select: { id: true, name: true, memberNumber: true, profileImage: true },
       })
       const membersMap = new Map(membersInfo.map(m => [m.id, m]))
 
