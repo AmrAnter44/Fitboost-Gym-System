@@ -82,7 +82,8 @@
       "Bash(npx tsc *)",
       "Bash(npm rebuild *)",
       "Read(//Users/amranter450444/Desktop/Gyms/More/Fitboost-System/app/coach/**)",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "Bash(npx prisma *)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",

@@ -968,6 +968,22 @@ export default function SearchModal() {
                                   return null
                                 })()}
 
+                                {result.data.remainingAmount > 0 && (
+                                  <div className="mb-2 bg-red-50 dark:bg-red-900/30 border-2 border-red-400 dark:border-red-600 rounded-xl p-2 sm:p-3 flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xl sm:text-2xl">⚠️</span>
+                                      <div>
+                                        <p className="text-xs text-red-700 dark:text-red-300 font-semibold">
+                                          {locale === 'ar' ? 'مبلغ متبقي على العضو' : 'Outstanding Balance'}
+                                        </p>
+                                        <p className="text-base sm:text-lg font-bold text-red-700 dark:text-red-200">
+                                          {result.data.remainingAmount} {t('members.egp')}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-1.5 sm:mb-2">
                                   <div className="bg-gray-50 dark:bg-gray-700 p-1.5 sm:p-2 rounded">
                                     <p className="text-xs text-gray-600 dark:text-gray-300">{t('common.phone')}</p>

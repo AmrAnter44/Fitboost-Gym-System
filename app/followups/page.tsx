@@ -393,6 +393,8 @@ export default function FollowUpsPage() {
   const [sourceFilter, setSourceFilter] = useState('all') // ✅ فلتر المصدر
   const [salesFilter, setSalesFilter] = useState('all') // ✅ فلتر السيلز (all, my-followups, my-overdue, today)
   const [assignedStaffFilter, setAssignedStaffFilter] = useState('all') // ✅ فلتر بموظف سيلز محدد
+  const [dateFromFilter, setDateFromFilter] = useState('') // 📅 فلتر تاريخ من (YYYY-MM-DD)
+  const [dateToFilter, setDateToFilter] = useState('')   // 📅 فلتر تاريخ إلى (YYYY-MM-DD)
 
   // ✅ لو المستخدم سيلز → يشوف متابعاته بس تلقائياً (مرة واحدة بس)
   const salesFilterInitRef = useRef(false)
@@ -880,9 +882,19 @@ export default function FollowUpsPage() {
               await queryClient.invalidateQueries({ queryKey: ['followups'] })
               await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
               toast.success(locale === 'ar' ? '✅ تم تحديث حالة المتابعة تلقائياً' : '✅ Follow-up status updated automatically')
+            } else {
+              // ❌ ما نخفيش الخطأ — السيلز محتاج يعرف لو المتابعة ما اتسجلتش
+              const errData = await response.json().catch(() => ({}))
+              console.error('Follow-up save failed:', errData)
+              toast.error(locale === 'ar'
+                ? '⚠️ الرسالة اتبعتت بس المتابعة ما اتسجلتش — سجّلها يدوياً'
+                : '⚠️ Message sent but follow-up was NOT recorded — log it manually')
             }
           } catch (error) {
             console.error('Error updating follow-up:', error)
+            toast.error(locale === 'ar'
+              ? '⚠️ الرسالة اتبعتت بس المتابعة ما اتسجلتش — سجّلها يدوياً'
+              : '⚠️ Message sent but follow-up was NOT recorded — log it manually')
           }
         } else {
           toast.error(`❌ ${locale === 'ar' ? 'فشل إرسال الرسالة' : 'Failed to send message'}: ${sendResult.error}`)
@@ -1192,7 +1204,23 @@ export default function FollowUpsPage() {
         const matchesAssignedStaff = assignedStaffFilter === 'all'
           || (assignedStaffFilter === '__unassigned__' ? !fu.assignedTo : fu.assignedTo === assignedStaffFilter)
 
-        return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesSales && matchesAssignedStaff
+        // 📅 فلتر بنطاق التاريخ (createdAt الخاص بالمتابعة)
+        let matchesDateRange = true
+        if (dateFromFilter || dateToFilter) {
+          const created = new Date(fu.createdAt).getTime()
+          if (dateFromFilter) {
+            const [y, m, d] = dateFromFilter.split('-').map(Number)
+            const fromTs = new Date(y, m - 1, d, 0, 0, 0, 0).getTime()
+            if (created < fromTs) matchesDateRange = false
+          }
+          if (matchesDateRange && dateToFilter) {
+            const [y, m, d] = dateToFilter.split('-').map(Number)
+            const toTs = new Date(y, m - 1, d, 23, 59, 59, 999).getTime()
+            if (created > toTs) matchesDateRange = false
+          }
+        }
+
+        return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesSales && matchesAssignedStaff && matchesDateRange
       })
       .sort((a, b) => {
         if (sortByPriority) {
@@ -1209,12 +1237,12 @@ export default function FollowUpsPage() {
         // ✅ ترتيب حسب تاريخ الإضافة: الأحدث أولاً
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, assignedStaffFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
+  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
 
   // إعادة تعيين الصفحة للأولى عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, assignedStaffFilter, sortByPriority])
+  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredFollowUps.length / itemsPerPage)
@@ -1305,8 +1333,9 @@ export default function FollowUpsPage() {
           successCount++
 
           // تحديث حالة المتابعة إلى "تم التواصل"
+          // ❌ ما نخفيش لو الـ followup فشل — نـ flag الـ visitor عشان السيلز يعرف
           try {
-            await fetch('/api/visitors/followups', {
+            const fuRes = await fetch('/api/visitors/followups', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -1321,8 +1350,16 @@ export default function FollowUpsPage() {
                 }
               }),
             })
+            if (!fuRes.ok) {
+              const errData = await fuRes.json().catch(() => ({}))
+              console.error(`Followup save failed for ${visitor.name}:`, errData)
+              failCount++
+              successCount--
+            }
           } catch (error) {
             console.error('Error updating follow-up:', error)
+            failCount++
+            successCount--
           }
         } else {
           failCount++
@@ -1614,9 +1651,9 @@ export default function FollowUpsPage() {
         if (result.success) {
           successList.push({ name: visitor.name, phone: visitor.phone })
           incrementDailyCount(1)
-          // Update followup
+          // Update followup — ❌ ما نخفيش الأخطاء، السيلز محتاج يعرف لو متابعة ضاعت
           try {
-            await fetch('/api/visitors/followups', {
+            const fuRes = await fetch('/api/visitors/followups', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -1627,7 +1664,23 @@ export default function FollowUpsPage() {
                 visitorData: { name: visitor.name, phone: visitor.phone, source: visitor.source }
               }),
             })
-          } catch {}
+            if (!fuRes.ok) {
+              const errData = await fuRes.json().catch(() => ({}))
+              console.error('Followup save failed for', visitor.name, errData)
+              failedList.push({
+                name: visitor.name,
+                phone: visitor.phone,
+                error: locale === 'ar' ? 'تم الإرسال بس المتابعة ما اتسجلتش' : 'Sent but follow-up not saved'
+              })
+            }
+          } catch (fuErr: any) {
+            console.error('Followup save error for', visitor.name, fuErr)
+            failedList.push({
+              name: visitor.name,
+              phone: visitor.phone,
+              error: locale === 'ar' ? 'تم الإرسال بس المتابعة ما اتسجلتش' : 'Sent but follow-up not saved'
+            })
+          }
         } else {
           failedList.push({ name: visitor.name, phone: visitor.phone, error: result.error || t('followups.bulkScript.unknownError') })
         }
@@ -1785,12 +1838,25 @@ export default function FollowUpsPage() {
         else if (sourceFilter === 'visitors' && ['expired-member', 'expiring-member', 'member-invitation', 'invitation', 'website'].includes(src)) continue
       }
 
+      // 📅 date range
+      if (dateFromFilter || dateToFilter) {
+        const created = new Date(fu.createdAt).getTime()
+        if (dateFromFilter) {
+          const [y, m, d] = dateFromFilter.split('-').map(Number)
+          if (created < new Date(y, m - 1, d, 0, 0, 0, 0).getTime()) continue
+        }
+        if (dateToFilter) {
+          const [y, m, d] = dateToFilter.split('-').map(Number)
+          if (created > new Date(y, m - 1, d, 23, 59, 59, 999).getTime()) continue
+        }
+      }
+
       if (priority === 'today') todayCount++
       if (fu.contacted) contacted++
       else notContacted++
     }
     return { myFollowUps, todayCount, notContacted, contacted }
-  }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter])
+  }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter])
 
   // ✅ قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) — تُستخدم لحساب أرقام أزرار المصدر
   // عشان لما المستخدم يختار priority/contacted/search، الأرقام في أزرار المصدر تتحدّث برضو
@@ -1823,9 +1889,22 @@ export default function FollowUpsPage() {
       const matchesAssignedStaff = assignedStaffFilter === 'all'
         || (assignedStaffFilter === '__unassigned__' ? !fu.assignedTo : fu.assignedTo === assignedStaffFilter)
 
-      return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSales && matchesAssignedStaff
+      let matchesDateRange = true
+      if (dateFromFilter || dateToFilter) {
+        const created = new Date(fu.createdAt).getTime()
+        if (dateFromFilter) {
+          const [y, m, d] = dateFromFilter.split('-').map(Number)
+          if (created < new Date(y, m - 1, d, 0, 0, 0, 0).getTime()) matchesDateRange = false
+        }
+        if (matchesDateRange && dateToFilter) {
+          const [y, m, d] = dateToFilter.split('-').map(Number)
+          if (created > new Date(y, m - 1, d, 23, 59, 59, 999).getTime()) matchesDateRange = false
+        }
+      }
+
+      return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSales && matchesAssignedStaff && matchesDateRange
     })
-  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, salesFilter, assignedStaffFilter, getFollowUpPriority, isMyFollowUp])
+  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, getFollowUpPriority, isMyFollowUp])
 
   // Stats - memoized لتجنب إعادة الحساب في كل render
   // الأرقام تتحدّث ديناميكياً مع باقي الفلاتر
@@ -2968,6 +3047,35 @@ export default function FollowUpsPage() {
                 }
               </select>
             </div>
+          )}
+          <div className="min-w-[140px]">
+            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">📅 {locale === 'ar' ? 'من تاريخ' : 'From date'}</label>
+            <input
+              type="date"
+              value={dateFromFilter}
+              onChange={(e) => setDateFromFilter(e.target.value)}
+              max={dateToFilter || undefined}
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+            />
+          </div>
+          <div className="min-w-[140px]">
+            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">📅 {locale === 'ar' ? 'إلى تاريخ' : 'To date'}</label>
+            <input
+              type="date"
+              value={dateToFilter}
+              onChange={(e) => setDateToFilter(e.target.value)}
+              min={dateFromFilter || undefined}
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+            />
+          </div>
+          {(dateFromFilter || dateToFilter) && (
+            <button
+              onClick={() => { setDateFromFilter(''); setDateToFilter('') }}
+              className="px-3 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 whitespace-nowrap"
+              title={locale === 'ar' ? 'مسح فلتر التاريخ' : 'Clear date filter'}
+            >
+              ✕ {locale === 'ar' ? 'مسح التاريخ' : 'Clear dates'}
+            </button>
           )}
           {filteredFollowUps.length > 0 && (
             <button

@@ -95,6 +95,8 @@ export default function SalesMgmtPanel() {
       setToStaffId('')
       setTransferTypes(['members'])
       fetchStaff()
+      // 📢 يخبر CollectionDashboard إنه يعيد جلب التارجت/المحصّل
+      window.dispatchEvent(new Event('sales-data-changed'))
     } catch (e: any) {
       toast.error(e.message || (ar ? 'فشل النقل' : 'Transfer failed'))
     } finally {
@@ -123,6 +125,8 @@ export default function SalesMgmtPanel() {
       setConfirmAssign(false)
       setAssignStaffId('')
       fetchStaff()
+      // 📢 إعادة احتساب التارجت/المحصّل في CollectionDashboard
+      window.dispatchEvent(new Event('sales-data-changed'))
     } catch (e: any) {
       toast.error(e.message || (ar ? 'فشل التوزيع' : 'Assignment failed'))
     } finally {

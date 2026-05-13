@@ -113,6 +113,10 @@ export async function GET(request: Request) {
 
     // جلب كل الأعضاء (مع فلتر السيلز لو موجود) + اسم السيلز/الكوتش للتاج في الكروت
     // ✅ ترتيب مزدوج: createdAt desc (الأساسي) ثم id desc (cuid فيه timestamp فيـ break الـ ties)
+    // 🚀 تحسين الأداء: استبعاد الحقول الثقيلة اللي مش بتُستخدم في صفحة الأعضاء
+    //   - receipts: مش بتُستخدم من القايمة (الصفحة بتجيب /api/receipts منفصل)
+    //   - idCardFront/idCardBack: مش بتظهر في القايمة، بس في صفحة العضو الفردية
+    //   ملاحظة: notes بنرجّعها لأن SearchModal/search بتعرضها في كروت النتيجة
     const members = await prisma.member.findMany({
       where: salesOnlyFilter,
       orderBy: [
@@ -120,7 +124,6 @@ export async function GET(request: Request) {
         { id: 'desc' },
       ],
       include: {
-        receipts: true,
         freezeRequests: {
           where: { status: 'approved' },
           orderBy: { endDate: 'desc' },
@@ -138,7 +141,13 @@ export async function GET(request: Request) {
       return NextResponse.json([], { status: 200 })
     }
 
-    return NextResponse.json(members, { status: 200 })
+    // 🚀 تصفية الحقول الثقيلة الغير مستخدمة في القائمة
+    const lightMembers = members.map((m: any) => {
+      const { idCardFront, idCardBack, ...rest } = m
+      return rest
+    })
+
+    return NextResponse.json(lightMembers, { status: 200 })
   } catch (error: any) {
     console.error('❌ Error fetching members:', error)
 
@@ -751,7 +760,20 @@ export async function PUT(request: Request) {
     
     // تحويل كل الأرقام لـ integers
     if (data.memberNumber !== undefined) {
-      updateData.memberNumber = data.memberNumber ? String(data.memberNumber).trim() : null
+      const cleanNumber = data.memberNumber ? String(data.memberNumber).trim() : null
+      if (cleanNumber) {
+        const duplicate = await prisma.member.findFirst({
+          where: { memberNumber: cleanNumber, id: { not: id } },
+          select: { id: true, name: true }
+        })
+        if (duplicate) {
+          return NextResponse.json(
+            { error: `رقم العضوية ${cleanNumber} مستخدم بالفعل للعضو ${duplicate.name}` },
+            { status: 400 }
+          )
+        }
+      }
+      updateData.memberNumber = cleanNumber
     }
     if (data.inBodyScans !== undefined) {
       updateData.inBodyScans = parseInt(data.inBodyScans.toString())

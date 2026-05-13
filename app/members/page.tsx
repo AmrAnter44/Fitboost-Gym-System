@@ -1177,7 +1177,7 @@ export default function MembersPage() {
                     <div className="p-4 flex items-center gap-3">
                       <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                         {member.profileImage ? (
-                          <img src={member.profileImage} alt={member.name} loading="lazy" className="w-full h-full object-cover" />
+                          <img src={member.profileImage} alt={member.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400">
                             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">

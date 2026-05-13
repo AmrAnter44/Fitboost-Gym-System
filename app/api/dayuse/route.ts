@@ -173,35 +173,38 @@ export async function POST(request: Request) {
       // نستمر في العملية حتى لو فشل خصم النقاط
     }
 
-    // ✅ إنشاء visitor تلقائياً من الدعوة (إذا لم يكن موجوداً)
-    try {
-      const existingVisitor = await prisma.visitor.findUnique({
-        where: { phone },
-      });
-
-      // ✅ اختيار موظف سيلز: إذا حُدد يدوياً استخدمه، وإلا اختر الأقل ليدز
-      const getAutoAssignedStaff = async (): Promise<string | null> => {
-        if (salesStaffId) return salesStaffId
-        try {
-          const salesStaffList = await prisma.staff.findMany({
-            where: { isActive: true, position: { contains: 'sales' } },
-            select: {
-              id: true,
-              _count: { select: { followUpAssignments: { where: { archived: false } } } }
-            }
-          })
-          if (salesStaffList.length > 0) {
-            const sorted = [...salesStaffList].sort((a, b) => a._count.followUpAssignments - b._count.followUpAssignments)
-            return sorted[0].id
+    // ✅ إنشاء visitor + followup للـ DayUse في transaction واحد
+    // عشان السطر القديم كان بيـ swallow الأخطاء بـ console.error بس، فلو الـ followup فشل
+    // كان الـ DayUse يتسجل من غير متابعة → "متابعات مش بتتسجل"
+    // ✅ اختيار موظف سيلز: إذا حُدد يدوياً استخدمه، وإلا اختر الأقل ليدز
+    const getAutoAssignedStaff = async (): Promise<string | null> => {
+      if (salesStaffId) return salesStaffId
+      try {
+        const salesStaffList = await prisma.staff.findMany({
+          where: { isActive: true, position: { contains: 'sales' } },
+          select: {
+            id: true,
+            _count: { select: { followUpAssignments: { where: { archived: false } } } }
           }
-        } catch {}
-        return null
-      }
+        })
+        if (salesStaffList.length > 0) {
+          const sorted = [...salesStaffList].sort((a, b) => a._count.followUpAssignments - b._count.followUpAssignments)
+          return sorted[0].id
+        }
+      } catch {}
+      return null
+    }
 
-      if (!existingVisitor) {
-        // إنشاء زائر جديد من الدعوة
-        const newVisitor = await prisma.visitor.create({
-          data: {
+    try {
+      const assignedTo = await getAutoAssignedStaff()
+
+      await prisma.$transaction(async (tx) => {
+        // upsert الزائر بدل findUnique → create عشان نتجنّب race condition
+        // (طلبين متوازيين كانوا ممكن يخلقوا اتنين فيخفقوا في unique constraint)
+        const visitor = await tx.visitor.upsert({
+          where: { phone },
+          update: {},
+          create: {
             name: name.trim(),
             phone: phone.trim(),
             source: "invitation",
@@ -210,37 +213,29 @@ export async function POST(request: Request) {
             notes: `دعوة ${typeArabic} - موظف: ${staffName}`,
             status: "pending",
           },
-        });
-
-        const assignedTo = await getAutoAssignedStaff()
-        await prisma.followUp.create({
-          data: {
-            visitorId: newVisitor.id,
-            notes: `دعوة ${typeArabic} - في انتظار المتابعة من فريق المبيعات`,
-            nextFollowUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
-            assignedTo,
-          },
-        });
-      } else {
-        // ✅ الزائر موجود — تحقق إن مفيش FollowUp نشط وأنشئ واحد لو مفيش
-        const activeFollowUp = await prisma.followUp.findFirst({
-          where: { visitorId: existingVisitor.id, archived: false }
         })
+
+        // ✅ ما نخلقش followup جديد لو في واحد active موجود
+        const activeFollowUp = await tx.followUp.findFirst({
+          where: { visitorId: visitor.id, archived: false }
+        })
+
         if (!activeFollowUp) {
-          const assignedTo = await getAutoAssignedStaff()
-          await prisma.followUp.create({
+          await tx.followUp.create({
             data: {
-              visitorId: existingVisitor.id,
-              notes: `عودة لـ ${typeArabic} - في انتظار المتابعة من فريق المبيعات`,
+              visitorId: visitor.id,
+              notes: `دعوة ${typeArabic} - في انتظار المتابعة من فريق المبيعات`,
               nextFollowUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
               assignedTo,
             },
           })
         }
-      }
+      })
     } catch (visitorError) {
-      // في حالة فشل إنشاء الزائر، نستمر (لأن DayUse تم إنشاؤه بنجاح)
-      console.error("⚠️ تحذير: فشل إنشاء الزائر من الدعوة:", visitorError);
+      // ❌ Visitor/followup creation failed — مش هنخفي الخطأ. الـ DayUse + Receipt
+      // اتسجلوا بالفعل في الـ transaction اللي فوق، لكن المهم نـ log الخطأ بوضوح
+      // والـ admin يقدر يستخدم زرار "توزيع غير المُسنَّدين" يصلح الموقف.
+      console.error("⚠️ فشل إنشاء visitor+followup من DayUse:", visitorError);
     }
 
 
