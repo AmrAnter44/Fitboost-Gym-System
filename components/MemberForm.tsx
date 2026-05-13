@@ -48,7 +48,14 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   const [referrerError, setReferrerError] = useState<string | null>(null)
 
   // 📞 FollowUp lookup by phone — يعرض اسم السيلز الموكّل من المتابعة
-  const [matchedFollowUp, setMatchedFollowUp] = useState<{ salesStaffId: string; salesStaffName: string; visitorName: string | null } | null>(null)
+  // salesStaffId: null + salesStaffName: string → سيلز اسمه موجود في المتابعة بس مش مربوط بـ Staff record
+  // salesStaffId: string → match كامل وبيتعمل auto-assign
+  // salesStaffId: null + salesStaffName: null → الزائر موجود في المتابعات بس مش معيّن لسيلز
+  const [matchedFollowUp, setMatchedFollowUp] = useState<{
+    salesStaffId: string | null
+    salesStaffName: string | null
+    visitorName: string | null
+  } | null>(null)
 
   const [formData, setFormData] = useState({
     memberNumber: '',
@@ -190,15 +197,18 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         if (!res.ok) return
         const data = await res.json()
         if (cancelled) return
-        if (data.found && data.salesStaffId) {
+        if (data.found) {
           setMatchedFollowUp({
-            salesStaffId: data.salesStaffId,
-            salesStaffName: data.salesStaffName,
+            salesStaffId: data.salesStaffId || null,
+            salesStaffName: data.salesStaffName || null,
             visitorName: data.visitorName
           })
-          // 🔒 force-apply — متى وُجد match، السيلز لازم يكون هو ده، حتى لو
-          // الريسبشن غيّره يدوياً قبل ما يدخل التليفون. السيرفر هيغصبه برضو.
-          setFormData(prev => ({ ...prev, salesStaffId: data.salesStaffId }))
+          // 🔒 force-apply — لو لاقينا staff ID مربوط، نخلي السيلز هو ده.
+          // لو الاسم بس موجود (legacy) من غير ID، نسيب اليوزر يختار يدوياً
+          // لأننا مش متأكدين أي Staff record المقصود.
+          if (data.salesStaffId) {
+            setFormData(prev => ({ ...prev, salesStaffId: data.salesStaffId }))
+          }
         } else {
           setMatchedFollowUp(null)
         }
@@ -739,23 +749,56 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
               placeholder="01234567890"
               dir="ltr"
             />
-            {/* 🔒 لو الرقم متطابق مع متابعة موكّل ليها سيلز، نعرض رسالة مختلفة حسب الصلاحية */}
+            {/* 🔒 لو الرقم متطابق مع متابعة، نعرض رسالة مختلفة حسب الحالة */}
             {matchedFollowUp && (() => {
               const canOverride = user?.role === 'OWNER' || user?.role === 'ADMIN'
-              return (
-                <div className="mt-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-                  📋 {direction === 'rtl'
-                    ? canOverride
-                      ? <>المتابع للزائر ده: <strong>{matchedFollowUp.salesStaffName}</strong> — تقدر تغيّره لو محتاج</>
-                      : <>السيلز هيترصد للموظف اللي كان بيتابع: <strong>{matchedFollowUp.salesStaffName}</strong> 🔒</>
-                    : canOverride
-                      ? <>Following up with this visitor: <strong>{matchedFollowUp.salesStaffName}</strong> — you can change it if needed</>
-                      : <>Sale will be credited to: <strong>{matchedFollowUp.salesStaffName}</strong> 🔒</>}
-                  {matchedFollowUp.visitorName && (
-                    <span className="text-amber-600 dark:text-amber-400 mx-1">({matchedFollowUp.visitorName})</span>
-                  )}
-                </div>
-              )
+              const hasStaffId = !!matchedFollowUp.salesStaffId
+              const hasStaffName = !!matchedFollowUp.salesStaffName
+
+              // الحالة ١: لقينا staff ID مربوط → auto-assign
+              if (hasStaffId && hasStaffName) {
+                return (
+                  <div className="mt-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                    📋 {direction === 'rtl'
+                      ? canOverride
+                        ? <>المتابع للزائر ده: <strong>{matchedFollowUp.salesStaffName}</strong> — تقدر تغيّره لو محتاج</>
+                        : <>السيلز هيترصد للموظف اللي كان بيتابع: <strong>{matchedFollowUp.salesStaffName}</strong> 🔒</>
+                      : canOverride
+                        ? <>Following up with this visitor: <strong>{matchedFollowUp.salesStaffName}</strong> — you can change it if needed</>
+                        : <>Sale will be credited to: <strong>{matchedFollowUp.salesStaffName}</strong> 🔒</>}
+                    {matchedFollowUp.visitorName && (
+                      <span className="text-amber-600 dark:text-amber-400 mx-1">({matchedFollowUp.visitorName})</span>
+                    )}
+                  </div>
+                )
+              }
+
+              // الحالة ٢: لقينا اسم سيلز بس مش مربوط بـ Staff record → اعرض الاسم وخلّي اليوزر يختار
+              if (!hasStaffId && hasStaffName) {
+                return (
+                  <div className="mt-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg px-3 py-2 text-xs text-blue-800 dark:text-blue-200">
+                    📋 {direction === 'rtl'
+                      ? <>الزائر ده كان بيتابع مع: <strong>{matchedFollowUp.salesStaffName}</strong> — اختر السيلز من القايمة تحت</>
+                      : <>This visitor was being followed up by: <strong>{matchedFollowUp.salesStaffName}</strong> — please pick the sales rep below</>}
+                    {matchedFollowUp.visitorName && (
+                      <span className="text-blue-600 dark:text-blue-400 mx-1">({matchedFollowUp.visitorName})</span>
+                    )}
+                  </div>
+                )
+              }
+
+              // الحالة ٣: الزائر موجود في المتابعات بس مفيش سيلز معيّن
+              if (!hasStaffId && !hasStaffName && matchedFollowUp.visitorName) {
+                return (
+                  <div className="mt-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300">
+                    📋 {direction === 'rtl'
+                      ? <>الزائر ده موجود في المتابعات: <strong>{matchedFollowUp.visitorName}</strong> — لكن مش معيّن لسيلز</>
+                      : <>Visitor found in follow-ups: <strong>{matchedFollowUp.visitorName}</strong> — but not assigned to a sales rep</>}
+                  </div>
+                )
+              }
+
+              return null
             })()}
           </div>
 

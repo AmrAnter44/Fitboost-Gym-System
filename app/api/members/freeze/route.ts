@@ -1,7 +1,7 @@
 // app/api/members/freeze/route.ts - Freeze Subscription Endpoint
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { requirePermission } from '../../../../lib/auth'
+import { requireAnyPermission } from '../../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 // POST - تجميد اشتراك عضو (استخدام الفريز)
@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   try {
     // التحقق من صلاحية تعديل الأعضاء
-    const user = await requirePermission(request, 'canEditMembers')
+    // ✅ صلاحية التجميد: أي حد عنده تعديل أو إضافة أعضاء
+    const user = await requireAnyPermission(request, ['canEditMembers', 'canCreateMembers'])
 
     const body = await request.json()
     const { memberId, freezeDays } = body
@@ -144,7 +145,8 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     // التحقق من صلاحية تعديل الأعضاء
-    const user = await requirePermission(request, 'canEditMembers')
+    // ✅ صلاحية التجميد: أي حد عنده تعديل أو إضافة أعضاء
+    const user = await requireAnyPermission(request, ['canEditMembers', 'canCreateMembers'])
 
     const body = await request.json()
     const { memberId } = body
