@@ -5,24 +5,6 @@ import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
 export const dynamic = 'force-dynamic';
 
 /**
- * يتحقق أن مقدم الطلب يعرف رقم هاتف العضو (آخر 10 أرقام).
- * بدون هذا التحقق، أي شخص يعرف memberId يستطيع التجميد/الحجز نيابةً عن العضو.
- */
-async function verifyMemberPhone(memberId: string, phoneNumber: string | undefined | null): Promise<boolean> {
-  if (!phoneNumber || typeof phoneNumber !== 'string') return false;
-  const cleanPhone = phoneNumber.replace(/\D/g, '').slice(-10);
-  if (cleanPhone.length < 7) return false;
-  const member = await prisma.member.findFirst({
-    where: {
-      id: memberId,
-      phone: { contains: cleanPhone }
-    },
-    select: { id: true }
-  });
-  return !!member;
-}
-
-/**
  * Get member's freeze requests
  */
 export async function GET(
@@ -80,16 +62,7 @@ export async function POST(
 
     const { memberId } = await params;
     const body = await request.json();
-    const { startDate, days, reason, phoneNumber } = body;
-
-    // 🔒 إثبات هوية العضو بواسطة phone number (shared-secret الخفيف)
-    const verified = await verifyMemberPhone(memberId, phoneNumber);
-    if (!verified) {
-      return NextResponse.json(
-        { error: 'يجب إدخال رقم هاتفك لتأكيد الطلب' },
-        { status: 401 }
-      );
-    }
+    const { startDate, days, reason } = body;
 
     // Validate input
     if (!startDate || !days) {
