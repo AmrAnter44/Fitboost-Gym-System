@@ -318,6 +318,17 @@ export default function SettingsPage() {
   // Save notification state
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  // 📦 Apply Package Features state
+  const [applyingFeatures, setApplyingFeatures] = useState(false)
+  const [applyFeaturesResult, setApplyFeaturesResult] = useState<{
+    processed: number
+    updated: number
+    skipped: number
+    missingOffer: number
+    results: Array<{ memberId: string; memberNumber: string | null; name: string; status: 'updated' | 'skipped' | 'missing-offer'; reason?: string }>
+  } | null>(null)
+  const [applyFeaturesError, setApplyFeaturesError] = useState<string | null>(null)
+
   // Port Forwarding states
   const [localIP, setLocalIP] = useState<string>('')
   const [localURL, setLocalURL] = useState<string>('')
@@ -722,6 +733,42 @@ export default function SettingsPage() {
     }
   }
 
+  // 📦 تطبيق مميزات الباقة على الأعضاء (الحصص + الفريز + الدعوات)
+  const handleApplyPackageFeatures = async (mode: 'fresh' | 'force') => {
+    const confirmMsg = mode === 'force'
+      ? '⚠️ هل تريد تطبيق مميزات الباقات على كل الأعضاء (استبدال القيم الحالية)؟\n\nالقيم الحالية للحصص/الفريز/الدعوات هتتمسح وتترجع لقيم الباقة.\nده مناسب لو لسه عاملين استيراد جديد.'
+      : 'تطبيق مميزات الباقات على الأعضاء الجدد (اللي قيمهم لسه 0)؟\n\nمش هيلمس أي عضو مستخدم حصصه بالفعل.'
+
+    if (!confirm(confirmMsg)) return
+
+    setApplyingFeatures(true)
+    setApplyFeaturesError(null)
+    setApplyFeaturesResult(null)
+    try {
+      const res = await fetch('/api/admin/apply-package-features', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setApplyFeaturesError(data.error || 'فشل تطبيق المميزات')
+      } else {
+        setApplyFeaturesResult({
+          processed: data.processed,
+          updated: data.updated,
+          skipped: data.skipped,
+          missingOffer: data.missingOffer,
+          results: data.results || [],
+        })
+      }
+    } catch (err: any) {
+      setApplyFeaturesError(err?.message || 'خطأ في الاتصال بالسيرفر')
+    } finally {
+      setApplyingFeatures(false)
+    }
+  }
+
   const fetchDbFiles = async () => {
     setLoadingDbFiles(true)
     try {
@@ -1046,7 +1093,8 @@ export default function SettingsPage() {
     { id: 'display', label: t('settingsPage.navigation.display'), icon: '🎨' },
     ...(user?.role === 'OWNER' ? [
       { id: 'license', label: t('settingsPage.navigation.license'), icon: '🔑' },
-      { id: 'database', label: t('settingsPage.navigation.database'), icon: '💾' }
+      { id: 'database', label: t('settingsPage.navigation.database'), icon: '💾' },
+      { id: 'apply-features', label: 'تطبيق مميزات الباقات', icon: '📦' }
     ] : []),
     ...(typeof window !== 'undefined' && (window as any).electron?.isElectron ? [{ id: 'updates', label: t('settingsPage.navigation.updates'), icon: '🔄' }] : []),
     { id: 'support', label: t('settingsPage.navigation.support'), icon: '📞' }
@@ -2475,6 +2523,149 @@ export default function SettingsPage() {
                 </button>
               </div>
 
+            </div>
+          )}
+
+          {activeSection === 'apply-features' && user?.role === 'OWNER' && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">📦</span>
+                  <div>
+                    <h2 className="text-2xl font-bold">تطبيق مميزات الباقات على الأعضاء</h2>
+                    <p className="text-amber-50 text-sm mt-1">
+                      السكريبت بيمشي على كل الأعضاء اللي عندهم باقة محفوظة، ويطبق عليهم الحصص + الفريز + الدعوات + InBody.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <span>ℹ️</span>
+                    إزاي بيعرف الباقة بتاعت العضو؟
+                  </h4>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    لما تضيف عضو جديد (أو تجدد) وتختار باقة من الفورم، الباقة بتتخزن على العضو (<code className="text-xs">offerId</code>).
+                    الزرار ده بيمشي على كل عضو عنده باقة محفوظة، يجيب الباقة من جدول العروض، ويطبق مميزاتها.
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-700 rounded-lg">
+                    <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                      <span>🟢</span>
+                      وضع آمن (الأعضاء الجدد بس)
+                    </h4>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 mb-3">
+                      يطبق المميزات بس على الأعضاء اللي الحصص/الفريز/الدعوات بتاعتهم لسه 0.
+                      مش هيلمس أي عضو مستخدم حصصه بالفعل.
+                    </p>
+                    <button
+                      onClick={() => handleApplyPackageFeatures('fresh')}
+                      disabled={applyingFeatures}
+                      className={`w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${applyingFeatures ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                      {applyingFeatures ? <span className="animate-spin">⏳</span> : <span>✨</span>}
+                      <span>تطبيق على الأعضاء الجدد</span>
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 rounded-lg">
+                    <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                      <span>⚠️</span>
+                      استبدال القيم (لكل الأعضاء)
+                    </h4>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 mb-3">
+                      يستبدل الحصص/الفريز/الدعوات الحالية بقيم الباقة. مفيد بعد استيراد جديد.
+                      <strong className="text-red-700 dark:text-red-300"> خطر:</strong> هيمسح الاستخدام الحالي.
+                    </p>
+                    <button
+                      onClick={() => handleApplyPackageFeatures('force')}
+                      disabled={applyingFeatures}
+                      className={`w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${applyingFeatures ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                      {applyingFeatures ? <span className="animate-spin">⏳</span> : <span>🔁</span>}
+                      <span>استبدال لكل الأعضاء</span>
+                    </button>
+                  </div>
+                </div>
+
+                {applyFeaturesError && (
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 rounded-lg">
+                    <p className="text-red-800 dark:text-red-200 font-medium">❌ {applyFeaturesError}</p>
+                  </div>
+                )}
+
+                {applyFeaturesResult && (
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg space-y-3">
+                    <h4 className="font-bold text-green-800 dark:text-green-200 flex items-center gap-2">
+                      <span>✅</span>
+                      <span>تم — النتيجة:</span>
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                        <p className="text-gray-500 dark:text-gray-400 text-xs">اتعالج</p>
+                        <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{applyFeaturesResult.processed}</p>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
+                        <p className="text-emerald-600 dark:text-emerald-400 text-xs">اتحدّث</p>
+                        <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{applyFeaturesResult.updated}</p>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-yellow-200 dark:border-yellow-700">
+                        <p className="text-yellow-600 dark:text-yellow-400 text-xs">اتخطّى</p>
+                        <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{applyFeaturesResult.skipped}</p>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-red-200 dark:border-red-700">
+                        <p className="text-red-600 dark:text-red-400 text-xs">باقة ناقصة</p>
+                        <p className="text-2xl font-bold text-red-700 dark:text-red-300">{applyFeaturesResult.missingOffer}</p>
+                      </div>
+                    </div>
+
+                    {applyFeaturesResult.results.length > 0 && (
+                      <details className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <summary className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg">
+                          عرض تفاصيل كل عضو ({applyFeaturesResult.results.length})
+                        </summary>
+                        <div className="max-h-96 overflow-y-auto border-t border-gray-200 dark:border-gray-700">
+                          <table className="w-full text-xs">
+                            <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0">
+                              <tr>
+                                <th className="px-3 py-2 text-start font-medium">رقم العضوية</th>
+                                <th className="px-3 py-2 text-start font-medium">الاسم</th>
+                                <th className="px-3 py-2 text-start font-medium">الحالة</th>
+                                <th className="px-3 py-2 text-start font-medium">السبب</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {applyFeaturesResult.results.map((r, i) => (
+                                <tr key={r.memberId + i} className="border-t border-gray-200 dark:border-gray-700">
+                                  <td className="px-3 py-1.5 font-mono">{r.memberNumber || '—'}</td>
+                                  <td className="px-3 py-1.5">{r.name}</td>
+                                  <td className="px-3 py-1.5">
+                                    {r.status === 'updated' && <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">اتحدّث</span>}
+                                    {r.status === 'skipped' && <span className="px-2 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300">اتخطّى</span>}
+                                    {r.status === 'missing-offer' && <span className="px-2 py-0.5 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">باقة ناقصة</span>}
+                                  </td>
+                                  <td className="px-3 py-1.5 text-gray-500 dark:text-gray-400">{r.reason || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                )}
+
+                <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    💡 <strong>قبل ما تستخدمه:</strong> لو الأعضاء اتعملوا قبل التحديث ده، الـ <code>offerId</code> هيكون فاضي عندهم وهيتخطّوا.
+                    افتح كل عضو من صفحة الأعضاء واختار له الباقة من فورم التجديد عشان تخزن الباقة عليه، وبعدين دوس على الزرار هنا.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

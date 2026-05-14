@@ -95,7 +95,8 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     ptCommissionAmount: null as number | null,  // 💰 عمولة الكوتش من الباقة (null = استخدام الافتراضي من الإعدادات)
     referralMemberNumber: '',  // 👥 رقم العضو المُحيل
     allowedCheckInStart: '',   // 🕐 ساعة بداية الدخول المسموح بها
-    allowedCheckInEnd: ''      // 🕐 ساعة نهاية الدخول المسموح بها
+    allowedCheckInEnd: '',     // 🕐 ساعة نهاية الدخول المسموح بها
+    offerId: null as string | null  // 📦 معرف الباقة المطبَّقة
   })
 
   // 📦 مدة الباقة المُطبَّقة (للحساب التلقائي للتاريخ النهاية لما البداية تتغير)
@@ -560,6 +561,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       ptCommissionAmount: offer.ptCommission || null,  // 💰 حفظ عمولة الباقة
       allowedCheckInStart: offer.allowedCheckInStart || '',  // 🕐 نسخ ساعات الدخول من العرض
       allowedCheckInEnd: offer.allowedCheckInEnd || '',
+      offerId: offer.id,  // 📦 تخزين الباقة على العضو
       startDate,
       expiryDate: formatDateYMD(expiryDate)
     }))

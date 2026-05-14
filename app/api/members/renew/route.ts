@@ -45,7 +45,8 @@ export async function POST(request: Request) {
       expiryDate,
       notes,
       paymentMethod,
-      staffName
+      staffName,
+      offerId         // 📦 الباقة المطبَّقة عند التجديد (لو فيه)
     } = body
 
 
@@ -135,6 +136,8 @@ export async function POST(request: Request) {
         expiryDate: expiryDate ? new Date(expiryDate) : null,
         isActive: renewIsActive,
         notes: notes || member.notes,
+        // 📦 تحديث الباقة لو اتبعت من التجديد (لو مش موجودة سيبها زي ما هي)
+        ...(offerId ? { offerId } : {}),
       },
     })
 
