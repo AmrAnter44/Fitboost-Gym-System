@@ -101,6 +101,7 @@ export const memberCreateSchema = z.object({
   skipReceipt: z.boolean().optional().nullable(),
   coachId: z.string().max(50).optional().nullable(),
   salesStaffId: z.string().max(50).optional().nullable(),
+  offerId: z.string().max(50).optional().nullable(),
   allowedCheckInStart: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/).optional().nullable().or(z.literal('').transform(() => null)),
   allowedCheckInEnd: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/).optional().nullable().or(z.literal('').transform(() => null)),
 }).passthrough()

@@ -83,6 +83,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [successMessage, setSuccessMessage] = useState('')
   const [createdReceipt, setCreatedReceipt] = useState<any>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)  // 📦 الباقة المطبَّقة عند التجديد
 
   useEffect(() => {
     if (user && !staffName) {
@@ -139,6 +140,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
     setFreezeDays(offer.freezeDays.toString())
     setStartDate(start)
     setExpiryDate(formatDateYMD(expiry))
+    setSelectedOfferId(offer.id)  // 📦 تخزين الباقة لإرسالها مع التجديد
 
     setSuccessMessage(`✅ ${t('renewal.offerApplied', { offerName: offer.name })}`)
     setTimeout(() => setSuccessMessage(''), 2000)
@@ -184,7 +186,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           expiryDate,
           notes,
           paymentMethod,
-          staffName: user?.name || ''
+          staffName: user?.name || '',
+          offerId: selectedOfferId
         })
       })
 

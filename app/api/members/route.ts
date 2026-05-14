@@ -250,6 +250,7 @@ export async function POST(request: Request) {
       skipReceipt,
       coachId,
       salesStaffId,
+      offerId,          // 📦 الباقة المختارة من الفورم
       ptCommissionAmount,
       referralMemberNumber,
       allowedCheckInStart,
@@ -429,6 +430,7 @@ export async function POST(request: Request) {
       expiryDate: expiryDate ? new Date(expiryDate) : null,
       coachId: coachId || null,
       salesStaffId: effectiveSalesStaffId,
+      offerId: offerId || null,
       allowedCheckInStart: allowedCheckInStart || null,
       allowedCheckInEnd: allowedCheckInEnd || null,
     }
