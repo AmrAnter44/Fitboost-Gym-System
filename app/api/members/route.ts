@@ -579,12 +579,14 @@ export async function POST(request: Request) {
         salesPersonName = salesStaff?.name || null
       }
 
-      let receiptData: any = {
+      // ✅ payload لإنشاء الإيصال — اسم مختلف عن receiptData الخارجي
+      // عشان لا يحصل shadowing (كانت bug قديمة بترجع receipt: null للـ client)
+      const receiptCreatePayload: any = {
         receiptNumber: receiptNumber,
         type: 'Member',
         amount: paidAmount,
         paymentMethod: finalPaymentMethod,
-        staffName: staffName.trim(),
+        staffName: (staffName || '').trim(),
         itemDetails: JSON.stringify({
           memberNumber: cleanMemberNumber,
           memberName: name,
@@ -599,7 +601,7 @@ export async function POST(request: Request) {
           startDate: startDate,
           expiryDate: expiryDate,
           subscriptionDays: subscriptionDays,
-          staffName: staffName.trim(),
+          staffName: (staffName || '').trim(),
           salesPersonName,
           isOther: isOther === true,
           // 💸 الخصم — يظهر في الإيصال
@@ -613,29 +615,40 @@ export async function POST(request: Request) {
 
       // إذا كان هناك تاريخ مخصص من الأدمن، استخدمه للإيصال أيضاً
       if (customCreatedAt) {
-        receiptData.createdAt = new Date(customCreatedAt)
+        receiptCreatePayload.createdAt = new Date(customCreatedAt)
       }
 
-      const receipt = await prisma.receipt.create({
-        data: receiptData,
-      })
-
-
-      // خصم النقاط إذا تم استخدامها في الدفع
-      const pointsResult = await processPaymentWithPoints(
-        member.id,
-        phone,
-        member.memberNumber,  // ✅ تمرير رقم العضوية
-        finalPaymentMethod,
-        `دفع اشتراك عضوية - ${name}`,
-        prisma
-      )
-
-      if (!pointsResult.success) {
-        return NextResponse.json(
-          { error: pointsResult.message || 'فشل خصم النقاط' },
-          { status: 400 }
-        )
+      // ✅ Receipt + points في transaction واحد — لو الـ points فشلت، الإيصال يترجع
+      // (BUG 3: قبل كده كان الإيصال بيتسجّل ثم لو النقاط فشلت يرجع 400 والإيصال orphan)
+      let receipt: any
+      try {
+        const result = await prisma.$transaction(async (tx) => {
+          const r = await tx.receipt.create({ data: receiptCreatePayload })
+          const pr = await processPaymentWithPoints(
+            member.id,
+            phone,
+            member.memberNumber,  // ✅ تمرير رقم العضوية
+            finalPaymentMethod,
+            `دفع اشتراك عضوية - ${name}`,
+            tx  // ✅ نمرّر الـ tx بدل الـ global prisma
+          )
+          if (!pr.success) {
+            const e: any = new Error(pr.message || 'فشل خصم النقاط')
+            e.code = 'POINTS_FAILED'
+            e.userMessage = pr.message
+            throw e
+          }
+          return { receipt: r, pointsResult: pr }
+        })
+        receipt = result.receipt
+      } catch (txErr: any) {
+        if (txErr?.code === 'POINTS_FAILED') {
+          return NextResponse.json(
+            { error: txErr.userMessage || 'فشل خصم النقاط' },
+            { status: 400 }
+          )
+        }
+        throw txErr
       }
 
       // إضافة نقاط مكافأة على الدفع
@@ -651,6 +664,7 @@ export async function POST(request: Request) {
       }
 
       receiptData = {
+        id: receipt.id,
         receiptNumber: receipt.receiptNumber,
         amount: receipt.amount,
         paymentMethod: receipt.paymentMethod,

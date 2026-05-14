@@ -140,150 +140,154 @@ export async function POST(request: Request) {
 
 
     // إنشاء إيصال التجديد
-    try {
-      const receiptNumber = await getNextReceiptNumberDirect(prisma)
+    const paidAmount = subscriptionPrice - (remainingAmount || 0)
 
-      const paidAmount = subscriptionPrice - (remainingAmount || 0)
+    // حساب مدة الاشتراك
+    let subscriptionDays = null
+    if (startDate && expiryDate) {
+      const start = new Date(startDate)
+      const end = new Date(expiryDate)
+      subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    }
 
-      // حساب مدة الاشتراك
-      let subscriptionDays = null
-      if (startDate && expiryDate) {
-        const start = new Date(startDate)
-        const end = new Date(expiryDate)
-        subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-      }
-
-      // ✅ معالجة وسائل الدفع المتعددة
-      let finalPaymentMethod: string
-      if (Array.isArray(paymentMethod)) {
-        const validation = validatePaymentDistribution(paymentMethod, paidAmount)
-        if (!validation.valid) {
-          return NextResponse.json(
-            { error: validation.message || 'توزيع المبالغ غير صحيح' },
-            { status: 400 }
-          )
-        }
-        finalPaymentMethod = serializePaymentMethods(paymentMethod)
-      } else {
-        finalPaymentMethod = paymentMethod || 'cash'
-      }
-
-      const receipt = await prisma.receipt.create({
-        data: {
-          receiptNumber: receiptNumber,
-          type: RECEIPT_TYPES.MEMBERSHIP_RENEWAL,
-          amount: paidAmount,
-          paymentMethod: finalPaymentMethod,
-          staffName: staffName.trim(),
-          itemDetails: JSON.stringify({
-            memberNumber: member.memberNumber,
-            memberName: member.name,
-            phone: member.phone,
-            subscriptionPrice,
-            paidAmount,
-            remainingAmount: remainingAmount || 0,
-            // حصص PT في الإيصال
-            freePTSessions: additionalFreePT,
-            previousFreePTSessions: currentFreePT,
-            totalFreePTSessions: totalFreePT,
-            // حصص التغذية في الإيصال
-            freeNutritionSessions: additionalNutritionSessions,
-            previousNutritionSessions: currentNutritionSessions,
-            totalNutritionSessions: totalNutritionSessions,
-            // حصص العلاج الطبيعي في الإيصال
-            freePhysioSessions: additionalPhysioSessions,
-            previousPhysioSessions: currentPhysioSessions,
-            totalPhysioSessions: totalPhysioSessions,
-            // حصص الكلاس الجماعي في الإيصال
-            freeGroupClassSessions: additionalGroupClassSessions,
-            previousGroupClassSessions: currentGroupClassSessions,
-            totalGroupClassSessions: totalGroupClassSessions,
-            // InBody في الإيصال
-            inBodyScans: additionalInBody,
-            previousInBodyScans: currentInBody,
-            totalInBodyScans: totalInBody,
-            // Invitations في الإيصال
-            invitations: additionalInvitations,
-            previousInvitations: currentInvitations,
-            totalInvitations: totalInvitations,
-            // Freeze Days في الإيصال
-            remainingFreezeDays: additionalFreezeDays,
-            previousFreezeDays: currentFreezeDays,
-            totalFreezeDays: totalFreezeDays,
-            // التواريخ
-            previousExpiryDate: member.expiryDate,
-            newStartDate: startDate,
-            newExpiryDate: expiryDate,
-            subscriptionDays: subscriptionDays,
-            isRenewal: true,
-            staffName: staffName.trim(),
-            salesPersonName: member.salesStaff?.name || null,
-          }),
-          memberId: member.id,
-        },
-      })
-
-
-      // خصم النقاط إذا تم استخدامها في الدفع
-      const pointsResult = await processPaymentWithPoints(
-        member.id,
-        member.phone,
-        member.memberNumber,  // ✅ تمرير رقم العضوية
-        finalPaymentMethod,
-        `دفع تجديد عضوية - ${member.name}`,
-        prisma
-      )
-
-      if (!pointsResult.success) {
+    // ✅ معالجة وسائل الدفع المتعددة
+    let finalPaymentMethod: string
+    if (Array.isArray(paymentMethod)) {
+      const validation = validatePaymentDistribution(paymentMethod, paidAmount)
+      if (!validation.valid) {
         return NextResponse.json(
-          { error: pointsResult.message || 'فشل خصم النقاط' },
+          { error: validation.message || 'توزيع المبالغ غير صحيح' },
           { status: 400 }
         )
       }
+      finalPaymentMethod = serializePaymentMethods(paymentMethod)
+    } else {
+      finalPaymentMethod = paymentMethod || 'cash'
+    }
 
-      // إضافة نقاط مكافأة على الدفع
-      try {
-        const pointsResult = await addPointsForPayment(
+    // ✅ BUG 5: null-safe trim عشان لو staffName جاي null
+    const safeStaffName = (staffName || '').trim()
+
+    let receipt: any
+    try {
+      const receiptNumber = await getNextReceiptNumberDirect(prisma)
+
+      // ✅ BUG 3: Receipt + points في transaction واحد
+      const txResult = await prisma.$transaction(async (tx) => {
+        const r = await tx.receipt.create({
+          data: {
+            receiptNumber: receiptNumber,
+            type: RECEIPT_TYPES.MEMBERSHIP_RENEWAL,
+            amount: paidAmount,
+            paymentMethod: finalPaymentMethod,
+            staffName: safeStaffName,
+            itemDetails: JSON.stringify({
+              memberNumber: member.memberNumber,
+              memberName: member.name,
+              phone: member.phone,
+              subscriptionPrice,
+              paidAmount,
+              remainingAmount: remainingAmount || 0,
+              freePTSessions: additionalFreePT,
+              previousFreePTSessions: currentFreePT,
+              totalFreePTSessions: totalFreePT,
+              freeNutritionSessions: additionalNutritionSessions,
+              previousNutritionSessions: currentNutritionSessions,
+              totalNutritionSessions: totalNutritionSessions,
+              freePhysioSessions: additionalPhysioSessions,
+              previousPhysioSessions: currentPhysioSessions,
+              totalPhysioSessions: totalPhysioSessions,
+              freeGroupClassSessions: additionalGroupClassSessions,
+              previousGroupClassSessions: currentGroupClassSessions,
+              totalGroupClassSessions: totalGroupClassSessions,
+              inBodyScans: additionalInBody,
+              previousInBodyScans: currentInBody,
+              totalInBodyScans: totalInBody,
+              invitations: additionalInvitations,
+              previousInvitations: currentInvitations,
+              totalInvitations: totalInvitations,
+              remainingFreezeDays: additionalFreezeDays,
+              previousFreezeDays: currentFreezeDays,
+              totalFreezeDays: totalFreezeDays,
+              previousExpiryDate: member.expiryDate,
+              newStartDate: startDate,
+              newExpiryDate: expiryDate,
+              subscriptionDays: subscriptionDays,
+              isRenewal: true,
+              staffName: safeStaffName,
+              salesPersonName: member.salesStaff?.name || null,
+            }),
+            memberId: member.id,
+          },
+        })
+
+        const pr = await processPaymentWithPoints(
           member.id,
-          paidAmount,
-          `مكافأة تجديد اشتراك - ${member.name}`
+          member.phone,
+          member.memberNumber,
+          finalPaymentMethod,
+          `دفع تجديد عضوية - ${member.name}`,
+          tx  // ✅ نمرّر tx بدل الـ global prisma
         )
-
-        if (pointsResult.pointsEarned && pointsResult.pointsEarned > 0) {
+        if (!pr.success) {
+          const e: any = new Error(pr.message || 'فشل خصم النقاط')
+          e.code = 'POINTS_FAILED'
+          e.userMessage = pr.message
+          throw e
         }
-      } catch (pointsError) {
-        console.error('Error adding reward points:', pointsError)
-        // لا نوقف العملية إذا فشلت إضافة النقاط
-      }
 
-      createAuditLog({
-        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
-        action: 'UPDATE', resource: 'Member', resourceId: member.id,
-        details: { operation: 'Renew', memberNumber: member.memberNumber, memberName: member.name, subscriptionPrice, paidAmount, remainingAmount, receiptNumber: receipt.receiptNumber },
-        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+        return { receipt: r }
       })
-
-      return NextResponse.json({
-        member: updatedMember,
-        receipt: {
-          receiptNumber: receipt.receiptNumber,
-          amount: receipt.amount,
-          paymentMethod: receipt.paymentMethod,
-          staffName: receipt.staffName,
-          itemDetails: JSON.parse(receipt.itemDetails),
-          createdAt: receipt.createdAt
-        }
-      }, { status: 200 })
-
-    } catch (receiptError: any) {
-      console.error('❌ خطأ في إنشاء إيصال التجديد:', receiptError)
-      logError({ error: receiptError, endpoint: '/api/members/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed', memberId } })
+      receipt = txResult.receipt
+    } catch (txErr: any) {
+      if (txErr?.code === 'POINTS_FAILED') {
+        return NextResponse.json(
+          { error: txErr.userMessage || 'فشل خصم النقاط' },
+          { status: 400 }
+        )
+      }
+      // ✅ BUG 6: لو الـ receipt creation فشل فعلاً (مش بعد ما اتسجّل)
+      // الـ transaction بيـ rollback، فمفيش orphan في الـ DB.
+      console.error('❌ خطأ في إنشاء إيصال التجديد:', txErr)
+      logError({ error: txErr, endpoint: '/api/members/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed', memberId } })
       return NextResponse.json({
         member: updatedMember,
         receipt: null,
         warning: 'تم التجديد لكن فشل إنشاء الإيصال'
       }, { status: 200 })
     }
+
+    // إضافة نقاط مكافأة على الدفع — خارج الـ transaction لأن فشلها ما يهمناش
+    try {
+      await addPointsForPayment(
+        member.id,
+        paidAmount,
+        `مكافأة تجديد اشتراك - ${member.name}`
+      )
+    } catch (pointsError) {
+      console.error('Error adding reward points:', pointsError)
+    }
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Member', resourceId: member.id,
+      details: { operation: 'Renew', memberNumber: member.memberNumber, memberName: member.name, subscriptionPrice, paidAmount, remainingAmount, receiptNumber: receipt.receiptNumber },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json({
+      member: updatedMember,
+      receipt: {
+        // ✅ BUG 4: لازم نرجّع الـ id عشان الفرونت يقدر يجيب الإيصال من /api/receipts/:id
+        id: receipt.id,
+        receiptNumber: receipt.receiptNumber,
+        amount: receipt.amount,
+        paymentMethod: receipt.paymentMethod,
+        staffName: receipt.staffName,
+        itemDetails: JSON.parse(receipt.itemDetails),
+        createdAt: receipt.createdAt
+      }
+    }, { status: 200 })
 
   } catch (error: any) {
     console.error('❌ خطأ في تجديد الاشتراك:', error)
