@@ -52,6 +52,7 @@ model Member {
   allowedCheckInEnd   String?    // HH:MM format
   coachId           String?
   salesStaffId      String?
+  offerId           String?      // 📦 الباقة اللي اشترك فيها العضو (للرجوع لمميزاتها)
   createdAt         DateTime     @default(now())
   invitationRecords    Invitation[]
   receipts             Receipt[]
@@ -73,6 +74,7 @@ model Member {
 
   @@index([coachId])
   @@index([salesStaffId])
+  @@index([offerId])
   @@index([isActive])
   @@index([phone])
   @@index([expiryDate])
