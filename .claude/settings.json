@@ -83,7 +83,18 @@
       "Bash(npm rebuild *)",
       "Read(//Users/amranter450444/Desktop/Gyms/More/Fitboost-System/app/coach/**)",
       "Bash(git pull *)",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "Bash(uipro --version)",
+      "Bash(npx --yes uipro --version)",
+      "WebFetch(domain:ui-ux-pro-max-skill.nextlevelbuilder.io)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Bash(npm --version)",
+      "Bash(uipro init *)",
+      "Bash(uipro --help)",
+      "Bash(npm view *)",
+      "Bash(cd ~ && uipro init --ai claude 2>&1 | tail -40)",
+      "Read(//Users/amranter200444/**)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",
