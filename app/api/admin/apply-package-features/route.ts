@@ -1,7 +1,9 @@
 // app/api/admin/apply-package-features/route.ts
-// 📦 تطبيق مميزات الباقة (حصص + فريز + دعوات + InBody) على الأعضاء بناءً على offerId المخزّن
+// 📦 تطبيق مميزات الباقة (حصص + فريز + دعوات + InBody) على الأعضاء
+// المطابقة بتعتمد على مدة الاشتراك (expiryDate - startDate) ± 3 أيام، مش على offerId المخزّن
 // متاح للـ OWNER فقط — يُستخدم بعد استيراد أعضاء يدوياً من شيت Excel.
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
@@ -10,6 +12,9 @@ import { logError } from '../../../../lib/errorLogger'
 export const dynamic = 'force-dynamic'
 
 type Mode = 'fresh' | 'force'
+const DURATION_TOLERANCE = 3
+const CHUNK_SIZE = 500
+const MS_PER_DAY = 1000 * 60 * 60 * 24
 
 export async function POST(request: Request) {
   try {
@@ -25,10 +30,11 @@ export async function POST(request: Request) {
     const mode: Mode = body.mode === 'force' ? 'force' : 'fresh'
     const memberId: string | undefined = body.memberId
 
-    // جلب الأعضاء اللي عندهم offerId
+    // جلب الأعضاء اللي عندهم تواريخ اشتراك صالحة (هي اللي بنحسب منها المدة)
     const members = await prisma.member.findMany({
       where: {
-        offerId: { not: null },
+        startDate: { not: null },
+        expiryDate: { not: null },
         ...(memberId ? { id: memberId } : {}),
       },
       select: {
@@ -36,6 +42,8 @@ export async function POST(request: Request) {
         memberNumber: true,
         name: true,
         offerId: true,
+        startDate: true,
+        expiryDate: true,
         freePTSessions: true,
         freeNutritionSessions: true,
         freePhysioSessions: true,
@@ -56,42 +64,66 @@ export async function POST(request: Request) {
         processed: 0,
         updated: 0,
         skipped: 0,
-        missingOffer: 0,
+        noDurationMatch: 0,
         results: [],
-        message: 'مفيش أعضاء عليهم باقة محفوظة',
+        message: 'مفيش أعضاء عندهم تواريخ اشتراك',
       })
     }
 
-    // جلب الباقات اللي محتاجينها مرة واحدة
-    const offerIds = Array.from(new Set(members.map(m => m.offerId).filter((v): v is string => !!v)))
-    const offers = await prisma.offer.findMany({
-      where: { id: { in: offerIds } },
-    })
-    const offerMap = new Map(offers.map(o => [o.id, o]))
+    // جلب كل الباقات النشطة عشان نطابقها بالمدة
+    const offers = await prisma.offer.findMany({ where: { isActive: true } })
+
+    const matchOfferByDuration = (memberDays: number) => {
+      let best: typeof offers[number] | null = null
+      let bestDiff = Infinity
+      for (const o of offers) {
+        const diff = Math.abs(o.duration - memberDays)
+        if (diff <= DURATION_TOLERANCE && diff < bestDiff) {
+          best = o
+          bestDiff = diff
+        }
+      }
+      return best
+    }
+
+    // fresh: استبدل بس لو القيمة الحالية = 0 (يعني الباقة لسه ما اتطبقتش)
+    // force: استبدل بأي حال (الأونر مسؤول)
+    const pickValue = (current: number, fromOffer: number) => {
+      if (mode === 'force') return fromOffer
+      return current === 0 ? fromOffer : current
+    }
 
     let updated = 0
     let skipped = 0
-    let missingOffer = 0
-    const results: Array<{ memberId: string; memberNumber: string | null; name: string; status: 'updated' | 'skipped' | 'missing-offer'; reason?: string }> = []
+    let noDurationMatch = 0
+    const results: Array<{
+      memberId: string
+      memberNumber: string | null
+      name: string
+      status: 'updated' | 'skipped' | 'no-duration-match'
+      reason?: string
+    }> = []
+    const updateOps: Prisma.PrismaPromise<any>[] = []
 
     for (const m of members) {
-      if (!m.offerId) continue
-      const offer = offerMap.get(m.offerId)
+      if (!m.startDate || !m.expiryDate) continue
+      const memberDays = Math.ceil(
+        (new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / MS_PER_DAY
+      )
+      const offer = matchOfferByDuration(memberDays)
       if (!offer) {
-        missingOffer++
-        results.push({ memberId: m.id, memberNumber: m.memberNumber, name: m.name, status: 'missing-offer', reason: 'الباقة المحفوظة على العضو محذوفة من النظام' })
+        noDurationMatch++
+        results.push({
+          memberId: m.id,
+          memberNumber: m.memberNumber,
+          name: m.name,
+          status: 'no-duration-match',
+          reason: `مفيش باقة بنفس المدة (${memberDays} يوم ± ${DURATION_TOLERANCE})`,
+        })
         continue
       }
 
-      // 🔢 تحضير الحقول حسب الـ mode
-      // fresh: استبدل بس لو القيمة الحالية = 0 (يعني الباقة لسه ما اتطبقتش)
-      // force: استبدل بأي حال (الأونر مسؤول)
-      const pickValue = (current: number, fromOffer: number) => {
-        if (mode === 'force') return fromOffer
-        return current === 0 ? fromOffer : current
-      }
-
-      const newData = {
+      const newData: Prisma.MemberUpdateInput = {
         freePTSessions: pickValue(m.freePTSessions, offer.freePTSessions),
         freeNutritionSessions: pickValue(m.freeNutritionSessions, offer.freeNutritionSessions),
         freePhysioSessions: pickValue(m.freePhysioSessions, offer.freePhysioSessions),
@@ -105,7 +137,7 @@ export async function POST(request: Request) {
         remainingFreezeDays: pickValue(m.remainingFreezeDays, offer.freezeDays),
       }
 
-      const hasChange =
+      const featuresChanged =
         newData.freePTSessions !== m.freePTSessions ||
         newData.freeNutritionSessions !== m.freeNutritionSessions ||
         newData.freePhysioSessions !== m.freePhysioSessions ||
@@ -118,18 +150,31 @@ export async function POST(request: Request) {
         newData.invitations !== m.invitations ||
         newData.remainingFreezeDays !== m.remainingFreezeDays
 
-      if (!hasChange) {
+      const offerIdChanged = m.offerId !== offer.id
+      if (offerIdChanged) {
+        newData.offerId = offer.id
+      }
+
+      if (!featuresChanged && !offerIdChanged) {
         skipped++
-        results.push({ memberId: m.id, memberNumber: m.memberNumber, name: m.name, status: 'skipped', reason: mode === 'fresh' ? 'فيه قيم متطبقة بالفعل' : 'القيم متطابقة' })
+        results.push({
+          memberId: m.id,
+          memberNumber: m.memberNumber,
+          name: m.name,
+          status: 'skipped',
+          reason: mode === 'fresh' ? 'فيه قيم متطبقة بالفعل' : 'القيم متطابقة',
+        })
         continue
       }
 
-      await prisma.member.update({
-        where: { id: m.id },
-        data: newData,
-      })
+      updateOps.push(prisma.member.update({ where: { id: m.id }, data: newData }))
       updated++
       results.push({ memberId: m.id, memberNumber: m.memberNumber, name: m.name, status: 'updated' })
+    }
+
+    // تنفيذ الـ updates في transactions على شكل chunks (أسرع بكتير من writes منفصلة على SQLite)
+    for (let i = 0; i < updateOps.length; i += CHUNK_SIZE) {
+      await prisma.$transaction(updateOps.slice(i, i + CHUNK_SIZE))
     }
 
     createAuditLog({
@@ -142,7 +187,7 @@ export async function POST(request: Request) {
         processed: members.length,
         updated,
         skipped,
-        missingOffer,
+        noDurationMatch,
       },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
@@ -152,7 +197,7 @@ export async function POST(request: Request) {
       processed: members.length,
       updated,
       skipped,
-      missingOffer,
+      noDurationMatch,
       results,
     })
   } catch (error: any) {

@@ -7,14 +7,14 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
 import { useAdminDate } from '../../contexts/AdminDateContext'
 import { formatDateYMD, calculateRemainingDays } from '../../lib/dateFormatter'
 import { getPackageName } from '../../lib/memberUtils'
 import { useLanguage } from '../../contexts/LanguageContext'
-import { fetchMembers, fetchOffers } from '../../lib/api/members'
+import { fetchMembersPage, fetchOffers } from '../../lib/api/members'
 import { useToast } from '../../contexts/ToastContext'
 import { MembersSkeleton } from '../../components/LoadingSkeleton'
 import { useDebounce } from '../../hooks/useDebounce'
@@ -34,6 +34,11 @@ const MembersAnalytics = nextDynamic(() => import('../../components/MembersAnaly
 const VirtualMemberList = nextDynamic(() => import('../../components/VirtualMemberList'), {
   ssr: false,
   loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+})
+
+const LazyAvatar = nextDynamic(() => import('../../components/LazyAvatar'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full" />,
 })
 
 interface Member {
@@ -107,20 +112,45 @@ export default function MembersPage() {
   const toast = useToast()
   const { settings } = useServiceSettings()
 
-  // ✅ استخدام useQuery لجلب الأعضاء
+  // ✅ Pagination + Streaming — بنحمّل الأعضاء على دفعات بدل ما نستنى كلهم مع بعض
+  //   - أول دفعة (200 عضو) بتظهر فوراً → الـ skeleton يختفي بعد ثانية تقريباً
+  //   - الباقي بيتحمّل في الـ background (chunks of 200) ويتضاف للقايمة تلقائياً
+  //   - الـ memory cost أقل، والـ time-to-first-paint أحسن بكتير على الشبكات البطيئة (port forwarding)
+  const MEMBERS_PAGE_SIZE = 200
   const {
-    data: membersData = [],
+    data: pagesData,
     isLoading: loading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
     error: membersError,
     refetch: refetchMembers
-  } = useQuery({
-    queryKey: ['members'],
-    queryFn: fetchMembers,
+  } = useInfiniteQuery({
+    queryKey: ['members', 'paged', MEMBERS_PAGE_SIZE],
+    queryFn: ({ pageParam }) => fetchMembersPage(pageParam as number, MEMBERS_PAGE_SIZE),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
     enabled: !permissionsLoading && hasPermission('canViewMembers'),
     retry: 1,
-    staleTime: 2 * 60 * 1000, // البيانات تعتبر fresh لمدة دقيقتين
-    refetchOnMount: 'always',  // إعادة جلب البيانات عند فتح الصفحة (لضمان الترتيب الجديد)
+    staleTime: 2 * 60 * 1000,
+    refetchOnMount: 'always',
   })
+
+  // ✅ Auto-stream: بمجرد ما أول صفحة توصل، نكمّل تحميل الباقي في الـ background
+  useEffect(() => {
+    if (!loading && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
+  }, [loading, hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  // ✅ Flatten الـ pages → array واحدة بنفس الـ shape القديم
+  const membersData = useMemo<any[]>(
+    () => pagesData?.pages?.flatMap((p: any) => p.members) ?? [],
+    [pagesData]
+  )
+
+  // العدد الكلي من السيرفر (متاح من أول صفحة) → بنستخدمه في progress indicator
+  const totalMembersCount = pagesData?.pages?.[0]?.total ?? membersData.length
 
   const [showForm, setShowForm] = useState(false)
 
@@ -839,13 +869,32 @@ export default function MembersPage() {
         </div>
       </div>
 
+      {(isFetchingNextPage || hasNextPage) && totalMembersCount > membersData.length && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 p-3 rounded-xl mb-4 flex items-center gap-3" dir={direction}>
+          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full shrink-0"></div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
+              {locale === 'ar'
+                ? `جارٍ تحميل باقي الأعضاء في الخلفية... ${membersData.length} / ${totalMembersCount}`
+                : `Loading remaining members in background... ${membersData.length} / ${totalMembersCount}`}
+            </div>
+            <div className="mt-1 h-1.5 w-full bg-blue-100 dark:bg-blue-900/40 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 dark:bg-blue-400 transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.round((membersData.length / Math.max(1, totalMembersCount)) * 100))}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {(search || filterStatus !== 'all' || filterPackage !== 'all' || filterSalesId !== 'all' || filterCoachId !== 'all') && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 p-4 rounded-xl mb-6 flex flex-wrap items-center justify-between gap-2" dir={direction}>
           <div className="flex items-center gap-2">
             <span className="text-2xl">🔎</span>
             <div>
               <p className="font-bold text-yellow-800 dark:text-yellow-300">{t('members.filtersActive')}</p>
-              <p className="text-sm text-yellow-700 dark:text-yellow-400">{t('members.showing', { count: filteredMembers.length.toString(), total: membersData.length.toString() })}</p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-400">{t('members.showing', { count: filteredMembers.length.toString(), total: totalMembersCount.toString() })}</p>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -1176,15 +1225,17 @@ export default function MembersPage() {
                     {/* Header: صورة + اسم + رقم */}
                     <div className="p-4 flex items-center gap-3">
                       <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
-                        {member.profileImage ? (
-                          <img src={member.profileImage} alt={member.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                          </div>
-                        )}
+                        <LazyAvatar
+                          src={member.profileImage}
+                          alt={member.name}
+                          fallback={
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                          }
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">

@@ -324,8 +324,8 @@ export default function SettingsPage() {
     processed: number
     updated: number
     skipped: number
-    missingOffer: number
-    results: Array<{ memberId: string; memberNumber: string | null; name: string; status: 'updated' | 'skipped' | 'missing-offer'; reason?: string }>
+    noDurationMatch: number
+    results: Array<{ memberId: string; memberNumber: string | null; name: string; status: 'updated' | 'skipped' | 'no-duration-match'; reason?: string }>
   } | null>(null)
   const [applyFeaturesError, setApplyFeaturesError] = useState<string | null>(null)
 
@@ -758,7 +758,7 @@ export default function SettingsPage() {
           processed: data.processed,
           updated: data.updated,
           skipped: data.skipped,
-          missingOffer: data.missingOffer,
+          noDurationMatch: data.noDurationMatch,
           results: data.results || [],
         })
       }
@@ -2618,8 +2618,8 @@ export default function SettingsPage() {
                         <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{applyFeaturesResult.skipped}</p>
                       </div>
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-red-200 dark:border-red-700">
-                        <p className="text-red-600 dark:text-red-400 text-xs">باقة ناقصة</p>
-                        <p className="text-2xl font-bold text-red-700 dark:text-red-300">{applyFeaturesResult.missingOffer}</p>
+                        <p className="text-red-600 dark:text-red-400 text-xs">مفيش باقة بنفس المدة</p>
+                        <p className="text-2xl font-bold text-red-700 dark:text-red-300">{applyFeaturesResult.noDurationMatch}</p>
                       </div>
                     </div>
 
@@ -2646,7 +2646,7 @@ export default function SettingsPage() {
                                   <td className="px-3 py-1.5">
                                     {r.status === 'updated' && <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">اتحدّث</span>}
                                     {r.status === 'skipped' && <span className="px-2 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300">اتخطّى</span>}
-                                    {r.status === 'missing-offer' && <span className="px-2 py-0.5 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">باقة ناقصة</span>}
+                                    {r.status === 'no-duration-match' && <span className="px-2 py-0.5 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">مفيش باقة بنفس المدة</span>}
                                   </td>
                                   <td className="px-3 py-1.5 text-gray-500 dark:text-gray-400">{r.reason || '—'}</td>
                                 </tr>
@@ -2661,8 +2661,8 @@ export default function SettingsPage() {
 
                 <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    💡 <strong>قبل ما تستخدمه:</strong> لو الأعضاء اتعملوا قبل التحديث ده، الـ <code>offerId</code> هيكون فاضي عندهم وهيتخطّوا.
-                    افتح كل عضو من صفحة الأعضاء واختار له الباقة من فورم التجديد عشان تخزن الباقة عليه، وبعدين دوس على الزرار هنا.
+                    💡 <strong>إزاي بيشتغل:</strong> السكريبت بيطابق كل عضو بالباقة المناسبة بناءً على <strong>مدة الاشتراك</strong> (الفرق بين تاريخ البداية والنهاية) مع تسامح ±3 أيام —
+                    يعني عضو مشترك 28 أو 29 أو 30 أو 31 يوم بياخد مميزات الباقة الشهرية تلقائياً، حتى لو الـ <code>offerId</code> فاضي عنده.
                   </p>
                 </div>
               </div>

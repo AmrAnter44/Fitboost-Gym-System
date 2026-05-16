@@ -51,6 +51,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const memberNumber = searchParams.get('memberNumber')
     const phone = searchParams.get('phone')
+    const pageParam = searchParams.get('page')
+    const pageSizeParam = searchParams.get('pageSize')
 
     // ✅ البحث برقم العضوية (الأولوية الأولى)
     if (memberNumber) {
@@ -76,40 +78,52 @@ export async function GET(request: Request) {
       return NextResponse.json(members, { status: 200 })
     }
 
-    // ✅ إلغاء تجميد الأعضاء الذين انتهت مدة تجميدهم تلقائياً
-    const now = new Date()
-    // لو اشتراكهم لسه ساري → isActive: true
-    await prisma.member.updateMany({
-      where: {
-        isFrozen: true,
-        expiryDate: { gt: now },
-        freezeRequests: {
-          some: { status: 'approved', endDate: { lte: now } }
-        }
-      },
-      data: { isFrozen: false, isActive: true }
-    })
-    // لو اشتراكهم انتهى برضو → isActive: false
-    await prisma.member.updateMany({
-      where: {
-        isFrozen: true,
-        expiryDate: { lte: now },
-        freezeRequests: {
-          some: { status: 'approved', endDate: { lte: now } }
-        }
-      },
-      data: { isFrozen: false, isActive: false }
-    })
+    // 🚀 Pagination mode — لو الـ client بعت ?page=N
+    // ده اللي بيستعمله صفحة /members عشان تحمّل الأعضاء على chunks
+    // وتظهر أول دفعة فوراً بدل ما تستنى كل الأعضاء
+    const isPaginated = pageParam !== null
+    const page = isPaginated ? Math.max(1, parseInt(pageParam || '1', 10) || 1) : 1
+    const pageSize = isPaginated
+      ? Math.min(1000, Math.max(1, parseInt(pageSizeParam || '200', 10) || 200))
+      : 0
 
-    // ✅ مزامنة تلقائية: أي عضو غير مجمّد انتهى اشتراكه → isActive: false
-    await prisma.member.updateMany({
-      where: {
-        isFrozen: false,
-        isActive: true,
-        expiryDate: { not: null, lt: now }
-      },
-      data: { isActive: false }
-    })
+    // ✅ الـ housekeeping queries (unfreeze + sync isActive) تكاليفهم عالية،
+    //   فبنشغلهم بس على أول صفحة (أو لما الطلب مش paginated — backward compat)
+    if (!isPaginated || page === 1) {
+      const now = new Date()
+      // لو اشتراكهم لسه ساري → isActive: true
+      await prisma.member.updateMany({
+        where: {
+          isFrozen: true,
+          expiryDate: { gt: now },
+          freezeRequests: {
+            some: { status: 'approved', endDate: { lte: now } }
+          }
+        },
+        data: { isFrozen: false, isActive: true }
+      })
+      // لو اشتراكهم انتهى برضو → isActive: false
+      await prisma.member.updateMany({
+        where: {
+          isFrozen: true,
+          expiryDate: { lte: now },
+          freezeRequests: {
+            some: { status: 'approved', endDate: { lte: now } }
+          }
+        },
+        data: { isFrozen: false, isActive: false }
+      })
+
+      // ✅ مزامنة تلقائية: أي عضو غير مجمّد انتهى اشتراكه → isActive: false
+      await prisma.member.updateMany({
+        where: {
+          isFrozen: false,
+          isActive: true,
+          expiryDate: { not: null, lt: now }
+        },
+        data: { isActive: false }
+      })
+    }
 
     // جلب كل الأعضاء (مع فلتر السيلز لو موجود) + اسم السيلز/الكوتش للتاج في الكروت
     // ✅ ترتيب مزدوج: createdAt desc (الأساسي) ثم id desc (cuid فيه timestamp فيـ break الـ ties)
@@ -117,7 +131,7 @@ export async function GET(request: Request) {
     //   - receipts: مش بتُستخدم من القايمة (الصفحة بتجيب /api/receipts منفصل)
     //   - idCardFront/idCardBack: مش بتظهر في القايمة، بس في صفحة العضو الفردية
     //   ملاحظة: notes بنرجّعها لأن SearchModal/search بتعرضها في كروت النتيجة
-    const members = await prisma.member.findMany({
+    const findManyArgs: any = {
       where: salesOnlyFilter,
       orderBy: [
         { createdAt: 'desc' },
@@ -133,12 +147,25 @@ export async function GET(request: Request) {
         salesStaff: { select: { id: true, name: true } },
         coach: { select: { id: true, name: true } }
       }
-    })
+    }
 
+    if (isPaginated) {
+      findManyArgs.skip = (page - 1) * pageSize
+      findManyArgs.take = pageSize
+    }
+
+    // في الـ paginated mode بنجيب الـ total بالتوازي مع الـ findMany
+    const [members, total] = await Promise.all([
+      prisma.member.findMany(findManyArgs),
+      isPaginated ? prisma.member.count({ where: salesOnlyFilter }) : Promise.resolve(0)
+    ])
 
     if (!Array.isArray(members)) {
       console.error('❌ Prisma لم يرجع array:', typeof members)
-      return NextResponse.json([], { status: 200 })
+      return NextResponse.json(
+        isPaginated ? { members: [], total: 0, page, pageSize, hasMore: false } : [],
+        { status: 200 }
+      )
     }
 
     // 🚀 تصفية الحقول الثقيلة الغير مستخدمة في القائمة
@@ -146,6 +173,14 @@ export async function GET(request: Request) {
       const { idCardFront, idCardBack, ...rest } = m
       return rest
     })
+
+    if (isPaginated) {
+      const hasMore = page * pageSize < total
+      return NextResponse.json(
+        { members: lightMembers, total, page, pageSize, hasMore },
+        { status: 200 }
+      )
+    }
 
     return NextResponse.json(lightMembers, { status: 200 })
   } catch (error: any) {
