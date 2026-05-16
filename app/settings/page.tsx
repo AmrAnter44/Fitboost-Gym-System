@@ -328,6 +328,7 @@ export default function SettingsPage() {
     results: Array<{ memberId: string; memberNumber: string | null; name: string; status: 'updated' | 'skipped' | 'no-duration-match'; reason?: string }>
   } | null>(null)
   const [applyFeaturesError, setApplyFeaturesError] = useState<string | null>(null)
+  const [applyFeaturesConfirm, setApplyFeaturesConfirm] = useState<'fresh' | 'force' | null>(null)
 
   // Port Forwarding states
   const [localIP, setLocalIP] = useState<string>('')
@@ -735,12 +736,7 @@ export default function SettingsPage() {
 
   // 📦 تطبيق مميزات الباقة على الأعضاء (الحصص + الفريز + الدعوات)
   const handleApplyPackageFeatures = async (mode: 'fresh' | 'force') => {
-    const confirmMsg = mode === 'force'
-      ? '⚠️ هل تريد تطبيق مميزات الباقات على كل الأعضاء (استبدال القيم الحالية)؟\n\nالقيم الحالية للحصص/الفريز/الدعوات هتتمسح وتترجع لقيم الباقة.\nده مناسب لو لسه عاملين استيراد جديد.'
-      : 'تطبيق مميزات الباقات على الأعضاء الجدد (اللي قيمهم لسه 0)؟\n\nمش هيلمس أي عضو مستخدم حصصه بالفعل.'
-
-    if (!confirm(confirmMsg)) return
-
+    setApplyFeaturesConfirm(null)
     setApplyingFeatures(true)
     setApplyFeaturesError(null)
     setApplyFeaturesResult(null)
@@ -2563,7 +2559,7 @@ export default function SettingsPage() {
                       مش هيلمس أي عضو مستخدم حصصه بالفعل.
                     </p>
                     <button
-                      onClick={() => handleApplyPackageFeatures('fresh')}
+                      onClick={() => setApplyFeaturesConfirm('fresh')}
                       disabled={applyingFeatures}
                       className={`w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${applyingFeatures ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
@@ -2582,7 +2578,7 @@ export default function SettingsPage() {
                       <strong className="text-red-700 dark:text-red-300"> خطر:</strong> هيمسح الاستخدام الحالي.
                     </p>
                     <button
-                      onClick={() => handleApplyPackageFeatures('force')}
+                      onClick={() => setApplyFeaturesConfirm('force')}
                       disabled={applyingFeatures}
                       className={`w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${applyingFeatures ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
@@ -2666,6 +2662,79 @@ export default function SettingsPage() {
                   </p>
                 </div>
               </div>
+
+              {applyFeaturesConfirm && (
+                <div
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]"
+                  onClick={() => !applyingFeatures && setApplyFeaturesConfirm(null)}
+                >
+                  <div
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-md w-full overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div
+                      className={`p-5 text-white flex items-center gap-3 ${
+                        applyFeaturesConfirm === 'force'
+                          ? 'bg-gradient-to-r from-red-500 to-rose-600'
+                          : 'bg-gradient-to-r from-emerald-500 to-green-600'
+                      }`}
+                    >
+                      <span className="text-3xl">{applyFeaturesConfirm === 'force' ? '⚠️' : '✨'}</span>
+                      <h3 className="text-xl font-bold">
+                        {applyFeaturesConfirm === 'force'
+                          ? 'تأكيد استبدال القيم'
+                          : 'تأكيد تطبيق المميزات'}
+                      </h3>
+                    </div>
+
+                    <div className="p-5 space-y-3">
+                      {applyFeaturesConfirm === 'force' ? (
+                        <>
+                          <p className="text-gray-800 dark:text-gray-100 font-medium">
+                            هل تريد تطبيق مميزات الباقات على <strong>كل الأعضاء</strong> (استبدال القيم الحالية)؟
+                          </p>
+                          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-800 dark:text-red-200">
+                            القيم الحالية للحصص/الفريز/الدعوات هتتمسح وتترجع لقيم الباقة.
+                            <br />
+                            ده مناسب لو لسه عاملين استيراد جديد.
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-gray-800 dark:text-gray-100 font-medium">
+                            تطبيق مميزات الباقات على <strong>الأعضاء الجدد</strong> (اللي قيمهم لسه 0)؟
+                          </p>
+                          <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg text-sm text-emerald-800 dark:text-emerald-200">
+                            مش هيلمس أي عضو مستخدم حصصه بالفعل.
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="px-5 py-4 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        onClick={() => setApplyFeaturesConfirm(null)}
+                        disabled={applyingFeatures}
+                        className="px-5 py-2.5 rounded-lg font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition disabled:opacity-50"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        onClick={() => handleApplyPackageFeatures(applyFeaturesConfirm)}
+                        disabled={applyingFeatures}
+                        className={`px-5 py-2.5 rounded-lg font-bold text-white shadow transition flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${
+                          applyFeaturesConfirm === 'force'
+                            ? 'bg-red-600 hover:bg-red-700'
+                            : 'bg-emerald-600 hover:bg-emerald-700'
+                        }`}
+                      >
+                        {applyingFeatures && <span className="animate-spin">⏳</span>}
+                        <span>{applyFeaturesConfirm === 'force' ? 'تأكيد الاستبدال' : 'تأكيد التطبيق'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
