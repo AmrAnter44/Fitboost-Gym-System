@@ -75,40 +75,36 @@ export async function POST(request: Request) {
       }
     }
 
-    // حساب حصص PT الجديدة (الحالية + الإضافية)
+    // 🔄 سياسة التجديد: بنصفّر البينفيتس القديمة ونحط بس اللي جاي مع الباقة الجديدة
+    //   (مش بنجمعهم) — لأن الفورم بيبعت اللي مع الباقة، ولو جمعنا هيتضاعف.
+    //   بنحتفظ بالقيم القديمة (previous*) عشان تظهر في الإيصال للشفافية.
     const currentFreePT = member.freePTSessions || 0
     const additionalFreePT = freePTSessions || 0
-    const totalFreePT = currentFreePT + additionalFreePT
+    const totalFreePT = additionalFreePT
 
-    // حساب InBody الجديد (الحالي + الإضافي)
     const currentInBody = member.inBodyScans || 0
     const additionalInBody = inBodyScans || 0
-    const totalInBody = currentInBody + additionalInBody
+    const totalInBody = additionalInBody
 
-    // حساب Invitations الجديد (الحالي + الإضافي)
     const currentInvitations = member.invitations || 0
     const additionalInvitations = invitations || 0
-    const totalInvitations = currentInvitations + additionalInvitations
+    const totalInvitations = additionalInvitations
 
-    // حساب Freeze Days الجديد (الحالي + الإضافي)
     const currentFreezeDays = member.remainingFreezeDays || 0
     const additionalFreezeDays = remainingFreezeDays || 0
-    const totalFreezeDays = currentFreezeDays + additionalFreezeDays
+    const totalFreezeDays = additionalFreezeDays
 
-    // حساب Nutrition Sessions الجديد (الحالي + الإضافي)
     const currentNutritionSessions = member.freeNutritionSessions || 0
     const additionalNutritionSessions = freeNutritionSessions || 0
-    const totalNutritionSessions = currentNutritionSessions + additionalNutritionSessions
+    const totalNutritionSessions = additionalNutritionSessions
 
-    // حساب Physio Sessions الجديد (الحالي + الإضافي)
     const currentPhysioSessions = member.freePhysioSessions || 0
     const additionalPhysioSessions = freePhysioSessions || 0
-    const totalPhysioSessions = currentPhysioSessions + additionalPhysioSessions
+    const totalPhysioSessions = additionalPhysioSessions
 
-    // حساب Group Class Sessions الجديد (الحالي + الإضافي)
     const currentGroupClassSessions = member.freeGroupClassSessions || 0
     const additionalGroupClassSessions = freeGroupClassSessions || 0
-    const totalGroupClassSessions = currentGroupClassSessions + additionalGroupClassSessions
+    const totalGroupClassSessions = additionalGroupClassSessions
 
 
     // ✅ حساب isActive: العضو نشط طالما اشتراكه ما انتهاش (حتى لو ما بدأش بعد)
