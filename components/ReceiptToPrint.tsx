@@ -145,6 +145,52 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
     }
     message += `\n`
 
+    // تفاصيل نقل العضوية
+    if (type === 'membershipTransfer' || type === 'نقل عضوية') {
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      message += `*تفاصيل نقل العضوية*\n`
+      message += `━━━━━━━━━━━━━━━━━━━━\n`
+      if (details.kind === 'membershipTransferIdentity') {
+        // تغيير ملكية على نفس الـ record
+        message += `- العضوية: #${details.memberNumber || '—'}\n`
+        if (details.previousOwner?.name) {
+          message += `- المالك السابق: ${details.previousOwner.name}\n`
+          if (details.previousOwner.phone) {
+            message += `  📞 ${details.previousOwner.phone}\n`
+          }
+        }
+        if (details.newOwner?.name) {
+          message += `- المالك الجديد: ${details.newOwner.name}\n`
+          if (details.newOwner.phone) {
+            message += `  📞 ${details.newOwner.phone}\n`
+          }
+        }
+        message += `- الأيام المتبقية: ${details.remainingDays || 0} يوم\n`
+        if (details.expiryDate) {
+          message += `- ينتهي في: ${new Date(details.expiryDate).toLocaleDateString('ar-EG')}\n`
+        }
+      } else {
+        // نقل لعضو موجود
+        if (details.fromMember?.name) {
+          message += `- من: ${details.fromMember.name} (#${details.fromMember.memberNumber || '—'})\n`
+        }
+        if (details.toMember?.name) {
+          message += `- إلى: ${details.toMember.name} (#${details.toMember.memberNumber || '—'})\n`
+          if (details.toMember.phone) {
+            message += `  📞 ${details.toMember.phone}\n`
+          }
+        }
+        message += `- الأيام المنقولة: ${details.transferredDays || 0} يوم\n`
+        if (details.toNewExpiryDate) {
+          message += `- تاريخ الانتهاء الجديد: ${new Date(details.toNewExpiryDate).toLocaleDateString('ar-EG')}\n`
+        }
+      }
+      if (details.transferFee != null) {
+        message += `- رسوم النقل: ${details.transferFee} ج.م\n`
+      }
+      message += `\n`
+    }
+
     // تفاصيل الاشتراك - لجميع أنواع العضوية
     const membershipTypes = ['Member', 'عضوية', 'تجديد عضويه', 'membershipRenewal', 'ترقية باكدج']
     if (membershipTypes.includes(type) && details.subscriptionDays) {

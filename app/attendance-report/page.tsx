@@ -340,7 +340,7 @@ export default function AttendanceReportPage() {
   if (permissionsLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl">{t('attendanceReport.loading')}</div>
+        <div className="text-xl dark:text-gray-100">{t('attendanceReport.loading')}</div>
       </div>
     )
   }
@@ -353,7 +353,7 @@ export default function AttendanceReportPage() {
     <div className="container mx-auto p-6" dir={direction}>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">📊 {t('attendanceReport.title')}</h1>
+          <h1 className="text-3xl font-bold mb-2 dark:text-gray-100">📊 {t('attendanceReport.title')}</h1>
           <p className="text-gray-600 dark:text-gray-300">{t('attendanceReport.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -376,21 +376,21 @@ export default function AttendanceReportPage() {
       </div>
 
       {/* اختيار الشهر والسنة */}
-      <div className="bg-gradient-to-br from-primary-50 to-primary-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-primary-200">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+      <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-gray-800 dark:to-gray-800 rounded-xl shadow-lg p-6 mb-6 border-2 border-primary-200 dark:border-primary-800">
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 dark:text-gray-100">
           <span>📅</span>
           <span>{direction === 'rtl' ? 'اختر الشهر' : 'Select Month'}</span>
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-bold mb-2">
+            <label className="block text-sm font-bold mb-2 dark:text-gray-200">
               {direction === 'rtl' ? 'الشهر' : 'Month'}
             </label>
             <select
               value={selectedMonth}
               onChange={(e) => handleMonthChange(Number(e.target.value))}
-              className="w-full px-4 py-3 border-2 border-primary-300 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white dark:bg-gray-800"
+              className="w-full px-4 py-3 border-2 border-primary-300 dark:border-gray-600 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white dark:bg-gray-700 dark:text-white"
             >
               {months.map((month, index) => (
                 <option key={index} value={index}>
@@ -401,13 +401,13 @@ export default function AttendanceReportPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2">
+            <label className="block text-sm font-bold mb-2 dark:text-gray-200">
               {direction === 'rtl' ? 'السنة' : 'Year'}
             </label>
             <select
               value={selectedYear}
               onChange={(e) => handleYearChange(Number(e.target.value))}
-              className="w-full px-4 py-3 border-2 border-primary-300 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white dark:bg-gray-800"
+              className="w-full px-4 py-3 border-2 border-primary-300 dark:border-gray-600 rounded-lg focus:border-primary-500 transition font-bold text-lg bg-white dark:bg-gray-700 dark:text-white"
             >
               {years.map((year) => (
                 <option key={year} value={year}>
@@ -419,8 +419,8 @@ export default function AttendanceReportPage() {
         </div>
 
         {/* عرض الفترة المختارة */}
-        <div className="mt-4 p-3 bg-primary-100 rounded-lg border-2 border-primary-300">
-          <p className="text-sm text-primary-800 text-center">
+        <div className="mt-4 p-3 bg-primary-100 dark:bg-primary-900/30 rounded-lg border-2 border-primary-300 dark:border-primary-700">
+          <p className="text-sm text-primary-800 dark:text-primary-200 text-center">
             <span className="font-bold">{direction === 'rtl' ? 'الفترة المختارة:' : 'Selected Period:'}</span>
             {' '}
             {dateFrom} {direction === 'rtl' ? 'إلى' : 'to'} {dateTo}
@@ -430,11 +430,11 @@ export default function AttendanceReportPage() {
 
       {/* فلاتر البحث */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200 dark:border-gray-600">
-        <h3 className="text-xl font-bold mb-4">🔍 {t('attendanceReport.searchFilters')}</h3>
+        <h3 className="text-xl font-bold mb-4 dark:text-gray-100">🔍 {t('attendanceReport.searchFilters')}</h3>
 
         <div className="max-w-md">
           <div>
-            <label className="block text-sm font-bold mb-2">{t('attendanceReport.staff')}</label>
+            <label className="block text-sm font-bold mb-2 dark:text-gray-200">{t('attendanceReport.staff')}</label>
             <select
               value={selectedStaff}
               onChange={(e) => setSelectedStaff(e.target.value)}
@@ -498,27 +498,27 @@ export default function AttendanceReportPage() {
       {/* إحصائيات الموظفين */}
       {Object.keys(staffStats).length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-          <h3 className="text-xl font-bold mb-4">📋 {t('attendanceReport.staffStatistics')}</h3>
+          <h3 className="text-xl font-bold mb-4 dark:text-gray-100">📋 {t('attendanceReport.staffStatistics')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(staffStats)
               .sort((a, b) => b[1].totalDays - a[1].totalDays)
               .map(([staffId, stats]) => (
                 <div
                   key={staffId}
-                  className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-700 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-600 dark:text-white"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-bold text-lg">{stats.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         #{stats.staffCode} {stats.position && `• ${stats.position}`}
                       </p>
                     </div>
                   </div>
                   <div className="mt-3">
-                    <div className="bg-primary-100 rounded-lg p-2 text-center">
-                      <p className="text-xs text-primary-600 mb-1">{t('attendanceReport.attendanceDays')}</p>
-                      <p className="text-2xl font-bold text-primary-600">{stats.totalDays}</p>
+                    <div className="bg-primary-100 dark:bg-primary-900/30 rounded-lg p-2 text-center">
+                      <p className="text-xs text-primary-600 dark:text-primary-300 mb-1">{t('attendanceReport.attendanceDays')}</p>
+                      <p className="text-2xl font-bold text-primary-600 dark:text-primary-300">{stats.totalDays}</p>
                     </div>
                   </div>
                 </div>
@@ -534,7 +534,7 @@ export default function AttendanceReportPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500">{t('attendanceReport.loading')}</div>
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">{t('attendanceReport.loading')}</div>
         ) : attendance.length > 0 ? (
           <div className="p-6 space-y-4">
             {attendance.map((att) => {
@@ -566,10 +566,10 @@ export default function AttendanceReportPage() {
                   key={att.id}
                   className={`border-2 rounded-xl p-6 transition hover:shadow-lg ${
                     isActuallyInside
-                      ? 'bg-green-50 border-green-300'
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
                       : att.checkOut === null
-                      ? 'bg-red-50 border-red-300'
-                      : 'bg-white border-gray-200 dark:border-gray-600'
+                      ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600'
                   }`}
                 >
                   {/* Header: التاريخ والاسم */}
@@ -584,7 +584,7 @@ export default function AttendanceReportPage() {
                           <p className="text-sm text-gray-600 dark:text-gray-300">{getPositionLabel(att.staff.position)}</p>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         📅 {checkInTime.toLocaleDateString('ar-EG', {
                           weekday: 'long',
                           year: 'numeric',
@@ -618,19 +618,19 @@ export default function AttendanceReportPage() {
                   {/* الأوقات والساعات */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* وقت الدخول */}
-                    <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    <div className="bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-2xl">🕐</span>
-                        <p className="text-xs font-bold text-primary-700">{t('attendanceReport.checkInTime')}</p>
+                        <p className="text-xs font-bold text-primary-700 dark:text-primary-300">{t('attendanceReport.checkInTime')}</p>
                       </div>
-                      <p className="text-2xl font-bold text-primary-800">
+                      <p className="text-2xl font-bold text-primary-800 dark:text-primary-200">
                         {checkInTime.toLocaleTimeString('en-US', {
                           hour: '2-digit',
                           minute: '2-digit',
                           hour12: true,
                         })}
                       </p>
-                      <p className="text-xs text-primary-600 mt-1">
+                      <p className="text-xs text-primary-600 dark:text-primary-400 mt-1">
                         {checkInTime.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'short' })}
                       </p>
                     </div>
@@ -639,31 +639,31 @@ export default function AttendanceReportPage() {
                     <div
                       className={`border-2 rounded-lg p-4 ${
                         checkOutTime
-                          ? 'bg-orange-50 border-orange-200'
-                          : 'bg-yellow-50 border-yellow-300'
+                          ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700'
+                          : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-2xl">🕐</span>
-                        <p className="text-xs font-bold text-orange-700">{t('attendanceReport.checkOutTime')}</p>
+                        <p className="text-xs font-bold text-orange-700 dark:text-orange-300">{t('attendanceReport.checkOutTime')}</p>
                       </div>
                       {checkOutTime ? (
                         <>
-                          <p className="text-2xl font-bold text-orange-800">
+                          <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">
                             {checkOutTime.toLocaleTimeString('en-US', {
                               hour: '2-digit',
                               minute: '2-digit',
                               hour12: true,
                             })}
                           </p>
-                          <p className="text-xs text-orange-600 mt-1">
+                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
                             {checkOutTime.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'short' })}
                           </p>
                         </>
                       ) : (
                         <>
-                          <p className="text-lg font-bold text-yellow-800">{t('attendanceReport.notCheckedOut')}</p>
-                          <p className="text-xs text-yellow-600 mt-1">{t('attendanceReport.working')}</p>
+                          <p className="text-lg font-bold text-yellow-800 dark:text-yellow-200">{t('attendanceReport.notCheckedOut')}</p>
+                          <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">{t('attendanceReport.working')}</p>
                         </>
                       )}
                     </div>
@@ -672,13 +672,13 @@ export default function AttendanceReportPage() {
                     <div
                       className={`border-2 rounded-lg p-4 ${
                         att.checkOut
-                          ? 'bg-primary-50 border-primary-200'
-                          : 'bg-green-50 border-green-300'
+                          ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-700'
+                          : 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-2xl">⏱️</span>
-                        <p className="text-xs font-bold text-primary-700">{t('attendanceReport.workHours')}</p>
+                        <p className="text-xs font-bold text-primary-700 dark:text-primary-300">{t('attendanceReport.workHours')}</p>
                       </div>
 
                       {hours === 0 && minutes === 0 ? (
@@ -688,15 +688,15 @@ export default function AttendanceReportPage() {
                       ) : (
                         <div className="flex gap-2 justify-center">
                           {hours > 0 && (
-                            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 rounded-lg px-3 py-2 flex-1 text-center">
-                              <div className="text-2xl font-bold text-primary-800">{hours}</div>
-                              <div className="text-xs text-primary-600">ساعة</div>
+                            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-lg px-3 py-2 flex-1 text-center">
+                              <div className="text-2xl font-bold text-primary-800 dark:text-primary-200">{hours}</div>
+                              <div className="text-xs text-primary-600 dark:text-primary-400">ساعة</div>
                             </div>
                           )}
                           {minutes > 0 && (
-                            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 rounded-lg px-3 py-2 flex-1 text-center">
-                              <div className="text-2xl font-bold text-primary-800">{minutes}</div>
-                              <div className="text-xs text-primary-600">دقيقة</div>
+                            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-lg px-3 py-2 flex-1 text-center">
+                              <div className="text-2xl font-bold text-primary-800 dark:text-primary-200">{minutes}</div>
+                              <div className="text-xs text-primary-600 dark:text-primary-400">دقيقة</div>
                             </div>
                           )}
                         </div>
@@ -704,7 +704,7 @@ export default function AttendanceReportPage() {
 
                       <p
                         className={`text-xs mt-2 font-semibold text-center ${
-                          att.checkOut ? 'text-primary-600' : 'text-green-600'
+                          att.checkOut ? 'text-primary-600 dark:text-primary-400' : 'text-green-600 dark:text-green-400'
                         }`}
                       >
                         {att.checkOut ? `✅ ${t('attendanceReport.finished')}` : `⏳ ${t('attendanceReport.workingNow')}`}
@@ -714,22 +714,22 @@ export default function AttendanceReportPage() {
                     {/* الحالة */}
                     <div className="flex items-center justify-center">
                       {isActuallyInside ? (
-                        <div className="bg-green-500 text-white rounded-xl p-4 text-center shadow-lg animate-pulse w-full">
+                        <div className="bg-green-500 dark:bg-green-600 text-white rounded-xl p-4 text-center shadow-lg animate-pulse w-full">
                           <div className="text-4xl mb-2">🟢</div>
                           <p className="font-bold text-lg">{t('attendanceReport.inside')}</p>
                           <p className="text-xs text-green-100">{t('attendanceReport.presentNow')}</p>
                         </div>
                       ) : att.checkOut === null ? (
-                        <div className="bg-red-500 text-white rounded-xl p-4 text-center w-full border-2 border-red-700">
+                        <div className="bg-red-500 dark:bg-red-600 text-white rounded-xl p-4 text-center w-full border-2 border-red-700 dark:border-red-800">
                           <div className="text-4xl mb-2">⚠️</div>
                           <p className="font-bold text-lg">{t('attendanceReport.missingCheckout')}</p>
                           <p className="text-xs text-red-100">{t('attendanceReport.oldRecord')}</p>
                         </div>
                       ) : (
-                        <div className="bg-gray-50 dark:bg-gray-7000 text-white rounded-xl p-4 text-center w-full">
+                        <div className="bg-gray-500 dark:bg-gray-700 text-white rounded-xl p-4 text-center w-full">
                           <div className="text-4xl mb-2">🔴</div>
                           <p className="font-bold text-lg">{t('attendanceReport.outside')}</p>
-                          <p className="text-xs text-gray-100">{t('attendanceReport.leftWork')}</p>
+                          <p className="text-xs text-gray-100 dark:text-gray-300">{t('attendanceReport.leftWork')}</p>
                         </div>
                       )}
                     </div>

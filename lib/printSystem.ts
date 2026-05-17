@@ -430,7 +430,28 @@ function generateReceiptHTML(data: ReceiptData): string {
         ${details.newSessionsRemaining !== undefined ? `<p>• الجلسات بعد التجديد: ${details.newSessionsRemaining}</p>` : ''}
       </div>
     ` : ''}
-    
+
+    ${details.kind === 'membershipTransferIdentity' ? `
+      <div class="renewal-info">
+        <p><strong>🔁 تغيير ملكية العضوية:</strong></p>
+        ${details.previousOwner?.name ? `<p>• المالك السابق: ${details.previousOwner.name}${details.previousOwner.phone ? ` — ${details.previousOwner.phone}` : ''}</p>` : ''}
+        ${details.newOwner?.name ? `<p>• المالك الجديد: ${details.newOwner.name}${details.newOwner.phone ? ` — ${details.newOwner.phone}` : ''}</p>` : ''}
+        ${details.remainingDays !== undefined ? `<p>• الأيام المتبقية: ${details.remainingDays} يوم</p>` : ''}
+        ${details.transferFee !== undefined ? `<p>• رسوم النقل: ${details.transferFee} ج.م</p>` : ''}
+      </div>
+    ` : ''}
+
+    ${details.kind === 'membershipTransfer' ? `
+      <div class="renewal-info">
+        <p><strong>🔁 نقل عضوية:</strong></p>
+        ${details.fromMember?.name ? `<p>• من: ${details.fromMember.name}${details.fromMember.memberNumber ? ` (#${details.fromMember.memberNumber})` : ''}</p>` : ''}
+        ${details.toMember?.name ? `<p>• إلى: ${details.toMember.name}${details.toMember.memberNumber ? ` (#${details.toMember.memberNumber})` : ''}${details.toMember.phone ? ` — ${details.toMember.phone}` : ''}</p>` : ''}
+        ${details.transferredDays !== undefined ? `<p>• الأيام المنقولة: ${details.transferredDays} يوم</p>` : ''}
+        ${details.toNewExpiryDate ? `<p>• تاريخ الانتهاء الجديد: ${formatDateYMD(details.toNewExpiryDate)}</p>` : ''}
+        ${details.transferFee !== undefined ? `<p>• رسوم النقل: ${details.transferFee} ج.م</p>` : ''}
+      </div>
+    ` : ''}
+
     <div class="payment-method-inline">
       <strong>طريقة الدفع:</strong> ${paymentMethodDisplay}
     </div>

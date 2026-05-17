@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import nextDynamic from 'next/dynamic'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import PermissionDenied from '../../components/PermissionDenied'
@@ -22,7 +22,7 @@ const ReceiptDetailModal = nextDynamic(
 )
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel as getPaymentLabel, serializePaymentMethods, deserializePaymentMethods, type PaymentMethod } from '../../lib/paymentHelpers'
 import { useToast } from '../../contexts/ToastContext'
-import { fetchReceipts } from '../../lib/api/receipts'
+import { fetchReceiptsPage } from '../../lib/api/receipts'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
 import { useDebounce } from '../../hooks/useDebounce'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
@@ -90,20 +90,41 @@ export default function ReceiptsPage() {
   const toast = useToast()
   const queryClient = useQueryClient()
 
-  // ✅ استخدام useQuery لجلب الإيصالات
+  // ✅ Pagination + Streaming — تحميل الإيصالات على دفعات
+  //   - أول 300 إيصال بيظهروا فوراً → الـ skeleton يختفي بسرعة
+  //   - الباقي بيتحمّل في الـ background ويتضاف للقايمة تلقائياً
+  const RECEIPTS_PAGE_SIZE = 300
   const {
-    data: receipts = [],
+    data: receiptsPages,
     isLoading: loading,
+    isFetchingNextPage: receiptsFetchingNext,
+    fetchNextPage: receiptsFetchNext,
+    hasNextPage: receiptsHasNext,
     error: receiptsError,
     refetch: refetchReceipts
-  } = useQuery({
-    queryKey: ['receipts'],
-    queryFn: fetchReceipts,
+  } = useInfiniteQuery({
+    queryKey: ['receipts', 'paged', RECEIPTS_PAGE_SIZE],
+    queryFn: ({ pageParam }) => fetchReceiptsPage(pageParam as number, RECEIPTS_PAGE_SIZE),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
     enabled: !permissionsLoading && hasPermission('canViewReceipts'),
     retry: 1,
-    staleTime: 30 * 1000, // البيانات تعتبر fresh لمدة 30 ثانية
+    staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
   })
+
+  // Auto-stream: لما أول صفحة تيجي، نكمّل تحميل الباقي في الـ background
+  useEffect(() => {
+    if (!loading && receiptsHasNext && !receiptsFetchingNext) {
+      receiptsFetchNext()
+    }
+  }, [loading, receiptsHasNext, receiptsFetchingNext, receiptsFetchNext])
+
+  const receipts = useMemo<any[]>(
+    () => receiptsPages?.pages?.flatMap((p: any) => p.receipts) ?? [],
+    [receiptsPages]
+  )
+  const totalReceiptsCount = receiptsPages?.pages?.[0]?.total ?? receipts.length
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
@@ -681,6 +702,26 @@ export default function ReceiptsPage() {
           )}
         </div>
       </div>
+
+      {/* Streaming progress — يظهر بس وقت تحميل دفعات الـ background */}
+      {(receiptsFetchingNext || receiptsHasNext) && totalReceiptsCount > receipts.length && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 p-3 rounded-xl mb-4 flex items-center gap-3" dir={direction}>
+          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full shrink-0"></div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
+              {direction === 'rtl'
+                ? `جارٍ تحميل باقي الإيصالات في الخلفية... ${receipts.length} / ${totalReceiptsCount}`
+                : `Loading remaining receipts in background... ${receipts.length} / ${totalReceiptsCount}`}
+            </div>
+            <div className="mt-1 h-1.5 w-full bg-blue-100 dark:bg-blue-900/40 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 dark:bg-blue-400 transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.round((receipts.length / Math.max(1, totalReceiptsCount)) * 100))}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

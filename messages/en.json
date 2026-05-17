@@ -2986,7 +2986,8 @@
       "newGroupClass": "New Group Class Subscription",
       "groupClassDayUse": "Group Class - Day Use",
       "groupClassRenewal": "Group Class Renewal",
-      "membershipRenewal": "Membership Renewal"
+      "membershipRenewal": "Membership Renewal",
+      "membershipTransfer": "Membership Transfer"
     },
     "excel": {
       "mainSheet": "Financial Closing",

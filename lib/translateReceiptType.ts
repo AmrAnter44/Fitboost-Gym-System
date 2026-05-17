@@ -18,6 +18,7 @@ export function getReceiptTypeTranslationKey(type: string): string {
     'groupClassDayUse': 'closing.receiptTypes.groupClassDayUse',
     'groupClassRenewal': 'closing.receiptTypes.groupClassRenewal',
     'membershipRenewal': 'closing.receiptTypes.membershipRenewal',
+    'membershipTransfer': 'closing.receiptTypes.membershipTransfer',
 
     // Legacy types
     'member': 'closing.receiptTypes.member',

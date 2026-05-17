@@ -64,31 +64,54 @@ export async function GET(request: Request) {
     const ptNumber = searchParams.get('ptNumber')
     const dayUseId = searchParams.get('dayUseId')
     const limit = searchParams.get('limit')
-
-    let receipts
+    const pageParam = searchParams.get('page')
+    const pageSizeParam = searchParams.get('pageSize')
 
     if (memberId) {
-      receipts = await prisma.receipt.findMany({
+      const receipts = await prisma.receipt.findMany({
         where: { memberId },
         orderBy: { receiptNumber: 'desc' }
       })
-    } else if (ptNumber) {
-      receipts = await prisma.receipt.findMany({
+      return NextResponse.json(receipts)
+    }
+    if (ptNumber) {
+      const receipts = await prisma.receipt.findMany({
         where: { ptNumber: parseInt(ptNumber) },
         orderBy: { receiptNumber: 'desc' }
       })
-    } else if (dayUseId) {
-      receipts = await prisma.receipt.findMany({
+      return NextResponse.json(receipts)
+    }
+    if (dayUseId) {
+      const receipts = await prisma.receipt.findMany({
         where: { dayUseId },
         orderBy: { receiptNumber: 'desc' }
       })
-    } else {
-      // جلب كل الإيصالات أو عدد محدد
-      receipts = await prisma.receipt.findMany({
-        orderBy: { receiptNumber: 'desc' },
-        take: limit ? parseInt(limit) : undefined
-      })
+      return NextResponse.json(receipts)
     }
+
+    // 🚀 Paginated mode — لو الـ client بعت ?page=N، نرجّع dataset مقسّم
+    // أول صفحة بتظهر فوراً في الـ UI، والباقي بيكمل في الـ background
+    const isPaginated = pageParam !== null
+    if (isPaginated) {
+      const page = Math.max(1, parseInt(pageParam || '1', 10) || 1)
+      const pageSize = Math.min(1000, Math.max(1, parseInt(pageSizeParam || '300', 10) || 300))
+      const [receipts, total] = await Promise.all([
+        prisma.receipt.findMany({
+          orderBy: { receiptNumber: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        prisma.receipt.count()
+      ])
+      const hasMore = page * pageSize < total
+      return NextResponse.json({ receipts, total, page, pageSize, hasMore })
+    }
+
+    // backward-compat: بدون pagination → array (للـ callers القديمة)
+    const receipts = await prisma.receipt.findMany({
+      orderBy: { receiptNumber: 'desc' },
+      take: limit ? parseInt(limit) : undefined
+    })
 
     return NextResponse.json(receipts)
   } catch (error: any) {

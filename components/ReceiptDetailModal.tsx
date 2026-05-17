@@ -106,6 +106,88 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
             )}
           </div>
 
+          {/* 🔁 تفاصيل نقل العضوية */}
+          {(details.kind === 'membershipTransferIdentity' || details.kind === 'membershipTransfer') && (
+            <div className="border-2 border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+              <h3 className="font-bold text-purple-800 dark:text-purple-200 mb-2 flex items-center gap-2 text-sm">
+                <span>🔁</span>
+                <span>{details.kind === 'membershipTransferIdentity' ? 'تغيير ملكية العضوية' : 'نقل عضوية'}</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                {details.kind === 'membershipTransferIdentity' ? (
+                  <>
+                    {details.previousOwner?.name && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">المالك السابق</p>
+                        <p className="font-bold dark:text-gray-100">{details.previousOwner.name}</p>
+                        {details.previousOwner.phone && (
+                          <p className="text-xs font-mono text-gray-500 dark:text-gray-400" dir="ltr">{details.previousOwner.phone}</p>
+                        )}
+                      </div>
+                    )}
+                    {details.newOwner?.name && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">المالك الجديد</p>
+                        <p className="font-bold text-purple-700 dark:text-purple-300">{details.newOwner.name}</p>
+                        {details.newOwner.phone && (
+                          <p className="text-xs font-mono text-gray-500 dark:text-gray-400" dir="ltr">{details.newOwner.phone}</p>
+                        )}
+                      </div>
+                    )}
+                    {details.remainingDays !== undefined && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">الأيام المتبقية</p>
+                        <p className="font-bold dark:text-gray-100">{details.remainingDays} يوم</p>
+                      </div>
+                    )}
+                    {details.expiryDate && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">ينتهي في</p>
+                        <p className="font-bold dark:text-gray-100">{new Date(details.expiryDate).toLocaleDateString('ar-EG')}</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {details.fromMember?.name && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">من</p>
+                        <p className="font-bold dark:text-gray-100">{details.fromMember.name} {details.fromMember.memberNumber && <span className="text-xs text-gray-500">#{details.fromMember.memberNumber}</span>}</p>
+                      </div>
+                    )}
+                    {details.toMember?.name && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">إلى</p>
+                        <p className="font-bold text-purple-700 dark:text-purple-300">{details.toMember.name} {details.toMember.memberNumber && <span className="text-xs text-gray-500">#{details.toMember.memberNumber}</span>}</p>
+                        {details.toMember.phone && (
+                          <p className="text-xs font-mono text-gray-500 dark:text-gray-400" dir="ltr">{details.toMember.phone}</p>
+                        )}
+                      </div>
+                    )}
+                    {details.transferredDays !== undefined && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">الأيام المنقولة</p>
+                        <p className="font-bold dark:text-gray-100">{details.transferredDays} يوم</p>
+                      </div>
+                    )}
+                    {details.toNewExpiryDate && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">تاريخ الانتهاء الجديد</p>
+                        <p className="font-bold dark:text-gray-100">{new Date(details.toNewExpiryDate).toLocaleDateString('ar-EG')}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+                {details.transferFee !== undefined && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">رسوم النقل</p>
+                    <p className="font-bold text-green-600 dark:text-green-400">{details.transferFee} ج.م</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Service Details & Payment Details in 2 columns */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Service Details */}

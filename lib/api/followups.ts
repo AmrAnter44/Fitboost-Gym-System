@@ -31,6 +31,39 @@ export async function fetchFollowUpsData() {
   return Array.isArray(data) ? data : []
 }
 
+export interface FollowUpsPage {
+  followUps: any[]
+  total: number
+  page: number
+  pageSize: number
+  hasMore: boolean
+}
+
+// 🚀 Paginated chunk fetch — تحميل المتابعات على دفعات
+export async function fetchFollowUpsPage(page: number, pageSize: number = 300): Promise<FollowUpsPage> {
+  const response = await fetch(`/api/visitors/followups?page=${page}&pageSize=${pageSize}`)
+  await checkAuth(response)
+
+  if (!response.ok) {
+    throw new Error(await safeErrorMsg(response, 'فشل جلب بيانات المتابعات'))
+  }
+
+  const data = await response.json()
+
+  // backward-compat: لو السيرفر رجّع array
+  if (Array.isArray(data)) {
+    return { followUps: data, total: data.length, page, pageSize, hasMore: false }
+  }
+
+  return {
+    followUps: Array.isArray(data?.followUps) ? data.followUps : [],
+    total: data?.total ?? 0,
+    page: data?.page ?? page,
+    pageSize: data?.pageSize ?? pageSize,
+    hasMore: !!data?.hasMore,
+  }
+}
+
 export async function fetchVisitorsData() {
   const response = await fetch('/api/visitors')
   await checkAuth(response)
