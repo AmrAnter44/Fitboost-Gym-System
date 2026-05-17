@@ -33,7 +33,26 @@ export async function GET(request: Request) {
         }
       }
     });
-    return NextResponse.json(dayUses);
+
+    // إرفاق بيانات موظف السيلز إن وُجد (DayUseInBody مفهوش relation FK مباشر)
+    const salesStaffIds = Array.from(new Set(
+      dayUses.map(d => (d as any).salesStaffId).filter((x: string | null): x is string => !!x)
+    ))
+    const salesStaffMap: Record<string, { id: string; name: string }> = {}
+    if (salesStaffIds.length > 0) {
+      const staffRows = await prisma.staff.findMany({
+        where: { id: { in: salesStaffIds } },
+        select: { id: true, name: true }
+      })
+      for (const s of staffRows) salesStaffMap[s.id] = s
+    }
+
+    const enriched = dayUses.map(d => ({
+      ...d,
+      salesStaff: (d as any).salesStaffId ? (salesStaffMap[(d as any).salesStaffId] || null) : null
+    }))
+
+    return NextResponse.json(enriched);
   } catch (error) {
     console.error("❌ خطأ أثناء جلب البيانات:", error);
     return NextResponse.json({ error: "فشل في جلب البيانات" }, { status: 500 });
