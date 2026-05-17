@@ -93,6 +93,7 @@ export function ReceiptToPrint({ receiptNumber, type, amount, details, date, pay
         'عضوية': 'اشتراك عضوية',
         'تجديد عضويه': 'تجديد عضوية',
         'membershipRenewal': 'تجديد عضوية',
+        'membershipTransfer': 'نقل عضوية',
         'ترقية باكدج': 'ترقية باكدج',
 
         // PT

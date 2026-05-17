@@ -8,6 +8,7 @@ import { ReceiptToPrint } from '../../../components/ReceiptToPrint'
 import PaymentMethodSelector from '../../../components/Paymentmethodselector'
 import RenewalForm from '../../../components/RenewalForm'
 import UpgradeForm from '../../../components/UpgradeForm'
+import TransferMembershipForm from '../../../components/TransferMembershipForm'
 import ImageUpload from '../../../components/ImageUpload'
 import { formatDateYMD, calculateRemainingDays } from '../../../lib/dateFormatter'
 import { prepareReceiptMessage } from '../../../lib/whatsappReceiptMessage'
@@ -176,6 +177,7 @@ export default function MemberDetailPage() {
   const [followUpHistoryLoading, setFollowUpHistoryLoading] = useState(false)
   const [showFollowUpHistory, setShowFollowUpHistory] = useState(false)
   const [showUpgradeForm, setShowUpgradeForm] = useState(false)
+  const [showTransferForm, setShowTransferForm] = useState(false)
   const [lastReceiptNumber, setLastReceiptNumber] = useState<number | null>(null)
   const [ptSubscription, setPtSubscription] = useState<any>(null)
   const [showIdCardModal, setShowIdCardModal] = useState(false)
@@ -2370,6 +2372,45 @@ export default function MemberDetailPage() {
             </div>
           )}
 
+          {/* Transfer membership */}
+          {hasPermission('canCreateMembers') && (
+            <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-purple-500`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">
+                  {locale === 'ar' ? 'نقل عضوية' : 'Transfer'}
+                </p>
+                <span className="text-2xl">🔁</span>
+              </div>
+              {(() => {
+                const remaining = calculateRemainingDays(member?.expiryDate as any) ?? 0
+                return (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2 min-h-[2rem]">
+                    {remaining > 0
+                      ? (locale === 'ar' ? `${remaining} يوم متبقي — نقل لعضو تاني` : `${remaining} days left — transfer to another ID`)
+                      : (locale === 'ar' ? 'الاشتراك منتهي — لا يوجد أيام للنقل' : 'Expired — no days to transfer')}
+                  </p>
+                )
+              })()}
+              {member?.isBanned ? (
+                <div className="w-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs py-1.5 rounded text-center font-bold">
+                  🚫 {locale === 'ar' ? 'محظور' : 'Banned'}
+                </div>
+              ) : (() => {
+                const remaining = calculateRemainingDays(member?.expiryDate as any) ?? 0
+                const disabled = loading || remaining <= 0
+                return (
+                  <button
+                    onClick={() => setShowTransferForm(true)}
+                    disabled={disabled}
+                    className="w-full bg-purple-600 text-white text-xs py-1.5 rounded hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
+                  >
+                    🔁 {locale === 'ar' ? 'نقل' : 'Transfer'}
+                  </button>
+                )
+              })()}
+            </div>
+          )}
+
           {/* Ban */}
           {hasPermission('canManageBannedMembers') && (
             <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${direction === 'rtl' ? 'border-r-4' : 'border-l-4'} border-gray-700`}>
@@ -3910,6 +3951,37 @@ export default function MemberDetailPage() {
             toast.success(t('upgrade.upgradeSuccess'))
           }}
           onClose={() => setShowUpgradeForm(false)}
+        />
+      )}
+
+      {/* نموذج نقل العضوية */}
+      {showTransferForm && member && (
+        <TransferMembershipForm
+          member={member as any}
+          onClose={() => setShowTransferForm(false)}
+          onSuccess={(res) => {
+            if (res?.receipt) {
+              setReceiptData({
+                receiptNumber: res.receipt.receiptNumber,
+                type: locale === 'ar' ? 'نقل عضوية' : 'Membership Transfer',
+                amount: res.receipt.amount,
+                details: res.receipt.itemDetails,
+                date: new Date(res.receipt.createdAt),
+                paymentMethod: res.receipt.paymentMethod || 'cash'
+              })
+              setShowReceipt(true)
+              setLastReceiptNumber(res.receipt.receiptNumber)
+              queryClient.invalidateQueries({ queryKey: ['receipts'] })
+              queryClient.invalidateQueries({ queryKey: ['members'] })
+            }
+            setShowTransferForm(false)
+            fetchMember()
+            toast.success(
+              locale === 'ar'
+                ? `تم نقل ${res.transferredDays} يوم إلى ${res.recipient.name}`
+                : `Transferred ${res.transferredDays} days to ${res.recipient.name}`
+            )
+          }}
         />
       )}
 

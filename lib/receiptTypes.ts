@@ -28,6 +28,7 @@ export const RECEIPT_TYPES = {
 
   // Member
   MEMBERSHIP_RENEWAL: 'membershipRenewal',
+  MEMBERSHIP_TRANSFER: 'membershipTransfer',
 
   // Legacy types (for backward compatibility)
   MEMBER: 'member',

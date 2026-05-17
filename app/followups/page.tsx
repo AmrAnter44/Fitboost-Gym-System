@@ -43,6 +43,7 @@ import {
 import { useDebounce } from '../../hooks/useDebounce'
 import { normalizeArabic } from '@/lib/arabicNormalization'
 import { createWhatsAppUrl } from '@/lib/whatsappHelper'
+import AssignSalesButton, { type AssignEntityType } from '../../components/AssignSalesButton'
 
 interface Visitor {
   id: string
@@ -3143,7 +3144,54 @@ export default function FollowUpsPage() {
                     <div className="flex items-center gap-2">
                       {getPriorityBadge(followUp)}
                     </div>
-                    <div className="flex gap-1.5 sm:gap-2">
+                    <div className="flex gap-1.5 sm:gap-2 flex-wrap justify-end">
+                      {/* زر تعيين/تحويل سيلز - للأدمن فقط */}
+                      {(() => {
+                        const fid = followUp.id
+                        let entityType: AssignEntityType | null = null
+                        let entityId = ''
+                        if (isExpired) {
+                          entityType = 'member'
+                          entityId = fid.replace(/^expired-/, '')
+                        } else if (isExpiring) {
+                          entityType = 'member'
+                          entityId = fid.replace(/^expiring-/, '')
+                        } else if (fid.startsWith('dayuse-')) {
+                          entityType = 'dayuse'
+                          entityId = fid.replace('dayuse-', '')
+                        } else if (fid.startsWith('invitation-')) {
+                          entityType = 'invitation'
+                          entityId = fid.replace('invitation-', '')
+                        } else if (fid.startsWith('visitor-')) {
+                          entityType = 'visitor'
+                          entityId = fid.replace('visitor-', '')
+                        } else if (followUp.visitor?.id) {
+                          entityType = 'visitor'
+                          entityId = followUp.visitor.id
+                        }
+                        if (!entityType || !entityId) return null
+                        const assignedStaff = followUp.assignedStaff
+                          ? { id: followUp.assignedStaff.id, name: followUp.assignedStaff.name }
+                          : (followUp.assignedTo
+                              ? { id: followUp.assignedTo, name: (staffList as any[]).find((s: any) => s.id === followUp.assignedTo)?.name || '' }
+                              : null)
+                        return (
+                          <AssignSalesButton
+                            entityType={entityType}
+                            entityId={entityId}
+                            currentSalesStaff={assignedStaff}
+                            size="xs"
+                            onAssigned={() => {
+                              queryClient.invalidateQueries({ queryKey: ['followups'] })
+                              queryClient.invalidateQueries({ queryKey: ['visitors'] })
+                              queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
+                              queryClient.invalidateQueries({ queryKey: ['members'] })
+                              queryClient.invalidateQueries({ queryKey: ['dayuse'] })
+                              queryClient.invalidateQueries({ queryKey: ['invitations'] })
+                            }}
+                          />
+                        )
+                      })()}
                       {/* زر تجديد سريع — يفتح صفحة تفاصيل العضو مع modal التجديد */}
                       {(isExpired || isExpiring) && (() => {
                         const mid = getMemberIdByPhone(followUp.visitor.phone)

@@ -12,6 +12,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
 import { fetchDayUseRecords } from '../../lib/api/dayuse'
+import AssignSalesButton from '../../components/AssignSalesButton'
 
 interface DayUseEntry {
   id: string
@@ -21,6 +22,8 @@ interface DayUseEntry {
   price: number
   staffName: string
   createdAt: string
+  salesStaffId?: string | null
+  salesStaff?: { id: string; name: string } | null
   receipts?: {
     receiptNumber: number
     amount: number
@@ -399,6 +402,13 @@ export default function DayUsePage() {
               >
                 {/* Action Buttons at Top */}
                 <div className="flex flex-col sm:flex-row justify-end gap-2 mb-3">
+                  <AssignSalesButton
+                    entityType="dayuse"
+                    entityId={entry.id}
+                    currentSalesStaff={entry.salesStaff || null}
+                    size="sm"
+                    onAssigned={() => queryClient.invalidateQueries({ queryKey: ['dayuse'] })}
+                  />
                   <button
                     onClick={() => handleRenewClick(entry)}
                     className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition text-sm font-medium shadow-sm"
@@ -528,7 +538,14 @@ export default function DayUsePage() {
                       {new Date(entry.createdAt).toLocaleDateString('ar-EG')}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex gap-2 justify-center">
+                      <div className="flex gap-2 justify-center items-center flex-wrap">
+                        <AssignSalesButton
+                          entityType="dayuse"
+                          entityId={entry.id}
+                          currentSalesStaff={entry.salesStaff || null}
+                          size="xs"
+                          onAssigned={() => queryClient.invalidateQueries({ queryKey: ['dayuse'] })}
+                        />
                         <button
                           onClick={() => handleRenewClick(entry)}
                           className="bg-primary-500 text-white px-3 py-1 rounded hover:bg-primary-600 transition text-sm"

@@ -9,6 +9,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useRouter } from 'next/navigation'
 import { fetchInvitations } from '@/lib/api/invitations'
+import AssignSalesButton from '../../components/AssignSalesButton'
 
 interface Invitation {
   id: string
@@ -252,12 +253,21 @@ export default function InvitationsPage() {
                     </p>
                     <h3 className="font-bold text-lg text-primary-700">{invitation.guestName}</h3>
                   </div>
-                  <button
-                    onClick={() => handleDelete(invitation)}
-                    className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 dark:bg-red-900/20 dark:text-red-200"
-                  >
-                    🗑️ {t('invitations.delete')}
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <AssignSalesButton
+                      entityType="invitation"
+                      entityId={invitation.id}
+                      currentSalesStaff={null}
+                      size="xs"
+                      onAssigned={() => queryClient.invalidateQueries({ queryKey: ['invitations'] })}
+                    />
+                    <button
+                      onClick={() => handleDelete(invitation)}
+                      className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 dark:bg-red-900/20 dark:text-red-200"
+                    >
+                      🗑️ {t('invitations.delete')}
+                    </button>
+                  </div>
                 </div>
 
                 {/* التفاصيل */}
@@ -349,12 +359,21 @@ export default function InvitationsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleDelete(invitation)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          {t('invitations.delete')}
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <AssignSalesButton
+                            entityType="invitation"
+                            entityId={invitation.id}
+                            currentSalesStaff={null}
+                            size="xs"
+                            onAssigned={() => queryClient.invalidateQueries({ queryKey: ['invitations'] })}
+                          />
+                          <button
+                            onClick={() => handleDelete(invitation)}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            {t('invitations.delete')}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
