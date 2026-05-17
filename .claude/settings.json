@@ -94,7 +94,8 @@
       "Bash(uipro --help)",
       "Bash(npm view *)",
       "Bash(cd ~ && uipro init --ai claude 2>&1 | tail -40)",
-      "Read(//Users/amranter200444/**)"
+      "Read(//Users/amranter200444/**)",
+      "Read(//Users/amranter250444/Desktop/Gyms/More/Fitboost-System/messages/**)"
     ],
     "additionalDirectories": [
       "/Users/amranter200444/Downloads/Gyms/Xgym/sys-Xgym/.next",

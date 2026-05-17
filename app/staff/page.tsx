@@ -1223,6 +1223,19 @@ const handleScan = async (staffCode: string) => {
                     ) : null}
                   </div>
 
+                  {/* 📝 الملاحظات */}
+                  {staffMember.notes && staffMember.notes.trim() && (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-2">
+                      <div className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold mb-0.5 flex items-center gap-1">
+                        <span>📝</span>
+                        <span>{t('staff.form.notes')}</span>
+                      </div>
+                      <div className="text-xs text-amber-900 dark:text-amber-100 whitespace-pre-wrap break-words">
+                        {staffMember.notes}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <button

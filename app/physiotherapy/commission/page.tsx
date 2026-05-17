@@ -122,6 +122,7 @@ export default function PhysiotherapyCommissionPage() {
   // إعدادات الكومشن
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [commissionSettings, setCommissionSettings] = useState({
+    tierCount: 5,
     tier1Limit: 5000,
     tier2Limit: 11000,
     tier3Limit: 15000,
@@ -395,6 +396,7 @@ export default function PhysiotherapyCommissionPage() {
       if (response.ok) {
         const data = await response.json()
         setCommissionSettings({
+          tierCount: data.tierCount ?? 5,
           tier1Limit: data.tier1Limit,
           tier2Limit: data.tier2Limit,
           tier3Limit: data.tier3Limit,
@@ -528,13 +530,16 @@ export default function PhysiotherapyCommissionPage() {
     }
   }
 
-  // دالة حساب النسبة حسب الدخل الشهري (باستخدام الإعدادات المحفوظة)
+  // دالة حساب النسبة حسب الدخل الشهري — flex tiers (2-5 مستوى)
   const calculatePercentage = (income: number): number => {
-    if (income < commissionSettings.tier1Limit) return commissionSettings.tier1Rate
-    if (income < commissionSettings.tier2Limit) return commissionSettings.tier2Rate
-    if (income < commissionSettings.tier3Limit) return commissionSettings.tier3Rate
-    if (income < commissionSettings.tier4Limit) return commissionSettings.tier4Rate
-    return commissionSettings.tier5Rate
+    const cs = commissionSettings
+    const n = Math.min(5, Math.max(2, cs.tierCount || 5))
+    const limits = [cs.tier1Limit, cs.tier2Limit, cs.tier3Limit, cs.tier4Limit]
+    const rates = [cs.tier1Rate, cs.tier2Rate, cs.tier3Rate, cs.tier4Rate, cs.tier5Rate]
+    for (let i = 0; i < n - 1; i++) {
+      if (income < limits[i]) return rates[i]
+    }
+    return rates[n - 1]
   }
 
   // دالة حساب الكومشن بناءً على الحصص المستخدمة
@@ -1148,37 +1153,40 @@ export default function PhysiotherapyCommissionPage() {
                 </div>
               )}
 
-              {/* جدول النسب - فقط في طريقة الإيرادات */}
-              {calculationMethod === 'revenue' && (
-                <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                    <span>📊</span>
-                    <span>{t('physiotherapy.commission.percentageTable')}</span>
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
-                      <span>{t('physiotherapy.commission.lessThanAmount', { amount: commissionSettings.tier1Limit.toLocaleString(localeString) })} {t('physiotherapy.commission.egp')}</span>
-                      <span className="font-bold text-orange-600">{commissionSettings.tier1Rate}%</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
-                      <span>{commissionSettings.tier1Limit.toLocaleString(localeString)} - {(commissionSettings.tier2Limit - 1).toLocaleString(localeString)} {t('physiotherapy.commission.egp')}</span>
-                      <span className="font-bold text-yellow-600">{commissionSettings.tier2Rate}%</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
-                      <span>{commissionSettings.tier2Limit.toLocaleString(localeString)} - {(commissionSettings.tier3Limit - 1).toLocaleString(localeString)} {t('physiotherapy.commission.egp')}</span>
-                      <span className="font-bold text-primary-600 dark:text-primary-400">{commissionSettings.tier3Rate}%</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
-                      <span>{commissionSettings.tier3Limit.toLocaleString(localeString)} - {(commissionSettings.tier4Limit - 1).toLocaleString(localeString)} {t('physiotherapy.commission.egp')}</span>
-                      <span className="font-bold text-primary-600">{commissionSettings.tier4Rate}%</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
-                      <span>{t('physiotherapy.commission.orMoreAmount', { amount: commissionSettings.tier4Limit.toLocaleString(localeString) })} {t('physiotherapy.commission.egp')}</span>
-                      <span className="font-bold text-green-600">{commissionSettings.tier5Rate}%</span>
+              {/* جدول النسب - Dynamic flex tiers */}
+              {calculationMethod === 'revenue' && (() => {
+                const cs = commissionSettings
+                const n = Math.min(5, Math.max(2, cs.tierCount || 5))
+                const limits = [cs.tier1Limit, cs.tier2Limit, cs.tier3Limit, cs.tier4Limit]
+                const rates = [cs.tier1Rate, cs.tier2Rate, cs.tier3Rate, cs.tier4Rate, cs.tier5Rate]
+                const tierColors = ['text-orange-600', 'text-yellow-600', 'text-primary-600 dark:text-primary-400', 'text-primary-600', 'text-green-600']
+                return (
+                  <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/50 dark:to-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                      <span>📊</span>
+                      <span>{t('physiotherapy.commission.percentageTable')}</span>
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      {Array.from({ length: n }).map((_, i) => {
+                        let label: string
+                        if (i === 0) {
+                          label = `${t('physiotherapy.commission.lessThanAmount', { amount: limits[0].toLocaleString(localeString) })} ${t('physiotherapy.commission.egp')}`
+                        } else if (i === n - 1) {
+                          label = `${t('physiotherapy.commission.orMoreAmount', { amount: limits[n - 2].toLocaleString(localeString) })} ${t('physiotherapy.commission.egp')}`
+                        } else {
+                          label = `${limits[i - 1].toLocaleString(localeString)} - ${(limits[i] - 1).toLocaleString(localeString)} ${t('physiotherapy.commission.egp')}`
+                        }
+                        return (
+                          <div key={i} className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-lg">
+                            <span>{label}</span>
+                            <span className={`font-bold ${tierColors[i]}`}>{rates[i]}%</span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* أزرار التحكم */}
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -2311,164 +2319,126 @@ export default function PhysiotherapyCommissionPage() {
                 </div>
               </div>
 
-              {/* حدود الدخل الشهري - يظهر فقط عند اختيار "نسبة من الدخل" */}
-              {calculationMethod === 'revenue' && (
-              <>
-              <div className="mb-8">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <span>💰</span>
-                  {t('physiotherapy.commission.monthlyIncomeLimits')}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
-                      {t('physiotherapy.commission.tier1Label')}
-                    </label>
-                    <input
-                      type="number"
-                      value={commissionSettings.tier1Limit}
-                      onChange={(e) => setCommissionSettings({ ...commissionSettings, tier1Limit: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-700 dark:text-white"
-                      placeholder="5000"
-                    />
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
-                      {t('physiotherapy.commission.tier2Label')}
-                    </label>
-                    <input
-                      type="number"
-                      value={commissionSettings.tier2Limit}
-                      onChange={(e) => setCommissionSettings({ ...commissionSettings, tier2Limit: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-700 dark:text-white"
-                      placeholder="11000"
-                    />
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
-                      {t('physiotherapy.commission.tier3Label')}
-                    </label>
-                    <input
-                      type="number"
-                      value={commissionSettings.tier3Limit}
-                      onChange={(e) => setCommissionSettings({ ...commissionSettings, tier3Limit: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-700 dark:text-white"
-                      placeholder="15000"
-                    />
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
-                      {t('physiotherapy.commission.tier4Label')}
-                    </label>
-                    <input
-                      type="number"
-                      value={commissionSettings.tier4Limit}
-                      onChange={(e) => setCommissionSettings({ ...commissionSettings, tier4Limit: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-700 dark:text-white"
-                      placeholder="20000"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* النسب المئوية */}
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <span>📊</span>
-                  {t('physiotherapy.commission.commissionPercentages')}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <div className="bg-green-50 dark:bg-green-900/50 p-4 rounded-lg border-2 border-green-200 dark:border-green-700">
-                    <label className="block text-sm font-medium mb-2 text-green-700 dark:text-green-300">
-                      {t('physiotherapy.commission.tier1Percentage')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={commissionSettings.tier1Rate}
-                        onChange={(e) => setCommissionSettings({ ...commissionSettings, tier1Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-green-300 dark:border-green-600 rounded-lg text-lg font-mono focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:bg-gray-700 dark:text-white"
-                        placeholder="25"
-                      />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400 font-bold">%</span>
+              {/* حدود الدخل + النسب — Flex tiers (2-5) */}
+              {calculationMethod === 'revenue' && (() => {
+                const cs = commissionSettings
+                const n = Math.min(5, Math.max(2, cs.tierCount || 5))
+                const limitKeys: Array<'tier1Limit' | 'tier2Limit' | 'tier3Limit' | 'tier4Limit'> = ['tier1Limit', 'tier2Limit', 'tier3Limit', 'tier4Limit']
+                const rateKeys: Array<'tier1Rate' | 'tier2Rate' | 'tier3Rate' | 'tier4Rate' | 'tier5Rate'> = ['tier1Rate', 'tier2Rate', 'tier3Rate', 'tier4Rate', 'tier5Rate']
+                const limits = limitKeys.map(k => cs[k])
+                const rates = rateKeys.map(k => cs[k])
+                const tierStyles = [
+                  { bg: 'bg-green-50 dark:bg-green-900/50', border: 'border-green-200 dark:border-green-700', text: 'text-green-700 dark:text-green-300', inputBorder: 'border-green-300 dark:border-green-600', focus: 'focus:border-green-500 focus:ring-green-200', accent: 'text-green-600 dark:text-green-400' },
+                  { bg: 'bg-blue-50 dark:bg-blue-900/50', border: 'border-blue-200 dark:border-blue-700', text: 'text-blue-700 dark:text-blue-300', inputBorder: 'border-blue-300 dark:border-blue-600', focus: 'focus:border-blue-500 focus:ring-blue-200', accent: 'text-blue-600 dark:text-blue-400' },
+                  { bg: 'bg-yellow-50 dark:bg-yellow-900/50', border: 'border-yellow-200 dark:border-yellow-700', text: 'text-yellow-700 dark:text-yellow-300', inputBorder: 'border-yellow-300 dark:border-yellow-600', focus: 'focus:border-yellow-500 focus:ring-yellow-200', accent: 'text-yellow-600 dark:text-yellow-400' },
+                  { bg: 'bg-orange-50 dark:bg-orange-900/50', border: 'border-orange-200 dark:border-orange-700', text: 'text-orange-700 dark:text-orange-300', inputBorder: 'border-orange-300 dark:border-orange-600', focus: 'focus:border-orange-500 focus:ring-orange-200', accent: 'text-orange-600 dark:text-orange-400' },
+                  { bg: 'bg-red-50 dark:bg-red-900/50', border: 'border-red-200 dark:border-red-700', text: 'text-red-700 dark:text-red-300', inputBorder: 'border-red-300 dark:border-red-600', focus: 'focus:border-red-500 focus:ring-red-200', accent: 'text-red-600 dark:text-red-400' },
+                ]
+                const describeTier = (i: number): string => {
+                  if (i === 0) return `أقل من ${limits[0].toLocaleString(localeString)} ج.م`
+                  if (i === n - 1) return `${limits[n - 2].toLocaleString(localeString)} ج.م أو أكثر`
+                  return `${limits[i - 1].toLocaleString(localeString)} - ${(limits[i] - 1).toLocaleString(localeString)} ج.م`
+                }
+                return (
+                  <>
+                    <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border-2 border-indigo-200 dark:border-indigo-700">
+                      <h3 className="text-lg font-bold mb-3 flex items-center gap-2 dark:text-gray-100">
+                        <span>🎯</span>
+                        <span>عدد المستويات</span>
+                      </h3>
+                      <div className="flex gap-2 flex-wrap">
+                        {[2, 3, 4, 5].map(count => {
+                          const active = n === count
+                          return (
+                            <button
+                              key={count}
+                              type="button"
+                              onClick={() => setCommissionSettings({ ...commissionSettings, tierCount: count })}
+                              className={`px-5 py-2 rounded-lg font-bold transition-all border-2 ${
+                                active
+                                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-105'
+                                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:border-indigo-400'
+                              }`}
+                            >
+                              {count} مستويات
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        💡 لو اخترت 3 مستويات مثلاً، هتحتاج تدخل حدّين و3 نسب
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{t('physiotherapy.commission.lessThanAmount', { amount: commissionSettings.tier1Limit.toLocaleString(localeString) })} {t('physiotherapy.commission.currency')}</p>
-                  </div>
 
-                  <div className="bg-blue-50 dark:bg-blue-900/50 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-700">
-                    <label className="block text-sm font-medium mb-2 text-blue-700 dark:text-blue-300">
-                      {t('physiotherapy.commission.tier2Percentage')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={commissionSettings.tier2Rate}
-                        onChange={(e) => setCommissionSettings({ ...commissionSettings, tier2Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-blue-300 dark:border-blue-600 rounded-lg text-lg font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-700 dark:text-white"
-                        placeholder="30"
-                      />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 font-bold">%</span>
+                    <div className="mb-8">
+                      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <span>💰</span>
+                        {t('physiotherapy.commission.monthlyIncomeLimits')}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Array.from({ length: n - 1 }).map((_, i) => (
+                          <div key={i} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600">
+                            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
+                              الحد {['الأول', 'الثاني', 'الثالث', 'الرابع'][i]} (أقل من)
+                            </label>
+                            <input
+                              type="number"
+                              value={cs[limitKeys[i]]}
+                              onChange={(e) => setCommissionSettings({ ...commissionSettings, [limitKeys[i]]: parseFloat(e.target.value) || 0 })}
+                              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:bg-gray-700 dark:text-white"
+                              placeholder={String([5000, 11000, 15000, 20000][i])}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{commissionSettings.tier1Limit.toLocaleString(localeString)} - {(commissionSettings.tier2Limit - 1).toLocaleString(localeString)}</p>
-                  </div>
 
-                  <div className="bg-yellow-50 dark:bg-yellow-900/50 p-4 rounded-lg border-2 border-yellow-200 dark:border-yellow-700">
-                    <label className="block text-sm font-medium mb-2 text-yellow-700 dark:text-yellow-300">
-                      {t('physiotherapy.commission.tier3Percentage')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={commissionSettings.tier3Rate}
-                        onChange={(e) => setCommissionSettings({ ...commissionSettings, tier3Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-yellow-300 dark:border-yellow-600 rounded-lg text-lg font-mono focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 dark:bg-gray-700 dark:text-white"
-                        placeholder="35"
-                      />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-600 font-bold">%</span>
+                    <div className="mb-6">
+                      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <span>📊</span>
+                        {t('physiotherapy.commission.commissionPercentages')}
+                      </h3>
+                      <div className={`grid grid-cols-1 gap-4 ${n === 2 ? 'md:grid-cols-2' : n === 3 ? 'md:grid-cols-3' : n === 4 ? 'md:grid-cols-4' : 'md:grid-cols-5'}`}>
+                        {Array.from({ length: n }).map((_, i) => {
+                          const s = tierStyles[i]
+                          return (
+                            <div key={i} className={`${s.bg} p-4 rounded-lg border-2 ${s.border}`}>
+                              <label className={`block text-sm font-medium mb-2 ${s.text}`}>
+                                نسبة المستوى {i + 1}
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  value={cs[rateKeys[i]]}
+                                  onChange={(e) => setCommissionSettings({ ...commissionSettings, [rateKeys[i]]: parseFloat(e.target.value) || 0 })}
+                                  className={`w-full px-4 py-3 border-2 ${s.inputBorder} rounded-lg text-lg font-mono ${s.focus} focus:ring-2 dark:bg-gray-700 dark:text-white`}
+                                  placeholder={String([25, 30, 35, 40, 45][i])}
+                                />
+                                <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${s.accent} font-bold`}>%</span>
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{describeTier(i)}</p>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{commissionSettings.tier2Limit.toLocaleString(localeString)} - {(commissionSettings.tier3Limit - 1).toLocaleString(localeString)}</p>
-                  </div>
 
-                  <div className="bg-orange-50 dark:bg-orange-900/50 p-4 rounded-lg border-2 border-orange-200 dark:border-orange-700">
-                    <label className="block text-sm font-medium mb-2 text-orange-700 dark:text-orange-300">
-                      {t('physiotherapy.commission.tier4Percentage')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={commissionSettings.tier4Rate}
-                        onChange={(e) => setCommissionSettings({ ...commissionSettings, tier4Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-orange-300 dark:border-orange-600 rounded-lg text-lg font-mono focus:border-orange-500 focus:ring-2 focus:ring-orange-200 dark:bg-gray-700 dark:text-white"
-                        placeholder="40"
-                      />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-600 font-bold">%</span>
+                    <div className="mb-6 p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl border-2 border-amber-200 dark:border-amber-700">
+                      <h3 className="text-base font-bold mb-2 flex items-center gap-2 dark:text-gray-100">
+                        <span>📝</span>
+                        <span>الوصف</span>
+                      </h3>
+                      <ul className="space-y-1 text-sm text-amber-900 dark:text-amber-200">
+                        {Array.from({ length: n }).map((_, i) => (
+                          <li key={i}>
+                            • {describeTier(i)} → <span className="font-bold">{rates[i]}%</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{commissionSettings.tier3Limit.toLocaleString(localeString)} - {(commissionSettings.tier4Limit - 1).toLocaleString(localeString)}</p>
-                  </div>
-
-                  <div className="bg-red-50 dark:bg-red-900/50 p-4 rounded-lg border-2 border-red-200 dark:border-red-700">
-                    <label className="block text-sm font-medium mb-2 text-red-700 dark:text-red-300">
-                      {t('physiotherapy.commission.tier5Percentage')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={commissionSettings.tier5Rate}
-                        onChange={(e) => setCommissionSettings({ ...commissionSettings, tier5Rate: parseFloat(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-red-300 dark:border-red-600 rounded-lg text-lg font-mono focus:border-red-500 focus:ring-2 focus:ring-red-200 dark:bg-gray-700 dark:text-white"
-                        placeholder="45"
-                      />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600 font-bold">%</span>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{t('physiotherapy.commission.orMoreAmount', { amount: commissionSettings.tier4Limit.toLocaleString(localeString) })} {t('physiotherapy.commission.currency')}</p>
-                  </div>
-                </div>
-              </div>
-              </>
-              )}
+                  </>
+                )
+              })()}
 
               {/* إعدادات الجلسات المجانية */}
               <div className="mb-6">

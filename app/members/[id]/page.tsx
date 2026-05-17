@@ -3963,7 +3963,7 @@ export default function MemberDetailPage() {
             if (res?.receipt) {
               setReceiptData({
                 receiptNumber: res.receipt.receiptNumber,
-                type: locale === 'ar' ? 'نقل عضوية' : 'Membership Transfer',
+                type: 'membershipTransfer',
                 amount: res.receipt.amount,
                 details: res.receipt.itemDetails,
                 date: new Date(res.receipt.createdAt),
@@ -3976,10 +3976,15 @@ export default function MemberDetailPage() {
             }
             setShowTransferForm(false)
             fetchMember()
+            const isIdentityChange = (res.recipient as any)?.identityUpdated
             toast.success(
-              locale === 'ar'
-                ? `تم نقل ${res.transferredDays} يوم إلى ${res.recipient.name}`
-                : `Transferred ${res.transferredDays} days to ${res.recipient.name}`
+              isIdentityChange
+                ? (locale === 'ar'
+                    ? `تم تغيير ملكية العضوية إلى ${res.recipient.name}`
+                    : `Membership ownership transferred to ${res.recipient.name}`)
+                : (locale === 'ar'
+                    ? `تم نقل ${res.transferredDays} يوم إلى ${res.recipient.name}`
+                    : `Transferred ${res.transferredDays} days to ${res.recipient.name}`)
             )
           }}
         />

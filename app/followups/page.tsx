@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import nextDynamic from 'next/dynamic'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
@@ -32,7 +32,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useRouter } from 'next/navigation'
 import {
-  fetchFollowUpsData,
+  fetchFollowUpsPage,
   fetchVisitorsData,
   fetchMembersData,
   fetchDayUseData,
@@ -184,17 +184,38 @@ export default function FollowUpsPage() {
     refetchOnWindowFocus: true, // إعادة جلب عند الرجوع للنافذة فقط
   } as const
 
-  // Fetch all data using TanStack Query
+  // ✅ Pagination + Streaming — تحميل المتابعات على دفعات
+  //   - أول 300 متابعة بتظهر فوراً
+  //   - الباقي بيتحمّل في الـ background
+  const FOLLOWUPS_PAGE_SIZE = 300
   const {
-    data: followUps = [],
+    data: followUpsPages,
     isLoading: loadingFollowUps,
+    isFetchingNextPage: followUpsFetchingNext,
+    fetchNextPage: followUpsFetchNext,
+    hasNextPage: followUpsHasNext,
     error: followUpsError,
     refetch: refetchFollowUps
-  } = useQuery({
-    queryKey: ['followups'],
-    queryFn: fetchFollowUpsData,
+  } = useInfiniteQuery({
+    queryKey: ['followups', 'paged', FOLLOWUPS_PAGE_SIZE],
+    queryFn: ({ pageParam }) => fetchFollowUpsPage(pageParam as number, FOLLOWUPS_PAGE_SIZE),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
     ...COMMON_QUERY_OPTS,
   })
+
+  // Auto-stream: لما أول صفحة تيجي، نكمّل تحميل الباقي
+  useEffect(() => {
+    if (!loadingFollowUps && followUpsHasNext && !followUpsFetchingNext) {
+      followUpsFetchNext()
+    }
+  }, [loadingFollowUps, followUpsHasNext, followUpsFetchingNext, followUpsFetchNext])
+
+  const followUps = useMemo<any[]>(
+    () => followUpsPages?.pages?.flatMap((p: any) => p.followUps) ?? [],
+    [followUpsPages]
+  )
+  const totalFollowUpsCount = followUpsPages?.pages?.[0]?.total ?? followUps.length
 
   const {
     data: visitorsData = [],
@@ -278,15 +299,25 @@ export default function FollowUpsPage() {
 
   const loading = loadingFollowUps
 
-  // ✅ Delete mutation مع Optimistic Update
+  // ✅ Delete mutation مع Optimistic Update (متوافق مع useInfiniteQuery)
+  const followUpsQueryKey = ['followups', 'paged', FOLLOWUPS_PAGE_SIZE] as const
   const deleteMutation = useMutation({
     mutationFn: deleteFollowUp,
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: ['followups'] })
-      const previousData = queryClient.getQueryData<any[]>(['followups'])
-      queryClient.setQueryData<any[]>(['followups'], (old) =>
-        old ? old.filter(fu => fu.id !== id) : old
-      )
+      const previousData = queryClient.getQueryData<any>(followUpsQueryKey)
+      // الـ InfiniteData شكلها { pages: [{ followUps: [...] }, ...], pageParams: [...] }
+      queryClient.setQueryData<any>(followUpsQueryKey, (old: any) => {
+        if (!old?.pages) return old
+        return {
+          ...old,
+          pages: old.pages.map((p: any) => ({
+            ...p,
+            followUps: Array.isArray(p?.followUps) ? p.followUps.filter((fu: any) => fu.id !== id) : p.followUps,
+            total: typeof p?.total === 'number' ? Math.max(0, p.total - 1) : p?.total,
+          })),
+        }
+      })
       return { previousData }
     },
     onSuccess: () => {
@@ -300,7 +331,7 @@ export default function FollowUpsPage() {
     },
     onError: (error: Error, _id, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(['followups'], context.previousData)
+        queryClient.setQueryData(followUpsQueryKey, context.previousData)
       }
       toast.error(error.message || t('followups.messages.deleteError'))
     }
@@ -862,6 +893,50 @@ export default function FollowUpsPage() {
           toast.success(locale === 'ar' ? '✅ تم إرسال الرسالة بنجاح على الواتساب' : '✅ Message sent successfully via WhatsApp')
           setShowTemplateModal(false)
 
+          // 🚀 Optimistic update — نخلّي علامة "تم التواصل" تظهر فوراً في القايمة
+          //   من غير ما نستنى الـ refetch (اللي مع useInfiniteQuery بياخد وقت)
+          const visitorPhone = selectedVisitorForTemplate.phone
+          const normalizedPhone = (visitorPhone || '').replace(/\D/g, '')
+          const optimisticContactedAt = new Date().toISOString()
+          queryClient.setQueryData<any>(['followups', 'paged', FOLLOWUPS_PAGE_SIZE], (old: any) => {
+            if (!old?.pages) return old
+            return {
+              ...old,
+              pages: old.pages.map((p: any, idx: number) => {
+                if (idx !== 0) return p
+                // ندوّر على متابعة موجودة لنفس التليفون نحدّثها، أو نضيف entry جديد في الأول
+                let found = false
+                const updated = (Array.isArray(p?.followUps) ? p.followUps : []).map((fu: any) => {
+                  if (fu?.visitor?.phone && fu.visitor.phone.replace(/\D/g, '') === normalizedPhone) {
+                    found = true
+                    return { ...fu, contacted: true, lastContactedAt: optimisticContactedAt }
+                  }
+                  return fu
+                })
+                if (!found) {
+                  // ضيف entry جديد في أول الصفحة (هيتم استبداله من السيرفر بعد الـ refetch)
+                  updated.unshift({
+                    id: `optimistic-${Date.now()}`,
+                    visitorId: selectedVisitorForTemplate.id,
+                    visitor: {
+                      id: selectedVisitorForTemplate.id,
+                      name: selectedVisitorForTemplate.name,
+                      phone: selectedVisitorForTemplate.phone,
+                      source: selectedVisitorForTemplate.source,
+                    },
+                    notes: `تم إرسال رسالة "${template.title}" عبر الواتساب`,
+                    contacted: true,
+                    lastContactedAt: optimisticContactedAt,
+                    createdAt: optimisticContactedAt,
+                    updatedAt: optimisticContactedAt,
+                    salesName: user?.name,
+                  })
+                }
+                return { ...p, followUps: updated }
+              })
+            }
+          })
+
           try {
             const response = await fetch('/api/visitors/followups', {
               method: 'POST',
@@ -884,18 +959,26 @@ export default function FollowUpsPage() {
               await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
               toast.success(locale === 'ar' ? '✅ تم تحديث حالة المتابعة تلقائياً' : '✅ Follow-up status updated automatically')
             } else {
-              // ❌ ما نخفيش الخطأ — السيلز محتاج يعرف لو المتابعة ما اتسجلتش
+              // ❌ السيلز محتاج يعرف لو المتابعة ما اتسجلتش + السبب الحقيقي
               const errData = await response.json().catch(() => ({}))
-              console.error('Follow-up save failed:', errData)
+              console.error('Follow-up save failed:', response.status, errData)
+              const apiError = errData?.error || (response.status === 403
+                ? (locale === 'ar' ? 'ليس لديك صلاحية إنشاء متابعات' : 'No permission to create follow-ups')
+                : response.status === 401
+                  ? (locale === 'ar' ? 'يجب تسجيل الدخول أولاً' : 'Please log in')
+                  : '')
               toast.error(locale === 'ar'
-                ? '⚠️ الرسالة اتبعتت بس المتابعة ما اتسجلتش — سجّلها يدوياً'
-                : '⚠️ Message sent but follow-up was NOT recorded — log it manually')
+                ? `⚠️ الرسالة اتبعتت بس المتابعة ما اتسجلتش${apiError ? ` — ${apiError}` : ' — سجّلها يدوياً'}`
+                : `⚠️ Message sent but follow-up was NOT recorded${apiError ? ` — ${apiError}` : ' — log it manually'}`)
+              // rollback الـ optimistic update عشان الـ UI يعكس الحقيقة
+              queryClient.invalidateQueries({ queryKey: ['followups'] })
             }
           } catch (error) {
             console.error('Error updating follow-up:', error)
             toast.error(locale === 'ar'
               ? '⚠️ الرسالة اتبعتت بس المتابعة ما اتسجلتش — سجّلها يدوياً'
               : '⚠️ Message sent but follow-up was NOT recorded — log it manually')
+            queryClient.invalidateQueries({ queryKey: ['followups'] })
           }
         } else {
           toast.error(`❌ ${locale === 'ar' ? 'فشل إرسال الرسالة' : 'Failed to send message'}: ${sendResult.error}`)
@@ -2035,6 +2118,26 @@ export default function FollowUpsPage() {
 
   return (
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
+      {/* Streaming progress — يظهر بس وقت تحميل دفعات الـ background للمتابعات */}
+      {(followUpsFetchingNext || followUpsHasNext) && totalFollowUpsCount > followUps.length && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 p-3 rounded-xl mb-4 flex items-center gap-3" dir={direction}>
+          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full shrink-0"></div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
+              {locale === 'ar'
+                ? `جارٍ تحميل باقي المتابعات في الخلفية... ${followUps.length} / ${totalFollowUpsCount}`
+                : `Loading remaining follow-ups in background... ${followUps.length} / ${totalFollowUpsCount}`}
+            </div>
+            <div className="mt-1 h-1.5 w-full bg-blue-100 dark:bg-blue-900/40 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 dark:bg-blue-400 transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.round((followUps.length / Math.max(1, totalFollowUpsCount)) * 100))}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">

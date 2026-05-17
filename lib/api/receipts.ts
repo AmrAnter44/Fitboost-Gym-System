@@ -25,6 +25,42 @@ export async function fetchReceipts() {
   return data
 }
 
+export interface ReceiptsPage {
+  receipts: any[]
+  total: number
+  page: number
+  pageSize: number
+  hasMore: boolean
+}
+
+// 🚀 Paginated chunk fetch — تحميل الإيصالات على دفعات
+export async function fetchReceiptsPage(page: number, pageSize: number = 300): Promise<ReceiptsPage> {
+  const response = await fetch(`/api/receipts?page=${page}&pageSize=${pageSize}`)
+
+  if (response.status === 401) throw new Error('UNAUTHORIZED')
+  if (response.status === 403) throw new Error('FORBIDDEN')
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.error || 'فشل جلب الإيصالات')
+  }
+
+  const data = await response.json()
+
+  // backward-compat: لو السيرفر رجّع array (مش paginated)
+  if (Array.isArray(data)) {
+    return { receipts: data, total: data.length, page, pageSize, hasMore: false }
+  }
+
+  return {
+    receipts: Array.isArray(data?.receipts) ? data.receipts : [],
+    total: data?.total ?? 0,
+    page: data?.page ?? page,
+    pageSize: data?.pageSize ?? pageSize,
+    hasMore: !!data?.hasMore,
+  }
+}
+
 export async function fetchNextReceiptNumber() {
   const response = await fetch('/api/receipts/next-number')
 

@@ -77,34 +77,13 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
   const [recipient, setRecipient] = useState<RecipientLookup | null>(null)
   const [recipientErr, setRecipientErr] = useState('')
 
-  // new recipient
+  // new owner (تغيير ملكية على نفس الـ record — اسم/تليفون/صورة بس)
   const [newName, setNewName] = useState('')
   const [newPhone, setNewPhone] = useState('')
-  const [newMemberNumber, setNewMemberNumber] = useState('')
-  const [suggestedNumber, setSuggestedNumber] = useState<string | null>(null)
   const [profileImage, setProfileImage] = useState<string | null>(null)
-  const [idCardFront, setIdCardFront] = useState<string | null>(null)
-  const [idCardBack, setIdCardBack] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  // جلب رقم العضوية المقترح أول ما يفتح فورم العضو الجديد
-  useEffect(() => {
-    if (mode !== 'new') return
-    if (suggestedNumber !== null) return
-    fetch('/api/members/next-number')
-      .then(r => r.ok ? r.json() : null)
-      .then((data: any) => {
-        const next = data?.nextNumber != null ? String(data.nextNumber) : '1001'
-        setSuggestedNumber(next)
-        setNewMemberNumber(prev => prev || next)
-      })
-      .catch(() => {
-        setSuggestedNumber('1001')
-        setNewMemberNumber(prev => prev || '1001')
-      })
-  }, [mode, suggestedNumber])
 
   // البحث عن العضو بالرقم
   useEffect(() => {
@@ -163,12 +142,11 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
     return after
   })()
 
+  // في mode='new' (تغيير ملكية على نفس الـ record) الاشتراك بيفضل زي ما هو،
+  // فالـ expiry هو نفسه expiryDate بتاع العضو الحالي
   const newRecipientExpiry = (() => {
     if (mode !== 'new') return null
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    const after = new Date(today)
-    after.setDate(after.getDate() + remainingDays)
-    return after
+    return member.expiryDate ? new Date(member.expiryDate as any) : null
   })()
 
   const validate = (): string | null => {
@@ -184,7 +162,6 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
       if (!/^(010|011|012|015)[0-9]{8}$/.test(newPhone.trim())) {
         return locale === 'ar' ? 'رقم الهاتف غير صحيح' : 'Invalid phone number'
       }
-      if (!newMemberNumber.trim()) return locale === 'ar' ? 'رقم العضوية مطلوب' : 'Member number is required'
     }
     return null
   }
@@ -207,13 +184,11 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
       if (mode === 'existing') {
         body.toMemberId = recipient!.id
       } else {
+        // mode='new' = تغيير ملكية على نفس الـ record (اسم/تليفون/صورة فقط)
         body.newMember = {
           name: newName.trim(),
           phone: newPhone.trim(),
-          memberNumber: newMemberNumber.trim(),
           profileImage,
-          idCardFront,
-          idCardBack,
         }
       }
       const res = await fetch('/api/members/transfer', {
@@ -377,13 +352,18 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
           </div>
         )}
 
-        {/* New recipient */}
+        {/* New owner — تغيير ملكية على نفس الـ record */}
         {mode === 'new' && (
           <div className="bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-xl p-4 mb-5 space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3 text-xs text-blue-800 dark:text-blue-200">
+              {locale === 'ar'
+                ? <>العضوية <span className="font-mono font-bold">#{member.memberNumber || '—'}</span> هتفضل نفسها — هنحدّث بس <b>الاسم والتليفون والصورة</b> للمالك الجديد. الاشتراك وكل بياناته بتفضل زي ما هي.</>
+                : <>Membership <span className="font-mono font-bold">#{member.memberNumber || '—'}</span> stays the same — only <b>name, phone, and photo</b> are updated for the new owner. The subscription and all data stay attached.</>}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">
-                  {locale === 'ar' ? 'الاسم' : 'Name'} *
+                  {locale === 'ar' ? 'اسم المالك الجديد' : 'New Owner Name'} *
                 </label>
                 <input
                   type="text"
@@ -394,7 +374,7 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">
-                  {locale === 'ar' ? 'الموبايل' : 'Phone'} *
+                  {locale === 'ar' ? 'موبايل المالك الجديد' : 'New Owner Phone'} *
                 </label>
                 <input
                   type="tel"
@@ -404,39 +384,11 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
                   className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-purple-500 font-mono"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">
-                  {locale === 'ar' ? 'رقم العضوية' : 'Member Number'} *
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  required
-                  value={newMemberNumber}
-                  onChange={(e) => setNewMemberNumber(e.target.value.replace(/\D/g, ''))}
-                  placeholder={suggestedNumber || (locale === 'ar' ? 'رقم العضوية' : 'Member number')}
-                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-purple-500"
-                />
-                {suggestedNumber && (
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                    💡 {locale === 'ar' ? `الرقم المقترح: ${suggestedNumber}` : `Suggested: ${suggestedNumber}`}
-                    {newMemberNumber !== suggestedNumber && (
-                      <button
-                        type="button"
-                        onClick={() => setNewMemberNumber(suggestedNumber)}
-                        className="ms-2 text-purple-600 dark:text-purple-400 hover:underline"
-                      >
-                        {locale === 'ar' ? 'استخدمه' : 'use it'}
-                      </button>
-                    )}
-                  </p>
-                )}
-              </div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-700 rounded-lg p-3">
               <p className="text-xs font-bold text-purple-700 dark:text-purple-300 mb-2">
-                📸 {locale === 'ar' ? 'صورة شخصية (اختياري)' : 'Profile Photo (optional)'}
+                📸 {locale === 'ar' ? 'صورة المالك الجديد (اختياري)' : 'New Owner Photo (optional)'}
               </p>
               <ImageUpload
                 currentImage={profileImage}
@@ -444,39 +396,12 @@ export default function TransferMembershipForm({ member, onClose, onSuccess }: P
               />
             </div>
 
-            <div className="bg-white dark:bg-gray-800 border-2 border-secondary-200 dark:border-gray-600 rounded-lg p-3">
-              <p className="text-xs font-bold text-gray-700 dark:text-gray-200 mb-2">
-                🪪 {locale === 'ar' ? 'صورة البطاقة (اختياري)' : 'ID Card (optional)'}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
-                    {locale === 'ar' ? 'الوجه الأمامي' : 'Front'}
-                  </p>
-                  <ImageUpload
-                    currentImage={idCardFront}
-                    onImageChange={(url) => setIdCardFront(url)}
-                    variant="idCard"
-                  />
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
-                    {locale === 'ar' ? 'الوجه الخلفي' : 'Back'}
-                  </p>
-                  <ImageUpload
-                    currentImage={idCardBack}
-                    onImageChange={(url) => setIdCardBack(url)}
-                    variant="idCard"
-                  />
-                </div>
-              </div>
-            </div>
-
             {newRecipientExpiry && (
               <p className="text-sm text-purple-700 dark:text-purple-300 font-bold">
-                ✅ {locale === 'ar' ? 'العضو الجديد سينتهي اشتراكه في:' : 'New member expires:'}{' '}
-                <span className="font-mono">{formatDateYMD(newRecipientExpiry)}</span>{' '}
-                <span className="text-xs opacity-80">({remainingDays} {locale === 'ar' ? 'يوم' : 'days'})</span>
+                ✅ {locale === 'ar'
+                  ? `الاشتراك يفضل ${remainingDays} يوم — ينتهي في`
+                  : `Subscription keeps ${remainingDays} days — expires on`}{' '}
+                <span className="font-mono">{formatDateYMD(newRecipientExpiry)}</span>
               </p>
             )}
           </div>

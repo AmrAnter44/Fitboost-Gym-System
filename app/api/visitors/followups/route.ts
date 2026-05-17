@@ -17,32 +17,58 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const visitorId = searchParams.get('visitorId')
     const limit = Math.min(parseInt(searchParams.get('limit') || '5000'), 10000)
+    const pageParam = searchParams.get('page')
+    const pageSizeParam = searchParams.get('pageSize')
 
-    // إذا تم تحديد visitorId، جلب متابعات زائر معين فقط
-    // إذا لم يتم تحديد visitorId، جلب جميع المتابعات (بحد أقصى)
-    const followUps = await prisma.followUp.findMany({
-      where: visitorId ? { visitorId } : undefined,
-      orderBy: { createdAt: 'desc' },
-      take: visitorId ? undefined : limit,
-      include: {
-        visitor: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            source: true,
-            status: true,
-            interestedIn: true,
+    // إذا تم تحديد visitorId، جلب متابعات زائر معين فقط (مفيش pagination هنا)
+    if (visitorId) {
+      const followUps = await prisma.followUp.findMany({
+        where: { visitorId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          visitor: {
+            select: { id: true, name: true, phone: true, source: true, status: true, interestedIn: true },
+          },
+          assignedStaff: {
+            select: { id: true, name: true, position: true },
           },
         },
-        assignedStaff: {
-          select: {
-            id: true,
-            name: true,
-            position: true,
-          },
-        },
+      })
+      return NextResponse.json(followUps)
+    }
+
+    const includes = {
+      visitor: {
+        select: { id: true, name: true, phone: true, source: true, status: true, interestedIn: true },
       },
+      assignedStaff: {
+        select: { id: true, name: true, position: true },
+      },
+    } as const
+
+    // 🚀 Paginated mode — لو الـ client بعت ?page=N، نرجّع dataset مقسّم
+    const isPaginated = pageParam !== null
+    if (isPaginated) {
+      const page = Math.max(1, parseInt(pageParam || '1', 10) || 1)
+      const pageSize = Math.min(1000, Math.max(1, parseInt(pageSizeParam || '300', 10) || 300))
+      const [followUps, total] = await Promise.all([
+        prisma.followUp.findMany({
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          include: includes,
+        }),
+        prisma.followUp.count()
+      ])
+      const hasMore = page * pageSize < total
+      return NextResponse.json({ followUps, total, page, pageSize, hasMore })
+    }
+
+    // backward-compat: بدون pagination → array
+    const followUps = await prisma.followUp.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: includes,
     })
 
     return NextResponse.json(followUps)
@@ -177,8 +203,15 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(followUp, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('POST FollowUp Error:', error)
+    // ✅ نوصّل أخطاء الـ auth بـ status codes صحيحة بدل ما نخفيها في 500 generic
+    if (error?.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
+    }
+    if (typeof error?.message === 'string' && error.message.includes('Forbidden')) {
+      return NextResponse.json({ error: 'ليس لديك صلاحية إنشاء متابعات' }, { status: 403 })
+    }
     return NextResponse.json({ error: 'فشل إضافة المتابعة' }, { status: 500 })
   }
 }

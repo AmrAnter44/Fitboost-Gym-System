@@ -2961,7 +2961,8 @@
       "newGroupClass": "اشتراك جروب كلاسيس جديد",
       "groupClassDayUse": "جروب كلاسيس - يوم استخدام",
       "groupClassRenewal": "تجديد جروب كلاسيس",
-      "membershipRenewal": "تجديد عضوية"
+      "membershipRenewal": "تجديد عضوية",
+      "membershipTransfer": "نقل عضوية"
     },
     "excel": {
       "mainSheet": "التقفيل المالي",

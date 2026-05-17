@@ -722,18 +722,19 @@ model FreezeRequest {
 
 model CommissionSettings {
   id          String   @id @default(cuid())
-  // حدود الدخل الشهري
-  tier1Limit  Float    @default(5000)   // أقل من 5000
-  tier2Limit  Float    @default(11000)  // 5000-10999
-  tier3Limit  Float    @default(15000)  // 11000-14999
-  tier4Limit  Float    @default(20000)  // 15000-19999
-  // النسب المئوية لكل مستوى
-  tier1Rate   Float    @default(25)     // 25%
-  tier2Rate   Float    @default(30)     // 30%
-  tier3Rate   Float    @default(35)     // 35%
-  tier4Rate   Float    @default(40)     // 40%
-  tier5Rate   Float    @default(45)     // 45%
-  // تواريخ
+  // عدد المستويات الفعّالة (2-5) — السكيما بتحتفظ بالخمسة دايماً، بس بنستعمل أول N منهم
+  tierCount   Int      @default(5)
+  // حدود الدخل الشهري — N-1 حد لـ N مستوى
+  tier1Limit  Float    @default(5000)
+  tier2Limit  Float    @default(11000)
+  tier3Limit  Float    @default(15000)
+  tier4Limit  Float    @default(20000)
+  // النسب المئوية لكل مستوى — أول N منهم بيُستخدم
+  tier1Rate   Float    @default(25)
+  tier2Rate   Float    @default(30)
+  tier3Rate   Float    @default(35)
+  tier4Rate   Float    @default(40)
+  tier5Rate   Float    @default(45)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
