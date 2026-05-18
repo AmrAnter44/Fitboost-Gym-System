@@ -216,12 +216,11 @@ export default function MembersPage() {
 
       filtered = filtered.filter((member) => {
         if (isAllDigits) {
-          // أرقام → ابحث في memberNumber + phone في نفس الوقت
-          // ده بيخلي "001" يلاقي العضو #1، و "0123" يلاقي تليفون 0123...
-          const qNum = parseInt(q, 10)
+          // أرقام → بحث صارم على memberNumber (الأصفار في الأول مهمة، "0122" ≠ "122")
+          //          + بحث بالـ substring على التليفون
           const matchByNumber =
             member.memberNumber !== null &&
-            parseInt(member.memberNumber as any, 10) === qNum
+            String(member.memberNumber) === q
           const matchByPhone = member.phone.includes(q)
           return matchByNumber || matchByPhone
         }

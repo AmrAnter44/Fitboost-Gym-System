@@ -406,14 +406,11 @@ export default function SearchPage() {
     try {
       const membersRes = await fetch('/api/members')
       const members = await membersRes.json()
-      
-      // ✅ البحث برقم العضوية — يطابق الرقم بصيغته الخام أو بأصفار في الأول
-      const inputAsInt = /^\d+$/.test(inputValue) ? parseInt(inputValue, 10) : null
+
+      // ✅ مطابقة صارمة (string-exact) — "0122" مش = "122"
       const filteredMembers = members.filter((m: any) => {
         if (m.memberNumber == null) return false
-        if (m.memberNumber.toString() === inputValue) return true
-        if (inputAsInt !== null && parseInt(m.memberNumber.toString(), 10) === inputAsInt) return true
-        return false
+        return m.memberNumber.toString() === inputValue
       })
       
       filteredMembers.forEach((member: any) => {

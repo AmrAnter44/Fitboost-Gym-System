@@ -90,6 +90,44 @@ export default function SearchModal() {
   const [invitationModal, setInvitationModal] = useState<{isOpen: boolean, memberId: string, memberName: string, memberSalesStaffId?: string | null}>({ isOpen: false, memberId: '', memberName: '' })
   const [serviceModal, setServiceModal] = useState<{isOpen: boolean, type: 'freePT' | 'inBody' | 'nutrition' | 'physio' | 'groupClass', memberId: string, memberName: string}>({ isOpen: false, type: 'freePT', memberId: '', memberName: '' })
 
+  // 📋 Recent scans — كل سكان ناجح يفضل ظاهر دقيقة عشان لو 2 عملو سكان ورا بعض،
+  //    الريسبشن يقدر يشوف اللي قبل بعد ما الـ result الحالي يتبدّل
+  interface RecentScan {
+    key: string
+    member: any
+    scannedAt: number
+    status: 'active' | 'expired' | 'warning' | 'future' | 'banned' | 'frozen' | 'notStarted'
+  }
+  const RECENT_SCAN_TTL_MS = 60 * 1000 // دقيقة
+  const RECENT_SCAN_MAX = 6
+  const [recentScans, setRecentScans] = useState<RecentScan[]>([])
+  const [nowTick, setNowTick] = useState(0) // عشان "منذ X ثانية" يتحدث
+
+  // كل 5 ثواني: نتخلّص من السكانات اللي عدّت TTL + نحدّث الـ relative time
+  useEffect(() => {
+    if (!isOpen) return
+    const interval = setInterval(() => {
+      setNowTick(t => t + 1)
+      setRecentScans(prev => prev.filter(s => Date.now() - s.scannedAt < RECENT_SCAN_TTL_MS))
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [isOpen])
+
+  // 📥 helper: ضيف عضو للـ recent scans (أو حدّث الموجود بتاعه)
+  const pushRecentScan = useCallback((member: any, status: RecentScan['status']) => {
+    if (!member?.id) return
+    setRecentScans(prev => {
+      const filtered = prev.filter(s => s.member?.id !== member.id)
+      const next: RecentScan = {
+        key: `${member.id}-${Date.now()}`,
+        member,
+        scannedAt: Date.now(),
+        status,
+      }
+      return [next, ...filtered].slice(0, RECENT_SCAN_MAX)
+    })
+  }, [])
+
   // Reset when modal opens/closes
   useEffect(() => {
     if (isOpen) {
@@ -463,13 +501,11 @@ export default function SearchModal() {
       const membersRes = await fetch('/api/members')
       const members = await membersRes.json()
 
-      // ✅ يطابق الرقم بصيغته الخام أو بأصفار في الأول (مثلاً "01313" → 1313)
-      const inputAsInt = /^\d+$/.test(inputValue) ? parseInt(inputValue, 10) : null
+      // ✅ مطابقة صارمة (string-exact) — "0122" مش = "122"
+      //   لأن الأصفار في الأول جزء من رقم العضوية ومش بنتجاهلها
       const filteredMembers = members.filter((m: any) => {
         if (m.memberNumber == null) return false
-        if (m.memberNumber.toString() === inputValue) return true
-        if (inputAsInt !== null && parseInt(m.memberNumber.toString(), 10) === inputAsInt) return true
-        return false
+        return m.memberNumber.toString() === inputValue
       })
 
       filteredMembers.forEach((member: any) => {
@@ -492,6 +528,18 @@ export default function SearchModal() {
           handleMemberCheckIn(member.id)
         }
 
+        // 📋 ضيفه للـ recent scans عشان يفضل ظاهر دقيقة
+        let scanStatus: RecentScan['status'] = 'active'
+        if (member.isBanned) scanStatus = 'banned'
+        else if (member.isFrozen) scanStatus = 'frozen'
+        else if (!hasStarted) scanStatus = 'notStarted'
+        else if (!notExpired || !member.isActive) scanStatus = 'expired'
+        else if (expiryDate) {
+          const diffDays = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+          if (diffDays <= 7) scanStatus = 'warning'
+        }
+        pushRecentScan(member, scanStatus)
+
         if (!silent) checkMemberStatusAndPlaySound(member)
       } else {
         if (!silent) playAlarmSound()
@@ -509,7 +557,7 @@ export default function SearchModal() {
     } finally {
       setLoading(false)
     }
-  }, [memberId, playAlarmSound, playSuccessSound, handleMemberCheckIn, checkMemberStatusAndPlaySound])
+  }, [memberId, playAlarmSound, playSuccessSound, handleMemberCheckIn, checkMemberStatusAndPlaySound, pushRecentScan])
 
   // Handle search value from barcode (placed after handleSearchById to avoid reference error)
   useEffect(() => {
@@ -689,6 +737,90 @@ export default function SearchModal() {
                 </svg>
               </button>
             </div>
+
+            {/* 📋 Recent scans strip — السكانات اللي حصلت في آخر دقيقة */}
+            {(() => {
+              const visibleScans = recentScans.filter(s => Date.now() - s.scannedAt < RECENT_SCAN_TTL_MS)
+              if (visibleScans.length === 0) return null
+              return (
+              <div className="bg-gradient-to-b from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-800 border-b-2 border-blue-200 dark:border-blue-800 p-2 sm:p-3" dir={direction}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-blue-800 dark:text-blue-200">
+                    <span>📋</span>
+                    <span>{direction === 'rtl' ? `آخر السكانات (${visibleScans.length})` : `Recent scans (${visibleScans.length})`}</span>
+                    <span className="text-[10px] text-blue-600/70 dark:text-blue-300/70 font-normal">
+                      {direction === 'rtl' ? '— كل سكان يفضل ظاهر دقيقة' : '— each visible for 1 min'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRecentScans([])}
+                    className="text-[10px] text-blue-600 dark:text-blue-300 hover:text-red-500 px-2 py-0.5 rounded"
+                  >
+                    {direction === 'rtl' ? '✕ مسح الكل' : '✕ Clear all'}
+                  </button>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {visibleScans.map((scan) => {
+                    const ageSec = Math.floor((Date.now() - scan.scannedAt) / 1000)
+                    const remainSec = Math.max(0, 60 - ageSec)
+                    const m = scan.member
+                    const statusStyle = {
+                      active: { bg: 'bg-green-50 dark:bg-green-900/30', border: 'border-green-300 dark:border-green-700', text: 'text-green-700 dark:text-green-300', icon: '✅' },
+                      warning: { bg: 'bg-yellow-50 dark:bg-yellow-900/30', border: 'border-yellow-300 dark:border-yellow-700', text: 'text-yellow-700 dark:text-yellow-300', icon: '⚠️' },
+                      expired: { bg: 'bg-red-50 dark:bg-red-900/30', border: 'border-red-300 dark:border-red-700', text: 'text-red-700 dark:text-red-300', icon: '⛔' },
+                      banned: { bg: 'bg-gray-900 dark:bg-black', border: 'border-gray-700', text: 'text-red-200', icon: '🚫' },
+                      frozen: { bg: 'bg-blue-50 dark:bg-blue-900/30', border: 'border-blue-300 dark:border-blue-700', text: 'text-blue-700 dark:text-blue-300', icon: '🧊' },
+                      future: { bg: 'bg-purple-50 dark:bg-purple-900/30', border: 'border-purple-300 dark:border-purple-700', text: 'text-purple-700 dark:text-purple-300', icon: '⏳' },
+                      notStarted: { bg: 'bg-purple-50 dark:bg-purple-900/30', border: 'border-purple-300 dark:border-purple-700', text: 'text-purple-700 dark:text-purple-300', icon: '⏳' },
+                    }[scan.status] || { bg: 'bg-gray-50 dark:bg-gray-700', border: 'border-gray-300 dark:border-gray-600', text: 'text-gray-700 dark:text-gray-300', icon: '•' }
+                    return (
+                      <div
+                        key={scan.key}
+                        className={`flex-shrink-0 w-44 sm:w-52 ${statusStyle.bg} border-2 ${statusStyle.border} rounded-lg p-2 relative`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                            {m?.profileImage ? (
+                              <img src={m.profileImage} alt={m.name} className="w-full h-full object-cover" loading="lazy" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-xs font-bold truncate ${statusStyle.text}`} title={m?.name}>
+                              {statusStyle.icon} {m?.name || '—'}
+                            </div>
+                            <div className={`text-[10px] font-mono truncate ${statusStyle.text} opacity-80`}>
+                              #{m?.memberNumber ?? '—'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                          <span title={new Date(scan.scannedAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}>
+                            {direction === 'rtl' ? `قبل ${ageSec}ث` : `${ageSec}s ago`}
+                          </span>
+                          <span className="font-mono">{remainSec}s</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setRecentScans(prev => prev.filter(s => s.key !== scan.key))}
+                          className="absolute top-0.5 end-0.5 text-gray-400 hover:text-red-500 text-xs px-1"
+                          title={direction === 'rtl' ? 'إزالة' : 'Remove'}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+              )
+            })()}
 
             {/* Content - استخدام نفس JSX من صفحة البحث */}
             <div className="p-2 sm:p-3">
