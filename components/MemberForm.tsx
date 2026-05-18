@@ -7,7 +7,9 @@ import CoachSelector from './CoachSelector'
 import SalesStaffSelector from './SalesStaffSelector'
 import ImageUpload from './ImageUpload'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
-import { printReceiptFromData } from '../lib/printSystem'
+// ✅ ReceiptToPrint popup — يظهر بعد إنشاء العضو بدل الطباعة التلقائية
+//   المستخدم بيختار من البوب اب: يطبع، يرسل واتساب، أو يغلق
+import { ReceiptToPrint } from './ReceiptToPrint'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
@@ -35,6 +37,14 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [nextMemberNumber, setNextMemberNumber] = useState<string | null>(null)
+  // 🧾 ReceiptToPrint popup state
+  const [receiptPopup, setReceiptPopup] = useState<null | {
+    receiptNumber: number
+    amount: number
+    details: any
+    date: Date
+    paymentMethod?: string
+  }>(null)
   const [nextReceiptNumber, setNextReceiptNumber] = useState<number | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
   const [idCardFrontPreview, setIdCardFrontPreview] = useState<string>('')
@@ -468,46 +478,41 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         if (data.receipt) {
           queryClient.invalidateQueries({ queryKey: ['receipts'] })
 
-          setTimeout(() => {
-            const subscriptionDays = formData.startDate && formData.expiryDate
-              ? calculateDaysBetween(formData.startDate, formData.expiryDate)
-              : null
+          // 🧾 بدل الطباعة التلقائية → نظهر popup فيه أزرار طباعة + واتساب
+          const subscriptionDays = formData.startDate && formData.expiryDate
+            ? calculateDaysBetween(formData.startDate, formData.expiryDate)
+            : null
 
-            const paidAmount = cleanedData.subscriptionPrice
+          const paymentMethodStr = typeof formData.paymentMethod === 'string'
+            ? formData.paymentMethod
+            : serializePaymentMethods(formData.paymentMethod)
 
-            // تحويل paymentMethod إلى string للطباعة
-            const paymentMethodStr = typeof formData.paymentMethod === 'string'
-              ? formData.paymentMethod
-              : serializePaymentMethods(formData.paymentMethod)
+          const receiptDetails = {
+            memberNumber: data.member.memberNumber,
+            memberName: data.member.name,
+            phone: data.member.phone,
+            startDate: formData.startDate,
+            expiryDate: formData.expiryDate,
+            subscriptionDays: subscriptionDays,
+            subscriptionPrice: cleanedData.subscriptionPrice,
+            paidAmount: cleanedData.subscriptionPrice - (formData.remainingAmount || 0),
+            remainingAmount: formData.remainingAmount || 0,
+            inBodyScans: cleanedData.inBodyScans,
+            invitations: cleanedData.invitations,
+            freePTSessions: cleanedData.freePTSessions,
+            paymentMethod: paymentMethodStr,
+            staffName: formData.staffName
+          }
 
-            const receiptDetails = {
-              memberNumber: data.member.memberNumber,
-              memberName: data.member.name,
-              phone: data.member.phone,
-              startDate: formData.startDate,
-              expiryDate: formData.expiryDate,
-              subscriptionDays: subscriptionDays,
-              subscriptionPrice: cleanedData.subscriptionPrice,
-              paidAmount: paidAmount - (formData.remainingAmount || 0),
-              remainingAmount: formData.remainingAmount || 0,
-              inBodyScans: cleanedData.inBodyScans,
-              invitations: cleanedData.invitations,
-              freePTSessions: cleanedData.freePTSessions,
-              paymentMethod: paymentMethodStr,
-              staffName: formData.staffName
-            }
-
-            printReceiptFromData(
-              data.receipt.receiptNumber,
-              'Member',
-              cleanedData.subscriptionPrice - (formData.remainingAmount || 0),
-              receiptDetails,
-              new Date(data.receipt.createdAt),
-              paymentMethodStr
-            )
-          }, 500)
+          setReceiptPopup({
+            receiptNumber: data.receipt.receiptNumber,
+            amount: cleanedData.subscriptionPrice - (formData.remainingAmount || 0),
+            details: receiptDetails,
+            date: new Date(data.receipt.createdAt),
+            paymentMethod: paymentMethodStr,
+          })
         }
-        
+
         // تحديث رقم الإيصال التالي
         const receiptResponse = await fetch('/api/receipts/next-number')
         const receiptData = await receiptResponse.json()
@@ -515,9 +520,14 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           setNextReceiptNumber(receiptData.nextNumber)
         }
 
-        setTimeout(() => {
-          onSuccess()
-        }, 2000)
+        // ✅ لو في إيصال، الـ onSuccess هيتنادي لما المستخدم يقفل الـ popup
+        //   (عشان مفيش race بين إغلاق الفورم وظهور الـ popup)
+        //   لو مفيش إيصال (skipReceipt)، نستدعي onSuccess على طول
+        if (!data.receipt) {
+          setTimeout(() => {
+            onSuccess()
+          }, 2000)
+        }
       } else {
         toast.error(data.error || t('common.error'))
       }
@@ -570,6 +580,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   }
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-3" dir={direction}>
       {/* قسم العروض */}
       <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
@@ -859,6 +870,8 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
               className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
             >
               <option value="">{t('members.form.selectSource')}</option>
+              <option value="walk-in">{t('members.form.sourceWalkIn')}</option>
+              <option value="call-in">{t('members.form.sourceCallIn')}</option>
               <option value="facebook">{t('members.form.sourceFacebook')}</option>
               <option value="instagram">{t('members.form.sourceInstagram')}</option>
               <option value="tiktok">{t('members.form.sourceTiktok')}</option>
@@ -890,10 +903,12 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         />
       )}
 
-      {/* 💼 اختيار موظف السيلز — مقفول لغير OWNER/ADMIN لما الرقم متطابق مع متابعة */}
+      {/* 💼 اختيار موظف السيلز — مقفول لغير OWNER/ADMIN لما الرقم متطابق مع متابعة
+              autoSelectLeastLoaded: لما الفورم يفتح من غير سيلز مسبق، يختار الأقل تحميلاً تلقائياً */}
       <SalesStaffSelector
         value={formData.salesStaffId}
         onChange={(salesStaffId) => setFormData({ ...formData, salesStaffId })}
+        autoSelectLeastLoaded
         locked={
           matchedFollowUp && !(user?.role === 'OWNER' || user?.role === 'ADMIN')
             ? { reason: `${direction === 'rtl' ? 'الموظف اللي كان بيتابع المتابعة' : 'The sales rep already following up'}: ${matchedFollowUp.salesStaffName}` }
@@ -1318,9 +1333,28 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
 
       <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 text-center">
         <p className="text-xs text-primary-800 dark:text-primary-300">
-          🖨️ <strong>{t('members.notes')}:</strong> {t('members.form.receiptWillPrintAutomatically')}
+          🧾 <strong>{t('members.notes')}:</strong> {direction === 'rtl'
+            ? 'بعد الحفظ هيظهر إيصال — اختار "طباعة" أو "إرسال واتساب" أو اقفله'
+            : 'After saving, a receipt popup appears — choose Print, WhatsApp, or close it'}
         </p>
       </div>
     </form>
+
+    {/* 🧾 Receipt popup — يظهر بعد إنشاء عضو + إيصال بدل الطباعة التلقائية */}
+    {receiptPopup && (
+      <ReceiptToPrint
+        receiptNumber={receiptPopup.receiptNumber}
+        type="Member"
+        amount={receiptPopup.amount}
+        details={receiptPopup.details}
+        date={receiptPopup.date}
+        paymentMethod={receiptPopup.paymentMethod}
+        onClose={() => {
+          setReceiptPopup(null)
+          onSuccess()
+        }}
+      />
+    )}
+    </>
   )
 }

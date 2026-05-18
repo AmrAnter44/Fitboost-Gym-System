@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 
 interface StaffOption {
@@ -8,6 +8,7 @@ interface StaffOption {
   name: string
   staffCode: string
   position: string | null
+  memberCount?: number
 }
 
 interface SalesStaffSelectorProps {
@@ -17,26 +18,52 @@ interface SalesStaffSelectorProps {
   requireConfirmIfChanging?: boolean
   /** When set, the selector is read-only. The server enforces this assignment regardless. */
   locked?: { reason: string }
+  /** When true, auto-selects the sales staff with the fewest assigned members (only if value is null). */
+  autoSelectLeastLoaded?: boolean
 }
 
-export default function SalesStaffSelector({ value, onChange, requireConfirmIfChanging = false, locked }: SalesStaffSelectorProps) {
+export default function SalesStaffSelector({ value, onChange, requireConfirmIfChanging = false, locked, autoSelectLeastLoaded = false }: SalesStaffSelectorProps) {
   const { locale } = useLanguage()
   const [staff, setStaff] = useState<StaffOption[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/staff')
+    // 💼 في الـ auto-select mode بنستعمل endpoint السيلز-لود اللي بيرجع العدّ كمان
+    const url = autoSelectLeastLoaded ? '/api/staff/sales-load' : '/api/staff'
+    fetch(url)
       .then(r => r.ok ? r.json() : [])
       .then((data: StaffOption[]) => {
-        // فلتر: الموظفين اللي عندهم تاج "sales" في الـ position
+        // الـ /api/staff/sales-load بيرجع موظفين السيلز فقط؛
+        // الـ /api/staff العادي بيرجع الكل فلازم نفلتر
         const salesOnly = Array.isArray(data)
-          ? data.filter(s => s.position && s.position.split(',').map(p => p.trim()).includes('sales'))
+          ? (autoSelectLeastLoaded
+              ? data
+              : data.filter(s => s.position && s.position.split(',').map(p => p.trim()).includes('sales')))
           : []
         setStaff(salesOnly)
       })
       .catch(() => setStaff([]))
       .finally(() => setLoading(false))
-  }, [])
+  }, [autoSelectLeastLoaded])
+
+  // 🤖 Auto-select least-loaded sales staff لما الـ value فاضي (مرة واحدة بعد تحميل القايمة)
+  const autoSelectedRef = useRef(false)
+  useEffect(() => {
+    if (!autoSelectLeastLoaded) return
+    if (loading) return
+    if (locked) return
+    if (value) return
+    if (autoSelectedRef.current) return
+    if (staff.length === 0) return
+
+    const least = staff.reduce((min, s) => {
+      const sc = s.memberCount ?? 0
+      const mc = min.memberCount ?? 0
+      return sc < mc ? s : min
+    })
+    autoSelectedRef.current = true
+    onChange(least.id)
+  }, [autoSelectLeastLoaded, loading, locked, value, staff, onChange])
 
   const selectedStaff = staff.find(s => s.id === value)
   const nameOf = (id: string | null) => (id ? staff.find(s => s.id === id)?.name || '—' : '—')
@@ -87,6 +114,7 @@ export default function SalesStaffSelector({ value, onChange, requireConfirmIfCh
             {staff.map(s => (
               <option key={s.id} value={s.id}>
                 {s.name} — #{s.staffCode}{s.position ? ` (${s.position})` : ''}
+                {typeof s.memberCount === 'number' ? ` — ${s.memberCount} ${locale === 'ar' ? 'عضو' : 'members'}` : ''}
               </option>
             ))}
           </select>

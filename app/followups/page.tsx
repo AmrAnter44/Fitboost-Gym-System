@@ -1820,6 +1820,7 @@ export default function FollowUpsPage() {
   const getSourceLabel = useCallback((source: string) => {
     const labels: Record<string, string> = {
       'walk-in': t('followups.sources.walkIn'),
+      'call-in': t('followups.sources.callIn'),
       'invitation': t('followups.sources.invitation'),
       'member-invitation': t('followups.sources.memberInvitation'),
       'expired-member': t('followups.sources.expiredMember'),

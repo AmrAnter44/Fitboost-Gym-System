@@ -278,6 +278,8 @@
       "birthDateOptional": "Birth Date (optional)",
       "sourceOptional": "Member Source (optional)",
       "selectSource": "-- Select Source --",
+      "sourceWalkIn": "Walk In",
+      "sourceCallIn": "Call In",
       "sourceFacebook": "Facebook",
       "sourceInstagram": "Instagram",
       "sourceTiktok": "TikTok",
@@ -2213,7 +2215,8 @@
       "submit": "Add Visitor"
     },
     "sources": {
-      "walkIn": "Walk-in",
+      "walkIn": "Walk In",
+      "callIn": "Call In",
       "facebook": "Facebook",
       "instagram": "Instagram",
       "friend": "Friend",
@@ -2349,7 +2352,8 @@
       "memberInvitations": "Member Invitations",
       "dayUse": "Day Use",
       "visitors": "Visitors",
-      "walkIn": "Walk-in",
+      "walkIn": "Walk In",
+      "callIn": "Call In",
       "invitation": "🎁 Invitation (Day Use)",
       "memberInvitation": "👥 Member Invitation",
       "expiredMember": "❌ Expired Member (Renewal)",

@@ -489,6 +489,7 @@ export default function VisitorsPage() {
   const getSourceLabel = (source: string) => {
     const labels: Record<string, string> = {
       'walk-in': t('visitors.sources.walkIn'),
+      'call-in': t('visitors.sources.callIn'),
       'facebook': t('visitors.sources.facebook'),
       'instagram': t('visitors.sources.instagram'),
       'friend': t('visitors.sources.friend'),
@@ -625,6 +626,7 @@ export default function VisitorsPage() {
                   className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="walk-in">{t('visitors.sources.walkIn')}</option>
+                  <option value="call-in">{t('visitors.sources.callIn')}</option>
                   <option value="facebook">{t('visitors.sources.facebook')}</option>
                   <option value="instagram">{t('visitors.sources.instagram')}</option>
                   <option value="friend">{t('visitors.sources.friend')}</option>
