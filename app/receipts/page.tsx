@@ -139,13 +139,33 @@ export default function ReceiptsPage() {
     paymentMethod: string | PaymentMethod[]
     staffName: string
     createdAt: string
+    // 🆕 بيانات الاشتراك (اسم العضو/العميل + تليفون + تواريخ)
+    subscriptionName: string
+    subscriptionPhone: string
+    subscriptionStartDate: string  // YYYY-MM-DD
+    subscriptionExpiryDate: string // YYYY-MM-DD
+    hasSubscriptionDates: boolean  // الـ snapshot الحالي فيه تواريخ ولا لأ
+    subscriptionCoachName: string
+    hasCoachField: boolean         // الـ snapshot فيه coachName ولا لأ
+    cascade: boolean               // يحدّث العضو/PT المرتبط
   }>({
     receiptNumber: 0,
     amount: 0,
     paymentMethod: 'cash',
     staffName: '',
-    createdAt: ''
+    createdAt: '',
+    subscriptionName: '',
+    subscriptionPhone: '',
+    subscriptionStartDate: '',
+    subscriptionExpiryDate: '',
+    hasSubscriptionDates: false,
+    subscriptionCoachName: '',
+    hasCoachField: false,
+    cascade: true,
   })
+
+  // 🏋️ قائمة الكوتشز (تجاب لازم بس لما يفتح edit modal لإيصال فيه كوتش)
+  const [coachOptions, setCoachOptions] = useState<Array<{ id: string; name: string }>>([])
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -476,13 +496,63 @@ export default function ReceiptsPage() {
       paymentMethodValue = deserializePaymentMethods(receipt.paymentMethod)
     }
 
+    // 🧾 parse itemDetails واستخراج بيانات الاشتراك
+    let details: any = {}
+    try {
+      details = receipt.itemDetails ? JSON.parse(receipt.itemDetails) : {}
+    } catch {
+      details = {}
+    }
+    const subName = details.memberName || details.clientName || details.name || ''
+    const subPhone = details.phone || ''
+    const toDateInput = (v: any): string => {
+      if (!v) return ''
+      try {
+        const d = new Date(v)
+        if (isNaN(d.getTime())) return ''
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+        return local.toISOString().slice(0, 10)
+      } catch {
+        return ''
+      }
+    }
+    const subStart = toDateInput(details.startDate || details.newStartDate)
+    const subExpiry = toDateInput(details.expiryDate || details.newExpiryDate)
+    const hasDates = !!(details.startDate || details.expiryDate || details.newStartDate || details.newExpiryDate)
+    const subCoachName = details.coachName || ''
+    const hasCoach = !!details.coachName
+
     setEditFormData({
       receiptNumber: receipt.receiptNumber,
       amount: receipt.amount,
       paymentMethod: paymentMethodValue,
       staffName: receipt.staffName || '',
-      createdAt: formattedDate
+      createdAt: formattedDate,
+      subscriptionName: subName,
+      subscriptionPhone: subPhone,
+      subscriptionStartDate: subStart,
+      subscriptionExpiryDate: subExpiry,
+      hasSubscriptionDates: hasDates,
+      subscriptionCoachName: subCoachName,
+      hasCoachField: hasCoach,
+      cascade: true,
     })
+
+    // lazy-load قائمة الكوتشز لو الإيصال فيه coachName
+    if (hasCoach && coachOptions.length === 0) {
+      fetch('/api/staff')
+        .then(r => r.ok ? r.json() : [])
+        .then((arr: any[]) => {
+          const coaches = Array.isArray(arr)
+            ? arr
+                .filter(s => s.isActive && (s.position === 'مدرب' || s.position === 'trainer'))
+                .map(s => ({ id: s.id, name: s.name }))
+            : []
+          setCoachOptions(coaches)
+        })
+        .catch(() => {})
+    }
+
     setShowEditModal(true)
   }
 
@@ -510,6 +580,37 @@ export default function ReceiptsPage() {
     setShowEditModal(false)
     setEditingReceipt(null)
 
+    // 🆕 جهّز payload بيانات الاشتراك (نبعتها بس لو فيه تغيير فعلي عن الـ snapshot الأصلي)
+    let subscriptionPayload: { name?: string; phone?: string; startDate?: string | null; expiryDate?: string | null; coachName?: string } | undefined
+    try {
+      const originalDetails = editingReceipt.itemDetails ? JSON.parse(editingReceipt.itemDetails) : {}
+      const origName = originalDetails.memberName || originalDetails.clientName || originalDetails.name || ''
+      const origPhone = originalDetails.phone || ''
+      const origStart = originalDetails.startDate || originalDetails.newStartDate || null
+      const origExpiry = originalDetails.expiryDate || originalDetails.newExpiryDate || null
+      const origCoach = originalDetails.coachName || ''
+
+      const sub: any = {}
+      if ((editFormData.subscriptionName || '') !== origName) sub.name = editFormData.subscriptionName
+      if ((editFormData.subscriptionPhone || '') !== origPhone) sub.phone = editFormData.subscriptionPhone
+      // التواريخ: نبعتها بس لو الـ snapshot أصلاً فيها تواريخ
+      if (editFormData.hasSubscriptionDates) {
+        const newStart = editFormData.subscriptionStartDate || null
+        const newExpiry = editFormData.subscriptionExpiryDate || null
+        const normOrigStart = origStart ? new Date(origStart).toISOString().slice(0, 10) : null
+        const normOrigExpiry = origExpiry ? new Date(origExpiry).toISOString().slice(0, 10) : null
+        if (newStart !== normOrigStart) sub.startDate = newStart
+        if (newExpiry !== normOrigExpiry) sub.expiryDate = newExpiry
+      }
+      // الكوتش: نبعته بس لو الـ snapshot فيه coachName من الأصل
+      if (editFormData.hasCoachField && (editFormData.subscriptionCoachName || '') !== origCoach) {
+        sub.coachName = editFormData.subscriptionCoachName
+      }
+      if (Object.keys(sub).length > 0) subscriptionPayload = sub
+    } catch {
+      // ignore parse errors
+    }
+
     try {
       const response = await fetch('/api/receipts/update', {
         method: 'PUT',
@@ -520,13 +621,21 @@ export default function ReceiptsPage() {
           amount: editFormData.amount,
           paymentMethod: paymentMethodToSave,
           staffName: editFormData.staffName,
-          createdAt: updatedCreatedAt
+          createdAt: updatedCreatedAt,
+          ...(subscriptionPayload ? { subscription: subscriptionPayload } : {}),
+          cascade: editFormData.cascade,
         })
       })
 
       if (response.ok) {
         toast.success(t('receipts.edit.success'))
         queryClient.invalidateQueries({ queryKey: ['receipts'] })
+        // لو cascade اتعمل، نـ invalidate الـ members/pt كمان
+        if (subscriptionPayload && editFormData.cascade) {
+          queryClient.invalidateQueries({ queryKey: ['members'] })
+          queryClient.invalidateQueries({ queryKey: ['member', editingReceipt.memberId] })
+          queryClient.invalidateQueries({ queryKey: ['pt'] })
+        }
       } else {
         queryClient.setQueryData(['receipts'], previousData)
         setShowEditModal(true)
@@ -1609,6 +1718,122 @@ export default function ReceiptsPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   ℹ️ {t('receipts.edit.dateNote')}
                 </p>
+              </div>
+
+              {/* 🧾 بيانات الاشتراك (الاسم/التليفون/التواريخ) */}
+              <div className="bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-4 space-y-3">
+                <h3 className="font-bold text-base text-primary-800 dark:text-primary-200 flex items-center gap-2">
+                  <span>👤</span>
+                  <span>بيانات الاشتراك</span>
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">الاسم</label>
+                    <input
+                      type="text"
+                      value={editFormData.subscriptionName}
+                      onChange={(e) => setEditFormData({ ...editFormData, subscriptionName: e.target.value })}
+                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="اسم العميل"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">رقم التليفون</label>
+                    <input
+                      type="tel"
+                      value={editFormData.subscriptionPhone}
+                      onChange={(e) => setEditFormData({ ...editFormData, subscriptionPhone: e.target.value })}
+                      className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white font-mono"
+                      placeholder="010xxxxxxxx"
+                    />
+                  </div>
+                </div>
+
+                {editFormData.hasSubscriptionDates && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">تاريخ البداية</label>
+                      <input
+                        type="date"
+                        value={editFormData.subscriptionStartDate}
+                        onChange={(e) => setEditFormData({ ...editFormData, subscriptionStartDate: e.target.value })}
+                        className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">تاريخ النهاية</label>
+                      <input
+                        type="date"
+                        value={editFormData.subscriptionExpiryDate}
+                        onChange={(e) => setEditFormData({ ...editFormData, subscriptionExpiryDate: e.target.value })}
+                        className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 🏋️ الكوتش — يظهر بس للإيصالات اللي فيها coachName */}
+                {editFormData.hasCoachField && (
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 dark:text-gray-100">🏋️ الكوتش</label>
+                    {coachOptions.length > 0 ? (
+                      <select
+                        value={editFormData.subscriptionCoachName}
+                        onChange={(e) => setEditFormData({ ...editFormData, subscriptionCoachName: e.target.value })}
+                        className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="">— بدون كوتش —</option>
+                        {/* لو الـ value الحالي مش في القائمة (كوتش متعطّل/محذوف) نضيفه عشان ميختفيش */}
+                        {editFormData.subscriptionCoachName &&
+                          !coachOptions.some(c => c.name === editFormData.subscriptionCoachName) && (
+                            <option value={editFormData.subscriptionCoachName}>
+                              {editFormData.subscriptionCoachName} (غير نشط)
+                            </option>
+                          )}
+                        {coachOptions.map(c => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={editFormData.subscriptionCoachName}
+                        onChange={(e) => setEditFormData({ ...editFormData, subscriptionCoachName: e.target.value })}
+                        className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="اسم الكوتش"
+                      />
+                    )}
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                      💡 لو cascade مفعّل، الـ PT المرتبط هيتحدّث (coachName + coachUserId).
+                    </p>
+                  </div>
+                )}
+
+                {/* Cascade toggle */}
+                <label className={`flex items-start gap-2 p-3 rounded-lg cursor-pointer transition ${
+                  editFormData.cascade
+                    ? 'bg-green-50 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700'
+                    : 'bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600'
+                } ${!hasPermission('canEditMembers') ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={editFormData.cascade}
+                    disabled={!hasPermission('canEditMembers')}
+                    onChange={(e) => setEditFormData({ ...editFormData, cascade: e.target.checked })}
+                    className="mt-0.5 w-4 h-4"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-800 dark:text-gray-100">
+                      🔁 حدّث بيانات العضو/PT الأصلي كمان
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                      {hasPermission('canEditMembers')
+                        ? 'لو مفعّل، التعديلات هتترسم على سجل العضو/PT المرتبط بالإيصال (الاسم/التليفون/التواريخ). أنواع تانية: الإيصال بس بيتحدّث.'
+                        : '⚠️ محتاج صلاحية canEditMembers — التعديل هيتم على الإيصال بس.'}
+                    </p>
+                  </div>
+                </label>
               </div>
 
               {/* ملاحظة تحذيرية */}
