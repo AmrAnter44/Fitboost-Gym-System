@@ -94,6 +94,7 @@ async function updateSettings(request: Request) {
       'freeNutritionSessionPrice', 'freePhysioSessionPrice',
       'freeGroupClassSessionPrice',
       'ptCommissionEnabled', 'ptCommissionAmount',
+      'ptFreezeEnabled', 'ptUpgradeEnabled',
       'nutritionReferralEnabled', 'nutritionReferralPercentage',
       'physioReferralEnabled', 'physioReferralPercentage',
       'remainingEnabled',

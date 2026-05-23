@@ -282,7 +282,9 @@ export default function SettingsPage() {
     freeNutritionSessionPrice: 0,
     freePhysioSessionPrice: 0,
     freeGroupClassSessionPrice: 0,
-    remainingEnabled: false
+    remainingEnabled: false,
+    ptFreezeEnabled: false,
+    ptUpgradeEnabled: false
   })
 
   const [nextReceiptNumber, setNextReceiptNumber] = useState(1)
@@ -1241,6 +1243,7 @@ export default function SettingsPage() {
                     </div>
                   ))}
                 </div>
+
                 <div className="mt-6 flex justify-end"><button onClick={saveServiceSettings} disabled={isSaving} className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium rounded-lg">{isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}</button></div>
               </div>
             </div>
@@ -2533,6 +2536,63 @@ export default function SettingsPage() {
                       السكريبت بيمشي على كل الأعضاء اللي عندهم باقة محفوظة، ويطبق عليهم الحصص + الفريز + الدعوات + InBody.
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* 💪 مميزات اشتراك PT */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                  <span>💪</span>
+                  <span>مميزات اشتراك PT</span>
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                  تفعيل مميزات إضافية على اشتراكات الـ PT (الفريز والترقية). الزرارين بيظهروا في كروت الـ PT بعد التفعيل.
+                </p>
+                <div className="grid gap-3">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">❄️</span>
+                      <div>
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-100">فريز اشتراك PT</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">السماح بتجميد اشتراك الـ PT لعدد أيام محدد ومدّ تاريخ الانتهاء.</p>
+                      </div>
+                    </div>
+                    <label className="toggle-switch toggle-green">
+                      <input
+                        type="checkbox"
+                        checked={!!serviceSettings.ptFreezeEnabled}
+                        onChange={() => updateSetting('ptFreezeEnabled', !serviceSettings.ptFreezeEnabled)}
+                      />
+                      <span className="toggle-track"><span className="toggle-thumb"></span></span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">🚀</span>
+                      <div>
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-100">ترقية باقة PT</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">السماح بترقية باقة الـ PT لباقة أعلى مع حساب فرق السعر وإصدار إيصال.</p>
+                      </div>
+                    </div>
+                    <label className="toggle-switch toggle-green">
+                      <input
+                        type="checkbox"
+                        checked={!!serviceSettings.ptUpgradeEnabled}
+                        onChange={() => updateSetting('ptUpgradeEnabled', !serviceSettings.ptUpgradeEnabled)}
+                      />
+                      <span className="toggle-track"><span className="toggle-thumb"></span></span>
+                    </label>
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={saveServiceSettings}
+                    disabled={isSaving}
+                    className="px-5 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium rounded-lg text-sm"
+                  >
+                    {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
+                  </button>
                 </div>
               </div>
 
