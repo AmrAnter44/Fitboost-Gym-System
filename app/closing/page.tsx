@@ -145,6 +145,84 @@ export default function ClosingPage() {
       const filteredReceipts = receipts.filter((r: any) => !r.isCancelled && filterDate(r.createdAt))
       const filteredExpenses = expenses.filter((e: any) => filterDate(e.createdAt))
 
+      // 💰 بناء map للمدفوعات اللاحقة (Payment receipts) عشان نحسب الباقي الفعلي الحالي
+      // نـ index الـ payments بـ memberId / ptNumber + تاريخها — مرتبة من الأقدم للأحدث.
+      // ملاحظة: بنشتغل على كل الإيصالات (مش filteredReceipts) عشان الـ payments اللي حصلت
+      // بعد الفترة المعروضة بتأثر برضو على البواقي الحالية للإيصالات القديمة.
+      const activeReceipts = (receipts as any[]).filter(r => !r.isCancelled)
+      const paymentsByMember: Record<string, Array<{ amount: number; date: number }>> = {}
+      const paymentsByPT: Record<string, Array<{ amount: number; date: number }>> = {}
+      activeReceipts.forEach((r: any) => {
+        if (r.type !== 'Payment') return
+        const ts = new Date(r.createdAt).getTime()
+        if (r.memberId) {
+          if (!paymentsByMember[r.memberId]) paymentsByMember[r.memberId] = []
+          paymentsByMember[r.memberId].push({ amount: r.amount || 0, date: ts })
+        }
+        if (r.ptNumber) {
+          const key = String(r.ptNumber)
+          if (!paymentsByPT[key]) paymentsByPT[key] = []
+          paymentsByPT[key].push({ amount: r.amount || 0, date: ts })
+        }
+      })
+      Object.values(paymentsByMember).forEach(arr => arr.sort((a, b) => a.date - b.date))
+      Object.values(paymentsByPT).forEach(arr => arr.sort((a, b) => a.date - b.date))
+
+      // نبني map للاشتراكات المتتالية لكل عضو/PT عشان نحدد "النافذة" بتاعت كل اشتراك
+      // (الـ payments قبل الاشتراك التالي بتطرح من الباقي الحالي، اللي بعده مالهاش علاقة).
+      const subsByMember: Record<string, number[]> = {} // memberId → sorted timestamps
+      const subsByPT: Record<string, number[]> = {}    // ptNumber → sorted timestamps
+      activeReceipts.forEach((r: any) => {
+        if (r.type === 'Payment') return
+        // فقط الإيصالات اللي ليها فعلاً remainingAmount في الـ snapshot بتعتبر "اشتراك"
+        let hasRemainingField = false
+        try {
+          const det = r.itemDetails ? JSON.parse(r.itemDetails) : null
+          hasRemainingField = det && typeof det.remainingAmount === 'number'
+        } catch {}
+        if (!hasRemainingField) return
+        const ts = new Date(r.createdAt).getTime()
+        if (r.memberId) {
+          if (!subsByMember[r.memberId]) subsByMember[r.memberId] = []
+          subsByMember[r.memberId].push(ts)
+        }
+        if (r.ptNumber) {
+          const key = String(r.ptNumber)
+          if (!subsByPT[key]) subsByPT[key] = []
+          subsByPT[key].push(ts)
+        }
+      })
+      Object.values(subsByMember).forEach(arr => arr.sort((a, b) => a - b))
+      Object.values(subsByPT).forEach(arr => arr.sort((a, b) => a - b))
+
+      /** يطرح من originalRemaining أي payments حصلت بعد الاشتراك ده وقبل الاشتراك اللي بعده. */
+      const computeActualRemaining = (receipt: any, originalRemaining: number): number => {
+        if (originalRemaining <= 0) return 0
+        const recTs = new Date(receipt.createdAt).getTime()
+        const memberId = receipt.memberId as string | null
+        const ptNumber = receipt.ptNumber as number | null
+
+        // نلاقي الـ timestamp بتاع الاشتراك اللي بعد ده مباشرة (لو في) عشان نحدد نهاية النافذة
+        let nextSubTs: number = Infinity
+        if (memberId && subsByMember[memberId]) {
+          const idx = subsByMember[memberId].findIndex(t => t > recTs)
+          if (idx >= 0) nextSubTs = subsByMember[memberId][idx]
+        } else if (ptNumber && subsByPT[String(ptNumber)]) {
+          const idx = subsByPT[String(ptNumber)].findIndex(t => t > recTs)
+          if (idx >= 0) nextSubTs = subsByPT[String(ptNumber)][idx]
+        }
+
+        // نجمع كل الـ payments في النافذة (recTs, nextSubTs)
+        const payments = memberId
+          ? (paymentsByMember[memberId] || [])
+          : (ptNumber ? (paymentsByPT[String(ptNumber)] || []) : [])
+        let paid = 0
+        for (const p of payments) {
+          if (p.date > recTs && p.date < nextSubTs) paid += p.amount
+        }
+        return Math.max(0, originalRemaining - paid)
+      }
+
       const dailyMap: { [key: string]: DailyData } = {}
 
       filteredReceipts.forEach((receipt: any) => {
@@ -181,11 +259,13 @@ export default function ClosingPage() {
 
         dailyMap[date].receipts.push(receipt)
 
-        // استخراج المبلغ المتبقي من itemDetails
+        // استخراج المبلغ المتبقي من itemDetails ثم خصم أي مدفوعات لاحقة (Payment)
+        // عشان نعرض الباقي الفعلي الحالي مش snapshot الإصدار
         let remainingAmountInReceipt = 0
         try {
           const details = JSON.parse(receipt.itemDetails)
-          remainingAmountInReceipt = details.remainingAmount || 0
+          const originalRemaining = details.remainingAmount || 0
+          remainingAmountInReceipt = computeActualRemaining(receipt, originalRemaining)
         } catch (e) {
           // ignore parsing errors
         }
