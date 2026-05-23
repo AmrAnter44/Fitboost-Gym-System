@@ -21,6 +21,8 @@ interface ServiceSettings {
   pointsValueInEGP: number
   ptCommissionEnabled: boolean
   ptCommissionAmount: number
+  ptFreezeEnabled: boolean
+  ptUpgradeEnabled: boolean
   moreCommissionEnabled: boolean
   moreCommissionAmount: number
   nutritionReferralEnabled: boolean
@@ -65,6 +67,8 @@ function parseSettings(data: any): ServiceSettings {
     pointsValueInEGP: data.pointsValueInEGP,
     ptCommissionEnabled: data.ptCommissionEnabled ?? true,
     ptCommissionAmount: data.ptCommissionAmount ?? 50,
+    ptFreezeEnabled: data.ptFreezeEnabled ?? false,
+    ptUpgradeEnabled: data.ptUpgradeEnabled ?? false,
     moreCommissionEnabled: data.moreCommissionEnabled ?? true,
     moreCommissionAmount: data.moreCommissionAmount ?? 50,
     nutritionReferralEnabled: data.nutritionReferralEnabled ?? false,
@@ -145,6 +149,8 @@ function getDefaultSettings(): ServiceSettings {
     pointsValueInEGP: 0.1,
     ptCommissionEnabled: true,
     ptCommissionAmount: 50,
+    ptFreezeEnabled: false,
+    ptUpgradeEnabled: false,
     moreCommissionEnabled: true,
     moreCommissionAmount: 50,
     nutritionReferralEnabled: false,

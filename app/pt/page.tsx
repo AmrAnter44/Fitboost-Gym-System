@@ -18,6 +18,8 @@ import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
 import PTRenewalForm from '../../components/PTRenewalForm'
+import PTFreezeForm from '../../components/PTFreezeForm'
+import PTUpgradeForm from '../../components/PTUpgradeForm'
 
 const SignaturePad = dynamic(() => import('../../components/SignaturePad'), { ssr: false })
 
@@ -43,12 +45,14 @@ interface PTSession {
   expiryDate: string | null
   createdAt: string
   profileImage?: string | null
+  isFrozen?: boolean
+  freezeUntil?: string | null
 }
 
 export default function PTPage() {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
-  const { t, direction } = useLanguage()
+  const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
@@ -105,6 +109,8 @@ export default function PTPage() {
   const [showSignatureModal, setShowSignatureModal] = useState(false)
   const [signatureSession, setSignatureSession] = useState<PTSession | null>(null)
   const [renewalSession, setRenewalSession] = useState<PTSession | null>(null)
+  const [freezeSession, setFreezeSession] = useState<PTSession | null>(null)
+  const [upgradeSession, setUpgradeSession] = useState<PTSession | null>(null)
 
   const [isDayUse, setIsDayUse] = useState(false)
   const [packages, setPackages] = useState<any[]>([])
@@ -1304,6 +1310,30 @@ export default function PTPage() {
                               {t('pt.renew')}
                             </button>
                           )}
+                          {/* ❄️ Freeze - gated بإعدادات الـ ptFreezeEnabled */}
+                          {settings.ptFreezeEnabled && session.ptNumber >= 0 && (
+                            <button
+                              onClick={() => setFreezeSession(session)}
+                              className={`py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 ${
+                                session.isFrozen
+                                  ? 'bg-cyan-600 text-white hover:bg-cyan-700'
+                                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                              }`}
+                            >
+                              <span>❄️</span>
+                              <span>{session.isFrozen ? (locale === 'ar' ? 'مجمّد' : 'Frozen') : (locale === 'ar' ? 'فريز' : 'Freeze')}</span>
+                            </button>
+                          )}
+                          {/* 🚀 Upgrade - gated بإعدادات الـ ptUpgradeEnabled */}
+                          {settings.ptUpgradeEnabled && session.ptNumber >= 0 && (
+                            <button
+                              onClick={() => setUpgradeSession(session)}
+                              className="bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1"
+                            >
+                              <span>🚀</span>
+                              <span>{locale === 'ar' ? 'ترقية' : 'Upgrade'}</span>
+                            </button>
+                          )}
                           {(session.remainingAmount || 0) > 0 && (
                             <button
                               onClick={() => handleOpenPaymentModal(session)}
@@ -1526,6 +1556,37 @@ export default function PTPage() {
             setRenewalSession(null)
           }}
           onClose={() => setRenewalSession(null)}
+        />
+      )}
+
+      {/* ❄️ Freeze Modal */}
+      {freezeSession && (
+        <PTFreezeForm
+          session={freezeSession as any}
+          onClose={() => setFreezeSession(null)}
+          onSuccess={() => {
+            refetchSessions()
+            setFreezeSession(null)
+            toast.success(locale === 'ar' ? 'تم تحديث حالة التجميد' : 'Freeze status updated')
+          }}
+        />
+      )}
+
+      {/* 🚀 Upgrade Modal */}
+      {upgradeSession && (
+        <PTUpgradeForm
+          session={upgradeSession as any}
+          onClose={() => setUpgradeSession(null)}
+          onSuccess={(res) => {
+            refetchSessions()
+            setUpgradeSession(null)
+            toast.success(
+              locale === 'ar'
+                ? `تم الترقية — فرق السعر: ${res.upgradeFee} ج`
+                : `Upgraded — fee: ${res.upgradeFee} EGP`
+            )
+            queryClient.invalidateQueries({ queryKey: ['receipts'] })
+          }}
         />
       )}
     </div>

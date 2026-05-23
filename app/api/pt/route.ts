@@ -57,6 +57,20 @@ export async function GET(request: Request) {
     }
 
 
+    // 🧊 Auto-unfreeze: لو فيه PT اشتراكاته كانت متجمدة و freezeUntil فات → نفك التجميد
+    const nowAuto = new Date()
+    try {
+      await prisma.pT.updateMany({
+        where: {
+          isFrozen: true,
+          freezeUntil: { not: null, lte: nowAuto }
+        } as any,
+        data: { isFrozen: false, freezeUntil: null } as any
+      })
+    } catch (e) {
+      // الحقول لسه مش موجودة في الـ Prisma client لو ما اتعملش generate — نتجاهل
+    }
+
     const ptSessions = await prisma.pT.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },

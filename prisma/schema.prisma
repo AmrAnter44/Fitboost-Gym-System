@@ -108,6 +108,9 @@ model PT {
   qrCode            String?     @unique
   qrCodeImage       String?
   remainingAmount   Int?
+  // ❄️ Freeze fields (gated by SystemSettings.ptFreezeEnabled)
+  isFrozen          Boolean     @default(false)
+  freezeUntil       DateTime?
   sessions          PTSession[]
   receipts          Receipt[]
 
@@ -998,6 +1001,10 @@ model SystemSettings {
   // إعدادات عمولة PT/الكوتش
   ptCommissionEnabled         Boolean  @default(true)   // تفعيل/تعطيل عمولة الكوتش عند إضافة عضو
   ptCommissionAmount          Float    @default(50)     // مبلغ العمولة (جنيه)
+
+  // مميزات اشتراك PT
+  ptFreezeEnabled             Boolean  @default(false)  // تفعيل تجميد اشتراك الـ PT
+  ptUpgradeEnabled            Boolean  @default(false)  // تفعيل ترقية باقة الـ PT
 
   // إعدادات عمولة More
   moreCommissionEnabled       Boolean  @default(true)   // تفعيل/تعطيل عمولة المدرب لخدمة مزيد
