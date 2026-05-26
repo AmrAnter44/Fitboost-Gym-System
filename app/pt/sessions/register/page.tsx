@@ -7,6 +7,8 @@ import { usePermissions } from '../../../../hooks/usePermissions'
 import PermissionDenied from '../../../../components/PermissionDenied'
 import { useDebounce } from '../../../../hooks/useDebounce'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 interface PTSession {
   ptNumber: number
   clientName: string
@@ -121,86 +123,97 @@ export default function RegisterPTSessionPage() {
 
   return (
     <div className="container mx-auto p-6" dir="rtl">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">📝 تسجيل حضور جلسة PT</h1>
-          <p className="text-gray-600 dark:text-gray-300">سجل حضور العميل في جلسة التدريب الشخصي</p>
+      <div className="flex justify-between items-center mb-6 gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex w-10 h-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
+            <svg {...stroke} className="w-6 h-6" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+          </span>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">تسجيل حضور جلسة PT</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">سجل حضور العميل في جلسة التدريب الشخصي</p>
+          </div>
         </div>
         <button
           onClick={() => router.push('/pt/sessions/history')}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+          className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg transition-colors duration-200 inline-flex items-center gap-2 text-sm"
         >
-          📊 سجل الحضور
+          <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+          سجل الحضور
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* قائمة الجلسات المتاحة */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold mb-4">جلسات PT المتاحة</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">جلسات PT المتاحة</h2>
 
-          <div className="mb-4">
+          <div className="mb-4 relative">
+            <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-gray-400 dark:text-gray-500">
+              <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+            </span>
             <input
               type="text"
-              placeholder="🔍 ابحث برقم PT أو الاسم أو الهاتف..."
+              placeholder="ابحث برقم PT أو الاسم أو الهاتف..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
+              className="w-full ps-10 pe-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">جاري التحميل...</div>
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400" aria-busy="true" aria-live="polite">جاري التحميل...</div>
           ) : filteredSessions.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              {searchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد جلسات متاحة'}
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <svg {...stroke} className="w-12 h-12 text-gray-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <h3 className="mt-3 text-gray-700 dark:text-gray-300 font-bold">{searchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد جلسات متاحة'}</h3>
             </div>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {filteredSessions.map((pt) => (
-                <div
+                <button
+                  type="button"
                   key={pt.ptNumber}
                   onClick={() => selectPT(pt)}
-                  className={`border rounded-lg p-4 cursor-pointer transition ${
+                  className={`w-full text-start rounded-lg p-4 cursor-pointer transition-colors duration-200 ring-1 ${
                     formData.ptNumber === pt.ptNumber.toString()
-                      ? 'border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-green-300 hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700'
+                      ? 'ring-green-500 dark:ring-green-400 bg-green-50 dark:bg-green-900/30'
+                      : 'ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-bold text-lg">{pt.clientName}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{pt.phone}</p>
+                      <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">{pt.clientName}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{pt.phone}</p>
                     </div>
-                    <span className="bg-green-600 text-white px-3 py-1 rounded-full font-bold text-sm">
-                      {pt.ptNumber < 0 ? '🏃 Day Use' : `#${pt.ptNumber}`}
+                    <span className="inline-flex items-center gap-1 bg-green-600 text-white px-2.5 py-0.5 rounded-full font-bold text-xs">
+                      {pt.ptNumber < 0 ? 'Day Use' : `#${pt.ptNumber}`}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-700 dark:text-gray-200">المدرب: {pt.coachName}</span>
-                    <span className={`font-bold ${pt.sessionsRemaining <= 3 ? 'text-red-600' : 'text-green-600'}`}>
+                    <span className="text-gray-700 dark:text-gray-300">المدرب: {pt.coachName}</span>
+                    <span className={`font-bold ${pt.sessionsRemaining <= 3 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                       {pt.sessionsRemaining} جلسات متبقية
                     </span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
 
         {/* نموذج التسجيل */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold mb-4">بيانات الحضور</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">بيانات الحضور</h2>
 
           {selectedPT && (
-            <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-4 mb-6">
-              <h3 className="font-bold text-lg mb-2 dark:text-gray-100">الجلسة المحددة:</h3>
-              <div className="space-y-1 dark:text-gray-200">
-                <p><span className="font-semibold">رقم PT:</span> {selectedPT.ptNumber < 0 ? '🏃 Day Use' : `#${selectedPT.ptNumber}`}</p>
-                <p><span className="font-semibold">العميل:</span> {selectedPT.clientName}</p>
-                <p><span className="font-semibold">المدرب:</span> {selectedPT.coachName}</p>
-                <p><span className="font-semibold">الجلسات المتبقية:</span>
-                  <span className={`font-bold mr-2 ${selectedPT.sessionsRemaining <= 3 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+            <div className="bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-700 rounded-lg p-4 mb-6">
+              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-gray-100">الجلسة المحددة:</h3>
+              <div className="space-y-1 text-gray-700 dark:text-gray-300">
+                <p><span className="font-bold">رقم PT:</span> {selectedPT.ptNumber < 0 ? 'Day Use' : `#${selectedPT.ptNumber}`}</p>
+                <p><span className="font-bold">العميل:</span> {selectedPT.clientName}</p>
+                <p><span className="font-bold">المدرب:</span> {selectedPT.coachName}</p>
+                <p><span className="font-bold">الجلسات المتبقية:</span>
+                  <span className={`font-bold ms-2 ${selectedPT.sessionsRemaining <= 3 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                     {selectedPT.sessionsRemaining}
                   </span>
                 </p>
@@ -210,7 +223,7 @@ export default function RegisterPTSessionPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                 رقم PT <span className="text-red-600 dark:text-red-400">*</span>
               </label>
               <input
@@ -218,20 +231,20 @@ export default function RegisterPTSessionPage() {
                 required
                 value={formData.ptNumber}
                 onChange={(e) => setFormData({ ...formData, ptNumber: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-lg font-bold text-green-600 dark:text-green-400 dark:bg-gray-700"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold text-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 placeholder="أدخل رقم PT أو اختر من القائمة"
               />
             </div>
 
-            <div className="bg-gradient-to-br from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-5">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2 dark:text-gray-100">
-                <span>📅</span>
+            <div className="bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-700 rounded-xl p-5">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
                 <span>تاريخ ووقت الجلسة</span>
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     التاريخ <span className="text-red-600 dark:text-red-400">*</span>
                   </label>
                   <input
@@ -239,12 +252,12 @@ export default function RegisterPTSessionPage() {
                     required
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-lg dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     الوقت <span className="text-red-600 dark:text-red-400">*</span>
                   </label>
                   <input
@@ -252,14 +265,14 @@ export default function RegisterPTSessionPage() {
                     required
                     value={formData.time}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-lg dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   />
                 </div>
               </div>
 
-              <div className="mt-4 bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3">
-                <p className="text-sm text-gray-600 dark:text-gray-300">الوقت المحدد:</p>
-                <p className="text-lg font-mono font-bold text-primary-700 dark:text-primary-300">
+              <div className="mt-4 bg-white dark:bg-gray-800 ring-1 ring-primary-300 dark:ring-primary-700 rounded-lg p-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400">الوقت المحدد:</p>
+                <p className="text-lg font-mono font-bold text-primary-700 dark:text-primary-400">
                   {new Date(`${formData.date}T${formData.time}`).toLocaleString('ar-EG', {
                     year: 'numeric',
                     month: 'long',
@@ -272,24 +285,26 @@ export default function RegisterPTSessionPage() {
             </div>
 
             {/* اسم المسجل */}
-            <div className="bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg p-4">
+            <div className="bg-gray-50 dark:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg p-4">
               <div className="flex items-center gap-2">
-                <span className="text-lg">👤</span>
+                <span className="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300">
+                  <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                </span>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">تسجيل بواسطة:</p>
-                  <p className="font-bold text-gray-800 dark:text-gray-100">{user?.name || 'غير معروف'}</p>
+                  <p className="font-bold text-gray-900 dark:text-gray-100">{user?.name || 'غير معروف'}</p>
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                 ملاحظات (اختياري)
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg resize-none dark:bg-gray-700 dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 resize-none"
                 rows={3}
                 placeholder="أضف أي ملاحظات عن الجلسة..."
               />
@@ -298,9 +313,19 @@ export default function RegisterPTSessionPage() {
             <button
               type="submit"
               disabled={submitting || !formData.ptNumber}
-              className="w-full bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold text-lg transition"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold text-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
             >
-              {submitting ? '⏳ جاري التسجيل...' : '✅ تسجيل الحضور'}
+              {submitting ? (
+                <>
+                  <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  جاري التسجيل...
+                </>
+              ) : (
+                <>
+                  <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  تسجيل الحضور
+                </>
+              )}
             </button>
           </form>
         </div>

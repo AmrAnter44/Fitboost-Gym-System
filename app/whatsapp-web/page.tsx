@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLanguage } from '../../contexts/LanguageContext'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 const SESSION_COLORS = [
   { bg: 'bg-blue-600', active: 'bg-blue-700', ring: 'ring-blue-400', dot: 'bg-blue-400' },
   { bg: 'bg-green-600', active: 'bg-green-700', ring: 'ring-green-400', dot: 'bg-green-400' },
@@ -172,8 +174,10 @@ export default function WhatsAppWebPage() {
               setEditingLabel(idx)
               setEditLabelValue(labels[idx] || `${idx + 1}`)
             }}
+            aria-label={isRTL ? `جلسة ${labels[idx] || idx + 1}` : `Session ${labels[idx] || idx + 1}`}
+            aria-current={activeTab === idx ? 'true' : undefined}
             className={`
-              relative flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-shrink-0
+              relative flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors duration-200 flex-shrink-0
               ${activeTab === idx
                 ? `${SESSION_COLORS[idx].active} text-white ring-2 ${SESSION_COLORS[idx].ring} shadow-lg`
                 : `${SESSION_COLORS[idx].bg} text-white/80 hover:text-white hover:shadow-md`
@@ -215,7 +219,8 @@ export default function WhatsAppWebPage() {
             setSessionCount(count)
             if (activeTab >= count) setActiveTab(count - 1)
           }}
-          className="bg-white/10 text-white text-[10px] sm:text-xs rounded-lg px-1.5 sm:px-2 py-1.5 border border-white/20 outline-none cursor-pointer"
+          aria-label={isRTL ? 'عدد الجلسات' : 'Session count'}
+          className="bg-white/10 text-white text-[10px] sm:text-xs rounded-lg px-1.5 sm:px-2 py-1.5 ring-1 ring-white/20 outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-white/40 transition-colors duration-200"
         >
           {[2, 3, 4, 5, 6].map(n => (
             <option key={n} value={n} className="text-gray-900">{n}</option>
@@ -224,10 +229,11 @@ export default function WhatsAppWebPage() {
 
         <button
           onClick={() => handleReload(activeTab)}
-          className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition"
+          className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors duration-200"
           title={isRTL ? 'إعادة تحميل' : 'Reload'}
+          aria-label={isRTL ? 'إعادة تحميل' : 'Reload'}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg {...stroke} className="w-4 h-4" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
@@ -267,7 +273,8 @@ export default function WhatsAppWebPage() {
               <button
                 key={idx}
                 onClick={() => handleTabClick(idx)}
-                className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-3 sm:py-4 rounded-xl text-white font-semibold transition-all active:scale-95 ${SESSION_COLORS[idx].bg} hover:shadow-lg`}
+                aria-label={isRTL ? `فتح جلسة ${labels[idx] || idx + 1}` : `Open session ${labels[idx] || idx + 1}`}
+                className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-3 sm:py-4 rounded-xl text-white font-semibold transition-colors duration-200 ${SESSION_COLORS[idx].bg} hover:shadow-lg`}
               >
                 <span className={`w-2.5 h-2.5 rounded-full ${popupOpen[idx] ? 'bg-green-400 animate-pulse' : 'bg-white/40'}`} />
                 <span className="text-sm sm:text-base">{labels[idx] || `${idx + 1}`}</span>

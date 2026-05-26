@@ -6,6 +6,7 @@ import { InvitationModal, SimpleServiceModal } from './ServiceDeductionModals'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useSearch } from '../contexts/SearchContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
+import { LoadingScreen } from './Spinner'
 
 interface SearchResult {
   type: 'member' | 'pt'
@@ -13,6 +14,164 @@ interface SearchResult {
 }
 
 type SearchMode = 'id' | 'name'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
+const StatusIcon = ({ name, className = 'w-4 h-4' }: { name: string; className?: string }) => {
+  switch (name) {
+    case 'active':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    case 'warning':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z" />
+        </svg>
+      )
+    case 'expired':
+    case 'alarm':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+        </svg>
+      )
+    case 'banned':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+        </svg>
+      )
+    case 'frozen':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18m9-9H3m15.364-6.364L5.636 18.364m12.728 0L5.636 5.636" />
+        </svg>
+      )
+    case 'future':
+    case 'notStarted':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    case 'search':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      )
+    case 'user':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+      )
+    case 'target':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+        </svg>
+      )
+    case 'spinner':
+      return (
+        <svg className={`${className} animate-spin`} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06" />
+        </svg>
+      )
+    case 'note':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+        </svg>
+      )
+    case 'gift':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+        </svg>
+      )
+    case 'eye':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      )
+    case 'arrowRight':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+        </svg>
+      )
+    case 'arrowLeft':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18" />
+        </svg>
+      )
+    case 'invite':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+        </svg>
+      )
+    case 'dumbbell':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+      )
+    case 'scale':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52" />
+        </svg>
+      )
+    case 'leaf':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3" />
+        </svg>
+      )
+    case 'heart':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+        </svg>
+      )
+    case 'users':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+        </svg>
+      )
+    case 'star':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+        </svg>
+      )
+    case 'tag':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
+        </svg>
+      )
+    case 'birthday':
+      return (
+        <svg className={className} {...stroke}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
 
 export default function SearchModal() {
   const router = useRouter()
@@ -90,8 +249,8 @@ export default function SearchModal() {
   const [invitationModal, setInvitationModal] = useState<{isOpen: boolean, memberId: string, memberName: string, memberSalesStaffId?: string | null}>({ isOpen: false, memberId: '', memberName: '' })
   const [serviceModal, setServiceModal] = useState<{isOpen: boolean, type: 'freePT' | 'inBody' | 'nutrition' | 'physio' | 'groupClass', memberId: string, memberName: string}>({ isOpen: false, type: 'freePT', memberId: '', memberName: '' })
 
-  // 📋 Recent scans — كل سكان ناجح يفضل ظاهر دقيقة عشان لو 2 عملو سكان ورا بعض،
-  //    الريسبشن يقدر يشوف اللي قبل بعد ما الـ result الحالي يتبدّل
+  // Recent scans — كل سكان ناجح يفضل ظاهر دقيقة عشان لو 2 عملو سكان ورا بعض،
+  // الريسبشن يقدر يشوف اللي قبل بعد ما الـ result الحالي يتبدّل
   interface RecentScan {
     key: string
     member: any
@@ -113,7 +272,7 @@ export default function SearchModal() {
     return () => clearInterval(interval)
   }, [isOpen])
 
-  // 📥 helper: ضيف عضو للـ recent scans (أو حدّث الموجود بتاعه)
+  // helper: ضيف عضو للـ recent scans (أو حدّث الموجود بتاعه)
   const pushRecentScan = useCallback((member: any, status: RecentScan['status']) => {
     if (!member?.id) return
     setRecentScans(prev => {
@@ -134,7 +293,7 @@ export default function SearchModal() {
       // Reset search state when opening
       setSearched(false)
       setResults([])
-      // ✅ FIX: Don't clear memberId if searchValue is present (prevents race condition)
+      // FIX: Don't clear memberId if searchValue is present (prevents race condition)
       if (!searchValue) {
         setMemberId('')
       }
@@ -288,14 +447,14 @@ export default function SearchModal() {
       const ctx = audioContextRef.current
       // زمارة طويلة مزعجة تخينة - صوت منخفض ثقيل (7 ثواني)
       const hornPattern = [
-        { freq: 90, time: 0,    dur: 0.7 },
-        { freq: 65, time: 0.8,  dur: 0.7 },
-        { freq: 90, time: 1.6,  dur: 0.7 },
-        { freq: 65, time: 2.4,  dur: 0.7 },
-        { freq: 90, time: 3.2,  dur: 0.7 },
-        { freq: 65, time: 4.0,  dur: 0.7 },
-        { freq: 90, time: 4.8,  dur: 0.7 },
-        { freq: 50, time: 5.6,  dur: 1.2 },  // نهاية طويلة تخينة جداً
+        { freq: 90, time: 0, dur: 0.7 },
+        { freq: 65, time: 0.8, dur: 0.7 },
+        { freq: 90, time: 1.6, dur: 0.7 },
+        { freq: 65, time: 2.4, dur: 0.7 },
+        { freq: 90, time: 3.2, dur: 0.7 },
+        { freq: 65, time: 4.0, dur: 0.7 },
+        { freq: 90, time: 4.8, dur: 0.7 },
+        { freq: 50, time: 5.6, dur: 1.2 }, // نهاية طويلة تخينة جداً
       ]
       hornPattern.forEach(({ freq, time, dur }) => {
         // أول oscillator - sawtooth
@@ -394,7 +553,7 @@ export default function SearchModal() {
         playWarningSound()
         setAttendanceMessage({
           type: 'error',
-          text: data.error || 'تم تسجيل الحضور مسبقاً اليوم ✅'
+          text: data.error || 'تم تسجيل الحضور مسبقاً اليوم '
         })
         setTimeout(() => setAttendanceMessage(null), 4000)
       } else if (response.status === 403) {
@@ -402,7 +561,7 @@ export default function SearchModal() {
         playBannedHornSound()
         setAttendanceMessage({
           type: 'error',
-          text: data.error || 'هذا العضو محظور 🚫'
+          text: data.error || 'هذا العضو محظور '
         })
         setTimeout(() => setAttendanceMessage(null), 5000)
       } else if (!response.ok) {
@@ -434,7 +593,7 @@ export default function SearchModal() {
         if (!silent) playAlarmSound()
         setAttendanceMessage({
           type: 'error',
-          text: '❌ رقم الموظف يجب أن يكون 9 أرقام (مثال: 100000022)'
+          text: ' رقم الموظف يجب أن يكون 9 أرقام (مثال: 100000022)'
         })
         setMemberId('')
         setTimeout(() => setAttendanceMessage(null), 4000)
@@ -501,8 +660,8 @@ export default function SearchModal() {
       const membersRes = await fetch('/api/members')
       const members = await membersRes.json()
 
-      // ✅ مطابقة صارمة (string-exact) — "0122" مش = "122"
-      //   لأن الأصفار في الأول جزء من رقم العضوية ومش بنتجاهلها
+      // مطابقة صارمة (string-exact) — "0122" مش = "122"
+      // لأن الأصفار في الأول جزء من رقم العضوية ومش بنتجاهلها
       const filteredMembers = members.filter((m: any) => {
         if (m.memberNumber == null) return false
         return m.memberNumber.toString() === inputValue
@@ -528,7 +687,7 @@ export default function SearchModal() {
           handleMemberCheckIn(member.id)
         }
 
-        // 📋 ضيفه للـ recent scans عشان يفضل ظاهر دقيقة
+        // ضيفه للـ recent scans عشان يفضل ظاهر دقيقة
         let scanStatus: RecentScan['status'] = 'active'
         if (member.isBanned) scanStatus = 'banned'
         else if (member.isFrozen) scanStatus = 'frozen'
@@ -713,40 +872,51 @@ export default function SearchModal() {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-[9998] animate-fadeIn"
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[9998] animate-backdrop-in"
         onClick={closeSearch}
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-[9999] overflow-auto" dir={direction} data-search-modal>
+      <div
+        className="fixed inset-0 z-[9999] overflow-auto"
+        dir={direction}
+        data-search-modal
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="search-modal-title"
+      >
         <div className="min-h-screen p-1 sm:p-2">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl mx-auto my-2 animate-slideDown">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-3xl mx-auto my-2 animate-modal-in">
             {/* Header */}
-            <div className="bg-primary-600 text-white p-2 sm:p-3 rounded-t-xl flex items-center justify-between sticky top-0 z-10">
-              <h1 className="text-base sm:text-lg font-bold flex items-center gap-1">
-                <span className="text-sm">🔍</span>
+            <div className="bg-primary-600 dark:bg-primary-700 text-primary-contrast p-2 sm:p-3 rounded-t-2xl flex items-center justify-between sticky top-0 z-10">
+              <h1 id="search-modal-title" className="text-base sm:text-lg font-bold flex items-center gap-2">
+                <StatusIcon name="search" className="w-5 h-5" />
                 <span>{t('search.title')}</span>
               </h1>
               <button
+                type="button"
                 onClick={closeSearch}
-                className="p-1.5 hover:bg-white/20 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Close (ESC)"
                 title="Close (ESC)"
+                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors duration-200"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-5 h-5" {...stroke}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* 📋 Recent scans strip — السكانات اللي حصلت في آخر دقيقة */}
+            {/* Recent scans strip — السكانات اللي حصلت في آخر دقيقة */}
             {(() => {
               const visibleScans = recentScans.filter(s => Date.now() - s.scannedAt < RECENT_SCAN_TTL_MS)
               if (visibleScans.length === 0) return null
               return (
-              <div className="bg-gradient-to-b from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-800 border-b-2 border-blue-200 dark:border-blue-800 p-2 sm:p-3" dir={direction}>
+              <div className="bg-blue-50/60 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 p-2 sm:p-3" dir={direction}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-blue-800 dark:text-blue-200">
-                    <span>📋</span>
+                    <svg className="w-4 h-4" {...stroke}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586" />
+                    </svg>
                     <span>{direction === 'rtl' ? `آخر السكانات (${visibleScans.length})` : `Recent scans (${visibleScans.length})`}</span>
                     <span className="text-[10px] text-blue-600/70 dark:text-blue-300/70 font-normal">
                       {direction === 'rtl' ? '— كل سكان يفضل ظاهر دقيقة' : '— each visible for 1 min'}
@@ -755,9 +925,12 @@ export default function SearchModal() {
                   <button
                     type="button"
                     onClick={() => setRecentScans([])}
-                    className="text-[10px] text-blue-600 dark:text-blue-300 hover:text-red-500 px-2 py-0.5 rounded"
+                    className="text-[10px] text-blue-600 dark:text-blue-300 hover:text-red-500 px-2 py-0.5 rounded transition-colors duration-200 flex items-center gap-1"
                   >
-                    {direction === 'rtl' ? '✕ مسح الكل' : '✕ Clear all'}
+                    <svg className="w-3 h-3" {...stroke}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>{direction === 'rtl' ? 'مسح الكل' : 'Clear all'}</span>
                   </button>
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-1">
@@ -766,34 +939,33 @@ export default function SearchModal() {
                     const remainSec = Math.max(0, 60 - ageSec)
                     const m = scan.member
                     const statusStyle = {
-                      active: { bg: 'bg-green-50 dark:bg-green-900/30', border: 'border-green-300 dark:border-green-700', text: 'text-green-700 dark:text-green-300', icon: '✅' },
-                      warning: { bg: 'bg-yellow-50 dark:bg-yellow-900/30', border: 'border-yellow-300 dark:border-yellow-700', text: 'text-yellow-700 dark:text-yellow-300', icon: '⚠️' },
-                      expired: { bg: 'bg-red-50 dark:bg-red-900/30', border: 'border-red-300 dark:border-red-700', text: 'text-red-700 dark:text-red-300', icon: '⛔' },
-                      banned: { bg: 'bg-gray-900 dark:bg-black', border: 'border-gray-700', text: 'text-red-200', icon: '🚫' },
-                      frozen: { bg: 'bg-blue-50 dark:bg-blue-900/30', border: 'border-blue-300 dark:border-blue-700', text: 'text-blue-700 dark:text-blue-300', icon: '🧊' },
-                      future: { bg: 'bg-purple-50 dark:bg-purple-900/30', border: 'border-purple-300 dark:border-purple-700', text: 'text-purple-700 dark:text-purple-300', icon: '⏳' },
-                      notStarted: { bg: 'bg-purple-50 dark:bg-purple-900/30', border: 'border-purple-300 dark:border-purple-700', text: 'text-purple-700 dark:text-purple-300', icon: '⏳' },
-                    }[scan.status] || { bg: 'bg-gray-50 dark:bg-gray-700', border: 'border-gray-300 dark:border-gray-600', text: 'text-gray-700 dark:text-gray-300', icon: '•' }
+                      active: { bg: 'bg-emerald-50 dark:bg-emerald-900/30', ring: 'ring-emerald-200 dark:ring-emerald-800', text: 'text-emerald-700 dark:text-emerald-300', iconName: 'active' },
+                      warning: { bg: 'bg-amber-50 dark:bg-amber-900/30', ring: 'ring-amber-200 dark:ring-amber-800', text: 'text-amber-700 dark:text-amber-300', iconName: 'warning' },
+                      expired: { bg: 'bg-red-50 dark:bg-red-900/30', ring: 'ring-red-200 dark:ring-red-800', text: 'text-red-700 dark:text-red-300', iconName: 'expired' },
+                      banned: { bg: 'bg-gray-900 dark:bg-black', ring: 'ring-gray-700', text: 'text-red-200', iconName: 'banned' },
+                      frozen: { bg: 'bg-blue-50 dark:bg-blue-900/30', ring: 'ring-blue-200 dark:ring-blue-800', text: 'text-blue-700 dark:text-blue-300', iconName: 'frozen' },
+                      future: { bg: 'bg-purple-50 dark:bg-purple-900/30', ring: 'ring-purple-200 dark:ring-purple-800', text: 'text-purple-700 dark:text-purple-300', iconName: 'future' },
+                      notStarted: { bg: 'bg-purple-50 dark:bg-purple-900/30', ring: 'ring-purple-200 dark:ring-purple-800', text: 'text-purple-700 dark:text-purple-300', iconName: 'notStarted' },
+                    }[scan.status] || { bg: 'bg-gray-50 dark:bg-gray-700', ring: 'ring-gray-200 dark:ring-gray-600', text: 'text-gray-700 dark:text-gray-300', iconName: 'active' }
                     return (
                       <div
                         key={scan.key}
-                        className={`flex-shrink-0 w-44 sm:w-52 ${statusStyle.bg} border-2 ${statusStyle.border} rounded-lg p-2 relative`}
+                        className={`flex-shrink-0 w-44 sm:w-52 ${statusStyle.bg} ring-1 ${statusStyle.ring} rounded-lg p-2 relative`}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-white dark:ring-gray-700 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                             {m?.profileImage ? (
                               <img src={m.profileImage} alt={m.name} className="w-full h-full object-cover" loading="lazy" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
+                                <StatusIcon name="user" className="w-5 h-5" />
                               </div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className={`text-xs font-bold truncate ${statusStyle.text}`} title={m?.name}>
-                              {statusStyle.icon} {m?.name || '—'}
+                            <div className={`text-xs font-bold truncate ${statusStyle.text} flex items-center gap-1`} title={m?.name}>
+                              <StatusIcon name={statusStyle.iconName} className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">{m?.name || '—'}</span>
                             </div>
                             <div className={`text-[10px] font-mono truncate ${statusStyle.text} opacity-80`}>
                               #{m?.memberNumber ?? '—'}
@@ -809,10 +981,13 @@ export default function SearchModal() {
                         <button
                           type="button"
                           onClick={() => setRecentScans(prev => prev.filter(s => s.key !== scan.key))}
-                          className="absolute top-0.5 end-0.5 text-gray-400 hover:text-red-500 text-xs px-1"
+                          aria-label={direction === 'rtl' ? 'إزالة' : 'Remove'}
                           title={direction === 'rtl' ? 'إزالة' : 'Remove'}
+                          className="absolute top-0.5 end-0.5 text-gray-400 hover:text-red-500 p-0.5 rounded transition-colors duration-200"
                         >
-                          ✕
+                          <svg className="w-3 h-3" {...stroke}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
                         </button>
                       </div>
                     )
@@ -829,14 +1004,22 @@ export default function SearchModal() {
                 <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded-lg mb-2 border border-primary-200">
                   <div className="mb-2">
                     {attendanceMessage && (
-                      <div className={`mb-2 p-2 sm:p-3 rounded-lg border-2 animate-slideDown ${
+                      <div className={`mb-2 p-2 sm:p-3 rounded-lg ring-1 animate-slideDown ${
                         attendanceMessage.type === 'success'
                           ? 'bg-gradient-to-r from-green-50 to-green-100 border-green-500'
                           : 'bg-gradient-to-r from-red-50 to-red-100 border-red-500'
                       }`}>
                         <div className="flex items-start gap-2">
-                          <div className="text-2xl sm:text-3xl">
-                            {attendanceMessage.type === 'success' ? '✅' : '🚨'}
+                          <div className={`shrink-0 ${attendanceMessage.type === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                            {attendanceMessage.type === 'success' ? (
+                              <svg className="w-7 h-7 sm:w-8 sm:h-8" {...stroke}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-7 h-7 sm:w-8 sm:h-8" {...stroke}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z" />
+                              </svg>
+                            )}
                           </div>
                           <div className="flex-1">
                             <h3 className={`text-sm sm:text-base font-bold mb-0.5 ${
@@ -869,21 +1052,25 @@ export default function SearchModal() {
                     )}
 
                     <div className="flex gap-2">
-                      <div className="flex flex-col gap-1.5" style={{width: '18%'}}>
+                      <div className="flex flex-col gap-1.5 shrink-0 w-12 sm:w-14">
                         <button
                           onClick={() => {
                             setSearchMode('id')
                             setSearched(false)
                             setResults([])
                           }}
-                          className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
+                          aria-pressed={searchMode === 'id'}
+                          aria-label={t('search.searchByIdOrAttendance')}
+                          className={`flex items-center justify-center px-1 py-2 sm:py-3 rounded-lg transition-colors duration-200 ${
                             searchMode === 'id'
-                              ? 'bg-primary-600 text-white shadow-lg'
+                              ? 'bg-primary-600 text-primary-contrast shadow-sm'
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                           title={t('search.searchByIdOrAttendance')}
                         >
-                          🎯
+                          <svg className="w-5 h-5 sm:w-6 sm:h-6" {...stroke}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5v15m3-15v15m3-15v15m3-15v15m3-15v15m3-15v15m3-15v15" />
+                          </svg>
                         </button>
                         <button
                           onClick={() => {
@@ -891,25 +1078,29 @@ export default function SearchModal() {
                             setSearched(false)
                             setResults([])
                           }}
-                          className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
+                          aria-pressed={(searchMode as SearchMode) === 'name'}
+                          aria-label={t('search.searchByNamePhone')}
+                          className={`flex items-center justify-center px-1 py-2 sm:py-3 rounded-lg transition-colors duration-200 ${
                             (searchMode as SearchMode) === 'name'
-                              ? 'bg-green-600 text-white shadow-lg'
+                              ? 'bg-green-600 text-white shadow-sm'
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                           title={t('search.searchByNamePhone')}
                         >
-                          👤
+                          <svg className="w-5 h-5 sm:w-6 sm:h-6" {...stroke}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                          </svg>
                         </button>
                       </div>
 
-                      <div className="flex gap-2 flex-1">
+                      <div className="flex gap-2 flex-1 min-w-0">
                         <input
                           ref={memberIdRef}
                           type="text"
                           value={memberId}
                           onChange={(e) => setMemberId(e.target.value)}
                           onKeyPress={handleIdKeyPress}
-                          className="flex-1 px-3 py-2 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-base sm:text-lg font-bold text-center focus:border-green-600 focus:ring-1 focus:ring-green-200 dark:focus:ring-green-700 transition"
+                          className="flex-1 min-w-0 px-3 py-2 rounded-lg ring-1 ring-green-300 dark:ring-green-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-base sm:text-lg font-bold text-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200"
                           placeholder={t('search.idPlaceholder')}
                           data-search-input
                           autoFocus
@@ -917,14 +1108,24 @@ export default function SearchModal() {
                         <button
                           onClick={() => handleSearchById()}
                           disabled={loading || !memberId.trim()}
-                          className="px-3 sm:px-4 py-2 bg-green-600 text-white text-sm sm:text-base font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition whitespace-nowrap"
+                          aria-label={t('search.search')}
+                          className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 min-h-[44px] bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base font-bold rounded-lg disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
                         >
-                          {loading ? '⏳' : '🔍'} {t('search.search')}
+                          {loading ? (
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" {...stroke}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5" {...stroke}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                            </svg>
+                          )}
+                          <span>{t('search.search')}</span>
                         </button>
                       </div>
                     </div>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5">
-                      💡 {t('search.pressEnter')}
+                       {t('search.pressEnter')}
                     </p>
                   </div>
                 </div>
@@ -934,7 +1135,7 @@ export default function SearchModal() {
                 <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded-lg mb-2 border border-green-200">
                   <div className="mb-2">
                     {attendanceMessage && (
-                      <div className="mb-2 p-2 rounded-lg border-2 bg-red-50 dark:bg-red-900/30 border-red-500 dark:border-red-700 animate-slideDown">
+                      <div className="mb-2 p-2 rounded-lg ring-1 bg-red-50 dark:bg-red-900/30 border-red-500 dark:border-red-700 animate-slideDown">
                         <p className="text-xs sm:text-sm font-bold text-red-700 dark:text-red-300">
                           {attendanceMessage.text}
                         </p>
@@ -942,21 +1143,25 @@ export default function SearchModal() {
                     )}
 
                     <div className="flex gap-2">
-                      <div className="flex flex-col gap-1.5" style={{width: '18%'}}>
+                      <div className="flex flex-col gap-1.5 shrink-0 w-12 sm:w-14">
                         <button
                           onClick={() => {
                             setSearchMode('id')
                             setSearched(false)
                             setResults([])
                           }}
-                          className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
+                          aria-pressed={searchMode === 'id'}
+                          aria-label={t('search.searchByIdOrAttendance')}
+                          className={`flex items-center justify-center px-1 py-2 sm:py-3 rounded-lg transition-colors duration-200 ${
                             searchMode === 'id'
-                              ? 'bg-primary-600 text-white shadow-lg'
+                              ? 'bg-primary-600 text-primary-contrast shadow-sm'
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                           title={t('search.searchByIdOrAttendance')}
                         >
-                          🎯
+                          <svg className="w-5 h-5 sm:w-6 sm:h-6" {...stroke}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5v15m3-15v15m3-15v15m3-15v15m3-15v15m3-15v15m3-15v15" />
+                          </svg>
                         </button>
                         <button
                           onClick={() => {
@@ -964,18 +1169,22 @@ export default function SearchModal() {
                             setSearched(false)
                             setResults([])
                           }}
-                          className={`px-1 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl transition-all ${
+                          aria-pressed={(searchMode as SearchMode) === 'name'}
+                          aria-label={t('search.searchByNamePhone')}
+                          className={`flex items-center justify-center px-1 py-2 sm:py-3 rounded-lg transition-colors duration-200 ${
                             (searchMode as SearchMode) === 'name'
-                              ? 'bg-green-600 text-white shadow-lg'
+                              ? 'bg-green-600 text-white shadow-sm'
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                           title={t('search.searchByNamePhone')}
                         >
-                          👤
+                          <svg className="w-5 h-5 sm:w-6 sm:h-6" {...stroke}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                          </svg>
                         </button>
                       </div>
 
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="mb-2">
                           <label className="block text-xs font-medium mb-0.5 text-gray-700 dark:text-gray-200">
                             {direction === 'rtl' ? 'الاسم أو رقم الهاتف' : 'Name or Phone'}
@@ -986,7 +1195,7 @@ export default function SearchModal() {
                             value={searchName}
                             onChange={(e) => setSearchName(e.target.value)}
                             onKeyPress={handleNameKeyPress}
-                            className="w-full px-3 py-2 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm focus:border-green-600 focus:ring-1 focus:ring-green-200 dark:focus:ring-green-700 transition"
+                            className="w-full px-3 py-2 rounded-lg ring-1 ring-green-300 dark:ring-green-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200"
                             placeholder={direction === 'rtl' ? 'اكتب الاسم أو رقم الهاتف...' : 'Type name or phone number...'}
                             data-search-input
                           />
@@ -995,15 +1204,25 @@ export default function SearchModal() {
                         <button
                           onClick={() => handleSearchByName()}
                           disabled={loading || !searchName.trim()}
-                          className="w-full px-3 py-2 bg-green-600 text-white text-sm sm:text-base font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
+                          aria-label={t('search.search')}
+                          className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 min-h-[44px] bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base font-bold rounded-lg disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
                         >
-                          🔍 {t('search.search')}
+                          {loading ? (
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" {...stroke}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5" {...stroke}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                            </svg>
+                          )}
+                          <span>{t('search.search')}</span>
                         </button>
                       </div>
                     </div>
 
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5">
-                      💡 {direction === 'rtl' ? 'هتلاقى نتائج تطابق الاسم أو رقم الهاتف للقيمة دي' : 'Searches both name and phone for this value'}
+                       {direction === 'rtl' ? 'هتلاقى نتائج تطابق الاسم أو رقم الهاتف للقيمة دي' : 'Searches both name and phone for this value'}
                     </p>
                   </div>
                 </div>
@@ -1019,13 +1238,10 @@ export default function SearchModal() {
               {searched && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-green-200 dark:border-green-700 animate-fadeIn">
                   {loading ? (
-                    <div className="text-center py-6 sm:py-8">
-                      <div className="inline-block animate-spin text-3xl sm:text-4xl mb-2">⏳</div>
-                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 font-bold">{t('search.searching')}</p>
-                    </div>
+                    <LoadingScreen message={t('search.searching')} />
                   ) : results.length === 0 ? (
                     <div className="text-center py-6 sm:py-8 bg-red-50 dark:bg-red-900/30 animate-pulse">
-                      <div className="text-4xl sm:text-5xl mb-2 sm:mb-3 animate-bounce">🚨</div>
+                      
                       <p className="text-base sm:text-lg font-bold text-red-600 dark:text-red-400 mb-1 px-3">{t('search.noResults')}</p>
                       <p className="text-sm text-red-500 dark:text-red-300 px-3">
                         {searchMode === 'id'
@@ -1038,7 +1254,7 @@ export default function SearchModal() {
                     <div className="p-2 sm:p-3 max-h-[60vh] overflow-y-auto">
                       <div className="mb-2 text-center">
                         <span className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border border-green-200 dark:border-green-700">
-                          ✅ {t('search.foundResults')} {results.length} {results.length === 1 ? t('search.result') : t('search.results')}
+                           {t('search.foundResults')} {results.length} {results.length === 1 ? t('search.result') : t('search.results')}
                         </span>
                       </div>
 
@@ -1049,7 +1265,7 @@ export default function SearchModal() {
                               <div>
                                 <div className="flex flex-col sm:flex-row justify-between items-start gap-1.5 mb-2">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-primary-300 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden ring-1 ring-primary-300 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                                       {result.data.profileImage ? (
                                         <img
                                           src={result.data.profileImage}
@@ -1066,8 +1282,8 @@ export default function SearchModal() {
                                     </div>
 
                                     <div>
-                                      <span className="bg-primary-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold">
-                                        👤 {t('search.member')}
+                                      <span className="bg-primary-500 text-primary-contrast px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-bold">
+                                         {t('search.member')}
                                       </span>
                                       <h3 className="text-sm sm:text-base md:text-lg font-bold mt-0.5 sm:mt-1 text-gray-800 dark:text-gray-100">{result.data.name}</h3>
                                     </div>
@@ -1079,7 +1295,7 @@ export default function SearchModal() {
                                   )}
                                   {result.data.memberNumber === null && (
                                     <span className="text-xs sm:text-sm font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
-                                      🏷️ {locale === 'ar' ? 'ليس عضوية' : 'Non-Member'}
+                                       {locale === 'ar' ? 'ليس عضوية' : 'Non-Member'}
                                     </span>
                                   )}
                                 </div>
@@ -1090,9 +1306,9 @@ export default function SearchModal() {
                                   const birth = new Date(result.data.birthDate)
                                   if (birth.getDate() === today.getDate() && birth.getMonth() === today.getMonth()) {
                                     return (
-                                      <div className="mb-2 bg-gradient-to-r from-pink-100 via-yellow-100 to-pink-100 dark:from-pink-900/40 dark:via-yellow-900/40 dark:to-pink-900/40 border-2 border-pink-400 dark:border-pink-600 rounded-xl p-3 text-center animate-pulse">
+                                      <div className="mb-2 bg-gradient-to-r from-pink-100 via-yellow-100 to-pink-100 dark:from-pink-900/40 dark:via-yellow-900/40 dark:to-pink-900/40 ring-1 ring-pink-400 dark:ring-pink-600 rounded-xl p-3 text-center animate-pulse">
                                         <p className="text-lg sm:text-xl font-bold text-pink-600 dark:text-pink-300">
-                                          🎂🎉 {locale === 'ar' ? `عيد ميلاد سعيد يا ${result.data.name.split(' ')[0]}!` : `Happy Birthday ${result.data.name.split(' ')[0]}!`} 🎉🎂
+                                           {locale === 'ar' ? `عيد ميلاد سعيد يا ${result.data.name.split(' ')[0]}!` : `Happy Birthday ${result.data.name.split(' ')[0]}!`} 
                                         </p>
                                       </div>
                                     )
@@ -1101,9 +1317,9 @@ export default function SearchModal() {
                                 })()}
 
                                 {result.data.remainingAmount > 0 && (
-                                  <div className="mb-2 bg-red-50 dark:bg-red-900/30 border-2 border-red-400 dark:border-red-600 rounded-xl p-2 sm:p-3 flex items-center justify-between gap-2">
+                                  <div className="mb-2 bg-red-50 dark:bg-red-900/30 ring-1 ring-red-400 dark:ring-red-600 rounded-xl p-2 sm:p-3 flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xl sm:text-2xl">⚠️</span>
+                                      
                                       <div>
                                         <p className="text-xs text-red-700 dark:text-red-300 font-semibold">
                                           {locale === 'ar' ? 'مبلغ متبقي على العضو' : 'Outstanding Balance'}
@@ -1139,7 +1355,7 @@ export default function SearchModal() {
                                         const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
                                         if (!startDate && !expiryDate && !result.data.isActive && result.data.memberNumber === null) return 'bg-gray-500 text-white'
                                         if (result.data.isBanned) return 'bg-gray-900 text-white'
-                                        if (result.data.isFrozen) return 'bg-primary-500 text-white'
+                                        if (result.data.isFrozen) return 'bg-primary-500 text-primary-contrast'
                                         if (startDate && startDate > today) return 'bg-blue-500 text-white'
                                         const hasStarted = !startDate || startDate <= today
                                         const notExpired = !expiryDate || expiryDate >= today
@@ -1152,24 +1368,24 @@ export default function SearchModal() {
                                         today.setHours(0, 0, 0, 0)
                                         const startDate = result.data.startDate ? new Date(result.data.startDate) : null
                                         const expiryDate = result.data.expiryDate ? new Date(result.data.expiryDate) : null
-                                        if (!startDate && !expiryDate && !result.data.isActive && result.data.memberNumber === null) return `🏷️ ${locale === 'ar' ? 'ليس عضوية' : 'Non-Member'}`
-                                        if (result.data.isBanned) return `🚫 ${locale === 'ar' ? 'محظور' : 'Banned'}`
-                                        if (result.data.isFrozen) return `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                                        if (!startDate && !expiryDate && !result.data.isActive && result.data.memberNumber === null) return ` ${locale === 'ar' ? 'ليس عضوية' : 'Non-Member'}`
+                                        if (result.data.isBanned) return ` ${locale === 'ar' ? 'محظور' : 'Banned'}`
+                                        if (result.data.isFrozen) return ` ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
                                         if (startDate && startDate > today) {
                                           const diffDays = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-                                          return `⏳ ${locale === 'ar' ? `يبدأ بعد ${diffDays} يوم` : `Starts in ${diffDays} days`}`
+                                          return ` ${locale === 'ar' ? `يبدأ بعد ${diffDays} يوم` : `Starts in ${diffDays} days`}`
                                         }
                                         const hasStarted = !startDate || startDate <= today
                                         const notExpired = !expiryDate || expiryDate >= today
-                                        if (result.data.isActive && hasStarted && notExpired) return `✅ ${t('search.active')}`
-                                        return `🚨 ${t('search.expired')}`
+                                        if (result.data.isActive && hasStarted && notExpired) return ` ${t('search.active')}`
+                                        return ` ${t('search.expired')}`
                                       })()}
                                     </span>
                                   </div>
                                 </div>
 
                                 {(result.data.startDate || result.data.expiryDate) && (
-                                  <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 dark:from-primary-900/30 dark:to-yellow-900/30 border-2 border-primary-300 dark:border-primary-700 rounded p-2 sm:p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                  <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 dark:from-primary-900/30 dark:to-yellow-900/30 ring-1 ring-primary-300 dark:ring-primary-700 rounded p-2 sm:p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-primary-contrast">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       {result.data.startDate && (
                                         <div>
@@ -1199,7 +1415,7 @@ export default function SearchModal() {
                                         return (
                                           <div className={`mt-2 pt-2 border-t-2 border-blue-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
                                             <p className="text-blue-600 font-bold text-sm sm:text-base md:text-lg">
-                                              ⏳ {locale === 'ar' ? `يبدأ بعد ${futureDays} يوم` : `Starts in ${futureDays} days`}
+                                               {locale === 'ar' ? `يبدأ بعد ${futureDays} يوم` : `Starts in ${futureDays} days`}
                                             </p>
                                           </div>
                                         )
@@ -1212,7 +1428,7 @@ export default function SearchModal() {
                                         return (
                                           <div className={`mt-2 pt-2 border-t-2 border-red-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
                                             <p className="text-red-600 font-bold text-sm sm:text-base md:text-lg animate-pulse">
-                                              🚨 {t('search.expiredSince')} {Math.abs(days)} {t('search.day')}
+                                               {t('search.expiredSince')} {Math.abs(days)} {t('search.day')}
                                             </p>
                                           </div>
                                         )
@@ -1220,7 +1436,7 @@ export default function SearchModal() {
                                         return (
                                           <div className={`mt-2 pt-2 border-t-2 border-orange-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
                                             <p className="text-orange-600 font-bold text-sm sm:text-base md:text-lg">
-                                              ⚠️ {t('search.daysRemaining')} {days} {t('search.daysOnly')}
+                                               {t('search.daysRemaining')} {days} {t('search.daysOnly')}
                                             </p>
                                           </div>
                                         )
@@ -1228,7 +1444,7 @@ export default function SearchModal() {
                                         return (
                                           <div className={`mt-2 pt-2 border-t-2 border-green-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
                                             <p className="text-green-600 font-bold text-sm sm:text-base md:text-lg">
-                                              ✅ {t('search.daysRemaining')} {days} {t('search.day')}
+                                               {t('search.daysRemaining')} {days} {t('search.day')}
                                             </p>
                                           </div>
                                         )
@@ -1238,9 +1454,9 @@ export default function SearchModal() {
                                 )}
 
                                 {result.data.notes && (
-                                  <div className="mb-2 sm:mb-3 bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-400 dark:border-primary-700 rounded p-2 sm:p-3">
+                                  <div className="mb-2 sm:mb-3 bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-400 dark:ring-primary-700 rounded p-2 sm:p-3">
                                     <div className="flex items-start gap-1 mb-1">
-                                      <span className="text-base sm:text-lg">📝</span>
+                                      
                                       <p className="text-xs font-bold text-primary-800 dark:text-primary-300">{t('search.notes')}</p>
                                     </div>
                                     <p className="text-xs sm:text-sm md:text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
@@ -1256,17 +1472,17 @@ export default function SearchModal() {
                                   const hasStarted = !startDate || startDate <= today
                                   return result.data.isActive && hasStarted && (result.data.invitations > 0 || result.data.freePTSessions > 0 || (settings.inBodyEnabled && result.data.inBodyScans > 0) || (settings.nutritionEnabled && result.data.freeNutritionSessions > 0) || (settings.physiotherapyEnabled && result.data.freePhysioSessions > 0) || (settings.groupClassEnabled && result.data.freeGroupClassSessions > 0))
                                 })() && (
-                                  <div className="mb-3 sm:mb-4 bg-gradient-to-r from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 border-2 border-primary-400 dark:border-primary-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                  <div className="mb-3 sm:mb-4 bg-gradient-to-r from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 ring-1 ring-primary-400 dark:ring-primary-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-primary-contrast">
                                     <div className="flex items-center gap-2 mb-3">
-                                      <span className="text-2xl">🎁</span>
+                                      
                                       <p className="text-sm sm:text-base font-bold text-primary-800 dark:text-primary-300">{t('search.freeServicesRemaining')}</p>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                       {result.data.invitations > 0 && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-primary-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-primary-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                              <span className="text-xl">🎟️</span>
+                                              
                                               <div>
                                                 <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.invitations')}</p>
                                                 <p className="text-xl font-bold text-primary-600">{result.data.invitations}</p>
@@ -1274,7 +1490,7 @@ export default function SearchModal() {
                                             </div>
                                             <button
                                               onClick={() => setInvitationModal({ isOpen: true, memberId: result.data.id, memberName: result.data.name, memberSalesStaffId: result.data.salesStaffId })}
-                                              className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
+                                              className="bg-primary-600 text-primary-contrast px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                             >
                                               {t('search.use')}
                                             </button>
@@ -1283,10 +1499,10 @@ export default function SearchModal() {
                                       )}
 
                                       {result.data.freePTSessions > 0 && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-green-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-green-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                              <span className="text-xl">💪</span>
+                                              
                                               <div>
                                                 <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.freePT')}</p>
                                                 <p className="text-xl font-bold text-green-600">{result.data.freePTSessions}</p>
@@ -1303,10 +1519,10 @@ export default function SearchModal() {
                                       )}
 
                                       {settings.inBodyEnabled && result.data.inBodyScans > 0 && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-primary-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-primary-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                              <span className="text-xl">⚖️</span>
+                                              
                                               <div>
                                                 <p className="text-xs text-gray-600 dark:text-gray-300">InBody</p>
                                                 <p className="text-xl font-bold text-primary-600">{result.data.inBodyScans}</p>
@@ -1314,7 +1530,7 @@ export default function SearchModal() {
                                             </div>
                                             <button
                                               onClick={() => setServiceModal({ isOpen: true, type: 'inBody', memberId: result.data.id, memberName: result.data.name })}
-                                              className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
+                                              className="bg-primary-600 text-primary-contrast px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                             >
                                               {t('search.deduct')}
                                             </button>
@@ -1323,10 +1539,10 @@ export default function SearchModal() {
                                       )}
 
                                       {settings.nutritionEnabled && result.data.freeNutritionSessions > 0 && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-orange-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-orange-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                              <span className="text-xl">🥗</span>
+                                              
                                               <div>
                                                 <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.nutrition')}</p>
                                                 <p className="text-xl font-bold text-orange-600">{result.data.freeNutritionSessions}</p>
@@ -1343,10 +1559,10 @@ export default function SearchModal() {
                                       )}
 
                                       {settings.physiotherapyEnabled && result.data.freePhysioSessions > 0 && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-teal-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-teal-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                              <span className="text-xl">🏥</span>
+                                              
                                               <div>
                                                 <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.physiotherapy')}</p>
                                                 <p className="text-xl font-bold text-teal-600">{result.data.freePhysioSessions}</p>
@@ -1363,10 +1579,10 @@ export default function SearchModal() {
                                       )}
 
                                       {settings.groupClassEnabled && result.data.freeGroupClassSessions > 0 && (
-                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-primary-200">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-primary-200">
                                           <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
-                                              <span className="text-xl">👥</span>
+                                              
                                               <div>
                                                 <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.groupClass')}</p>
                                                 <p className="text-xl font-bold text-primary-600">{result.data.freeGroupClassSessions}</p>
@@ -1374,7 +1590,7 @@ export default function SearchModal() {
                                             </div>
                                             <button
                                               onClick={() => setServiceModal({ isOpen: true, type: 'groupClass', memberId: result.data.id, memberName: result.data.name })}
-                                              className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
+                                              className="bg-primary-600 text-primary-contrast px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                             >
                                               {t('search.deduct')}
                                             </button>
@@ -1387,10 +1603,10 @@ export default function SearchModal() {
 
                                 {/* نظام النقاط */}
                                 {settings.pointsEnabled && result.data.points > 0 && (
-                                  <div className="mb-3 sm:mb-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border-2 border-amber-400 dark:border-amber-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                  <div className="mb-3 sm:mb-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 ring-1 ring-amber-400 dark:ring-amber-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-3">
-                                        <span className="text-3xl">⭐</span>
+                                        
                                         <div>
                                           <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.pointsBalance')}</p>
                                           <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{result.data.points}</p>
@@ -1407,11 +1623,11 @@ export default function SearchModal() {
                                 <div className="grid grid-cols-1 gap-2">
                                   <button
                                     onClick={() => handleViewMemberDetails(result.data.id)}
-                                    className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-primary-700 hover:to-primary-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
+                                    className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-primary-contrast py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-primary-700 hover:to-primary-800 transition-colors duration-200 shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
                                   >
-                                    <span>👁️</span>
+                                    <span></span>
                                     <span>{t('search.viewFullDetails')}</span>
-                                    <span>{direction === 'rtl' ? '➡️' : '⬅️'}</span>
+                                    <span>{direction === 'rtl' ? '' : ''}</span>
                                   </button>
                                 </div>
                               </div>
@@ -1422,7 +1638,7 @@ export default function SearchModal() {
                                 <div className="flex justify-between items-start mb-3">
                                   <div>
                                     <span className="bg-green-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
-                                      💪 PT
+                                       PT
                                     </span>
                                     <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-1.5 sm:mt-2 text-gray-800 dark:text-gray-100">{result.data.clientName}</h3>
                                   </div>
@@ -1449,11 +1665,11 @@ export default function SearchModal() {
 
                                 <button
                                   onClick={() => handleViewPTDetails(result.data.id)}
-                                  className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-green-700 hover:to-green-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
+                                  className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-green-700 hover:to-green-800 transition-colors duration-200 shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
                                 >
-                                  <span>👁️</span>
+                                  <span></span>
                                   <span>{t('search.viewFullDetails')}</span>
-                                  <span>{direction === 'rtl' ? '➡️' : '⬅️'}</span>
+                                  <span>{direction === 'rtl' ? '' : ''}</span>
                                 </button>
                               </div>
                             )}

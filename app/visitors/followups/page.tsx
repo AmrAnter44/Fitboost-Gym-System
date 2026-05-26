@@ -154,9 +154,11 @@
 
 export default function FollowUpsPage() {
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-2">إدارة المتابعات</h1>
-      <p>هذه الصفحة تعرض المتابعات الخاصة بالزوار.</p>
+    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">إدارة المتابعات</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">هذه الصفحة تعرض المتابعات الخاصة بالزوار.</p>
+      </div>
     </div>
   )
 }

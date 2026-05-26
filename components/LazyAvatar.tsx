@@ -10,11 +10,11 @@ interface Props {
   rootMargin?: string
 }
 
-// 🖼️ LazyAvatar
-// بيخلي التيكست في كروت الأعضاء يظهر فوراً، والصور تتحمّل بس لما الكارت يبقى داخل الـ viewport.
-// - بيستعمل IntersectionObserver عشان ما يحملش الصورة قبل ما تبان فعلاً
-// - fetchpriority="low" → المتصفح بياخد الصور بأولوية أقل من الـ JSON والـ CSS
-// - الـ fallback (الـ SVG/الـ initials) بيبقى ظاهر لحد ما الصورة تخلص تحميل
+// LazyAvatar
+// Renders text in member cards instantly; images load only when the card enters the viewport.
+// - Uses IntersectionObserver to defer image loads until visible.
+// - fetchpriority="low" so the browser prioritises JSON/CSS over avatars.
+// - Fallback (SVG/initials) remains visible until the image finishes loading.
 export default function LazyAvatar({
   src,
   alt,

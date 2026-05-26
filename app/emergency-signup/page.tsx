@@ -1,10 +1,11 @@
 // app/emergency-signup/page.tsx
-// ⚠️ احذف هذا الملف بعد إنشاء حساب الأدمن!
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '../../contexts/ToastContext'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export default function EmergencySignupPage() {
   const router = useRouter()
@@ -14,20 +15,18 @@ export default function EmergencySignupPage() {
     name: '',
     password: '',
     confirmPassword: '',
-    secretKey: '' // مفتاح سري للحماية
+    secretKey: ''
   })
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // التحقق من تطابق كلمة المرور
     if (formData.password !== formData.confirmPassword) {
       toast.error('كلمتا المرور غير متطابقتين')
       return
     }
 
-    // التحقق من طول كلمة المرور
     if (formData.password.length < 6) {
       toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
       return
@@ -64,59 +63,63 @@ export default function EmergencySignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center p-4" dir="rtl">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4" dir="rtl">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-8">
         <div className="text-center mb-8">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h1 className="text-3xl font-bold text-red-600 mb-2">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center mb-4">
+            <svg {...stroke} className="w-9 h-9" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
             إنشاء حساب أدمن طارئ
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
             استخدم هذه الصفحة فقط في حالة فقدان حساب الأدمن
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">
-              🔑 المفتاح السري <span className="text-red-600">*</span>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              المفتاح السري <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
               value={formData.secretKey}
               onChange={(e) => setFormData({ ...formData, secretKey: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
               placeholder="أدخل المفتاح السري"
               required
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               المفتاح موجود في ملف .env تحت اسم EMERGENCY_SIGNUP_SECRET
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
-              👤 الاسم <span className="text-red-600">*</span>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              الاسم <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
               placeholder="أحمد محمد"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
-              📧 البريد الإلكتروني <span className="text-red-600">*</span>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              البريد الإلكتروني <span className="text-red-600">*</span>
             </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
               placeholder="admin@gym.com"
               dir="ltr"
               required
@@ -124,50 +127,67 @@ export default function EmergencySignupPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
-              🔐 كلمة المرور <span className="text-red-600">*</span>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              كلمة المرور <span className="text-red-600">*</span>
             </label>
             <input
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
               placeholder="••••••••"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
-              🔐 تأكيد كلمة المرور <span className="text-red-600">*</span>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              تأكيد كلمة المرور <span className="text-red-600">*</span>
             </label>
             <input
               type="password"
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
               placeholder="••••••••"
               required
             />
           </div>
 
-          <div className="bg-yellow-50 border-r-4 border-yellow-500 p-4 rounded dark:bg-yellow-900/20 dark:border-yellow-700">
-            <p className="text-sm text-yellow-800">
-              <strong>⚠️ تحذير:</strong> سيتم إنشاء حساب أدمن بصلاحيات كاملة. احذف هذه الصفحة فوراً بعد الاستخدام!
+          <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-4 rounded-lg flex items-start gap-2">
+            <svg {...stroke} className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              <strong>تحذير:</strong> سيتم إنشاء حساب أدمن بصلاحيات كاملة. احذف هذه الصفحة فوراً بعد الاستخدام!
             </p>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-red-600 text-white py-4 rounded-lg hover:bg-red-700 disabled:bg-gray-400 font-bold text-lg"
+            className="w-full inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? '⏳ جاري الإنشاء...' : '✅ إنشاء حساب الأدمن'}
+            {loading ? (
+              <>
+                <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                </svg>
+                <span>جاري الإنشاء...</span>
+              </>
+            ) : (
+              <>
+                <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <span>إنشاء حساب الأدمن</span>
+              </>
+            )}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             هذه صفحة طوارئ - استخدمها مرة واحدة فقط ثم احذفها
           </p>
         </div>

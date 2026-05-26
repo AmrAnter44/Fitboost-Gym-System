@@ -13,9 +13,11 @@ import { fetchMembers } from '../../lib/api/members'
 import { useDebounce } from '../../hooks/useDebounce'
 import { usePermissions } from '../../hooks/usePermissions'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 const VirtualVisitorList = dynamic(() => import('../../components/VirtualVisitorList'), {
   ssr: false,
-  loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-lg" />,
+  loading: () => <div className="skeleton-shimmer h-64 rounded-lg" />,
 })
 
 interface Visitor {
@@ -58,7 +60,7 @@ export default function VisitorsPage() {
   const [sourceFilter, setSourceFilter] = useState('all')
   const [monthFilter, setMonthFilter] = useState('all')
 
-  // ✅ Debounced search - تأخير البحث لتقليل API requests
+  // Debounced search - تأخير البحث لتقليل API requests
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
   // Fetch visitors with filters
@@ -99,7 +101,7 @@ export default function VisitorsPage() {
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedVisitorForHistory, setSelectedVisitorForHistory] = useState<Visitor | null>(null)
 
-  // ✅ اشتراك سريع - تحويل الزائر إلى عضو
+  // اشتراك سريع - تحويل الزائر إلى عضو
   const [showQuickSubscribeModal, setShowQuickSubscribeModal] = useState(false)
   const [selectedVisitorForSubscribe, setSelectedVisitorForSubscribe] = useState<Visitor | null>(null)
 
@@ -111,7 +113,7 @@ export default function VisitorsPage() {
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const undoCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // ✅ Optimistic Delete - حذف الزائر فوراً من الـ UI
+  // Optimistic Delete - حذف الزائر فوراً من الـ UI
   const deleteVisitorMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/visitors?id=${id}`, { method: 'DELETE' })
@@ -143,7 +145,7 @@ export default function VisitorsPage() {
     }
   })
 
-  // ✅ Optimistic Status Update - تحديث الحالة فوراً
+  // Optimistic Status Update - تحديث الحالة فوراً
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const response = await fetch('/api/visitors', {
@@ -311,7 +313,7 @@ export default function VisitorsPage() {
         setFormData({ name: '', phone: '', notes: '', source: 'walk-in', interestedIn: '', salesStaffId: leastLoadedId })
         toast.success(t('visitors.messages.addSuccess'))
 
-        // ✅ تحديث جميع الصفحات المرتبطة بالزوار والمتابعات
+        // تحديث جميع الصفحات المرتبطة بالزوار والمتابعات
         refetchVisitors()
         await queryClient.invalidateQueries({ queryKey: ['followups'] })
         await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
@@ -328,7 +330,7 @@ export default function VisitorsPage() {
     }
   }
 
-  // ✅ تصدير CSV للزوار
+  // تصدير CSV للزوار
   const exportVisitorsCSV = () => {
     const headers = ['الاسم', 'الهاتف', 'المصدر', 'الاهتمام', 'الحالة', 'الملاحظات', 'تاريخ الإضافة']
     const rows = filteredVisitors.map(v => [
@@ -429,7 +431,7 @@ export default function VisitorsPage() {
     router.push(`/followups?visitorId=${visitor.id}`)
   }
 
-  // ✅ فتح نموذج الاشتراك السريع
+  // فتح نموذج الاشتراك السريع
   const openQuickSubscribe = (visitor: Visitor) => {
     setSelectedVisitorForSubscribe(visitor)
     setShowQuickSubscribeModal(true)
@@ -520,13 +522,15 @@ export default function VisitorsPage() {
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       {/* Undo Delete Banner */}
       {pendingDelete && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 dark:bg-gray-700 text-white px-5 py-3 rounded-xl shadow-2xl border border-gray-600 animate-fade-in">
-          <span className="text-sm">🗑️ تم حذف <strong>{pendingDelete.name}</strong></span>
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 dark:bg-gray-800 text-white px-5 py-3 rounded-xl shadow-lg ring-1 ring-gray-700 animate-fade-in">
+          <svg className="w-4 h-4 text-red-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          <span className="text-sm">{direction === 'rtl' ? 'تم حذف' : 'Deleted'} <strong>{pendingDelete.name}</strong></span>
           <button
             onClick={handleUndoDelete}
-            className="bg-primary-500 hover:bg-primary-400 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+            className="bg-primary-500 hover:bg-primary-600 text-primary-contrast text-xs font-bold px-3 py-1.5 rounded-lg transition-colors duration-200 flex items-center gap-1.5"
           >
-            ↩️ تراجع ({undoSecondsLeft}s)
+            <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+            {direction === 'rtl' ? `تراجع (${undoSecondsLeft}s)` : `Undo (${undoSecondsLeft}s)`}
           </button>
         </div>
       )}
@@ -535,83 +539,107 @@ export default function VisitorsPage() {
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">{t('visitors.title')}</h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base">{t('visitors.subtitle')}</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('visitors.title')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('visitors.subtitle')}</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             {user?.role === 'OWNER' && (
             <button
               onClick={exportVisitorsCSV}
-              title="تصدير CSV"
-              className="flex items-center gap-2 bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 text-sm font-bold shadow flex-shrink-0"
+              title={direction === 'rtl' ? 'تصدير CSV' : 'Export CSV'}
+              aria-label={direction === 'rtl' ? 'تصدير CSV' : 'Export CSV'}
+              className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg transition-colors duration-200 text-sm font-bold flex-shrink-0"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg className="w-4 h-4" {...stroke}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               CSV
             </button>
             )}
             <button
               onClick={() => setShowForm(!showForm)}
-              className="flex-1 sm:flex-none bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-6 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
             >
-              {showForm ? t('visitors.hideForm') : `➕ ${t('visitors.addVisitor')}`}
+              {showForm ? (
+                <>
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  <span>{t('visitors.hideForm')}</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                  <span>{t('visitors.addVisitor')}</span>
+                </>
+              )}
             </button>
           </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-4 sm:p-5 shadow-lg">
-            <div className="text-xs sm:text-sm opacity-90 mb-1">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+            <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               {monthFilter !== 'all' ? `${t('visitors.stats.visitorsOf')} ${getMonthLabel(monthFilter)}` : t('visitors.status.totalVisitors')}
             </div>
-            <div className="text-2xl sm:text-4xl font-bold">{filteredVisitors.length}</div>
+            <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{filteredVisitors.length}</div>
             {monthFilter !== 'all' && (
-              <div className="text-xs opacity-75 mt-1">{t('visitors.stats.outOf', { total: visitors.length.toString() })}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('visitors.stats.outOf', { total: visitors.length.toString() })}</div>
             )}
           </div>
-          {stats.map((stat) => (
-            <div key={stat.status} className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-xl shadow-lg border-2">
-              <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs sm:text-sm font-medium mb-1">
-                {stat.status === 'pending' && `⏳ ${t('visitors.status.pending')}`}
-                {stat.status === 'contacted' && `📞 ${t('visitors.status.contacted')}`}
-                {stat.status === 'subscribed' && `✅ ${t('visitors.status.subscribed')}`}
-                {stat.status === 'rejected' && `❌ ${t('visitors.status.rejected')}`}
+          {stats.map((stat) => {
+            const statIcon =
+              stat.status === 'pending' ? (
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              ) : stat.status === 'contacted' ? (
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              ) : stat.status === 'subscribed' ? (
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+              ) : (
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              )
+            return (
+              <div key={stat.status} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                  <span className="text-gray-500 dark:text-gray-400">{statIcon}</span>
+                  {stat.status === 'pending' && t('visitors.status.pending')}
+                  {stat.status === 'contacted' && t('visitors.status.contacted')}
+                  {stat.status === 'subscribed' && t('visitors.status.subscribed')}
+                  {stat.status === 'rejected' && t('visitors.status.rejected')}
+                </div>
+                <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{stat._count}</div>
               </div>
-              <div className="text-2xl sm:text-3xl font-bold dark:text-white">{stat._count}</div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
       {/* Add Visitor Form */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">{t('visitors.form.title')}</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{t('visitors.form.title')}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">{t('visitors.form.name')} *</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('visitors.form.name')} *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('visitors.form.namePlaceholder')}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">{t('visitors.form.phone')} *</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('visitors.form.phone')} *</label>
                 <input
                   type="tel"
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('visitors.form.phonePlaceholder')}
                   pattern="^(010|011|012|015)[0-9]{8}$"
                   title={t('visitors.form.phonePattern')}
@@ -619,11 +647,11 @@ export default function VisitorsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">{t('visitors.form.source')}</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('visitors.form.source')}</label>
                 <select
                   value={formData.source}
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 >
                   <option value="walk-in">{t('visitors.sources.walkIn')}</option>
                   <option value="call-in">{t('visitors.sources.callIn')}</option>
@@ -635,37 +663,38 @@ export default function VisitorsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">{t('visitors.form.interestedIn')}</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('visitors.form.interestedIn')}</label>
                 <input
                   type="text"
                   value={formData.interestedIn}
                   onChange={(e) => setFormData({ ...formData, interestedIn: e.target.value })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('visitors.form.interestedInPlaceholder')}
                 />
               </div>
 
               {salesStaff.length > 0 && (
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium mb-1">
-                    💼 موظف السيلز المسؤول
+                  <label className="flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    {direction === 'rtl' ? 'موظف السيلز المسؤول' : 'Sales staff in charge'}
                     {salesStaff.length > 0 && formData.salesStaffId && (
                       <span className="ms-2 text-xs text-green-600 dark:text-green-400 font-normal">
-                        ✦ {salesStaff.find(s => s.id === formData.salesStaffId)?.count === Math.min(...salesStaff.map(s => s.count)) ? 'الأقل تحميلاً' : ''}
+                        {salesStaff.find(s => s.id === formData.salesStaffId)?.count === Math.min(...salesStaff.map(s => s.count)) ? (direction === 'rtl' ? 'الأقل تحميلاً' : 'least loaded') : ''}
                       </span>
                     )}
                   </label>
                   <select
                     value={formData.salesStaffId}
                     onChange={(e) => setFormData({ ...formData, salesStaffId: e.target.value })}
-                    className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   >
-                    <option value="">— بدون موظف سيلز —</option>
+                    <option value="">{direction === 'rtl' ? '— بدون موظف سيلز —' : '— No sales staff —'}</option>
                     {salesStaff.map(s => {
                       const minCount = Math.min(...salesStaff.map(x => x.count))
                       return (
                         <option key={s.id} value={s.id}>
-                          {s.name} — #{s.staffCode} ({s.count} متابعة){s.count === minCount ? ' ⭐' : ''}
+                          {s.name} — #{s.staffCode} ({s.count} {direction === 'rtl' ? 'متابعة' : 'leads'}){s.count === minCount ? (direction === 'rtl' ? ' (الأقل)' : ' (least)') : ''}
                         </option>
                       )
                     })}
@@ -675,11 +704,11 @@ export default function VisitorsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">{t('visitors.form.notes')}</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('visitors.form.notes')}</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 rows={3}
                 placeholder={t('visitors.form.notesPlaceholder')}
               />
@@ -688,7 +717,7 @@ export default function VisitorsPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? t('visitors.form.saving') : t('visitors.form.submit')}
             </button>
@@ -697,35 +726,39 @@ export default function VisitorsPage() {
       )}
 
       {/* Visitors Info */}
-      <div className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-primary-300 dark:border-primary-600 rounded-xl p-6 sm:p-8 text-center">
-        <div className="text-6xl mb-4">👥</div>
-        <h3 className="text-2xl font-bold text-primary-900 dark:text-primary-100 mb-3">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-primary-200 dark:ring-primary-900/40 p-6 sm:p-8 text-center">
+        <div className="flex justify-center mb-4 text-primary-600 dark:text-primary-400">
+          <svg className="w-14 h-14" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
           {t('visitors.info.title')}
         </h3>
-        <p className="text-primary-700 dark:text-primary-200 mb-4 max-w-2xl mx-auto">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-2xl mx-auto">
           {t('visitors.info.description')}
         </p>
         <div className="flex gap-3 justify-center flex-wrap">
           <button
             onClick={() => router.push('/followups')}
-            className="bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-bold text-lg shadow-lg transition-all hover:scale-105"
+            className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-6 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            📋 {t('visitors.info.goToFollowUps')}
+            <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            <span>{t('visitors.info.goToFollowUps')}</span>
           </button>
           <button
             onClick={() => setShowForm(true)}
-            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white px-6 py-3 rounded-lg font-bold text-lg shadow-lg transition-all hover:scale-105"
+            className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 font-bold px-6 py-2.5 rounded-lg transition-colors duration-200"
           >
-            ➕ {t('visitors.info.quickAdd')}
+            <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+            <span>{t('visitors.info.quickAdd')}</span>
           </button>
         </div>
       </div>
 
       {/* Quick Add (Hidden List) */}
       {false && loading ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">⏳</div>
-          <p className="text-xl">{t('visitors.loading')}</p>
+        <div className="flex flex-col items-center justify-center py-12 text-center" aria-busy="true" aria-live="polite">
+          <svg className="animate-spin w-10 h-10 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">{t('visitors.loading')}</p>
         </div>
       ) : (
         <>
@@ -741,20 +774,20 @@ export default function VisitorsPage() {
               direction={direction}
             />
             {filteredVisitors.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-                <div className="text-5xl mb-3">🚶</div>
+              <div className="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+                <svg className="w-12 h-12 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 {monthFilter !== 'all' ? (
                   <>
-                    <p>{t('visitors.noVisitors.inMonth', { month: getMonthLabel(monthFilter) })}</p>
+                    <p className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('visitors.noVisitors.inMonth', { month: getMonthLabel(monthFilter) })}</p>
                     <button
                       onClick={() => setMonthFilter('all')}
-                      className="mt-3 text-orange-600 hover:text-orange-700 font-medium"
+                      className="mt-3 text-primary-600 hover:text-primary-700 dark:text-primary-400 font-bold transition-colors duration-200"
                     >
                       {t('visitors.noVisitors.showAll')}
                     </button>
                   </>
                 ) : (
-                  <p>{t('visitors.noVisitors.current')}</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('visitors.noVisitors.current')}</p>
                 )}
               </div>
             )}
@@ -784,9 +817,9 @@ export default function VisitorsPage() {
                         href={`https://wa.me/20${visitor.phone}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1 rounded-lg font-medium text-sm bg-green-500 hover:bg-green-600 text-white transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-sm bg-green-500 hover:bg-green-600 text-white transition-colors duration-200"
                       >
-                        <span>💬</span>
+                        <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z"/></svg>
                         <span className="font-mono">{visitor.phone}</span>
                       </a>
                     </td>
@@ -823,31 +856,35 @@ export default function VisitorsPage() {
                     <td className="px-4 py-3">
                       <div className="flex gap-2 flex-wrap">
                         {visitor.status === 'subscribed' ? (
-                          <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded text-sm font-bold">
-                            ✅ مشترك
+                          <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                            <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            {direction === 'rtl' ? 'مشترك' : 'Subscribed'}
                           </span>
                         ) : (
                           <button
                             onClick={() => openQuickFollowUp(visitor)}
-                            className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-medium px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
+                            className="inline-flex items-center gap-1 text-primary-700 dark:text-primary-300 text-sm font-bold px-3 py-1 rounded-lg bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200"
                             title={t('visitors.actions.followUpTitle')}
                           >
-                            ➕ {t('visitors.actions.followUp')}
+                            <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            {t('visitors.actions.followUp')}
                           </button>
                         )}
                         <button
                           onClick={() => openHistoryModal(visitor)}
-                          className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-medium px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
+                          className="inline-flex items-center gap-1 text-primary-700 dark:text-primary-300 text-sm font-bold px-3 py-1 rounded-lg bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200"
                           title={t('visitors.actions.historyTitle')}
                         >
-                          📋 {t('visitors.actions.history')}
+                          <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                          {t('visitors.actions.history')}
                         </button>
                         <button
                           onClick={() => openQuickSubscribe(visitor)}
-                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
-                          title="تحويل الزائر إلى عضو"
+                          className="inline-flex items-center gap-1 text-green-700 dark:text-green-300 text-sm font-bold px-3 py-1 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors duration-200"
+                          title={direction === 'rtl' ? 'تحويل الزائر إلى عضو' : 'Convert visitor to member'}
                         >
-                          ⚡ اشتراك سريع
+                          <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                          {direction === 'rtl' ? 'اشتراك سريع' : 'Quick subscribe'}
                         </button>
                       </div>
                     </td>
@@ -908,7 +945,7 @@ export default function VisitorsPage() {
                           onClick={() => goToPage(pageNum)}
                           className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                             currentPage === pageNum
-                              ? 'bg-primary-600 text-white'
+                              ? 'bg-primary-600 text-primary-contrast'
                               : 'hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                         >
@@ -958,20 +995,20 @@ export default function VisitorsPage() {
             )}
 
             {filteredVisitors.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                <div className="text-5xl mb-3">🚶</div>
+              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 dark:text-gray-400">
+                <svg className="w-12 h-12 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 {monthFilter !== 'all' ? (
                   <>
-                    <p>{t('visitors.noVisitors.inMonth', { month: getMonthLabel(monthFilter) })}</p>
+                    <p className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('visitors.noVisitors.inMonth', { month: getMonthLabel(monthFilter) })}</p>
                     <button
                       onClick={() => setMonthFilter('all')}
-                      className="mt-3 text-orange-600 hover:text-orange-700 font-medium"
+                      className="mt-3 text-primary-600 dark:text-primary-400 hover:text-primary-700 font-bold transition-colors duration-200"
                     >
                       {t('visitors.noVisitors.showAll')}
                     </button>
                   </>
                 ) : (
-                  <p>{t('visitors.noVisitors.current')}</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('visitors.noVisitors.current')}</p>
                 )}
               </div>
             )}
@@ -981,44 +1018,52 @@ export default function VisitorsPage() {
 
       {/* History Modal - سجل المتابعات */}
       {showHistoryModal && selectedVisitorForHistory && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowHistoryModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} dir={direction}>
-            <div className="sticky top-0 bg-primary-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          onClick={() => setShowHistoryModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="history-modal-title"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in" onClick={(e) => e.stopPropagation()} dir={direction}>
+            <div className="sticky top-0 bg-primary-500 text-primary-contrast p-4 rounded-t-2xl flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <span>📋</span>
+                <h2 id="history-modal-title" className="text-lg font-bold flex items-center gap-2">
+                  <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                   <span>{t('visitors.historyModal.title')}</span>
                 </h2>
-                <p className="text-xs opacity-90 mt-0.5">
+                <p className="text-xs opacity-80 mt-0.5">
                   {selectedVisitorForHistory.name} - {selectedVisitorForHistory.phone}
                 </p>
               </div>
               <button
                 onClick={() => setShowHistoryModal(false)}
-                className="text-white hover:bg-white dark:bg-gray-800/20 rounded-full w-8 h-8 flex items-center justify-center"
+                aria-label={direction === 'rtl' ? 'إغلاق' : 'Close'}
+                className="text-gray-900 hover:bg-gray-900/10 rounded-full w-8 h-8 flex items-center justify-center transition-colors duration-200"
               >
-                ✕
+                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
 
             <div className="p-4">
               {visitorHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                  <div className="text-4xl mb-2">📭</div>
-                  <p className="text-sm">{t('visitors.historyModal.noFollowUps')}</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 dark:text-gray-400">
+                  <svg className="w-12 h-12 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 font-bold mt-3">{t('visitors.historyModal.noFollowUps')}</p>
                   <button
                     onClick={() => {
                       setShowHistoryModal(false)
                       openQuickFollowUp(selectedVisitorForHistory)
                     }}
-                    className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+                    className="mt-4 inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-6 py-2.5 rounded-lg transition-colors duration-200"
                   >
-                    ➕ {t('visitors.historyModal.addFirst')}
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    {t('visitors.historyModal.addFirst')}
                   </button>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg border border-primary-200 dark:border-primary-700">
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg ring-1 ring-primary-200 dark:ring-primary-900/50">
                     <p className="text-sm font-bold text-primary-900 dark:text-primary-300">
                       {t('visitors.historyModal.total')}: <span className="text-2xl">{visitorHistory.length}</span>
                     </p>
@@ -1027,21 +1072,27 @@ export default function VisitorsPage() {
                   {visitorHistory.map((fu, index) => (
                     <div
                       key={fu.id}
-                      className={`border rounded-lg p-3 ${
-                        fu.contacted ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700'
+                      className={`rounded-lg p-3 ring-1 ${
+                        fu.contacted ? 'bg-green-50 dark:bg-green-900/20 ring-green-200 dark:ring-green-900/50' : 'bg-orange-50 dark:bg-orange-900/20 ring-orange-200 dark:ring-orange-900/50'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="text-xl font-bold text-gray-400 dark:text-gray-500">#{visitorHistory.length - index}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                               {new Date(fu.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                             </span>
                             {fu.contacted ? (
-                              <span className="text-green-700 font-bold text-xs">✅ {t('visitors.historyModal.completed')}</span>
+                              <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-400 font-bold text-xs">
+                                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                {t('visitors.historyModal.completed')}
+                              </span>
                             ) : (
-                              <span className="text-orange-600 font-bold text-xs">⏳ {t('visitors.historyModal.notCompleted')}</span>
+                              <span className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400 font-bold text-xs">
+                                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                {t('visitors.historyModal.notCompleted')}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -1060,8 +1111,9 @@ export default function VisitorsPage() {
                       </div>
 
                       {fu.nextFollowUpDate && (
-                        <div className="text-xs text-gray-600 dark:text-gray-300">
-                          📅 {t('visitors.historyModal.nextFollowUp')}: <span className="font-bold">{new Date(fu.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                        <div className="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                          {t('visitors.historyModal.nextFollowUp')}: <span className="font-bold">{new Date(fu.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
                         </div>
                       )}
                     </div>
@@ -1073,22 +1125,29 @@ export default function VisitorsPage() {
         </div>
       )}
 
-      {/* ⚡ نموذج الاشتراك السريع */}
+      {/* نموذج الاشتراك السريع */}
       {showQuickSubscribeModal && selectedVisitorForSubscribe && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quick-subscribe-title"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-modal-in">
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                ⚡ اشتراك سريع - {selectedVisitorForSubscribe.name}
+              <h2 id="quick-subscribe-title" className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <svg className="w-6 h-6 text-primary-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>{direction === 'rtl' ? 'اشتراك سريع' : 'Quick Subscribe'} - {selectedVisitorForSubscribe.name}</span>
               </h2>
               <button
                 onClick={() => {
                   setShowQuickSubscribeModal(false)
                   setSelectedVisitorForSubscribe(null)
                 }}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
+                aria-label={direction === 'rtl' ? 'إغلاق' : 'Close'}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                ×
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
             <div className="p-6">
@@ -1098,7 +1157,7 @@ export default function VisitorsPage() {
                   setSelectedVisitorForSubscribe(null)
                   refetchVisitors()
 
-                  // ✅ تحديث صفحة المتابعات لإزالة الزائر الذي أصبح عضواً
+                  // تحديث صفحة المتابعات لإزالة الزائر الذي أصبح عضواً
                   await queryClient.invalidateQueries({ queryKey: ['followups'] })
                   await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
                   await queryClient.invalidateQueries({ queryKey: ['members-followups'] })

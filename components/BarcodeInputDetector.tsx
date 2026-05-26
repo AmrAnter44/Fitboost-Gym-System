@@ -72,11 +72,11 @@ export default function BarcodeInputDetector() {
     }
   }, [isElectronApp])
 
-  // ✅ استخدام native barcode detection في Electron فقط
+  // Use native barcode detection in Electron only
   useEffect(() => {
     if (!isElectronApp || !autoScanEnabled) return
 
-    // ✅ أي جهاز محدد يعتبر barcode scanner
+    // Any selected device is treated as a barcode scanner
     if (!selectedScanner) return
 
 
@@ -86,18 +86,18 @@ export default function BarcodeInputDetector() {
     // الاستماع للأحداث من main process
     const handleBarcodeFromElectron = (barcode: string) => {
 
-      // ✅ استبعاد صفحة تسجيل الدخول
+      // Skip on login page
       const isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login'
       if (isLoginPage) {
         return
       }
 
-      // ✅ فتح SearchModal مباشرة مع الباركود
+      // Open SearchModal directly with the barcode
 
       try {
         openSearch(barcode)
       } catch (error) {
-        console.error('❌ Error opening search modal:', error)
+        console.error('Error opening search modal:', error)
       }
     }
 

@@ -6,6 +6,9 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { useLanguage } from '../contexts/LanguageContext'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 const REVENUE_COLOR = '#10b981' // green
 
 interface DashboardChartsProps {
@@ -16,14 +19,31 @@ interface DashboardChartsProps {
 export default function DashboardCharts({ revenueChartData, attendanceChartData }: DashboardChartsProps) {
   const { t } = useLanguage()
 
+  const iconRevenue = (
+    <svg {...stroke} className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8v8m0 0v2m0-10V6"/>
+      <circle cx="12" cy="12" r="9"/>
+    </svg>
+  )
+  const iconChart = (
+    <svg {...stroke} className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18M7 14l3-3 4 4 5-6"/>
+    </svg>
+  )
+  const iconEmpty = (
+    <svg {...stroke} className="w-12 h-12" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18M7 14l3-3 4 4 5-6"/>
+    </svg>
+  )
+
   const CustomRevenueTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-xl border-2 border-primary-500 dark:border-primary-400">
-          <p className="font-bold text-gray-800 dark:text-gray-100 mb-2">{payload[0].payload.fullDate}</p>
+        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-xl ring-1 ring-primary-200 dark:ring-primary-900/50">
+          <p className="font-bold text-gray-900 dark:text-gray-100 mb-2">{payload[0].payload.fullDate}</p>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-primary-500 dark:bg-primary-400 rounded-full"></div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               {t('dashboard.revenue')}: <span className="font-bold text-primary-600 dark:text-primary-400">{payload[0].value.toLocaleString()}</span> {t('members.egp')}
             </p>
           </div>
@@ -39,11 +59,11 @@ export default function DashboardCharts({ revenueChartData, attendanceChartData 
   const CustomAttendanceTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-xl border-2 border-green-500 dark:border-green-400">
-          <p className="font-bold text-gray-800 dark:text-gray-100 mb-2">{payload[0].payload.fullDate}</p>
+        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-xl ring-1 ring-green-200 dark:ring-green-900/50">
+          <p className="font-bold text-gray-900 dark:text-gray-100 mb-2">{payload[0].payload.fullDate}</p>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full"></div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               {t('dashboard.attendance')}: <span className="font-bold text-green-600 dark:text-green-400">{payload[0].value}</span> {t('members.members')}
             </p>
           </div>
@@ -56,13 +76,15 @@ export default function DashboardCharts({ revenueChartData, attendanceChartData 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       {/* جراف الإيرادات */}
-      <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 p-6 rounded-2xl shadow-xl border-2 border-primary-200 dark:border-primary-700 hover:shadow-2xl transition-shadow duration-300">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-            <span className="text-3xl">💰</span>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <span className="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
+              {iconRevenue}
+            </span>
             <span>{t('dashboard.revenueLast14Days')}</span>
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{t('dashboard.revenueChartSubtitle')}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('dashboard.revenueChartSubtitle')}</p>
         </div>
         {revenueChartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={350}>
@@ -98,21 +120,23 @@ export default function DashboardCharts({ revenueChartData, attendanceChartData 
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[350px]">
-            <div className="text-6xl mb-4 animate-pulse">📊</div>
-            <p className="text-gray-400 dark:text-gray-500 font-semibold">{t('dashboard.loadingData')}</p>
+          <div className="flex flex-col items-center justify-center h-[350px] text-gray-400 dark:text-gray-500">
+            {iconEmpty}
+            <p className="mt-3 font-semibold">{t('dashboard.loadingData')}</p>
           </div>
         )}
       </div>
 
       {/* جراف حضور الأعضاء */}
-      <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 p-6 rounded-2xl shadow-xl border-2 border-green-200 dark:border-green-700 hover:shadow-2xl transition-shadow duration-300">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-            <span className="text-3xl">📊</span>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <span className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center justify-center">
+              {iconChart}
+            </span>
             <span>{t('dashboard.attendanceLast7Days')}</span>
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{t('dashboard.attendanceChartSubtitle')}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('dashboard.attendanceChartSubtitle')}</p>
         </div>
         {attendanceChartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={350}>
@@ -144,9 +168,9 @@ export default function DashboardCharts({ revenueChartData, attendanceChartData 
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[350px]">
-            <div className="text-6xl mb-4 animate-pulse">📊</div>
-            <p className="text-gray-400 dark:text-gray-500 font-semibold">{t('dashboard.loadingData')}</p>
+          <div className="flex flex-col items-center justify-center h-[350px] text-gray-400 dark:text-gray-500">
+            {iconEmpty}
+            <p className="mt-3 font-semibold">{t('dashboard.loadingData')}</p>
           </div>
         )}
       </div>

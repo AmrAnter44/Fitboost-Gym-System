@@ -10,10 +10,69 @@ import { fetchFollowUpsData } from '../../lib/api/followups'
 import { fetchPTSessions } from '../../lib/api/pt'
 import { fetchStaff } from '../../lib/api/staff'
 import { useToast } from '../../contexts/ToastContext'
+import { LoadingScreen } from '../../components/Spinner'
 
 export const dynamic = 'force-dynamic'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
+const IconChartBar = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+  </svg>
+)
+const IconMoney = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V12Zm-12 0h.008v.008H6V12Z" />
+  </svg>
+)
+const IconNote = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+  </svg>
+)
+const IconDumbbell = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9v6m12-6v6M3 10.5v3m18-3v3M9 6v12m6-12v12" />
+  </svg>
+)
+const IconUsers = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+  </svg>
+)
+const IconReceipt = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 3h6m2 6.75H7A2.25 2.25 0 0 1 4.75 19.5V4.5A2.25 2.25 0 0 1 7 2.25h10A2.25 2.25 0 0 1 19.25 4.5v15A2.25 2.25 0 0 1 17 21.75Z" />
+  </svg>
+)
+const IconClock = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+  </svg>
+)
+const IconDownload = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+  </svg>
+)
+const IconInbox = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" />
+  </svg>
+)
+
 type TabType = 'revenue' | 'followups' | 'pt' | 'staff'
+
+const TAB_ICONS: Record<TabType, (p: { className?: string }) => JSX.Element> = {
+  revenue: IconMoney,
+  followups: IconNote,
+  pt: IconDumbbell,
+  staff: IconUsers,
+}
+
+const inputCls = 'w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200'
+const labelCls = 'block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5'
 
 export default function ReportsPage() {
   const { t, locale, direction } = useLanguage()
@@ -27,10 +86,9 @@ export default function ReportsPage() {
   const [paymentFilter, setPaymentFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
 
-  // Permission check
-  if (permLoading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" /></div>
+  if (permLoading) return <LoadingScreen fullScreen />
   if (!hasPermission('canViewReports' as any) && !hasPermission('canViewFinancials' as any)) {
-    return <div className="flex items-center justify-center min-h-screen"><p className="text-xl text-gray-500">{locale === 'ar' ? 'ليس لديك صلاحية' : 'Permission denied'}</p></div>
+    return <div className="flex items-center justify-center min-h-screen"><p className="text-lg text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'ليس لديك صلاحية' : 'Permission denied'}</p></div>
   }
 
   const isAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
@@ -38,49 +96,60 @@ export default function ReportsPage() {
   const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' }) : '-'
   const formatCurrency = (n: number) => `${n.toLocaleString()} ${locale === 'ar' ? 'ج.م' : 'EGP'}`
 
-  const tabs: { id: TabType; label: string; icon: string }[] = [
-    { id: 'revenue', label: t('reports.tabs.revenue' as any), icon: '💰' },
-    { id: 'followups', label: t('reports.tabs.followups' as any), icon: '📝' },
-    { id: 'pt', label: t('reports.tabs.pt' as any), icon: '💪' },
-    { id: 'staff', label: t('reports.tabs.staff' as any), icon: '👷' },
+  const tabs: { id: TabType; label: string }[] = [
+    { id: 'revenue', label: t('reports.tabs.revenue' as any) },
+    { id: 'followups', label: t('reports.tabs.followups' as any) },
+    { id: 'pt', label: t('reports.tabs.pt' as any) },
+    { id: 'staff', label: t('reports.tabs.staff' as any) },
   ]
 
   return (
     <div className="container mx-auto p-3 md:p-6 min-h-screen" dir={direction}>
       {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-          <span>📊</span> {t('reports.title' as any)}
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <span className="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
+            <IconChartBar className="w-5 h-5" />
+          </span>
+          {t('reports.title' as any)}
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('reports.subtitle' as any)}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('reports.subtitle' as any)}</p>
       </div>
 
       {/* Date Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 mb-4 flex flex-wrap gap-4 items-end">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 mb-4 flex flex-wrap gap-4 items-end">
         <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">{t('reports.dateFrom' as any)}</label>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="border dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white" />
+          <label className={labelCls}>{t('reports.dateFrom' as any)}</label>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">{t('reports.dateTo' as any)}</label>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            className="border dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white" />
+          <label className={labelCls}>{t('reports.dateTo' as any)}</label>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className={inputCls} />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
-        {tabs.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
-              activeTab === tab.id
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-            }`}>
-            <span>{tab.icon}</span> {tab.label}
-          </button>
-        ))}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        {tabs.map(tab => {
+          const Icon = TAB_ICONS[tab.id]
+          const active = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              type="button"
+              aria-current={active ? 'page' : undefined}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors duration-200 ring-1 ${
+                active
+                  ? 'bg-primary-500 text-primary-contrast ring-primary-500'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Tab Content */}
@@ -91,6 +160,13 @@ export default function ReportsPage() {
     </div>
   )
 }
+
+const exportBtnCls = 'inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2'
+
+const tableHeadCls = 'bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs'
+const tableThCls = 'px-4 py-3 text-start font-bold'
+const tableTdCls = 'px-4 py-3 text-gray-700 dark:text-gray-300'
+const tableTrCls = 'hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors'
 
 // =========== REVENUE TAB ===========
 function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFilter, setTypeFilter, formatDate, formatCurrency, direction, locale, t }: any) {
@@ -157,62 +233,60 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
 
   return (
     <div>
-      {/* Extra filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 mb-4 flex flex-wrap gap-4 items-end">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 mb-4 flex flex-wrap gap-4 items-end">
         <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">{t('reports.paymentMethod' as any)}</label>
-          <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className="border dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white">
+          <label className={labelCls}>{t('reports.paymentMethod' as any)}</label>
+          <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className={inputCls}>
             <option value="all">{t('reports.all' as any)}</option>
             {paymentMethods.map((m: string) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">{t('reports.receiptType' as any)}</label>
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="border dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white">
+          <label className={labelCls}>{t('reports.receiptType' as any)}</label>
+          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className={inputCls}>
             <option value="all">{t('reports.all' as any)}</option>
             {receiptTypes.map((tp: string) => <option key={tp} value={tp}>{tp}</option>)}
           </select>
         </div>
-        <button onClick={exportExcel} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-bold flex items-center gap-2">
-          📥 {t('reports.exportExcel' as any)}
+        <button onClick={exportExcel} type="button" className={exportBtnCls}>
+          <IconDownload className="w-4 h-4" />
+          <span>{t('reports.exportExcel' as any)}</span>
         </button>
       </div>
 
-      {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <SummaryCard icon="🧾" label={t('reports.count' as any)} value={filtered.length} />
-        <SummaryCard icon="💰" label={t('reports.total' as any)} value={formatCurrency(total)} />
+        <SummaryCard Icon={IconReceipt} label={t('reports.count' as any)} value={filtered.length} />
+        <SummaryCard Icon={IconMoney} label={t('reports.total' as any)} value={formatCurrency(total)} />
       </div>
 
-      {/* Table */}
       {filtered.length === 0 ? <NoData t={t} /> : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-x-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-blue-50 dark:bg-blue-900/30">
+            <thead className={tableHeadCls}>
+              <tr>
                 {[t('reports.receiptNumber' as any), t('reports.date' as any), t('reports.type' as any), t('reports.amount' as any), t('reports.paymentMethod' as any), t('reports.client' as any), t('reports.staff' as any)].map((h, i) =>
-                  <th key={i} className="px-3 py-3 text-start font-bold text-gray-700 dark:text-gray-200">{h}</th>
+                  <th key={i} className={tableThCls}>{h}</th>
                 )}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
               {filtered.map((r: any, i: number) => (
-                <tr key={r.id || i} className={`border-t dark:border-gray-700 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}>
-                  <td className="px-3 py-2 font-mono">{r.receiptNumber || '-'}</td>
-                  <td className="px-3 py-2">{formatDate(r.createdAt)}</td>
-                  <td className="px-3 py-2">{r.type || '-'}</td>
-                  <td className="px-3 py-2 font-bold text-green-600">{formatCurrency(r.amount || 0)}</td>
-                  <td className="px-3 py-2">{r.paymentMethod || '-'}</td>
-                  <td className="px-3 py-2">{getClientName(r)}</td>
-                  <td className="px-3 py-2">{r.staffName || '-'}</td>
+                <tr key={r.id || i} className={tableTrCls}>
+                  <td className={`${tableTdCls} font-mono`}>{r.receiptNumber || '-'}</td>
+                  <td className={tableTdCls}>{formatDate(r.createdAt)}</td>
+                  <td className={tableTdCls}>{r.type || '-'}</td>
+                  <td className={`${tableTdCls} font-bold text-green-600 dark:text-green-400`}>{formatCurrency(r.amount || 0)}</td>
+                  <td className={tableTdCls}>{r.paymentMethod || '-'}</td>
+                  <td className={tableTdCls}>{getClientName(r)}</td>
+                  <td className={tableTdCls}>{r.staffName || '-'}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="bg-yellow-50 dark:bg-yellow-900/20 font-bold border-t-2">
-                <td className="px-3 py-3" colSpan={3}>{t('reports.total' as any)}</td>
-                <td className="px-3 py-3 text-green-600">{formatCurrency(total)}</td>
-                <td className="px-3 py-3" colSpan={3}>{filtered.length} {t('reports.count' as any)}</td>
+              <tr className="bg-primary-50 dark:bg-primary-900/20 font-bold border-t-2 border-primary-200 dark:border-primary-900/50">
+                <td className="px-4 py-3 text-gray-900 dark:text-gray-100" colSpan={3}>{t('reports.total' as any)}</td>
+                <td className="px-4 py-3 text-green-600 dark:text-green-400">{formatCurrency(total)}</td>
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-300" colSpan={3}>{filtered.length} {t('reports.count' as any)}</td>
               </tr>
             </tfoot>
           </table>
@@ -265,35 +339,36 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <button onClick={exportExcel} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-bold flex items-center gap-2">
-          📥 {t('reports.exportExcel' as any)}
+        <button onClick={exportExcel} type="button" className={exportBtnCls}>
+          <IconDownload className="w-4 h-4" />
+          <span>{t('reports.exportExcel' as any)}</span>
         </button>
       </div>
 
-      <SummaryCard icon="📝" label={t('reports.count' as any)} value={filtered.length} />
+      <SummaryCard Icon={IconNote} label={t('reports.count' as any)} value={filtered.length} />
 
       {filtered.length === 0 ? <NoData t={t} /> : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-x-auto mt-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-x-auto mt-4">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-purple-50 dark:bg-purple-900/30">
+            <thead className={tableHeadCls}>
+              <tr>
                 {[t('reports.visitorName' as any), t('reports.phone' as any), t('reports.source' as any), t('reports.assignedStaff' as any), t('reports.stage' as any), t('reports.priority' as any), t('reports.result' as any), t('reports.contactCount' as any), t('reports.lastContacted' as any)].map((h, i) =>
-                  <th key={i} className="px-3 py-3 text-start font-bold text-gray-700 dark:text-gray-200">{h}</th>
+                  <th key={i} className={tableThCls}>{h}</th>
                 )}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
               {filtered.map((f: any, i: number) => (
-                <tr key={f.id || i} className={`border-t dark:border-gray-700 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}>
-                  <td className="px-3 py-2 font-bold">{f.visitor?.name || '-'}</td>
-                  <td className="px-3 py-2 font-mono">{f.visitor?.phone || '-'}</td>
-                  <td className="px-3 py-2">{f.visitor?.source || '-'}</td>
-                  <td className="px-3 py-2">{f.assignedStaff?.name || '-'}</td>
-                  <td className="px-3 py-2"><StageBadge stage={f.stage} /></td>
-                  <td className="px-3 py-2"><PriorityBadge priority={f.priority} /></td>
-                  <td className="px-3 py-2">{f.result || '-'}</td>
-                  <td className="px-3 py-2 text-center font-bold">{f.contactCount || 0}</td>
-                  <td className="px-3 py-2">{formatDate(f.lastContactedAt)}</td>
+                <tr key={f.id || i} className={tableTrCls}>
+                  <td className={`${tableTdCls} font-bold text-gray-900 dark:text-gray-100`}>{f.visitor?.name || '-'}</td>
+                  <td className={`${tableTdCls} font-mono`}>{f.visitor?.phone || '-'}</td>
+                  <td className={tableTdCls}>{f.visitor?.source || '-'}</td>
+                  <td className={tableTdCls}>{f.assignedStaff?.name || '-'}</td>
+                  <td className={tableTdCls}><StageBadge stage={f.stage} /></td>
+                  <td className={tableTdCls}><PriorityBadge priority={f.priority} /></td>
+                  <td className={tableTdCls}>{f.result || '-'}</td>
+                  <td className={`${tableTdCls} text-center font-bold`}>{f.contactCount || 0}</td>
+                  <td className={tableTdCls}>{formatDate(f.lastContactedAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -354,47 +429,48 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <button onClick={exportExcel} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-bold flex items-center gap-2">
-          📥 {t('reports.exportExcel' as any)}
+        <button onClick={exportExcel} type="button" className={exportBtnCls}>
+          <IconDownload className="w-4 h-4" />
+          <span>{t('reports.exportExcel' as any)}</span>
         </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-        <SummaryCard icon="💪" label={t('reports.count' as any)} value={filtered.length} />
-        <SummaryCard icon="💰" label={t('reports.totalRevenue' as any)} value={formatCurrency(totalRevenue)} />
-        <SummaryCard icon="⏳" label={t('reports.remainingAmount' as any)} value={formatCurrency(totalRemaining)} />
+        <SummaryCard Icon={IconDumbbell} label={t('reports.count' as any)} value={filtered.length} />
+        <SummaryCard Icon={IconMoney} label={t('reports.totalRevenue' as any)} value={formatCurrency(totalRevenue)} />
+        <SummaryCard Icon={IconClock} label={t('reports.remainingAmount' as any)} value={formatCurrency(totalRemaining)} />
       </div>
 
       {filtered.length === 0 ? <NoData t={t} /> : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-x-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-teal-50 dark:bg-teal-900/30">
+            <thead className={tableHeadCls}>
+              <tr>
                 {[t('reports.ptNumber' as any), t('reports.clientName' as any), t('reports.phone' as any), t('reports.coach' as any), t('reports.sessionsPurchased' as any), t('reports.sessionsRemaining' as any), t('reports.pricePerSession' as any), t('reports.totalRevenue' as any), t('reports.remainingAmount' as any)].map((h, i) =>
-                  <th key={i} className="px-3 py-3 text-start font-bold text-gray-700 dark:text-gray-200">{h}</th>
+                  <th key={i} className={tableThCls}>{h}</th>
                 )}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
               {filtered.map((p: any, i: number) => (
-                <tr key={p.id || i} className={`border-t dark:border-gray-700 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}>
-                  <td className="px-3 py-2 font-mono">{p.ptNumber || '-'}</td>
-                  <td className="px-3 py-2 font-bold">{p.clientName || '-'}</td>
-                  <td className="px-3 py-2 font-mono">{p.phone || '-'}</td>
-                  <td className="px-3 py-2">{p.coachName || '-'}</td>
-                  <td className="px-3 py-2 text-center">{p.sessionsPurchased || 0}</td>
-                  <td className="px-3 py-2 text-center">{p.sessionsRemaining || 0}</td>
-                  <td className="px-3 py-2">{formatCurrency(p.pricePerSession || 0)}</td>
-                  <td className="px-3 py-2 font-bold text-green-600">{formatCurrency((p.sessionsPurchased || 0) * (p.pricePerSession || 0))}</td>
-                  <td className="px-3 py-2 text-orange-600">{formatCurrency(p.remainingAmount || 0)}</td>
+                <tr key={p.id || i} className={tableTrCls}>
+                  <td className={`${tableTdCls} font-mono`}>{p.ptNumber || '-'}</td>
+                  <td className={`${tableTdCls} font-bold text-gray-900 dark:text-gray-100`}>{p.clientName || '-'}</td>
+                  <td className={`${tableTdCls} font-mono`}>{p.phone || '-'}</td>
+                  <td className={tableTdCls}>{p.coachName || '-'}</td>
+                  <td className={`${tableTdCls} text-center`}>{p.sessionsPurchased || 0}</td>
+                  <td className={`${tableTdCls} text-center`}>{p.sessionsRemaining || 0}</td>
+                  <td className={tableTdCls}>{formatCurrency(p.pricePerSession || 0)}</td>
+                  <td className={`${tableTdCls} font-bold text-green-600 dark:text-green-400`}>{formatCurrency((p.sessionsPurchased || 0) * (p.pricePerSession || 0))}</td>
+                  <td className={`${tableTdCls} text-orange-600 dark:text-orange-400`}>{formatCurrency(p.remainingAmount || 0)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="bg-yellow-50 dark:bg-yellow-900/20 font-bold border-t-2">
-                <td className="px-3 py-3" colSpan={7}>{t('reports.total' as any)}</td>
-                <td className="px-3 py-3 text-green-600">{formatCurrency(totalRevenue)}</td>
-                <td className="px-3 py-3 text-orange-600">{formatCurrency(totalRemaining)}</td>
+              <tr className="bg-primary-50 dark:bg-primary-900/20 font-bold border-t-2 border-primary-200 dark:border-primary-900/50">
+                <td className="px-4 py-3 text-gray-900 dark:text-gray-100" colSpan={7}>{t('reports.total' as any)}</td>
+                <td className="px-4 py-3 text-green-600 dark:text-green-400">{formatCurrency(totalRevenue)}</td>
+                <td className="px-4 py-3 text-orange-600 dark:text-orange-400">{formatCurrency(totalRemaining)}</td>
               </tr>
             </tfoot>
           </table>
@@ -484,37 +560,38 @@ function StaffTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, loc
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <button onClick={exportExcel} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-bold flex items-center gap-2">
-          📥 {t('reports.exportExcel' as any)}
+        <button onClick={exportExcel} type="button" className={exportBtnCls}>
+          <IconDownload className="w-4 h-4" />
+          <span>{t('reports.exportExcel' as any)}</span>
         </button>
       </div>
 
-      <SummaryCard icon="👷" label={t('reports.count' as any)} value={staffReport.length} />
+      <SummaryCard Icon={IconUsers} label={t('reports.count' as any)} value={staffReport.length} />
 
       {staffReport.length === 0 ? <NoData t={t} /> : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-x-auto mt-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-x-auto mt-4">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-700">
+            <thead className={tableHeadCls}>
+              <tr>
                 {[t('reports.staffCode' as any), t('reports.name' as any), t('reports.position' as any),
                   ...(isAdmin ? [t('reports.salary' as any)] : []),
                   t('reports.attendanceDays' as any), t('reports.totalHours' as any), t('reports.commissions' as any), t('reports.deductions' as any),
                   ...(isAdmin ? [t('reports.netAmount' as any)] : [])
-                ].map((h, i) => <th key={i} className="px-3 py-3 text-start font-bold text-gray-700 dark:text-gray-200">{h}</th>)}
+                ].map((h, i) => <th key={i} className={tableThCls}>{h}</th>)}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
               {staffReport.map((s: any, i: number) => (
-                <tr key={s.id || i} className={`border-t dark:border-gray-700 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}>
-                  <td className="px-3 py-2 font-mono">{s.staffCode || '-'}</td>
-                  <td className="px-3 py-2 font-bold">{s.name || '-'}</td>
-                  <td className="px-3 py-2">{s.position || '-'}</td>
-                  {isAdmin && <td className="px-3 py-2">{formatCurrency(s.salary || 0)}</td>}
-                  <td className="px-3 py-2 text-center">{s.attendanceDays}</td>
-                  <td className="px-3 py-2 text-center">{s.totalHours}h</td>
-                  <td className="px-3 py-2 text-green-600 font-bold">{formatCurrency(s.totalCommissions)}</td>
-                  <td className="px-3 py-2 text-red-600">{formatCurrency(s.totalDeductions)}</td>
-                  {isAdmin && <td className="px-3 py-2 font-bold">{formatCurrency(s.netAmount)}</td>}
+                <tr key={s.id || i} className={tableTrCls}>
+                  <td className={`${tableTdCls} font-mono`}>{s.staffCode || '-'}</td>
+                  <td className={`${tableTdCls} font-bold text-gray-900 dark:text-gray-100`}>{s.name || '-'}</td>
+                  <td className={tableTdCls}>{s.position || '-'}</td>
+                  {isAdmin && <td className={tableTdCls}>{formatCurrency(s.salary || 0)}</td>}
+                  <td className={`${tableTdCls} text-center`}>{s.attendanceDays}</td>
+                  <td className={`${tableTdCls} text-center`}>{s.totalHours}h</td>
+                  <td className={`${tableTdCls} text-green-600 dark:text-green-400 font-bold`}>{formatCurrency(s.totalCommissions)}</td>
+                  <td className={`${tableTdCls} text-red-600 dark:text-red-400`}>{formatCurrency(s.totalDeductions)}</td>
+                  {isAdmin && <td className={`${tableTdCls} font-bold text-gray-900 dark:text-gray-100`}>{formatCurrency(s.netAmount)}</td>}
                 </tr>
               ))}
             </tbody>
@@ -535,28 +612,48 @@ function downloadBuffer(buffer: ExcelJS.Buffer, fileName: string) {
 }
 
 function Loading() {
-  return <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>
+  return <LoadingScreen />
 }
 
 function NoData({ t }: { t: any }) {
-  return <div className="text-center py-16 text-gray-400"><p className="text-5xl mb-3">📭</p><p className="text-lg">{t('reports.noData' as any)}</p></div>
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <IconInbox className="w-12 h-12 text-gray-400" />
+      <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('reports.noData' as any)}</h3>
+    </div>
+  )
 }
 
-function SummaryCard({ icon, label, value }: { icon: string; label: string; value: string | number }) {
+function SummaryCard({ Icon, label, value }: { Icon: (p: { className?: string }) => JSX.Element; label: string; value: string | number }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex items-center gap-3">
-      <span className="text-3xl">{icon}</span>
-      <div><p className="text-sm text-gray-500 dark:text-gray-400">{label}</p><p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{value}</p></div>
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 flex items-center gap-3">
+      <span className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center shrink-0">
+        <Icon className="w-5 h-5" />
+      </span>
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</p>
+        <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+      </div>
     </div>
   )
 }
 
 function StageBadge({ stage }: { stage: string }) {
-  const colors: Record<string, string> = { new: 'bg-blue-100 text-blue-800', contacted: 'bg-yellow-100 text-yellow-800', interested: 'bg-green-100 text-green-800', not_interested: 'bg-red-100 text-red-800', converted: 'bg-emerald-100 text-emerald-800' }
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${colors[stage] || 'bg-gray-100 text-gray-800'}`}>{stage || '-'}</span>
+  const colors: Record<string, string> = {
+    new: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+    contacted: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300',
+    interested: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
+    not_interested: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',
+    converted: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+  }
+  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${colors[stage] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>{stage || '-'}</span>
 }
 
 function PriorityBadge({ priority }: { priority: string }) {
-  const colors: Record<string, string> = { high: 'bg-red-100 text-red-800', medium: 'bg-yellow-100 text-yellow-800', low: 'bg-green-100 text-green-800' }
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${colors[priority] || 'bg-gray-100 text-gray-800'}`}>{priority || '-'}</span>
+  const colors: Record<string, string> = {
+    high: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',
+    medium: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300',
+    low: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
+  }
+  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${colors[priority] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>{priority || '-'}</span>
 }

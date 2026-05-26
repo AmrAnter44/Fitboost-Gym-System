@@ -6,7 +6,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
+import { LoadingScreen } from '../../../components/Spinner'
 import { Permissions, PERMISSION_GROUPS, PERMISSION_LABELS, PERMISSION_ICONS } from '../../../types/permissions'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface User {
   id: string
@@ -143,7 +146,7 @@ export default function AdminUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...userPayload,
-          permissions: newUserPermissions  // ✅ إرسال الصلاحيات مع البيانات
+          permissions: newUserPermissions
         })
       })
 
@@ -216,7 +219,7 @@ export default function AdminUsersPage() {
 
   const handleToggleActive = async (user: User) => {
     setConfirmAction({
-      title: user.isActive ? `⏸️ ${t('adminUsers.confirmModal.suspendTitle')}` : `✅ ${t('adminUsers.confirmModal.activateTitle')}`,
+      title: user.isActive ? t('adminUsers.confirmModal.suspendTitle') : t('adminUsers.confirmModal.activateTitle'),
       message: user.isActive ? t('adminUsers.confirmModal.suspendMessage', { name: user.name }) : t('adminUsers.confirmModal.activateMessage', { name: user.name }),
       onConfirm: async () => {
         setShowConfirmModal(false)
@@ -247,7 +250,7 @@ export default function AdminUsersPage() {
 
   const handleDeleteUser = (user: User) => {
     setConfirmAction({
-      title: `⚠️ ${t('adminUsers.confirmModal.deleteTitle')}`,
+      title: t('adminUsers.confirmModal.deleteTitle'),
       message: t('adminUsers.confirmModal.deleteMessage', { name: user.name }),
       onConfirm: async () => {
         setShowConfirmModal(false)
@@ -320,19 +323,19 @@ export default function AdminUsersPage() {
 
   const getRoleBadge = (role: string) => {
     const badges = {
-      'ADMIN': 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-300 dark:border-red-700',
-      'MANAGER': 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400 border-primary-300 dark:border-primary-700',
-      'STAFF': 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-300 dark:border-green-700',
-      'COACH': 'bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400 border-primary-300 dark:border-primary-700'
+      'OWNER': 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
+      'ADMIN': 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',
+      'MANAGER': 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300',
+      'STAFF': 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
+      'COACH': 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
     }
-    return badges[role as keyof typeof badges] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'
+    return badges[role as keyof typeof badges] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
   }
 
   const getRoleLabel = (role: string) => {
-    const icons: Record<string, string> = { 'OWNER': '👨‍💼', 'ADMIN': '👑', 'MANAGER': '📊', 'STAFF': '👷', 'COACH': '🏋️' }
     const keys: Record<string, string> = { 'OWNER': 'owner', 'ADMIN': 'admin', 'MANAGER': 'manager', 'STAFF': 'staff', 'COACH': 'coach' }
     const key = keys[role]
-    return key ? `${icons[role]} ${t(`adminUsers.roles.${key}`)}` : role
+    return key ? t(`adminUsers.roles.${key}`) : role
   }
 
   const stats = {
@@ -345,34 +348,40 @@ export default function AdminUsersPage() {
   }
 
   if (loading && users.length === 0) {
-    return (
-      <div className="container mx-auto p-6 text-center" dir={direction}>
-        <div className="text-6xl mb-4">⏳</div>
-        <p className="text-xl">{t('adminUsers.loading')}</p>
-      </div>
-    )
+    return <LoadingScreen message={t('adminUsers.loading')} />
   }
 
   return (
     <div className="container mx-auto p-6" dir={direction}>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">👥 {t('adminUsers.title')}</h1>
-          <p className="text-gray-600 dark:text-gray-300">{t('adminUsers.subtitle')}</p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+            <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('adminUsers.title')}</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('adminUsers.subtitle')}</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Link
             href="/admin/audit"
-            className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-5 py-3 rounded-lg font-bold flex items-center gap-2 transition-colors"
+            className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
           >
-            <span>📝</span>
+            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a2.122 2.122 0 1 1 3 3L19.862 7.487m-3-3L8.078 13.27a2 2 0 0 0-.5.831l-1.111 4.222 4.222-1.111a2 2 0 0 0 .832-.5l8.781-8.781m-3-3 3 3" />
+            </svg>
             <span>{t('adminUsers.auditLog')}</span>
           </Link>
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center gap-2"
+            className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 text-sm"
           >
-            <span>➕</span>
+            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
             <span>{t('adminUsers.addUser')}</span>
           </button>
         </div>
@@ -380,143 +389,171 @@ export default function AdminUsersPage() {
 
       {/* Statistics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4 mb-6">
-        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-5 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.total}</div>
-          <div className="text-sm opacity-90">{t('adminUsers.stats.total')}</div>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-5 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.active}</div>
-          <div className="text-sm opacity-90">{t('adminUsers.stats.active')}</div>
-        </div>
-
-        <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-5 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.admins}</div>
-          <div className="text-sm opacity-90">{t('adminUsers.stats.admins')}</div>
-        </div>
-
-        <div className="bg-gradient-to-br from-primary-400 to-primary-500 text-white p-5 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.managers}</div>
-          <div className="text-sm opacity-90">{t('adminUsers.stats.managers')}</div>
-        </div>
-
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-5 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.staff}</div>
-          <div className="text-sm opacity-90">{t('adminUsers.stats.staff')}</div>
-        </div>
-
-        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-5 rounded-xl shadow-lg">
-          <div className="text-3xl font-bold">{stats.coaches}</div>
-          <div className="text-sm opacity-90">{t('adminUsers.stats.coaches')}</div>
-        </div>
+        {[
+          { label: t('adminUsers.stats.total'), value: stats.total, tone: 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' },
+          { label: t('adminUsers.stats.active'), value: stats.active, tone: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
+          { label: t('adminUsers.stats.admins'), value: stats.admins, tone: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+          { label: t('adminUsers.stats.managers'), value: stats.managers, tone: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
+          { label: t('adminUsers.stats.staff'), value: stats.staff, tone: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' },
+          { label: t('adminUsers.stats.coaches'), value: stats.coaches, tone: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4">
+            <div className={`w-10 h-10 rounded-lg ${stat.tone} flex items-center justify-center mb-2`}>
+              <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+              </svg>
+            </div>
+            <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{stat.label}</div>
+            <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</div>
+          </div>
+        ))}
       </div>
 
       {/* Users Cards */}
       <div className="space-y-3 sm:space-y-4">
         {users.map((user) => {
-          const roleColors: Record<string, { border: string; gradient: string; avatar: string }> = {
-            'OWNER': { border: 'border-amber-400', gradient: 'from-amber-50/50 dark:from-amber-900/10', avatar: 'from-amber-500 to-yellow-500' },
-            'ADMIN': { border: 'border-red-400', gradient: 'from-red-50/30 dark:from-red-900/10', avatar: 'from-red-500 to-rose-500' },
-            'MANAGER': { border: 'border-primary-400', gradient: 'from-primary-50/30 dark:from-primary-900/10', avatar: 'from-primary-500 to-primary-600' },
-            'STAFF': { border: 'border-green-400', gradient: 'from-green-50/30 dark:from-green-900/10', avatar: 'from-green-500 to-emerald-500' },
-            'COACH': { border: 'border-blue-400', gradient: 'from-blue-50/30 dark:from-blue-900/10', avatar: 'from-blue-500 to-indigo-500' },
+          const avatarTone: Record<string, string> = {
+            'OWNER': 'bg-amber-500',
+            'ADMIN': 'bg-red-500',
+            'MANAGER': 'bg-primary-500',
+            'STAFF': 'bg-green-500',
+            'COACH': 'bg-blue-500',
           }
-          const colors = roleColors[user.role] || roleColors['STAFF']
+          const avatar = avatarTone[user.role] || 'bg-gray-500'
 
           return (
             <div
               key={user.id}
-              className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-5 border-2 ${colors.border} bg-gradient-to-br ${colors.gradient} to-white dark:to-gray-800 hover:shadow-2xl transition-all duration-300 hover:scale-[1.01] ${!user.isActive ? 'opacity-70' : ''}`}
+              className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5 transition-colors duration-200 ${!user.isActive ? 'opacity-70' : ''}`}
             >
               {/* Header: Action Buttons + Status */}
-              <div className="flex justify-between items-start gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-bold border-2 ${getRoleBadge(user.role)}`}>
+              <div className="flex justify-between items-start gap-2 mb-3 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${getRoleBadge(user.role)}`}>
                     {getRoleLabel(user.role)}
                   </span>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                     user.isActive
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
-                      : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+                      ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                      : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                   }`}>
-                    {user.isActive ? `✅ ${t('adminUsers.status.active')}` : `❌ ${t('adminUsers.status.suspended')}`}
+                    {user.isActive ? (
+                      <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                    ) : (
+                      <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                    {user.isActive ? t('adminUsers.status.active') : t('adminUsers.status.suspended')}
                   </span>
                 </div>
                 <div className="flex gap-1.5 sm:gap-2">
                   <button
                     onClick={() => handleOpenPermissions(user)}
-                    className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-all"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200"
                     title={t('adminUsers.actions.permissions')}
+                    aria-label={t('adminUsers.actions.permissions')}
                   >
-                    🔒
+                    <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                    </svg>
                   </button>
                   <button
                     onClick={() => handleToggleActive(user)}
-                    className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded transition-all ${
+                    className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 ${
                       user.isActive
                         ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/50'
                         : 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50'
                     }`}
                     title={user.isActive ? t('adminUsers.actions.suspend') : t('adminUsers.actions.activate')}
+                    aria-label={user.isActive ? t('adminUsers.actions.suspend') : t('adminUsers.actions.activate')}
                   >
-                    {user.isActive ? '⏸️' : '▶️'}
+                    {user.isActive ? (
+                      <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
+                      </svg>
+                    ) : (
+                      <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+                      </svg>
+                    )}
                   </button>
                   <button
                     onClick={() => handleResetPassword(user)}
-                    className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-all"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200"
                     title={t('adminUsers.actions.changePassword')}
+                    aria-label={t('adminUsers.actions.changePassword')}
                   >
-                    🔑
+                    <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                    </svg>
                   </button>
                   <button
                     onClick={() => handleDeleteUser(user)}
-                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-all"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
                     title={t('adminUsers.actions.deleteUser')}
+                    aria-label={t('adminUsers.actions.deleteUser')}
                   >
-                    🗑️
+                    <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
               {/* User Info Section */}
-              <div className="bg-gradient-to-r from-primary-50 via-white to-primary-50 dark:from-primary-900/20 dark:via-gray-800 dark:to-primary-900/20 p-3 sm:p-4 rounded-xl border-2 border-primary-200 dark:border-primary-700 shadow-sm">
+              <div className="bg-gray-50 dark:bg-gray-900/40 p-3 sm:p-4 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700">
                 <div className="flex flex-col gap-2.5">
                   {/* Name with Avatar */}
                   <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${colors.avatar} flex items-center justify-center text-white font-bold text-lg shadow-md`}>
+                    <div className={`w-11 h-11 rounded-full ${avatar} flex items-center justify-center text-white font-bold text-lg`}>
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1">
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{t('adminUsers.labels.name')}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold">{t('adminUsers.labels.name')}</div>
                       <span className="font-bold text-base sm:text-lg text-gray-900 dark:text-gray-100">{user.name}</span>
                     </div>
                   </div>
 
                   {/* Email */}
                   <div className="flex items-center gap-2">
-                    <div className="bg-gray-500 p-1.5 rounded-lg">
-                      <span className="text-white text-base">📧</span>
+                    <div className="w-9 h-9 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                      </svg>
                     </div>
-                    <div className="flex-1">
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{t('adminUsers.labels.email')}</div>
-                      <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200" dir="ltr">{user.email}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold">{t('adminUsers.labels.email')}</div>
+                      <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200 truncate block" dir="ltr">{user.email}</span>
                     </div>
                   </div>
 
                   {/* Staff Link + Date */}
                   <div className="flex flex-wrap gap-2">
                     {user.staff && (
-                      <span className="text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2.5 py-1 rounded-full font-semibold shadow-sm">
-                        👷 {user.staff.name} #{user.staff.staffCode}
+                      <span className="inline-flex items-center gap-1 text-xs bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 px-2.5 py-0.5 rounded-full font-bold">
+                        <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                        </svg>
+                        {user.staff.name} #{user.staff.staffCode}
                       </span>
                     )}
                     {user.isSales && (
-                      <span className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-600 px-2.5 py-1 rounded-full font-bold shadow-sm">
-                        🏷️ سيلز
+                      <span className="inline-flex items-center gap-1 text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-2.5 py-0.5 rounded-full font-bold">
+                        <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
+                        </svg>
+                        سيلز
                       </span>
                     )}
-                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2.5 py-1 rounded-full font-medium">
-                      📅 {new Date(user.createdAt).toLocaleDateString('ar-EG')}
+                    <span className="inline-flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2.5 py-0.5 rounded-full font-bold">
+                      <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                      </svg>
+                      {new Date(user.createdAt).toLocaleDateString('ar-EG')}
                     </span>
                   </div>
                 </div>
@@ -526,13 +563,18 @@ export default function AdminUsersPage() {
         })}
 
         {users.length === 0 && (
-          <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-            <div className="text-6xl mb-4">👥</div>
-            <p className="text-xl font-medium">{t('adminUsers.empty.title')}</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+            <svg {...stroke} className="w-12 h-12 text-gray-400" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+            </svg>
+            <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('adminUsers.empty.title')}</h3>
             <button
               onClick={() => setShowAddModal(true)}
-              className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+              className="mt-4 inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 text-sm"
             >
+              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
               {t('adminUsers.empty.addFirst')}
             </button>
           </div>
@@ -541,51 +583,54 @@ export default function AdminUsersPage() {
 
       {/* Modal: إضافة مستخدم */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-7xl w-full p-4 my-8">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="add-user-title">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-7xl w-full p-4 my-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">➕ {t('adminUsers.addModal.title')}</h2>
+              <h2 id="add-user-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('adminUsers.addModal.title')}</h2>
               <button
                 onClick={() => {
                   setShowAddModal(false)
                   setNewUserPermissions({})
                 }}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-3xl leading-none"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label={t('adminUsers.addModal.cancel')}
               >
-                ×
+                <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('adminUsers.addModal.name')} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
                   value={newUserData.name}
                   onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
-                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
                   placeholder={t('adminUsers.addModal.namePlaceholder')}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('adminUsers.addModal.email')} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="email"
                   value={newUserData.email}
                   onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
-                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
                   placeholder={t('adminUsers.addModal.emailPlaceholder')}
                   dir="ltr"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('adminUsers.addModal.password')} <span className="text-red-600">*</span>
                 </label>
                 <div className="relative">
@@ -593,22 +638,21 @@ export default function AdminUsersPage() {
                     type={showNewUserPassword ? 'text' : 'password'}
                     value={newUserData.password}
                     onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                    className="w-full px-3 py-2 pr-10 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                    className="w-full px-3 py-2 ps-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
                     placeholder={t('adminUsers.addModal.passwordPlaceholder')}
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewUserPassword(v => !v)}
-                    className="absolute inset-y-0 left-0 px-3 flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
-                    title={showNewUserPassword ? 'إخفاء' : 'إظهار'}
+                    className="absolute inset-y-0 start-0 px-3 flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors duration-200"
                     aria-label={showNewUserPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                   >
                     {showNewUserPassword ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                       </svg>
@@ -618,7 +662,7 @@ export default function AdminUsersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   تأكيد كلمة المرور <span className="text-red-600">*</span>
                 </label>
                 <div className="relative">
@@ -626,7 +670,7 @@ export default function AdminUsersPage() {
                     type={showNewUserConfirmPassword ? 'text' : 'password'}
                     value={newUserData.confirmPassword}
                     onChange={(e) => setNewUserData({ ...newUserData, confirmPassword: e.target.value })}
-                    className={`w-full px-3 py-2 pr-10 border-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:text-white ${
+                    className={`w-full px-3 py-2 ps-10 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm ${
                       newUserData.confirmPassword && newUserData.password !== newUserData.confirmPassword
                         ? 'border-red-400 dark:border-red-600'
                         : 'border-gray-300 dark:border-gray-600'
@@ -636,16 +680,15 @@ export default function AdminUsersPage() {
                   <button
                     type="button"
                     onClick={() => setShowNewUserConfirmPassword(v => !v)}
-                    className="absolute inset-y-0 left-0 px-3 flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
-                    title={showNewUserConfirmPassword ? 'إخفاء' : 'إظهار'}
+                    className="absolute inset-y-0 start-0 px-3 flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors duration-200"
                     aria-label={showNewUserConfirmPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                   >
                     {showNewUserConfirmPassword ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                       </svg>
@@ -653,29 +696,34 @@ export default function AdminUsersPage() {
                   </button>
                 </div>
                 {newUserData.confirmPassword && newUserData.password !== newUserData.confirmPassword && (
-                  <p className="text-red-600 dark:text-red-400 text-xs mt-1">⚠️ كلمتا المرور غير متطابقتين</p>
+                  <p className="text-red-600 dark:text-red-400 text-xs mt-1 flex items-center gap-1">
+                    <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    كلمتا المرور غير متطابقتين
+                  </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('adminUsers.addModal.role')} <span className="text-red-600">*</span>
                 </label>
                 <select
                   value={newUserData.role}
                   onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value as any, staffId: '' })}
-                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
                 >
-                  <option value="STAFF">👷 {t('adminUsers.roles.staff')}</option>
-                  <option value="MANAGER">📊 {t('adminUsers.roles.manager')}</option>
-                  <option value="ADMIN">👑 {t('adminUsers.roles.admin')}</option>
-                  <option value="COACH">🏋️ {t('adminUsers.roles.coach')}</option>
+                  <option value="STAFF">{t('adminUsers.roles.staff')}</option>
+                  <option value="MANAGER">{t('adminUsers.roles.manager')}</option>
+                  <option value="ADMIN">{t('adminUsers.roles.admin')}</option>
+                  <option value="COACH">{t('adminUsers.roles.coach')}</option>
                 </select>
               </div>
 
               {newUserData.role === 'COACH' && (
                 <div className="lg:col-span-4">
-                  <label className="block text-xs font-medium mb-1 text-gray-900 dark:text-gray-100">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {t('adminUsers.addModal.staff')} <span className="text-red-600">*</span>
                   </label>
                   <select
@@ -689,7 +737,7 @@ export default function AdminUsersPage() {
                         email: selectedStaff ? `coach${selectedStaff.staffCode}@gym.com` : ''
                       })
                     }}
-                    className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
                   >
                     <option value="">{t('adminUsers.addModal.selectStaff')}</option>
                     {staff
@@ -704,17 +752,17 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
-              {/* سيلز: اختيار موظف سيلز — مثل الكوتش */}
+              {/* Sales */}
               {newUserData.role !== 'COACH' && newUserData.role !== 'ADMIN' && newUserData.role !== 'OWNER' && (
                 <div className="lg:col-span-4">
-                  <label className="flex items-center gap-2 text-xs font-medium text-gray-900 dark:text-gray-100 mb-2 cursor-pointer select-none">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={newUserData.isSales}
                       onChange={(e) => setNewUserData({ ...newUserData, isSales: e.target.checked, staffId: '' })}
-                      className="w-4 h-4 accent-orange-500"
+                      className="w-4 h-4 rounded accent-orange-500"
                     />
-                    🏷️ <span>اكونت سيلز — اختار موظف السيلز المرتبط بيه</span>
+                    <span>اكونت سيلز — اختار موظف السيلز المرتبط بيه</span>
                   </label>
                   {newUserData.isSales && (
                     <select
@@ -728,7 +776,7 @@ export default function AdminUsersPage() {
                           email: selectedStaff ? `sales${selectedStaff.staffCode}@gym.com` : newUserData.email
                         })
                       }}
-                      className="w-full px-3 py-2 border-2 border-orange-300 dark:border-orange-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-orange-400 text-sm"
+                      className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-colors duration-200 text-sm"
                     >
                       <option value="">— اختر موظف السيلز —</option>
                       {staff
@@ -744,60 +792,47 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
-              {/* قسم الصلاحيات */}
-              <div className="lg:col-span-4 border-t-2 border-gray-200 dark:border-gray-700 pt-3 mt-2">
-                <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                  <span>🔒</span>
+              {/* Permissions */}
+              <div className="lg:col-span-4 border-t border-gray-200 dark:border-gray-700 pt-3 mt-2">
+                <h3 className="text-base font-bold mb-2 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                  <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                  </svg>
                   <span>{t('adminUsers.addModal.permissions')}</span>
                 </h3>
 
                 {(newUserData.role === 'ADMIN' || newUserData.role === 'OWNER') && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/30 border-r-4 border-yellow-500 dark:border-yellow-700 p-2 rounded mb-2">
-                    <p className="text-xs text-yellow-800 dark:text-yellow-300">
-                      <strong>👑 {newUserData.role === 'OWNER' ? t('adminUsers.roles.owner') : t('adminUsers.roles.admin')}:</strong> {t('adminUsers.addModal.adminFullAccess')}
+                  <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-2 rounded-lg mb-2">
+                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                      <strong>{newUserData.role === 'OWNER' ? t('adminUsers.roles.owner') : t('adminUsers.roles.admin')}:</strong> {t('adminUsers.addModal.adminFullAccess')}
                     </p>
                   </div>
                 )}
 
                 <div className="space-y-2 max-h-52 overflow-y-auto">
-                  {Object.entries(PERMISSION_GROUPS).map(([groupKey, group], index) => {
-                    const colors = [
-                      'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
-                      'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300',
-                      'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
-                      'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300',
-                      'border-pink-200 dark:border-pink-700 bg-pink-50 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300',
-                      'border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
-                      'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
-                      'border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300',
-                      'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                    ]
-                    const colorClass = colors[index % colors.length]
-
-                    return (
-                      <div key={groupKey} className={`border-2 rounded-lg p-2 ${colorClass}`}>
-                        <h4 className="font-bold mb-1 flex items-center gap-1 text-xs">
-                          <span>{group.label}</span>
-                        </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
-                          {group.permissions.map((permission) => (
-                            <label key={permission} className="flex items-center gap-1 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-1 rounded transition">
-                              <input
-                                type="checkbox"
-                                checked={newUserPermissions[permission] || false}
-                                onChange={(e) => setNewUserPermissions({ ...newUserPermissions, [permission]: e.target.checked })}
-                                disabled={newUserData.role === 'ADMIN' || newUserData.role === 'OWNER'}
-                                className="w-3 h-3"
-                              />
-                              <span className="text-xs">
-                                {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
+                  {Object.entries(PERMISSION_GROUPS).map(([groupKey, group]) => (
+                    <div key={groupKey} className="rounded-lg p-2 ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40">
+                      <h4 className="font-bold mb-1 text-xs text-gray-700 dark:text-gray-300">
+                        {group.label}
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+                        {group.permissions.map((permission) => (
+                          <label key={permission} className="flex items-center gap-1 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-1 rounded transition-colors duration-200">
+                            <input
+                              type="checkbox"
+                              checked={newUserPermissions[permission] || false}
+                              onChange={(e) => setNewUserPermissions({ ...newUserPermissions, [permission]: e.target.checked })}
+                              disabled={newUserData.role === 'ADMIN' || newUserData.role === 'OWNER'}
+                              className="w-3 h-3 rounded accent-primary-500"
+                            />
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
+                            </span>
+                          </label>
+                        ))}
                       </div>
-                    )
-                  })}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -805,13 +840,27 @@ export default function AdminUsersPage() {
                 <button
                   onClick={handleAddUser}
                   disabled={loading}
-                  className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold text-sm"
+                  className="flex-1 inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed font-bold text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                 >
-                  {loading ? t('adminUsers.addModal.adding') : `✅ ${t('adminUsers.addModal.add')}`}
+                  {loading ? (
+                    <>
+                      <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                      </svg>
+                      <span>{t('adminUsers.addModal.adding')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                      <span>{t('adminUsers.addModal.add')}</span>
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => setShowAddModal(false)}
-                  className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-sm"
+                  className="px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-bold text-sm transition-colors duration-200"
                 >
                   {t('adminUsers.addModal.cancel')}
                 </button>
@@ -821,62 +870,79 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Modal: تعديل الصلاحيات */}
+      {/* Modal: Edit Permissions */}
       {showPermissionsModal && editingUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="perm-modal-title">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">🔒 {t('adminUsers.permissionsModal.title', { name: editingUser.name })}</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-300">{editingUser.email}</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                  <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 id="perm-modal-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('adminUsers.permissionsModal.title', { name: editingUser.name })}</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{editingUser.email}</p>
+                </div>
               </div>
               <button
                 onClick={() => setShowPermissionsModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-3xl leading-none"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label={t('adminUsers.permissionsModal.cancel')}
               >
-                ×
+                <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
             {(editingUser.role === 'ADMIN' || editingUser.role === 'OWNER') && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/30 border-r-4 border-yellow-500 dark:border-yellow-700 p-4 rounded mb-6">
-                <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                  <strong>👑 {editingUser.role === 'OWNER' ? t('adminUsers.roles.owner') : t('adminUsers.roles.admin')}:</strong> {t('adminUsers.permissionsModal.adminFullAccess')}
+              <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-4 rounded-lg mb-6">
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  <strong>{editingUser.role === 'OWNER' ? t('adminUsers.roles.owner') : t('adminUsers.roles.admin')}:</strong> {t('adminUsers.permissionsModal.adminFullAccess')}
                 </p>
               </div>
             )}
 
-            {/* تاج السيلز */}
+            {/* Sales tag */}
             {editingUser.role !== 'OWNER' && editingUser.role !== 'ADMIN' && (
-              <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-xl px-4 py-3 mb-5 space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-200 dark:ring-orange-900/50 rounded-xl px-4 py-3 mb-5 space-y-3">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">🏷️</span>
+                    <div className="w-9 h-9 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
+                      </svg>
+                    </div>
                     <div>
                       <p className="font-bold text-orange-800 dark:text-orange-200 text-sm">اكونت سيلز</p>
-                      <p className="text-xs text-orange-600 dark:text-orange-400">الاكونت ده هيشوف متابعاته بس في صفحة المتابعات</p>
+                      <p className="text-xs text-orange-700 dark:text-orange-400">الاكونت ده هيشوف متابعاته بس في صفحة المتابعات</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setEditingUserIsSales(!editingUserIsSales)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 ${
                       editingUserIsSales ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
+                    role="switch"
+                    aria-checked={editingUserIsSales}
+                    aria-label="سيلز"
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                       editingUserIsSales ? 'translate-x-6' : 'translate-x-1'
                     }`} />
                   </button>
                 </div>
-                {/* اختيار الموظف — يظهر دايماً عشان تقدر تغيّره */}
                 <div>
-                  <label className="block text-xs font-medium text-orange-800 dark:text-orange-200 mb-1">
+                  <label className="block text-xs font-bold text-orange-800 dark:text-orange-200 mb-1">
                     الموظف المرتبط بالاكونت ده
                   </label>
                   <select
                     value={editingStaffId}
                     onChange={(e) => setEditingStaffId(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-orange-300 dark:border-orange-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-orange-400 text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-colors duration-200 text-sm"
                   >
                     <option value="">— بدون موظف —</option>
                     {staff
@@ -895,57 +961,56 @@ export default function AdminUsersPage() {
             )}
 
             <div className="space-y-4">
-              {Object.entries(PERMISSION_GROUPS).map(([groupKey, group], index) => {
-                const colors = [
-                  'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
-                  'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300',
-                  'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
-                  'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300',
-                  'border-pink-200 dark:border-pink-700 bg-pink-50 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300',
-                  'border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
-                  'border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300',
-                  'border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300',
-                  'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                ]
-                const colorClass = colors[index % colors.length]
-
-                return (
-                  <div key={groupKey} className={`border-2 rounded-lg p-4 ${colorClass}`}>
-                    <h3 className="font-bold mb-3 flex items-center gap-2">
-                      <span>{group.label}</span>
-                    </h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {group.permissions.map((permission) => (
-                        <label key={permission} className="flex items-center gap-2 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-2 rounded transition">
-                          <input
-                            type="checkbox"
-                            checked={permissions[permission] || false}
-                            onChange={(e) => setPermissions({ ...permissions, [permission]: e.target.checked })}
-                            disabled={editingUser.role === 'ADMIN' || editingUser.role === 'OWNER'}
-                            className="w-4 h-4"
-                          />
-                          <span className="text-sm">
-                            {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
+              {Object.entries(PERMISSION_GROUPS).map(([groupKey, group]) => (
+                <div key={groupKey} className="rounded-lg p-4 ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40">
+                  <h3 className="font-bold mb-3 text-sm text-gray-700 dark:text-gray-300">
+                    {group.label}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {group.permissions.map((permission) => (
+                      <label key={permission} className="flex items-center gap-2 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-2 rounded-lg transition-colors duration-200">
+                        <input
+                          type="checkbox"
+                          checked={permissions[permission] || false}
+                          onChange={(e) => setPermissions({ ...permissions, [permission]: e.target.checked })}
+                          disabled={editingUser.role === 'ADMIN' || editingUser.role === 'OWNER'}
+                          className="w-4 h-4 rounded accent-primary-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
+                        </span>
+                      </label>
+                    ))}
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSavePermissions}
                 disabled={loading || editingUser.role === 'ADMIN' || editingUser.role === 'OWNER'}
-                className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
               >
-                {loading ? t('adminUsers.permissionsModal.saving') : `✅ ${t('adminUsers.permissionsModal.save')}`}
+                {loading ? (
+                  <>
+                    <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                    </svg>
+                    <span>{t('adminUsers.permissionsModal.saving')}</span>
+                  </>
+                ) : (
+                  <>
+                    <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <span>{t('adminUsers.permissionsModal.save')}</span>
+                  </>
+                )}
               </button>
               <button
                 onClick={() => setShowPermissionsModal(false)}
-                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+                className="px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-bold transition-colors duration-200"
               >
                 {t('adminUsers.permissionsModal.cancel')}
               </button>
@@ -954,26 +1019,34 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Modal: التأكيد */}
+      {/* Modal: Confirm */}
       {showConfirmModal && confirmAction && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-md w-full p-6">
             <div className="text-center mb-6">
-              <div className="text-6xl mb-4">⚠️</div>
-              <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">{confirmAction.title}</h2>
-              <p className="text-gray-600 dark:text-gray-300">{confirmAction.message}</p>
+              <div className="mx-auto w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
+                <svg {...stroke} className="w-8 h-8" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <h2 id="confirm-modal-title" className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">{confirmAction.title}</h2>
+              <p className="text-gray-600 dark:text-gray-400">{confirmAction.message}</p>
             </div>
 
             <div className="flex gap-3">
               <button
                 onClick={confirmAction.onConfirm}
-                className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold"
+                autoFocus
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 rounded-lg font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
               >
-                ✅ {t('adminUsers.confirmModal.confirm')}
+                <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>{t('adminUsers.confirmModal.confirm')}</span>
               </button>
               <button
                 onClick={() => setShowConfirmModal(false)}
-                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+                className="px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-bold transition-colors duration-200"
               >
                 {t('adminUsers.confirmModal.cancel')}
               </button>
@@ -982,41 +1055,51 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Modal: تغيير كلمة المرور */}
+      {/* Modal: Change Password */}
       {showChangePasswordModal && changingPasswordUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="change-pw-title">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                🔑 {t('adminUsers.changePasswordModal.title')}
-              </h2>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                  <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                  </svg>
+                </div>
+                <h2 id="change-pw-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t('adminUsers.changePasswordModal.title')}
+                </h2>
+              </div>
               <button
                 onClick={() => {
                   setShowChangePasswordModal(false)
                   setPasswordData({ newPassword: '', ownerPassword: '' })
                 }}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-3xl leading-none"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label={t('adminUsers.changePasswordModal.cancel')}
               >
-                ×
+                <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
-              <p className="text-sm text-blue-800 dark:text-blue-300">
+            <div className="mb-6 p-4 bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-900/50 rounded-lg">
+              <p className="text-sm text-primary-800 dark:text-primary-300">
                 <strong>{t('adminUsers.changePasswordModal.user')}:</strong> {changingPasswordUser.name} ({changingPasswordUser.email})
               </p>
             </div>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('adminUsers.changePasswordModal.newPassword')} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="password"
                   value={passwordData.newPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('adminUsers.changePasswordModal.newPasswordPlaceholder')}
                   minLength={6}
                 />
@@ -1026,18 +1109,21 @@ export default function AdminUsersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('adminUsers.changePasswordModal.ownerPassword')} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="password"
                   value={passwordData.ownerPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, ownerPassword: e.target.value })}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('adminUsers.changePasswordModal.ownerPasswordPlaceholder')}
                 />
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  🔒 {t('adminUsers.changePasswordModal.ownerRequired')}
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                  <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                  </svg>
+                  {t('adminUsers.changePasswordModal.ownerRequired')}
                 </p>
               </div>
             </div>
@@ -1046,16 +1132,30 @@ export default function AdminUsersPage() {
               <button
                 onClick={handleChangePassword}
                 disabled={loading}
-                className="flex-1 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
               >
-                {loading ? t('adminUsers.changePasswordModal.changing') : `✅ ${t('adminUsers.changePasswordModal.change')}`}
+                {loading ? (
+                  <>
+                    <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                    </svg>
+                    <span>{t('adminUsers.changePasswordModal.changing')}</span>
+                  </>
+                ) : (
+                  <>
+                    <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <span>{t('adminUsers.changePasswordModal.change')}</span>
+                  </>
+                )}
               </button>
               <button
                 onClick={() => {
                   setShowChangePasswordModal(false)
                   setPasswordData({ newPassword: '', ownerPassword: '' })
                 }}
-                className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+                className="px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-bold transition-colors duration-200"
               >
                 {t('adminUsers.changePasswordModal.cancel')}
               </button>

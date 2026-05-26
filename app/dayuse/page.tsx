@@ -13,6 +13,7 @@ import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import type { PaymentMethod } from '../../lib/paymentHelpers'
 import { fetchDayUseRecords } from '../../lib/api/dayuse'
 import AssignSalesButton from '../../components/AssignSalesButton'
+import { LoadingScreen } from '../../components/Spinner'
 
 interface DayUseEntry {
   id: string
@@ -271,7 +272,7 @@ export default function DayUsePage() {
               setRenewingEntryId(null)
             }
           }}
-          className="w-full sm:w-auto bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+          className="w-full sm:w-auto bg-primary-600 text-primary-contrast px-6 py-2 rounded-lg hover:bg-primary-700"
         >
           {showForm ? t('dayUse.hideForm') : t('dayUse.addNewOperation')}
         </button>
@@ -280,7 +281,7 @@ export default function DayUsePage() {
       {showForm && (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-xl font-semibold mb-4">
-            {isRenewing ? `🔄 ${t('dayUse.renewService')}` : t('dayUse.addOperationTitle')}
+            {isRenewing ? ` ${t('dayUse.renewService')}` : t('dayUse.addOperationTitle')}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -349,7 +350,7 @@ export default function DayUsePage() {
 
               {salesStaffList.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">💼 موظف السيلز</label>
+                  <label className="block text-sm font-medium mb-1"> موظف السيلز</label>
                   <select
                     value={formData.salesStaffId}
                     onChange={(e) => setFormData({ ...formData, salesStaffId: e.target.value })}
@@ -365,7 +366,7 @@ export default function DayUsePage() {
             </div>
 
             {/* قسم طريقة الدفع */}
-            <div className="bg-gradient-to-br from-green-50 to-primary-50 dark:from-green-900/30 dark:to-primary-900/30 border-2 border-green-200 dark:border-green-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            <div className="bg-gradient-to-br from-green-50 to-primary-50 dark:from-green-900/30 dark:to-primary-900/30 ring-1 ring-green-200 dark:ring-green-700 rounded-xl p-5 dark:border-gray-600 dark:bg-gray-700 dark:text-primary-contrast">
               <PaymentMethodSelector
                 value={formData.paymentMethod}
                 onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
@@ -381,7 +382,7 @@ export default function DayUsePage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-primary-600 text-primary-contrast py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {submitting ? t('dayUse.saving') : t('dayUse.add')}
             </button>
@@ -390,7 +391,7 @@ export default function DayUsePage() {
       )}
 
       {loading ? (
-        <div className="text-center py-12">{t('dayUse.loading')}</div>
+        <LoadingScreen message={t('dayUse.loading')} />
       ) : (
         <>
           {/* Mobile Cards View */}
@@ -411,27 +412,27 @@ export default function DayUsePage() {
                   />
                   <button
                     onClick={() => handleRenewClick(entry)}
-                    className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition text-sm font-medium shadow-sm"
+                    className="bg-primary-500 text-primary-contrast px-4 py-2 rounded-lg hover:bg-primary-600 transition text-sm font-medium shadow-sm"
                   >
-                    🔄 {t('dayUse.renew')}
+                     {t('dayUse.renew')}
                   </button>
                   <button
                     onClick={() => handleDeleteClick(entry)}
                     className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-sm font-medium shadow-sm"
                   >
-                    🗑️ {t('dayUse.delete')}
+                     {t('dayUse.delete')}
                   </button>
                 </div>
 
                 {/* Entry Info */}
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">👤 {t('dayUse.nameLabel')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]"> {t('dayUse.nameLabel')}</span>
                     <span className="font-bold text-gray-900 dark:text-white">{entry.name}</span>
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">📱 {t('dayUse.phoneLabel')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]"> {t('dayUse.phoneLabel')}</span>
                     <a
                       href={`https://wa.me/20${entry.phone}`}
                       target="_blank"
@@ -443,7 +444,7 @@ export default function DayUsePage() {
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">🎯 {t('dayUse.serviceLabel')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]"> {t('dayUse.serviceLabel')}</span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       entry.serviceType === 'DayUse'
                         ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200'
@@ -457,24 +458,24 @@ export default function DayUsePage() {
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">💰 {t('dayUse.priceLabel')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]"> {t('dayUse.priceLabel')}</span>
                     <span className="font-bold text-green-600">{entry.price} {t('dayUse.egp')}</span>
                   </div>
 
                   {entry.receipts && entry.receipts.length > 0 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">🧾 {t('dayUse.receiptNumber')}</span>
+                      <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]"> {t('dayUse.receiptNumber')}</span>
                       <span className="text-primary-600 dark:text-primary-400 font-semibold">#{entry.receipts[0].receiptNumber}</span>
                     </div>
                   )}
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">👨‍💼 {t('dayUse.staffLabel')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">‍ {t('dayUse.staffLabel')}</span>
                     <span className="text-gray-700 dark:text-gray-200">{entry.staffName}</span>
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]">📅 {t('dayUse.dateLabel')}</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]"> {t('dayUse.dateLabel')}</span>
                     <span className="text-gray-700 dark:text-gray-200">
                       {new Date(entry.createdAt).toLocaleDateString('ar-EG')}
                     </span>
@@ -485,7 +486,7 @@ export default function DayUsePage() {
 
             {entries.length === 0 && (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <div className="text-5xl mb-3">📦</div>
+                
                 <p>{t('dayUse.noOperationsYet')}</p>
               </div>
             )}
@@ -548,15 +549,15 @@ export default function DayUsePage() {
                         />
                         <button
                           onClick={() => handleRenewClick(entry)}
-                          className="bg-primary-500 text-white px-3 py-1 rounded hover:bg-primary-600 transition text-sm"
+                          className="bg-primary-500 text-primary-contrast px-3 py-1 rounded hover:bg-primary-600 transition text-sm"
                         >
-                          🔄 {t('dayUse.renew')}
+                           {t('dayUse.renew')}
                         </button>
                         <button
                           onClick={() => handleDeleteClick(entry)}
                           className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition text-sm"
                         >
-                          🗑️ {t('dayUse.delete')}
+                           {t('dayUse.delete')}
                         </button>
                       </div>
                     </td>
@@ -580,7 +581,7 @@ export default function DayUsePage() {
             onClick={() => setShowReceipt(true)}
             className="w-full sm:w-auto bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
           >
-            🖨️ {t('dayUse.printLastReceipt')}
+             {t('dayUse.printLastReceipt')}
           </button>
         </div>
       )}
@@ -600,7 +601,7 @@ export default function DayUsePage() {
       {/* Delete Confirmation Popup */}
       {showDeletePopup && entryToDelete && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           onClick={() => !deleting && setShowDeletePopup(false)}
         >
           <div
@@ -611,7 +612,7 @@ export default function DayUsePage() {
               {/* Warning Icon */}
               <div className="mb-4">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/40 rounded-full mb-3">
-                  <span className="text-4xl">⚠️</span>
+                  
                 </div>
                 <h3 className="text-2xl font-bold text-red-700 dark:text-red-400 mb-2">
                   {t('dayUse.deleteModal.title')}
@@ -622,12 +623,12 @@ export default function DayUsePage() {
               </div>
 
               {/* Entry Details */}
-              <div className="bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl p-4 mb-6 text-right">
+              <div className="bg-gray-50 dark:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-600 rounded-xl p-4 mb-6 text-right">
                 <div className="space-y-2">
                   <p><span className="font-semibold">{t('dayUse.deleteModal.nameLabel')}</span> {entryToDelete.name}</p>
                   <p><span className="font-semibold">{t('dayUse.deleteModal.phoneLabel')}</span> {entryToDelete.phone}</p>
                   <p>
-                    <span className="font-semibold">{t('dayUse.deleteModal.serviceTypeLabel')}</span>{' '}
+                    <span className="font-semibold">{t('dayUse.deleteModal.serviceTypeLabel')}</span>
                     {entryToDelete.serviceType === 'DayUse' ? t('dayUse.dayUse') :
                      entryToDelete.serviceType === 'InBody' ? t('dayUse.inBody') : t('dayUse.lockerRental')}
                   </p>
@@ -650,14 +651,14 @@ export default function DayUsePage() {
                   disabled={deleting}
                   className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition"
                 >
-                  {deleting ? `⏳ ${t('dayUse.deleteModal.deleting')}` : `🗑️ ${t('dayUse.deleteModal.confirmDelete')}`}
+                  {deleting ? ` ${t('dayUse.deleteModal.deleting')}` : ` ${t('dayUse.deleteModal.confirmDelete')}`}
                 </button>
                 <button
                   onClick={() => setShowDeletePopup(false)}
                   disabled={deleting}
                   className="flex-1 bg-gray-200 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 dark:bg-gray-700 disabled:cursor-not-allowed font-medium transition"
                 >
-                  ✖️ {t('dayUse.deleteModal.cancel')}
+                   {t('dayUse.deleteModal.cancel')}
                 </button>
               </div>
             </div>

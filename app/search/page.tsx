@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { InvitationModal, SimpleServiceModal } from '../../components/ServiceDeductionModals'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useServiceSettings } from '@/contexts/ServiceSettingsContext'
+import { LoadingScreen } from '@/components/Spinner'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface SearchResult {
   type: 'member' | 'pt'
@@ -223,10 +226,10 @@ export default function SearchPage() {
 
       // نغمة فريز مميزة (4 نغمات هابطة بطيئة تشبه صوت الثلج)
       const freezePattern = [
-        { freq: 1046.50, time: 0 },      // C6
-        { freq: 987.77, time: 0.15 },    // B5
-        { freq: 880.00, time: 0.3 },     // A5
-        { freq: 783.99, time: 0.45 },    // G5
+        { freq: 1046.50, time: 0 }, // C6
+        { freq: 987.77, time: 0.15 }, // B5
+        { freq: 880.00, time: 0.3 }, // A5
+        { freq: 783.99, time: 0.45 }, // G5
       ]
 
       freezePattern.forEach(({ freq, time }) => {
@@ -306,7 +309,7 @@ export default function SearchPage() {
         playWarningSound()
         setAttendanceMessage({
           type: 'error',
-          text: data.error || 'تم تسجيل الحضور مسبقاً اليوم ✅'
+          text: data.error || 'تم تسجيل الحضور مسبقاً اليوم '
         })
         setTimeout(() => setAttendanceMessage(null), 4000)
       }
@@ -328,7 +331,7 @@ export default function SearchPage() {
       setLastSearchValue({ type: 'id', value: inputValue })
     }
 
-    // ✅ فحص إذا كان الرقم 9 خانات أو أكثر - موظف
+    // فحص إذا كان الرقم 9 خانات أو أكثر - موظف
     if (/^\d{9,}$/.test(inputValue)) {
       const numericCode = parseInt(inputValue, 10)
 
@@ -336,14 +339,14 @@ export default function SearchPage() {
         if (!silent) playAlarmSound()
         setAttendanceMessage({
           type: 'error',
-          text: '❌ رقم الموظف يجب أن يكون 9 أرقام (مثال: 100000022)'
+          text: ' رقم الموظف يجب أن يكون 9 أرقام (مثال: 100000022)'
         })
         setMemberId('')
         setTimeout(() => setAttendanceMessage(null), 4000)
         return
       }
 
-      // ✅ تحويل الرقم من 9 خانات إلى s + رقم
+      // تحويل الرقم من 9 خانات إلى s + رقم
       // مثال: 100000022 -> s022
       const staffNumber = numericCode - 100000000
       const staffCode = `s${staffNumber.toString().padStart(3, '0')}`
@@ -352,7 +355,7 @@ export default function SearchPage() {
       setAttendanceMessage(null)
 
       try {
-        // 🔧 تسجيل حضور الموظف
+        // تسجيل حضور الموظف
         const response = await fetch('/api/attendance', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -397,7 +400,7 @@ export default function SearchPage() {
       return // إنهاء الدالة بعد تسجيل الحضور
     }
 
-    // ✅ البحث العادي عن عضو برقم العضوية
+    // البحث العادي عن عضو برقم العضوية
     setLoading(true)
     setSearched(true)
     setAttendanceMessage(null)
@@ -407,7 +410,7 @@ export default function SearchPage() {
       const membersRes = await fetch('/api/members')
       const members = await membersRes.json()
 
-      // ✅ مطابقة صارمة (string-exact) — "0122" مش = "122"
+      // مطابقة صارمة (string-exact) — "0122" مش = "122"
       const filteredMembers = members.filter((m: any) => {
         if (m.memberNumber == null) return false
         return m.memberNumber.toString() === inputValue
@@ -424,10 +427,10 @@ export default function SearchPage() {
         const member = foundResults[0].data
 
         if (member.isFrozen) {
-          // ❄️ عضو مجمد → اسأل لو عايز يفك الفريز
+          // عضو مجمد → اسأل لو عايز يفك الفريز
           if (!silent) playFreezeSound()
           const confirmed = window.confirm(
-            `❄️ ${member.name}\n\nالاشتراك مجمد حالياً.\nلو فكيت الفريز الأيام اللي ماتستخدمتش هترجع لرصيد الفريز.\n\nمتأكد تفك الفريز؟`
+            ` ${member.name}\n\nالاشتراك مجمد حالياً.\nلو فكيت الفريز الأيام اللي ماتستخدمتش هترجع لرصيد الفريز.\n\nمتأكد تفك الفريز؟`
           )
           if (confirmed) {
             try {
@@ -439,7 +442,7 @@ export default function SearchPage() {
               const data = await res.json()
               if (res.ok) {
                 playSuccessSound()
-                setAttendanceMessage({ type: 'success', text: data.message || '✅ تم فك الفريز بنجاح' })
+                setAttendanceMessage({ type: 'success', text: data.message || ' تم فك الفريز بنجاح' })
                 setTimeout(() => setAttendanceMessage(null), 5000)
                 // بعد فك الفريز → سجل دخول تلقائي
                 handleMemberCheckIn(member.id)
@@ -455,7 +458,7 @@ export default function SearchPage() {
             }
           }
         } else if (member.isActive) {
-          // ✅ عضو نشط → تسجيل دخول تلقائي
+          // عضو نشط → تسجيل دخول تلقائي
           handleMemberCheckIn(member.id)
         }
 
@@ -528,10 +531,10 @@ export default function SearchPage() {
       if (foundResults.length > 0) {
         const first = foundResults[0]
         if (first.type === 'member' && first.data.isFrozen) {
-          // ❄️ عضو مجمد → اسأل لو عايز يفك الفريز
+          // عضو مجمد → اسأل لو عايز يفك الفريز
           if (!silent) playFreezeSound()
           const confirmed = window.confirm(
-            `❄️ ${first.data.name}\n\nالاشتراك مجمد حالياً.\nلو فكيت الفريز الأيام اللي ماتستخدمتش هترجع لرصيد الفريز.\n\nمتأكد تفك الفريز؟`
+            ` ${first.data.name}\n\nالاشتراك مجمد حالياً.\nلو فكيت الفريز الأيام اللي ماتستخدمتش هترجع لرصيد الفريز.\n\nمتأكد تفك الفريز؟`
           )
           if (confirmed) {
             try {
@@ -543,7 +546,7 @@ export default function SearchPage() {
               const data = await res.json()
               if (res.ok) {
                 playSuccessSound()
-                setAttendanceMessage({ type: 'success', text: data.message || '✅ تم فك الفريز بنجاح' })
+                setAttendanceMessage({ type: 'success', text: data.message || ' تم فك الفريز بنجاح' })
                 setTimeout(() => setAttendanceMessage(null), 5000)
                 handleMemberCheckIn(first.data.id)
                 refreshResults()
@@ -558,7 +561,7 @@ export default function SearchPage() {
             }
           }
         } else if (first.type === 'member' && first.data.isActive) {
-          // ✅ عضو نشط → تسجيل دخول تلقائي
+          // عضو نشط → تسجيل دخول تلقائي
           handleMemberCheckIn(first.data.id)
         }
 
@@ -641,47 +644,51 @@ export default function SearchPage() {
   return (
     <div className="container mx-auto p-2 sm:p-3 md:p-4 min-h-screen" dir={direction}>
       <div className="mb-2 sm:mb-3">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 flex items-center gap-2 text-gray-800 dark:text-gray-100">
-          <span>🔍</span>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <svg className="w-7 h-7 text-primary-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           <span>{t('search.title')}</span>
         </h1>
       </div>
 
       {searchMode === 'id' && (
-        <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl shadow-lg mb-3 sm:mb-4 border-2 border-primary-200">
+        <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-5 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 mb-3 sm:mb-4">
           <div className="mb-3 sm:mb-4">
-            {/* 🆕 رسالة تسجيل الحضور */}
+            {/* رسالة تسجيل الحضور */}
             {attendanceMessage && (
-              <div className={`mb-2 sm:mb-3 p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 animate-slideDown ${
+              <div className={`mb-2 sm:mb-3 p-3 sm:p-4 rounded-lg ring-1 animate-slideDown ${
                 attendanceMessage.type === 'success'
-                  ? 'bg-gradient-to-r from-green-50 to-green-100 border-green-500'
-                  : 'bg-gradient-to-r from-red-50 to-red-100 border-red-500'
+                  ? 'bg-green-50 dark:bg-green-900/20 ring-green-200 dark:ring-green-900/50'
+                  : 'bg-red-50 dark:bg-red-900/20 ring-red-200 dark:ring-red-900/50'
               }`}>
                 <div className="flex items-start gap-2 sm:gap-3">
-                  <div className="text-3xl sm:text-4xl md:text-5xl">
-                    {attendanceMessage.type === 'success' ? '✅' : '🚨'}
+                  <div className={attendanceMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                    {attendanceMessage.type === 'success' ? (
+                      <svg className="w-8 h-8 sm:w-10 sm:h-10" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    ) : (
+                      <svg className="w-8 h-8 sm:w-10 sm:h-10" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    )}
                   </div>
                   <div className="flex-1">
                     <h3 className={`text-base sm:text-lg md:text-xl font-bold mb-1 ${
-                      attendanceMessage.type === 'success' ? 'text-green-800' : 'text-red-800'
+                      attendanceMessage.type === 'success' ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'
                     }`}>
                       {attendanceMessage.type === 'success' ? t('search.registeredSuccessfully') : t('search.registrationError')}
                     </h3>
                     <p className={`text-sm sm:text-base md:text-lg font-bold ${
-                      attendanceMessage.type === 'success' ? 'text-green-700' : 'text-red-700'
+                      attendanceMessage.type === 'success' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
                     }`}>
                       {attendanceMessage.text}
                     </p>
                     {attendanceMessage.staff && (
-                      <div className="mt-2 sm:mt-3 bg-white dark:bg-gray-800/50 rounded-lg p-2 sm:p-3">
+                      <div className="mt-2 sm:mt-3 bg-white/90 dark:bg-gray-800/60 rounded-lg p-2 sm:p-3 ring-1 ring-gray-200 dark:ring-gray-700">
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <p className="text-xs text-gray-600 dark:text-gray-300">{t('nav.employee')}</p>
-                            <p className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-100">{attendanceMessage.staff.name}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">{t('nav.employee')}</p>
+                            <p className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100">{attendanceMessage.staff.name}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-600 dark:text-gray-300">{t('nav.position')}</p>
-                            <p className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-100">{getPositionLabel(attendanceMessage.staff.position)}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">{t('nav.position')}</p>
+                            <p className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100">{getPositionLabel(attendanceMessage.staff.position)}</p>
                           </div>
                         </div>
                       </div>
@@ -700,14 +707,16 @@ export default function SearchPage() {
                     setSearched(false)
                     setResults([])
                   }}
-                  className={`px-2 py-2 sm:py-3 md:py-4 lg:py-5 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
+                  aria-label={t('search.searchByIdOrAttendance')}
+                  aria-pressed={(searchMode as SearchMode) === 'id'}
+                  className={`flex items-center justify-center px-2 py-2 sm:py-3 md:py-4 rounded-lg font-bold transition-colors duration-200 ${
                     (searchMode as SearchMode) === 'id'
-                      ? 'bg-primary-600 text-white shadow-lg'
+                      ? 'bg-primary-500 text-primary-contrast'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                   title={t('search.searchByIdOrAttendance')}
                 >
-                  🎯
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                 </button>
                 <button
                   onClick={() => {
@@ -715,14 +724,16 @@ export default function SearchPage() {
                     setSearched(false)
                     setResults([])
                   }}
-                  className={`px-2 py-2 sm:py-3 md:py-4 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
+                  aria-label={t('search.searchByNamePhone')}
+                  aria-pressed={(searchMode as SearchMode) === 'name'}
+                  className={`flex items-center justify-center px-2 py-2 sm:py-3 md:py-4 rounded-lg font-bold transition-colors duration-200 ${
                     (searchMode as SearchMode) === 'name'
-                      ? 'bg-green-600 text-white shadow-lg'
+                      ? 'bg-green-600 text-white'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                   title={t('search.searchByNamePhone')}
                 >
-                  👤
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </button>
               </div>
 
@@ -734,34 +745,39 @@ export default function SearchPage() {
                   value={memberId}
                   onChange={(e) => setMemberId(e.target.value)}
                   onKeyPress={handleIdKeyPress}
-                  className="flex-1 px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-center focus:border-green-600 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-700 transition"
+                  className="flex-1 px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('search.idPlaceholder')}
                   autoFocus
                 />
                 <button
                   onClick={() => handleSearchById()}
                   disabled={loading || !memberId.trim()}
-                  className="px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 bg-green-600 text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-1 px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 bg-primary-500 hover:bg-primary-600 text-primary-contrast text-xs sm:text-sm md:text-base lg:text-lg font-bold rounded-lg disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                 >
-                  <span className="hidden sm:inline">{loading ? '⏳' : '🔍'} {t('search.search')}</span>
-                  <span className="sm:hidden">{loading ? '⏳' : '🔍'}</span>
+                  {loading ? (
+                    <svg className="animate-spin w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  ) : (
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                  )}
+                  <span className="hidden sm:inline">{t('search.search')}</span>
                 </button>
               </div>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2">
-              💡 {t('search.pressEnter')}
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {t('search.pressEnter')}
             </p>
           </div>
         </div>
       )}
 
       {searchMode === 'name' && (
-        <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl shadow-lg mb-3 sm:mb-4 border-2 border-green-200">
+        <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-5 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 mb-3 sm:mb-4">
           <div className="mb-3 sm:mb-4">
-            {/* 🆕 رسالة الخطأ */}
+            {/* رسالة الخطأ */}
             {attendanceMessage && (
-              <div className="mb-2 sm:mb-3 p-2 sm:p-3 rounded-lg border-2 bg-red-50 border-red-500 animate-slideDown dark:bg-red-900/20 dark:border-red-700">
-                <p className="text-sm sm:text-base font-bold text-red-700">
+              <div className="mb-2 sm:mb-3 p-2 sm:p-3 rounded-lg ring-1 ring-red-200 dark:ring-red-900/50 bg-red-50 dark:bg-red-900/20 animate-slideDown">
+                <p className="text-sm sm:text-base font-bold text-red-700 dark:text-red-400">
                   {attendanceMessage.text}
                 </p>
               </div>
@@ -776,14 +792,16 @@ export default function SearchPage() {
                     setSearched(false)
                     setResults([])
                   }}
-                  className={`px-2 py-2 sm:py-3 md:py-4 lg:py-5 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
+                  aria-label={t('search.searchByIdOrAttendance')}
+                  aria-pressed={(searchMode as SearchMode) === 'id'}
+                  className={`flex items-center justify-center px-2 py-2 sm:py-3 md:py-4 rounded-lg font-bold transition-colors duration-200 ${
                     (searchMode as SearchMode) === 'id'
-                      ? 'bg-primary-600 text-white shadow-lg'
+                      ? 'bg-primary-500 text-primary-contrast'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                   title={t('search.searchByIdOrAttendance')}
                 >
-                  🎯
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                 </button>
                 <button
                   onClick={() => {
@@ -791,21 +809,23 @@ export default function SearchPage() {
                     setSearched(false)
                     setResults([])
                   }}
-                  className={`px-2 py-2 sm:py-3 md:py-4 rounded-lg font-bold text-xl sm:text-2xl md:text-3xl transition-all ${
+                  aria-label={t('search.searchByNamePhone')}
+                  aria-pressed={(searchMode as SearchMode) === 'name'}
+                  className={`flex items-center justify-center px-2 py-2 sm:py-3 md:py-4 rounded-lg font-bold transition-colors duration-200 ${
                     (searchMode as SearchMode) === 'name'
-                      ? 'bg-green-600 text-white shadow-lg'
+                      ? 'bg-green-600 text-white'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                   title={t('search.searchByNamePhone')}
                 >
-                  👤
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </button>
               </div>
 
               {/* Search Field — موحّد للاسم أو الرقم */}
               <div className="flex-1" style={{width: '80%'}}>
                 <div className="mb-2 sm:mb-3">
-                  <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {direction === 'rtl' ? 'الاسم أو رقم الهاتف' : 'Name or Phone'}
                   </label>
                   <input
@@ -814,7 +834,7 @@ export default function SearchPage() {
                     value={searchName}
                     onChange={(e) => setSearchName(e.target.value)}
                     onKeyPress={handleNameKeyPress}
-                    className="w-full px-3 py-2 md:px-4 md:py-3 border-2 border-green-300 dark:border-green-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm md:text-base lg:text-lg focus:border-green-600 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-700 transition"
+                    className="w-full px-3 py-2 md:px-4 md:py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm md:text-base lg:text-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                     placeholder={direction === 'rtl' ? 'اكتب الاسم أو رقم الهاتف...' : 'Type name or phone number...'}
                   />
                 </div>
@@ -822,15 +842,17 @@ export default function SearchPage() {
                 <button
                   onClick={() => handleSearchByName()}
                   disabled={loading || !searchName.trim()}
-                  className="w-full px-3 py-2 sm:py-2 md:px-4 md:py-3 bg-green-600 text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 sm:py-2 md:px-4 md:py-3 bg-primary-500 hover:bg-primary-600 text-primary-contrast text-xs sm:text-sm md:text-base lg:text-lg font-bold rounded-lg disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                 >
-                  🔍 {t('search.search')}
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                  {t('search.search')}
                 </button>
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2">
-              💡 {direction === 'rtl' ? 'هتلاقى نتائج تطابق الاسم أو رقم الهاتف للقيمة دي' : 'Searches both name and phone for this value'}
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {direction === 'rtl' ? 'هتلاقى نتائج تطابق الاسم أو رقم الهاتف للقيمة دي' : 'Searches both name and phone for this value'}
             </p>
           </div>
         </div>
@@ -843,15 +865,12 @@ export default function SearchPage() {
       )}
 
       {searched && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-lg overflow-hidden border-2 border-green-200 animate-fadeIn">
+        <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-lg overflow-hidden ring-1 ring-green-200 animate-fadeIn">
           {loading ? (
-            <div className="text-center py-8 sm:py-10 md:py-12">
-              <div className="inline-block animate-spin text-3xl sm:text-4xl md:text-5xl mb-2 sm:mb-3">⏳</div>
-              <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 font-bold">{t('search.searching')}</p>
-            </div>
+            <LoadingScreen message={t('search.searching')} />
           ) : results.length === 0 ? (
             <div className="text-center py-8 sm:py-10 md:py-12 bg-red-50 dark:bg-red-900/30 animate-pulse">
-              <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4 animate-bounce">🚨</div>
+              
               <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 dark:text-red-400 mb-2 px-4">{t('search.noResults')}</p>
               <p className="text-sm sm:text-base md:text-lg text-red-500 dark:text-red-300 px-4">
                 {searchMode === 'id'
@@ -864,18 +883,18 @@ export default function SearchPage() {
             <div className="p-3 sm:p-4">
               <div className="mb-2 sm:mb-3 text-center">
                 <span className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base md:text-lg font-bold border border-green-200 dark:border-green-700">
-                  ✅ {t('search.foundResults')} {results.length} {results.length === 1 ? t('search.result') : t('search.results')}
+                   {t('search.foundResults')} {results.length} {results.length === 1 ? t('search.result') : t('search.results')}
                 </span>
               </div>
 
               <div className="space-y-3 sm:space-y-4">
                 {results.map((result, index) => (
-                  <div key={index} className="border-2 border-primary-200 dark:border-primary-700 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                  <div key={index} className="ring-1 ring-primary-200 dark:ring-primary-700 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     {result.type === 'member' && (
                       <div>
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-3">
                           <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-primary-300 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden ring-1 ring-primary-300 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                               {result.data.profileImage ? (
                                 <img 
                                   src={result.data.profileImage} 
@@ -892,13 +911,13 @@ export default function SearchPage() {
                             </div>
 
                             <div>
-                              <span className="bg-primary-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
-                                👤 {t('search.member')}
+                              <span className="bg-primary-500 text-primary-contrast px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
+                                 {t('search.member')}
                               </span>
                               <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-1.5 sm:mt-2 text-gray-800 dark:text-gray-100">{result.data.name}</h3>
                             </div>
                           </div>
-                          {/* ✅ عرض رقم العضوية فقط إذا كان موجود (ليس Other) */}
+                          {/* عرض رقم العضوية فقط إذا كان موجود (ليس Other) */}
                           {result.data.memberNumber !== null && (
                             <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary-600">
                               #{result.data.memberNumber}
@@ -928,23 +947,23 @@ export default function SearchPage() {
                             <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.status')}</p>
                             <span className={`inline-block px-2 py-0.5 rounded text-xs sm:text-sm md:text-base font-bold ${
                               result.data.isFrozen
-                                ? 'bg-primary-500 text-white'
+                                ? 'bg-primary-500 text-primary-contrast'
                                 : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
                                 ? 'bg-green-500 text-white'
                                 : 'bg-red-500 text-white animate-pulse'
                             }`}>
                               {result.data.isFrozen
-                                ? `❄️ ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
+                                ? ` ${locale === 'ar' ? 'مجمد' : 'Frozen'}`
                                 : result.data.isActive && (!result.data.expiryDate || new Date(result.data.expiryDate) >= new Date())
-                                  ? `✅ ${t('search.active')}`
-                                  : `🚨 ${t('search.expired')}`
+                                  ? ` ${t('search.active')}`
+                                  : ` ${t('search.expired')}`
                               }
                             </span>
                           </div>
                         </div>
 
                         {(result.data.startDate || result.data.expiryDate) && (
-                          <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 dark:from-primary-900/30 dark:to-yellow-900/30 border-2 border-primary-300 dark:border-primary-700 rounded p-2 sm:p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                          <div className="mb-2 sm:mb-3 bg-gradient-to-r from-primary-50 to-yellow-50 dark:from-primary-900/30 dark:to-yellow-900/30 ring-1 ring-primary-300 dark:ring-primary-700 rounded p-2 sm:p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-primary-contrast">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {result.data.startDate && (
                                 <div>
@@ -971,7 +990,7 @@ export default function SearchPage() {
                                 return (
                                   <div className={`mt-2 pt-2 border-t-2 border-red-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
                                     <p className="text-red-600 font-bold text-sm sm:text-base md:text-lg animate-pulse">
-                                      🚨 {t('search.expiredSince')} {Math.abs(days)} {t('search.day')}
+                                       {t('search.expiredSince')} {Math.abs(days)} {t('search.day')}
                                     </p>
                                   </div>
                                 )
@@ -979,7 +998,7 @@ export default function SearchPage() {
                                 return (
                                   <div className={`mt-2 pt-2 border-t-2 border-orange-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
                                     <p className="text-orange-600 font-bold text-sm sm:text-base md:text-lg">
-                                      ⚠️ {t('search.daysRemaining')} {days} {t('search.daysOnly')}
+                                       {t('search.daysRemaining')} {days} {t('search.daysOnly')}
                                     </p>
                                   </div>
                                 )
@@ -987,7 +1006,7 @@ export default function SearchPage() {
                                 return (
                                   <div className={`mt-2 pt-2 border-t-2 border-green-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
                                     <p className="text-green-600 font-bold text-sm sm:text-base md:text-lg">
-                                      ✅ {t('search.daysRemaining')} {days} {t('search.day')}
+                                       {t('search.daysRemaining')} {days} {t('search.day')}
                                     </p>
                                   </div>
                                 )
@@ -998,9 +1017,9 @@ export default function SearchPage() {
 
                         {/* عرض الملاحظات */}
                         {result.data.notes && (
-                          <div className="mb-2 sm:mb-3 bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-400 dark:border-primary-700 rounded p-2 sm:p-3">
+                          <div className="mb-2 sm:mb-3 bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-400 dark:ring-primary-700 rounded p-2 sm:p-3">
                             <div className="flex items-start gap-1 mb-1">
-                              <span className="text-base sm:text-lg">📝</span>
+                              
                               <p className="text-xs font-bold text-primary-800 dark:text-primary-300">{t('search.notes')}</p>
                             </div>
                             <p className="text-xs sm:text-sm md:text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
@@ -1011,18 +1030,18 @@ export default function SearchPage() {
 
                         {/* عرض الخدمات المجانية المتبقية */}
                         {result.data.isActive && (result.data.invitations > 0 || result.data.freePTSessions > 0 || (settings.inBodyEnabled && result.data.inBodyScans > 0) || (settings.nutritionEnabled && result.data.freeNutritionSessions > 0) || (settings.physiotherapyEnabled && result.data.freePhysioSessions > 0) || (settings.groupClassEnabled && result.data.freeGroupClassSessions > 0)) && (
-                          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 border-2 border-primary-400 dark:border-primary-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-primary-50 to-pink-50 dark:from-primary-900/30 dark:to-pink-900/30 ring-1 ring-primary-400 dark:ring-primary-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-primary-contrast">
                             <div className="flex items-center gap-2 mb-3">
-                              <span className="text-2xl">🎁</span>
+                              
                               <p className="text-sm sm:text-base font-bold text-primary-800 dark:text-primary-300">{t('search.freeServicesRemaining')}</p>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               {/* الدعوات */}
                               {result.data.invitations > 0 && (
-                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-primary-200">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-primary-200">
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xl">🎟️</span>
+                                      
                                       <div>
                                         <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.invitations')}</p>
                                         <p className="text-xl font-bold text-primary-600">{result.data.invitations}</p>
@@ -1030,7 +1049,7 @@ export default function SearchPage() {
                                     </div>
                                     <button
                                       onClick={() => setInvitationModal({ isOpen: true, memberId: result.data.id, memberName: result.data.name, memberSalesStaffId: result.data.salesStaffId })}
-                                      className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
+                                      className="bg-primary-600 text-primary-contrast px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                     >
                                       {t('search.use')}
                                     </button>
@@ -1040,10 +1059,10 @@ export default function SearchPage() {
 
                               {/* جلسات PT المجانية */}
                               {result.data.freePTSessions > 0 && (
-                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-green-200">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-green-200">
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xl">💪</span>
+                                      
                                       <div>
                                         <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.freePT')}</p>
                                         <p className="text-xl font-bold text-green-600">{result.data.freePTSessions}</p>
@@ -1061,10 +1080,10 @@ export default function SearchPage() {
 
                               {/* InBody المجاني */}
                               {settings.inBodyEnabled && result.data.inBodyScans > 0 && (
-                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-primary-200">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-primary-200">
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xl">⚖️</span>
+                                      
                                       <div>
                                         <p className="text-xs text-gray-600 dark:text-gray-300">InBody</p>
                                         <p className="text-xl font-bold text-primary-600">{result.data.inBodyScans}</p>
@@ -1072,7 +1091,7 @@ export default function SearchPage() {
                                     </div>
                                     <button
                                       onClick={() => setServiceModal({ isOpen: true, type: 'inBody', memberId: result.data.id, memberName: result.data.name })}
-                                      className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
+                                      className="bg-primary-600 text-primary-contrast px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                     >
                                       {t('search.deduct')}
                                     </button>
@@ -1082,10 +1101,10 @@ export default function SearchPage() {
 
                               {/* التغذية المجانية */}
                               {settings.nutritionEnabled && result.data.freeNutritionSessions > 0 && (
-                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-orange-200">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-orange-200">
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xl">🥗</span>
+                                      
                                       <div>
                                         <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.nutrition')}</p>
                                         <p className="text-xl font-bold text-orange-600">{result.data.freeNutritionSessions}</p>
@@ -1103,10 +1122,10 @@ export default function SearchPage() {
 
                               {/* العلاج الطبيعي المجاني */}
                               {settings.physiotherapyEnabled && result.data.freePhysioSessions > 0 && (
-                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-teal-200">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-teal-200">
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xl">🏥</span>
+                                      
                                       <div>
                                         <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.physiotherapy')}</p>
                                         <p className="text-xl font-bold text-teal-600">{result.data.freePhysioSessions}</p>
@@ -1124,10 +1143,10 @@ export default function SearchPage() {
 
                               {/* الكلاسيس المجانية */}
                               {settings.groupClassEnabled && result.data.freeGroupClassSessions > 0 && (
-                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-primary-200">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-primary-200">
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xl">👥</span>
+                                      
                                       <div>
                                         <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.groupClass')}</p>
                                         <p className="text-xl font-bold text-primary-600">{result.data.freeGroupClassSessions}</p>
@@ -1135,7 +1154,7 @@ export default function SearchPage() {
                                     </div>
                                     <button
                                       onClick={() => setServiceModal({ isOpen: true, type: 'groupClass', memberId: result.data.id, memberName: result.data.name })}
-                                      className="bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
+                                      className="bg-primary-600 text-primary-contrast px-3 py-1.5 rounded-lg hover:bg-primary-700 text-xs font-bold"
                                     >
                                       {t('search.deduct')}
                                     </button>
@@ -1148,10 +1167,10 @@ export default function SearchPage() {
 
                         {/* نظام النقاط */}
                         {settings.pointsEnabled && result.data.points > 0 && (
-                          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border-2 border-amber-400 dark:border-amber-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 ring-1 ring-amber-400 dark:ring-amber-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <span className="text-3xl">⭐</span>
+                                
                                 <div>
                                   <p className="text-xs text-gray-600 dark:text-gray-300">{t('search.pointsBalance')}</p>
                                   <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{result.data.points}</p>
@@ -1168,11 +1187,11 @@ export default function SearchPage() {
                         <div className="grid grid-cols-1 gap-2">
                           <button
                             onClick={() => handleViewMemberDetails(result.data.id)}
-                            className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-primary-700 hover:to-primary-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
+                            className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-primary-contrast py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-primary-700 hover:to-primary-800 transition-colors duration-200 shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
                           >
-                            <span>👁️</span>
+                            <span></span>
                             <span>{t('search.viewFullDetails')}</span>
-                            <span>{direction === 'rtl' ? '➡️' : '⬅️'}</span>
+                            <span>{direction === 'rtl' ? '' : ''}</span>
                           </button>
                         </div>
                       </div>
@@ -1183,7 +1202,7 @@ export default function SearchPage() {
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <span className="bg-green-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-bold">
-                              💪 PT
+                               PT
                             </span>
                             <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-1.5 sm:mt-2 text-gray-800 dark:text-gray-100">{result.data.clientName}</h3>
                           </div>
@@ -1210,11 +1229,11 @@ export default function SearchPage() {
 
                         <button
                           onClick={() => handleViewPTDetails(result.data.id)}
-                          className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-green-700 hover:to-green-800 transition-all shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
+                          className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded hover:from-green-700 hover:to-green-800 transition-colors duration-200 shadow hover:shadow-lg font-bold text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2"
                         >
-                          <span>👁️</span>
+                          <span></span>
                           <span>{t('search.viewFullDetails')}</span>
-                          <span>{direction === 'rtl' ? '➡️' : '⬅️'}</span>
+                          <span>{direction === 'rtl' ? '' : ''}</span>
                         </button>
                       </div>
                     )}

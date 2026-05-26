@@ -6,6 +6,8 @@ import { useToast } from '../../../contexts/ToastContext'
 import QRCode from 'qrcode'
 import { getWhatsAppBrowserClient, SessionInfo } from '../../../lib/whatsappClient'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const SESSION_COUNT = 4
@@ -148,8 +150,8 @@ export default function WhatsAppPage() {
   useEffect(() => {
     setTestMsg(
       isRTL
-        ? 'مرحباً! هذه رسالة تجريبية من نظام Fitboost 💪'
-        : 'Hello! Test message from Fitboost 💪'
+        ? 'مرحباً! هذه رسالة تجريبية من نظام Fitboost '
+        : 'Hello! Test message from Fitboost '
     )
   }, [isRTL])
 
@@ -286,7 +288,7 @@ export default function WhatsAppPage() {
         delete qrTimers.current[idx]
       }
 
-      toast.success(`✅ ${t('settings.whatsapp.toast.connected')} (${t('whatsappInbox.sessions.session')} ${idx + 1})`)
+      toast.success(` ${t('settings.whatsapp.toast.connected')} (${t('whatsappInbox.sessions.session')} ${idx + 1})`)
     }
 
     const onDisconnected = (data: any) => {
@@ -418,20 +420,20 @@ export default function WhatsAppPage() {
 
   async function handleSendTest() {
     if (!testPhone || testPhone.length < 10) {
-      toast.error(`⚠️ ${t('settings.whatsapp.toast.invalidPhone')}`)
+      toast.error(` ${t('settings.whatsapp.toast.invalidPhone')}`)
       return
     }
     setSending(true)
     try {
       const res = await getWhatsAppBrowserClient().sendMessage(testPhone, testMsg)
       if (res.success) {
-        toast.success(`✅ ${t('settings.whatsapp.toast.testSent')}`)
+        toast.success(` ${t('settings.whatsapp.toast.testSent')}`)
         setTestPhone('')
       } else {
-        toast.error(`❌ ${res.error ?? t('settings.whatsapp.toast.sendFailed')}`)
+        toast.error(` ${res.error ?? t('settings.whatsapp.toast.sendFailed')}`)
       }
     } catch {
-      toast.error(`❌ ${t('settings.whatsapp.toast.sendError')}`)
+      toast.error(` ${t('settings.whatsapp.toast.sendError')}`)
     } finally {
       setSending(false)
     }
@@ -448,15 +450,15 @@ export default function WhatsAppPage() {
   // ── Banner config for active session ──────────────────────────────────────
 
   const banner = (() => {
-    if (loading) return { bg: 'from-gray-400 to-gray-500', icon: '⌛', label: t('settings.whatsapp.loading'), sub: '...' }
-    if (!sidecarUp) return { bg: 'from-red-500 to-rose-600', icon: '🔌', label: 'الخدمة غير متاحة', sub: 'شغّل: npm run whatsapp' }
-    if (isConnected) return { bg: 'from-green-500 to-emerald-600', icon: '✅', label: t('settings.whatsapp.connected'), sub: t('settings.whatsapp.readyToSend') }
-    if (hasQR) return { bg: 'from-blue-500 to-indigo-600', icon: '📱', label: t('settings.whatsapp.scanQR'), sub: t('settings.whatsapp.qrInstructions') }
-    if (s.qrExpired) return { bg: 'from-orange-500 to-amber-600', icon: '⏰', label: 'انتهت صلاحية QR Code', sub: 'اضغط "إعادة اتصال" للحصول على QR جديد' }
-    if (s.op === 'init') return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.initializing'), sub: 'جاري التهيئة...' }
-    if (s.op === 'reconnect') return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.reconnecting'), sub: 'جاري إعادة الاتصال...' }
-    if (s.op === 'reset') return { bg: 'from-yellow-500 to-orange-500', icon: '⏳', label: t('settings.whatsapp.resetting'), sub: 'جاري إعادة التعيين...' }
-    return { bg: 'from-gray-500 to-gray-600', icon: '⚪', label: t('settings.whatsapp.disconnected'), sub: t('settings.whatsapp.mustBeConnected') }
+    if (loading) return { bg: 'from-gray-400 to-gray-500', icon: '', label: t('settings.whatsapp.loading'), sub: '...' }
+    if (!sidecarUp) return { bg: 'from-red-500 to-rose-600', icon: '', label: 'الخدمة غير متاحة', sub: 'شغّل: npm run whatsapp' }
+    if (isConnected) return { bg: 'from-green-500 to-emerald-600', icon: '', label: t('settings.whatsapp.connected'), sub: t('settings.whatsapp.readyToSend') }
+    if (hasQR) return { bg: 'from-blue-500 to-indigo-600', icon: '', label: t('settings.whatsapp.scanQR'), sub: t('settings.whatsapp.qrInstructions') }
+    if (s.qrExpired) return { bg: 'from-orange-500 to-amber-600', icon: '', label: 'انتهت صلاحية QR Code', sub: 'اضغط "إعادة اتصال" للحصول على QR جديد' }
+    if (s.op === 'init') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.initializing'), sub: 'جاري التهيئة...' }
+    if (s.op === 'reconnect') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.reconnecting'), sub: 'جاري إعادة الاتصال...' }
+    if (s.op === 'reset') return { bg: 'from-yellow-500 to-orange-500', icon: '', label: t('settings.whatsapp.resetting'), sub: 'جاري إعادة التعيين...' }
+    return { bg: 'from-gray-500 to-gray-600', icon: '', label: t('settings.whatsapp.disconnected'), sub: t('settings.whatsapp.mustBeConnected') }
   })()
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -466,29 +468,41 @@ export default function WhatsAppPage() {
       <div className="max-w-2xl mx-auto space-y-5">
 
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-            <span className="text-3xl">💬</span>
-            {t('whatsappInbox.sessions.title') !== 'whatsappInbox.sessions.title'
-              ? t('whatsappInbox.sessions.title')
-              : t('settings.whatsapp.title')}
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
-            {t('settings.whatsapp.subtitle')}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center justify-center flex-shrink-0">
+            <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+              {t('whatsappInbox.sessions.title') !== 'whatsappInbox.sessions.title'
+                ? t('whatsappInbox.sessions.title')
+                : t('settings.whatsapp.title')}
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {t('settings.whatsapp.subtitle')}
+            </p>
+          </div>
         </div>
 
         {/* Sidecar status pill */}
         {!initialLoading && (
-          <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold border ${
+          <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-bold ring-1 ${
             sidecarUp
-              ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-700 dark:text-green-300'
-              : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300'
+              ? 'bg-green-50 ring-green-200 text-green-700 dark:bg-green-900/20 dark:ring-green-900/50 dark:text-green-300'
+              : 'bg-red-50 ring-red-200 text-red-700 dark:bg-red-900/20 dark:ring-red-900/50 dark:text-red-300'
           }`}>
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sidecarUp ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
             <span className="text-xs font-mono opacity-70">port 4002</span>
             <span>{sidecarUp ? 'WhatsApp Service Online' : 'WhatsApp Service Offline'}</span>
-            <span className="ms-auto text-xs">{sidecarUp ? '✓' : '✗'}</span>
+            <svg {...stroke} className="w-4 h-4 ms-auto" aria-hidden="true">
+              {sidecarUp ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              )}
+            </svg>
           </div>
         )}
 
@@ -501,10 +515,12 @@ export default function WhatsAppPage() {
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap border-2 ${
+                aria-current={activeTab === idx ? 'true' : undefined}
+                aria-label={`Session ${idx + 1}`}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-colors duration-200 whitespace-nowrap ring-1 ${
                   activeTab === idx
-                    ? `${colors.bg} ${colors.text} ${colors.border} shadow-md scale-105`
-                    : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                    ? `${colors.bg} ${colors.text} ring-2 ${colors.border} shadow-sm`
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 ring-gray-200 dark:ring-gray-700 hover:ring-gray-300 dark:hover:ring-gray-600'
                 }`}
               >
                 <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${connected ? colors.dot : 'bg-gray-300 dark:bg-gray-600'} ${connected ? 'animate-pulse' : ''}`} />
@@ -512,24 +528,30 @@ export default function WhatsAppPage() {
                 {connected && sess.status?.phoneNumber && (
                   <span className="text-xs font-mono opacity-70" dir="ltr">{sess.status.phoneNumber}</span>
                 )}
-                {connected && <span className="text-xs">✅</span>}
+                {connected && (
+                  <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                )}
               </button>
             )
           })}
         </div>
 
         {/* Session card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
 
           {/* Session header */}
-          <div className={`flex items-center gap-3 px-5 py-3 border-b ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).border} ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).bg}`}>
+          <div className={`flex items-center gap-3 px-5 py-3 border-b border-gray-200 dark:border-gray-700 ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).bg}`}>
             <span className={`w-3 h-3 rounded-full flex-shrink-0 ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).dot} ${isConnected ? 'animate-pulse' : 'opacity-40'}`} />
             <span className={`font-bold text-sm ${(SESSION_COLORS[activeTab] || SESSION_COLORS[0]).text}`}>
               WhatsApp - رقم {activeTab + 1}
             </span>
             {isConnected && s.status?.phoneNumber && (
-              <span className="ms-auto text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                <span>📞</span>
+              <span className="ms-auto text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                </svg>
                 <span dir="ltr">{s.status.phoneNumber}</span>
               </span>
             )}
@@ -557,7 +579,7 @@ export default function WhatsAppPage() {
               <div className="flex flex-wrap gap-2">
                 {/* Daily count */}
                 <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${SESSION_COLORS[0].border} ${SESSION_COLORS[0].bg} ${SESSION_COLORS[0].text}`}>
-                  <span>📨</span>
+                  <span></span>
                   <span>{t('whatsappInbox.sessions.dailyCount') !== 'whatsappInbox.sessions.dailyCount' ? t('whatsappInbox.sessions.dailyCount') : 'Daily'}: {s.dailyCount}/{s.dailyLimit}</span>
                 </div>
 
@@ -567,7 +589,7 @@ export default function WhatsAppPage() {
                     ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
                     : 'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
                 }`}>
-                  <span>{s.warmupDaysLeft === null ? '✅' : '🔥'}</span>
+                  <span>{s.warmupDaysLeft === null ? '' : ''}</span>
                   <span>
                     {s.warmupDaysLeft === null
                       ? (t('whatsappInbox.sessions.warmupComplete') !== 'whatsappInbox.sessions.warmupComplete' ? t('whatsappInbox.sessions.warmupComplete') : 'Warm-up complete')
@@ -599,19 +621,19 @@ export default function WhatsAppPage() {
               <div className="flex flex-col items-center gap-3">
                 <div className="relative">
                   {s.qrImg ? (
-                    <div className={`p-3 bg-white rounded-2xl shadow-md border-4 ${SESSION_COLORS[0].ring}`}>
+                    <div className={`p-3 bg-white rounded-2xl shadow-md ring-1 ${SESSION_COLORS[0].ring}`}>
                       <img src={s.qrImg} alt="QR Code" className="w-56 h-56 rounded-lg" />
                     </div>
                   ) : (
-                    <div className="w-56 h-56 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-2xl border-4 border-gray-200 dark:border-gray-600">
-                      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-56 h-56 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-2xl ring-1 ring-gray-200 dark:ring-gray-600">
+                      <div className="w-10 h-10 ring-1 ring-blue-500 border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
                   {/* Countdown ring */}
                   <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white shadow-lg transition-colors ${
                     s.qrSeconds > 30 ? 'bg-blue-500' : s.qrSeconds > 10 ? 'bg-orange-500' : 'bg-red-500'
                   }`}>
-                    ⏱ {s.qrSeconds}s
+                     {s.qrSeconds}s
                   </div>
                 </div>
                 <p className="text-xs text-center text-gray-500 dark:text-gray-400 pt-2 max-w-xs">
@@ -623,7 +645,7 @@ export default function WhatsAppPage() {
             {/* QR expired notice */}
             {s.qrExpired && s.status?.qrCode && (
               <div className="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl text-sm text-orange-800 dark:text-orange-300">
-                <span>⏰</span>
+                <span></span>
                 <span>انتهت صلاحية QR Code – اضغط "إعادة اتصال" للحصول على كود جديد</span>
               </div>
             )}
@@ -631,7 +653,7 @@ export default function WhatsAppPage() {
             {/* Connected */}
             {isConnected && (
               <div className="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl text-sm font-semibold text-green-800 dark:text-green-300">
-                <span>🟢</span>
+                <span></span>
                 <span>{t('settings.whatsapp.readyToSend')}</span>
                 {s.status?.phoneNumber && (
                   <span className="ms-auto text-xs font-mono opacity-75" dir="ltr">{s.status.phoneNumber}</span>
@@ -643,13 +665,13 @@ export default function WhatsAppPage() {
             {s.err && (
               <div className="rounded-xl border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-red-100 dark:bg-red-900/40 border-b border-red-200 dark:border-red-800">
-                  <span className="text-red-500">🚨</span>
+                  
                   <span className="font-bold text-sm text-red-800 dark:text-red-300">{s.err.title}</span>
                   <span className="ms-auto text-xs font-mono text-red-400">[{s.err.code}]</span>
                   <button
                     onClick={() => updateSession(activeTab, { err: null })}
                     className="text-red-400 hover:text-red-700 dark:hover:text-red-200 transition ms-2 leading-none text-base"
-                  >✕</button>
+                  ></button>
                 </div>
                 <div className="px-4 py-3 space-y-2">
                   {s.err.detail && (
@@ -659,7 +681,7 @@ export default function WhatsAppPage() {
                   )}
                   {s.err.solution && (
                     <p className="flex items-start gap-2 text-sm text-red-700 dark:text-red-300">
-                      <span className="text-blue-500 flex-shrink-0 mt-0.5">💡</span>
+                      
                       <span>{s.err.solution}</span>
                     </p>
                   )}
@@ -672,11 +694,11 @@ export default function WhatsAppPage() {
               <button
                 onClick={() => handleInit(activeTab)}
                 disabled={!!s.op || !sidecarUp}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-bold text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-bold text-primary-contrast bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 {s.op === 'init'
                   ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.initializing')}</>
-                  : <><span>🚀</span>{t('settings.whatsapp.initialize')}</>}
+                  : <><span></span>{t('settings.whatsapp.initialize')}</>}
               </button>
             ) : (
               <div className="space-y-3">
@@ -688,7 +710,7 @@ export default function WhatsAppPage() {
                   >
                     {s.op === 'reconnect'
                       ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.reconnecting')}</>
-                      : <><span>🔄</span>{t('settings.whatsapp.reconnect')}</>}
+                      : <><span></span>{t('settings.whatsapp.reconnect')}</>}
                   </button>
                   <button
                     onClick={() => handleReset(activeTab)}
@@ -697,7 +719,7 @@ export default function WhatsAppPage() {
                   >
                     {s.op === 'reset'
                       ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.resetting')}</>
-                      : <><span>🔥</span>{t('settings.whatsapp.resetSession')}</>}
+                      : <><span></span>{t('settings.whatsapp.resetSession')}</>}
                   </button>
                 </div>
                 <p className="text-center text-xs text-gray-500 dark:text-gray-400">
@@ -712,15 +734,18 @@ export default function WhatsAppPage() {
           </div>
         </div>
 
-        {/* Test message -- only when active session is connected */}
+        {/* Test message */}
         {isConnected && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-            <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <span>🧪</span>{t('settings.whatsapp.testSending')}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-4">
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+              </svg>
+              <span>{t('settings.whatsapp.testSending')}</span>
             </h2>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                📞 {t('settings.whatsapp.phoneNumber')}
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                {t('settings.whatsapp.phoneNumber')}
               </label>
               <input
                 type="tel"
@@ -728,43 +753,58 @@ export default function WhatsAppPage() {
                 onChange={e => setTestPhone(e.target.value)}
                 placeholder="01xxxxxxxxx"
                 dir="ltr"
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none transition"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                💬 {t('settings.whatsapp.message')}
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                {t('settings.whatsapp.message')}
               </label>
               <textarea
                 value={testMsg}
                 onChange={e => setTestMsg(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none transition resize-none"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 resize-none"
               />
             </div>
             <button
               onClick={handleSendTest}
               disabled={sending || !testPhone}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="w-full inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed text-sm"
             >
-              {sending
-                ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('settings.whatsapp.sending')}</>
-                : <><span>📲</span>{t('settings.whatsapp.sendTestMessage')}</>}
+              {sending ? (
+                <>
+                  <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                  </svg>
+                  <span>{t('settings.whatsapp.sending')}</span>
+                </>
+              ) : (
+                <>
+                  <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                  </svg>
+                  <span>{t('settings.whatsapp.sendTestMessage')}</span>
+                </>
+              )}
             </button>
           </div>
         )}
 
         {/* Info */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-5">
+        <div className="bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-xl p-5">
           <h3 className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-3">
-            <span>ℹ️</span>{t('settings.whatsapp.importantInfo')}
+            <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+            </svg>
+            <span>{t('settings.whatsapp.importantInfo')}</span>
           </h3>
-          <ul className="space-y-1.5 text-sm text-blue-700 dark:text-blue-300">
-            <li>• {t('settings.whatsapp.infoItems.qrOnce')}</li>
-            <li>• {t('settings.whatsapp.infoItems.sessionPersists')}</li>
-            <li>• {t('settings.whatsapp.infoItems.autoSend')}</li>
-            <li>• {t('settings.whatsapp.infoItems.fromConnected')}</li>
-            <li>• {t('settings.whatsapp.infoItems.keepConnected')}</li>
+          <ul className="space-y-1.5 text-sm text-blue-700 dark:text-blue-300 list-disc list-inside">
+            <li>{t('settings.whatsapp.infoItems.qrOnce')}</li>
+            <li>{t('settings.whatsapp.infoItems.sessionPersists')}</li>
+            <li>{t('settings.whatsapp.infoItems.autoSend')}</li>
+            <li>{t('settings.whatsapp.infoItems.fromConnected')}</li>
+            <li>{t('settings.whatsapp.infoItems.keepConnected')}</li>
           </ul>
         </div>
 

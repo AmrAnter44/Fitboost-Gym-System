@@ -5,6 +5,8 @@ import { useLanguage } from '../contexts/LanguageContext'
 import Toast from './Toast'
 import { sendWhatsAppMessage } from '../lib/whatsappHelper'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 interface BarcodeWhatsAppProps {
   memberNumber: string
   memberName: string
@@ -215,19 +217,66 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
     handleSendBarcode()
   }
 
+  const iconBarcode = (
+    <svg {...stroke} className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14"/>
+    </svg>
+  )
+  const iconBarcodeLg = (
+    <svg {...stroke} className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14"/>
+    </svg>
+  )
+  const iconWhatsApp = (
+    <svg {...stroke} className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+    </svg>
+  )
+  const iconDownload = (
+    <svg {...stroke} className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+    </svg>
+  )
+  const iconClose = (
+    <svg {...stroke} className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 6l12 12M18 6L6 18"/>
+    </svg>
+  )
+  const iconCheck = (
+    <svg {...stroke} className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 13l4 4L19 7"/>
+    </svg>
+  )
+  const iconCheckLg = (
+    <svg {...stroke} className="w-7 h-7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 13l4 4L19 7"/>
+    </svg>
+  )
+  const iconError = (
+    <svg {...stroke} className="w-7 h-7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M9 9l6 6M15 9l-6 6"/>
+    </svg>
+  )
+  const iconRetry = (
+    <svg {...stroke} className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 0 1 15.5-6.5L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.5L3 16M3 21v-5h5"/>
+    </svg>
+  )
+
   return (
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* زر عرض/إرسال الباركود */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-primary-200" dir={direction}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5" dir={direction}>
         <div className="flex items-center gap-3 mb-4">
-          <div className="bg-primary-100 p-3 rounded-full">
-            <span className="text-3xl">📱</span>
+          <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
+            {iconBarcodeLg}
           </div>
           <div>
-            <h3 className="text-xl font-bold">{t('barcode.membershipBarcode')}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300">{t('barcode.viewOrSend')}</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('barcode.membershipBarcode')}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('barcode.viewOrSend')}</p>
           </div>
         </div>
 
@@ -235,18 +284,18 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
           <button
             onClick={handleGenerateBarcode}
             disabled={loading || showProgressModal}
-            className="bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
+            className="bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
           >
-            <span>🔢</span>
+            {iconBarcode}
             <span>{t('barcode.viewBarcode')}</span>
           </button>
 
           <button
             onClick={handleSendBarcode}
             disabled={loading || showProgressModal}
-            className="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
+            className="bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
           >
-            <span>📲</span>
+            {iconWhatsApp}
             <span>إرسال واتساب</span>
           </button>
         </div>
@@ -255,29 +304,35 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
       {/* Modal عرض الباركود */}
       {showBarcodeModal && barcodeImage && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+          className="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
           style={{ zIndex: 9999 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowBarcodeModal(false) }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} dir={direction}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-6" onClick={(e) => e.stopPropagation()} dir={direction}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold">🔢 {t('barcode.membershipBarcode')}</h3>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
+                  {iconBarcodeLg}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('barcode.membershipBarcode')}</h3>
+              </div>
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
+                aria-label="إغلاق"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 type="button"
               >
-                ×
+                {iconClose}
               </button>
             </div>
 
-            <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-4 mb-6 text-center dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-              <p className="text-sm text-primary-600 mb-2">{t('barcode.member')}</p>
-              <p className="text-xl font-bold text-primary-800">{memberName}</p>
-              <p className="text-3xl font-bold text-primary-600 mt-2">#{memberNumber}</p>
+            <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4 mb-6 text-center ring-1 ring-primary-200 dark:ring-primary-900/50">
+              <p className="text-sm text-primary-600 dark:text-primary-400 mb-2">{t('barcode.member')}</p>
+              <p className="text-xl font-bold text-primary-800 dark:text-primary-200">{memberName}</p>
+              <p className="text-3xl font-bold text-primary-600 dark:text-primary-400 mt-2">#{memberNumber}</p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 border-2 border-primary-200 rounded-lg p-6 mb-6 flex justify-center">
+            <div className="bg-white dark:bg-gray-900/40 rounded-lg p-6 mb-6 flex justify-center ring-1 ring-gray-200 dark:ring-gray-700">
               <div className="relative inline-block">
                 <img
                   src={barcodeImage}
@@ -285,8 +340,8 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                   className="max-w-full h-auto"
                   style={{ minWidth: '300px' }}
                 />
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 border-2 border-primary-400">
+                <div className="absolute top-1/2 start-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 ring-1 ring-primary-200 dark:ring-primary-900/50">
                     <img
                       src="/assets/icon.png"
                       alt="Gym Logo"
@@ -300,24 +355,24 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
             <div className="space-y-3">
               <button
                 onClick={handleDownloadBarcode}
-                className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center justify-center gap-2"
+                className="w-full bg-primary-500 hover:bg-primary-600 text-primary-contrast py-3 rounded-lg transition-colors duration-200 font-bold flex items-center justify-center gap-2"
               >
-                <span>💾</span>
+                {iconDownload}
                 <span>{t('barcode.downloadImage')}</span>
               </button>
 
               <button
                 onClick={handleSendBarcode}
                 disabled={showProgressModal}
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-2"
               >
-                <span>📲</span>
+                {iconWhatsApp}
                 <span>{t('barcode.downloadAndSendViaWhatsApp')}</span>
               </button>
 
               <button
                 onClick={() => setShowBarcodeModal(false)}
-                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+                className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold"
               >
                 {t('barcode.close')}
               </button>
@@ -329,17 +384,17 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
       {/* Progress Modal */}
       {showProgressModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4"
+          className="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
           style={{ zIndex: 10001 }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6" dir="rtl">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-sm w-full p-6" dir="rtl">
 
             {/* === حالة التوليد === */}
             {sendStep === 'generating' && (
               <div className="text-center py-8">
                 <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
-                <h3 className="text-lg font-bold mb-1">جاري إنشاء صورة الباركود...</h3>
-                <p className="text-sm text-gray-500">يرجى الانتظار</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">جاري إنشاء صورة الباركود...</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">يرجى الانتظار</p>
               </div>
             )}
 
@@ -347,11 +402,13 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
             {sendStep === 'ready' && previewImage && (
               <>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold shrink-0">✓</div>
+                  <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center shrink-0">
+                    {iconCheck}
+                  </div>
                   <h3 className="text-lg font-bold text-green-700 dark:text-green-400">الصورة جاهزة للإرسال</h3>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700 border-2 border-green-300 dark:border-green-600 rounded-xl p-4 mb-4 flex justify-center">
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-4 mb-4 flex justify-center ring-1 ring-green-300 dark:ring-green-700">
                   <img
                     src={previewImage}
                     alt="Barcode Preview"
@@ -360,21 +417,21 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                   />
                 </div>
 
-                <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
                   سيتم إرسال الباركود إلى <span className="font-bold">{memberPhone}</span>
                 </p>
 
                 <div className="space-y-2">
                   <button
                     onClick={handleConfirmSend}
-                    className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2 text-lg"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors duration-200 font-bold flex items-center justify-center gap-2 text-lg"
                   >
-                    <span>📲</span>
+                    {iconWhatsApp}
                     <span>إرسال عبر واتساب</span>
                   </button>
                   <button
                     onClick={() => { setShowProgressModal(false); setSendStep('idle') }}
-                    className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+                    className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold"
                   >
                     إلغاء
                   </button>
@@ -386,8 +443,8 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
             {sendStep === 'sending' && (
               <div className="text-center py-8">
                 <div className="w-16 h-16 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-4" />
-                <h3 className="text-lg font-bold mb-1">جاري الإرسال عبر واتساب...</h3>
-                <p className="text-sm text-gray-500">يرجى الانتظار</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">جاري الإرسال عبر واتساب...</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">يرجى الانتظار</p>
 
                 {previewImage && (
                   <div className="mt-4 opacity-50">
@@ -400,27 +457,33 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
             {/* === تم الإرسال بنجاح === */}
             {sendStep === 'success' && (
               <div className="text-center py-6">
-                <div className="text-5xl mb-3">✅</div>
+                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center justify-center">
+                  {iconCheckLg}
+                </div>
                 <h3 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">تم الإرسال بنجاح!</h3>
-                <p className="text-sm text-gray-500 mb-1">تم إنشاء الصورة وإرسالها عبر واتساب</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">تم إنشاء الصورة وإرسالها عبر واتساب</p>
 
                 {previewImage && (
                   <div className="mt-3 mb-4">
-                    <img src={previewImage} alt="Sent" className="max-h-24 mx-auto rounded border-2 border-green-300" />
+                    <img src={previewImage} alt="Sent" className="max-h-24 mx-auto rounded ring-1 ring-green-300 dark:ring-green-700" />
                   </div>
                 )}
 
                 <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400 mb-4">
-                  <span className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">✓</span>
+                  <span className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center">
+                    <svg {...stroke} className="w-3 h-3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                  </span>
                   <span className="text-sm font-medium">الصورة جاهزة</span>
                   <span className="mx-1">—</span>
-                  <span className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">✓</span>
+                  <span className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center">
+                    <svg {...stroke} className="w-3 h-3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                  </span>
                   <span className="text-sm font-medium">تم الإرسال</span>
                 </div>
 
                 <button
                   onClick={() => { setShowProgressModal(false); setSendStep('idle'); setShowBarcodeModal(false) }}
-                  className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors duration-200 font-bold"
                 >
                   تم
                 </button>
@@ -430,11 +493,13 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
             {/* === خطأ === */}
             {sendStep === 'error' && (
               <div className="text-center py-6">
-                <div className="text-5xl mb-3">❌</div>
+                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center justify-center">
+                  {iconError}
+                </div>
                 <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-3">فشل العملية</h3>
 
                 {progressError && (
-                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+                  <div className="bg-red-50 dark:bg-red-900/30 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-3 mb-4">
                     <p className="text-sm text-red-700 dark:text-red-300">{progressError}</p>
                   </div>
                 )}
@@ -442,14 +507,14 @@ export default function BarcodeWhatsApp({ memberNumber, memberName, memberPhone 
                 <div className="space-y-2">
                   <button
                     onClick={handleRetry}
-                    className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 font-bold flex items-center justify-center gap-2"
+                    className="w-full bg-primary-500 hover:bg-primary-600 text-primary-contrast py-3 rounded-lg transition-colors duration-200 font-bold flex items-center justify-center gap-2"
                   >
-                    <span>🔄</span>
+                    {iconRetry}
                     <span>إعادة المحاولة</span>
                   </button>
                   <button
                     onClick={() => { setShowProgressModal(false); setSendStep('idle') }}
-                    className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+                    className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold"
                   >
                     إغلاق
                   </button>

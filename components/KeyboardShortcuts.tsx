@@ -1,8 +1,6 @@
 'use client'
 
-// ✅ Keyboard shortcuts معطلة بناءً على طلب المستخدم
+// Keyboard shortcuts disabled per user request
 export default function KeyboardShortcuts() {
-  // ❌ جميع الاختصارات معطلة
   return null
-
 }

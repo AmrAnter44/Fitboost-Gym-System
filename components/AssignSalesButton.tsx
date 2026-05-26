@@ -5,6 +5,8 @@ import { usePermissions } from '../hooks/usePermissions'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 export type AssignEntityType = 'member' | 'visitor' | 'dayuse' | 'invitation'
 
 interface StaffOption {
@@ -23,6 +25,23 @@ interface AssignSalesButtonProps {
   /** Called after a successful assign/transfer so the parent can refetch */
   onAssigned?: (salesStaffId: string | null) => void
   className?: string
+}
+
+function BriefcaseIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg {...stroke} className={className}>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18" />
+    </svg>
+  )
+}
+
+function SwitchIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg {...stroke} className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+    </svg>
+  )
 }
 
 export default function AssignSalesButton({
@@ -70,15 +89,13 @@ export default function AssignSalesButton({
     ? (locale === 'ar' ? 'تحويل سيلز' : 'Transfer Sales')
     : (locale === 'ar' ? 'تعيين سيلز' : 'Assign Sales')
 
-  const buttonIcon = hasSales ? '🔁' : '💼'
-
   const sizeClasses = size === 'xs'
     ? 'text-[11px] px-2 py-0.5'
     : 'text-xs px-2.5 py-1'
 
   const colorClasses = hasSales
-    ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 hover:bg-orange-200 dark:hover:bg-orange-900/60'
-    : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900/60'
+    ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 ring-1 ring-orange-300 dark:ring-orange-700 hover:bg-orange-200 dark:hover:bg-orange-900/60'
+    : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 ring-1 ring-emerald-300 dark:ring-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900/60'
 
   const handleSubmit = async () => {
     setSubmitting(true)
@@ -117,53 +134,60 @@ export default function AssignSalesButton({
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(true) }}
-        className={`inline-flex items-center gap-1 rounded-md border font-medium shadow-sm transition ${sizeClasses} ${colorClasses} ${className}`}
+        aria-label={buttonLabel}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        className={`inline-flex items-center gap-1 rounded-md font-medium shadow-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 focus-visible:ring-orange-500 ${sizeClasses} ${colorClasses} ${className}`}
         title={hasSales ? `${buttonLabel} (${currentSalesStaff?.name || ''})` : buttonLabel}
       >
-        <span>{buttonIcon}</span>
+        {hasSales ? <SwitchIcon className="w-3.5 h-3.5" /> : <BriefcaseIcon className="w-3.5 h-3.5" />}
         <span>{buttonLabel}</span>
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="assign-sales-title"
           onClick={(e) => { e.stopPropagation(); if (!submitting) setOpen(false) }}
         >
           <div
             dir={locale === 'ar' ? 'rtl' : 'ltr'}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-4">
-              <div className="inline-flex items-center justify-center w-14 h-14 bg-orange-100 dark:bg-orange-900/40 rounded-full mb-3">
-                <span className="text-3xl">{hasSales ? '🔁' : '💼'}</span>
+              <div className="inline-flex items-center justify-center w-14 h-14 bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300 rounded-full mb-3">
+                {hasSales ? <SwitchIcon className="w-7 h-7" /> : <BriefcaseIcon className="w-7 h-7" />}
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              <h3 id="assign-sales-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {hasSales
                   ? (locale === 'ar' ? 'تحويل لموظف سيلز آخر' : 'Transfer to Another Sales Staff')
                   : (locale === 'ar' ? 'تعيين موظف سيلز' : 'Assign Sales Staff')}
               </h3>
               {hasSales && currentSalesStaff?.name && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   {locale === 'ar' ? 'حالياً مع:' : 'Currently with:'}{' '}
                   <span className="font-semibold text-orange-700 dark:text-orange-300">{currentSalesStaff.name}</span>
                 </p>
               )}
             </div>
 
-            <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-3 mb-4">
-              <label className="block text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200">
-                💼 {locale === 'ar' ? 'موظف السيلز' : 'Sales Staff'}
+            <div className="bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-200 dark:ring-orange-900/50 rounded-lg p-3 mb-4">
+              <label className="flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                <BriefcaseIcon className="w-4 h-4" />
+                {locale === 'ar' ? 'موظف السيلز' : 'Sales Staff'}
               </label>
               {loadingStaff ? (
-                <div className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                <div className="text-sm text-gray-600 dark:text-gray-400 py-2">
                   {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
                 </div>
               ) : (
                 <select
                   value={selected}
                   onChange={(e) => setSelected(e.target.value)}
-                  className="w-full px-3 py-2 border border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-colors duration-200"
                 >
                   <option value="">{locale === 'ar' ? '— بدون موظف سيلز —' : '— No Sales Staff —'}</option>
                   {staff.map(s => (
@@ -184,16 +208,16 @@ export default function AssignSalesButton({
               <button
                 onClick={handleSubmit}
                 disabled={submitting || loadingStaff || (selected === (currentSalesStaff?.id || ''))}
-                className="flex-1 bg-orange-600 text-white py-2.5 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition"
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
               >
                 {submitting
-                  ? (locale === 'ar' ? '⏳ جاري الحفظ...' : '⏳ Saving...')
-                  : (locale === 'ar' ? '✓ حفظ' : '✓ Save')}
+                  ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+                  : (locale === 'ar' ? 'حفظ' : 'Save')}
               </button>
               <button
                 onClick={() => setOpen(false)}
                 disabled={submitting}
-                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:cursor-not-allowed font-medium transition"
+                className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 font-medium py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {locale === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>

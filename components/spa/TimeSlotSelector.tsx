@@ -7,6 +7,8 @@ import { fetchAvailability } from '../../lib/api/spaBookings'
 import { SpaServiceType } from '../../types/spa'
 import { formatTime12Hour } from '../../lib/timeFormatter'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 interface TimeSlotSelectorProps {
   date: string
   serviceType: SpaServiceType
@@ -18,7 +20,7 @@ export default function TimeSlotSelector({
   date,
   serviceType,
   onSelect,
-  selectedTime
+  selectedTime,
 }: TimeSlotSelectorProps) {
   const { t, locale } = useLanguage()
 
@@ -26,15 +28,21 @@ export default function TimeSlotSelector({
     queryKey: ['spa-availability', date, serviceType],
     queryFn: () => fetchAvailability(date, serviceType),
     enabled: !!date && !!serviceType,
-    staleTime: 1 * 60 * 1000, // 1 minute
+    staleTime: 1 * 60 * 1000,
   })
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-          <span className="mr-3 text-gray-600 dark:text-gray-300">{t('common.loading')}</span>
+      <div
+        className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <div className="flex items-center justify-center gap-3">
+          <svg className="animate-spin w-6 h-6 text-primary-500" {...stroke}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 0013.13 4.95M19.5 12a7.5 7.5 0 00-13.13-4.95" />
+          </svg>
+          <span className="text-gray-600 dark:text-gray-400">{t('common.loading')}</span>
         </div>
       </div>
     )
@@ -42,9 +50,12 @@ export default function TimeSlotSelector({
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <div className="text-center text-red-600">
-          {t('spa.errorLoadingSlots')}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <div className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400">
+          <svg className="w-5 h-5" {...stroke}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3.75h.01M5.07 19h13.86A2 2 0 0020.66 16L13.73 4a2 2 0 00-3.46 0L3.34 16A2 2 0 005.07 19z" />
+          </svg>
+          <span>{t('spa.errorLoadingSlots')}</span>
         </div>
       </div>
     )
@@ -52,17 +63,20 @@ export default function TimeSlotSelector({
 
   if (slots.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <div className="text-center text-gray-600 dark:text-gray-300">
-          {t('spa.noSlotsAvailable')}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <svg className="w-12 h-12 text-gray-400" {...stroke}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">{t('spa.noSlotsAvailable')}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+      <h3 className="text-base font-bold mb-4 text-gray-900 dark:text-gray-100">
         {t('spa.availableSlots')}
       </h3>
 
@@ -76,15 +90,16 @@ export default function TimeSlotSelector({
               key={slot.time}
               onClick={() => isAvailable && onSelect(slot.time)}
               disabled={!isAvailable}
-              className={`p-4 rounded-lg text-center transition-all ${
+              aria-pressed={isSelected}
+              className={`p-3 rounded-lg text-center transition-colors duration-200 ${
                 isSelected
-                  ? 'bg-primary-500 text-white shadow-lg scale-105'
+                  ? 'bg-primary-500 text-primary-contrast ring-2 ring-primary-600 shadow-sm font-bold'
                   : isAvailable
-                  ? 'bg-green-50 hover:bg-green-100 text-green-800 border-2 border-green-300 hover:shadow-md'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-300 dark:border-gray-600'
+                  ? 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 text-green-800 dark:text-green-300 ring-1 ring-green-200 dark:ring-green-900/50'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed ring-1 ring-gray-200 dark:ring-gray-700'
               }`}
             >
-              <div className="font-bold text-lg">{formatTime12Hour(slot.time, locale as 'ar' | 'en')}</div>
+              <div className="font-bold text-base">{formatTime12Hour(slot.time, locale as 'ar' | 'en')}</div>
               <div className="text-xs mt-1">
                 {isAvailable ? (
                   <>
@@ -102,9 +117,9 @@ export default function TimeSlotSelector({
         })}
       </div>
 
-      <div className="mt-4 flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 border-t pt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-100 border-2 border-green-300 rounded"></div>
+          <div className="w-4 h-4 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded"></div>
           <span>{t('spa.available')}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -112,7 +127,7 @@ export default function TimeSlotSelector({
           <span>{t('spa.selected')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div>
+          <div className="w-4 h-4 bg-gray-100 dark:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 rounded"></div>
           <span>{t('spa.full')}</span>
         </div>
       </div>

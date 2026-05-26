@@ -6,6 +6,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useToast } from '../../contexts/ToastContext'
 import PermissionDenied from '../../components/PermissionDenied'
+import { LoadingScreen } from '../../components/Spinner'
 import { fetchSpaBookings, cancelSpaBooking, updateSpaBooking } from '../../lib/api/spaBookings'
 import { formatDateYMD } from '../../lib/dateFormatter'
 import { formatTime12Hour } from '../../lib/timeFormatter'
@@ -81,9 +82,9 @@ export default function SpaBookingsPage() {
   })
 
   const serviceIcons = {
-    massage: '💆',
-    sauna: '🧖',
-    jacuzzi: '🛁'
+    massage: '',
+    sauna: '',
+    jacuzzi: ''
   }
 
   const formatDate = (date: Date) => {
@@ -112,11 +113,7 @@ export default function SpaBookingsPage() {
 
   // Permission check
   if (permissionsLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-      </div>
-    )
+    return <LoadingScreen fullScreen />
   }
 
   if (!hasPermission('canViewSpaBookings')) {
@@ -134,7 +131,7 @@ export default function SpaBookingsPage() {
         {hasPermission('canCreateSpaBooking') && (
           <button
             onClick={() => setShowForm(true)}
-            className="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+            className="bg-gradient-to-r from-primary-500 to-primary-600 text-primary-contrast px-6 py-3 rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transition-colors duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
           >
             <span className="text-xl">+</span>
             {t('spa.newBooking')}
@@ -163,11 +160,11 @@ export default function SpaBookingsPage() {
                   setFilters(restFilters)
                 }
               }}
-              className={`p-3 rounded-lg text-center transition-all ${
+              className={`p-3 rounded-lg text-center transition-colors duration-200 ${
                 selectedDate === day.date
-                  ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg scale-105'
+                  ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-primary-contrast shadow-lg scale-105'
                   : day.isToday
-                  ? 'bg-green-100 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-600 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-900/50'
+                  ? 'bg-green-100 dark:bg-green-900/30 ring-1 ring-green-500 dark:ring-green-600 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-900/50'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
               }`}
             >
@@ -192,9 +189,9 @@ export default function SpaBookingsPage() {
                   setSelectedService(newService)
                   setShowTimeSlots(!!newService)
                 }}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors duration-200 ${
                   selectedService === service
-                    ? 'bg-primary-500 text-white shadow-md scale-105'
+                    ? 'bg-primary-500 text-primary-contrast shadow-md scale-105'
                     : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/50'
                 }`}
               >
@@ -209,16 +206,16 @@ export default function SpaBookingsPage() {
       {/* Time Slots - يظهر بعد اختيار اليوم والخدمة */}
       {selectedDate && selectedService && showTimeSlots && hasPermission('canCreateSpaBooking') && (
         <div className="mb-6 animate-fadeIn">
-          <div className="bg-gradient-to-r from-green-50 to-primary-50 dark:from-green-900/20 dark:to-primary-900/20 p-4 rounded-lg border-2 border-primary-200 dark:border-primary-600 mb-4">
+          <div className="bg-gradient-to-r from-green-50 to-primary-50 dark:from-green-900/20 dark:to-primary-900/20 p-4 rounded-lg ring-1 ring-primary-200 dark:ring-primary-600 mb-4">
             <p className="text-center text-gray-700 dark:text-gray-200 font-medium">
-              ✨ {t('spa.selectTimeSlot')}
+               {t('spa.selectTimeSlot')}
             </p>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-4 rounded-lg font-bold hover:from-primary-600 hover:to-primary-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
+            className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-primary-contrast px-6 py-4 rounded-lg font-bold hover:from-primary-600 hover:to-primary-700 transition-colors duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-lg"
           >
-            <span className="text-2xl">📅</span>
+            
             {t('spa.bookNow')}
           </button>
         </div>
@@ -270,16 +267,12 @@ export default function SpaBookingsPage() {
         </div>
 
         {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-          </div>
-        )}
+        {isLoading && <LoadingScreen />}
 
         {/* Empty State */}
         {!isLoading && bookings.length === 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-            <div className="text-6xl mb-4">💆</div>
+            
             <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">{t('spa.noBookings')}</h3>
             <p className="text-gray-600 dark:text-gray-300">{t('spa.noBookingsDescription')}</p>
           </div>
@@ -290,7 +283,7 @@ export default function SpaBookingsPage() {
           <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-primary-500 to-primary-600 text-white">
+                <thead className="bg-gradient-to-r from-primary-500 to-primary-600 text-primary-contrast">
                   <tr>
                     <th className="px-4 py-3 text-right font-semibold">{t('spa.memberName')}</th>
                     <th className="px-4 py-3 text-right font-semibold">{t('spa.service')}</th>
@@ -376,7 +369,7 @@ export default function SpaBookingsPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && deleteTarget && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={(e) => e.target === e.currentTarget && setShowDeleteConfirm(false)}
           dir={direction}
         >

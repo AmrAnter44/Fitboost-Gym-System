@@ -17,6 +17,9 @@ import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import CoachSelector from '../../components/CoachSelector'
 import NutritionRenewalForm from '../../components/NutritionRenewalForm'
+import { LoadingScreen } from '../../components/Spinner'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface Staff {
   id: string
@@ -51,7 +54,7 @@ export default function NutritionPage() {
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
 
-  // ✅ استخدام useQuery لجلب جلسات Nutrition
+  // استخدام useQuery لجلب جلسات Nutrition
   const {
     data: sessions = [],
     isLoading: loading,
@@ -73,7 +76,7 @@ export default function NutritionPage() {
     staleTime: 2 * 60 * 1000,
   })
 
-  // ✅ استخدام useQuery لجلب جميع الموظفين النشطين
+  // استخدام useQuery لجلب جميع الموظفين النشطين
   const {
     data: coaches = [],
     isLoading: coachesLoading
@@ -144,7 +147,7 @@ export default function NutritionPage() {
 
   const [referralCoachId, setReferralCoachId] = useState<string | null>(null)
 
-  // ✅ معالجة أخطاء جلسات Nutrition
+  // معالجة أخطاء جلسات Nutrition
   useEffect(() => {
     if (sessionsError) {
       const errorMessage = (sessionsError as Error).message
@@ -167,7 +170,7 @@ export default function NutritionPage() {
 
   useEffect(() => {
     const fetchMemberPoints = async () => {
-      // ✅ الأولوية لرقم العضوية، ثم الهاتف كـ fallback
+      // الأولوية لرقم العضوية، ثم الهاتف كـ fallback
       if (!formData.memberNumber && !formData.phone) {
         setMemberPoints(0)
         setMemberNumber(null)
@@ -205,7 +208,7 @@ export default function NutritionPage() {
     }
 
     fetchMemberPoints()
-  }, [formData.memberNumber, formData.phone]) // ✅ الاعتماد على memberNumber أولاً
+  }, [formData.memberNumber, formData.phone]) // الاعتماد على memberNumber أولاً
 
   // جلب الباقات عند فتح النموذج
   useEffect(() => {
@@ -245,7 +248,7 @@ export default function NutritionPage() {
       sessionsPurchased: pkg.sessions,
       sessionsRemaining: pkg.sessions,
       totalPrice: pkg.price,
-      expiryDate: calculatedExpiry || prev.expiryDate  // ✅ حساب تاريخ الانتهاء تلقائيًا
+      expiryDate: calculatedExpiry || prev.expiryDate // حساب تاريخ الانتهاء تلقائيًا
     }))
     toast.success(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`)
   }
@@ -254,7 +257,7 @@ export default function NutritionPage() {
   const fetchMemberByNumber = async (memberNumber: string) => {
     if (!memberNumber.trim()) return
 
-    // ✅ التحقق من صلاحية عرض الأعضاء
+    // التحقق من صلاحية عرض الأعضاء
     if (!hasPermission('canViewMembers')) {
       toast.warning('لا تملك صلاحية عرض بيانات الأعضاء')
       return
@@ -392,7 +395,7 @@ export default function NutritionPage() {
 
     if (!confirmed) return
 
-    // ✅ Optimistic Update - احذف فوراً من الـ UI
+    // Optimistic Update - احذف فوراً من الـ UI
     const previousData = queryClient.getQueryData<any[]>(['nutrition-sessions'])
     queryClient.setQueryData<any[]>(['nutrition-sessions'], (old) =>
       old ? old.filter(s => s.nutritionNumber !== nutritionNumber) : old
@@ -522,12 +525,10 @@ export default function NutritionPage() {
     return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType
   })
 
-  // ✅ التحقق من الصلاحيات
+  // التحقق من الصلاحيات
   if (permissionsLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl">{t('nutrition.loading')}</div>
-      </div>
+      <LoadingScreen fullScreen message={t('nutrition.loading')} />
     )
   }
 
@@ -541,7 +542,7 @@ export default function NutritionPage() {
     <div className="container mx-auto p-4 sm:p-6" dir={direction}>
       <div className="mb-6">
         <div className="mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">🥗 {t('nutrition.title')}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2"> {t('nutrition.title')}</h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
             {isCoach ? t('nutrition.viewSessions') : t('nutrition.manageSessions')}
           </p>
@@ -551,14 +552,14 @@ export default function NutritionPage() {
             onClick={() => router.push('/nutrition/commission')}
             className="flex-1 min-w-[140px] sm:flex-none bg-gradient-to-r from-green-600 to-green-700 text-white px-3 sm:px-6 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
           >
-            <span>💰</span>
+            <span></span>
             <span>{t('nutrition.commissionCalculator')}</span>
           </button>
           <button
             onClick={() => router.push('/nutrition/sessions/history')}
             className="flex-1 min-w-[140px] sm:flex-none bg-gradient-to-r from-green-600 to-green-700 text-white px-3 sm:px-6 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
           >
-            <span>📊</span>
+            <span></span>
             <span>{t('nutrition.attendanceLog')}</span>
           </button>
           {!isCoach && (
@@ -569,14 +570,14 @@ export default function NutritionPage() {
               }}
               className="w-full sm:w-auto bg-green-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              {showForm ? t('nutrition.hideForm') : `➕ ${t('nutrition.addNewSession')}`}
+              {showForm ? t('nutrition.hideForm') : ` ${t('nutrition.addNewSession')}`}
             </button>
           )}
         </div>
       </div>
 
       {!isCoach && showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6" dir={direction}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
@@ -584,7 +585,7 @@ export default function NutritionPage() {
             </h2>
             {editingSession && isDayUse && (
               <span className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm font-bold">
-                🏃 Day Use
+                 Day Use
               </span>
             )}
           </div>
@@ -605,7 +606,7 @@ export default function NutritionPage() {
                     className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:bg-gray-700 dark:text-white"
                     placeholder="اختياري - يمكن تركه فارغ"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">💡 اضغط Enter لتحميل بيانات العضو تلقائياً</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1"> اضغط Enter لتحميل بيانات العضو تلقائياً</p>
                 </div>
               )}
 
@@ -671,7 +672,7 @@ export default function NutritionPage() {
                         placeholder={t('nutrition.nutritionistNamePlaceholder')}
                       />
                       <p className="text-xs text-amber-600 dark:text-amber-400">
-                        ⚠️ {t('nutrition.noActiveNutritionists')}
+                         {t('nutrition.noActiveNutritionists')}
                       </p>
                     </div>
                   ) : (
@@ -694,7 +695,7 @@ export default function NutritionPage() {
 
               {/* Day Use Checkbox - مخفي في وضع التعديل */}
               {!editingSession && (
-                <div className="bg-green-50 dark:bg-green-900/50 border-2 border-green-200 dark:border-green-700 rounded-lg p-3">
+                <div className="bg-green-50 dark:bg-green-900/50 ring-1 ring-green-200 dark:ring-green-700 rounded-lg p-3">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -721,7 +722,7 @@ export default function NutritionPage() {
                   />
                   <div>
                     <span className="text-sm font-bold text-green-800 dark:text-green-200">
-                      🏃 Day Use (استخدام يومي)
+                       Day Use (استخدام يومي)
                     </span>
                     <p className="text-xs text-green-600 dark:text-green-300 mt-1">
                       تسجيل مبسط - اسم ورقم وسعر الجلسة فقط
@@ -735,7 +736,7 @@ export default function NutritionPage() {
               {!isDayUse && !editingSession && packages.length > 0 && (
                 <div className="col-span-full">
                   <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
-                    ⚡ {t('packages.selectPackage')}
+                     {t('packages.selectPackage')}
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {packages.map((pkg) => (
@@ -743,17 +744,17 @@ export default function NutritionPage() {
                         key={pkg.id}
                         type="button"
                         onClick={() => applyPackage(pkg)}
-                        className="bg-gradient-to-br from-lime-50 to-green-100 dark:from-lime-900/50 dark:to-green-900/50 hover:from-lime-100 hover:to-green-200 dark:hover:from-lime-800/50 dark:hover:to-green-800/50 border-2 border-lime-400 dark:border-lime-700 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        className="bg-gradient-to-br from-lime-50 to-green-100 dark:from-lime-900/50 dark:to-green-900/50 hover:from-lime-100 hover:to-green-200 dark:hover:from-lime-800/50 dark:hover:to-green-800/50 ring-1 ring-lime-400 dark:ring-lime-700 rounded-lg p-3 transition-colors duration-200 hover:shadow-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       >
                         <div className="text-center">
-                          <div className="text-2xl mb-1">🥗</div>
+                          
                           <div className="font-bold text-gray-800 dark:text-gray-100 text-sm">{pkg.name}</div>
                           <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                             {pkg.sessions} {t('packages.sessions')}
                           </div>
                           {pkg.durationDays && (
                             <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                              📅 {pkg.durationDays} يوم
+                               {pkg.durationDays} يوم
                             </div>
                           )}
                           <div className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
@@ -764,7 +765,7 @@ export default function NutritionPage() {
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    💡 {t('packages.customPackage')}: يمكنك تعديل القيم بعد اختيار الباقة
+                     {t('packages.customPackage')}: يمكنك تعديل القيم بعد اختيار الباقة
                   </p>
                 </div>
               )}
@@ -801,14 +802,14 @@ export default function NutritionPage() {
                     placeholder="عدد الجلسات المتبقية"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    💡 يمكنك تعديل عدد الجلسات المتبقية للعميل
+                     يمكنك تعديل عدد الجلسات المتبقية للعميل
                   </p>
                 </div>
               )}
 
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
-                  {isDayUse ? 'سعر الجلسة 💰' : t('nutrition.totalPrice')} <span className="text-red-600 dark:text-red-400">*</span>
+                  {isDayUse ? 'سعر الجلسة ' : t('nutrition.totalPrice')} <span className="text-red-600 dark:text-red-400">*</span>
                 </label>
                 <input
                   type="number"
@@ -907,7 +908,7 @@ export default function NutritionPage() {
             </div>
 
             {formData.sessionsPurchased > 0 && formData.totalPrice > 0 && (
-              <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-4">
+              <div className="bg-green-50 dark:bg-green-900/30 ring-1 ring-green-200 dark:ring-green-700 rounded-lg p-4">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('nutrition.finalTotal')}</span>
                   <span className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -933,9 +934,9 @@ export default function NutritionPage() {
 
             {/* Referral Section */}
             {settings.nutritionReferralEnabled && !editingSession && (
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 border-2 border-purple-200 dark:border-purple-700">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 ring-1 ring-purple-200 dark:ring-purple-700">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <span className="text-2xl">🎁</span>
+                  
                   Referral - من سوّق هذا الاشتراك؟
                 </h3>
 
@@ -948,7 +949,7 @@ export default function NutritionPage() {
                 {referralCoachId && formData.totalPrice > 0 && (
                   <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-700">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      💰 عمولة Referral: {settings.nutritionReferralPercentage}% من سعر الاشتراك
+                       عمولة Referral: {settings.nutritionReferralPercentage}% من سعر الاشتراك
                     </p>
                     <p className="text-sm font-semibold text-purple-600 dark:text-purple-400 mt-1">
                       = {((formData.totalPrice * settings.nutritionReferralPercentage) / 100).toFixed(2)} ج.م
@@ -985,10 +986,10 @@ export default function NutritionPage() {
         <div className="mb-4">
           <input
             type="text"
-            placeholder={`🔍 ${t('nutrition.searchPlaceholder')}`}
+            placeholder={` ${t('nutrition.searchPlaceholder')}`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-3 border-2 dark:border-gray-600 rounded-lg text-lg dark:bg-gray-700 dark:text-white"
+            className="w-full px-4 py-3 ring-1 dark:border-gray-600 rounded-lg text-lg dark:bg-gray-700 dark:text-white"
           />
         </div>
 
@@ -1000,7 +1001,7 @@ export default function NutritionPage() {
             <select
               value={filterCoach}
               onChange={(e) => setFilterCoach(e.target.value)}
-              className="w-full px-3 py-2 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 ring-1 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
               <option value="">{t('nutrition.allNutritionists')}</option>
               {(Array.from(new Set(sessions.map(s => s.nutritionistName).filter((name): name is string => !!name))) as string[]).sort().map(coach => (
@@ -1015,7 +1016,7 @@ export default function NutritionPage() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="w-full px-3 py-2 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 ring-1 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
               <option value="all">{t('nutrition.allStatus')}</option>
               <option value="active">{t('nutrition.statusActive')}</option>
@@ -1030,7 +1031,7 @@ export default function NutritionPage() {
             <select
               value={filterSessions}
               onChange={(e) => setFilterSessions(e.target.value as any)}
-              className="w-full px-3 py-2 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 ring-1 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
               <option value="all">{t('nutrition.allSessions')}</option>
               <option value="low">{t('nutrition.sessionsLow')}</option>
@@ -1044,7 +1045,7 @@ export default function NutritionPage() {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as any)}
-              className="w-full px-3 py-2 border-2 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 ring-1 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
               <option value="all">{t('nutrition.typeAll')}</option>
               <option value="regular">{t('nutrition.typeRegular')}</option>
@@ -1065,14 +1066,14 @@ export default function NutritionPage() {
               }}
               className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm font-medium"
             >
-              🔄 {t('nutrition.resetFilters')}
+               {t('nutrition.resetFilters')}
             </button>
           </div>
         )}
       </div>
 
       {loading ? (
-        <div className="text-center py-12">{t('nutrition.loading')}</div>
+        <LoadingScreen message={t('nutrition.loading')} />
       ) : (
         <>
           {/* Cards Grid */}
@@ -1089,7 +1090,7 @@ export default function NutritionPage() {
               return (
                 <div
                   key={session.nutritionNumber}
-                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg dark:hover:shadow-2xl transition ${
+                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden ring-1 hover:shadow-lg dark:hover:shadow-2xl transition ${
                     isExpired ? 'border-red-300 dark:border-red-700' : isExpiringSoon ? 'border-orange-300 dark:border-orange-700' : 'border-gray-200 dark:border-gray-600'
                   }`}
                 >
@@ -1098,12 +1099,12 @@ export default function NutritionPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-lg text-white/80">👤</span>
+                          
                         </div>
                         <div>
                           <div className="font-bold text-white text-base">{session.clientName}</div>
                           <div className="text-white/80 text-xs">
-                            {session.nutritionNumber < 0 ? '🏃 Day Use' : `#${session.nutritionNumber}`} • {session.phone}
+                            {session.nutritionNumber < 0 ? ' Day Use' : `#${session.nutritionNumber}`} • {session.phone}
                           </div>
                         </div>
                       </div>
@@ -1125,7 +1126,7 @@ export default function NutritionPage() {
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full transition-all ${
+                          className={`h-2 rounded-full transition-colors duration-200 ${
                             progressPercentage >= 80 ? 'bg-red-500' :
                             progressPercentage >= 50 ? 'bg-orange-500' :
                             'bg-green-500'
@@ -1161,7 +1162,7 @@ export default function NutritionPage() {
                         isExpired ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
                       }`}>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span>📅</span>
+                          <span></span>
                           {session.startDate && <span>{formatDateYMD(session.startDate)}</span>}
                           {session.startDate && session.expiryDate && <span>→</span>}
                           {session.expiryDate && (
@@ -1183,39 +1184,42 @@ export default function NutritionPage() {
                             <button
                               onClick={() => handleRegisterSession(session)}
                               disabled={session.sessionsRemaining === 0}
-                              className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                             >
-                              {t('nutrition.attendance')}
+                              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                              <span>{t('nutrition.attendance')}</span>
                             </button>
                             <button
                               onClick={() => handleRenew(session)}
-                              className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 font-bold flex items-center justify-center gap-1"
+                              className="bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                             >
-                              {t('nutrition.renew')}
+                              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06"/></svg>
+                              <span>{t('nutrition.renew')}</span>
                             </button>
                           </>
                         )}
                         {(session.remainingAmount || 0) > 0 && (
                           <button
                             onClick={() => handleOpenPaymentModal(session)}
-                            className="col-span-2 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1"
+                            className="col-span-2 bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                           >
-                            <span>💰</span>
-                            <span>{t('nutrition.payRemaining').replace('💰 ', '')} ({(session.remainingAmount || 0).toFixed(0)} {t('nutrition.egp')})</span>
+                            <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
+                            <span>{t('nutrition.payRemaining')} ({(session.remainingAmount || 0).toFixed(0)} {t('nutrition.egp')})</span>
                           </button>
                         )}
                         <button
                           onClick={() => handleEdit(session)}
-                          className="bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 font-bold flex items-center justify-center gap-1"
+                          className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                         >
-                          <span>✏️</span>
+                          <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
                           <span>{t('nutrition.edit')}</span>
                         </button>
                         <button
                           onClick={() => handleDelete(session.nutritionNumber)}
-                          className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 dark:hover:bg-red-800 font-bold flex items-center justify-center gap-1"
+                          aria-label={t('nutrition.deleteSubscription')}
+                          className="bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                         >
-                          <span>🗑️</span>
+                          <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                           <span>{t('nutrition.deleteSubscription')}</span>
                         </button>
                       </div>
@@ -1228,7 +1232,7 @@ export default function NutritionPage() {
 
           {filteredSessions.length === 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
-              <div className="text-6xl mb-4">📋</div>
+              
               <p className="text-xl">{searchTerm ? t('nutrition.noSearchResults') : t('nutrition.noSessions')}</p>
             </div>
           )}
@@ -1254,23 +1258,23 @@ export default function NutritionPage() {
 
             <div className="space-y-4">
               {/* معلومات الاشتراك */}
-              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+              <div className="bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-200 dark:ring-orange-800/60 rounded-lg p-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.nutritionNumber')}:</span>
-                    <span className="font-bold">#{paymentSession.nutritionNumber}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{t('nutrition.nutritionNumber')}:</span>
+                    <span className="font-bold text-gray-900 dark:text-gray-100">#{paymentSession.nutritionNumber}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.client')}:</span>
-                    <span className="font-bold">{paymentSession.clientName}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{t('nutrition.client')}:</span>
+                    <span className="font-bold text-gray-900 dark:text-gray-100">{paymentSession.clientName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">{t('nutrition.nutritionist')}:</span>
-                    <span className="font-bold">{paymentSession.nutritionistName}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{t('nutrition.nutritionist')}:</span>
+                    <span className="font-bold text-gray-900 dark:text-gray-100">{paymentSession.nutritionistName}</span>
                   </div>
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="text-orange-700 font-semibold">{t('nutrition.paymentModal.remainingAmount')}</span>
-                    <span className="font-bold text-orange-600 text-lg">
+                  <div className="flex justify-between border-t border-orange-200 dark:border-orange-800/60 pt-2">
+                    <span className="text-orange-700 dark:text-orange-300 font-semibold">{t('nutrition.paymentModal.remainingAmount')}</span>
+                    <span className="font-bold text-orange-700 dark:text-orange-300 text-lg">
                       {(paymentSession.remainingAmount || 0).toFixed(0)} {t('nutrition.egp')}
                     </span>
                   </div>
@@ -1279,7 +1283,7 @@ export default function NutritionPage() {
 
               {/* مبلغ الدفع */}
               <div>
-                <label className="block text-sm font-bold mb-2">
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">
                   {t('nutrition.paymentModal.paymentAmountRequired')}
                 </label>
                 <input
@@ -1294,7 +1298,7 @@ export default function NutritionPage() {
                       paymentAmount: parseFloat(e.target.value) || 0
                     })
                   }
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:border-gray-600 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 rounded-lg ring-1 ring-gray-300 dark:ring-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 />
                 <div className="flex gap-2 mt-2">
                   <button
@@ -1305,7 +1309,7 @@ export default function NutritionPage() {
                         paymentAmount: paymentSession.remainingAmount || 0
                       })
                     }
-                    className="flex-1 px-3 py-1 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded text-sm font-medium"
+                    className="flex-1 px-3 py-1 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 text-orange-800 dark:text-orange-200 rounded text-sm font-medium transition-colors duration-200"
                   >
                     {t('nutrition.paymentModal.payAll')} ({(paymentSession.remainingAmount || 0).toFixed(0)})
                   </button>
@@ -1317,7 +1321,7 @@ export default function NutritionPage() {
                         paymentAmount: (paymentSession.remainingAmount || 0) / 2
                       })
                     }
-                    className="flex-1 px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded text-sm font-medium"
+                    className="flex-1 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 rounded text-sm font-medium transition-colors duration-200"
                   >
                     {t('nutrition.paymentModal.payHalf')} ({((paymentSession.remainingAmount || 0) / 2).toFixed(0)})
                   </button>
@@ -1340,12 +1344,12 @@ export default function NutritionPage() {
 
               {/* المبلغ المتبقي بعد الدفع */}
               {paymentFormData.paymentAmount > 0 && (
-                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-800/60 rounded-lg p-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-700 font-semibold">
+                    <span className="text-sm text-emerald-700 dark:text-emerald-300 font-semibold">
                       {t('nutrition.paymentModal.remainingAfterPayment')}
                     </span>
-                    <span className="text-lg font-bold text-green-600">
+                    <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
                       {((paymentSession.remainingAmount || 0) - paymentFormData.paymentAmount).toFixed(0)} {t('nutrition.egp')}
                     </span>
                   </div>
@@ -1359,22 +1363,22 @@ export default function NutritionPage() {
                     setShowPaymentModal(false)
                     setPaymentSession(null)
                   }}
-                  className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-3 rounded-lg font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
                 >
                   {t('nutrition.deleteConfirm.cancel')}
                 </button>
                 <button
                   onClick={handlePayRemaining}
                   disabled={loading || paymentFormData.paymentAmount <= 0 || paymentFormData.paymentAmount > (paymentSession.remainingAmount || 0)}
-                  className="bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 font-bold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-bold disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
                 >
                   {loading ? t('nutrition.paymentModal.paying') : t('nutrition.paymentModal.confirmPayment')}
                 </button>
               </div>
 
               {/* ملاحظة */}
-              <div className="bg-orange-50 border-r-4 border-orange-500 p-3 rounded dark:bg-orange-900/20 dark:border-orange-700">
-                <p className="text-xs text-orange-800">
+              <div className="bg-orange-50 dark:bg-orange-900/20 border-s-4 border-orange-500 dark:border-orange-700 p-3 rounded">
+                <p className="text-xs text-orange-800 dark:text-orange-200">
                   {t('nutrition.paymentModal.note')}
                 </p>
               </div>

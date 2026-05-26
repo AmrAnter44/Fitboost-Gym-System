@@ -4,6 +4,8 @@ import { useState, useMemo } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { createWhatsAppUrl } from '../lib/whatsappHelper'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 interface FollowUp {
   id: string
   notes: string
@@ -132,44 +134,82 @@ export default function FollowUpCalendar({ followUps, onOpenFollowUp, onAddFollo
     return { total, overdue, done }
   }, [byDate, currentMonth, todayStr])
 
+  const iconCalendar = (
+    <svg {...stroke} className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2"/>
+      <path d="M3 9h18M8 3v4M16 3v4"/>
+    </svg>
+  )
+  const iconClock = (
+    <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 7v5l3 2"/>
+    </svg>
+  )
+  const iconPlus = (
+    <svg {...stroke} className="w-3.5 h-3.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+  )
+  const iconInbox = (
+    <svg {...stroke} className="w-10 h-10" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+    </svg>
+  )
+  const iconWarning = (
+    <svg {...stroke} className="w-3.5 h-3.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <path d="M12 9v4M12 17h.01"/>
+    </svg>
+  )
+  const iconCheck = (
+    <svg {...stroke} className="w-3.5 h-3.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 13l4 4L19 7"/>
+    </svg>
+  )
+
   return (
     <div className="space-y-5">
 
       {/* إحصائيات سريعة */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{monthStats.total}</p>
-          <p className="text-xs text-blue-600 dark:text-blue-400">{ar ? 'متابعات الشهر' : 'This Month'}</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 text-center">
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{monthStats.total}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mt-1">{ar ? 'متابعات الشهر' : 'This Month'}</p>
         </div>
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-red-700 dark:text-red-300">{monthStats.overdue}</p>
-          <p className="text-xs text-red-600 dark:text-red-400">{ar ? 'متأخرة' : 'Overdue'}</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 text-center">
+          <p className="text-2xl font-bold text-red-600 dark:text-red-400">{monthStats.overdue}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mt-1">{ar ? 'متأخرة' : 'Overdue'}</p>
         </div>
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-green-700 dark:text-green-300">{monthStats.done}</p>
-          <p className="text-xs text-green-600 dark:text-green-400">{ar ? 'تمت' : 'Done'}</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 text-center">
+          <p className="text-2xl font-bold text-green-600 dark:text-green-400">{monthStats.done}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mt-1">{ar ? 'تمت' : 'Done'}</p>
         </div>
       </div>
 
       {/* الكاليندر */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl ring-1 ring-gray-200 dark:ring-gray-700 shadow-sm overflow-hidden">
 
         {/* Header التنقل */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
           <button
             onClick={prevMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+            aria-label={ar ? 'الشهر السابق' : 'Previous month'}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200"
           >
-            {ar ? '›' : '‹'}
+            <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+              <path d={ar ? 'M9 18l6-6-6-6' : 'M15 18l-6-6 6-6'}/>
+            </svg>
           </button>
 
           <div className="flex items-center gap-3">
-            <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">
+            <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
               {ar ? MONTH_AR[currentMonth.getMonth()] : MONTH_EN[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </h2>
             <button
               onClick={goToday}
-              className="text-xs px-2 py-1 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-200 transition-colors"
+              className="text-xs px-2 py-1 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors duration-200"
             >
               {ar ? 'اليوم' : 'Today'}
             </button>
@@ -177,9 +217,12 @@ export default function FollowUpCalendar({ followUps, onOpenFollowUp, onAddFollo
 
           <button
             onClick={nextMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+            aria-label={ar ? 'الشهر التالي' : 'Next month'}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200"
           >
-            {ar ? '‹' : '›'}
+            <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+              <path d={ar ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'}/>
+            </svg>
           </button>
         </div>
 
@@ -218,7 +261,7 @@ export default function FollowUpCalendar({ followUps, onOpenFollowUp, onAddFollo
                 {/* رقم اليوم */}
                 <span className={`
                   text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full
-                  ${isToday ? 'bg-primary-600 text-white' : isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300'}
+                  ${isToday ? 'bg-primary-600 text-primary-contrast' : isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300'}
                 `}>
                   {day.getDate()}
                 </span>
@@ -252,18 +295,20 @@ export default function FollowUpCalendar({ followUps, onOpenFollowUp, onAddFollo
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-400 inline-block"/> {ar ? 'قادمة' : 'Upcoming'}</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-400 inline-block"/> {ar ? 'تمت' : 'Done'}</span>
         {undatedCount > 0 && (
-          <span className="flex items-center gap-1 ms-auto text-gray-400">
-            ⏳ {undatedCount} {ar ? 'بدون موعد' : 'unscheduled'}
+          <span className="flex items-center gap-1 ms-auto text-gray-500 dark:text-gray-400">
+            {iconClock}
+            <span>{undatedCount} {ar ? 'بدون موعد' : 'unscheduled'}</span>
           </span>
         )}
       </div>
 
       {/* قائمة اليوم المحدد */}
       {selectedDate && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl ring-1 ring-gray-200 dark:ring-gray-700 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100">
-              📅 {new Date(selectedDate + 'T00:00:00').toLocaleDateString(ar ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 inline-flex items-center gap-2">
+              {iconCalendar}
+              <span>{new Date(selectedDate + 'T00:00:00').toLocaleDateString(ar ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </h3>
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -272,28 +317,30 @@ export default function FollowUpCalendar({ followUps, onOpenFollowUp, onAddFollo
               {onAddFollowUp && (
                 <button
                   onClick={() => onAddFollowUp(selectedDate)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white text-xs font-semibold rounded-lg hover:bg-primary-700 transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-primary-contrast text-xs font-bold rounded-lg transition-colors duration-200"
                 >
-                  ➕ {ar ? 'متابعة جديدة' : 'New Follow-up'}
+                  {iconPlus}
+                  <span>{ar ? 'متابعة جديدة' : 'New Follow-up'}</span>
                 </button>
               )}
             </div>
           </div>
 
           {selectedFollowUps.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 dark:text-gray-500">
-              <p className="text-3xl mb-2">📭</p>
-              <p className="text-sm">{ar ? 'لا توجد متابعات في هذا اليوم' : 'No follow-ups on this day'}</p>
+            <div className="flex flex-col items-center justify-center py-8 text-center text-gray-400 dark:text-gray-500">
+              {iconInbox}
+              <p className="text-sm mt-2">{ar ? 'لا توجد متابعات في هذا اليوم' : 'No follow-ups on this day'}</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
               {selectedFollowUps.map(fu => {
                 const isPast = selectedDate < todayStr
                 return (
                   <div
                     key={fu.id}
                     onClick={() => onOpenFollowUp?.(fu)}
-                    className={`px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors`}
+                    role="button"
+                    className={`px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors`}
                   >
                     {/* حالة الاتصال */}
                     <div className={`mt-0.5 w-2.5 h-2.5 rounded-full flex-shrink-0 ${
@@ -305,19 +352,31 @@ export default function FollowUpCalendar({ followUps, onOpenFollowUp, onAddFollo
                         <p className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
                           {fu.visitor.name}
                         </p>
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                           {sourceLabel(fu.visitor.source)}
                         </span>
                         {fu.contacted && (
-                          <span className="text-xs text-green-600 dark:text-green-400">✓ {ar ? 'تم' : 'Done'}</span>
+                          <span className="inline-flex items-center gap-0.5 text-xs text-green-600 dark:text-green-400">
+                            {iconCheck}
+                            <span>{ar ? 'تم' : 'Done'}</span>
+                          </span>
                         )}
                         {!fu.contacted && isPast && (
-                          <span className="text-xs text-red-600 dark:text-red-400">⚠ {ar ? 'متأخرة' : 'Overdue'}</span>
+                          <span className="inline-flex items-center gap-0.5 text-xs text-red-600 dark:text-red-400">
+                            {iconWarning}
+                            <span>{ar ? 'متأخرة' : 'Overdue'}</span>
+                          </span>
                         )}
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{fu.notes}</p>
                       {fu.assignedStaff && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">💼 {fu.assignedStaff.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 inline-flex items-center gap-1">
+                          <svg {...stroke} className="w-3 h-3" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="7" width="20" height="14" rx="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                          </svg>
+                          <span>{fu.assignedStaff.name}</span>
+                        </p>
                       )}
                     </div>
 
@@ -326,7 +385,8 @@ export default function FollowUpCalendar({ followUps, onOpenFollowUp, onAddFollo
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}
-                      className="flex-shrink-0 text-green-600 hover:text-green-700 p-1"
+                      aria-label={ar ? 'إرسال واتساب' : 'Send WhatsApp'}
+                      className="flex-shrink-0 text-green-600 hover:text-green-700 p-1 transition-colors duration-200"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>

@@ -7,8 +7,8 @@ import CoachSelector from './CoachSelector'
 import SalesStaffSelector from './SalesStaffSelector'
 import ImageUpload from './ImageUpload'
 import { calculateDaysBetween, formatDateYMD } from '../lib/dateFormatter'
-// ✅ ReceiptToPrint popup — يظهر بعد إنشاء العضو بدل الطباعة التلقائية
-//   المستخدم بيختار من البوب اب: يطبع، يرسل واتساب، أو يغلق
+// ReceiptToPrint popup — يظهر بعد إنشاء العضو بدل الطباعة التلقائية
+// المستخدم بيختار من البوب اب: يطبع، يرسل واتساب، أو يغلق
 import { ReceiptToPrint } from './ReceiptToPrint'
 import { usePermissions } from '../hooks/usePermissions'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -17,19 +17,21 @@ import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import type { PaymentMethod } from '../lib/paymentHelpers'
 import { serializePaymentMethods } from '../lib/paymentHelpers'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 interface MemberFormProps {
   onSuccess: () => void
   customCreatedAt?: Date | null
-  prefillData?: {  // ✅ بيانات مسبقة للتعبئة (مثل: من الزوار)
+  prefillData?: { // بيانات مسبقة للتعبئة (مثل: من الزوار)
     name?: string
     phone?: string
-    salesStaffId?: string  // 💼 موظف السيلز المسؤول عن هذا الليد
+    salesStaffId?: string // موظف السيلز المسؤول عن هذا الليد
   }
 }
 
 export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: MemberFormProps) {
   const { user } = usePermissions()
-  // ✅ كل المستخدمين يقدروا يعدلوا التواريخ في فورم إضافة العضو
+  // كل المستخدمين يقدروا يعدلوا التواريخ في فورم إضافة العضو
   const canEditDates = true
   const { t, direction } = useLanguage()
   const toast = useToast()
@@ -37,7 +39,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [nextMemberNumber, setNextMemberNumber] = useState<string | null>(null)
-  // 🧾 ReceiptToPrint popup state
+  // ReceiptToPrint popup state
   const [receiptPopup, setReceiptPopup] = useState<null | {
     receiptNumber: number
     amount: number
@@ -52,12 +54,12 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   const [offers, setOffers] = useState<any[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 👥 Referral validation states
+  // Referral validation states
   const [referrerInfo, setReferrerInfo] = useState<{ name: string; memberNumber: string } | null>(null)
   const [referrerLoading, setReferrerLoading] = useState(false)
   const [referrerError, setReferrerError] = useState<string | null>(null)
 
-  // 📞 FollowUp lookup by phone — يعرض اسم السيلز الموكّل من المتابعة
+  // FollowUp lookup by phone — يعرض اسم السيلز الموكّل من المتابعة
   // salesStaffId: null + salesStaffName: string → سيلز اسمه موجود في المتابعة بس مش مربوط بـ Staff record
   // salesStaffId: string → match كامل وبيتعمل auto-assign
   // salesStaffId: null + salesStaffName: null → الزائر موجود في المتابعات بس مش معيّن لسيلز
@@ -99,22 +101,22 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     paymentMethod: 'cash' as string | PaymentMethod[],
     staffName: user?.name || '',
     isOther: false,
-    skipReceipt: false,  // ✅ خيار عدم إنشاء إيصال
-    coachId: null as string | null,  // 👨‍🏫 معرف الكوتش
-    salesStaffId: null as string | null,  // 💼 موظف السيلز
-    ptCommissionAmount: null as number | null,  // 💰 عمولة الكوتش من الباقة (null = استخدام الافتراضي من الإعدادات)
-    referralMemberNumber: '',  // 👥 رقم العضو المُحيل
-    allowedCheckInStart: '',   // 🕐 ساعة بداية الدخول المسموح بها
-    allowedCheckInEnd: '',     // 🕐 ساعة نهاية الدخول المسموح بها
-    offerId: null as string | null  // 📦 معرف الباقة المطبَّقة
+    skipReceipt: false, // خيار عدم إنشاء إيصال
+    coachId: null as string | null, // ‍ معرف الكوتش
+    salesStaffId: null as string | null, // موظف السيلز
+    ptCommissionAmount: null as number | null, // عمولة الكوتش من الباقة (null = استخدام الافتراضي من الإعدادات)
+    referralMemberNumber: '', // رقم العضو المُحيل
+    allowedCheckInStart: '', // ساعة بداية الدخول المسموح بها
+    allowedCheckInEnd: '', // ساعة نهاية الدخول المسموح بها
+    offerId: null as string | null // معرف الباقة المطبَّقة
   })
 
-  // 📦 مدة الباقة المُطبَّقة (للحساب التلقائي للتاريخ النهاية لما البداية تتغير)
+  // مدة الباقة المُطبَّقة (للحساب التلقائي للتاريخ النهاية لما البداية تتغير)
   const [appliedOfferDuration, setAppliedOfferDuration] = useState<number | null>(null)
-  // 💰 سعر الباقة الأصلي + الحد الأدنى (للتحقق من الخصم)
+  // سعر الباقة الأصلي + الحد الأدنى (للتحقق من الخصم)
   const [appliedOfferPrice, setAppliedOfferPrice] = useState<number | null>(null)
   const [appliedOfferMinPrice, setAppliedOfferMinPrice] = useState<number | null>(null)
-  // 💸 الخصم اللي حطه الـ user (للأكونتات اللي مش OWNER/ADMIN)
+  // الخصم اللي حطه الـ user (للأكونتات اللي مش OWNER/ADMIN)
   const [discount, setDiscount] = useState<number>(0)
   const isPrivilegedUser = user?.role === 'OWNER' || user?.role === 'ADMIN'
 
@@ -134,7 +136,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           setFormData(prev => ({ ...prev, memberNumber: '1001' }))
         }
       } catch (error) {
-        console.error('❌ خطأ في جلب رقم العضوية:', error)
+        console.error(' خطأ في جلب رقم العضوية:', error)
         setNextMemberNumber('1001')
         setFormData(prev => ({ ...prev, memberNumber: '1001' }))
         toast.warning(t('members.form.errorFetchingNumber'))
@@ -149,7 +151,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           setNextReceiptNumber(data.nextNumber)
         }
       } catch (error) {
-        console.error('❌ خطأ في جلب رقم الإيصال:', error)
+        console.error(' خطأ في جلب رقم الإيصال:', error)
       }
     }
 
@@ -164,7 +166,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           setOffers([])
         }
       } catch (error) {
-        console.error('❌ خطأ في جلب العروض:', error)
+        console.error(' خطأ في جلب العروض:', error)
         setOffers([])
       }
     }
@@ -174,7 +176,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     fetchOffers()
   }, [])
 
-  // ✅ تعبئة البيانات من prefillData (مثل: من صفحة الزوار)
+  // تعبئة البيانات من prefillData (مثل: من صفحة الزوار)
   useEffect(() => {
     if (prefillData) {
       setFormData(prev => ({
@@ -192,7 +194,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     }
   }, [user])
 
-  // 📞 FollowUp lookup by phone — debounced
+  // FollowUp lookup by phone — debounced
   // لما المستخدم يكتب رقم تليفون موجود في المتابعات، نعرض اسم السيلز الموكّل
   // عشان الريسبشن يفتكر يحطه ويتأكد إنه ما يتغيّرش بالغلط.
   useEffect(() => {
@@ -214,7 +216,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
             salesStaffName: data.salesStaffName || null,
             visitorName: data.visitorName
           })
-          // 🔒 force-apply — لو لاقينا staff ID مربوط، نخلي السيلز هو ده.
+          // force-apply — لو لاقينا staff ID مربوط، نخلي السيلز هو ده.
           // لو الاسم بس موجود (legacy) من غير ID، نسيب اليوزر يختار يدوياً
           // لأننا مش متأكدين أي Staff record المقصود.
           if (data.salesStaffId) {
@@ -233,7 +235,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     }
   }, [formData.phone])
 
-  // 👥 Validate referral member number
+  // Validate referral member number
   useEffect(() => {
     const validateReferrer = async () => {
       const memberNumber = formData.referralMemberNumber.trim()
@@ -382,7 +384,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     }))
   }
 
-  // 📅 لو الـ user اختار باقة، نـحدّث تاريخ النهاية تلقائياً لما البداية تتغير
+  // لو الـ user اختار باقة، نـحدّث تاريخ النهاية تلقائياً لما البداية تتغير
   // (الـ expiry بقى read-only في الـ UI لو فيه باقة مطبَّقة)
   useEffect(() => {
     if (appliedOfferDuration === null || !formData.startDate) return
@@ -396,7 +398,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.startDate, appliedOfferDuration])
 
-  // 💸 للموظفين العاديين: لما الخصم يتغير، نحدّث subscriptionPrice = offerPrice - discount
+  // للموظفين العاديين: لما الخصم يتغير، نحدّث subscriptionPrice = offerPrice - discount
   useEffect(() => {
     if (isPrivilegedUser || appliedOfferPrice === null) return
     const newPrice = Math.max(0, appliedOfferPrice - discount)
@@ -444,18 +446,18 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       freeAssessmentSessions: parseInt(formData.freeAssessmentSessions.toString()),
       remainingFreezeDays: parseInt(formData.remainingFreezeDays.toString()),
       subscriptionPrice: parseInt(formData.subscriptionPrice.toString()),
-      // 💸 الخصم (يظهر في الإيصال) — السعر الأصلي للباقة قبل الخصم
+      // الخصم (يظهر في الإيصال) — السعر الأصلي للباقة قبل الخصم
       discount: !isPrivilegedUser && discount > 0 ? discount : 0,
       originalPrice: !isPrivilegedUser && discount > 0 && appliedOfferPrice !== null ? appliedOfferPrice : null,
       remainingAmount: formData.remainingAmount || 0,
       remainingDueDate: formData.remainingDueDate || null,
       staffName: user?.name || '',
       customCreatedAt: customCreatedAt ? customCreatedAt.toISOString() : null,
-      coachId: formData.coachId,  // 👨‍🏫 إرسال معرف الكوتش
-      salesStaffId: formData.salesStaffId || null,  // 💼 موظف السيلز
-      ptCommissionAmount: formData.ptCommissionAmount,  // 💰 عمولة الباقة (null أو رقم)
-      referralMemberNumber: formData.referralMemberNumber,  // 👥 رقم العضو المُحيل
-      allowedCheckInStart: formData.allowedCheckInStart || null,  // 🕐 ساعات الدخول
+      coachId: formData.coachId, // ‍ إرسال معرف الكوتش
+      salesStaffId: formData.salesStaffId || null, // موظف السيلز
+      ptCommissionAmount: formData.ptCommissionAmount, // عمولة الباقة (null أو رقم)
+      referralMemberNumber: formData.referralMemberNumber, // رقم العضو المُحيل
+      allowedCheckInStart: formData.allowedCheckInStart || null, // ساعات الدخول
       allowedCheckInEnd: formData.allowedCheckInEnd || null
     }
 
@@ -478,7 +480,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         if (data.receipt) {
           queryClient.invalidateQueries({ queryKey: ['receipts'] })
 
-          // 🧾 بدل الطباعة التلقائية → نظهر popup فيه أزرار طباعة + واتساب
+          // بدل الطباعة التلقائية → نظهر popup فيه أزرار طباعة + واتساب
           const subscriptionDays = formData.startDate && formData.expiryDate
             ? calculateDaysBetween(formData.startDate, formData.expiryDate)
             : null
@@ -520,9 +522,9 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           setNextReceiptNumber(receiptData.nextNumber)
         }
 
-        // ✅ لو في إيصال، الـ onSuccess هيتنادي لما المستخدم يقفل الـ popup
-        //   (عشان مفيش race بين إغلاق الفورم وظهور الـ popup)
-        //   لو مفيش إيصال (skipReceipt)، نستدعي onSuccess على طول
+        // لو في إيصال، الـ onSuccess هيتنادي لما المستخدم يقفل الـ popup
+        // (عشان مفيش race بين إغلاق الفورم وظهور الـ popup)
+        // لو مفيش إيصال (skipReceipt)، نستدعي onSuccess على طول
         if (!data.receipt) {
           setTimeout(() => {
             onSuccess()
@@ -548,7 +550,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     const expiryDate = new Date(startDate)
     expiryDate.setDate(expiryDate.getDate() + offer.duration)
 
-    // 📦 نخزّن الـ duration والسعر الأصلي والحد الأدنى عشان الـ expiry والخصم يتحدّثوا
+    // نخزّن الـ duration والسعر الأصلي والحد الأدنى عشان الـ expiry والخصم يتحدّثوا
     setAppliedOfferDuration(offer.duration)
     setAppliedOfferPrice(offer.price)
     setAppliedOfferMinPrice(offer.minPrice ?? null)
@@ -568,10 +570,10 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       inBodyScans: offer.inBodyScans,
       invitations: offer.invitations,
       remainingFreezeDays: offer.freezeDays,
-      ptCommissionAmount: offer.ptCommission || null,  // 💰 حفظ عمولة الباقة
-      allowedCheckInStart: offer.allowedCheckInStart || '',  // 🕐 نسخ ساعات الدخول من العرض
+      ptCommissionAmount: offer.ptCommission || null, // حفظ عمولة الباقة
+      allowedCheckInStart: offer.allowedCheckInStart || '', // نسخ ساعات الدخول من العرض
       allowedCheckInEnd: offer.allowedCheckInEnd || '',
-      offerId: offer.id,  // 📦 تخزين الباقة على العضو
+      offerId: offer.id, // تخزين الباقة على العضو
       startDate,
       expiryDate: formatDateYMD(expiryDate)
     }))
@@ -583,17 +585,18 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
     <>
     <form onSubmit={handleSubmit} className="space-y-3" dir={direction}>
       {/* قسم العروض */}
-      <div className="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-xl p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-primary-200 dark:ring-primary-900/40 p-5">
         <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-primary-800 dark:text-primary-200">
-          <span>🎁</span>
+          <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 10h14a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1z"/></svg>
           <span>{t('members.form.availableOffers')}</span>
         </h3>
-        <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">{t('members.form.selectOfferToAutoFill')}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{t('members.form.selectOfferToAutoFill')}</p>
 
         {!Array.isArray(offers) || offers.length === 0 ? (
-          <div className="text-center py-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
-            <p className="text-gray-500 dark:text-gray-400 text-xs">{t('members.form.noOffersAvailable')}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('members.form.adminCanAddOffers')}</p>
+          <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50 dark:bg-gray-900/40 rounded-xl ring-1 ring-dashed ring-gray-300 dark:ring-gray-600">
+            <svg className="w-10 h-10 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <p className="text-gray-600 dark:text-gray-300 font-bold mt-2 text-sm">{t('members.form.noOffersAvailable')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('members.form.adminCanAddOffers')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -602,32 +605,35 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                 key={offer.id}
                 type="button"
                 onClick={() => applyOffer(offer)}
-                className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 hover:border-primary-500 dark:hover:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl p-3 transition transform hover:scale-105 hover:shadow-lg group"
+                className="bg-white dark:bg-gray-800 ring-1 ring-primary-200 dark:ring-primary-900/40 hover:ring-primary-500 dark:hover:ring-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl p-3 transition-colors duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
               >
-                <div className="text-2xl mb-1">{offer.icon}</div>
+                <div className="flex justify-center mb-1 text-primary-600 dark:text-primary-400">
+                  <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M20 12v9H4v-9m16-4H4v4h16V8zM12 8v13M12 8a2.5 2.5 0 11-2.5-2.5A2.5 2.5 0 0112 8zm0 0a2.5 2.5 0 102.5-2.5A2.5 2.5 0 0012 8z"/></svg>
+                </div>
                 <div className="font-bold text-primary-800 dark:text-primary-200 mb-1 text-sm">{offer.name}</div>
-                <div className="text-xl font-bold text-green-600 dark:text-green-400">{offer.price} ج.م</div>
+                <div className="text-xl font-bold text-green-600 dark:text-green-400">{offer.price} {t('members.egp')}</div>
               </button>
             ))}
           </div>
         )}
 
-        <div className="mt-3 bg-primary-100 dark:bg-primary-900/30 border-r-4 border-primary-500 dark:border-primary-700 p-2 rounded">
-          <p className="text-xs text-primary-800 dark:text-primary-300">
-            <strong>💡 {t('members.notes')}:</strong> {t('members.form.noteCanEditAfterOffer')}
+        <div className="mt-3 bg-primary-50 dark:bg-primary-900/30 border-s-4 border-primary-500 dark:border-primary-700 p-2 rounded">
+          <p className="text-xs text-primary-800 dark:text-primary-300 flex items-start gap-2">
+            <svg className="w-4 h-4 mt-0.5 flex-shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span><strong>{t('members.notes')}:</strong> {t('members.form.noteCanEditAfterOffer')}</span>
           </p>
         </div>
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg p-3">
-        <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-          <span>👤</span>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+        <h3 className="font-bold text-base mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
           <span>{t('members.form.basicInformation')}</span>
         </h3>
 
         <div className="mb-3">
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs font-medium">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">
               {t('members.membershipNumber')} {!formData.isOther && '*'}
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
@@ -637,12 +643,12 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                 onChange={(e) => handleOtherChange(e.target.checked)}
                 className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
               />
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{t('members.form.otherNoNumber')}</span>
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{t('members.form.otherNoNumber')}</span>
             </label>
           </div>
 
           {formData.isOther ? (
-            <div className="w-full px-3 py-2 border-2 border-dashed rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-center">
+            <div className="w-full px-3 py-2 ring-1 ring-dashed ring-gray-300 dark:ring-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-center">
               {t('members.form.noMembershipNumber')}
             </div>
           ) : (
@@ -653,52 +659,54 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
               required={!formData.isOther}
               value={formData.memberNumber}
               onChange={(e) => setFormData({ ...formData, memberNumber: e.target.value.replace(/\D/g, '') })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               placeholder="مثال: 01001"
               disabled={formData.isOther}
             />
           )}
 
           {!formData.isOther && nextMemberNumber && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              💡 {t('members.form.suggestedNextNumber', { number: nextMemberNumber.toString() })}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {t('members.form.suggestedNextNumber', { number: nextMemberNumber.toString() })}
             </p>
           )}
         </div>
 
-        {/* 👥 حقل رقم العضو المُحيل - يظهر فقط إذا كان نظام النقاط مفعّل */}
+        {/* حقل رقم العضو المُحيل - يظهر فقط إذا كان نظام النقاط مفعّل */}
         {settings?.pointsEnabled && settings?.pointsPerReferral > 0 && (
           <div>
-            <label className="block text-xs font-medium mb-1">
-              👥 {t('members.referralMemberNumber')}
+            <label className="flex items-center text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 gap-1.5">
+              <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              {t('members.referralMemberNumber')}
             </label>
             <div className="relative">
               <input
                 type="text"
                 value={formData.referralMemberNumber}
                 onChange={(e) => setFormData({ ...formData, referralMemberNumber: e.target.value })}
-                className={`w-full px-3 py-2 border-2 rounded-lg text-sm dark:bg-gray-700 dark:text-white ${
+                className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 transition-colors duration-200 ${
                   referrerInfo
-                    ? 'border-green-500 dark:border-green-600'
+                    ? 'border-green-500 dark:border-green-600 focus:ring-green-500'
                     : referrerError
-                    ? 'border-red-500 dark:border-red-600'
-                    : 'border-gray-300 dark:border-gray-600'
+                    ? 'border-red-500 dark:border-red-600 focus:ring-red-500'
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
                 }`}
                 placeholder={t('members.referralMemberNumberPlaceholder')}
                 dir="ltr"
               />
               {referrerLoading && (
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin h-4 w-4 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+                <div className="absolute end-3 top-1/2 -translate-y-1/2">
+                  <svg className="animate-spin h-4 w-4 text-primary-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 </div>
               )}
             </div>
 
             {/* Display referrer name in green when found */}
             {referrerInfo && (
-              <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
+              <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/30 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg">
                 <p className="text-sm font-bold text-green-700 dark:text-green-400 flex items-center gap-2">
-                  <span>✅</span>
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                   <span>{referrerInfo.name} (#{referrerInfo.memberNumber})</span>
                 </p>
                 <p className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -709,9 +717,9 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
 
             {/* Display error message in red when member not found */}
             {referrerError && formData.referralMemberNumber.trim() !== '' && (
-              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/30 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg">
                 <p className="text-sm font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
-                  <span>❌</span>
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                   <span>{referrerError}</span>
                 </p>
               </div>
@@ -727,11 +735,11 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         )}
 
         {nextReceiptNumber && (
-          <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-2 mb-3">
+          <div className="bg-green-50 dark:bg-green-900/30 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg p-2 mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-xl">🧾</span>
+              <svg className="w-6 h-6 text-green-600 dark:text-green-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4m6-4V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3-2 3 2 3-2 3 2v-4"/></svg>
               <div>
-                <p className="text-xs font-medium text-green-800 dark:text-green-300">{t('members.form.nextReceiptNumber')}</p>
+                <p className="text-xs font-bold text-green-800 dark:text-green-300">{t('members.form.nextReceiptNumber')}</p>
                 <p className="text-xl font-bold text-green-600 dark:text-green-400">#{nextReceiptNumber}</p>
               </div>
             </div>
@@ -740,48 +748,58 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium mb-1">{t('members.form.nameRequired')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.nameRequired')}</label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               placeholder="أحمد محمد"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">{t('members.form.phoneRequired')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.phoneRequired')}</label>
             <input
               type="tel"
               required
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               placeholder="01234567890"
               dir="ltr"
             />
-            {/* 🔒 لو الرقم متطابق مع متابعة، نعرض رسالة مختلفة حسب الحالة */}
+            {/* لو الرقم متطابق مع متابعة، نعرض رسالة مختلفة حسب الحالة */}
             {matchedFollowUp && (() => {
               const canOverride = user?.role === 'OWNER' || user?.role === 'ADMIN'
               const hasStaffId = !!matchedFollowUp.salesStaffId
               const hasStaffName = !!matchedFollowUp.salesStaffName
 
+              const ClipboardIcon = (
+                <svg className="w-4 h-4 mt-0.5 flex-shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              )
+              const LockIcon = (
+                <svg className="w-3.5 h-3.5 inline-block mx-1" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              )
+
               // الحالة ١: لقينا staff ID مربوط → auto-assign
               if (hasStaffId && hasStaffName) {
                 return (
-                  <div className="mt-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-                    📋 {direction === 'rtl'
-                      ? canOverride
-                        ? <>المتابع للزائر ده: <strong>{matchedFollowUp.salesStaffName}</strong> — تقدر تغيّره لو محتاج</>
-                        : <>السيلز هيترصد للموظف اللي كان بيتابع: <strong>{matchedFollowUp.salesStaffName}</strong> 🔒</>
-                      : canOverride
-                        ? <>Following up with this visitor: <strong>{matchedFollowUp.salesStaffName}</strong> — you can change it if needed</>
-                        : <>Sale will be credited to: <strong>{matchedFollowUp.salesStaffName}</strong> 🔒</>}
-                    {matchedFollowUp.visitorName && (
-                      <span className="text-amber-600 dark:text-amber-400 mx-1">({matchedFollowUp.visitorName})</span>
-                    )}
+                  <div className="mt-2 bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg px-3 py-2 text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                    {ClipboardIcon}
+                    <span>
+                      {direction === 'rtl'
+                        ? canOverride
+                          ? <>المتابع للزائر ده: <strong>{matchedFollowUp.salesStaffName}</strong> — تقدر تغيّره لو محتاج</>
+                          : <>السيلز هيترصد للموظف اللي كان بيتابع: <strong>{matchedFollowUp.salesStaffName}</strong>{LockIcon}</>
+                        : canOverride
+                          ? <>Following up with this visitor: <strong>{matchedFollowUp.salesStaffName}</strong> — you can change it if needed</>
+                          : <>Sale will be credited to: <strong>{matchedFollowUp.salesStaffName}</strong>{LockIcon}</>}
+                      {matchedFollowUp.visitorName && (
+                        <span className="text-amber-600 dark:text-amber-400 mx-1">({matchedFollowUp.visitorName})</span>
+                      )}
+                    </span>
                   </div>
                 )
               }
@@ -789,13 +807,16 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
               // الحالة ٢: لقينا اسم سيلز بس مش مربوط بـ Staff record → اعرض الاسم وخلّي اليوزر يختار
               if (!hasStaffId && hasStaffName) {
                 return (
-                  <div className="mt-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg px-3 py-2 text-xs text-blue-800 dark:text-blue-200">
-                    📋 {direction === 'rtl'
-                      ? <>الزائر ده كان بيتابع مع: <strong>{matchedFollowUp.salesStaffName}</strong> — اختر السيلز من القايمة تحت</>
-                      : <>This visitor was being followed up by: <strong>{matchedFollowUp.salesStaffName}</strong> — please pick the sales rep below</>}
-                    {matchedFollowUp.visitorName && (
-                      <span className="text-blue-600 dark:text-blue-400 mx-1">({matchedFollowUp.visitorName})</span>
-                    )}
+                  <div className="mt-2 bg-blue-50 dark:bg-blue-900/30 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg px-3 py-2 text-xs text-blue-800 dark:text-blue-200 flex items-start gap-2">
+                    {ClipboardIcon}
+                    <span>
+                      {direction === 'rtl'
+                        ? <>الزائر ده كان بيتابع مع: <strong>{matchedFollowUp.salesStaffName}</strong> — اختر السيلز من القايمة تحت</>
+                        : <>This visitor was being followed up by: <strong>{matchedFollowUp.salesStaffName}</strong> — please pick the sales rep below</>}
+                      {matchedFollowUp.visitorName && (
+                        <span className="text-blue-600 dark:text-blue-400 mx-1">({matchedFollowUp.visitorName})</span>
+                      )}
+                    </span>
                   </div>
                 )
               }
@@ -803,10 +824,13 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
               // الحالة ٣: الزائر موجود في المتابعات بس مفيش سيلز معيّن
               if (!hasStaffId && !hasStaffName && matchedFollowUp.visitorName) {
                 return (
-                  <div className="mt-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300">
-                    📋 {direction === 'rtl'
-                      ? <>الزائر ده موجود في المتابعات: <strong>{matchedFollowUp.visitorName}</strong> — لكن مش معيّن لسيلز</>
-                      : <>Visitor found in follow-ups: <strong>{matchedFollowUp.visitorName}</strong> — but not assigned to a sales rep</>}
+                  <div className="mt-2 bg-gray-50 dark:bg-gray-700/50 ring-1 ring-gray-200 dark:ring-gray-600 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                    {ClipboardIcon}
+                    <span>
+                      {direction === 'rtl'
+                        ? <>الزائر ده موجود في المتابعات: <strong>{matchedFollowUp.visitorName}</strong> — لكن مش معيّن لسيلز</>
+                        : <>Visitor found in follow-ups: <strong>{matchedFollowUp.visitorName}</strong> — but not assigned to a sales rep</>}
+                    </span>
                   </div>
                 )
               }
@@ -816,36 +840,36 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">{t('members.form.backupPhoneOptional')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.backupPhoneOptional')}</label>
             <input
               type="tel"
               value={formData.backupPhone}
               onChange={(e) => setFormData({ ...formData, backupPhone: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               placeholder="01234567890"
               dir="ltr"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">📧 البريد الإلكتروني (اختياري)</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{direction === 'rtl' ? 'البريد الإلكتروني (اختياري)' : 'Email (optional)'}</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               placeholder="example@email.com"
               dir="ltr"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">{t('members.form.nationalIdOptional')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.nationalIdOptional')}</label>
             <input
               type="text"
               value={formData.nationalId}
               onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               placeholder="29512345678901"
               dir="ltr"
               maxLength={14}
@@ -853,21 +877,21 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">{t('members.form.birthDateOptional')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.birthDateOptional')}</label>
             <input
               type="date"
               value={formData.birthDate}
               onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">{t('members.form.sourceOptional')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.sourceOptional')}</label>
             <select
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             >
               <option value="">{t('members.form.selectSource')}</option>
               <option value="walk-in">{t('members.form.sourceWalkIn')}</option>
@@ -881,20 +905,20 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">{t('members.form.staffNameRequired')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.staffNameRequired')}</label>
             <input
               type="text"
               required
               value={formData.staffName}
               readOnly
-              className="w-full px-3 py-2 border-2 rounded-lg bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-not-allowed text-sm"
               placeholder="محمد علي"
             />
           </div>
         </div>
       </div>
 
-      {/* 👨‍🏫 اختيار الكوتش - يظهر فقط إذا كانت العمولة مفعلة */}
+      {/* ‍ اختيار الكوتش - يظهر فقط إذا كانت العمولة مفعلة */}
       {settings.ptCommissionEnabled && (
         <CoachSelector
           value={formData.coachId}
@@ -903,7 +927,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         />
       )}
 
-      {/* 💼 اختيار موظف السيلز — مقفول لغير OWNER/ADMIN لما الرقم متطابق مع متابعة
+      {/* اختيار موظف السيلز — مقفول لغير OWNER/ADMIN لما الرقم متطابق مع متابعة
               autoSelectLeastLoaded: لما الفورم يفتح من غير سيلز مسبق، يختار الأقل تحميلاً تلقائياً */}
       <SalesStaffSelector
         value={formData.salesStaffId}
@@ -916,7 +940,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         }
       />
 
-      <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-3">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
         <ImageUpload
           currentImage={imagePreview || null}
           onImageChange={(imageUrl) => {
@@ -932,18 +956,18 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       </div>
 
       {/* صور البطاقة الشخصية / الباسبور */}
-      <div className="bg-secondary-50 dark:bg-gray-700 border-2 border-secondary-300 dark:border-gray-600 rounded-lg p-4">
-        <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-          <span>🪪</span>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+        <h3 className="font-bold text-base mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2zm10 4a3 3 0 11-6 0 3 3 0 016 0zm5-4h-2a1 1 0 110-2h2a1 1 0 110 2z"/></svg>
           <span>{t('members.form.idCardImagesOptional')}</span>
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* الوجه الأمامي */}
-          <div className="bg-white dark:bg-gray-800 border-2 border-secondary-200 dark:border-gray-600 rounded-lg p-3">
+          <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 p-3">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-2xl">🆔</span>
-              <span className="font-bold text-sm text-secondary-800 dark:text-gray-200">{t('members.form.idCardFront')}</span>
+              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0v4m0-4l-2-2m2 2l2-2"/></svg>
+              <span className="font-bold text-sm text-gray-700 dark:text-gray-300">{t('members.form.idCardFront')}</span>
             </div>
             <ImageUpload
               currentImage={idCardFrontPreview || null}
@@ -961,10 +985,10 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           </div>
 
           {/* الوجه الخلفي */}
-          <div className="bg-white dark:bg-gray-800 border-2 border-secondary-200 dark:border-gray-600 rounded-lg p-3">
+          <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 p-3">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-2xl">🔄</span>
-              <span className="font-bold text-sm text-secondary-800 dark:text-gray-200">{t('members.form.idCardBack')}</span>
+              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span className="font-bold text-sm text-gray-700 dark:text-gray-300">{t('members.form.idCardBack')}</span>
             </div>
             <ImageUpload
               currentImage={idCardBackPreview || null}
@@ -983,24 +1007,24 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         </div>
 
         {/* ملاحظة */}
-        <div className="mt-3 bg-secondary-100 dark:bg-gray-800 border-l-4 border-secondary-500 dark:border-gray-600 p-2 rounded">
-          <p className="text-xs text-secondary-900 dark:text-gray-300">{t('members.form.idCardNote')}</p>
+        <div className="mt-3 bg-gray-50 dark:bg-gray-900/40 border-s-4 border-gray-300 dark:border-gray-600 p-2 rounded">
+          <p className="text-xs text-gray-600 dark:text-gray-400">{t('members.form.idCardNote')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-      <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-3">
-        <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-          <span>📅</span>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+        <h3 className="font-bold text-base mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           <span>{t('members.form.subscriptionPeriod')}</span>
         </h3>
 
         <div className="grid grid-cols-1 gap-3 mb-3">
           <div>
-            <label className="block text-xs font-medium mb-1">
-              {t('members.startDate')} <span className="text-xs text-gray-500 dark:text-gray-400">(yyyy-mm-dd)</span>
-              {!canEditDates && <span className="text-xs text-amber-600 dark:text-amber-400 mr-1">🔒</span>}
+            <label className="flex items-center text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 gap-1">
+              {t('members.startDate')} <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(yyyy-mm-dd)</span>
+              {!canEditDates && <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>}
             </label>
             <div className="flex gap-2">
               <input
@@ -1008,7 +1032,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                 readOnly={!canEditDates}
-                className={`flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white ${!canEditDates ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
+                className={`flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 ${!canEditDates ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
                 placeholder="2025-11-18"
                 pattern="\d{4}-\d{2}-\d{2}"
               />
@@ -1017,26 +1041,27 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                 disabled={!canEditDates}
-                className={`px-3 py-2 border-2 text-white rounded-lg transition-colors text-sm font-medium ${canEditDates ? 'border-blue-600 bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'border-gray-400 bg-gray-400 cursor-not-allowed opacity-60'}`}
+                className={`px-3 py-2 text-white rounded-lg transition-colors duration-200 text-sm font-bold ${canEditDates ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-gray-400 cursor-not-allowed opacity-60'}`}
                 style={{ colorScheme: 'dark', width: '45px' }}
-                title={canEditDates ? t('members.form.selectDate') : 'صلاحية الأدمن فقط'}
+                title={canEditDates ? t('members.form.selectDate') : (direction === 'rtl' ? 'صلاحية الأدمن فقط' : 'Admin only')}
+                aria-label={t('members.form.selectDate')}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">
-              {t('members.expiryDate')} <span className="text-xs text-gray-500 dark:text-gray-400">(yyyy-mm-dd)</span>
-              {(!canEditDates || appliedOfferDuration !== null) && <span className="text-xs text-amber-600 dark:text-amber-400 mr-1">🔒</span>}
+            <label className="flex items-center text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 gap-1">
+              {t('members.expiryDate')} <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(yyyy-mm-dd)</span>
+              {(!canEditDates || appliedOfferDuration !== null) && <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>}
             </label>
             <div className="flex gap-2">
-              {/* 📅 لو الـ user مختار باقة، الـ expiry بيتحسب تلقائياً من start + duration ومش قابل للتعديل */}
+              {/* لو الـ user مختار باقة، الـ expiry بيتحسب تلقائياً من start + duration ومش قابل للتعديل */}
               <input
                 type="text"
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
                 readOnly={!canEditDates || appliedOfferDuration !== null}
-                className={`flex-1 px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm dark:bg-gray-700 dark:text-white ${(!canEditDates || appliedOfferDuration !== null) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
+                className={`flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 ${(!canEditDates || appliedOfferDuration !== null) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70' : ''}`}
                 placeholder="2025-12-18"
                 pattern="\d{4}-\d{2}-\d{2}"
               />
@@ -1045,37 +1070,43 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
                 disabled={!canEditDates || appliedOfferDuration !== null}
-                className={`px-3 py-2 border-2 text-white rounded-lg transition-colors text-sm font-medium ${(canEditDates && appliedOfferDuration === null) ? 'border-blue-600 bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'border-gray-400 bg-gray-400 cursor-not-allowed opacity-60'}`}
+                className={`px-3 py-2 text-white rounded-lg transition-colors duration-200 text-sm font-bold ${(canEditDates && appliedOfferDuration === null) ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-gray-400 cursor-not-allowed opacity-60'}`}
                 style={{ colorScheme: 'dark', width: '45px' }}
-                title={canEditDates ? (appliedOfferDuration !== null ? 'بيتحسب تلقائياً من تاريخ البداية + مدة الباقة' : t('members.form.selectDate')) : 'صلاحية الأدمن فقط'}
+                title={canEditDates ? (appliedOfferDuration !== null ? (direction === 'rtl' ? 'بيتحسب تلقائياً من تاريخ البداية + مدة الباقة' : 'Auto-computed') : t('members.form.selectDate')) : (direction === 'rtl' ? 'صلاحية الأدمن فقط' : 'Admin only')}
+                aria-label={t('members.form.selectDate')}
               />
             </div>
             {appliedOfferDuration !== null && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                 {direction === 'rtl'
-                  ? `🔒 بيتحسب تلقائياً (${appliedOfferDuration} يوم من تاريخ البداية). غيّر الباقة لو محتاج فترة مختلفة.`
-                  : `🔒 Auto-computed (${appliedOfferDuration} days from start). Change package if you need a different duration.`}
+                  ? `بيتحسب تلقائياً (${appliedOfferDuration} يوم من تاريخ البداية). غيّر الباقة لو محتاج فترة مختلفة.`
+                  : `Auto-computed (${appliedOfferDuration} days from start). Change package if you need a different duration.`}
               </p>
             )}
           </div>
         </div>
 
         {!canEditDates && (
-          <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-xs text-amber-800 dark:text-amber-300">
-            🔒 التواريخ بيتم تحديدها تلقائياً من العرض المختار — للتعديل اليدوي لازم صلاحية الأدمن.
+          <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+            <svg className="w-4 h-4 mt-0.5 flex-shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <span>{direction === 'rtl' ? 'التواريخ بيتم تحديدها تلقائياً من العرض المختار — للتعديل اليدوي لازم صلاحية الأدمن.' : 'Dates are auto-set from the selected offer — admin permission required for manual editing.'}</span>
           </div>
         )}
 
         {canEditDates && (
           <div className="mb-2">
-            <p className="text-xs font-medium mb-2">⚡ {t('members.form.quickAdd')}:</p>
+            <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+              <svg className="w-4 h-4 text-amber-500 dark:text-amber-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              {t('members.form.quickAdd')}:
+            </p>
             <div className="flex flex-wrap gap-1">
               {[1, 2, 3, 6, 9, 12].map(months => (
                 <button
                   key={months}
                   type="button"
                   onClick={() => calculateExpiryFromMonths(months)}
-                  className="px-2 py-1 bg-primary-100 dark:bg-primary-900/40 hover:bg-primary-200 dark:hover:bg-primary-800/50 text-primary-800 dark:text-primary-300 rounded-lg text-xs transition"
+                  className="px-2.5 py-1 bg-primary-100 dark:bg-primary-900/40 hover:bg-primary-200 dark:hover:bg-primary-800/50 text-primary-800 dark:text-primary-300 rounded-lg text-xs font-bold transition-colors duration-200"
                 >
                   + {months} {months === 1 ? t('members.form.month') : t('members.form.months')}
                 </button>
@@ -1085,9 +1116,10 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         )}
 
         {duration !== null && (
-          <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-2">
-            <p className="text-xs">
-              <span className="font-medium">📊 {t('members.form.subscriptionDuration')}: </span>
+          <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 p-2">
+            <p className="text-xs flex items-center gap-1.5">
+              <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6m0 13l-3-3m3 3l3-3m6 3V10m0 9l3-3m-3 3l-3-3"/></svg>
+              <span className="font-bold text-gray-700 dark:text-gray-300">{t('members.form.subscriptionDuration')}: </span>
               <span className="font-bold text-primary-600 dark:text-primary-400">
                 {duration} {t('members.form.daysSingle')}
                 {duration >= 30 && ` (${Math.floor(duration / 30)} ${Math.floor(duration / 30) === 1 ? t('members.form.month') : t('members.form.months')})`}
@@ -1098,77 +1130,77 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       </div>
 
       {/* Additional Services section - Hidden as per user request */}
-      {/* <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg p-3">
+      {/* <div className="bg-green-50 dark:bg-green-900/30 ring-1 ring-green-200 dark:ring-green-700 rounded-lg p-3">
         <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-          <span>🎁</span>
+          <span></span>
           <span>{t('members.form.additionalServices')}</span>
         </h3>
 
         <div className="grid grid-cols-1 gap-3">
           <div>
-            <label className="block text-xs font-medium mb-1">⚖️ InBody</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5"> InBody</label>
             <input
               type="number"
               min="0"
               value={formData.inBodyScans}
               onChange={(e) => setFormData({ ...formData, inBodyScans: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">🎟️ {t('members.invitations')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5"> {t('members.invitations')}</label>
             <input
               type="number"
               min="0"
               value={formData.invitations}
               onChange={(e) => setFormData({ ...formData, invitations: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">💪 {t('members.freePTSessions')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5"> {t('members.freePTSessions')}</label>
             <input
               type="number"
               min="0"
               value={formData.freePTSessions}
               onChange={(e) => setFormData({ ...formData, freePTSessions: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">❄️ أيام الفريز</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5"> أيام الفريز</label>
             <input
               type="number"
               min="0"
               value={formData.remainingFreezeDays}
               onChange={(e) => setFormData({ ...formData, remainingFreezeDays: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
         </div>
       </div> */}
       </div>
 
-      <div className="bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg p-3">
-        <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-          <span>💰</span>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+        <h3 className="font-bold text-base mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <span>{t('members.form.financialInformation')}</span>
         </h3>
 
         {isPrivilegedUser ? (
           /* OWNER/ADMIN: حقل السعر مفتوح بالكامل */
           <div className="mb-2">
-            <label className="block text-xs font-medium mb-1">{t('members.form.subscriptionPriceRequired')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.subscriptionPriceRequired')}</label>
             <input
               type="number"
               required
               min="0"
               value={formData.subscriptionPrice}
               onChange={(e) => setFormData({ ...formData, subscriptionPrice: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               placeholder="0"
             />
           </div>
@@ -1176,19 +1208,20 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           /* ريسبشن وغيرهم: السعر مقفول، يقدر يحط خصم فقط في الحد المسموح */
           <div className="mb-2 space-y-2">
             <div>
-              <label className="block text-xs font-medium mb-1">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                 {direction === 'rtl' ? 'سعر الباقة' : 'Package Price'}
               </label>
               <input
                 type="number"
                 value={appliedOfferPrice ?? formData.subscriptionPrice}
                 readOnly
-                className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-800 dark:text-gray-300 bg-gray-100 cursor-not-allowed"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-not-allowed"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1 text-orange-700 dark:text-orange-400">
-                💸 {direction === 'rtl' ? 'خصم (جنيه)' : 'Discount (EGP)'}
+              <label className="flex items-center text-sm font-bold text-orange-700 dark:text-orange-400 mb-1.5 gap-1.5 flex-wrap">
+                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                <span>{direction === 'rtl' ? 'خصم (جنيه)' : 'Discount (EGP)'}</span>
                 {appliedOfferMinPrice !== null && appliedOfferPrice !== null && (
                   <span className="text-[10px] text-gray-500 dark:text-gray-400 mx-1">
                     {direction === 'rtl'
@@ -1215,7 +1248,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                   setDiscount(v)
                 }}
                 disabled={appliedOfferPrice === null}
-                className="w-full px-3 py-2 border-2 border-orange-300 dark:border-orange-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200"
                 placeholder="0"
               />
               {appliedOfferPrice !== null && (
@@ -1235,51 +1268,53 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         {settings.remainingEnabled && (
           <div className="mb-2 space-y-2">
             <div>
-              <label className="block text-xs font-medium mb-1 text-orange-700 dark:text-orange-400">
-                💰 {direction === 'rtl' ? 'باقي على العضو (جنيه)' : 'Remaining Balance (EGP)'}
+              <label className="flex items-center text-sm font-bold text-orange-700 dark:text-orange-400 mb-1.5 gap-1.5">
+                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {direction === 'rtl' ? 'باقي على العضو (جنيه)' : 'Remaining Balance (EGP)'}
               </label>
               <input
                 type="number"
                 min="0"
                 value={formData.remainingAmount}
                 onChange={(e) => setFormData({ ...formData, remainingAmount: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border-2 border-orange-300 dark:border-orange-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white focus:outline-none focus:border-orange-500"
+                className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-200"
                 placeholder="0"
               />
             </div>
             {(formData.remainingAmount || 0) > 0 && (
               <div>
-                <label className="block text-xs font-medium mb-1 text-orange-700 dark:text-orange-400">
-                  📅 {direction === 'rtl' ? 'موعد سداد الباقي' : 'Due Date'}
+                <label className="flex items-center text-sm font-bold text-orange-700 dark:text-orange-400 mb-1.5 gap-1.5">
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  {direction === 'rtl' ? 'موعد سداد الباقي' : 'Due Date'}
                 </label>
                 <input
                   type="date"
                   value={formData.remainingDueDate}
                   onChange={(e) => setFormData({ ...formData, remainingDueDate: e.target.value })}
-                  className="w-full px-3 py-2 border-2 border-orange-300 dark:border-orange-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-200"
                 />
               </div>
             )}
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-2">
+        <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 p-3">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium">{t('members.form.paidAmount')}:</span>
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{t('members.form.paidAmount')}:</span>
             <span className="font-bold text-green-600 dark:text-green-400">
               {paidAmount - (settings.remainingEnabled ? (formData.remainingAmount || 0) : 0)} {t('members.egp')}
             </span>
           </div>
           {settings.remainingEnabled && (formData.remainingAmount || 0) > 0 && (
-            <div className="flex justify-between items-center mt-1 pt-1 border-t border-yellow-200 dark:border-yellow-800">
-              <span className="text-xs font-medium text-orange-600 dark:text-orange-400">{direction === 'rtl' ? 'الباقي:' : 'Remaining:'}</span>
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <span className="text-sm font-bold text-orange-600 dark:text-orange-400">{direction === 'rtl' ? 'الباقي:' : 'Remaining:'}</span>
               <span className="font-bold text-orange-600 dark:text-orange-400">{formData.remainingAmount} {t('members.egp')}</span>
             </div>
           )}
         </div>
 
         <div className="mt-3">
-          <label className="block text-xs font-medium mb-2">{t('members.paymentMethod')}</label>
+          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.paymentMethod')}</label>
           <PaymentMethodSelector
             value={formData.paymentMethod}
             onChange={(method) => setFormData({
@@ -1294,28 +1329,32 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           />
         </div>
 
-        {/* ✅ خيار عدم إنشاء إيصال */}
+        {/* خيار عدم إنشاء إيصال */}
         <div className="mt-3">
-          <label className="flex items-center gap-2 cursor-pointer bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-2">
+          <label className="flex items-center gap-2 cursor-pointer bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg p-2">
             <input
               type="checkbox"
               checked={formData.skipReceipt}
               onChange={(e) => setFormData({ ...formData, skipReceipt: e.target.checked })}
               className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
             />
-            <span className="text-xs font-bold text-yellow-800 dark:text-yellow-300">
-              🚫 {t('members.form.skipReceiptAdminOnly')}
+            <svg className="w-4 h-4 text-amber-700 dark:text-amber-300" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            <span className="text-xs font-bold text-amber-800 dark:text-amber-300">
+              {t('members.form.skipReceiptAdminOnly')}
             </span>
           </label>
         </div>
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg p-3">
-        <label className="block text-xs font-medium mb-2">📝 {t('members.notes')}</label>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+        <label className="flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+          <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          {t('members.notes')}
+        </label>
         <textarea
           value={formData.notes}
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-          className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white"
+          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
           rows={2}
           placeholder={`${t('members.notes')}...`}
         />
@@ -1325,22 +1364,33 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 bg-green-600 dark:bg-green-700 text-white py-3 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 disabled:bg-gray-400 font-bold transition"
+          className="flex-1 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold py-3 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {loading ? `⏳ ${t('members.form.saving')}` : `✅ ${t('members.form.saveMember')}`}
+          {loading ? (
+            <>
+              <svg className="animate-spin w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span>{t('members.form.saving')}</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>{t('members.form.saveMember')}</span>
+            </>
+          )}
         </button>
       </div>
 
-      <div className="bg-primary-50 dark:bg-primary-900/30 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 text-center">
-        <p className="text-xs text-primary-800 dark:text-primary-300">
-          🧾 <strong>{t('members.notes')}:</strong> {direction === 'rtl'
+      <div className="bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-900/50 rounded-lg p-3 text-center">
+        <p className="text-xs text-primary-800 dark:text-primary-300 flex items-center justify-center gap-1.5">
+          <svg className="w-4 h-4 flex-shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4m6-4V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3-2 3 2 3-2 3 2v-4"/></svg>
+          <span><strong>{t('members.notes')}:</strong> {direction === 'rtl'
             ? 'بعد الحفظ هيظهر إيصال — اختار "طباعة" أو "إرسال واتساب" أو اقفله'
-            : 'After saving, a receipt popup appears — choose Print, WhatsApp, or close it'}
+            : 'After saving, a receipt popup appears — choose Print, WhatsApp, or close it'}</span>
         </p>
       </div>
     </form>
 
-    {/* 🧾 Receipt popup — يظهر بعد إنشاء عضو + إيصال بدل الطباعة التلقائية */}
+    {/* Receipt popup — يظهر بعد إنشاء عضو + إيصال بدل الطباعة التلقائية */}
     {receiptPopup && (
       <ReceiptToPrint
         receiptNumber={receiptPopup.receiptNumber}

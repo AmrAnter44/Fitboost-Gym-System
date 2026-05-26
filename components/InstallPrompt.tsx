@@ -8,6 +8,8 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
@@ -17,7 +19,6 @@ export default function InstallPrompt() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    // تحقق إذا كان التطبيق مثبت فعلاً
     const isInStandaloneMode = () => {
       if (typeof window === 'undefined' || typeof document === 'undefined') return false
       return (
@@ -29,7 +30,6 @@ export default function InstallPrompt() {
 
     setIsStandalone(isInStandaloneMode())
 
-    // تحقق إذا كان iOS
     const checkIsIOS = () => {
       if (typeof window === 'undefined') return false
       const userAgent = window.navigator.userAgent.toLowerCase()
@@ -37,27 +37,23 @@ export default function InstallPrompt() {
     }
     setIsIOS(checkIsIOS())
 
-    // التعامل مع beforeinstallprompt event (Android)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
 
-      // تحقق إذا المستخدم رفض التثبيت قبل كده
       const dismissed = safeStorage.getItem('pwa-install-dismissed')
       const dismissedDate = dismissed ? new Date(dismissed) : null
       const daysSinceDismissal = dismissedDate
         ? (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24)
         : 999
 
-      // أظهر البرومبت فقط إذا مضى 7 أيام على الرفض أو لم يرفض من قبل
       if (!dismissed || daysSinceDismissal > 7) {
-        setTimeout(() => setShowInstallPrompt(true), 3000) // أظهر بعد 3 ثواني
+        setTimeout(() => setShowInstallPrompt(true), 3000)
       }
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
-    // تحقق إذا كان iOS و مش مثبت - يظهر دائماً من البراوزر
     if (checkIsIOS() && !isInStandaloneMode()) {
       setTimeout(() => setShowInstallPrompt(true), 2000)
     }
@@ -84,65 +80,77 @@ export default function InstallPrompt() {
 
   const handleDismiss = () => {
     setShowInstallPrompt(false)
-    // لا نحفظ رفض iOS - يظهر في كل مرة من البراوزر
     if (!isIOS) {
       safeStorage.setItem('pwa-install-dismissed', new Date().toISOString())
     }
   }
 
-  // لا تظهر إذا التطبيق مثبت فعلاً
   if (isStandalone || !showInstallPrompt) {
     return null
   }
 
   return (
     <>
-      {/* Android Install Prompt */}
       {deferredPrompt && !isIOS && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-2xl animate-slide-up">
+        <div className="fixed bottom-0 inset-x-0 z-50 p-4 bg-primary-600 dark:bg-primary-700 text-primary-contrast shadow-2xl animate-slide-up" role="dialog" aria-modal="false" aria-labelledby="install-prompt-android-title">
           <div className="max-w-md mx-auto">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-12 h-12 bg-white dark:bg-gray-800 rounded-xl p-2 shadow-lg">
+              <div className="flex-shrink-0 w-12 h-12 bg-white dark:bg-gray-800 rounded-xl p-2 shadow-sm">
                 <img src="/icon-192x192.png" alt="Gym System" className="w-full h-full" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold mb-1">ثبت Gym System</h3>
+                <h3 id="install-prompt-android-title" className="text-lg font-bold mb-1">ثبت Gym System</h3>
                 <p className="text-sm text-primary-100 mb-3">
                   ثبت التطبيق للوصول السريع من الشاشة الرئيسية
                 </p>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={handleInstallClick}
-                    className="flex-1 bg-white dark:bg-gray-800 text-primary-600 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition"
+                    autoFocus
+                    className="flex-1 bg-white text-primary-700 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition-colors duration-200 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-600"
                   >
-                    تثبيت 📲
+                    <span>تثبيت</span>
+                    <svg className="w-5 h-5" {...stroke}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
                   </button>
                   <button
+                    type="button"
                     onClick={handleDismiss}
-                    className="px-4 py-2 text-white hover:bg-primary-800 rounded-lg transition"
+                    className="px-4 py-2 text-white hover:bg-primary-800 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-600"
                   >
                     لاحقاً
                   </button>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={handleDismiss}
+                aria-label="إغلاق"
+                className="text-white/80 hover:text-white p-1 rounded-md transition-colors duration-200"
+              >
+                <svg className="w-5 h-5" {...stroke}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* iOS Install Instructions */}
       {isIOS && !deferredPrompt && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-2xl animate-slide-up">
+        <div className="fixed bottom-0 inset-x-0 z-50 p-4 bg-primary-600 dark:bg-primary-700 text-primary-contrast shadow-2xl animate-slide-up" role="dialog" aria-modal="false" aria-labelledby="install-prompt-ios-title">
           <div className="max-w-md mx-auto">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-12 h-12 bg-white dark:bg-gray-800 rounded-xl p-2 shadow-lg">
+              <div className="flex-shrink-0 w-12 h-12 bg-white dark:bg-gray-800 rounded-xl p-2 shadow-sm">
                 <img src="/icon-192x192.png" alt="Gym System" className="w-full h-full" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold mb-2">ثبت التطبيق على iPhone</h3>
+                <h3 id="install-prompt-ios-title" className="text-lg font-bold mb-2">ثبت التطبيق على iPhone</h3>
                 <div className="text-sm text-primary-100 space-y-2 mb-3">
-                  <p className="font-semibold">لتثبيت التطبيق:</p>
-                  <ol className="list-decimal list-inside space-y-1.5 mr-2">
+                  <p className="font-bold">لتثبيت التطبيق:</p>
+                  <ol className="list-decimal list-inside space-y-1.5 ms-2">
                     <li className="flex items-start gap-2">
                       <span className="mt-0.5">1.</span>
                       <span>اضغط على زر المشاركة
@@ -156,12 +164,27 @@ export default function InstallPrompt() {
                   </ol>
                 </div>
                 <button
+                  type="button"
                   onClick={handleDismiss}
-                  className="w-full bg-white dark:bg-gray-800 text-primary-600 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition"
+                  autoFocus
+                  className="w-full bg-white text-primary-700 px-4 py-2 rounded-lg font-bold hover:bg-primary-50 transition-colors duration-200 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-600"
                 >
-                  فهمت ✓
+                  <span>فهمت</span>
+                  <svg className="w-4 h-4" {...stroke}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={handleDismiss}
+                aria-label="إغلاق"
+                className="text-white/80 hover:text-white p-1 rounded-md transition-colors duration-200"
+              >
+                <svg className="w-5 h-5" {...stroke}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>

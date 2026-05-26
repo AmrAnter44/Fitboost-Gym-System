@@ -33,1008 +33,16 @@
   --color-primary-900-rgb: 86, 78, 11;
   --color-primary-950-rgb: 50, 45, 6;
 
+  /* Contrast text colors (auto-computed for accessibility) */
+  --color-primary-contrast: #0F172A;
+  --color-primary-contrast-600: #0F172A;
+  --color-primary-contrast-700: #FFFFFF;
+
   /* Other colors */
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 249, 250, 251;
   --background-end-rgb: 249, 250, 251;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1066,6 +74,11 @@
   --color-primary-900: #f8f4d8;
   --color-primary-950: #fcfaee;
 
+  /* Contrast text colors (auto-computed for accessibility) */
+  --color-primary-contrast: #0F172A;
+  --color-primary-contrast-600: #0F172A;
+  --color-primary-contrast-700: #0F172A;
+
   /* Dark Mode Background & Foreground */
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 17, 24, 39;
@@ -1094,6 +107,19 @@ body {
 
 body {
   position: relative;
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 main {
@@ -1106,7 +132,72 @@ main {
   max-width: 100%;
 }
 
-/* RTL/LTR Support */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ========================================
+   Focus-visible — accessibility
+   حالات التركيز للوحة المفاتيح
+   ======================================== */
+*:focus {
+  outline: none;
+}
+
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Clickable affordance */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+a[href],
+summary,
+label[for],
+input[type="checkbox"],
+input[type="radio"],
+input[type="submit"],
+input[type="button"],
+input[type="reset"] {
+  cursor: pointer;
+}
+
+/* ========================================
+   Auto-contrast text for filled primary surfaces
+   لون نص ذكي على الخلفية الـ primary — يتغير تلقائياً مع لون البراند
+   ======================================== */
+.text-primary-contrast {
+  color: var(--color-primary-contrast);
+}
+.text-primary-contrast-600 {
+  color: var(--color-primary-contrast-600);
+}
+.text-primary-contrast-700 {
+  color: var(--color-primary-contrast-700);
+}
+
+/* ========================================
+   RTL/LTR Support
+   ======================================== */
 [dir="rtl"] {
   text-align: right;
   font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -1192,34 +283,9 @@ main {
   direction: rtl;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-/* إخفاء عناصر no-print أثناء الطباعة */
-@media print {
-  .no-print {
-    display: none !important;
-  }
-}
-
-/* تحسينات للنماذج */
+/* ========================================
+   Form inputs
+   ======================================== */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -1230,37 +296,29 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* تحسينات للجداول */
+/* منع التكبير على iOS */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ========================================
+   Tables
+   ======================================== */
 table {
   border-collapse: collapse;
   width: 100%;
 }
 
-/* إخفاء scrollbar مع الحفاظ على القدرة على التمرير */
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* تحسين المدخلات */
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid var(--color-primary-500);
-  outline-offset: 2px;
-}
-
-/* تحسين الأزرار */
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* تحسين الجداول على الموبايل */
 @media (max-width: 768px) {
   table {
     font-size: 0.875rem;
@@ -1270,7 +328,6 @@ button:disabled {
     padding: 0.5rem !important;
   }
 
-  /* منع horizontal scroll على الموبايل */
   body, html, main {
     overflow-x: hidden !important;
     max-width: 100vw !important;
@@ -1283,67 +340,6 @@ button:disabled {
   }
 }
 
-/* تأثيرات الحركة */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out;
-}
-
-/* Toast Animations */
-@keyframes slideInToast {
-  from {
-    opacity: 0;
-    transform: translateX(400px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes shrinkWidth {
-  from {
-    width: 100%;
-  }
-  to {
-    width: 0%;
-  }
-}
-
-/* تحسينات للكروت */
-.card-hover {
-  transition: all 0.3s ease;
-}
-
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
 /* Excel-like table styling */
 .excel-table {
   border-collapse: collapse;
@@ -1352,23 +348,210 @@ button:disabled {
 
 .excel-table th,
 .excel-table td {
-  border: 1px solid #d1d5db;
+  border: 1px solid #e5e7eb;
 }
 
-/* Dark mode support for excel-table */
+/* Default header/body backgrounds (only applied when cell has NO bg- utility) */
+.excel-table thead th:not([class*="bg-"]) {
+  background-color: #f9fafb;
+  color: #374151;
+}
+
+.excel-table tbody td:not([class*="bg-"]) {
+  color: #374151;
+  background-color: #ffffff;
+}
+
+.excel-table tbody tr:hover td:not([class*="bg-"]) {
+  background-color: #f9fafb;
+}
+
+/* Dark mode for excel-table */
+.dark .excel-table th,
+.dark .excel-table td {
+  border-color: #374151;
+}
+
+.dark .excel-table thead th:not([class*="bg-"]) {
+  background-color: rgba(17, 24, 39, 0.6);
+  color: #d1d5db;
+}
+
+.dark .excel-table tbody td:not([class*="bg-"]) {
+  color: #d1d5db;
+  background-color: rgb(31, 41, 55);
+}
+
+.dark .excel-table tbody tr:hover td:not([class*="bg-"]) {
+  background-color: rgba(55, 65, 81, 0.6);
+}
+
 @media (prefers-color-scheme: dark) {
   .excel-table th,
   .excel-table td {
-    border-color: #4b5563;
+    border-color: #374151;
   }
 }
 
-.dark .excel-table th,
-.dark .excel-table td {
-  border-color: #4b5563;
+/* ========================================
+   Animations & Keyframes
+   ======================================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.3s var(--ease-out-smooth);
 }
 
-/* Print styles */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.3s var(--ease-out-smooth);
+}
+
+@keyframes slideInToast {
+  from { opacity: 0; transform: translateX(400px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shrinkWidth {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slideUp {
+  animation: slideUp 0.4s var(--ease-out-smooth);
+}
+
+@keyframes slideDown {
+  0% { opacity: 0; transform: translate(-50%, -100px); }
+  60% { opacity: 1; transform: translate(-50%, 10px); }
+  100% { transform: translate(-50%, 0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; transform: translate(-50%, -20px); }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+/* Modal scale-in (used by dialogs) */
+@keyframes modalScaleIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-modal-in {
+  animation: modalScaleIn 0.22s var(--ease-out-smooth);
+}
+
+/* Backdrop fade-in */
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-backdrop-in {
+  animation: backdropFadeIn 0.18s ease-out;
+}
+
+/* Loader bouncing-dots */
+@keyframes loaderBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.55; }
+  40% { transform: scale(1); opacity: 1; }
+}
+.animate-loader-bounce {
+  animation: loaderBounce 1.2s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+
+/* Skeleton shimmer (replaces plain pulse) */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: 6px;
+}
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.10) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Hover/active micro-interactions */
+.card-hover {
+  transition: transform 0.25s var(--ease-out-smooth), box-shadow 0.25s var(--ease-out-smooth);
+  will-change: transform;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.active\:scale-95:active {
+  transform: scale(0.95);
+}
+
+.press-effect {
+  transition: transform 0.12s ease-out;
+}
+.press-effect:active {
+  transform: scale(0.97);
+}
+
+/* Glass / blur utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+}
+.dark .glass {
+  background: rgba(31, 41, 55, 0.80);
+}
+
+/* Reduced motion — respect user preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ========================================
+   Print Styles
+   ======================================== */
 @media print {
   @page {
     size: A4 landscape;
@@ -1408,34 +591,9 @@ button:disabled {
   }
 }
 
-
-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* PWA Animations */
-@keyframes slideUp {
-  from {
-    transform: translateY(100px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.animate-slideUp {
-  animation: slideUp 0.4s ease-out;
-}
-
-/* PWA Enhancements - iOS Safe Area */
+/* ========================================
+   PWA / Standalone Mode
+   ======================================== */
 @supports (padding: max(0px)) {
   body {
     padding-left: max(0px, env(safe-area-inset-left));
@@ -1444,13 +602,13 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-/* تحسين المظهر للـ Standalone Mode */
 @media (display-mode: standalone) {
   body {
     background: #f9fafb;
   }
-
-  /* إخفاء شريط العنوان في وضع التطبيق */
+  .dark body {
+    background: rgb(17, 24, 39);
+  }
   .navbar {
     position: sticky;
     top: 0;
@@ -1458,74 +616,17 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-/* منع التكبير على iOS */
-input,
-select,
-textarea {
-  font-size: 16px !important;
-}
-
-@media screen and (max-width: 768px) {
-  input,
-  select,
-  textarea {
-    font-size: 16px !important;
-  }
-}
-
-/* Dark Mode Toggle Animations */
-@keyframes bounce-slow {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
-}
-
-.animate-bounce-slow {
-  animation: bounce-slow 2s ease-in-out infinite;
-}
-
-/* Smooth transitions for dark mode toggle */
+/* Smooth dark-mode toggle */
 .dark-mode-toggle {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Notification Toast Animations */
-@keyframes slideDown {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -100px);
-  }
-  60% {
-    opacity: 1;
-    transform: translate(-50%, 10px);
-  }
-  100% {
-    transform: translate(-50%, 0);
-  }
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-    transform: translate(-50%, -20px);
-  }
-}
-
 /* ========================================
    Custom Scrollbar Styles
-   تنسيقات شريط التمرير المخصص
    ======================================== */
-
-/* Webkit Browsers (Chrome, Safari, Edge) */
 .scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
@@ -1534,35 +635,50 @@ textarea {
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: rgba(15, 23, 42, 0.18);
   border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
   transition: background 0.2s ease;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: rgba(15, 23, 42, 0.32);
+  background-clip: content-box;
 }
 
-/* Dark Mode Scrollbar */
 .dark .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: rgba(255, 255, 255, 0.16);
+  background-clip: content-box;
+  border: 2px solid transparent;
 }
 
 .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: rgba(255, 255, 255, 0.28);
+  background-clip: content-box;
 }
 
 /* Firefox Scrollbar */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #d1d5db transparent;
+  scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
 }
 
 .dark .scrollbar-thin {
-  scrollbar-color: #4b5563 transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
-/* Scrollbar Track Colors */
+/* Hide-scrollbar utility */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Scrollbar variants */
 .scrollbar-track-transparent::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -1577,10 +693,7 @@ textarea {
 
 /* ========================================
    Sidebar Responsive Enhancements
-   تحسينات responsive للقائمة الجانبية
    ======================================== */
-
-/* Smooth sidebar transitions */
 @media (max-width: 1024px) {
   aside {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -1588,22 +701,9 @@ textarea {
   }
 }
 
-/* Scale hover effect */
-.hover\:scale-102:hover {
-  transform: scale(1.02);
-}
-
-/* Active scale effect */
-.active\:scale-95:active {
-  transform: scale(0.95);
-}
-
 /* ========================================
    Modern Toggle Switch (RTL-Compatible)
-   زر تبديل حديث يدعم RTL
    ======================================== */
-
-/* Toggle Container */
 .toggle-switch {
   position: relative;
   display: inline-flex;
@@ -1612,7 +712,6 @@ textarea {
   user-select: none;
 }
 
-/* Hide default checkbox */
 .toggle-switch input[type="checkbox"] {
   position: absolute;
   opacity: 0;
@@ -1620,7 +719,6 @@ textarea {
   height: 0;
 }
 
-/* Toggle Track */
 .toggle-track {
   position: relative;
   width: 3.5rem;
@@ -1631,7 +729,6 @@ textarea {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Toggle Thumb */
 .toggle-thumb {
   position: absolute;
   top: 0.25rem;
@@ -1644,67 +741,41 @@ textarea {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Checked State - Track */
 .toggle-switch input[type="checkbox"]:checked + .toggle-track {
   background-color: #10b981;
 }
 
-/* Checked State - Thumb (LTR) */
 [dir="ltr"] .toggle-switch input[type="checkbox"]:checked + .toggle-track .toggle-thumb {
   transform: translateX(1.5rem);
 }
 
-/* Checked State - Thumb (RTL) */
 [dir="rtl"] .toggle-switch input[type="checkbox"]:checked + .toggle-track .toggle-thumb {
   transform: translateX(-1.5rem);
 }
 
-/* RTL Support - Initial Position */
 [dir="rtl"] .toggle-thumb {
   left: auto;
   right: 0.25rem;
 }
 
-/* Focus State */
-.toggle-switch input[type="checkbox"]:focus + .toggle-track {
-  outline: 2px solid #3b82f6;
+.toggle-switch input[type="checkbox"]:focus-visible + .toggle-track {
+  outline: 2px solid var(--color-primary-500);
   outline-offset: 2px;
 }
 
-/* Disabled State */
 .toggle-switch input[type="checkbox"]:disabled + .toggle-track {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* Color Variants */
-.toggle-green input[type="checkbox"]:checked + .toggle-track {
-  background-color: #10b981;
-}
-
-.toggle-blue input[type="checkbox"]:checked + .toggle-track {
-  background-color: #3b82f6;
-}
-
-.toggle-yellow input[type="checkbox"]:checked + .toggle-track {
-  background-color: #eab308;
-}
-
-.toggle-purple input[type="checkbox"]:checked + .toggle-track {
-  background-color: #a855f7;
-}
-
-.toggle-pink input[type="checkbox"]:checked + .toggle-track {
-  background-color: #ec4899;
-}
-
-.toggle-indigo input[type="checkbox"]:checked + .toggle-track {
-  background-color: #6366f1;
-}
-
-.toggle-teal input[type="checkbox"]:checked + .toggle-track {
-  background-color: #14b8a6;
-}
+.toggle-green input[type="checkbox"]:checked + .toggle-track { background-color: #10b981; }
+.toggle-blue input[type="checkbox"]:checked + .toggle-track { background-color: #3b82f6; }
+.toggle-yellow input[type="checkbox"]:checked + .toggle-track { background-color: #eab308; }
+.toggle-purple input[type="checkbox"]:checked + .toggle-track { background-color: #a855f7; }
+.toggle-pink input[type="checkbox"]:checked + .toggle-track { background-color: #ec4899; }
+.toggle-indigo input[type="checkbox"]:checked + .toggle-track { background-color: #6366f1; }
+.toggle-teal input[type="checkbox"]:checked + .toggle-track { background-color: #14b8a6; }
 
 /* Dark Mode */
 .dark .toggle-track {
@@ -1715,12 +786,10 @@ textarea {
   background-color: #f3f4f6;
 }
 
-/* Hover Effect */
 .toggle-switch:hover .toggle-track {
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
-/* Active (Click) Effect */
 .toggle-switch:active .toggle-thumb {
   width: 1.75rem;
 }

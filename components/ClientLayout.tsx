@@ -57,17 +57,17 @@ function LayoutContent({ children }: { children: ReactNode }) {
           {/* Mobile Top Bar - Shows only on mobile when sidebar is hidden */}
           <div
             dir={locale === 'ar' ? 'rtl' : 'ltr'}
-            className="lg:hidden sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-800 dark:to-primary-900 border-b-2 border-primary-800 dark:border-primary-950 px-4 py-2.5 shadow-md"
+            className="lg:hidden sticky top-0 z-30 bg-white/85 dark:bg-gray-900/85 backdrop-blur-md backdrop-saturate-150 border-b border-gray-200 dark:border-gray-800 px-4 py-2.5 shadow-sm"
           >
             <div className="flex items-center justify-between gap-2">
               {/* Hamburger Menu */}
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-1.5 rounded-lg hover:bg-white/20 dark:hover:bg-gray-700 transition-all flex-shrink-0"
+                className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 flex-shrink-0"
                 aria-label={t('nav.menu')}
               >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
 
@@ -78,7 +78,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
                   className="flex items-center gap-2"
                   title={t('nav.home')}
                 >
-                  <span className="font-bold text-sm text-white">Fitboost System</span>
+                  <span className="font-bold text-sm text-gray-900 dark:text-gray-100">Fitboost System</span>
                 </Link>
               </div>
 

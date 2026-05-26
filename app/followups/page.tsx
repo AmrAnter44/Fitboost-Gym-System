@@ -6,27 +6,30 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import Link from 'next/link'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
+import { LoadingScreen } from '../../components/Spinner'
 import type { MessageTemplate } from './MessageTemplateManager'
 
-// ✅ Dynamic imports - تحميل عند الحاجة فقط
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
+//  Dynamic imports - تحميل عند الحاجة فقط
 const FollowUpForm = nextDynamic(() => import('./FollowUpForm'), { ssr: false })
 const SalesDashboard = nextDynamic(() => import('./SalesDashboard'), {
   ssr: false,
-  loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+  loading: () => <div className="skeleton-shimmer h-64 rounded-xl" />
 })
 const MessageTemplateManager = nextDynamic(() => import('./MessageTemplateManager'), { ssr: false })
 const MemberForm = nextDynamic(() => import('../../components/MemberForm'), { ssr: false })
 const CollectionDashboard = nextDynamic(() => import('../../components/CollectionDashboard'), {
   ssr: false,
-  loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+  loading: () => <div className="skeleton-shimmer h-64 rounded-xl" />
 })
 const SalesMgmtPanel = nextDynamic(() => import('../../components/SalesMgmtPanel'), {
   ssr: false,
-  loading: () => <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+  loading: () => <div className="skeleton-shimmer h-64 rounded-xl" />
 })
 const FollowUpCalendar = nextDynamic(() => import('../../components/FollowUpCalendar'), {
   ssr: false,
-  loading: () => <div className="animate-pulse h-96 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+  loading: () => <div className="skeleton-shimmer h-96 rounded-xl" />
 })
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -107,11 +110,11 @@ export default function FollowUpsPage() {
   const [showDeleteVisitorConfirm, setShowDeleteVisitorConfirm] = useState(false)
   const [deleteVisitorTarget, setDeleteVisitorTarget] = useState<{id: string, name: string} | null>(null)
 
-  // ✏️ تعديل زائر/دعوة
+  //  تعديل زائر/دعوة
   const [showEditModal, setShowEditModal] = useState(false)
   const [editTarget, setEditTarget] = useState<{id: string, name: string, phone: string, type: 'visitor' | 'invitation', originalId: string} | null>(null)
 
-  // ✅ اشتراك سريع - تحويل الزائر إلى عضو
+  //  اشتراك سريع - تحويل الزائر إلى عضو
   const [showQuickSubscribeModal, setShowQuickSubscribeModal] = useState(false)
   const [selectedVisitorForSubscribe, setSelectedVisitorForSubscribe] = useState<Visitor | null>(null)
   const [selectedFollowUpSalesStaffId, setSelectedFollowUpSalesStaffId] = useState<string | null>(null)
@@ -119,12 +122,12 @@ export default function FollowUpsPage() {
   // View mode state
   const [viewMode, setViewMode] = useState<'list' | 'analytics' | 'collection' | 'sales-mgmt' | 'calendar'>('list')
 
-  // ✅ Bulk sending states
+  //  Bulk sending states
   const [bulkSending, setBulkSending] = useState(false)
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentName: '' })
   const bulkSendAbortedRef = useRef(false)
 
-  // ✅ Smart Bulk Script states
+  //  Smart Bulk Script states
   const [showBulkScriptModal, setShowBulkScriptModal] = useState(false)
   const [bulkScriptMessages, setBulkScriptMessages] = useState<string[]>([''])
   const [bulkScriptContactFilter, setBulkScriptContactFilter] = useState<'all' | 'contacted' | 'not-contacted'>('not-contacted')
@@ -139,7 +142,7 @@ export default function FollowUpsPage() {
   const [bulkScriptProgress, setBulkScriptProgress] = useState({ current: 0, total: 0, currentName: '', currentMsgIndex: 0, successCount: 0, failCount: 0, countdown: 0 })
   const [bulkScriptReport, setBulkScriptReport] = useState<{ success: {name: string, phone: string}[], failed: {name: string, phone: string, error: string}[] } | null>(null)
   const [bulkScriptPresetName, setBulkScriptPresetName] = useState('')
-  // ✅ نقرأ القيم المحفوظة من localStorage عند initial mount
+  //  نقرأ القيم المحفوظة من localStorage عند initial mount
   const [bulkScriptDailyLimit, setBulkScriptDailyLimit] = useState(() => {
     if (typeof window === 'undefined') return 80
     const v = Number(localStorage.getItem('wa-bulk-dailyLimit'))
@@ -168,7 +171,7 @@ export default function FollowUpsPage() {
     return Number.isFinite(n) ? n : 'auto'
   })
 
-  // ✅ Persist bulk script settings whenever they change
+  //  Persist bulk script settings whenever they change
   useEffect(() => { localStorage.setItem('wa-bulk-dailyLimit', String(bulkScriptDailyLimit)) }, [bulkScriptDailyLimit])
   useEffect(() => { localStorage.setItem('wa-bulk-batchSize', String(bulkScriptBatchSize)) }, [bulkScriptBatchSize])
   useEffect(() => { localStorage.setItem('wa-bulk-batchBreakMin', String(bulkScriptBatchBreakMin)) }, [bulkScriptBatchBreakMin])
@@ -176,7 +179,7 @@ export default function FollowUpsPage() {
   useEffect(() => { localStorage.setItem('wa-bulk-sessionIndex', String(bulkScriptSessionIndex)) }, [bulkScriptSessionIndex])
   const [availableWaSessions, setAvailableWaSessions] = useState<{sessionIndex: number, phoneNumber?: string, isReady: boolean}[]>([])
 
-  // ✅ ثبات الـ stale/refetch لكل المتابعات (تقليل الـ network traffic)
+  //  ثبات الـ stale/refetch لكل المتابعات (تقليل الـ network traffic)
   // refetchInterval شيلناه لأن staleTime + refetchOnWindowFocus كافيين للـ real-time
   const COMMON_QUERY_OPTS = {
     retry: 1,
@@ -184,7 +187,7 @@ export default function FollowUpsPage() {
     refetchOnWindowFocus: true, // إعادة جلب عند الرجوع للنافذة فقط
   } as const
 
-  // ✅ Pagination + Streaming — تحميل المتابعات على دفعات
+  //  Pagination + Streaming — تحميل المتابعات على دفعات
   //   - أول 300 متابعة بتظهر فوراً
   //   - الباقي بيتحمّل في الـ background
   const FOLLOWUPS_PAGE_SIZE = 300
@@ -224,7 +227,7 @@ export default function FollowUpsPage() {
     queryKey: ['visitors-followups'],
     queryFn: fetchVisitorsData,
     ...COMMON_QUERY_OPTS,
-    enabled: hasPermission('canViewVisitors'), // ✅ صلاحية عرض الزوار
+    enabled: hasPermission('canViewVisitors'), //  صلاحية عرض الزوار
   })
 
   const {
@@ -234,7 +237,7 @@ export default function FollowUpsPage() {
     queryKey: ['members-followups'],
     queryFn: fetchMembersData,
     ...COMMON_QUERY_OPTS,
-    // ✅ السماح للسيلز بقراءة أعضاءه (الـ API بيفلتر تلقائياً) حتى لو الصلاحية غير صريحة
+    //  السماح للسيلز بقراءة أعضاءه (الـ API بيفلتر تلقائياً) حتى لو الصلاحية غير صريحة
     enabled: hasPermission('canViewMembers') || user?.isSales === true,
   })
 
@@ -245,7 +248,7 @@ export default function FollowUpsPage() {
     queryKey: ['dayuse-followups'],
     queryFn: fetchDayUseData,
     ...COMMON_QUERY_OPTS,
-    enabled: hasPermission('canViewDayUse'), // ✅ فقط إذا كان لديه صلاحية
+    enabled: hasPermission('canViewDayUse'), //  فقط إذا كان لديه صلاحية
   })
 
   const {
@@ -258,7 +261,7 @@ export default function FollowUpsPage() {
     enabled: hasPermission('canViewMembers') || user?.isSales === true, // الدعوات مرتبطة بالأعضاء
   })
 
-  // ✅ جلب الموظفين النشطين
+  //  جلب الموظفين النشطين
   const {
     data: staffList = [],
     error: staffError
@@ -272,11 +275,11 @@ export default function FollowUpsPage() {
     },
     retry: 1,
     staleTime: 5 * 60 * 1000,
-    enabled: hasPermission('canViewStaff'), // ✅ فقط إذا كان لديه صلاحية
+    enabled: hasPermission('canViewStaff'), //  فقط إذا كان لديه صلاحية
   })
 
   // Extract visitors and members from queries
-  // ✅ ترتيب الزوار حسب تاريخ الإنشاء (الأحدث أولاً) — copy first to avoid mutating React Query cache
+  //  ترتيب الزوار حسب تاريخ الإنشاء (الأحدث أولاً) — copy first to avoid mutating React Query cache
   const visitors = useMemo(() =>
     [...(visitorsData || [])].sort((a: any, b: any) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -284,7 +287,7 @@ export default function FollowUpsPage() {
     [visitorsData]
   )
 
-  // ✅ ترتيب الدعوات حسب تاريخ الإنشاء (الأحدث أولاً) — copy first to avoid mutating React Query cache
+  //  ترتيب الدعوات حسب تاريخ الإنشاء (الأحدث أولاً) — copy first to avoid mutating React Query cache
   const sortedInvitations = useMemo(() =>
     [...(invitations || [])].sort((a: any, b: any) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -299,7 +302,7 @@ export default function FollowUpsPage() {
 
   const loading = loadingFollowUps
 
-  // ✅ Delete mutation مع Optimistic Update (متوافق مع useInfiniteQuery)
+  //  Delete mutation مع Optimistic Update (متوافق مع useInfiniteQuery)
   const followUpsQueryKey = ['followups', 'paged', FOLLOWUPS_PAGE_SIZE] as const
   const deleteMutation = useMutation({
     mutationFn: deleteFollowUp,
@@ -322,7 +325,7 @@ export default function FollowUpsPage() {
     },
     onSuccess: () => {
       toast.success(t('followups.messages.deleteSuccess'))
-      // ✅ Invalidate جميع الـ queries لتجنب التكرار
+      //  Invalidate جميع الـ queries لتجنب التكرار
       queryClient.invalidateQueries({ queryKey: ['followups'] })
       queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
       queryClient.invalidateQueries({ queryKey: ['members-followups'] })
@@ -337,7 +340,7 @@ export default function FollowUpsPage() {
     }
   })
 
-  // 🗑️ حذف زائر نهائياً (مع كل متابعاته)
+  //  حذف زائر نهائياً (مع كل متابعاته)
   const deleteVisitorMutation = useMutation({
     mutationFn: deleteVisitor,
     onSuccess: () => {
@@ -350,10 +353,10 @@ export default function FollowUpsPage() {
     }
   })
 
-  // 🌐 Pull website leads from Supabase → create local Visitors with source=website
+  //  Pull website leads from Supabase  create local Visitors with source=website
   // يتشغل مرة عند فتح الصفحة + كل 5 دقايق طول ما الصفحة مفتوحة
   const [websiteSyncing, setWebsiteSyncing] = useState(false)
-  // ⏸️ لو الـ Supabase راجع 502 (مثلاً quota exceeded)، نوقف auto-sync فوراً
+  //  لو الـ Supabase راجع 502 (مثلاً quota exceeded)، نوقف auto-sync فوراً
   // عشان ما نهلكش الـ logs ولا نضرب طلبات في الفراغ كل دقيقة
   const websitePauseUntilRef = useRef<number>(0)
   const syncWebsiteLeads = useCallback(async (showToastWhenEmpty = false) => {
@@ -365,14 +368,14 @@ export default function FollowUpsPage() {
       const res = await fetch('/api/visitors/sync-website-leads', { method: 'POST' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        // 5xx → الـ Supabase نفسه فاشل (quota / network). نوقف الـ auto-sync ساعة
+        // 5xx  الـ Supabase نفسه فاشل (quota / network). نوقف الـ auto-sync ساعة
         if (res.status >= 500) {
           websitePauseUntilRef.current = Date.now() + 60 * 60 * 1000
         }
-        // ⚠️ مفيش toast نهائي عند الفشل — السكوت أفضل
+        //  مفيش toast نهائي عند الفشل — السكوت أفضل
         return
       }
-      // success → نشيل الـ pause لو كان مفعل
+      // success  نشيل الـ pause لو كان مفعل
       websitePauseUntilRef.current = 0
       if (data?.imported > 0) {
         queryClient.invalidateQueries({ queryKey: ['followups'] })
@@ -383,9 +386,9 @@ export default function FollowUpsPage() {
             : `${data.imported} new website lead${data.imported > 1 ? 's' : ''} imported`
         )
       }
-      // ✅ مفيش toast لو مفيش leads جديدة — حتى لما الـ user يدوس manual sync
+      //  مفيش toast لو مفيش leads جديدة — حتى لما الـ user يدوس manual sync
     } catch {
-      // network error → نوقف الـ auto-sync ساعة. مفيش toast.
+      // network error  نوقف الـ auto-sync ساعة. مفيش toast.
       websitePauseUntilRef.current = Date.now() + 60 * 60 * 1000
     } finally {
       setWebsiteSyncing(false)
@@ -422,13 +425,13 @@ export default function FollowUpsPage() {
   const [resultFilter, setResultFilter] = useState('all')
   const [contactedFilter, setContactedFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
-  const [sourceFilter, setSourceFilter] = useState('all') // ✅ فلتر المصدر
-  const [salesFilter, setSalesFilter] = useState('all') // ✅ فلتر السيلز (all, my-followups, my-overdue, today)
-  const [assignedStaffFilter, setAssignedStaffFilter] = useState('all') // ✅ فلتر بموظف سيلز محدد
-  const [dateFromFilter, setDateFromFilter] = useState('') // 📅 فلتر تاريخ من (YYYY-MM-DD)
-  const [dateToFilter, setDateToFilter] = useState('')   // 📅 فلتر تاريخ إلى (YYYY-MM-DD)
+  const [sourceFilter, setSourceFilter] = useState('all') //  فلتر المصدر
+  const [salesFilter, setSalesFilter] = useState('all') //  فلتر السيلز (all, my-followups, my-overdue, today)
+  const [assignedStaffFilter, setAssignedStaffFilter] = useState('all') //  فلتر بموظف سيلز محدد
+  const [dateFromFilter, setDateFromFilter] = useState('') //  فلتر تاريخ من (YYYY-MM-DD)
+  const [dateToFilter, setDateToFilter] = useState('')   //  فلتر تاريخ إلى (YYYY-MM-DD)
 
-  // ✅ لو المستخدم سيلز → يشوف متابعاته بس تلقائياً (مرة واحدة بس)
+  //  لو المستخدم سيلز  يشوف متابعاته بس تلقائياً (مرة واحدة بس)
   const salesFilterInitRef = useRef(false)
   useEffect(() => {
     if (user?.isSales && !salesFilterInitRef.current) {
@@ -456,7 +459,7 @@ export default function FollowUpsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
 
-  // ✅ حساب الأعضاء المنتهيين
+  //  حساب الأعضاء المنتهيين
   const expiredMembers = useMemo(() => {
     if (permissionsLoading) return []
     const today = new Date()
@@ -466,9 +469,9 @@ export default function FollowUpsPage() {
         if (!m.expiryDate) return false
         const expiryDate = new Date(m.expiryDate)
         expiryDate.setHours(0, 0, 0, 0)
-        // ✅ منتهي = تاريخ الانتهاء فات (سواء اتعطل يدوي أو لا)
+        //  منتهي = تاريخ الانتهاء فات (سواء اتعطل يدوي أو لا)
         if (!(expiryDate < today)) return false
-        // 🔒 لو سيلز → بيشوف أعضاءه اللي assigned ليه بس
+        //  لو سيلز  بيشوف أعضاءه اللي assigned ليه بس
         if (user?.isSales) {
           return user.staffId ? (m as any).salesStaffId === user.staffId : false
         }
@@ -484,7 +487,7 @@ export default function FollowUpsPage() {
       }))
   }, [allMembersData, user, permissionsLoading])
 
-  // ✅ حساب الأعضاء اللي اشتراكهم قرب ينتهي (حسب عدد الأيام المحدد)
+  //  حساب الأعضاء اللي اشتراكهم قرب ينتهي (حسب عدد الأيام المحدد)
   const expiringMembers = useMemo(() => {
     if (permissionsLoading) return []
     const today = new Date()
@@ -499,7 +502,7 @@ export default function FollowUpsPage() {
         expiryDate.setHours(0, 0, 0, 0)
         // الأعضاء النشطين اللي اشتراكهم هينتهي في خلال الأيام المحددة
         if (!(expiryDate >= today && expiryDate <= futureDate)) return false
-        // 🔒 لو سيلز → بيشوف أعضاءه اللي assigned ليه بس
+        //  لو سيلز  بيشوف أعضاءه اللي assigned ليه بس
         if (user?.isSales) {
           return user.staffId ? (m as any).salesStaffId === user.staffId : false
         }
@@ -520,7 +523,7 @@ export default function FollowUpsPage() {
       })
   }, [allMembersData, expiringDays, user, permissionsLoading])
 
-  // ✅ تحسين الأداء: تنظيف رقم التليفون (memoized)
+  //  تحسين الأداء: تنظيف رقم التليفون (memoized)
   const normalizePhone = useCallback((phone: string) => {
     if (!phone) return ''
     let normalized = phone.replace(/[\s\-\(\)\+]/g, '').trim()
@@ -529,22 +532,22 @@ export default function FollowUpsPage() {
     return normalized
   }, [])
 
-  // ✅ دمج المتابعات الحقيقية مع الأعضاء المنتهيين + الأعضاء القريبين من الانتهاء + Day Use + Invitations
+  //  دمج المتابعات الحقيقية مع الأعضاء المنتهيين + الأعضاء القريبين من الانتهاء + Day Use + Invitations
   // ملاحظة: فلترة السيلز تتم في النهاية على الـ merged list (real + ephemeral) بشكل موحّد
   const allFollowUps = useMemo(() => {
-    // ✅ Set من أرقام الأعضاء (نشطين + منتهيين) — لإزالة الزوار الذين أصبحوا أعضاء
+    //  Set من أرقام الأعضاء (نشطين + منتهيين) — لإزالة الزوار الذين أصبحوا أعضاء
     const memberPhones = new Set<string>()
     allMembersData.forEach((m: Member) => {
       if (m.phone) memberPhones.add(normalizePhone(m.phone))
     })
 
-    // ✅ فلترة المتابعات الحقيقية - إزالة متابعات الزوار الذين أصبحوا أعضاء
+    //  فلترة المتابعات الحقيقية - إزالة متابعات الزوار الذين أصبحوا أعضاء
     // + عرض أحدث متابعة فقط لكل زائر (الباقي موجود في الداتابيز ويظهر في السجل)
     const latestByVisitor = new Map<string, any>()
     followUps.forEach(fu => {
-      // ✅ متابعات "مشترك" (subscribed) تظهر دايمًا — حتى لو مؤرشفة أو صاحبها أصبح عضو
+      //  متابعات "مشترك" (subscribed) تظهر دايمًا — حتى لو مؤرشفة أو صاحبها أصبح عضو
       if (fu.archived && fu.result !== 'subscribed') return
-      // ✅ متابعات الأعضاء المنتهيين/القريبين من الانتهاء تظهر دايمًا — لأنها نُشئت للعضو مباشرة
+      //  متابعات الأعضاء المنتهيين/القريبين من الانتهاء تظهر دايمًا — لأنها نُشئت للعضو مباشرة
       const isMemberDirectFollow = ['expiring-member', 'expired-member'].includes(fu.visitor?.source || '')
       if (fu.visitor?.phone && memberPhones.has(normalizePhone(fu.visitor.phone)) && fu.result !== 'subscribed' && !isMemberDirectFollow) return
       const phone = fu.visitor?.phone ? normalizePhone(fu.visitor.phone) : fu.id
@@ -555,7 +558,7 @@ export default function FollowUpsPage() {
     })
     const visibleFollowUps = Array.from(latestByVisitor.values())
 
-    // ✅ إنشاء Set من أرقام المتابعات الحقيقية النشطة لتجنب التكرار
+    //  إنشاء Set من أرقام المتابعات الحقيقية النشطة لتجنب التكرار
     // ملاحظة: متابعات "مشترك" لا تُضاف هنا — عشان نسمح بإنشاء entries منتهية/قريبة من الانتهاء للنفس الشخص
     const realFollowUpPhones = new Set<string>()
 
@@ -614,10 +617,10 @@ export default function FollowUpsPage() {
           id: `dayuse-${record.id}`,
           name: record.name,
           phone: record.phone,
-          source: 'invitation', // 🎁 استخدام يوم
+          source: 'invitation', //  استخدام يوم
           status: 'pending'
         },
-        // ✅ تمرير salesStaffId من سجل الـ DayUseInBody إن وُجد
+        //  تمرير salesStaffId من سجل الـ DayUseInBody إن وُجد
         assignedTo: (record as any).salesStaffId || undefined,
         assignedStaff: undefined,
         priority: 'medium'
@@ -638,10 +641,10 @@ export default function FollowUpsPage() {
           id: `invitation-${inv.id}`,
           name: inv.guestName,
           phone: inv.guestPhone,
-          source: 'member-invitation', // 👥 دعوة من عضو
+          source: 'member-invitation', //  دعوة من عضو
           status: 'pending'
         },
-        // ✅ ورّث salesStaffId من العضو الداعي إن أُرسل من الـ API
+        //  ورّث salesStaffId من العضو الداعي إن أُرسل من الـ API
         assignedTo: (inv.member as any)?.salesStaffId || undefined,
         assignedStaff: undefined,
         priority: 'medium'
@@ -673,7 +676,7 @@ export default function FollowUpsPage() {
 
     const merged = [...visibleFollowUps, ...expiredFollowUps, ...expiringFollowUps, ...dayUseFollowUps, ...invitationFollowUps, ...regularVisitorFollowUps]
 
-    // 🔒 لو سيلز → فلترة موحّدة (real + ephemeral) — staffId only
+    //  لو سيلز  فلترة موحّدة (real + ephemeral) — staffId only
     // الاستثناء الوحيد: الدعوات غير المسنَّدة (member-invitation بدون assignedTo) تظهر للجميع
     if (!permissionsLoading && user?.isSales && user?.staffId) {
       return merged.filter(fu => {
@@ -687,7 +690,7 @@ export default function FollowUpsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading])
 
-  // ✅ أرشفة تلقائية للمتابعات بتاعت الزوار اللي اشتركوا كأعضاء
+  //  أرشفة تلقائية للمتابعات بتاعت الزوار اللي اشتركوا كأعضاء
   const cleanupSignatureRef = useRef<string>('')
   useEffect(() => {
     if (loadingFollowUps || !allMembersData?.length) return
@@ -727,7 +730,7 @@ export default function FollowUpsPage() {
       .catch(() => {})
   }, [followUps, allMembersData, loadingFollowUps, normalizePhone, queryClient])
 
-  // ✅ إعادة فتح المتابعات المأرشفة لما عضو يقرب ينتهي أو ينتهي
+  //  إعادة فتح المتابعات المأرشفة لما عضو يقرب ينتهي أو ينتهي
   // عشان السجل والتاريخ يفضل محفوظ ويظهر في القائمة بدل entry جديد فاضي
   // ملاحظة: نعتمد على signature الأرقام (string) بدل الكائنات نفسها لتجنب الـ requests المتكررة
   const reopenSignatureRef = useRef<string>('')
@@ -741,7 +744,7 @@ export default function FollowUpsPage() {
 
     if (phones.length === 0) return
 
-    // ✅ تجنب إرسال نفس الـ request لو الأرقام لم تتغير
+    //  تجنب إرسال نفس الـ request لو الأرقام لم تتغير
     const signature = phones.slice().sort().join(',')
     if (reopenSignatureRef.current === signature) return
 
@@ -773,7 +776,7 @@ export default function FollowUpsPage() {
   }) => {
     setSubmitting(true)
     try {
-      // ✅ البحث عن بيانات الزائر/العضو للإرسال إلى الـ API
+      //  البحث عن بيانات الزائر/العضو للإرسال إلى الـ API
       let visitorData = null
 
       // البحث في الزوار
@@ -814,7 +817,7 @@ export default function FollowUpsPage() {
 
       if (response.ok) {
         toast.success(locale === 'ar' ? 'تم إضافة المتابعة بنجاح!' : 'Follow-up added successfully!')
-        // ✅ Invalidate جميع الـ queries لتجنب التكرار
+        //  Invalidate جميع الـ queries لتجنب التكرار
         await queryClient.invalidateQueries({ queryKey: ['followups'] })
         await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
         await queryClient.invalidateQueries({ queryKey: ['members-followups'] })
@@ -840,7 +843,7 @@ export default function FollowUpsPage() {
     // لا نحتاج scroll - هيظهر كـ modal
   }, [])
 
-  // ✅ تحسين أداء كبير: إنشاء Set من أرقام الأعضاء النشطين مرة واحدة
+  //  تحسين أداء كبير: إنشاء Set من أرقام الأعضاء النشطين مرة واحدة
   // بدلاً من البحث في array في كل مرة - يحسن O(n) إلى O(1)
   const activeMemberPhones = useMemo(() => {
     const phoneSet = new Set<string>()
@@ -858,13 +861,13 @@ export default function FollowUpsPage() {
     setShowHistoryModal(true)
   }, [])
 
-  // 💬 فتح modal القوالب
+  //  فتح modal القوالب
   const openTemplateModal = useCallback((visitor: Visitor) => {
     setSelectedVisitorForTemplate(visitor)
     setShowTemplateModal(true)
   }, [])
 
-  // 📤 إرسال رسالة من قالب
+  //  إرسال رسالة من قالب
   const sendWhatsAppTemplate = useCallback(async (template: MessageTemplate) => {
     if (!selectedVisitorForTemplate) return
 
@@ -890,10 +893,10 @@ export default function FollowUpsPage() {
         const sendResult = await sendResponse.json()
 
         if (sendResult.success) {
-          toast.success(locale === 'ar' ? '✅ تم إرسال الرسالة بنجاح على الواتساب' : '✅ Message sent successfully via WhatsApp')
+          toast.success(locale === 'ar' ? 'تم إرسال الرسالة بنجاح على الواتساب' : 'Message sent successfully via WhatsApp')
           setShowTemplateModal(false)
 
-          // 🚀 Optimistic update — نخلّي علامة "تم التواصل" تظهر فوراً في القايمة
+          //  Optimistic update — نخلّي علامة "تم التواصل" تظهر فوراً في القايمة
           //   من غير ما نستنى الـ refetch (اللي مع useInfiniteQuery بياخد وقت)
           const visitorPhone = selectedVisitorForTemplate.phone
           const normalizedPhone = (visitorPhone || '').replace(/\D/g, '')
@@ -957,9 +960,9 @@ export default function FollowUpsPage() {
             if (response.ok) {
               await queryClient.invalidateQueries({ queryKey: ['followups'] })
               await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
-              toast.success(locale === 'ar' ? '✅ تم تحديث حالة المتابعة تلقائياً' : '✅ Follow-up status updated automatically')
+              toast.success(locale === 'ar' ? 'تم تحديث حالة المتابعة تلقائياً' : 'Follow-up status updated automatically')
             } else {
-              // ❌ السيلز محتاج يعرف لو المتابعة ما اتسجلتش + السبب الحقيقي
+              //  السيلز محتاج يعرف لو المتابعة ما اتسجلتش + السبب الحقيقي
               const errData = await response.json().catch(() => ({}))
               console.error('Follow-up save failed:', response.status, errData)
               const apiError = errData?.error || (response.status === 403
@@ -968,26 +971,26 @@ export default function FollowUpsPage() {
                   ? (locale === 'ar' ? 'يجب تسجيل الدخول أولاً' : 'Please log in')
                   : '')
               toast.error(locale === 'ar'
-                ? `⚠️ الرسالة اتبعتت بس المتابعة ما اتسجلتش${apiError ? ` — ${apiError}` : ' — سجّلها يدوياً'}`
-                : `⚠️ Message sent but follow-up was NOT recorded${apiError ? ` — ${apiError}` : ' — log it manually'}`)
+                ? `الرسالة اتبعتت بس المتابعة ما اتسجلتش${apiError ? ` — ${apiError}` : ' — سجّلها يدوياً'}`
+                : `Message sent but follow-up was NOT recorded${apiError ? ` — ${apiError}` : ' — log it manually'}`)
               // rollback الـ optimistic update عشان الـ UI يعكس الحقيقة
               queryClient.invalidateQueries({ queryKey: ['followups'] })
             }
           } catch (error) {
             console.error('Error updating follow-up:', error)
             toast.error(locale === 'ar'
-              ? '⚠️ الرسالة اتبعتت بس المتابعة ما اتسجلتش — سجّلها يدوياً'
-              : '⚠️ Message sent but follow-up was NOT recorded — log it manually')
+              ? 'الرسالة اتبعتت بس المتابعة ما اتسجلتش — سجّلها يدوياً'
+              : 'Message sent but follow-up was NOT recorded — log it manually')
             queryClient.invalidateQueries({ queryKey: ['followups'] })
           }
         } else {
-          toast.error(`❌ ${locale === 'ar' ? 'فشل إرسال الرسالة' : 'Failed to send message'}: ${sendResult.error}`)
+          toast.error(`${locale === 'ar' ? 'فشل إرسال الرسالة' : 'Failed to send message'}: ${sendResult.error}`)
         }
         return
       }
 
       // Fallback: الواتساب غير متصل
-      toast.warning(locale === 'ar' ? '⚠️ الواتساب غير متصل. جاري فتح واتساب ويب...' : '⚠️ WhatsApp not connected. Opening WhatsApp Web...')
+      toast.warning(locale === 'ar' ? 'الواتساب غير متصل. جاري فتح واتساب ويب...' : 'WhatsApp not connected. Opening WhatsApp Web...')
       const url = createWhatsAppUrl(selectedVisitorForTemplate.phone, message)
       window.open(url, '_blank')
       setShowTemplateModal(false)
@@ -1002,14 +1005,14 @@ export default function FollowUpsPage() {
     }
   }, [selectedVisitorForTemplate, openQuickFollowUp, user, toast, queryClient, locale])
 
-  // 🗑️ حذف دعوة
+  //  حذف دعوة
   const handleDeleteInvitation = useCallback((invitationId: string, name: string) => {
     const originalId = invitationId.replace('invitation-', '')
     setDeleteTarget({ id: originalId, name, type: 'invitation' })
     setShowDeleteConfirm(true)
   }, [])
 
-  // 🗑️ حذف متابعة
+  //  حذف متابعة
   const handleDeleteFollowUp = useCallback((followUpId: string, visitorName: string) => {
     // لا نحذف المتابعات المولدة تلقائياً (الأعضاء المنتهيين والقريبين من الانتهاء)
     if (followUpId.startsWith('expired-') || followUpId.startsWith('expiring-') || followUpId.startsWith('dayuse-') || followUpId.startsWith('visitor-')) {
@@ -1062,7 +1065,7 @@ export default function FollowUpsPage() {
     setDeleteTarget(null)
   }, [])
 
-  // 🗑️ حذف زائر نهائياً
+  //  حذف زائر نهائياً
   const handleDeleteVisitor = useCallback((visitorId: string, visitorName: string) => {
     setDeleteVisitorTarget({ id: visitorId, name: visitorName })
     setShowDeleteVisitorConfirm(true)
@@ -1081,7 +1084,7 @@ export default function FollowUpsPage() {
     setDeleteVisitorTarget(null)
   }, [])
 
-  // ✏️ تعديل زائر أو دعوة
+  //  تعديل زائر أو دعوة
   const handleEditFollowUp = useCallback((followUp: any) => {
     const isInvitation = followUp.id.startsWith('invitation-')
     const originalId = isInvitation ? followUp.id.replace('invitation-', '') : followUp.visitor.id
@@ -1103,7 +1106,7 @@ export default function FollowUpsPage() {
       toast.error(locale === 'ar' ? 'الاسم مطلوب' : 'Name is required')
       return
     }
-    // ✅ تحقق من رقم الهاتف: أرقام فقط، 10-15 رقم
+    //  تحقق من رقم الهاتف: أرقام فقط، 10-15 رقم
     const phoneDigits = trimmedPhone.replace(/\D/g, '')
     if (phoneDigits.length < 10 || phoneDigits.length > 15) {
       toast.error(locale === 'ar' ? 'رقم الهاتف غير صحيح' : 'Invalid phone number')
@@ -1136,7 +1139,7 @@ export default function FollowUpsPage() {
     }
   }, [editTarget, toast, queryClient, locale])
 
-  // ✅ فتح نموذج الاشتراك السريع
+  //  فتح نموذج الاشتراك السريع
   const openQuickSubscribe = useCallback((visitor: Visitor, salesStaffId?: string) => {
     setSelectedVisitorForSubscribe(visitor)
     setSelectedFollowUpSalesStaffId(salesStaffId || null)
@@ -1153,7 +1156,7 @@ export default function FollowUpsPage() {
     }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   }, [selectedVisitorForHistory, followUps, normalizePhone])
 
-  // ✅ خريطة آخر كومنت لكل زائر (للعرض في الصفحة الرئيسية)
+  //  خريطة آخر كومنت لكل زائر (للعرض في الصفحة الرئيسية)
   // محسّن: O(n) بدون sort - نقارن الـ timestamp ونحتفظ بالأحدث فقط
   const lastCommentByPhone = useMemo(() => {
     const commentMap = new Map<string, { notes: string; createdAt: string; salesName?: string; ts: number }>()
@@ -1184,13 +1187,13 @@ export default function FollowUpsPage() {
     return lastCommentByPhone.get(normalizedPhone)
   }, [lastCommentByPhone, normalizePhone])
 
-  // ✅ تحسين أداء: استخدام Set lookup بدلاً من find - O(1) بدلاً من O(n)
+  //  تحسين أداء: استخدام Set lookup بدلاً من find - O(1) بدلاً من O(n)
   const isVisitorAMember = useCallback((phone: string) => {
     const normalizedVisitorPhone = normalizePhone(phone)
     return activeMemberPhones.has(normalizedVisitorPhone)
   }, [activeMemberPhones, normalizePhone])
 
-  // 🔍 مساعد للبحث عن memberId بالهاتف — يُستخدم في زر "تجديد سريع"
+  //  مساعد للبحث عن memberId بالهاتف — يُستخدم في زر "تجديد سريع"
   const phoneToMemberId = useMemo(() => {
     const map = new Map<string, string>()
     allMembersData.forEach((m: Member) => {
@@ -1205,7 +1208,7 @@ export default function FollowUpsPage() {
     return phoneToMemberId.get(normalizePhone(phone)) || null
   }, [phoneToMemberId, normalizePhone])
 
-  // ✅ تحسين الأداء: حساب أولوية المتابعة (memoized)
+  //  تحسين الأداء: حساب أولوية المتابعة (memoized)
   // todayMidnight بيتحدث مع بيانات المتابعات (كل ما الداتا اتجابت من جديد)
   const todayMidnight = useMemo(() => {
     const d = new Date()
@@ -1227,7 +1230,7 @@ export default function FollowUpsPage() {
     return 'upcoming'
   }, [todayMidnight])
 
-  // ✅ هل المتابعة دي بتاعة اليوزر الحالي؟
+  //  هل المتابعة دي بتاعة اليوزر الحالي؟
   // نعتمد على staffId فقط — أي fallback على salesName ضعيف ومش موثوق (في حالة تشابه أسماء)
   const isMyFollowUp = useCallback((fu: FollowUp): boolean => {
     if (!user?.staffId) return false
@@ -1253,9 +1256,9 @@ export default function FollowUpsPage() {
         const priority = getFollowUpPriority(fu)
         const matchesPriority = priorityFilter === 'all' || priority === priorityFilter
 
-        // 🔒 ملاحظة: فلترة السيلز للـ "متابعاتي بس" تتم في allFollowUps الآن (مرة واحدة)
+        //  ملاحظة: فلترة السيلز للـ "متابعاتي بس" تتم في allFollowUps الآن (مرة واحدة)
 
-        // ✅ فلتر السيلز (متابعاتي، المتأخرة بتاعتي، النهاردة)
+        //  فلتر السيلز (متابعاتي، المتأخرة بتاعتي، النهاردة)
         let matchesSales = true
         if (salesFilter === 'my-followups') {
           matchesSales = isMyFollowUp(fu)
@@ -1265,7 +1268,7 @@ export default function FollowUpsPage() {
           matchesSales = priority === 'today'
         }
 
-        // ✅ فلترة حسب المصدر
+        //  فلترة حسب المصدر
         let matchesSource = true
         if (sourceFilter !== 'all') {
           if (sourceFilter === 'expired-member') {
@@ -1284,11 +1287,11 @@ export default function FollowUpsPage() {
           }
         }
 
-        // ✅ فلتر موظف السيلز المحدد
+        //  فلتر موظف السيلز المحدد
         const matchesAssignedStaff = assignedStaffFilter === 'all'
           || (assignedStaffFilter === '__unassigned__' ? !fu.assignedTo : fu.assignedTo === assignedStaffFilter)
 
-        // 📅 فلتر بنطاق التاريخ (createdAt الخاص بالمتابعة)
+        //  فلتر بنطاق التاريخ (createdAt الخاص بالمتابعة)
         let matchesDateRange = true
         if (dateFromFilter || dateToFilter) {
           const created = new Date(fu.createdAt).getTime()
@@ -1308,7 +1311,7 @@ export default function FollowUpsPage() {
       })
       .sort((a, b) => {
         if (sortByPriority) {
-          // ✅ ترتيب حسب الأولوية ثم الأحدث أولاً
+          //  ترتيب حسب الأولوية ثم الأحدث أولاً
           const aPriority = getFollowUpPriority(a)
           const bPriority = getFollowUpPriority(b)
 
@@ -1318,7 +1321,7 @@ export default function FollowUpsPage() {
           if (priorityDiff !== 0) return priorityDiff
         }
 
-        // ✅ ترتيب حسب تاريخ الإضافة: الأحدث أولاً
+        //  ترتيب حسب تاريخ الإضافة: الأحدث أولاً
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
   }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
@@ -1339,15 +1342,15 @@ export default function FollowUpsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
-  // 📤 إرسال جماعي لجميع الأعضاء المفلترين
+  //  إرسال جماعي لجميع الأعضاء المفلترين
   const handleBulkSend = useCallback(async (template: MessageTemplate) => {
     // الحصول على القائمة المفلترة الحالية
     const targetVisitors = filteredFollowUps.map(fu => fu.visitor)
 
     const noTargetsMsg = locale === 'ar' ? 'لا يوجد أعضاء للإرسال إليهم' : 'No members to send to'
     const waNotConnectedMsg = locale === 'ar'
-      ? '❌ الواتساب غير متصل. افتح الإعدادات → واتساب لمسح QR code'
-      : '❌ WhatsApp is not connected. Open Settings → WhatsApp to scan the QR code'
+      ? 'الواتساب غير متصل. افتح الإعدادات  واتساب لمسح QR code'
+      : 'WhatsApp is not connected. Open Settings  WhatsApp to scan the QR code'
 
     if (targetVisitors.length === 0) {
       toast.error(noTargetsMsg)
@@ -1417,7 +1420,7 @@ export default function FollowUpsPage() {
           successCount++
 
           // تحديث حالة المتابعة إلى "تم التواصل"
-          // ❌ ما نخفيش لو الـ followup فشل — نـ flag الـ visitor عشان السيلز يعرف
+          //  ما نخفيش لو الـ followup فشل — نـ flag الـ visitor عشان السيلز يعرف
           try {
             const fuRes = await fetch('/api/visitors/followups', {
               method: 'POST',
@@ -1468,15 +1471,15 @@ export default function FollowUpsPage() {
     if (successCount > 0) {
       toast.success(
         locale === 'ar'
-          ? `✅ تم إرسال ${successCount} رسالة بنجاح${failCount > 0 ? ` (فشل ${failCount})` : ''}`
-          : `✅ Successfully sent ${successCount} messages${failCount > 0 ? ` (${failCount} failed)` : ''}`
+          ? `تم إرسال ${successCount} رسالة بنجاح${failCount > 0 ? ` (فشل ${failCount})` : ''}`
+          : `Successfully sent ${successCount} messages${failCount > 0 ? ` (${failCount} failed)` : ''}`
       )
     } else {
-      toast.error(locale === 'ar' ? '❌ فشل الإرسال لجميع الأرقام' : '❌ Failed to send to all numbers')
+      toast.error(locale === 'ar' ? 'فشل الإرسال لجميع الأرقام' : 'Failed to send to all numbers')
     }
   }, [filteredFollowUps, user, toast, queryClient, locale, t])
 
-  // ✅ Smart Bulk Script - Daily counter & Last session
+  //  Smart Bulk Script - Daily counter & Last session
   const getDailyCount = useCallback((): number => {
     try {
       const data = JSON.parse(localStorage.getItem('wa-bulk-daily') || '{}')
@@ -1499,14 +1502,14 @@ export default function FollowUpsPage() {
 
   const saveLastSession = useCallback((sent: number, filter: string) => {
     localStorage.setItem('wa-bulk-last-session', JSON.stringify({
-      // ✅ احفظ ISO عشان نقدر نعرضه بالـ locale الحالي وقت العرض
+      //  احفظ ISO عشان نقدر نعرضه بالـ locale الحالي وقت العرض
       date: new Date().toISOString(),
       sent,
       filter
     }))
   }, [])
 
-  // ✅ Smart Bulk Script - Text variation (anti-ban)
+  //  Smart Bulk Script - Text variation (anti-ban)
   const addTextVariation = useCallback((text: string): string => {
     const variations = [
       () => text + ' ',
@@ -1521,7 +1524,7 @@ export default function FollowUpsPage() {
     return variation()
   }, [])
 
-  // ✅ Smart Bulk Script - Presets
+  //  Smart Bulk Script - Presets
   const getBulkPresets = useCallback((): { name: string, messages: string[] }[] => {
     try {
       return JSON.parse(localStorage.getItem('wa-bulk-presets') || '[]')
@@ -1541,7 +1544,7 @@ export default function FollowUpsPage() {
     localStorage.setItem('wa-bulk-presets', JSON.stringify(presets))
   }, [getBulkPresets])
 
-  // ✅ Smart Bulk Script - Get filtered targets
+  //  Smart Bulk Script - Get filtered targets
   const getBulkScriptTargets = useCallback(() => {
     let targets = filteredFollowUps.map(fu => ({
       visitor: fu.visitor,
@@ -1570,7 +1573,7 @@ export default function FollowUpsPage() {
     return targets
   }, [filteredFollowUps, bulkScriptContactFilter, bulkScriptSkipDays])
 
-  // ✅ Fetch available WhatsApp sessions when modal opens
+  //  Fetch available WhatsApp sessions when modal opens
   const fetchWaSessions = useCallback(async () => {
     try {
       const res = await fetch('/api/whatsapp/status')
@@ -1583,7 +1586,7 @@ export default function FollowUpsPage() {
     } catch {}
   }, [])
 
-  // ✅ Smart Bulk Script - Test message
+  //  Smart Bulk Script - Test message
   const handleBulkScriptTest = useCallback(async () => {
     if (!bulkScriptTestPhone.trim() || bulkScriptMessages.every(m => !m.trim())) {
       toast.error(t('followups.bulkScript.toast.enterTestPhone'))
@@ -1606,14 +1609,14 @@ export default function FollowUpsPage() {
         body: JSON.stringify(sendBody)
       })
       const result = await res.json()
-      if (result.success) toast.success(`✅ ${result.sessionUsed !== undefined ? t('followups.bulkScript.toast.testSuccessSession').replace('{n}', String(result.sessionUsed + 1)) : t('followups.bulkScript.toast.testSuccess')}`)
-      else toast.error(`❌ ${t('followups.bulkScript.toast.testFail')} ${result.error || t('followups.bulkScript.unknownError')}`)
+      if (result.success) toast.success(result.sessionUsed !== undefined ? t('followups.bulkScript.toast.testSuccessSession').replace('{n}', String(result.sessionUsed + 1)) : t('followups.bulkScript.toast.testSuccess'))
+      else toast.error(`${t('followups.bulkScript.toast.testFail')} ${result.error || t('followups.bulkScript.unknownError')}`)
     } catch {
-      toast.error(`❌ ${t('followups.bulkScript.toast.connectionFail')}`)
+      toast.error(t('followups.bulkScript.toast.connectionFail'))
     }
   }, [bulkScriptTestPhone, bulkScriptMessages, user, toast, bulkScriptSessionIndex, t])
 
-  // ✅ Smart Bulk Script - Main send function
+  //  Smart Bulk Script - Main send function
   const handleBulkScriptStart = useCallback(async (retryTargets?: { visitor: any }[]) => {
     const validMessages = bulkScriptMessages.filter(m => m.trim())
     if (validMessages.length === 0) {
@@ -1625,7 +1628,7 @@ export default function FollowUpsPage() {
     const dailySent = getDailyCount()
     const remaining = bulkScriptDailyLimit - dailySent
     if (remaining <= 0) {
-      toast.error(`⚠️ ${t('followups.bulkScript.toast.dailyLimitReached').replace('{limit}', String(bulkScriptDailyLimit))}`)
+      toast.error(t('followups.bulkScript.toast.dailyLimitReached').replace('{limit}', String(bulkScriptDailyLimit)))
       return
     }
 
@@ -1638,7 +1641,7 @@ export default function FollowUpsPage() {
     // Limit targets to daily remaining
     if (targets.length > remaining) {
       targets = targets.slice(0, remaining)
-      toast.warning(`⚠️ ${t('followups.bulkScript.toast.limitedSend').replace('{count}', String(remaining))}`)
+      toast.warning(t('followups.bulkScript.toast.limitedSend').replace('{count}', String(remaining)))
     }
 
     // Check WhatsApp & get connected sessions for round-robin
@@ -1650,11 +1653,11 @@ export default function FollowUpsPage() {
         connectedSessionIndices = sessions.filter((s: any) => s.isReady).map((s: any) => s.sessionIndex)
       }
       if (connectedSessionIndices.length === 0) {
-        toast.error(`❌ ${t('followups.bulkScript.toast.whatsappNotConnected')}`)
+        toast.error(t('followups.bulkScript.toast.whatsappNotConnected'))
         return
       }
     } catch {
-      toast.error(`❌ ${t('followups.bulkScript.toast.whatsappNotConnected')}`)
+      toast.error(t('followups.bulkScript.toast.whatsappNotConnected'))
       return
     }
 
@@ -1686,10 +1689,10 @@ export default function FollowUpsPage() {
       }
       if (bulkScriptAbortedRef.current) break
 
-      // ✅ Batch break - every N messages, take a longer break
+      //  Batch break - every N messages, take a longer break
       if (i > 0 && i % bulkScriptBatchSize === 0 && !bulkScriptAbortedRef.current) {
         const batchBreak = Math.floor(Math.random() * (bulkScriptBatchBreakMax - bulkScriptBatchBreakMin + 1)) + bulkScriptBatchBreakMin
-        setBulkScriptProgress(prev => ({ ...prev, currentName: `⏸️ ${t('followups.bulkScript.batchBreakMsg').replace('{minutes}', String(Math.ceil(batchBreak / 60)))}`, countdown: batchBreak }))
+        setBulkScriptProgress(prev => ({ ...prev, currentName: t('followups.bulkScript.batchBreakMsg').replace('{minutes}', String(Math.ceil(batchBreak / 60))), countdown: batchBreak }))
         for (let s = batchBreak; s > 0; s--) {
           if (bulkScriptAbortedRef.current) break
           while (bulkScriptPausedRef.current && !bulkScriptAbortedRef.current) {
@@ -1709,7 +1712,7 @@ export default function FollowUpsPage() {
       setBulkScriptProgress(prev => ({ ...prev, current: i + 1, currentName: visitor.name, currentMsgIndex: msgIndex + 1, successCount: successList.length, failCount: failedList.length, countdown: 0 }))
 
       try {
-        // ✅ Apply text variation for anti-ban
+        //  Apply text variation for anti-ban
         let message = validMessages[msgIndex]
           .replace(/\{name\}/g, visitor.name)
           .replace(/\{salesName\}/g, user?.name || t('followups.bulkScript.defaultSalesName'))
@@ -1735,7 +1738,7 @@ export default function FollowUpsPage() {
         if (result.success) {
           successList.push({ name: visitor.name, phone: visitor.phone })
           incrementDailyCount(1)
-          // Update followup — ❌ ما نخفيش الأخطاء، السيلز محتاج يعرف لو متابعة ضاعت
+          // Update followup —  ما نخفيش الأخطاء، السيلز محتاج يعرف لو متابعة ضاعت
           try {
             const fuRes = await fetch('/api/visitors/followups', {
               method: 'POST',
@@ -1829,7 +1832,7 @@ export default function FollowUpsPage() {
       'instagram': t('followups.sources.instagram'),
       'friend': t('followups.sources.friend'),
       'other': t('followups.sources.other'),
-      'website': locale === 'ar' ? '🌐 موقع الويب' : '🌐 Website',
+      'website': locale === 'ar' ? 'موقع الويب' : 'Website',
     }
     return labels[source] || source
   }, [t, locale])
@@ -1839,29 +1842,32 @@ export default function FollowUpsPage() {
 
     if (priority === 'overdue') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-          🔥 {t('followups.priority.overdue')}
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+          <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.092 18.246 9.61 18 11 18 12c0 1.105.395 2.16 1.103 2.93.711.769 1.066 1.756.554 2.727z"/></svg>
+          {t('followups.priority.overdue')}
         </span>
       )
     }
     if (priority === 'today') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-          ⚡ {t('followups.priority.today')}
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">
+          <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          {t('followups.priority.today')}
         </span>
       )
     }
     if (priority === 'upcoming') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
-          📅 {t('followups.priority.upcoming')}
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
+          <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          {t('followups.priority.upcoming')}
         </span>
       )
     }
     return null
   }, [getFollowUpPriority, t])
 
-  // ✅ counters للـ quick filter buttons — تتحدّث ديناميكياً مع باقي الفلاتر
+  //  counters للـ quick filter buttons — تتحدّث ديناميكياً مع باقي الفلاتر
   //    (source, priority, search, result, assignedStaff) — لكن مش بتفلتر بـ contacted نفسه
   //    عشان لما المستخدم يختار "اعضاء منتهين" يشوف عددهم في "تم التواصل" / "لم يتم التواصل"
   const quickFilterCounts = useMemo(() => {
@@ -1881,7 +1887,7 @@ export default function FollowUpsPage() {
       const visibleForUser = !isSales || mine
       if (!visibleForUser) continue
 
-      // 🔍 search
+      //  search
       if (debouncedSearchTerm) {
         const ok =
           normalizeArabic(fu.visitor.name).includes(searchNormalized) ||
@@ -1891,19 +1897,19 @@ export default function FollowUpsPage() {
         if (!ok) continue
       }
 
-      // 📊 result
+      //  result
       if (resultFilter !== 'all' && fu.result !== resultFilter) continue
 
-      // 🎯 priority
+      //  priority
       const priority = getFollowUpPriority(fu)
       if (priorityFilter !== 'all' && priority !== priorityFilter) continue
 
-      // 🧑‍💼 sales filter
+      //  sales filter
       if (salesFilter === 'my-followups' && !isMyFollowUp(fu)) continue
       if (salesFilter === 'my-overdue' && (!isMyFollowUp(fu) || priority !== 'overdue')) continue
       if (salesFilter === 'today' && priority !== 'today') continue
 
-      // 👤 assigned staff
+      //  assigned staff
       if (assignedStaffFilter !== 'all') {
         if (assignedStaffFilter === '__unassigned__') {
           if (fu.assignedTo) continue
@@ -1912,7 +1918,7 @@ export default function FollowUpsPage() {
         }
       }
 
-      // 🏷️ source
+      //  source
       if (sourceFilter !== 'all') {
         const src = fu.visitor.source
         if (sourceFilter === 'expired-member' && src !== 'expired-member') continue
@@ -1923,7 +1929,7 @@ export default function FollowUpsPage() {
         else if (sourceFilter === 'visitors' && ['expired-member', 'expiring-member', 'member-invitation', 'invitation', 'website'].includes(src)) continue
       }
 
-      // 📅 date range
+      //  date range
       if (dateFromFilter || dateToFilter) {
         const created = new Date(fu.createdAt).getTime()
         if (dateFromFilter) {
@@ -1943,7 +1949,7 @@ export default function FollowUpsPage() {
     return { myFollowUps, todayCount, notContacted, contacted }
   }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter])
 
-  // ✅ قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) — تُستخدم لحساب أرقام أزرار المصدر
+  //  قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) — تُستخدم لحساب أرقام أزرار المصدر
   // عشان لما المستخدم يختار priority/contacted/search، الأرقام في أزرار المصدر تتحدّث برضو
   const followUpsFilteredExceptSource = useMemo(() => {
     return allFollowUps.filter(fu => {
@@ -2003,7 +2009,7 @@ export default function FollowUpsPage() {
       contactedToday: followUps.filter(fu =>
         fu.contacted && new Date(fu.updatedAt || fu.createdAt).toDateString() === todayStr
       ).length,
-      // ✅ counts تحترم الفلاتر الأخرى (priority, contacted, search, إلخ)
+      //  counts تحترم الفلاتر الأخرى (priority, contacted, search, إلخ)
       expiredMembers: base.filter(fu => fu.visitor.source === 'expired-member').length,
       expiringMembers: base.filter(fu => fu.visitor.source === 'expiring-member').length,
       dayUse: base.filter(fu => fu.visitor.source === 'invitation').length,
@@ -2014,7 +2020,7 @@ export default function FollowUpsPage() {
     }
   }, [followUpsFilteredExceptSource, followUps, isVisitorAMember, getFollowUpPriority])
 
-  // 🎂 أعضاء عيد ميلادهم اليوم — للنشطين فقط
+  //  أعضاء عيد ميلادهم اليوم — للنشطين فقط
   const birthdayMembers = useMemo(() => {
     const today = new Date()
     const todayDay = today.getDate()
@@ -2033,9 +2039,9 @@ export default function FollowUpsPage() {
       })
   }, [allMembersData])
 
-  // ✅ قائمة المتحولين لأعضاء - مبسط ومحسّن: أي شخص رقمه موجود في الأعضاء النشطين
+  //  قائمة المتحولين لأعضاء - مبسط ومحسّن: أي شخص رقمه موجود في الأعضاء النشطين
   // يشمل: زوار، دعوات، أعضاء منتهيين، أعضاء قريبين من الانتهاء - كلهم بنفس المنطق
-  // ✅ dedupe بالـ normalized phone عشان منكررش نفس الشخص
+  //  dedupe بالـ normalized phone عشان منكررش نفس الشخص
   const convertedMembers = useMemo(() => {
     const seen = new Set<string>()
     const out: typeof allFollowUps = []
@@ -2049,7 +2055,7 @@ export default function FollowUpsPage() {
     return out
   }, [allFollowUps, isVisitorAMember, normalizePhone])
 
-  // 📊 إحصائيات فردية لكل سيلز
+  //  إحصائيات فردية لكل سيلز
   // محسّن: pass واحد على allFollowUps بدلاً من filter لكل سيلز
   // كل الإحصائيات بتعتمد على نفس المصدر (allFollowUps) للاتساق
   const salesStats = useMemo(() => {
@@ -2107,9 +2113,7 @@ export default function FollowUpsPage() {
   // التحقق من الصلاحيات
   if (permissionsLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl">{t('followups.loading')}</div>
-      </div>
+      <LoadingScreen fullScreen message={t('followups.loading')} />
     )
   }
 
@@ -2121,17 +2125,17 @@ export default function FollowUpsPage() {
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       {/* Streaming progress — يظهر بس وقت تحميل دفعات الـ background للمتابعات */}
       {(followUpsFetchingNext || followUpsHasNext) && totalFollowUpsCount > followUps.length && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 p-3 rounded-xl mb-4 flex items-center gap-3" dir={direction}>
-          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full shrink-0"></div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 p-3 rounded-xl mb-4 flex items-center gap-3" dir={direction} aria-busy="true" aria-live="polite">
+          <svg className="animate-spin h-4 w-4 text-blue-500 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
+            <div className="text-sm font-bold text-blue-800 dark:text-blue-300">
               {locale === 'ar'
                 ? `جارٍ تحميل باقي المتابعات في الخلفية... ${followUps.length} / ${totalFollowUpsCount}`
                 : `Loading remaining follow-ups in background... ${followUps.length} / ${totalFollowUpsCount}`}
             </div>
             <div className="mt-1 h-1.5 w-full bg-blue-100 dark:bg-blue-900/40 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 dark:bg-blue-400 transition-all duration-300"
+                className="h-full bg-blue-500 dark:bg-blue-400 transition-[width] duration-300"
                 style={{ width: `${Math.min(100, Math.round((followUps.length / Math.max(1, totalFollowUpsCount)) * 100))}%` }}
               />
             </div>
@@ -2143,19 +2147,20 @@ export default function FollowUpsPage() {
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-              <span>📝</span>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <svg className="w-7 h-7 text-primary-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
               <span>{t('followups.title')}</span>
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base">{t('followups.subtitle')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('followups.subtitle')}</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             {stats.expiringMembers > 0 && (
               <button
                 onClick={() => setShowExpiringPopup(true)}
-                className="w-full sm:w-auto bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg font-semibold shadow-lg flex items-center justify-center gap-2"
+                className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors duration-200"
               >
-                ⏰ {locale === 'ar' ? `قرب ينتهي (${stats.expiringMembers})` : `Expiring (${stats.expiringMembers})`}
+                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {locale === 'ar' ? `قرب ينتهي (${stats.expiringMembers})` : `Expiring (${stats.expiringMembers})`}
               </button>
             )}
           </div>
@@ -2163,18 +2168,27 @@ export default function FollowUpsPage() {
 
         {/* Expiring Days Popup */}
         {showExpiringPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowExpiringPopup(false)}>
-            <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+            onClick={() => setShowExpiringPopup(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="expiring-popup-title"
+          >
             <div
-              className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm border-2 border-yellow-300 dark:border-yellow-600"
+              className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm ring-1 ring-amber-200 dark:ring-amber-900/50 animate-modal-in"
               onClick={e => e.stopPropagation()}
             >
               <button
                 onClick={() => setShowExpiringPopup(false)}
-                className="absolute top-3 end-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none"
-              >✕</button>
-              <h3 className="font-bold text-lg text-yellow-800 dark:text-yellow-200 mb-4 flex items-center gap-2">
-                ⏰ {locale === 'ar' ? 'عرض الأعضاء اللي اشتراكهم هينتهي خلال:' : 'Show members expiring within:'}
+                aria-label={direction === 'rtl' ? 'إغلاق' : 'Close'}
+                className="absolute top-3 end-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors duration-200"
+              >
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+              <h3 id="expiring-popup-title" className="font-bold text-lg text-amber-800 dark:text-amber-200 mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {locale === 'ar' ? 'عرض الأعضاء اللي اشتراكهم هينتهي خلال:' : 'Show members expiring within:'}
               </h3>
               <div className="flex items-center gap-3 mb-5">
                 <input
@@ -2189,106 +2203,116 @@ export default function FollowUpsPage() {
                     setExpiringDays(v)
                     localStorage.setItem('followups_expiringDays', String(v))
                   }}
-                  className="px-4 py-2 border-2 border-yellow-400 dark:border-yellow-600 dark:bg-gray-700 dark:text-white rounded-lg font-bold text-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 w-24"
+                  className="px-4 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-amber-500 w-24 transition-colors duration-200"
                 />
-                <span className="font-bold text-yellow-900 dark:text-yellow-100">{t('followups.days')}</span>
+                <span className="font-bold text-amber-900 dark:text-amber-100">{t('followups.days')}</span>
               </div>
-              <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-xl p-4 text-center">
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-1">{t('followups.stats.membersCount')}</p>
-                <p className="text-5xl font-bold text-yellow-900 dark:text-yellow-100">{stats.expiringMembers}</p>
+              <div className="bg-amber-50 dark:bg-amber-900/30 rounded-xl p-4 text-center ring-1 ring-amber-200 dark:ring-amber-900/50">
+                <p className="text-xs text-amber-700 dark:text-amber-300 mb-1 font-bold uppercase tracking-wider">{t('followups.stats.membersCount')}</p>
+                <p className="text-5xl font-bold text-amber-900 dark:text-amber-100">{stats.expiringMembers}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* View Mode Tabs */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
           <button
             onClick={() => setViewMode('list')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            aria-current={viewMode === 'list' ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold transition-colors duration-200 ${
               viewMode === 'list'
-                ? 'bg-primary-600 text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
+                ? 'bg-primary-500 text-primary-contrast'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            📋 {t('followups.viewModes.list')}
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+            {t('followups.viewModes.list')}
           </button>
           {!user?.isSales && (
           <button
             onClick={() => setViewMode('analytics')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            aria-current={viewMode === 'analytics' ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold transition-colors duration-200 ${
               viewMode === 'analytics'
-                ? 'bg-primary-600 text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
+                ? 'bg-primary-500 text-primary-contrast'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            📈 {t('followups.viewModes.analytics')}
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6m0 13l-3-3m3 3l3-3m6 3V10m0 9l3-3m-3 3l-3-3"/></svg>
+            {t('followups.viewModes.analytics')}
           </button>
           )}
           <button
             onClick={() => setViewMode('collection')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            aria-current={viewMode === 'collection' ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold transition-colors duration-200 ${
               viewMode === 'collection'
-                ? 'bg-orange-500 text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
+                ? 'bg-orange-500 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            💰 {locale === 'ar' ? (user?.isSales ? 'عمولتي' : 'التحصيل') : (user?.isSales ? 'My Commission' : 'Collection')}
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {locale === 'ar' ? (user?.isSales ? 'عمولتي' : 'التحصيل') : (user?.isSales ? 'My Commission' : 'Collection')}
           </button>
 
           <button
             onClick={() => setViewMode('calendar')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            aria-current={viewMode === 'calendar' ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold transition-colors duration-200 ${
               viewMode === 'calendar'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            📅 {locale === 'ar' ? 'الكاليندر' : 'Calendar'}
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            {locale === 'ar' ? 'الكاليندر' : 'Calendar'}
           </button>
 
           {/* إدارة السيلز — للأدمن والأونر أو من له صلاحية إدارة الموظفين */}
           {canManageSales && (
             <button
               onClick={() => setViewMode('sales-mgmt')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              aria-current={viewMode === 'sales-mgmt' ? 'page' : undefined}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold transition-colors duration-200 ${
                 viewMode === 'sales-mgmt'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
-              ⚙️ {locale === 'ar' ? 'إدارة السيلز' : 'Sales Mgmt'}
+              <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              {locale === 'ar' ? 'إدارة السيلز' : 'Sales Mgmt'}
             </button>
           )}
         </div>
 
-        {/* 🎂 أعضاء عيد ميلادهم اليوم */}
+        {/* أعضاء عيد ميلادهم اليوم */}
         {birthdayMembers.length > 0 && (
-          <div className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 border-2 border-pink-300 dark:border-pink-600 rounded-xl p-3 sm:p-4 mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-pink-200 dark:ring-pink-900/50 p-3 sm:p-4 mb-4">
             <h3 className="font-bold text-pink-900 dark:text-pink-100 mb-3 flex items-center gap-2 text-sm sm:text-base">
-              <span className="text-xl">🎂</span>
+              <svg className="w-5 h-5 text-pink-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-9m0 0l3 3m-3-3l-3 3m3-12c2 2 5 0 5 3a5 5 0 11-10 0c0-3 3-1 5-3z"/></svg>
               <span>{direction === 'rtl' ? 'أعياد ميلاد اليوم' : "Today's Birthdays"}</span>
-              <span className="bg-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">{birthdayMembers.length}</span>
+              <span className="inline-flex items-center bg-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">{birthdayMembers.length}</span>
             </h3>
             <div className="flex flex-wrap gap-3">
               {birthdayMembers.map(m => (
                 <a
                   key={m.id}
-                  href={createWhatsAppUrl(m.phone, `🎂 كل سنة وانت طيب ${m.name}! 🎉`)}
+                  href={createWhatsAppUrl(m.phone, direction === 'rtl' ? `كل سنة وانت طيب ${m.name}!` : `Happy Birthday ${m.name}!`)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-white dark:bg-gray-800 border-2 border-pink-300 dark:border-pink-600 rounded-xl px-3 py-2 hover:shadow-md transition-all hover:scale-105"
+                  className="flex items-center gap-2 bg-white dark:bg-gray-800 ring-1 ring-pink-200 dark:ring-pink-900/50 rounded-xl px-3 py-2 hover:shadow-md transition-shadow duration-200"
                 >
                   <div className="w-9 h-9 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {m.name.charAt(0)}
                   </div>
                   <div>
                     <p className="font-bold text-gray-800 dark:text-gray-100 text-sm">{m.name}</p>
-                    <p className="text-xs text-pink-600 dark:text-pink-400 font-semibold">
-                      🎉 {direction === 'rtl' ? `${m.age} سنة` : `${m.age} years old`}
+                    <p className="text-xs text-pink-600 dark:text-pink-400 font-bold">
+                      {direction === 'rtl' ? `${m.age} سنة` : `${m.age} years old`}
                     </p>
                   </div>
-                  <span className="text-green-500 text-base mr-1">💬</span>
+                  <svg className="w-4 h-4 text-green-500 ms-1" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z"/></svg>
                 </a>
               ))}
             </div>
@@ -2329,19 +2353,27 @@ export default function FollowUpsPage() {
 
       {/* Bulk Send Progress Modal */}
       {bulkSending && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulk-send-title"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in">
             <div className="text-center mb-6">
-              <div className="text-6xl mb-4 animate-pulse">📤</div>
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+              <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400 mx-auto mb-4 flex items-center justify-center animate-pulse">
+                <svg className="w-8 h-8" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              </div>
+              <h2 id="bulk-send-title" className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                 {t('followups.bulkScript.bulkSending')}
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
                 {bulkProgress.current} / {bulkProgress.total}
               </p>
               {bulkProgress.currentName && (
-                <p className="text-sm text-primary-600 dark:text-primary-400 mt-2">
-                  📱 {t('followups.bulkScript.sendingToLabel')} <span className="font-bold">{bulkProgress.currentName}</span>
+                <p className="text-sm text-primary-600 dark:text-primary-400 mt-2 inline-flex items-center gap-1.5">
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.68l1.5 4.49a1 1 0 01-.5 1.21l-2.25 1.13a11.04 11.04 0 005.52 5.52l1.13-2.25a1 1 0 011.21-.5l4.49 1.5a1 1 0 01.68.95V19a2 2 0 01-2 2h-1C9.72 21 3 14.28 3 6V5z"/></svg>
+                  {t('followups.bulkScript.sendingToLabel')} <span className="font-bold">{bulkProgress.currentName}</span>
                 </p>
               )}
             </div>
@@ -2350,7 +2382,7 @@ export default function FollowUpsPage() {
             <div className="mb-6">
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500 ease-out flex items-center justify-center text-xs font-bold text-white"
+                  className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-[width] duration-500 ease-out flex items-center justify-center text-xs font-bold text-white"
                   style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
                 >
                   {Math.round((bulkProgress.current / bulkProgress.total) * 100)}%
@@ -2359,9 +2391,10 @@ export default function FollowUpsPage() {
             </div>
 
             {/* Info */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-4 mb-4">
-              <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
-                ⏰ {t('followups.bulkScript.waitBetween')}
+            <div className="bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-800 dark:text-blue-300 text-center inline-flex items-center gap-1.5 justify-center w-full">
+                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {t('followups.bulkScript.waitBetween')}
               </p>
             </div>
 
@@ -2370,21 +2403,31 @@ export default function FollowUpsPage() {
               onClick={() => {
                 bulkSendAbortedRef.current = true
               }}
-              className="w-full bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-bold"
+              className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition-colors duration-200 inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
             >
-              🛑 {t('followups.bulkScript.stopSending')}
+              <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              {t('followups.bulkScript.stopSending')}
             </button>
           </div>
         </div>
       )}
 
-      {/* ✅ Smart Bulk Script - Setup Modal */}
+      {/* Smart Bulk Script - Setup Modal */}
       {showBulkScriptModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowBulkScriptModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          onClick={() => setShowBulkScriptModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulk-script-setup-title"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-5 rounded-t-2xl">
-              <h2 className="text-xl font-bold flex items-center gap-2">🤖 {t('followups.bulkScript.title')}</h2>
+              <h2 id="bulk-script-setup-title" className="text-xl font-bold flex items-center gap-2">
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                {t('followups.bulkScript.title')}
+              </h2>
               <p className="text-sm opacity-90 mt-1">{t('followups.bulkScript.subtitle')}</p>
             </div>
 
@@ -2395,20 +2438,21 @@ export default function FollowUpsPage() {
                 const dailySent = getDailyCount()
                 if (!lastSession && dailySent === 0) return null
                 return (
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 space-y-1">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg p-3 space-y-1">
                     {lastSession && (
-                      <p className="text-sm text-blue-800 dark:text-blue-300">
-                        📋 {t('followups.bulkScript.lastSend')} <span className="font-bold">{(() => {
-                          // ✅ ندعم القيم القديمة (string format) والجديدة (ISO)
+                      <p className="text-sm text-blue-800 dark:text-blue-300 inline-flex items-center gap-1.5 flex-wrap">
+                        <svg className="w-4 h-4 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <span>{t('followups.bulkScript.lastSend')} <span className="font-bold">{(() => {
                           const d = new Date(lastSession.date)
                           return isNaN(d.getTime())
                             ? lastSession.date
                             : d.toLocaleString(direction === 'rtl' ? 'ar-EG' : 'en-US')
-                        })()}</span> — {t('followups.bulkScript.sentCount')} <span className="font-bold">{lastSession.sent}</span> {t('followups.bulkScript.message')}
+                        })()}</span> — {t('followups.bulkScript.sentCount')} <span className="font-bold">{lastSession.sent}</span> {t('followups.bulkScript.message')}</span>
                       </p>
                     )}
-                    <p className="text-sm text-blue-800 dark:text-blue-300">
-                      📊 {t('followups.bulkScript.sentToday')} <span className="font-bold">{dailySent}</span> / <span className="font-bold">{bulkScriptDailyLimit}</span> — {t('followups.bulkScript.remaining')} <span className="font-bold text-green-600 dark:text-green-400">{Math.max(0, bulkScriptDailyLimit - dailySent)}</span> {t('followups.bulkScript.message')}
+                    <p className="text-sm text-blue-800 dark:text-blue-300 inline-flex items-center gap-1.5 flex-wrap">
+                      <svg className="w-4 h-4 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6m0 13l-3-3m3 3l3-3m6 3V10m0 9l3-3m-3 3l-3-3"/></svg>
+                      <span>{t('followups.bulkScript.sentToday')} <span className="font-bold">{dailySent}</span> / <span className="font-bold">{bulkScriptDailyLimit}</span> — {t('followups.bulkScript.remaining')} <span className="font-bold text-green-600 dark:text-green-400">{Math.max(0, bulkScriptDailyLimit - dailySent)}</span> {t('followups.bulkScript.message')}</span>
                     </p>
                   </div>
                 )
@@ -2416,32 +2460,41 @@ export default function FollowUpsPage() {
 
               {/* WhatsApp Session Picker */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">📱 {t('followups.bulkScript.sendFrom')}</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 inline-flex items-center gap-1.5">
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  {t('followups.bulkScript.sendFrom')}
+                </label>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setBulkScriptSessionIndex('auto')}
-                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
+                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors duration-200 ring-1 inline-flex items-center gap-1.5 ${
                       bulkScriptSessionIndex === 'auto'
-                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-400'
-                        : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 ring-purple-400 dark:ring-purple-700'
+                        : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 ring-gray-200 dark:ring-gray-600'
                     }`}
                   >
-                    🔄 {t('followups.bulkScript.auto')}
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    {t('followups.bulkScript.auto')}
                   </button>
                   {availableWaSessions.map((sess) => (
                     <button
                       key={sess.sessionIndex}
                       onClick={() => setBulkScriptSessionIndex(sess.sessionIndex)}
                       disabled={!sess.isReady}
-                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-all border-2 ${
+                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors duration-200 ring-1 inline-flex items-center gap-1.5 ${
                         bulkScriptSessionIndex === sess.sessionIndex
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-400'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 ring-green-400 dark:ring-green-700'
                           : sess.isReady
-                            ? 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-green-300'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed'
+                            ? 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 ring-gray-200 dark:ring-gray-600 hover:ring-green-300'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 ring-gray-200 dark:ring-gray-700 opacity-50 cursor-not-allowed'
                       }`}
                     >
-                      {sess.isReady ? '✅' : '⭕'} {t('followups.bulkScript.numberLabel')} {sess.sessionIndex + 1}
+                      {sess.isReady ? (
+                        <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                      ) : (
+                        <svg className="w-4 h-4" {...stroke}><circle cx="12" cy="12" r="9"/></svg>
+                      )}
+                      {t('followups.bulkScript.numberLabel')} {sess.sessionIndex + 1}
                       {sess.phoneNumber && <span className="text-xs font-mono ms-1" dir="ltr">{sess.phoneNumber}</span>}
                     </button>
                   ))}
@@ -2453,9 +2506,9 @@ export default function FollowUpsPage() {
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t('followups.bulkScript.contactFilter')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {([
-                    { value: 'not-contacted' as const, label: t('followups.bulkScript.notContacted'), icon: '🆕' },
-                    { value: 'contacted' as const, label: t('followups.bulkScript.contacted'), icon: '📞' },
-                    { value: 'all' as const, label: t('followups.bulkScript.everyone'), icon: '👥' },
+                    { value: 'not-contacted' as const, label: t('followups.bulkScript.notContacted'), iconPath: 'M12 6v6m0 0v6m0-6h6m-6 0H6' },
+                    { value: 'contacted' as const, label: t('followups.bulkScript.contacted'), iconPath: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.95.68l1.5 4.49a1 1 0 01-.5 1.21l-2.25 1.13a11.04 11.04 0 005.52 5.52l1.13-2.25a1 1 0 011.21-.5l4.49 1.5a1 1 0 01.68.95V19a2 2 0 01-2 2h-1C9.72 21 3 14.28 3 6V5z' },
+                    { value: 'all' as const, label: t('followups.bulkScript.everyone'), iconPath: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z' },
                   ] as const).map(opt => {
                     const count = opt.value === 'all' ? filteredFollowUps.length
                       : opt.value === 'contacted' ? filteredFollowUps.filter(f => f.contacted).length
@@ -2464,13 +2517,15 @@ export default function FollowUpsPage() {
                       <button
                         key={opt.value}
                         onClick={() => setBulkScriptContactFilter(opt.value)}
-                        className={`p-3 rounded-lg text-center transition-all text-sm font-medium border-2 ${
+                        className={`p-3 rounded-lg text-center transition-colors duration-200 text-sm font-medium ring-1 ${
                           bulkScriptContactFilter === opt.value
-                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                            : 'border-gray-200 dark:border-gray-600 hover:border-purple-300'
+                            ? 'ring-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                            : 'ring-gray-200 dark:ring-gray-600 hover:ring-purple-300 text-gray-700 dark:text-gray-200'
                         }`}
                       >
-                        <div className="text-lg">{opt.icon}</div>
+                        <div className="flex justify-center">
+                          <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d={opt.iconPath}/></svg>
+                        </div>
                         <div className="mt-1">{opt.label}</div>
                         <div className="text-xs font-bold text-purple-600 dark:text-purple-400 mt-1">{count}</div>
                       </button>
@@ -2481,15 +2536,16 @@ export default function FollowUpsPage() {
 
               {/* C. Skip Days */}
               {bulkScriptContactFilter !== 'not-contacted' && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                  <label className="flex items-center gap-2 text-sm font-medium text-yellow-800 dark:text-yellow-300">
-                    ⏭️ {t('followups.bulkScript.skipRecentLabel')}
+                <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg p-3">
+                  <label className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-300">
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                    {t('followups.bulkScript.skipRecentLabel')}
                     <input
                       type="number"
                       min={0}
                       value={bulkScriptSkipDays}
                       onChange={e => setBulkScriptSkipDays(parseInt(e.target.value) || 0)}
-                      className="w-16 px-2 py-1 rounded border border-yellow-300 dark:border-yellow-700 bg-white dark:bg-gray-700 text-center font-bold"
+                      className="w-16 px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-700 text-center font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors duration-200"
                     />
                     {t('followups.bulkScript.day')}
                   </label>
@@ -2503,9 +2559,10 @@ export default function FollowUpsPage() {
                   {bulkScriptMessages.length < 10 && (
                     <button
                       onClick={() => setBulkScriptMessages([...bulkScriptMessages, ''])}
-                      className="text-xs px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg font-bold hover:bg-purple-200"
+                      className="text-xs px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg font-bold hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors duration-200 inline-flex items-center gap-1"
                     >
-                      + {t('followups.bulkScript.addMessage')}
+                      <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                      {t('followups.bulkScript.addMessage')}
                     </button>
                   )}
                 </div>
@@ -2517,9 +2574,10 @@ export default function FollowUpsPage() {
                         {bulkScriptMessages.length > 1 && (
                           <button
                             onClick={() => setBulkScriptMessages(bulkScriptMessages.filter((_, i) => i !== idx))}
-                            className="text-xs text-red-500 hover:text-red-700 font-bold"
+                            className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 font-bold inline-flex items-center gap-1 transition-colors duration-200"
                           >
-                            ✕ {t('followups.bulkScript.deleteMessage')}
+                            <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                            {t('followups.bulkScript.deleteMessage')}
                           </button>
                         )}
                       </div>
@@ -2531,38 +2589,40 @@ export default function FollowUpsPage() {
                           setBulkScriptMessages(updated)
                         }}
                         rows={3}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors duration-200"
                         placeholder={t('followups.bulkScript.messagePlaceholder').replace('{n}', String(idx + 1))}
                         dir={direction}
                       />
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  💡 {t('followups.bulkScript.availableVariables')} <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{name}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{salesName}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{date}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{time}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{phone}'}</code>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 inline-flex items-start gap-1.5 flex-wrap">
+                  <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                  <span>{t('followups.bulkScript.availableVariables')} <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{name}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{salesName}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{date}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{time}'}</code> <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{'{phone}'}</code></span>
                 </p>
               </div>
 
               {/* E. Presets */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+              <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <input
                     type="text"
                     value={bulkScriptPresetName}
                     onChange={e => setBulkScriptPresetName(e.target.value)}
                     placeholder={t('followups.bulkScript.presetNamePlaceholder')}
-                    className="flex-1 min-w-[120px] px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                    className="flex-1 min-w-[120px] px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
                   />
                   <button
                     onClick={() => {
                       if (!bulkScriptPresetName.trim()) { toast.error(t('followups.bulkScript.toast.presetNameRequired')); return }
                       saveBulkPreset(bulkScriptPresetName.trim(), bulkScriptMessages)
-                      toast.success(`✅ ${t('followups.bulkScript.toast.presetSaved')}`)
+                      toast.success(t('followups.bulkScript.toast.presetSaved'))
                       setBulkScriptPresetName('')
                     }}
-                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700"
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold inline-flex items-center gap-1 transition-colors duration-200"
                   >
-                    💾 {t('followups.bulkScript.savePreset')}
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                    {t('followups.bulkScript.savePreset')}
                   </button>
                   {getBulkPresets().length > 0 && (
                     <select
@@ -2574,10 +2634,10 @@ export default function FollowUpsPage() {
                         }
                         e.target.value = ''
                       }}
-                      className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                      className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
                       defaultValue=""
                     >
-                      <option value="" disabled>📂 {t('followups.bulkScript.loadPreset')}</option>
+                      <option value="" disabled>{t('followups.bulkScript.loadPreset')}</option>
                       {getBulkPresets().map(p => (
                         <option key={p.name} value={p.name}>{p.name} ({p.messages.length} {t('followups.bulkScript.message')})</option>
                       ))}
@@ -2592,10 +2652,10 @@ export default function FollowUpsPage() {
                         }
                         e.target.value = ''
                       }}
-                      className="px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-600 bg-white dark:bg-gray-700 text-sm text-red-600"
+                      className="px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-600 bg-white dark:bg-gray-700 text-sm text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200"
                       defaultValue=""
                     >
-                      <option value="" disabled>🗑️ {t('followups.bulkScript.deletePreset')}</option>
+                      <option value="" disabled>{t('followups.bulkScript.deletePreset')}</option>
                       {getBulkPresets().map(p => (
                         <option key={p.name} value={p.name}>{p.name}</option>
                       ))}
@@ -2606,103 +2666,117 @@ export default function FollowUpsPage() {
 
               {/* F. Delay */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">⏰ {t('followups.bulkScript.randomDelay')}</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 inline-flex items-center gap-1.5">
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  {t('followups.bulkScript.randomDelay')}
+                </label>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-500">{t('followups.bulkScript.from')}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{t('followups.bulkScript.from')}</span>
                   <input
                     type="number"
                     min={5}
                     value={bulkScriptDelayMin}
                     onChange={e => setBulkScriptDelayMin(Math.max(5, parseInt(e.target.value) || 5))}
-                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
                   />
-                  <span className="text-sm text-gray-500">{t('followups.bulkScript.to')}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{t('followups.bulkScript.to')}</span>
                   <input
                     type="number"
                     min={bulkScriptDelayMin}
                     value={bulkScriptDelayMax}
                     onChange={e => setBulkScriptDelayMax(Math.max(bulkScriptDelayMin, parseInt(e.target.value) || bulkScriptDelayMin))}
-                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
                   />
-                  <span className="text-sm text-gray-500">{t('followups.bulkScript.seconds')}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{t('followups.bulkScript.seconds')}</span>
                 </div>
               </div>
 
               {/* F2. Batch Break */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">☕ {t('followups.bulkScript.batchBreak')}</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 inline-flex items-center gap-1.5">
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h14a4 4 0 010 8h-1M3 10v8a2 2 0 002 2h11a2 2 0 002-2M3 10V6a2 2 0 012-2h11a2 2 0 012 2v4M7 14h.01M7 2h.01M11 2h.01"/></svg>
+                  {t('followups.bulkScript.batchBreak')}
+                </label>
                 <div className="flex items-center gap-2 flex-wrap text-sm">
-                  <span className="text-gray-500">{t('followups.bulkScript.every')}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t('followups.bulkScript.every')}</span>
                   <input
                     type="number"
                     min={5}
                     max={50}
                     value={bulkScriptBatchSize}
                     onChange={e => setBulkScriptBatchSize(Math.max(5, parseInt(e.target.value) || 12))}
-                    className="w-16 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                    className="w-16 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
                   />
-                  <span className="text-gray-500">{t('followups.bulkScript.messagesBreak')}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t('followups.bulkScript.messagesBreak')}</span>
                   <input
                     type="number"
                     min={1}
                     value={Math.round(bulkScriptBatchBreakMin / 60)}
                     onChange={e => setBulkScriptBatchBreakMin(Math.max(60, (parseInt(e.target.value) || 2) * 60))}
-                    className="w-14 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                    className="w-14 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
                   />
-                  <span className="text-gray-500">{t('followups.bulkScript.to')}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t('followups.bulkScript.to')}</span>
                   <input
                     type="number"
                     min={Math.round(bulkScriptBatchBreakMin / 60)}
                     value={Math.round(bulkScriptBatchBreakMax / 60)}
                     onChange={e => setBulkScriptBatchBreakMax(Math.max(bulkScriptBatchBreakMin, (parseInt(e.target.value) || 5) * 60))}
-                    className="w-14 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                    className="w-14 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
                   />
-                  <span className="text-gray-500">{t('followups.bulkScript.minutes')}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t('followups.bulkScript.minutes')}</span>
                 </div>
               </div>
 
               {/* F3. Daily Limit */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">🛡️ {t('followups.bulkScript.dailyLimit')}</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 inline-flex items-center gap-1.5">
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                  {t('followups.bulkScript.dailyLimit')}
+                </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">{t('followups.bulkScript.max')}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{t('followups.bulkScript.max')}</span>
                   <input
                     type="number"
                     min={10}
                     max={500}
                     value={bulkScriptDailyLimit}
                     onChange={e => setBulkScriptDailyLimit(Math.max(10, parseInt(e.target.value) || 80))}
-                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center font-bold"
+                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
                   />
-                  <span className="text-sm text-gray-500">{t('followups.bulkScript.messagesPerDay')}</span>
-                  <span className="text-xs text-gray-400 ms-2">({t('followups.bulkScript.sentToday')} {getDailyCount()})</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{t('followups.bulkScript.messagesPerDay')}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 ms-2">({t('followups.bulkScript.sentToday')} {getDailyCount()})</span>
                 </div>
               </div>
 
               {/* G. Test Message */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                <label className="block text-sm font-bold text-blue-800 dark:text-blue-300 mb-2">🧪 {t('followups.bulkScript.testMessage')}</label>
+              <div className="bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg p-3">
+                <label className="block text-sm font-bold text-blue-800 dark:text-blue-300 mb-2 inline-flex items-center gap-1.5">
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                  {t('followups.bulkScript.testMessage')}
+                </label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={bulkScriptTestPhone}
                     onChange={e => setBulkScriptTestPhone(e.target.value)}
                     placeholder={t('followups.bulkScript.testPhonePlaceholder')}
-                    className="flex-1 px-3 py-2 rounded-lg border border-blue-300 dark:border-blue-600 bg-white dark:bg-gray-700 text-sm"
+                    className="flex-1 px-3 py-2 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
                   />
                   <button
                     onClick={handleBulkScriptTest}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 whitespace-nowrap"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold whitespace-nowrap inline-flex items-center gap-1 transition-colors duration-200"
                   >
-                    📤 {t('followups.bulkScript.sendTest')}
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    {t('followups.bulkScript.sendTest')}
                   </button>
                 </div>
               </div>
 
               {/* H. Summary */}
-              <div className="bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-300 dark:border-purple-700 rounded-lg p-4">
-                <p className="text-sm font-bold text-purple-800 dark:text-purple-300 text-center">
-                  📊 {t('followups.bulkScript.summaryWillSend')} <span className="text-lg">{getBulkScriptTargets().length}</span> {t('followups.bulkScript.summaryPeople')} <span className="text-lg">{bulkScriptMessages.filter(m => m.trim()).length}</span> {t('followups.bulkScript.summaryMessages')} <span className="text-lg">{bulkScriptDelayMin}-{bulkScriptDelayMax}</span> {t('followups.bulkScript.summarySeconds')}
+              <div className="bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-300 dark:ring-purple-900/50 rounded-lg p-4">
+                <p className="text-sm font-bold text-purple-800 dark:text-purple-300 text-center inline-flex items-center gap-1.5 justify-center w-full flex-wrap">
+                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6m0 13l-3-3m3 3l3-3m6 3V10m0 9l3-3m-3 3l-3-3"/></svg>
+                  <span>{t('followups.bulkScript.summaryWillSend')} <span className="text-lg">{getBulkScriptTargets().length}</span> {t('followups.bulkScript.summaryPeople')} <span className="text-lg">{bulkScriptMessages.filter(m => m.trim()).length}</span> {t('followups.bulkScript.summaryMessages')} <span className="text-lg">{bulkScriptDelayMin}-{bulkScriptDelayMax}</span> {t('followups.bulkScript.summarySeconds')}</span>
                 </p>
               </div>
 
@@ -2711,13 +2785,15 @@ export default function FollowUpsPage() {
                 <button
                   onClick={() => handleBulkScriptStart()}
                   disabled={bulkScriptMessages.every(m => !m.trim()) || getBulkScriptTargets().length === 0}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold text-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 inline-flex items-center justify-center gap-2"
+                  autoFocus
                 >
-                  🚀 {t('followups.bulkScript.startSending')}
+                  <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+                  {t('followups.bulkScript.startSending')}
                 </button>
                 <button
                   onClick={() => setShowBulkScriptModal(false)}
-                  className="px-6 py-3 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold hover:bg-gray-300 dark:hover:bg-gray-500"
+                  className="px-6 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold transition-colors duration-200"
                 >
                   {t('followups.bulkScript.cancel')}
                 </button>
@@ -2727,13 +2803,25 @@ export default function FollowUpsPage() {
         </div>
       )}
 
-      {/* ✅ Smart Bulk Script - Progress Modal */}
+      {/* Smart Bulk Script - Progress Modal */}
       {bulkScriptRunning && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulk-script-progress-title"
+          aria-busy="true"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in">
             <div className="text-center mb-5">
-              <div className="text-5xl mb-3">{bulkScriptPaused ? '⏸️' : '🤖'}</div>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+              <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 mx-auto mb-3 flex items-center justify-center">
+                {bulkScriptPaused ? (
+                  <svg className="w-7 h-7" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                ) : (
+                  <svg className="w-7 h-7" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                )}
+              </div>
+              <h2 id="bulk-script-progress-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {bulkScriptPaused ? t('followups.bulkScript.paused') : t('followups.bulkScript.smartSending')}
               </h2>
               <p className="text-gray-500 dark:text-gray-400 mt-1">
@@ -2743,13 +2831,13 @@ export default function FollowUpsPage() {
 
             {/* Main Progress Bar */}
             <div className="mb-4">
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                 <span>{t('followups.bulkScript.overallProgress')}</span>
                 <span>{Math.round((bulkScriptProgress.current / Math.max(bulkScriptProgress.total, 1)) * 100)}%</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-500 ease-out"
+                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-[width] duration-500 ease-out"
                   style={{ width: `${(bulkScriptProgress.current / Math.max(bulkScriptProgress.total, 1)) * 100}%` }}
                 />
               </div>
@@ -2758,13 +2846,20 @@ export default function FollowUpsPage() {
             {/* Countdown Bar */}
             {bulkScriptProgress.countdown > 0 && !bulkScriptPaused && (
               <div className="mb-4">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>{bulkScriptProgress.countdown > bulkScriptDelayMax ? `☕ ${t('followups.bulkScript.batchBreakLabel')}` : `⏰ ${t('followups.bulkScript.nextMessageIn')}`}</span>
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1 items-center">
+                  <span className="inline-flex items-center gap-1">
+                    {bulkScriptProgress.countdown > bulkScriptDelayMax ? (
+                      <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h14a4 4 0 010 8h-1M3 10v8a2 2 0 002 2h11a2 2 0 002-2"/></svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    )}
+                    {bulkScriptProgress.countdown > bulkScriptDelayMax ? t('followups.bulkScript.batchBreakLabel') : t('followups.bulkScript.nextMessageIn')}
+                  </span>
                   <span>{bulkScriptProgress.countdown > 60 ? `${Math.ceil(bulkScriptProgress.countdown / 60)} ${t('followups.bulkScript.minutes')}` : `${bulkScriptProgress.countdown} ${t('followups.bulkScript.seconds')}`}</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-1000 ease-linear ${bulkScriptProgress.countdown > bulkScriptDelayMax ? 'bg-gradient-to-r from-blue-400 to-purple-400' : 'bg-gradient-to-r from-yellow-400 to-orange-400'}`}
+                    className={`h-full transition-[width] duration-1000 ease-linear ${bulkScriptProgress.countdown > bulkScriptDelayMax ? 'bg-gradient-to-r from-blue-400 to-purple-400' : 'bg-gradient-to-r from-amber-400 to-orange-400'}`}
                     style={{ width: `${(bulkScriptProgress.countdown / (bulkScriptProgress.countdown > bulkScriptDelayMax ? bulkScriptBatchBreakMax : bulkScriptDelayMax)) * 100}%` }}
                   />
                 </div>
@@ -2773,25 +2868,33 @@ export default function FollowUpsPage() {
 
             {/* Current Info */}
             {bulkScriptProgress.currentName && (
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4 space-y-1 text-sm">
-                <p className="text-primary-600 dark:text-primary-400">
-                  📱 {t('followups.bulkScript.sendingTo')} <span className="font-bold">{bulkScriptProgress.currentName}</span>
+              <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3 mb-4 space-y-1 text-sm">
+                <p className="text-primary-600 dark:text-primary-400 inline-flex items-center gap-1.5 flex-wrap">
+                  <svg className="w-4 h-4 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  <span>{t('followups.bulkScript.sendingTo')} <span className="font-bold">{bulkScriptProgress.currentName}</span></span>
                 </p>
-                <p className="text-purple-600 dark:text-purple-400">
-                  ✉️ {t('followups.bulkScript.messageTextOf').replace('{current}', String(bulkScriptProgress.currentMsgIndex)).replace('{total}', String(bulkScriptMessages.filter(m => m.trim()).length))}
+                <p className="text-purple-600 dark:text-purple-400 inline-flex items-center gap-1.5 flex-wrap">
+                  <svg className="w-4 h-4 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  <span>{t('followups.bulkScript.messageTextOf').replace('{current}', String(bulkScriptProgress.currentMsgIndex)).replace('{total}', String(bulkScriptMessages.filter(m => m.trim()).length))}</span>
                 </p>
               </div>
             )}
 
             {/* Success/Fail Counters */}
             <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-green-600">✅ {bulkScriptProgress.successCount}</p>
-                <p className="text-xs text-green-700 dark:text-green-400">{t('followups.bulkScript.success')}</p>
+              <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 inline-flex items-center gap-1">
+                  <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  {bulkScriptProgress.successCount}
+                </p>
+                <p className="text-xs text-green-700 dark:text-green-300">{t('followups.bulkScript.success')}</p>
               </div>
-              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-red-600">❌ {bulkScriptProgress.failCount}</p>
-                <p className="text-xs text-red-700 dark:text-red-400">{t('followups.bulkScript.fail')}</p>
+              <div className="bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400 inline-flex items-center gap-1">
+                  <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  {bulkScriptProgress.failCount}
+                </p>
+                <p className="text-xs text-red-700 dark:text-red-300">{t('followups.bulkScript.fail')}</p>
               </div>
             </div>
 
@@ -2802,13 +2905,23 @@ export default function FollowUpsPage() {
                   bulkScriptPausedRef.current = !bulkScriptPausedRef.current
                   setBulkScriptPaused(bulkScriptPausedRef.current)
                 }}
-                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all ${
+                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-colors duration-200 inline-flex items-center justify-center gap-2 ${
                   bulkScriptPaused
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-amber-500 hover:bg-amber-600 text-white'
                 }`}
               >
-                {bulkScriptPaused ? `▶️ ${t('followups.bulkScript.resume')}` : `⏸️ ${t('followups.bulkScript.pause')}`}
+                {bulkScriptPaused ? (
+                  <>
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+                    {t('followups.bulkScript.resume')}
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6"/></svg>
+                    {t('followups.bulkScript.pause')}
+                  </>
+                )}
               </button>
               <button
                 onClick={() => {
@@ -2816,35 +2929,51 @@ export default function FollowUpsPage() {
                   bulkScriptPausedRef.current = false
                   setBulkScriptPaused(false)
                 }}
-                className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 font-bold"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-bold transition-colors duration-200 inline-flex items-center justify-center gap-2"
               >
-                🛑 {t('followups.bulkScript.stopPermanent')}
+                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                {t('followups.bulkScript.stopPermanent')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ✅ Smart Bulk Script - Report Modal */}
+      {/* Smart Bulk Script - Report Modal */}
       {bulkScriptReport && !bulkScriptRunning && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setBulkScriptReport(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          onClick={() => setBulkScriptReport(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulk-script-report-title"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className={`p-5 rounded-t-2xl ${bulkScriptReport.failed.length === 0 ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-purple-600 to-indigo-600'} text-white`}>
-              <h2 className="text-xl font-bold">📊 {t('followups.bulkScript.reportTitle')}</h2>
+              <h2 id="bulk-script-report-title" className="text-xl font-bold inline-flex items-center gap-2">
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6m0 13l-3-3m3 3l3-3m6 3V10m0 9l3-3m-3 3l-3-3"/></svg>
+                {t('followups.bulkScript.reportTitle')}
+              </h2>
               <p className="text-sm opacity-90 mt-1">{t('followups.bulkScript.reportSubtitle')}</p>
             </div>
 
             <div className="p-5 space-y-4">
               {/* Summary */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
-                  <p className="text-3xl font-bold text-green-600">✅ {bulkScriptReport.success.length}</p>
-                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">{t('followups.bulkScript.sentSuccessfully')}</p>
+                <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400 inline-flex items-center gap-1.5">
+                    <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    {bulkScriptReport.success.length}
+                  </p>
+                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">{t('followups.bulkScript.sentSuccessfully')}</p>
                 </div>
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
-                  <p className="text-3xl font-bold text-red-600">❌ {bulkScriptReport.failed.length}</p>
-                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">{t('followups.bulkScript.sendFailed')}</p>
+                <div className="bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-red-600 dark:text-red-400 inline-flex items-center gap-1.5">
+                    <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    {bulkScriptReport.failed.length}
+                  </p>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">{t('followups.bulkScript.sendFailed')}</p>
                 </div>
               </div>
 
@@ -2852,14 +2981,14 @@ export default function FollowUpsPage() {
               {bulkScriptReport.failed.length > 0 && (
                 <div>
                   <h3 className="font-bold text-red-600 dark:text-red-400 mb-2 text-sm">{t('followups.bulkScript.failedNumbers')}</h3>
-                  <div className="bg-red-50 dark:bg-red-900/10 rounded-lg divide-y divide-red-100 dark:divide-red-800 max-h-48 overflow-y-auto">
+                  <div className="bg-red-50 dark:bg-red-900/10 rounded-lg divide-y divide-red-100 dark:divide-red-900/40 max-h-48 overflow-y-auto">
                     {bulkScriptReport.failed.map((item, idx) => (
                       <div key={idx} className="px-3 py-2 text-sm flex justify-between items-center">
                         <div>
                           <span className="font-bold text-gray-800 dark:text-gray-200">{item.name}</span>
                           <span className="text-gray-500 dark:text-gray-400 ms-2">{item.phone}</span>
                         </div>
-                        <span className="text-xs text-red-500">{item.error}</span>
+                        <span className="text-xs text-red-500 dark:text-red-400">{item.error}</span>
                       </div>
                     ))}
                   </div>
@@ -2873,9 +3002,10 @@ export default function FollowUpsPage() {
                       setBulkScriptReport(null)
                       handleBulkScriptStart(retryTargets)
                     }}
-                    className="w-full mt-3 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-bold hover:from-orange-600 hover:to-red-600 transition-all"
+                    className="w-full mt-3 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg font-bold transition-colors duration-200 inline-flex items-center justify-center gap-2"
                   >
-                    🔄 {t('followups.bulkScript.retryFailed')} ({bulkScriptReport.failed.length})
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    {t('followups.bulkScript.retryFailed')} ({bulkScriptReport.failed.length})
                   </button>
                 </div>
               )}
@@ -2883,7 +3013,7 @@ export default function FollowUpsPage() {
               {/* Close */}
               <button
                 onClick={() => setBulkScriptReport(null)}
-                className="w-full px-4 py-3 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold hover:bg-gray-300 dark:hover:bg-gray-500"
+                className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold transition-colors duration-200"
               >
                 {t('followups.bulkScript.close')}
               </button>
@@ -2894,12 +3024,18 @@ export default function FollowUpsPage() {
 
       {/* History Modal - سجل المتابعات (Lightweight) */}
       {showHistoryModal && selectedVisitorForHistory && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowHistoryModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-primary-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          onClick={() => setShowHistoryModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="history-modal-title"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-primary-600 text-primary-contrast p-4 rounded-t-2xl flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <span>📋</span>
+                <h2 id="history-modal-title" className="text-lg font-bold flex items-center gap-2">
+                  <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6m-6 4h6"/></svg>
                   <span>{t('followups.history.title')}</span>
                 </h2>
                 <p className="text-xs opacity-90 mt-0.5">
@@ -2908,21 +3044,22 @@ export default function FollowUpsPage() {
               </div>
               <button
                 onClick={() => setShowHistoryModal(false)}
-                className="text-white hover:bg-white dark:bg-gray-800/20 rounded-full w-8 h-8 flex items-center justify-center"
+                aria-label={direction === 'rtl' ? 'إغلاق' : 'Close'}
+                className="text-gray-900 hover:bg-black/10 rounded-full w-8 h-8 flex items-center justify-center transition-colors duration-200"
               >
-                ✕
+                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
 
             <div className="p-4">
               {visitorHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <div className="text-4xl mb-2">📭</div>
-                  <p className="text-sm">{t('followups.history.noHistory')}</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <svg className="w-12 h-12 text-gray-400 dark:text-gray-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                  <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('followups.history.noHistory')}</h3>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="bg-primary-50 dark:bg-primary-900/30 p-3 rounded-lg border border-primary-200 dark:border-primary-600">
+                  <div className="bg-primary-50 dark:bg-primary-900/30 p-3 rounded-lg ring-1 ring-primary-200 dark:ring-primary-900/50">
                     <p className="text-sm font-bold text-primary-900 dark:text-primary-100">
                       {t('followups.history.total')}: <span className="text-2xl">{visitorHistory.length}</span>
                     </p>
@@ -2931,41 +3068,48 @@ export default function FollowUpsPage() {
                   {visitorHistory.map((fu, index) => (
                     <div
                       key={fu.id}
-                      className={`border rounded-lg p-3 ${
-                        fu.contacted ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700'
+                      className={`rounded-lg p-3 ring-1 ${
+                        fu.contacted ? 'bg-green-50 dark:bg-green-900/20 ring-green-200 dark:ring-green-900/50' : 'bg-orange-50 dark:bg-orange-900/20 ring-orange-200 dark:ring-orange-900/50'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="text-xl font-bold text-gray-400 dark:text-gray-500">#{visitorHistory.length - index}</span>
                             <span className="text-xs text-gray-500 dark:text-gray-400">
                               {new Date(fu.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                             </span>
                             {fu.contacted ? (
-                              <span className="text-green-700 dark:text-green-300 font-bold text-xs">✅ {t('followups.history.contacted')}</span>
+                              <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-300 font-bold text-xs">
+                                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                {t('followups.history.contacted')}
+                              </span>
                             ) : (
-                              <span className="text-orange-600 dark:text-orange-300 font-bold text-xs">⏳ {t('followups.history.notContacted')}</span>
+                              <span className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-300 font-bold text-xs">
+                                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                {t('followups.history.notContacted')}
+                              </span>
                             )}
                           </div>
                         </div>
                         <div className="flex gap-1 flex-wrap justify-end">
                           {fu.result && getResultBadge(fu.result)}
                           {fu.salesName && (
-                            <span className="bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 px-2 py-0.5 rounded-full text-xs">
+                            <span className="bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-full text-xs font-bold">
                               {fu.salesName}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600 mb-2">
+                      <div className="bg-white dark:bg-gray-800 p-2 rounded ring-1 ring-gray-200 dark:ring-gray-700 mb-2">
                         <p className="text-sm text-gray-800 dark:text-gray-100">{fu.notes}</p>
                       </div>
 
                       {fu.nextFollowUpDate && (
-                        <div className="text-xs text-gray-600 dark:text-gray-300">
-                          📅 {t('followups.history.nextFollowUp')}: <span className="font-bold">{new Date(fu.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span>
+                        <div className="text-xs text-gray-600 dark:text-gray-300 inline-flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                          <span>{t('followups.history.nextFollowUp')}: <span className="font-bold">{new Date(fu.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</span></span>
                         </div>
                       )}
                     </div>
@@ -2978,7 +3122,7 @@ export default function FollowUpsPage() {
       )}
 
       {/* Unified Filters Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md mb-6 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 mb-6 overflow-hidden">
 
         {/* Row 1: Personal quick filters + sort toggle */}
         {user?.name && (
@@ -2987,76 +3131,87 @@ export default function FollowUpsPage() {
               {!user?.isSales && (
                 <button
                   onClick={() => setSalesFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-all ${
+                  className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors duration-200 inline-flex items-center gap-1.5 ${
                     salesFilter === 'all'
-                      ? 'bg-primary-600 text-white shadow'
+                      ? 'bg-primary-600 text-primary-contrast shadow-sm'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
-                  📋 {t('followups.quickFilters.all')} ({allFollowUps.length})
+                  <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  {t('followups.quickFilters.all')} ({allFollowUps.length})
                 </button>
               )}
               <button
                 onClick={() => setSalesFilter('my-followups')}
-                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-all ${
+                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors duration-200 inline-flex items-center gap-1.5 ${
                   salesFilter === 'my-followups'
-                    ? 'bg-primary-600 text-white shadow'
+                    ? 'bg-primary-600 text-primary-contrast shadow-sm'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                👤 {t('followups.quickFilters.myFollowups')} ({quickFilterCounts.myFollowUps})
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                {t('followups.quickFilters.myFollowups')} ({quickFilterCounts.myFollowUps})
               </button>
               <button
                 onClick={() => setSalesFilter('today')}
-                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-all ${
+                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors duration-200 inline-flex items-center gap-1.5 ${
                   salesFilter === 'today'
-                    ? 'bg-orange-500 text-white shadow'
+                    ? 'bg-orange-500 text-white shadow-sm'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                ⚡ {t('followups.quickFilters.today')} ({quickFilterCounts.todayCount})
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                {t('followups.quickFilters.today')} ({quickFilterCounts.todayCount})
               </button>
 
-              {/* 📞 Contacted status filter */}
+              {/* Contacted status filter */}
               <div className="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600" />
               <button
                 onClick={() => setContactedFilter('all')}
-                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-all ${
+                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors duration-200 inline-flex items-center gap-1.5 ${
                   contactedFilter === 'all'
-                    ? 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-800 shadow'
+                    ? 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-800 shadow-sm'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                📞 {t('followups.contactStatus.all')}
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.68l1.5 4.49a1 1 0 01-.5 1.21l-2.25 1.13a11.04 11.04 0 005.52 5.52l1.13-2.25a1 1 0 011.21-.5l4.49 1.5a1 1 0 01.68.95V19a2 2 0 01-2 2h-1C9.72 21 3 14.28 3 6V5z"/></svg>
+                {t('followups.contactStatus.all')}
               </button>
               <button
                 onClick={() => setContactedFilter('not-contacted')}
-                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-all ${
+                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors duration-200 inline-flex items-center gap-1.5 ${
                   contactedFilter === 'not-contacted'
-                    ? 'bg-amber-500 text-white shadow'
+                    ? 'bg-amber-500 text-white shadow-sm'
                     : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50'
                 }`}
               >
-                ⏳ {t('followups.contactStatus.notContacted')} ({quickFilterCounts.notContacted})
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {t('followups.contactStatus.notContacted')} ({quickFilterCounts.notContacted})
               </button>
               <button
                 onClick={() => setContactedFilter('contacted')}
-                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-all ${
+                className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors duration-200 inline-flex items-center gap-1.5 ${
                   contactedFilter === 'contacted'
-                    ? 'bg-green-600 text-white shadow'
+                    ? 'bg-green-600 text-white shadow-sm'
                     : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50'
                 }`}
               >
-                ✅ {t('followups.contactStatus.contacted')} ({quickFilterCounts.contacted})
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                {t('followups.contactStatus.contacted')} ({quickFilterCounts.contacted})
               </button>
             </div>
             <button
               onClick={() => { const v = !sortByPriority; setSortByPriority(v); localStorage.setItem('followups-sortByPriority', String(v)) }}
-              className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-all flex items-center gap-1 ${
-                sortByPriority ? 'bg-orange-500 text-white shadow' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+              className={`px-3 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors duration-200 inline-flex items-center gap-1.5 ${
+                sortByPriority ? 'bg-orange-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
-              {sortByPriority ? '🔥' : '📅'} {direction === 'rtl'
+              {sortByPriority ? (
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.092 18.246 9.61 18 11 18 12c0 1.105.395 2.16 1.103 2.93.711.769 1.066 1.756.554 2.727z"/></svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              )}
+              {direction === 'rtl'
                 ? (sortByPriority ? 'ترتيب: أولوية' : 'ترتيب: الأحدث')
                 : (sortByPriority ? 'Sort: Priority' : 'Sort: Newest')}
             </button>
@@ -3065,82 +3220,101 @@ export default function FollowUpsPage() {
 
         {/* Row 2: Source filter pills */}
         <div className={`px-3 sm:px-4 py-2 flex flex-wrap gap-1.5 ${user?.name ? 'border-t border-gray-100 dark:border-gray-700' : 'pt-3'}`}>
-          <button onClick={() => setSourceFilter('all')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'all' ? 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-800' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+          <button onClick={() => setSourceFilter('all')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 ${sourceFilter === 'all' ? 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-800' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
             {t('followups.filters.all')} ({stats.total})
           </button>
-          <button onClick={() => setSourceFilter('expired-member')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'expired-member' ? 'bg-red-600 text-white' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50'}`}>
-            ❌ {t('followups.sources.expiredMembers')} ({stats.expiredMembers})
+          <button onClick={() => setSourceFilter('expired-member')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 inline-flex items-center gap-1 ${sourceFilter === 'expired-member' ? 'bg-red-600 text-white' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50'}`}>
+            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            {t('followups.sources.expiredMembers')} ({stats.expiredMembers})
           </button>
-          <button onClick={() => setSourceFilter('expiring-member')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'expiring-member' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/50'}`}>
-            ⏰ {t('followups.sources.expiringMembers')} ({stats.expiringMembers})
+          <button onClick={() => setSourceFilter('expiring-member')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 inline-flex items-center gap-1 ${sourceFilter === 'expiring-member' ? 'bg-amber-500 text-white' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50'}`}>
+            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {t('followups.sources.expiringMembers')} ({stats.expiringMembers})
           </button>
-          <button onClick={() => setSourceFilter('member-invitation')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'member-invitation' ? 'bg-cyan-600 text-white' : 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'}`}>
-            👥 {t('followups.sources.memberInvitations')} ({stats.invitations})
+          <button onClick={() => setSourceFilter('member-invitation')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 inline-flex items-center gap-1 ${sourceFilter === 'member-invitation' ? 'bg-cyan-600 text-white' : 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'}`}>
+            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            {t('followups.sources.memberInvitations')} ({stats.invitations})
           </button>
-          <button onClick={() => setSourceFilter('dayuse')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'dayuse' ? 'bg-pink-600 text-white' : 'bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/50'}`}>
-            🎁 {t('followups.sources.dayUse')} ({stats.dayUse})
+          <button onClick={() => setSourceFilter('dayuse')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 inline-flex items-center gap-1 ${sourceFilter === 'dayuse' ? 'bg-pink-600 text-white' : 'bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/50'}`}>
+            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>
+            {t('followups.sources.dayUse')} ({stats.dayUse})
           </button>
-          <button onClick={() => setSourceFilter('visitors')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'visitors' ? 'bg-primary-600 text-white' : 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50'}`}>
-            👤 {t('followups.sources.visitors')} ({stats.visitors})
+          <button onClick={() => setSourceFilter('visitors')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 inline-flex items-center gap-1 ${sourceFilter === 'visitors' ? 'bg-primary-600 text-primary-contrast' : 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50'}`}>
+            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            {t('followups.sources.visitors')} ({stats.visitors})
           </button>
-          <button onClick={() => setSourceFilter('website')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sourceFilter === 'website' ? 'bg-cyan-600 text-white' : 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'}`}>
-            🌐 {locale === 'ar' ? 'موقع الويب' : 'Website'} ({stats.website})
+          <button onClick={() => setSourceFilter('website')} className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 inline-flex items-center gap-1 ${sourceFilter === 'website' ? 'bg-cyan-600 text-white' : 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'}`}>
+            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+            {locale === 'ar' ? 'موقع الويب' : 'Website'} ({stats.website})
           </button>
           <button
             onClick={() => syncWebsiteLeads(true)}
             disabled={websiteSyncing}
             title={locale === 'ar' ? 'جلب الـ leads من السيرفر دلوقتي' : 'Pull leads from server now'}
-            className="px-3 py-1 rounded-full text-xs font-semibold transition-all bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50"
+            className="px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 inline-flex items-center gap-1"
           >
-            {websiteSyncing ? '⏳' : '🔄'} {locale === 'ar' ? 'جلب الـ leads' : 'Pull leads'}
+            <svg className={`w-3 h-3 ${websiteSyncing ? 'animate-spin' : ''}`} {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            {locale === 'ar' ? 'جلب الـ leads' : 'Pull leads'}
           </button>
         </div>
 
         {/* Row 3: Search + dropdowns + smart script */}
         <div className="px-3 sm:px-4 pb-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-2 items-end">
           <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">🔍 {t('followups.filters.search')}</label>
+            <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              {t('followups.filters.search')}
+            </label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
               placeholder={t('followups.filters.searchPlaceholder')}
             />
           </div>
           <div className="min-w-[130px]">
-            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">📊 {t('followups.filters.priority')}</label>
+            <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6m0 13l-3-3m3 3l3-3m6 3V10m0 9l3-3m-3 3l-3-3"/></svg>
+              {t('followups.filters.priority')}
+            </label>
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
-              <option value="today">⚡ {t('followups.priority.today')}</option>
-              <option value="upcoming">📅 {t('followups.priority.upcoming')}</option>
+              <option value="today">{t('followups.priority.today')}</option>
+              <option value="upcoming">{t('followups.priority.upcoming')}</option>
             </select>
           </div>
           <div className="min-w-[130px]">
-            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">📈 {t('followups.filters.result')}</label>
+            <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+              {t('followups.filters.result')}
+            </label>
             <select
               value={resultFilter}
               onChange={(e) => setResultFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
             >
               <option value="all">{t('followups.filters.all')}</option>
-              <option value="interested">✅ {t('followups.results.interested')}</option>
-              <option value="not-interested">❌ {t('followups.results.notInterested')}</option>
-              <option value="postponed">⏸️ {t('followups.results.postponed')}</option>
-              <option value="subscribed">🎉 {t('followups.results.subscribed')}</option>
+              <option value="interested">{t('followups.results.interested')}</option>
+              <option value="not-interested">{t('followups.results.notInterested')}</option>
+              <option value="postponed">{t('followups.results.postponed')}</option>
+              <option value="subscribed">{t('followups.results.subscribed')}</option>
             </select>
           </div>
           {!user?.isSales && staffList.filter((s: any) => s.position?.split(',').map((p: string) => p.trim()).includes('sales')).length > 0 && (
             <div className="min-w-[140px]">
-              <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">💼 {t('followups.table.salesStaff')}</label>
+              <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                {t('followups.table.salesStaff')}
+              </label>
               <select
                 value={assignedStaffFilter}
                 onChange={(e) => setAssignedStaffFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
               >
                 <option value="all">{t('followups.table.allStaff')}</option>
                 <option value="__unassigned__">{t('followups.table.noSalesStaff')}</option>
@@ -3154,40 +3328,48 @@ export default function FollowUpsPage() {
             </div>
           )}
           <div className="min-w-[140px]">
-            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">📅 {locale === 'ar' ? 'من تاريخ' : 'From date'}</label>
+            <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              {locale === 'ar' ? 'من تاريخ' : 'From date'}
+            </label>
             <input
               type="date"
               value={dateFromFilter}
               onChange={(e) => setDateFromFilter(e.target.value)}
               max={dateToFilter || undefined}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
             />
           </div>
           <div className="min-w-[140px]">
-            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">📅 {locale === 'ar' ? 'إلى تاريخ' : 'To date'}</label>
+            <label className="block text-xs font-bold mb-1 text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              {locale === 'ar' ? 'إلى تاريخ' : 'To date'}
+            </label>
             <input
               type="date"
               value={dateToFilter}
               onChange={(e) => setDateToFilter(e.target.value)}
               min={dateFromFilter || undefined}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
             />
           </div>
           {(dateFromFilter || dateToFilter) && (
             <button
               onClick={() => { setDateFromFilter(''); setDateToFilter('') }}
-              className="px-3 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 whitespace-nowrap"
+              className="px-3 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 whitespace-nowrap inline-flex items-center gap-1 transition-colors duration-200"
               title={locale === 'ar' ? 'مسح فلتر التاريخ' : 'Clear date filter'}
             >
-              ✕ {locale === 'ar' ? 'مسح التاريخ' : 'Clear dates'}
+              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              {locale === 'ar' ? 'مسح التاريخ' : 'Clear dates'}
             </button>
           )}
           {filteredFollowUps.length > 0 && (
             <button
               onClick={() => { setShowBulkScriptModal(true); fetchWaSessions() }}
-              className="px-4 py-2 rounded-lg font-bold text-sm bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow hover:from-purple-700 hover:to-indigo-700 flex items-center gap-2 whitespace-nowrap"
+              className="px-4 py-2 rounded-lg font-bold text-sm bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-sm flex items-center gap-2 whitespace-nowrap transition-colors duration-200"
             >
-              🤖 {t('followups.bulkScript.buttonLabel')} ({filteredFollowUps.length})
+              <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              {t('followups.bulkScript.buttonLabel')} ({filteredFollowUps.length})
             </button>
           )}
         </div>
@@ -3220,10 +3402,7 @@ export default function FollowUpsPage() {
 
       {/* Follow-Ups Table/List View */}
       {viewMode === 'list' && (loading ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">⏳</div>
-          <p className="text-xl">{t('followups.loading')}</p>
-        </div>
+        <LoadingScreen message={t('followups.loading')} />
       ) : (
         <>
           {/* Cards View - للجميع */}
@@ -3235,13 +3414,13 @@ export default function FollowUpsPage() {
               return (
                 <div
                   key={followUp.id}
-                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-5 border-2 ${
+                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-5 ring-1 ${
                     isExpired
-                      ? 'border-red-400 bg-gradient-to-br from-red-50/50 to-white dark:from-red-900/10 dark:to-gray-800'
+                      ? 'ring-red-300 dark:ring-red-900/50 bg-gradient-to-br from-red-50/50 to-white dark:from-red-900/10 dark:to-gray-800'
                       : isExpiring
-                      ? 'border-yellow-400 bg-gradient-to-br from-yellow-50/50 to-white dark:from-yellow-900/10 dark:to-gray-800'
-                      : 'border-primary-400 bg-gradient-to-br from-primary-50/30 to-white dark:from-primary-900/10 dark:to-gray-800'
-                  } hover:shadow-2xl transition-shadow transition-transform duration-300 hover:scale-[1.02]`}
+                      ? 'ring-amber-300 dark:ring-amber-900/50 bg-gradient-to-br from-amber-50/50 to-white dark:from-amber-900/10 dark:to-gray-800'
+                      : 'ring-primary-300 dark:ring-primary-900/50 bg-gradient-to-br from-primary-50/30 to-white dark:from-primary-900/10 dark:to-gray-800'
+                  } hover:shadow-md transition-shadow duration-200`}
                 >
                   {/* Action Buttons at Top */}
                   <div className="flex justify-between items-start gap-2 mb-2 sm:mb-3">
@@ -3299,71 +3478,79 @@ export default function FollowUpsPage() {
                       {/* زر تجديد سريع — يفتح صفحة تفاصيل العضو مع modal التجديد */}
                       {(isExpired || isExpiring) && (() => {
                         const mid = getMemberIdByPhone(followUp.visitor.phone)
-                        // لو لقينا الـ memberId، روح على صفحة العضو مع ?action=renew
-                        // لو ما لقينش (نادر)، fallback على البحث في صفحة الأعضاء
                         const href = mid
                           ? `/members/${mid}?action=renew`
                           : `/members?search=${encodeURIComponent(followUp.visitor.phone)}`
                         return (
                           <Link
                             href={href}
-                            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
+                            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors duration-200 inline-flex items-center"
                             title={locale === 'ar' ? 'تجديد سريع' : 'Quick Renew'}
+                            aria-label={locale === 'ar' ? 'تجديد سريع' : 'Quick Renew'}
                           >
-                            🔄
+                            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                           </Link>
                         )
                       })()}
                       {isExpired && (
                         <button
                           onClick={() => openQuickFollowUp(followUp.visitor)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200 inline-flex items-center"
+                          aria-label={locale === 'ar' ? 'إضافة متابعة' : 'Add follow-up'}
+                          title={locale === 'ar' ? 'إضافة متابعة' : 'Add follow-up'}
                         >
-                          ➕
+                          <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                         </button>
                       )}
                       {!isExpired && (
                         <button
                           onClick={() => openQuickFollowUp(followUp.visitor)}
-                          className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
+                          className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 px-2 sm:px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200 inline-flex items-center"
+                          aria-label={locale === 'ar' ? 'إضافة متابعة' : 'Add follow-up'}
+                          title={locale === 'ar' ? 'إضافة متابعة' : 'Add follow-up'}
                         >
-                          ➕
+                          <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                         </button>
                       )}
                       <button
                         onClick={() => openHistoryModal(followUp.visitor)}
-                        className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50"
+                        className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 px-2 sm:px-3 py-1 rounded bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200 inline-flex items-center"
+                        aria-label={t('followups.history.title')}
+                        title={t('followups.history.title')}
                       >
-                        📋
+                        <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6m-6 4h6"/></svg>
                       </button>
                       {/* زر الاشتراك السريع - مخفي للأعضاء القريبين من الانتهاء */}
                       {!isExpiring && (
                         <button
                           onClick={() => openQuickSubscribe(followUp.visitor, followUp.assignedTo || undefined)}
-                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
-                          title="تحويل الزائر إلى عضو"
+                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 px-2 sm:px-3 py-1 rounded bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors duration-200 inline-flex items-center"
+                          aria-label={locale === 'ar' ? 'تحويل الزائر إلى عضو' : 'Convert visitor to member'}
+                          title={locale === 'ar' ? 'تحويل الزائر إلى عضو' : 'Convert visitor to member'}
                         >
-                          ⚡
+                          <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         </button>
                       )}
                       {/* زر تعديل - للزوار والدعوات */}
                       {!isExpired && !isExpiring && !followUp.id.startsWith('dayuse-') && (
                         <button
                           onClick={() => handleEditFollowUp(followUp)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50"
-                          title="تعديل"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 px-2 sm:px-3 py-1 rounded bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200 inline-flex items-center"
+                          aria-label={locale === 'ar' ? 'تعديل' : 'Edit'}
+                          title={locale === 'ar' ? 'تعديل' : 'Edit'}
                         >
-                          ✏️
+                          <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </button>
                       )}
                       {/* زر حذف - للزوار والدعوات */}
                       {!isExpired && !isExpiring && !followUp.id.startsWith('dayuse-') && (
                         <button
                           onClick={() => handleDeleteFollowUp(followUp.id, followUp.visitor.name)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
-                          title="حذف"
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 sm:px-3 py-1 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200 inline-flex items-center"
+                          aria-label={locale === 'ar' ? 'حذف' : 'Delete'}
+                          title={locale === 'ar' ? 'حذف' : 'Delete'}
                         >
-                          🗑️
+                          <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                       )}
                     </div>
@@ -3372,15 +3559,15 @@ export default function FollowUpsPage() {
                   {/* Follow-up Info */}
                   <div className="space-y-2 sm:space-y-2.5">
                     {/* اسم الزائر ورقم الهاتف - بروز أكبر */}
-                    <div className="bg-gradient-to-r from-primary-50 via-white to-primary-50 dark:from-primary-900/20 dark:via-gray-800 dark:to-primary-900/20 p-3 sm:p-4 rounded-xl border-2 border-primary-200 dark:border-primary-700 shadow-sm">
+                    <div className="bg-gradient-to-r from-primary-50 via-white to-primary-50 dark:from-primary-900/20 dark:via-gray-800 dark:to-primary-900/20 p-3 sm:p-4 rounded-xl ring-1 ring-primary-200 dark:ring-primary-900/50 shadow-sm">
                       <div className="flex flex-col gap-2.5">
                         {/* الاسم */}
                         <div className="flex items-center gap-2">
-                          <div className="bg-primary-500 p-1.5 rounded-lg">
-                            <span className="text-white text-base">👤</span>
+                          <div className="bg-primary-500 p-1.5 rounded-lg flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                           </div>
                           <div className="flex-1">
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{locale === 'ar' ? 'الاسم' : 'Name'}</div>
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{locale === 'ar' ? 'الاسم' : 'Name'}</div>
                             <span className={`font-bold text-base sm:text-lg ${
                               isExpired ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'
                             }`}>
@@ -3391,21 +3578,22 @@ export default function FollowUpsPage() {
 
                         {/* رقم الهاتف */}
                         <div className="flex items-center gap-2">
-                          <div className="bg-green-500 p-1.5 rounded-lg">
-                            <span className="text-white text-base">📱</span>
+                          <div className="bg-green-500 p-1.5 rounded-lg flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                           </div>
                           <div className="flex-1">
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{t('followups.table.phoneNumber')}</div>
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{t('followups.table.phoneNumber')}</div>
                             <div className="flex gap-2 items-center">
                               <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200" dir="ltr">
                                 {followUp.visitor.phone}
                               </span>
                               <button
                                 onClick={() => openTemplateModal(followUp.visitor)}
-                                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-md hover:shadow-lg transition-all"
+                                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-colors duration-200 inline-flex items-center gap-1"
                                 title={t('followups.table.readyMessages')}
                               >
-                                💬 {t('followups.table.whatsappButton')}
+                                <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                {t('followups.table.whatsappButton')}
                               </button>
                             </div>
                           </div>
@@ -3416,18 +3604,20 @@ export default function FollowUpsPage() {
                     {/* المصدر ومهتم بإيه - معلومات مهمة */}
                     <div className="grid grid-cols-1 gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold">📂</span>
+                        <span className="text-gray-500 dark:text-gray-400 inline-flex items-center">
+                          <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                        </span>
                         <span className={`${
                           followUp.visitor.source === 'invitation'
-                            ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-3 py-1 rounded-full text-xs font-semibold'
+                            ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 px-3 py-1 rounded-full text-xs font-bold'
                             : followUp.visitor.source === 'member-invitation'
-                            ? 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-3 py-1 rounded-full text-xs font-semibold'
+                            ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 px-3 py-1 rounded-full text-xs font-bold'
                             : followUp.visitor.source === 'expired-member'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-3 py-1 rounded-full text-xs font-bold shadow-sm'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 px-3 py-1 rounded-full text-xs font-bold'
                             : followUp.visitor.source === 'expiring-member'
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-3 py-1 rounded-full text-xs font-bold shadow-sm'
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-3 py-1 rounded-full text-xs font-bold'
                             : followUp.visitor.source === 'website'
-                            ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-cyan-300 dark:border-cyan-700'
+                            ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-cyan-300 dark:ring-cyan-700'
                             : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium'
                         }`}>
                           {getSourceLabel(followUp.visitor.source)}
@@ -3436,9 +3626,9 @@ export default function FollowUpsPage() {
                         {/* مهتم بإيه - بروز أكبر */}
                         {followUp.visitor.interestedIn && (
                           <>
-                            <span className="text-gray-400">•</span>
-                            <div className="flex items-center gap-1.5 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 px-3 py-1 rounded-full border border-blue-300 dark:border-blue-700 shadow-sm">
-                              <span className="text-sm">🎯</span>
+                            <span className="text-gray-400 dark:text-gray-500">•</span>
+                            <div className="flex items-center gap-1.5 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 px-3 py-1 rounded-full ring-1 ring-blue-300 dark:ring-blue-900/50">
+                              <svg className="w-3.5 h-3.5 text-blue-700 dark:text-blue-300" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
                               <span className="text-blue-900 dark:text-blue-200 text-xs font-bold">
                                 {followUp.visitor.interestedIn}
                               </span>
@@ -3451,8 +3641,10 @@ export default function FollowUpsPage() {
                     {/* موظف المبيعات */}
                     {followUp.salesName && (
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-semibold">🧑‍💼</span>
-                        <span className="text-orange-600 font-semibold text-xs sm:text-sm">{followUp.salesName}</span>
+                        <span className="text-gray-500 dark:text-gray-400 inline-flex items-center">
+                          <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        </span>
+                        <span className="text-orange-600 dark:text-orange-400 font-semibold text-xs sm:text-sm">{followUp.salesName}</span>
                       </div>
                     )}
 
@@ -3460,20 +3652,26 @@ export default function FollowUpsPage() {
                     {(() => {
                       const lastComment = getLastComment(followUp.visitor.phone)
                       return lastComment ? (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border-l-4 border-blue-500">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border-s-4 border-blue-500">
                           <div className="flex items-start gap-2 mb-1">
-                            <span className="text-blue-600 dark:text-blue-400 text-xs font-semibold">💬 {t('followups.table.lastCommentLabel')}</span>
+                            <span className="text-blue-600 dark:text-blue-400 text-xs font-semibold inline-flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                              {t('followups.table.lastCommentLabel')}
+                            </span>
                           </div>
                           <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 mb-1">{lastComment.notes}</p>
                           <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                            {lastComment.salesName && <span className="text-orange-500 font-medium">{lastComment.salesName} • </span>}
+                            {lastComment.salesName && <span className="text-orange-500 dark:text-orange-400 font-medium">{lastComment.salesName} • </span>}
                             {new Date(lastComment.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                           </p>
                         </div>
                       ) : followUp.notes ? (
-                        <div className="bg-gray-50 dark:bg-gray-700/30 p-2.5 rounded-lg border-l-4 border-gray-400">
+                        <div className="bg-gray-50 dark:bg-gray-900/40 p-2.5 rounded-lg border-s-4 border-gray-400 dark:border-gray-500">
                           <div className="flex items-start gap-2 mb-1">
-                            <span className="text-gray-600 dark:text-gray-300 text-xs font-semibold">📝 {t('followups.table.notesLabel')}</span>
+                            <span className="text-gray-600 dark:text-gray-300 text-xs font-semibold inline-flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                              {t('followups.table.notesLabel')}
+                            </span>
                           </div>
                           <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200">{followUp.notes}</p>
                         </div>
@@ -3481,29 +3679,35 @@ export default function FollowUpsPage() {
                     })()}
 
                     {/* النتيجة وحالة التواصل والتواريخ */}
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">{t('followups.table.resultLabel')}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{t('followups.table.resultLabel')}</span>
                         {getResultBadge(followUp.result)}
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">{t('followups.table.contactStatusLabel')}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{t('followups.table.contactStatusLabel')}</span>
                         {followUp.contacted ? (
-                          <span className="text-green-600 text-xs font-medium">✅ {t('followups.table.contactDone')}</span>
+                          <span className="text-green-600 dark:text-green-400 text-xs font-medium inline-flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            {t('followups.table.contactDone')}
+                          </span>
                         ) : (
-                          <span className="text-orange-600 text-xs font-medium">⏳ {t('followups.table.contactPending')}</span>
+                          <span className="text-orange-600 dark:text-orange-400 text-xs font-medium inline-flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            {t('followups.table.contactPending')}
+                          </span>
                         )}
                       </div>
                       {followUp.nextFollowUpDate && (
                         <div className="flex flex-col gap-1">
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">المتابعة القادمة</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{locale === 'ar' ? 'المتابعة القادمة' : 'Next follow-up'}</span>
                           <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
                             {new Date(followUp.nextFollowUpDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
                       )}
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">آخر تحديث</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{locale === 'ar' ? 'آخر تحديث' : 'Last update'}</span>
                         <span className="text-[10px] text-gray-600 dark:text-gray-300">
                           {new Date(followUp.updatedAt || followUp.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' })}
                         </span>
@@ -3515,21 +3719,22 @@ export default function FollowUpsPage() {
             })}
 
             {filteredFollowUps.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <div className="flex flex-col items-center justify-center py-12 text-center">
                 {searchTerm || resultFilter !== 'all' || contactedFilter !== 'all' || priorityFilter !== 'all' ? (
                   <>
-                    <div className="text-5xl mb-3">🔍</div>
-                    <p>{t('followups.messages.noResults')}</p>
+                    <svg className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <h3 className="text-gray-600 dark:text-gray-300 font-bold">{t('followups.messages.noResults')}</h3>
                   </>
                 ) : (
                   <>
-                    <div className="text-5xl mb-3">📝</div>
-                    <p>{t('followups.messages.noFollowups')}</p>
+                    <svg className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    <h3 className="text-gray-600 dark:text-gray-300 font-bold">{t('followups.messages.noFollowups')}</h3>
                     <button
                       onClick={() => setShowForm(true)}
-                      className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+                      className="mt-4 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                     >
-                      ➕ {t('followups.messages.addFirst')}
+                      <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                      {t('followups.messages.addFirst')}
                     </button>
                   </>
                 )}
@@ -3539,7 +3744,7 @@ export default function FollowUpsPage() {
 
           {/* Pagination Controls */}
           {filteredFollowUps.length > 0 && (
-            <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 {/* معلومات الصفحة */}
                 <div className="text-sm text-gray-600 dark:text-gray-300">
@@ -3555,7 +3760,7 @@ export default function FollowUpsPage() {
                       setItemsPerPage(Number(e.target.value))
                       setCurrentPage(1)
                     }}
-                    className="px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 focus:outline-none"
+                    className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -3570,14 +3775,14 @@ export default function FollowUpsPage() {
                     <button
                       onClick={() => goToPage(1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200"
                     >
                       {t('followups.pagination.first')}
                     </button>
                     <button
                       onClick={() => goToPage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200"
                     >
                       {t('followups.pagination.previous')}
                     </button>
@@ -3600,10 +3805,11 @@ export default function FollowUpsPage() {
                           <button
                             key={pageNum}
                             onClick={() => goToPage(pageNum)}
-                            className={`px-3 py-2 rounded-lg font-medium ${
+                            aria-current={currentPage === pageNum ? 'page' : undefined}
+                            className={`px-3 py-2 rounded-lg font-medium transition-colors duration-200 ${
                               currentPage === pageNum
-                                ? 'bg-primary-600 text-white'
-                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                                ? 'bg-primary-500 text-primary-contrast'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
                             }`}
                           >
                             {pageNum}
@@ -3615,14 +3821,14 @@ export default function FollowUpsPage() {
                     <button
                       onClick={() => goToPage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200"
                     >
                       {t('followups.pagination.next')}
                     </button>
                     <button
                       onClick={() => goToPage(totalPages)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
+                      className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200"
                     >
                       {t('followups.pagination.last')}
                     </button>
@@ -3641,9 +3847,9 @@ export default function FollowUpsPage() {
 
       {/* Recently Converted Section */}
       {convertedMembers.length > 0 && viewMode === 'list' && (
-        <div className="mt-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-300 dark:border-emerald-600 rounded-xl p-4 sm:p-6 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+        <div className="mt-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 ring-1 ring-emerald-300 dark:ring-emerald-900/50 rounded-xl p-4 sm:p-6">
           <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-4 flex items-center gap-2 text-lg sm:text-xl">
-            <span>🎉</span>
+            <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
             <span>{t('followups.convertedMembers')}</span>
             <span className="bg-emerald-600 text-white text-sm px-3 py-1 rounded-full">
               {convertedMembers.length}
@@ -3660,33 +3866,35 @@ export default function FollowUpsPage() {
                 return (
                   <div
                     key={fu.id}
-                    className="bg-white dark:bg-gray-700 border-2 border-emerald-200 dark:border-emerald-600 rounded-lg p-3 hover:shadow-md transition-shadow"
+                    className="bg-white dark:bg-gray-800 ring-1 ring-emerald-200 dark:ring-emerald-900/50 rounded-lg p-3 hover:shadow-md transition-shadow duration-200"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <p className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base">{fu.visitor.name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{fu.visitor.phone}</p>
                         {isRenewal && (
-                          <span className="inline-block mt-1 px-2 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 text-[10px] font-bold rounded-full">
-                            🔄 تجديد
+                          <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 text-[10px] font-bold rounded-full">
+                            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            {locale === 'ar' ? 'تجديد' : 'Renewal'}
                           </span>
                         )}
                         {!isRenewal && (
-                          <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-[10px] font-bold rounded-full">
-                            ⭐ عضو جديد
+                          <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-[10px] font-bold rounded-full">
+                            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                            {locale === 'ar' ? 'عضو جديد' : 'New member'}
                           </span>
                         )}
                       </div>
-                      <span className="text-2xl">✅</span>
+                      <svg className="w-6 h-6 text-green-600 dark:text-green-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-300 mt-2">
-                      <p className="flex items-center gap-1">
-                        <span>📂</span>
+                    <div className="text-xs text-gray-600 dark:text-gray-300 mt-2 space-y-1">
+                      <p className="flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                         <span>{getSourceLabel(fu.visitor.source)}</span>
                       </p>
                       {fu.salesName && (
-                        <p className="flex items-center gap-1 mt-1">
-                          <span>🧑‍💼</span>
+                        <p className="flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                           <span className="font-semibold text-emerald-700 dark:text-emerald-300">{fu.salesName}</span>
                         </p>
                       )}
@@ -3697,7 +3905,9 @@ export default function FollowUpsPage() {
           </div>
           {convertedMembers.length > 6 && (
             <p className="text-center text-sm text-emerald-700 dark:text-emerald-300 mt-4 font-medium">
-              وأكثر من {convertedMembers.length - 6} شخص آخر تحول لعضو / جدد 🎊
+              {locale === 'ar'
+                ? `وأكثر من ${convertedMembers.length - 6} شخص آخر تحول لعضو / جدد`
+                : `And ${convertedMembers.length - 6} more people converted / renewed`}
             </p>
           )}
         </div>
@@ -3705,37 +3915,42 @@ export default function FollowUpsPage() {
 
 
       {/* Quick Tips */}
-      <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 border-r-4 border-primary-500 p-5 rounded-lg">
-        <h3 className="font-bold text-primary-900 mb-2 flex items-center gap-2">
-          <span>💡</span>
+      <div className="mt-4 bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-s-4 border-primary-500 p-5 rounded-lg">
+        <h3 className="font-bold text-primary-900 dark:text-primary-100 mb-2 flex items-center gap-2">
+          <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
           <span>{t('followups.tips.title')}</span>
         </h3>
-        <ul className="text-sm text-primary-800 space-y-1">
-          <li>• 🔥 <strong>{t('followups.tips.overdue.title')}:</strong> {t('followups.tips.overdue.text')}</li>
-          <li>• ⚡ <strong>{t('followups.tips.today.title')}:</strong> {t('followups.tips.today.text')}</li>
-          <li>• 💬 <strong>{t('followups.tips.whatsapp.title')}:</strong> {t('followups.tips.whatsapp.text')}</li>
-          <li>• ⏰ <strong>{t('followups.tips.yellow.title')}:</strong> {t('followups.tips.yellow.text')}</li>
-          <li>• ❌ <strong>{t('followups.tips.red.title')}:</strong> {t('followups.tips.red.text')}</li>
-          <li>• ✅ <strong>{t('followups.tips.green.title')}:</strong> {t('followups.tips.green.text')}</li>
+        <ul className="text-sm text-primary-800 dark:text-primary-200 space-y-1">
+          <li>• <strong>{t('followups.tips.overdue.title')}:</strong> {t('followups.tips.overdue.text')}</li>
+          <li>• <strong>{t('followups.tips.today.title')}:</strong> {t('followups.tips.today.text')}</li>
+          <li>• <strong>{t('followups.tips.whatsapp.title')}:</strong> {t('followups.tips.whatsapp.text')}</li>
+          <li>• <strong>{t('followups.tips.yellow.title')}:</strong> {t('followups.tips.yellow.text')}</li>
+          <li>• <strong>{t('followups.tips.red.title')}:</strong> {t('followups.tips.red.text')}</li>
+          <li>• <strong>{t('followups.tips.green.title')}:</strong> {t('followups.tips.green.text')}</li>
         </ul>
       </div>
 
       {/* Delete Confirmation Popup */}
       {showDeleteConfirm && deleteTarget && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
           onClick={cancelDelete}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-confirm-title"
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-6 transform transition-all"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-red-200 dark:ring-red-900/50 animate-modal-in"
             onClick={(e) => e.stopPropagation()}
             dir={direction}
           >
             {/* Header */}
             <div className="flex items-center gap-3 mb-4">
-              <div className="text-4xl">⚠️</div>
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 flex items-center justify-center">
+                <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h3 id="delete-confirm-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {t('followups.deleteConfirm.title')}
                 </h3>
               </div>
@@ -3746,9 +3961,9 @@ export default function FollowUpsPage() {
               <p className="text-gray-700 dark:text-gray-200 text-base">
                 {t('followups.deleteConfirm.message')} <strong className="text-red-600 dark:text-red-400">{deleteTarget.name}</strong>؟
               </p>
-              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3">
+              <div className="bg-red-50 dark:bg-red-900/30 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-3">
                 <p className="text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
-                  <span className="text-lg">⚠️</span>
+                  <svg className="w-5 h-5 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                   <span>{t('followups.deleteConfirm.warning')}</span>
                 </p>
               </div>
@@ -3759,16 +3974,17 @@ export default function FollowUpsPage() {
               <button
                 onClick={confirmDelete}
                 disabled={deleteMutation.isPending}
-                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                autoFocus
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
               >
                 {deleteMutation.isPending ? (
                   <>
-                    <span className="animate-spin">⏳</span>
+                    <svg className="animate-spin w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>{t('followups.deleteConfirm.deleting')}</span>
                   </>
                 ) : (
                   <>
-                    <span>🗑️</span>
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     <span>{t('followups.deleteConfirm.confirmButton')}</span>
                   </>
                 )}
@@ -3776,7 +3992,7 @@ export default function FollowUpsPage() {
               <button
                 onClick={cancelDelete}
                 disabled={deleteMutation.isPending}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-bold py-3 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-3 px-4 rounded-lg transition-colors duration-200"
               >
                 {t('followups.deleteConfirm.cancelButton')}
               </button>
@@ -3788,18 +4004,23 @@ export default function FollowUpsPage() {
       {/* Delete Visitor Confirmation Popup */}
       {showDeleteVisitorConfirm && deleteVisitorTarget && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
           onClick={cancelDeleteVisitor}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-visitor-confirm-title"
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-6 transform transition-all"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-red-200 dark:ring-red-900/50 animate-modal-in"
             onClick={(e) => e.stopPropagation()}
             dir={direction}
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="text-4xl">🚨</div>
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 flex items-center justify-center">
+                <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h3 id="delete-visitor-confirm-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {t('followups.deleteVisitorConfirm.title')}
                 </h3>
               </div>
@@ -3809,9 +4030,9 @@ export default function FollowUpsPage() {
               <p className="text-gray-700 dark:text-gray-200 text-base">
                 {t('followups.deleteVisitorConfirm.message')} <strong className="text-red-600 dark:text-red-400">{deleteVisitorTarget.name}</strong>?
               </p>
-              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3">
+              <div className="bg-red-50 dark:bg-red-900/30 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-3">
                 <p className="text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
-                  <span className="text-lg">⚠️</span>
+                  <svg className="w-5 h-5 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                   <span>{t('followups.deleteVisitorConfirm.warning')}</span>
                 </p>
               </div>
@@ -3821,16 +4042,17 @@ export default function FollowUpsPage() {
               <button
                 onClick={confirmDeleteVisitor}
                 disabled={deleteVisitorMutation.isPending}
-                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                autoFocus
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
               >
                 {deleteVisitorMutation.isPending ? (
                   <>
-                    <span className="animate-spin">⏳</span>
+                    <svg className="animate-spin w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>{t('followups.deleteConfirm.deleting')}</span>
                   </>
                 ) : (
                   <>
-                    <span>❌</span>
+                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     <span>{t('followups.deleteVisitorConfirm.confirmButton')}</span>
                   </>
                 )}
@@ -3838,7 +4060,7 @@ export default function FollowUpsPage() {
               <button
                 onClick={cancelDeleteVisitor}
                 disabled={deleteVisitorMutation.isPending}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-bold py-3 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-3 px-4 rounded-lg transition-colors duration-200"
               >
                 {t('followups.deleteConfirm.cancelButton')}
               </button>
@@ -3847,41 +4069,47 @@ export default function FollowUpsPage() {
         </div>
       )}
 
-      {/* ✏️ مودال تعديل الزائر/الدعوة */}
+      {/* مودال تعديل الزائر/الدعوة */}
       {showEditModal && editTarget && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
           onClick={() => { setShowEditModal(false); setEditTarget(null) }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-modal-title"
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in"
             onClick={(e) => e.stopPropagation()}
             dir={direction}
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="text-3xl">✏️</div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center justify-center">
+                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </div>
+              <h3 id="edit-modal-title" className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 {editTarget.type === 'invitation' ? t('followups.editModal.editInvitation') : t('followups.editModal.editVisitor')}
               </h3>
             </div>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('followups.editModal.name')}</label>
+                <label className="block text-sm font-bold mb-1.5 text-gray-700 dark:text-gray-300">{t('followups.editModal.name')}</label>
                 <input
                   type="text"
                   value={editTarget.name}
                   onChange={(e) => setEditTarget({ ...editTarget, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  autoFocus
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('followups.editModal.phone')}</label>
+                <label className="block text-sm font-bold mb-1.5 text-gray-700 dark:text-gray-300">{t('followups.editModal.phone')}</label>
                 <input
                   type="tel"
                   value={editTarget.phone}
                   onChange={(e) => setEditTarget({ ...editTarget, phone: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
                   dir="ltr"
                 />
               </div>
@@ -3890,13 +4118,13 @@ export default function FollowUpsPage() {
             <div className="flex gap-3">
               <button
                 onClick={confirmEdit}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
               >
                 {t('followups.editModal.save')}
               </button>
               <button
                 onClick={() => { setShowEditModal(false); setEditTarget(null) }}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-bold py-2.5 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2.5 px-4 rounded-lg transition-colors duration-200"
               >
                 {t('followups.editModal.cancel')}
               </button>
@@ -3905,12 +4133,17 @@ export default function FollowUpsPage() {
         </div>
       )}
 
-      {/* ⚡ نموذج الاشتراك السريع */}
+      {/* نموذج الاشتراك السريع */}
       {showQuickSubscribeModal && selectedVisitorForSubscribe && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quick-subscribe-title"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in">
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 id="quick-subscribe-title" className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {t('followups.quickSubscribe')} - {selectedVisitorForSubscribe.name}
               </h2>
               <button
@@ -3919,9 +4152,10 @@ export default function FollowUpsPage() {
                   setSelectedVisitorForSubscribe(null)
                   setSelectedFollowUpSalesStaffId(null)
                 }}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
+                aria-label={direction === 'rtl' ? 'إغلاق' : 'Close'}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
               >
-                ×
+                <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
             <div className="p-6">

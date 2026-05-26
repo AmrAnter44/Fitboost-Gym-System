@@ -7,6 +7,9 @@ import { useToast } from '@/contexts/ToastContext'
 // import { usePermissions } from '@/hooks/usePermissions'
 import { getStatusColors } from '@/lib/hrCalculations'
 import Link from 'next/link'
+import { LoadingScreen } from '@/components/Spinner'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface UnderperformanceDay {
   date: string
@@ -266,194 +269,150 @@ export default function StaffHRAssistantPage() {
   ]
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">
-            {t('staff.hrAssistant.loading')}
-          </p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen fullScreen message={t('staff.hrAssistant.loading')} />
   }
 
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 md:p-6"
-      dir={direction}
-    >
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6" dir={direction}>
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              {t('staff.hrAssistant.title')}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              {t('staff.hrAssistant.subtitle')}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+              <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('staff.hrAssistant.title')}</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('staff.hrAssistant.subtitle')}</p>
+            </div>
           </div>
           <Link
             href="/staff"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition shadow-md"
+            className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
           >
-            ← {t('common.back')}
+            <svg {...stroke} className={`w-4 h-4 ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+            <span>{t('common.back')}</span>
           </Link>
         </div>
       </div>
 
       {/* Overview Cards */}
       <div className="max-w-7xl mx-auto mb-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          📊 {t('staff.hrAssistant.overview')} - {monthOptions[selectedMonth - 1]?.label} {selectedYear}
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+          {t('staff.hrAssistant.overview')} - {monthOptions[selectedMonth - 1]?.label} {selectedYear}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {/* Total Staff */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-l-4 border-blue-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
-                  {t('staff.hrAssistant.totalStaff')}
-                </p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {overview.total}
-                </p>
+          {[
+            {
+              label: t('staff.hrAssistant.totalStaff'),
+              value: overview.total,
+              valueTone: 'text-gray-900 dark:text-gray-100',
+              tone: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+              icon: (<path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />)
+            },
+            {
+              label: t('staff.hrAssistant.excellent'),
+              value: overview.excellent,
+              valueTone: 'text-green-600 dark:text-green-400',
+              tone: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+              icon: (<path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />)
+            },
+            {
+              label: t('staff.hrAssistant.good'),
+              value: overview.good,
+              valueTone: 'text-blue-600 dark:text-blue-400',
+              tone: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+              icon: (<path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V2.75a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 0 1-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 0 0-1.302 4.665c0 1.194.232 2.333.654 3.375Z" />)
+            },
+            {
+              label: t('staff.hrAssistant.underperforming'),
+              value: overview.underperforming,
+              valueTone: 'text-red-600 dark:text-red-400',
+              tone: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+              icon: (<path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />)
+            },
+            {
+              label: direction === 'rtl' ? 'إجمالي السلف المتبقية' : 'Unpaid Advances',
+              value: totalUnpaidAdvances.toFixed(0),
+              valueTone: 'text-orange-600 dark:text-orange-400',
+              sub: t('common.egp'),
+              tone: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+              icon: (<path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4M9 9V6m6 12v-3" />)
+            }
+          ].map((s, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+              <div className={`w-10 h-10 rounded-lg ${s.tone} flex items-center justify-center mb-2`}>
+                <svg {...stroke} className="w-5 h-5" aria-hidden="true">{s.icon}</svg>
               </div>
-              <div className="text-4xl">👥</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{s.label}</div>
+              <div className={`mt-1 text-2xl font-bold ${s.valueTone}`}>{s.value}</div>
+              {s.sub && <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{s.sub}</div>}
             </div>
-          </div>
-
-          {/* Excellent */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-l-4 border-green-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
-                  {t('staff.hrAssistant.excellent')}
-                </p>
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                  {overview.excellent}
-                </p>
-              </div>
-              <div className="text-4xl">🌟</div>
-            </div>
-          </div>
-
-          {/* Good */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-l-4 border-blue-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
-                  {t('staff.hrAssistant.good')}
-                </p>
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                  {overview.good}
-                </p>
-              </div>
-              <div className="text-4xl">👍</div>
-            </div>
-          </div>
-
-          {/* Underperforming */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-l-4 border-red-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
-                  {t('staff.hrAssistant.underperforming')}
-                </p>
-                <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                  {overview.underperforming}
-                </p>
-              </div>
-              <div className="text-4xl">⚠️</div>
-            </div>
-          </div>
-
-          {/* Advances/سلف */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-l-4 border-orange-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
-                  {direction === 'rtl' ? 'إجمالي السلف المتبقية' : 'Unpaid Advances'}
-                </p>
-                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                  {totalUnpaidAdvances.toFixed(0)}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t('common.egp')}
-                </p>
-              </div>
-              <div className="text-4xl">💵</div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* Filters */}
       <div className="max-w-7xl mx-auto mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-            🔍 {t('staff.hrAssistant.filters')}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <span>{t('staff.hrAssistant.filters')}</span>
           </h3>
 
-          {/* Search Bar */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('staff.hrAssistant.search')}
-            </label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('staff.hrAssistant.search')}</label>
             <input
               type="text"
               placeholder={t('staff.hrAssistant.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Month Select */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('staff.hrAssistant.month')}
-              </label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('staff.hrAssistant.month')}</label>
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               >
                 {monthOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
+                  <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>
 
-            {/* Year Select */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('staff.hrAssistant.year')}
-              </label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('staff.hrAssistant.year')}</label>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               >
                 {yearOptions.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
+                  <option key={year} value={year}>{year}</option>
                 ))}
               </select>
             </div>
 
-            {/* Refresh Button */}
             <div className="flex items-end">
               <button
                 onClick={fetchAnalytics}
-                className="w-full md:w-auto px-6 py-3 bg-primary-600 dark:bg-primary-700 text-white rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition shadow-md"
+                className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 text-sm"
               >
-                🔄 {t('staff.hrAssistant.refresh')}
+                <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                </svg>
+                <span>{t('staff.hrAssistant.refresh')}</span>
               </button>
             </div>
           </div>
@@ -464,7 +423,7 @@ export default function StaffHRAssistantPage() {
       <div className="max-w-7xl mx-auto">
         {analytics?.isPartialMonth && (
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-xl p-3 mb-4 flex items-center gap-2 text-blue-800 dark:text-blue-200 text-sm">
-            <span className="text-lg">📅</span>
+            
             <span
               dangerouslySetInnerHTML={{
                 __html: t('staff.hrAssistant.partialMonthNotice', { day: String(analytics.dataUpToDay) })
@@ -494,10 +453,10 @@ export default function StaffHRAssistantPage() {
             {/* Staff List - Small Cards */}
             <div className="lg:col-span-4">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                📋 {t('staff.hrAssistant.staffList')}
+                 {t('staff.hrAssistant.staffList')}
                 {searchQuery && (
                   <span className="text-base font-normal text-gray-600 dark:text-gray-400">
-                    {' '}({filteredAnalytics.length})
+                    ({filteredAnalytics.length})
                   </span>
                 )}
               </h2>
@@ -510,16 +469,16 @@ export default function StaffHRAssistantPage() {
                     <div
                       key={staff.staffId}
                       onClick={() => setSelectedStaffId(staff.staffId)}
-                      className={`bg-white dark:bg-gray-800 rounded-lg shadow-md border-2 ${
+                      className={`bg-white dark:bg-gray-800 rounded-lg shadow-md ring-1 ${
                         isSelected ? colors.border + ' ring-4 ring-opacity-50 ' + colors.border : 'border-gray-200 dark:border-gray-700'
-                      } p-4 cursor-pointer hover:shadow-lg transition-all duration-200 ${
+                      } p-4 cursor-pointer hover:shadow-lg transition-colors duration-200 ${
                         isSelected ? 'scale-[1.02]' : 'hover:scale-[1.01]'
                       }`}
                     >
                       {/* Small Card Content */}
                       <div className="flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-full ${colors.bg} flex items-center justify-center text-2xl`}>
-                          👤
+                          
                         </div>
                         <div className="flex-1">
                           <h3 className="font-bold text-gray-900 dark:text-white text-sm">
@@ -547,19 +506,19 @@ export default function StaffHRAssistantPage() {
                       {/* Mini Stats */}
                       <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="text-center">
-                          <p className="text-xs text-gray-600 dark:text-gray-400">✅ {t('staff.hrAssistant.attendance')}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400"> {t('staff.hrAssistant.attendance')}</p>
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{staff.daysAttended}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-gray-600 dark:text-gray-400">⏰ {t('staff.hrAssistant.workHours')}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400"> {t('staff.hrAssistant.workHours')}</p>
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{staff.actualHoursWorked.toFixed(0)}h</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-gray-600 dark:text-gray-400">💰 {t('staff.hrAssistant.revenue.total')}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400"> {t('staff.hrAssistant.revenue.total')}</p>
                           <p className="text-sm font-bold text-green-600 dark:text-green-400">{staff.revenue.total.toFixed(0)}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-gray-600 dark:text-gray-400">💵 {direction === 'rtl' ? 'سلف' : 'Advances'}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400"> {direction === 'rtl' ? 'سلف' : 'Advances'}</p>
                           <p className={`text-sm font-bold ${staff.advances.unpaid > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}`}>{staff.advances.unpaid.toFixed(0)}</p>
                         </div>
                       </div>
@@ -572,7 +531,7 @@ export default function StaffHRAssistantPage() {
             {/* Selected Staff Details */}
             <div className="lg:col-span-8">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                📊 {t('staff.hrAssistant.selectedStaffDetails')}
+                 {t('staff.hrAssistant.selectedStaffDetails')}
               </h2>
 
               {selectedStaffId && filteredAnalytics.find(s => s.staffId === selectedStaffId) && (() => {
@@ -580,13 +539,13 @@ export default function StaffHRAssistantPage() {
                 const colors = getStatusColors(staff.status)
 
                 return (
-                  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 ${colors.border} overflow-hidden`}>
+                  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg ring-1 ${colors.border} overflow-hidden`}>
                     {/* Details Header */}
                     <div className={`${colors.bg} p-6`}>
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="flex items-center gap-4">
                           <div className="w-20 h-20 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center text-4xl shadow-lg">
-                            👤
+                            
                           </div>
                           <div>
                             <h3 className={`text-2xl font-bold ${colors.text}`}>
@@ -596,14 +555,14 @@ export default function StaffHRAssistantPage() {
                               {staff.position || t('staff.positions.other')}
                             </p>
                             <div className="flex gap-3 mt-1 text-xs text-gray-600 dark:text-gray-400">
-                              <span>⏰ {staff.workingHours} {t('staff.hrAssistant.hoursPerDay')}</span>
+                              <span> {staff.workingHours} {t('staff.hrAssistant.hoursPerDay')}</span>
                               <span>•</span>
-                              <span>🏖️ {staff.monthlyVacationDays} {t('staff.hrAssistant.vacationDaysPerMonth')}</span>
+                              <span> {staff.monthlyVacationDays} {t('staff.hrAssistant.vacationDaysPerMonth')}</span>
                             </div>
                           </div>
                         </div>
                         <div className="text-center">
-                          <div className={`inline-block px-8 py-4 rounded-full ${colors.bg} border-2 ${colors.border}`}>
+                          <div className={`inline-block px-8 py-4 rounded-full ${colors.bg} ring-1 ${colors.border}`}>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                               {t('staff.hrAssistant.performance')}
                             </p>
@@ -615,7 +574,7 @@ export default function StaffHRAssistantPage() {
                             </p>
                             {analytics?.isPartialMonth && (
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                📅 حتى يوم {analytics.dataUpToDay}
+                                 حتى يوم {analytics.dataUpToDay}
                               </p>
                             )}
                           </div>
@@ -627,7 +586,7 @@ export default function StaffHRAssistantPage() {
                         {/* Attendance */}
                         <div className="bg-white dark:bg-gray-700 rounded-lg p-4 shadow">
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                            ✅ {t('staff.hrAssistant.attendance')}
+                             {t('staff.hrAssistant.attendance')}
                           </p>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">
                             {staff.daysAttended} {t('staff.hrAssistant.days')}
@@ -637,7 +596,7 @@ export default function StaffHRAssistantPage() {
                         {/* Absence */}
                         <div className="bg-white dark:bg-gray-700 rounded-lg p-4 shadow">
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                            ❌ {t('staff.hrAssistant.absence')}
+                             {t('staff.hrAssistant.absence')}
                           </p>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">
                             {staff.daysAbsent} {t('staff.hrAssistant.days')}
@@ -647,7 +606,7 @@ export default function StaffHRAssistantPage() {
                         {/* Work Hours */}
                         <div className="bg-white dark:bg-gray-700 rounded-lg p-4 shadow">
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                            ⏰ {t('staff.hrAssistant.workHours')}
+                             {t('staff.hrAssistant.workHours')}
                           </p>
                           <p className="text-lg font-bold text-gray-900 dark:text-white">
                             {staff.actualHoursWorked.toFixed(1)} / {staff.requiredHours.toFixed(0)}
@@ -657,7 +616,7 @@ export default function StaffHRAssistantPage() {
                         {/* Punctuality Score */}
                         <div className={`rounded-lg p-4 shadow ${staff.punctualityScore >= 90 ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700' : staff.punctualityScore >= 70 ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-700' : 'bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-700'}`}>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                            🎯 {direction === 'rtl' ? 'الالتزام بالمواعيد' : 'Punctuality'}
+                             {direction === 'rtl' ? 'الالتزام بالمواعيد' : 'Punctuality'}
                           </p>
                           <p className={`text-2xl font-bold ${staff.punctualityScore >= 90 ? 'text-green-600' : staff.punctualityScore >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
                             {staff.punctualityScore}%
@@ -672,7 +631,7 @@ export default function StaffHRAssistantPage() {
                         {/* Vacation */}
                         <div className="bg-white dark:bg-gray-700 rounded-lg p-4 shadow">
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                            🏖️ {t('staff.hrAssistant.vacationRemaining')}
+                             {t('staff.hrAssistant.vacationRemaining')}
                           </p>
                           <p className={`text-2xl font-bold ${staff.vacationDaysRemaining < 0 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
                             {staff.vacationDaysRemaining} {t('staff.hrAssistant.days')}
@@ -682,7 +641,7 @@ export default function StaffHRAssistantPage() {
                         {/* Revenue */}
                         <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 shadow border border-green-200 dark:border-green-700">
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                            💰 {t('staff.hrAssistant.revenue.total')}
+                             {t('staff.hrAssistant.revenue.total')}
                           </p>
                           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                             {staff.revenue.total.toFixed(0)} {t('common.egp')}
@@ -707,7 +666,7 @@ export default function StaffHRAssistantPage() {
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-4 overflow-hidden">
                           <div
-                            className={`h-full ${colors.progress} rounded-full transition-all duration-500`}
+                            className={`h-full ${colors.progress} rounded-full transition-colors duration-200`}
                             style={{ width: `${Math.min(staff.performancePercentage, 100)}%` }}
                           ></div>
                         </div>
@@ -717,7 +676,7 @@ export default function StaffHRAssistantPage() {
                       {staff.alerts.length > 0 && (
                         <div className="mt-6 space-y-2">
                           <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                            🚨 {t('staff.hrAssistant.alerts')}:
+                             {t('staff.hrAssistant.alerts')}:
                           </p>
                           {staff.alerts.map((alert, index) => (
                             <div
@@ -736,13 +695,13 @@ export default function StaffHRAssistantPage() {
                     {/* Revenue Breakdown */}
                     <div>
                       <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                        💰 {t('staff.hrAssistant.revenue.breakdown')}
+                         {t('staff.hrAssistant.revenue.breakdown')}
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {/* PT Revenue */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
                           <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            🏋️ {t('staff.hrAssistant.revenue.pt')}
+                             {t('staff.hrAssistant.revenue.pt')}
                           </p>
                           <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
                             {staff.revenue.pt.toFixed(0)} {t('common.egp')}
@@ -752,7 +711,7 @@ export default function StaffHRAssistantPage() {
                         {/* Nutrition Revenue */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
                           <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            🥗 {t('staff.hrAssistant.revenue.nutrition')}
+                             {t('staff.hrAssistant.revenue.nutrition')}
                           </p>
                           <p className="text-xl font-bold text-green-600 dark:text-green-400">
                             {staff.revenue.nutrition.toFixed(0)} {t('common.egp')}
@@ -762,7 +721,7 @@ export default function StaffHRAssistantPage() {
                         {/* Physiotherapy Revenue */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
                           <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            💆 {t('staff.hrAssistant.revenue.physiotherapy')}
+                             {t('staff.hrAssistant.revenue.physiotherapy')}
                           </p>
                           <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
                             {staff.revenue.physiotherapy.toFixed(0)} {t('common.egp')}
@@ -772,7 +731,7 @@ export default function StaffHRAssistantPage() {
                         {/* Other Revenue */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
                           <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            ➕ {t('staff.hrAssistant.revenue.other')}
+                             {t('staff.hrAssistant.revenue.other')}
                           </p>
                           <p className="text-xl font-bold text-gray-600 dark:text-gray-400">
                             {staff.revenue.other.toFixed(0)} {t('common.egp')}
@@ -817,7 +776,7 @@ export default function StaffHRAssistantPage() {
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="text-lg font-bold text-gray-900 dark:text-white">
-                          💵 {direction === 'rtl' ? 'السلف' : 'Advances'} ({staff.advances.count})
+                           {direction === 'rtl' ? 'السلف' : 'Advances'} ({staff.advances.count})
                         </h4>
                         <button
                           onClick={() => {
@@ -890,8 +849,8 @@ export default function StaffHRAssistantPage() {
                                 }`}
                               >
                                 {advance.isPaid
-                                  ? (direction === 'rtl' ? '✅ مدفوع' : '✅ Paid')
-                                  : (direction === 'rtl' ? '⏳ غير مدفوع' : '⏳ Unpaid')
+                                  ? (direction === 'rtl' ? ' مدفوع' : ' Paid')
+                                  : (direction === 'rtl' ? ' غير مدفوع' : ' Unpaid')
                                 }
                               </button>
                             </div>
@@ -903,12 +862,12 @@ export default function StaffHRAssistantPage() {
                     {/* Underperformance Days */}
                     <div>
                       <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                        📅 {t('staff.hrAssistant.underperformanceDays')} ({staff.underperformanceDays.length})
+                         {t('staff.hrAssistant.underperformanceDays')} ({staff.underperformanceDays.length})
                       </h4>
 
                       {staff.underperformanceDays.length === 0 ? (
                         <p className="text-gray-600 dark:text-gray-300">
-                          🎉 {direction === 'rtl' ? 'لا توجد أيام تقصير!' : 'No underperformance days!'}
+                           {direction === 'rtl' ? 'لا توجد أيام تقصير!' : 'No underperformance days!'}
                         </p>
                       ) : (
                         <div className="space-y-2">
@@ -919,7 +878,7 @@ export default function StaffHRAssistantPage() {
                             >
                               <div>
                                 <p className="font-medium text-gray-900 dark:text-white">
-                                  📆 {new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
+                                   {new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                 </p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
                                   {day.actualHours.toFixed(1)} {t('staff.hrAssistant.hours')} / {day.requiredHours} {t('staff.hrAssistant.hours')}
@@ -943,12 +902,12 @@ export default function StaffHRAssistantPage() {
                     {staff.shiftStartTime && (
                       <div>
                         <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                          ⏰ {direction === 'rtl' ? 'أيام التأخير' : 'Late Arrivals'} ({staff.lateArrivals.length})
+                           {direction === 'rtl' ? 'أيام التأخير' : 'Late Arrivals'} ({staff.lateArrivals.length})
                         </h4>
 
                         {staff.lateArrivals.length === 0 ? (
                           <p className="text-gray-600 dark:text-gray-300">
-                            🎯 {direction === 'rtl' ? 'لا يوجد تأخير! التزام تام بالمواعيد' : 'No late arrivals! Perfect punctuality'}
+                             {direction === 'rtl' ? 'لا يوجد تأخير! التزام تام بالمواعيد' : 'No late arrivals! Perfect punctuality'}
                           </p>
                         ) : (
                           <div className="space-y-2">
@@ -963,7 +922,7 @@ export default function StaffHRAssistantPage() {
                               >
                                 <div>
                                   <p className="font-medium text-gray-900 dark:text-white">
-                                    📆 {new Date(late.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
+                                     {new Date(late.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
                                   </p>
                                   <p className="text-sm text-gray-600 dark:text-gray-400">
                                     {direction === 'rtl' ? `دخل: ${late.checkInTime} | الموعد: ${late.shiftStart}` : `In: ${late.checkInTime} | Shift: ${late.shiftStart}`}
@@ -990,7 +949,7 @@ export default function StaffHRAssistantPage() {
                     {staff.shiftEndTime && staff.earlyDepartures.length > 0 && (
                       <div>
                         <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                          🚪 {direction === 'rtl' ? 'أيام الخروج المبكر' : 'Early Departures'} ({staff.earlyDepartures.length})
+                           {direction === 'rtl' ? 'أيام الخروج المبكر' : 'Early Departures'} ({staff.earlyDepartures.length})
                         </h4>
                         <div className="space-y-2">
                           {staff.earlyDepartures.map((early, index) => (
@@ -1000,7 +959,7 @@ export default function StaffHRAssistantPage() {
                             >
                               <div>
                                 <p className="font-medium text-gray-900 dark:text-white">
-                                  📆 {new Date(early.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
+                                   {new Date(early.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
                                 </p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
                                   {direction === 'rtl' ? `خرج: ${early.checkOutTime} | الموعد: ${early.shiftEnd}` : `Out: ${early.checkOutTime} | Shift: ${early.shiftEnd}`}
@@ -1026,7 +985,7 @@ export default function StaffHRAssistantPage() {
                     {staff.attendanceDetails.length > 0 && (
                       <div>
                         <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                          📋 {direction === 'rtl' ? 'سجل الحضور اليومي' : 'Daily Attendance Log'}
+                           {direction === 'rtl' ? 'سجل الحضور اليومي' : 'Daily Attendance Log'}
                         </h4>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
@@ -1054,10 +1013,10 @@ export default function StaffHRAssistantPage() {
                                     {att.duration ? `${(att.duration / 60).toFixed(1)}h` : '-'}
                                   </td>
                                   <td className="p-2 text-center">
-                                    {att.status === 'on-time' && <span className="text-green-600 font-bold text-xs">✅</span>}
-                                    {att.status === 'late' && <span className="text-red-600 font-bold text-xs">⏰ -{att.lateMinutes}m</span>}
-                                    {att.status === 'early' && <span className="text-purple-600 font-bold text-xs">🚪 -{att.earlyMinutes}m</span>}
-                                    {att.status === 'late-and-early' && <span className="text-red-600 font-bold text-xs">⏰ -{att.lateMinutes}m 🚪 -{att.earlyMinutes}m</span>}
+                                    {att.status === 'on-time' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">OK</span>}
+                                    {att.status === 'late' && <span className="text-red-600 font-bold text-xs"> -{att.lateMinutes}m</span>}
+                                    {att.status === 'early' && <span className="text-purple-600 font-bold text-xs"> -{att.earlyMinutes}m</span>}
+                                    {att.status === 'late-and-early' && <span className="text-red-600 font-bold text-xs"> -{att.lateMinutes}m -{att.earlyMinutes}m</span>}
                                   </td>
                                 </tr>
                               ))}
@@ -1074,26 +1033,40 @@ export default function StaffHRAssistantPage() {
         )}
       </div>
 
-      {/* مودال إضافة سلفة */}
+      {/* Add advance modal */}
       {showAdvanceModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6" dir={direction}>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-              💵 {direction === 'rtl' ? 'إضافة سلفة جديدة' : 'Add New Advance'}
-            </h3>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="advance-modal-title">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in w-full max-w-md p-6" dir={direction}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 id="advance-modal-title" className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <svg {...stroke} className="w-5 h-5 text-orange-600 dark:text-orange-400" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4M9 9V6m6 12v-3" />
+                </svg>
+                <span>{direction === 'rtl' ? 'إضافة سلفة جديدة' : 'Add New Advance'}</span>
+              </h3>
+              <button
+                onClick={() => setShowAdvanceModal(false)}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label={direction === 'rtl' ? 'إلغاء' : 'Cancel'}
+              >
+                <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {direction === 'rtl' ? 'الموظف' : 'Staff'}
                 </label>
-                <p className="px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white font-medium">
+                <p className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-900 dark:text-gray-100 font-bold">
                   {analytics?.analytics.find(s => s.staffId === advanceStaffId)?.staffName || ''}
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {direction === 'rtl' ? 'المبلغ' : 'Amount'} ({t('common.egp')})
                 </label>
                 <input
@@ -1102,39 +1075,41 @@ export default function StaffHRAssistantPage() {
                   onChange={(e) => setAdvanceAmount(e.target.value)}
                   placeholder="0"
                   min="1"
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-orange-500 dark:focus:border-orange-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {direction === 'rtl' ? 'ملاحظات' : 'Notes'}
                 </label>
                 <input
                   type="text"
                   value={advanceNotes}
                   onChange={(e) => setAdvanceNotes(e.target.value)}
-                  placeholder={direction === 'rtl' ? 'اختياري...' : 'Optional...'}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-orange-500 dark:focus:border-orange-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder={direction === 'rtl' ? 'اختياري' : 'Optional'}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-2 mt-6">
               <button
                 onClick={handleAddAdvance}
                 disabled={advanceSubmitting || !advanceAmount || parseFloat(advanceAmount) <= 0}
-                className="flex-1 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-medium disabled:opacity-50"
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed text-sm"
               >
-                {advanceSubmitting
-                  ? (direction === 'rtl' ? 'جاري الحفظ...' : 'Saving...')
-                  : (direction === 'rtl' ? 'حفظ السلفة' : 'Save Advance')
-                }
+                {advanceSubmitting && (
+                  <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                  </svg>
+                )}
+                <span>{advanceSubmitting ? (direction === 'rtl' ? 'جاري الحفظ' : 'Saving') : (direction === 'rtl' ? 'حفظ السلفة' : 'Save Advance')}</span>
               </button>
               <button
                 onClick={() => setShowAdvanceModal(false)}
-                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                className="px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
               >
                 {direction === 'rtl' ? 'إلغاء' : 'Cancel'}
               </button>

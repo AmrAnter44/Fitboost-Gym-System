@@ -10,6 +10,9 @@ import { useToast } from '../../contexts/ToastContext'
 import { useRouter } from 'next/navigation'
 import { fetchInvitations } from '@/lib/api/invitations'
 import AssignSalesButton from '../../components/AssignSalesButton'
+import { LoadingScreen } from '../../components/Spinner'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface Invitation {
   id: string
@@ -40,7 +43,7 @@ export default function InvitationsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [invitationToDelete, setInvitationToDelete] = useState<Invitation | null>(null)
 
-  // ✅ Optimistic Delete - حذف الدعوة فوراً من الـ UI
+  // Optimistic Delete
   const deleteInvitationMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/invitations?id=${id}`, { method: 'DELETE' })
@@ -161,69 +164,86 @@ export default function InvitationsPage() {
   return (
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <span>🎟️</span>
-          <span>{t('invitations.title')}</span>
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">{t('invitations.subtitle')}</p>
+      <div className="mb-6 flex items-center gap-3">
+        <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+          <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+          </svg>
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('invitations.title')}</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{t('invitations.subtitle')}</p>
+        </div>
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-5 shadow-lg">
-          <p className="text-sm opacity-90 mb-1">{t('invitations.totalInvitations')}</p>
-          <p className="text-4xl font-bold">{stats.total}</p>
-        </div>
-        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-5 shadow-lg">
-          <p className="text-sm opacity-90 mb-1">{t('invitations.today')}</p>
-          <p className="text-4xl font-bold">{stats.today}</p>
-        </div>
-        <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl p-5 shadow-lg">
-          <p className="text-sm opacity-90 mb-1">{t('invitations.thisWeek')}</p>
-          <p className="text-4xl font-bold">{stats.thisWeek}</p>
-        </div>
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl p-5 shadow-lg">
-          <p className="text-sm opacity-90 mb-1">{t('invitations.thisMonth')}</p>
-          <p className="text-4xl font-bold">{stats.thisMonth}</p>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: t('invitations.totalInvitations'), value: stats.total, tone: 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' },
+          { label: t('invitations.today'), value: stats.today, tone: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
+          { label: t('invitations.thisWeek'), value: stats.thisWeek, tone: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+          { label: t('invitations.thisMonth'), value: stats.thisMonth, tone: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+            <div className={`w-10 h-10 rounded-lg ${stat.tone} flex items-center justify-center mb-2`}>
+              <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+              </svg>
+            </div>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{stat.label}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">🔍 {t('invitations.search')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 inline-flex items-center gap-1">
+              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+              </svg>
+              {t('invitations.search')}
+            </label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('invitations.searchPlaceholder')}
-              className="w-full px-4 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">📅 {t('invitations.filterByDate')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 inline-flex items-center gap-1">
+              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              </svg>
+              {t('invitations.filterByDate')}
+            </label>
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full px-4 py-2 border-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             />
           </div>
         </div>
         {(searchTerm || dateFilter) && (
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2 items-center">
             <button
               onClick={() => {
                 setSearchTerm('')
                 setDateFilter('')
               }}
-              className="text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 px-3 py-1 rounded-lg"
+              className="inline-flex items-center gap-1 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg font-bold transition-colors duration-200"
             >
-              ✖️ {t('invitations.clearFilters')}
+              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+              {t('invitations.clearFilters')}
             </button>
-            <p className="text-sm text-gray-600 dark:text-gray-300 py-1">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               {t('invitations.showing', {
                 count: filteredInvitations.length.toString(),
                 total: invitations.length.toString()
@@ -235,23 +255,19 @@ export default function InvitationsPage() {
 
       {/* List / Cards */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">⏳</div>
-          <p className="text-xl">{t('invitations.loading')}</p>
-        </div>
+        <LoadingScreen message={t('invitations.loading')} />
       ) : (
         <div>
-          {/* Cards للموبايل */}
+          {/* Mobile cards */}
           <div className="grid grid-cols-1 gap-4 md:hidden">
             {currentInvitations.map((invitation) => (
-              <div key={invitation.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-r-4 border-primary-500">
-                {/* الهيدر */}
-                <div className="flex justify-between items-start mb-3">
+              <div key={invitation.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 border-s-4 border-primary-500">
+                <div className="flex justify-between items-start mb-3 gap-2 flex-wrap">
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                       {formatDateYMD(invitation.createdAt)} • {new Date(invitation.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                     </p>
-                    <h3 className="font-bold text-lg text-primary-700">{invitation.guestName}</h3>
+                    <h3 className="font-bold text-base text-primary-700 dark:text-primary-400">{invitation.guestName}</h3>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <AssignSalesButton
@@ -263,37 +279,42 @@ export default function InvitationsPage() {
                     />
                     <button
                       onClick={() => handleDelete(invitation)}
-                      className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 dark:bg-red-900/20 dark:text-red-200"
+                      className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 text-xs font-bold px-2 py-1 rounded-lg transition-colors duration-200"
+                      aria-label={t('invitations.delete')}
                     >
-                      🗑️ {t('invitations.delete')}
+                      <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                      </svg>
+                      {t('invitations.delete')}
                     </button>
                   </div>
                 </div>
 
-                {/* التفاصيل */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">📱</span>
-                    <span className="font-mono text-sm">{invitation.guestPhone}</span>
+                    <svg {...stroke} className="w-4 h-4 text-gray-400" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                    </svg>
+                    <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{invitation.guestPhone}</span>
                   </div>
 
-                  <div className="border-t pt-2">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">{t('invitations.hostingMemberLabel')}</p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold">{invitation.member.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{invitation.member.phone}</p>
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('invitations.hostingMemberLabel')}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate">{invitation.member.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{invitation.member.phone}</p>
                       </div>
-                      <span className="bg-primary-100 text-primary-800 px-2 py-1 rounded font-bold text-xs">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex-shrink-0">
                         #{invitation.member.memberNumber}
                       </span>
                     </div>
                   </div>
 
                   {invitation.notes && (
-                    <div className="border-t pt-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">{t('invitations.notesLabel')}</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-200">{invitation.notes}</p>
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('invitations.notesLabel')}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{invitation.notes}</p>
                     </div>
                   )}
                 </div>
@@ -302,56 +323,54 @@ export default function InvitationsPage() {
           </div>
 
           {/* Table for large screens */}
-          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100 dark:bg-gray-700 dark:bg-gray-700">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                   <tr>
-                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.date')}</th>
-                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.guestName')}</th>
-                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.guestPhone')}</th>
-                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.hostingMember')}</th>
-                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.membershipNumber')}</th>
-                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.notes')}</th>
-                    <th className="px-4 py-3 text-right dark:text-gray-200">{t('invitations.actions')}</th>
+                    <th className="px-4 py-3 text-start font-bold">{t('invitations.date')}</th>
+                    <th className="px-4 py-3 text-start font-bold">{t('invitations.guestName')}</th>
+                    <th className="px-4 py-3 text-start font-bold">{t('invitations.guestPhone')}</th>
+                    <th className="px-4 py-3 text-start font-bold">{t('invitations.hostingMember')}</th>
+                    <th className="px-4 py-3 text-start font-bold">{t('invitations.membershipNumber')}</th>
+                    <th className="px-4 py-3 text-start font-bold">{t('invitations.notes')}</th>
+                    <th className="px-4 py-3 text-start font-bold">{t('invitations.actions')}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                   {currentInvitations.map((invitation) => (
-                    <tr key={invitation.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700">
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-mono text-sm">
-                            {formatDateYMD(invitation.createdAt)}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                            {new Date(invitation.createdAt).toLocaleTimeString('ar-EG', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-primary-700">
-                          {invitation.guestName}
+                    <tr key={invitation.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                        <p className="font-mono text-sm">
+                          {formatDateYMD(invitation.createdAt)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(invitation.createdAt).toLocaleTimeString('ar-EG', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </p>
                       </td>
                       <td className="px-4 py-3">
+                        <p className="font-bold text-primary-700 dark:text-primary-400">
+                          {invitation.guestName}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                         <p className="font-mono">{invitation.guestPhone}</p>
                       </td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium">{invitation.member.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{invitation.member.phone}</p>
+                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                        <p className="font-bold">{invitation.member.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{invitation.member.phone}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-block bg-primary-100 text-primary-800 px-2 py-1 rounded font-bold text-sm">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
                           #{invitation.member.memberNumber}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         {invitation.notes ? (
-                          <p className="text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate" title={invitation.notes}>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate" title={invitation.notes}>
                             {invitation.notes}
                           </p>
                         ) : (
@@ -369,9 +388,13 @@ export default function InvitationsPage() {
                           />
                           <button
                             onClick={() => handleDelete(invitation)}
-                            className="text-red-600 hover:text-red-800 text-sm"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
+                            aria-label={t('invitations.delete')}
+                            title={t('invitations.delete')}
                           >
-                            {t('invitations.delete')}
+                            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
                           </button>
                         </div>
                       </td>
@@ -384,9 +407,8 @@ export default function InvitationsPage() {
 
           {/* Pagination Controls */}
           {filteredInvitations.length > 0 && totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              {/* Page info */}
-              <div className="text-sm text-gray-600 dark:text-gray-300">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 {t('invitations.showingPagination', {
                   start: (startIndex + 1).toString(),
                   end: Math.min(endIndex, filteredInvitations.length).toString(),
@@ -394,12 +416,11 @@ export default function InvitationsPage() {
                 })}
               </div>
 
-              {/* Navigation buttons */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => goToPage(1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 transition-colors"
+                  className="px-3 py-1.5 rounded-lg text-sm font-bold text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                   title={t('invitations.firstPage')}
                 >
                   {t('invitations.firstPage')}
@@ -408,13 +429,12 @@ export default function InvitationsPage() {
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 transition-colors"
+                  className="px-3 py-1.5 rounded-lg text-sm font-bold text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                   title={t('invitations.previousPage')}
                 >
                   {t('invitations.previousPage')}
                 </button>
 
-                {/* أرقام الصفحات */}
                 <div className="flex gap-1">
                   {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                     let pageNum
@@ -432,11 +452,12 @@ export default function InvitationsPage() {
                       <button
                         key={pageNum}
                         onClick={() => goToPage(pageNum)}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                        className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors duration-200 ${
                           currentPage === pageNum
-                            ? 'bg-primary-600 text-white'
-                            : 'hover:bg-gray-200'
+                            ? 'bg-primary-500 text-primary-contrast'
+                            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
+                        aria-current={currentPage === pageNum ? 'page' : undefined}
                       >
                         {pageNum}
                       </button>
@@ -447,7 +468,7 @@ export default function InvitationsPage() {
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 transition-colors"
+                  className="px-3 py-1.5 rounded-lg text-sm font-bold text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                   title={t('invitations.nextPage')}
                 >
                   {t('invitations.nextPage')}
@@ -456,23 +477,22 @@ export default function InvitationsPage() {
                 <button
                   onClick={() => goToPage(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:bg-gray-700 transition-colors"
+                  className="px-3 py-1.5 rounded-lg text-sm font-bold text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                   title={t('invitations.lastPage')}
                 >
                   {t('invitations.lastPage')}
                 </button>
               </div>
 
-              {/* Items per page selector */}
               <div className="flex items-center gap-2 text-sm">
-                <label className="text-gray-600 dark:text-gray-300">{t('invitations.itemsPerPage')}:</label>
+                <label className="text-gray-600 dark:text-gray-400 font-bold">{t('invitations.itemsPerPage')}:</label>
                 <select
                   value={itemsPerPage}
                   onChange={(e) => {
                     setItemsPerPage(Number(e.target.value))
                     setCurrentPage(1)
                   }}
-                  className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -484,16 +504,20 @@ export default function InvitationsPage() {
           )}
 
           {filteredInvitations.length === 0 && (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500">
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
               {searchTerm || dateFilter ? (
                 <>
-                  <div className="text-5xl mb-3">🔍</div>
-                  <p>{t('invitations.noMatchingResults')}</p>
+                  <svg {...stroke} className="w-12 h-12 text-gray-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                  </svg>
+                  <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('invitations.noMatchingResults')}</h3>
                 </>
               ) : (
                 <>
-                  <div className="text-5xl mb-3">🎟️</div>
-                  <p>{t('invitations.noInvitationsYet')}</p>
+                  <svg {...stroke} className="w-12 h-12 text-gray-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+                  </svg>
+                  <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('invitations.noInvitationsYet')}</h3>
                 </>
               )}
             </div>
@@ -502,8 +526,11 @@ export default function InvitationsPage() {
       )}
 
       {/* Note */}
-      <div className="mt-6 bg-primary-50 border-r-4 border-primary-500 p-4 rounded-lg">
-        <p className="text-sm text-primary-800">
+      <div className="mt-6 bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-900/50 p-4 rounded-lg flex items-start gap-2">
+        <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+        </svg>
+        <p className="text-sm text-primary-800 dark:text-primary-300">
           <strong>{t('invitations.noteLabel')}</strong>
         </p>
       </div>

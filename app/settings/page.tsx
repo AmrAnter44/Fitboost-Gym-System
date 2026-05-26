@@ -6,6 +6,26 @@ import Link from 'next/link'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useDarkMode } from '../../contexts/DarkModeContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
+import { LoadingScreen } from '../../components/Spinner'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
+const NAV_ICON_PATHS: Record<string, JSX.Element> = {
+  'quick-links': (<path strokeLinecap="round" strokeLinejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />),
+  'services': (<path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3 2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75 2.25-1.313M12 21.75V19.5m0 2.25-2.25-1.313m0-16.875L12 2.25l2.25 1.313" />),
+  'points': (<path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />),
+  'referral': (<path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21" />),
+  'free-sessions': (<path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />),
+  'receipts': (<path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4m6-4V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3-2 3 2 3-2 3 2v-4" />),
+  'port-forwarding': (<path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />),
+  'whatsapp': (<path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z" />),
+  'display': (<path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.902a3.75 3.75 0 0 0 5.304 0l6.401-6.402M6.75 21A3.75 3.75 0 0 1 3 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 0 0 3.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008Z" />),
+  'license': (<path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />),
+  'database': (<path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />),
+  'apply-features': (<path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />),
+  'updates': (<path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />),
+  'support': (<path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />)
+}
 
 // ==================== System Update Section ====================
 function SystemUpdateSection() {
@@ -104,56 +124,75 @@ function SystemUpdateSection() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-4">
       {/* Current Version */}
-      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">📦</span>
+          <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+            <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+            </svg>
+          </div>
           <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('settingsPage.updates.currentVersion')}</p>
-            <p className="text-xl font-bold text-gray-800 dark:text-gray-100 font-mono">v{currentVersion}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('settingsPage.updates.currentVersion')}</p>
+            <p className="mt-0.5 text-xl font-bold text-gray-900 dark:text-gray-100 font-mono">v{currentVersion}</p>
           </div>
         </div>
 
         {updateStatus === 'up-to-date' && (
-          <span className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-bold flex items-center gap-1">
-            ✅ {t('settingsPage.updates.upToDate')}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-xs font-bold">
+            <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+            {t('settingsPage.updates.upToDate')}
           </span>
         )}
         {updateStatus === 'available' && (
-          <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-bold flex items-center gap-1">
-            🆕 {t('settingsPage.updates.updateAvailable')}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full text-xs font-bold">
+            <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            {t('settingsPage.updates.updateAvailable')}
           </span>
         )}
         {updateStatus === 'downloaded' && (
-          <span className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-bold flex items-center gap-1">
-            ✅ {t('settingsPage.updates.readyToInstall')}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full text-xs font-bold">
+            <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+            {t('settingsPage.updates.readyToInstall')}
           </span>
         )}
       </div>
 
       {/* Error */}
       {updateStatus === 'error' && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400 text-sm flex items-center gap-2">
-          <span>❌</span>
-          {errorMessage}
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg text-red-700 dark:text-red-300 text-sm flex items-start gap-2">
+          <svg {...stroke} className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          <span>{errorMessage}</span>
         </div>
       )}
 
       {/* Update Available Info */}
       {updateStatus === 'available' && updateInfo && (
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🎉</span>
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center flex-shrink-0">
+              <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5 14.25 3l-1.5 7.5h6l-10.5 10.5 1.5-7.5h-6Z" />
+              </svg>
+            </div>
             <div>
-              <p className="font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.updates.newUpdateAvailable')}</p>
+              <p className="font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.updates.newUpdateAvailable')}</p>
               {updateInfo.version && (
                 <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.updates.version')}: <span className="font-mono font-bold">v{updateInfo.version}</span></p>
               )}
             </div>
           </div>
           {updateInfo.releaseNotes && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 max-h-24 overflow-y-auto text-xs text-gray-600 dark:text-gray-400 border border-blue-100 dark:border-gray-600">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 max-h-24 overflow-y-auto text-xs text-gray-600 dark:text-gray-400 ring-1 ring-blue-100 dark:ring-gray-700">
               {updateInfo.releaseNotes.split('\n').slice(0, 5).map((line: string, i: number) => (
                 <p key={i}>{line}</p>
               ))}
@@ -161,9 +200,11 @@ function SystemUpdateSection() {
           )}
           <button
             onClick={handleDownload}
-            className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+            className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            <span>📥</span>
+            <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
             {t('settingsPage.updates.downloadUpdate')}
           </button>
         </div>
@@ -171,14 +212,16 @@ function SystemUpdateSection() {
 
       {/* Download Progress */}
       {updateStatus === 'downloading' && (
-        <div className="p-4 bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-200 dark:border-primary-700 rounded-lg space-y-3">
+        <div className="p-4 bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-900/50 rounded-lg space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-2xl animate-spin">⏳</span>
-            <p className="font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.updates.downloading')}</p>
+            <svg {...stroke} className="w-5 h-5 animate-spin text-primary-700 dark:text-primary-400" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+            </svg>
+            <p className="font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.updates.downloading')}</p>
           </div>
-          <div className="bg-gray-200 dark:bg-gray-600 rounded-full h-3 overflow-hidden">
+          <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-primary-500 to-primary-600 h-full transition-all duration-300 rounded-full"
+              className="bg-primary-500 h-full transition-[width] duration-300 rounded-full"
               style={{ width: `${downloadProgress}%` }}
             />
           </div>
@@ -188,19 +231,25 @@ function SystemUpdateSection() {
 
       {/* Downloaded - Ready to Install */}
       {updateStatus === 'downloaded' && (
-        <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">✅</span>
+        <div className="p-4 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center justify-center flex-shrink-0">
+              <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            </div>
             <div>
-              <p className="font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.updates.downloadComplete')}</p>
+              <p className="font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.updates.downloadComplete')}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.updates.downloadCompleteDesc')}</p>
             </div>
           </div>
           <button
             onClick={handleInstall}
-            className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+            className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            <span>🔄</span>
+            <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+            </svg>
             {t('settingsPage.updates.restartAndInstall')}
           </button>
         </div>
@@ -208,8 +257,10 @@ function SystemUpdateSection() {
 
       {/* Checking Spinner */}
       {updateStatus === 'checking' && (
-        <div className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold rounded-lg flex items-center justify-center gap-2">
-          <span className="animate-spin">⏳</span>
+        <div className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg flex items-center justify-center gap-2">
+          <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+          </svg>
           {t('settingsPage.updates.checking')}
         </div>
       )}
@@ -219,16 +270,20 @@ function SystemUpdateSection() {
         (updateStatus === 'idle' || updateStatus === 'up-to-date' || updateStatus === 'error') && (
           <button
             onClick={handleCheckForUpdates}
-            className="w-full px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
+            className="w-full px-4 py-2.5 bg-gray-700 hover:bg-gray-800 text-white font-bold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            <span>🔍</span>
+            <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
             {t('settingsPage.updates.checkForUpdates')}
           </button>
         )
       ) : (
-        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg text-yellow-700 dark:text-yellow-400 text-sm flex items-center gap-2">
-          <span>ℹ️</span>
-          {t('settingsPage.updates.electronOnly')}
+        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg text-amber-700 dark:text-amber-300 text-sm flex items-start gap-2">
+          <svg {...stroke} className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+          </svg>
+          <span>{t('settingsPage.updates.electronOnly')}</span>
         </div>
       )}
     </div>
@@ -252,6 +307,7 @@ export default function SettingsPage() {
   const [primaryColor, setPrimaryColor] = useState<string | null>(null)
   const [customColorInput, setCustomColorInput] = useState('')
   const [isSavingColor, setIsSavingColor] = useState(false)
+  const [primaryTextOverride, setPrimaryTextOverrideState] = useState<'auto' | 'white' | 'black'>('auto')
 
   const [serviceSettings, setServiceSettings] = useState({
     nutritionEnabled: true,
@@ -393,6 +449,14 @@ export default function SettingsPage() {
       fetchCleanupInfo()
     }
   }, [activeSection, user])
+
+  // Load primary-text override from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('primaryTextOverride')
+    if (saved === 'white' || saved === 'black' || saved === 'auto') {
+      setPrimaryTextOverrideState(saved)
+    }
+  }, [])
 
   const checkAuth = async () => {
     try {
@@ -665,6 +729,23 @@ export default function SettingsPage() {
     }
   }
 
+  // Update primary-text contrast override (auto / white / black) — persisted in localStorage
+  const handlePrimaryTextOverride = async (value: 'auto' | 'white' | 'black') => {
+    setPrimaryTextOverrideState(value)
+    if (value === 'auto') {
+      localStorage.removeItem('primaryTextOverride')
+    } else {
+      localStorage.setItem('primaryTextOverride', value)
+    }
+    try {
+      const { applyPrimaryTextOverride } = await import('../../lib/theme/generatePalette')
+      const baseHex = primaryColor || '#fbe003'
+      applyPrimaryTextOverride(baseHex, value)
+    } catch (err) {
+      console.error('Failed to apply primary text override:', err)
+    }
+  }
+
   const handleDbUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -677,7 +758,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/restore-db', { method: 'POST', body: formData })
       const data = await res.json()
       if (res.ok && data.success) {
-        setDbUploadResult({ success: `✅ ${data.message}` })
+        setDbUploadResult({ success: data.message })
       } else {
         setDbUploadResult({ error: data.error || t('settingsPage.unexpectedError') })
       }
@@ -690,7 +771,7 @@ export default function SettingsPage() {
   }
 
   const handleSyncDatabase = async () => {
-    if (!confirm('⚠️ هل تريد تحديث قاعدة البيانات؟\n\nسيتم:\n• إصلاح الصلاحيات\n• مزامنة Schema\n• تطبيق Migrations\n• تحديث Prisma Client')) {
+    if (!confirm('هل تريد تحديث قاعدة البيانات؟\n\nسيتم:\n• إصلاح الصلاحيات\n• مزامنة Schema\n• تطبيق Migrations\n• تحديث Prisma Client')) {
       return
     }
 
@@ -706,7 +787,7 @@ export default function SettingsPage() {
 
       if (data.success) {
         const stepsText = data.steps
-          ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '✅' : s.status === 'error' ? '❌' : '⏭️'} ${s.message}`).join('\n')
+          ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '[OK]' : s.status === 'error' ? '[X]' : '[-]'} ${s.message}`).join('\n')
           : ''
 
         setSyncMessage({
@@ -717,7 +798,7 @@ export default function SettingsPage() {
         setTimeout(() => setSyncMessage(null), 20000)
       } else {
         const stepsText = data.steps
-          ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '✅' : s.status === 'error' ? '❌' : '⏭️'} ${s.message}`).join('\n')
+          ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '[OK]' : s.status === 'error' ? '[X]' : '[-]'} ${s.message}`).join('\n')
           : ''
 
         setSyncMessage({
@@ -786,10 +867,10 @@ export default function SettingsPage() {
   const handleOptimizeDb = async (target?: string, all?: boolean) => {
     const isLive = !target || target === 'gym.db'
     const confirmMsg = all
-      ? '⚠️ هل تريد تنظيف كل النسخ الاحتياطية القديمة؟\n\nالعملية بتشغّل VACUUM على كل ملفات gym.db.backup-* وبتصغّر حجمها.\nالملف الأساسي (gym.db) مش هيتأثر.'
+      ? 'هل تريد تنظيف كل النسخ الاحتياطية القديمة؟\n\nالعملية بتشغّل VACUUM على كل ملفات gym.db.backup-* وبتصغّر حجمها.\nالملف الأساسي (gym.db) مش هيتأثر.'
       : isLive
-        ? '⚠️ هل تريد تنظيف ملف قاعدة البيانات الأساسي (gym.db)؟\n\nالعملية آمنة وبتصغّر الحجم من غير ما تغيّر في البيانات.\nيُفضَّل عمل نسخة احتياطية قبلها من زر "النسخ الاحتياطي".'
-        : `⚠️ هل تريد تنظيف الملف "${target}"؟`
+        ? 'هل تريد تنظيف ملف قاعدة البيانات الأساسي (gym.db)؟\n\nالعملية آمنة وبتصغّر الحجم من غير ما تغيّر في البيانات.\nيُفضَّل عمل نسخة احتياطية قبلها من زر "النسخ الاحتياطي".'
+        : `هل تريد تنظيف الملف "${target}"؟`
 
     if (!confirm(confirmMsg)) return
 
@@ -811,8 +892,8 @@ export default function SettingsPage() {
       if (all) {
         const lines = (data.results || []).map((r: any) =>
           r.success
-            ? `✅ ${r.name}: ${r.before?.mb} MB → ${r.after?.mb} MB (وفّر ${r.saved?.mb} MB)`
-            : `❌ ${r.name}: ${r.error || 'فشل'}`
+            ? `[OK] ${r.name}: ${r.before?.mb} MB → ${r.after?.mb} MB (وفّر ${r.saved?.mb} MB)`
+            : `[X] ${r.name}: ${r.error || 'فشل'}`
         )
         setOptimizeMessage({
           type: 'success',
@@ -820,7 +901,7 @@ export default function SettingsPage() {
         })
       } else {
         const msg = data.success
-          ? `✅ ${data.target}: ${data.before?.mb} MB → ${data.after?.mb} MB\nوفّر ${data.saved?.mb} MB (${data.saved?.percent}%)`
+          ? `${data.target}: ${data.before?.mb} MB → ${data.after?.mb} MB\nوفّر ${data.saved?.mb} MB (${data.saved?.percent}%)`
           : data.error || 'فشل التنظيف'
         setOptimizeMessage({ type: data.success ? 'success' : 'error', text: msg })
       }
@@ -858,7 +939,7 @@ export default function SettingsPage() {
   const handleRunCleanup = async () => {
     if (!cleanupInfo || cleanupInfo.candidates === 0) return
     if (!confirm(
-      `⚠️ هذه العملية ستقوم بالتالي:\n\n` +
+      `هذه العملية ستقوم بالتالي:\n\n` +
       `1️⃣ حفظ نسخة احتياطية من قاعدة البيانات\n` +
       `2️⃣ نقل ${cleanupInfo.candidates} صورة من قاعدة البيانات لملفات\n` +
       `3️⃣ ضغط قاعدة البيانات (VACUUM)\n\n` +
@@ -875,10 +956,10 @@ export default function SettingsPage() {
         setCleanupResult(data)
         await fetchCleanupInfo()
       } else {
-        alert(`❌ فشل التنظيف: ${data.error || 'خطأ غير معروف'}`)
+        alert(`فشل التنظيف: ${data.error || 'خطأ غير معروف'}`)
       }
     } catch (err: any) {
-      alert(`❌ حدث خطأ أثناء التنظيف: ${err.message}`)
+      alert(`حدث خطأ أثناء التنظيف: ${err.message}`)
     } finally {
       setCleanupRunning(false)
     }
@@ -993,14 +1074,14 @@ export default function SettingsPage() {
         const data = await response.json()
         setGyms(data.gyms || [])
         if (!data.gyms || data.gyms.length === 0) {
-          setSaveMessage({ type: 'error', text: '⚠️ لا توجد صالات متاحة في قاعدة البيانات' })
+          setSaveMessage({ type: 'error', text: 'لا توجد صالات متاحة في قاعدة البيانات' })
         }
       } else {
         const errorData = await response.json().catch(() => ({}))
         setSaveMessage({ type: 'error', text: errorData.error || 'فشل جلب الصالات' })
       }
     } catch (error) {
-      console.error('❌ Exception fetching gyms:', error)
+      console.error('Exception fetching gyms:', error)
       setSaveMessage({ type: 'error', text: 'خطأ في الاتصال - تحقق من الإنترنت أو إعدادات Supabase' })
     } finally {
       setLoadingGyms(false)
@@ -1061,7 +1142,7 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json()
         setCurrentLicense(data.license)
-        setSaveMessage({ type: 'success', text: '✅ تم حفظ اختيار الصالة والفرع بنجاح' })
+        setSaveMessage({ type: 'success', text: 'تم حفظ اختيار الصالة والفرع بنجاح' })
         setTimeout(() => setSaveMessage(null), 3000)
       } else {
         setSaveMessage({ type: 'error', text: 'فشل حفظ الاختيار' })
@@ -1077,51 +1158,63 @@ export default function SettingsPage() {
   // تحديد من يمتلك صلاحيات الإعدادات الإدارية
   const hasAdminAccess = user?.role === 'ADMIN' || user?.role === 'OWNER' || user?.permissions?.canAccessSettings === true
 
-  const navigationItems = [
-    ...(user?.role === 'ADMIN' || user?.role === 'OWNER' ? [{ id: 'quick-links', label: t('settingsPage.navigation.quickLinks'), icon: '⚡' }] : []),
+  const navigationItems: Array<{ id: string; label: string }> = [
+    ...(user?.role === 'ADMIN' || user?.role === 'OWNER' ? [{ id: 'quick-links', label: t('settingsPage.navigation.quickLinks') }] : []),
     ...(hasAdminAccess ? [
-      { id: 'services', label: t('settingsPage.navigation.services'), icon: '🏋️' },
-      { id: 'points', label: t('settingsPage.navigation.points'), icon: '🎯' },
-      { id: 'referral', label: t('settingsPage.navigation.referral'), icon: '🎁' },
-      { id: 'free-sessions', label: t('settingsPage.navigation.freeSessions'), icon: '🎫' },
-      { id: 'receipts', label: t('settingsPage.navigation.receipts'), icon: '📋' },
-      { id: 'port-forwarding', label: t('settingsPage.navigation.portForwarding'), icon: '🌐' }
+      { id: 'services', label: t('settingsPage.navigation.services') },
+      { id: 'points', label: t('settingsPage.navigation.points') },
+      { id: 'referral', label: t('settingsPage.navigation.referral') },
+      { id: 'free-sessions', label: t('settingsPage.navigation.freeSessions') },
+      { id: 'receipts', label: t('settingsPage.navigation.receipts') },
+      { id: 'port-forwarding', label: t('settingsPage.navigation.portForwarding') }
     ] : []),
-    ...(user?.role !== 'COACH' ? [{ id: 'whatsapp', label: t('settingsPage.navigation.whatsapp'), icon: '📱' }] : []),
-    { id: 'display', label: t('settingsPage.navigation.display'), icon: '🎨' },
+    ...(user?.role !== 'COACH' ? [{ id: 'whatsapp', label: t('settingsPage.navigation.whatsapp') }] : []),
+    { id: 'display', label: t('settingsPage.navigation.display') },
     ...(user?.role === 'OWNER' ? [
-      { id: 'license', label: t('settingsPage.navigation.license'), icon: '🔑' },
-      { id: 'database', label: t('settingsPage.navigation.database'), icon: '💾' },
-      { id: 'apply-features', label: 'تطبيق مميزات الباقات', icon: '📦' }
+      { id: 'license', label: t('settingsPage.navigation.license') },
+      { id: 'database', label: t('settingsPage.navigation.database') },
+      { id: 'apply-features', label: 'تطبيق مميزات الباقات' }
     ] : []),
-    ...(typeof window !== 'undefined' && (window as any).electron?.isElectron ? [{ id: 'updates', label: t('settingsPage.navigation.updates'), icon: '🔄' }] : []),
-    { id: 'support', label: t('settingsPage.navigation.support'), icon: '📞' }
+    ...(typeof window !== 'undefined' && (window as any).electron?.isElectron ? [{ id: 'updates', label: t('settingsPage.navigation.updates') }] : []),
+    { id: 'support', label: t('settingsPage.navigation.support') }
   ]
 
   const services = [
-    { id: 'nutrition', icon: '🥗', name: t('settingsPage.services.nutrition.name'), desc: t('settingsPage.services.nutrition.desc') },
-    { id: 'physiotherapy', icon: '💆', name: t('settingsPage.services.physiotherapy.name'), desc: t('settingsPage.services.physiotherapy.desc') },
-    { id: 'groupClass', icon: '🤸', name: t('settingsPage.services.groupClass.name'), desc: t('settingsPage.services.groupClass.desc') },
-    { id: 'spa', icon: '🛁', name: t('settingsPage.services.spa.name'), desc: t('settingsPage.services.spa.desc') },
-    { id: 'inBody', icon: '⚖️', name: t('settingsPage.services.inBody.name'), desc: t('settingsPage.services.inBody.desc') },
-    { id: 'pool', icon: '🏊', name: t('settingsPage.services.pool.name'), desc: t('settingsPage.services.pool.desc') },
-    { id: 'padel', icon: '🎾', name: t('settingsPage.services.padel.name'), desc: t('settingsPage.services.padel.desc') },
-    { id: 'assessment', icon: '📊', name: t('settingsPage.services.assessment.name'), desc: t('settingsPage.services.assessment.desc') }
+    { id: 'nutrition', name: t('settingsPage.services.nutrition.name'), desc: t('settingsPage.services.nutrition.desc') },
+    { id: 'physiotherapy', name: t('settingsPage.services.physiotherapy.name'), desc: t('settingsPage.services.physiotherapy.desc') },
+    { id: 'groupClass', name: t('settingsPage.services.groupClass.name'), desc: t('settingsPage.services.groupClass.desc') },
+    { id: 'spa', name: t('settingsPage.services.spa.name'), desc: t('settingsPage.services.spa.desc') },
+    { id: 'inBody', name: t('settingsPage.services.inBody.name'), desc: t('settingsPage.services.inBody.desc') },
+    { id: 'pool', name: t('settingsPage.services.pool.name'), desc: t('settingsPage.services.pool.desc') },
+    { id: 'padel', name: t('settingsPage.services.padel.name'), desc: t('settingsPage.services.padel.desc') },
+    { id: 'assessment', name: t('settingsPage.services.assessment.name'), desc: t('settingsPage.services.assessment.desc') }
   ]
 
   if (!user) {
-    return <div className="flex items-center justify-center min-h-screen"><div className="text-xl">{t('settingsPage.loading')}</div></div>
+    return <LoadingScreen fullScreen message={t('settingsPage.loading')} />
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900" dir={direction}>
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+              aria-label="Toggle navigation"
+            >
+              <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
             </button>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('settingsPage.title')}</h1>
+            <div className="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+              <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.title')}</h1>
           </div>
         </div>
       </div>
@@ -1148,7 +1241,7 @@ export default function SettingsPage() {
             bg-white dark:bg-gray-800
             ltr:border-r rtl:border-l border-gray-200 dark:border-gray-700
             shadow-2xl lg:shadow-none
-            transition-all duration-300 ease-in-out
+            transition-[transform,opacity] duration-300 ease-in-out
             ${isSidebarOpen
               ? 'translate-x-0 opacity-100'
               : `${direction === 'rtl' ? 'translate-x-full' : '-translate-x-full'} opacity-0 lg:translate-x-0 lg:opacity-100`
@@ -1180,24 +1273,25 @@ export default function SettingsPage() {
                   setActiveSection(item.id);
                   setIsSidebarOpen(false);
                 }}
+                aria-current={activeSection === item.id ? 'page' : undefined}
                 className={`
-                  w-full
-                  ltr:text-left rtl:text-right
-                  px-4 py-3.5
-                  rounded-xl
-                  transition-all duration-200
+                  w-full text-start
+                  px-3 py-2.5
+                  rounded-lg
+                  transition-colors duration-200
                   flex items-center gap-3
                   ${activeSection === item.id
-                    ? 'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/40 text-blue-600 dark:text-blue-400 font-semibold shadow-md scale-105'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102'
+                    ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-bold shadow-sm'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }
-                  active:scale-95
                 `}
               >
-                <span className="text-2xl flex-shrink-0">{item.icon}</span>
-                <span className="flex-1 truncate">{item.label}</span>
+                <span className={`${activeSection === item.id ? 'text-primary-700 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'} flex-shrink-0`}>
+                  <svg {...stroke} className="w-5 h-5" aria-hidden="true">{NAV_ICON_PATHS[item.id] || NAV_ICON_PATHS['support']}</svg>
+                </span>
+                <span className="flex-1 truncate text-sm">{item.label}</span>
                 {activeSection === item.id && (
-                  <span className="text-blue-500 dark:text-blue-400 text-xl">✓</span>
+                  <span className="end-0 h-5 w-1 bg-primary-600 dark:bg-primary-400 rounded-full" aria-hidden="true" />
                 )}
               </button>
             ))}
@@ -1207,14 +1301,26 @@ export default function SettingsPage() {
         <main className="flex-1 p-6 lg:p-8 max-w-5xl mx-auto w-full">
           {/* Save Notification Toast */}
           {saveMessage && (
-            <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 p-5 rounded-2xl border-2 shadow-2xl backdrop-blur-sm animate-[slideDown_0.4s_ease-out] ${saveMessage.type === 'success' ? 'bg-green-50/95 dark:bg-green-900/40 border-green-300 dark:border-green-600' : 'bg-red-50/95 dark:bg-red-900/40 border-red-300 dark:border-red-600'}`}>
-              <div className="flex items-center gap-4 min-w-[320px]">
-                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${saveMessage.type === 'success' ? 'bg-green-100 dark:bg-green-800/50' : 'bg-red-100 dark:bg-red-800/50'}`}>
-                  <span className="text-2xl">{saveMessage.type === 'success' ? '✅' : '❌'}</span>
+            <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 p-4 rounded-xl ring-1 shadow-xl backdrop-blur-sm ${saveMessage.type === 'success' ? 'bg-green-50/95 dark:bg-green-900/40 ring-green-200 dark:ring-green-900/50' : 'bg-red-50/95 dark:bg-red-900/40 ring-red-200 dark:ring-red-900/50'}`} role="status" aria-live="polite">
+              <div className="flex items-center gap-3 min-w-[320px]">
+                <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${saveMessage.type === 'success' ? 'bg-green-100 dark:bg-green-800/50 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-800/50 text-red-700 dark:text-red-300'}`}>
+                  <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                    {saveMessage.type === 'success' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    )}
+                  </svg>
                 </div>
-                <p className={`flex-1 text-sm font-semibold ${saveMessage.type === 'success' ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>{saveMessage.text}</p>
-                <button onClick={() => setSaveMessage(null)} className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${saveMessage.type === 'success' ? 'hover:bg-green-200 dark:hover:bg-green-700/50 text-green-700 dark:text-green-200' : 'hover:bg-red-200 dark:hover:bg-red-700/50 text-red-700 dark:text-red-200'}`}>
-                  <span className="text-lg">✕</span>
+                <p className={`flex-1 text-sm font-bold ${saveMessage.type === 'success' ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>{saveMessage.text}</p>
+                <button
+                  onClick={() => setSaveMessage(null)}
+                  className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 ${saveMessage.type === 'success' ? 'hover:bg-green-200 dark:hover:bg-green-700/50 text-green-700 dark:text-green-200' : 'hover:bg-red-200 dark:hover:bg-red-700/50 text-red-700 dark:text-red-200'}`}
+                  aria-label="Dismiss"
+                >
+                  <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -1222,14 +1328,34 @@ export default function SettingsPage() {
 
           {activeSection === 'services' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-3"><span className="text-4xl">🏋️</span><div><h2 className="text-2xl font-bold">{t('settingsPage.services.title')}</h2><p className="text-green-50 text-sm mt-1">{t('settingsPage.services.description')}</p></div></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3 2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75 2.25-1.313M12 21.75V19.5m0 2.25-2.25-1.313m0-16.875L12 2.25l2.25 1.313" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.services.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.services.description')}</p>
+                  </div>
+                </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <div className="grid gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="grid gap-3">
                   {services.map((service) => (
-                    <div key={service.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                      <div className="flex items-center gap-3"><span className="text-3xl">{service.icon}</span><div><h4 className="font-semibold text-gray-800 dark:text-gray-100">{service.name}</h4><p className="text-sm text-gray-600 dark:text-gray-300">{service.desc}</p></div></div>
+                    <div key={service.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                          <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3 2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75 2.25-1.313M12 21.75V19.5m0 2.25-2.25-1.313m0-16.875L12 2.25l2.25 1.313" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 dark:text-gray-100">{service.name}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{service.desc}</p>
+                        </div>
+                      </div>
                       <label className="toggle-switch toggle-green">
                         <input
                           type="checkbox"
@@ -1244,19 +1370,40 @@ export default function SettingsPage() {
                   ))}
                 </div>
 
-                <div className="mt-6 flex justify-end"><button onClick={saveServiceSettings} disabled={isSaving} className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium rounded-lg">{isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}</button></div>
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={saveServiceSettings}
+                    disabled={isSaving}
+                    className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {activeSection === 'points' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-3"><span className="text-4xl">🎯</span><div><h2 className="text-2xl font-bold">{t('settingsPage.points.title')}</h2><p className="text-yellow-50 text-sm mt-1">{t('settingsPage.points.description')}</p></div></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.points.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.points.description')}</p>
+                  </div>
+                </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-6">
-                  <div><h4 className="font-semibold text-gray-800 dark:text-gray-100">{t('settingsPage.points.enable')}</h4><p className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.points.enableDesc')}</p></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 mb-6">
+                  <div>
+                    <h4 className="font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.points.enable')}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.points.enableDesc')}</p>
+                  </div>
                   <label className="toggle-switch toggle-yellow">
                     <input
                       type="checkbox"
@@ -1270,58 +1417,77 @@ export default function SettingsPage() {
                 </div>
                 {serviceSettings.pointsEnabled && (
                   <div className="space-y-4">
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.points.perCheckIn')}</label>
-                      <input type="number" min="0" value={serviceSettings.pointsPerCheckIn} onChange={(e) => updateSetting('pointsPerCheckIn', parseInt(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-green-300 dark:border-green-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.points.perCheckInDesc')}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.points.perCheckIn')}</label>
+                      <input type="number" min="0" value={serviceSettings.pointsPerCheckIn} onChange={(e) => updateSetting('pointsPerCheckIn', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.points.perCheckInDesc')}</p>
                     </div>
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.points.perInvitation')}</label>
-                      <input type="number" min="0" value={serviceSettings.pointsPerInvitation} onChange={(e) => updateSetting('pointsPerInvitation', parseInt(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-blue-300 dark:border-blue-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.points.perInvitationDesc')}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.points.perInvitation')}</label>
+                      <input type="number" min="0" value={serviceSettings.pointsPerInvitation} onChange={(e) => updateSetting('pointsPerInvitation', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.points.perInvitationDesc')}</p>
                     </div>
-                    <div className="p-4 bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-200 dark:border-teal-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">👥 {t('settingsPage.points.perReferral')}</label>
-                      <input type="number" min="0" value={serviceSettings.pointsPerReferral} onChange={(e) => updateSetting('pointsPerReferral', parseInt(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-teal-300 dark:border-teal-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">💡 {t('settingsPage.points.perReferralDesc')}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                        <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                        </svg>
+                        {t('settingsPage.points.perReferral')}
+                      </label>
+                      <input type="number" min="0" value={serviceSettings.pointsPerReferral} onChange={(e) => updateSetting('pointsPerReferral', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
+                      <p className="flex items-start gap-1 text-xs text-gray-600 dark:text-gray-400 mt-2">
+                        <svg {...stroke} className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                        </svg>
+                        <span>{t('settingsPage.points.perReferralDesc')}</span>
+                      </p>
                     </div>
-                    <div className="p-4 bg-pink-50 dark:bg-pink-900/20 border-2 border-pink-200 dark:border-pink-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🎂 {t('settingsPage.points.perBirthday')}</label>
-                      <input type="number" min="0" value={serviceSettings.pointsPerBirthday || 10} onChange={(e) => updateSetting('pointsPerBirthday', parseInt(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-pink-300 dark:border-pink-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">🎉 {t('settingsPage.points.perBirthdayDesc')}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                        <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21" />
+                        </svg>
+                        {t('settingsPage.points.perBirthday')}
+                      </label>
+                      <input type="number" min="0" value={serviceSettings.pointsPerBirthday || 10} onChange={(e) => updateSetting('pointsPerBirthday', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.points.perBirthdayDesc')}</p>
 
-                      {/* زر منح نقاط عيد الميلاد */}
                       <button
                         onClick={awardBirthdayPoints}
                         disabled={isAwardingBirthday || !serviceSettings.pointsEnabled}
-                        className="mt-4 w-full px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2"
+                        className="mt-4 w-full px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {isAwardingBirthday ? (
                           <>
-                            <span className="animate-spin">⚙️</span>
+                            <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                            </svg>
                             <span>{t('settingsPage.points.awardingPoints')}</span>
                           </>
                         ) : (
                           <>
-                            <span>🎁</span>
+                            <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21" />
+                            </svg>
                             <span>{t('settingsPage.points.awardNow')}</span>
                           </>
                         )}
                       </button>
 
-                      {/* نتيجة منح النقاط */}
                       {birthdayResult && (
-                        <div className={`mt-3 p-3 rounded-lg border-2 ${
+                        <div className={`mt-3 p-3 rounded-lg ring-1 ${
                           birthdayResult.type === 'success'
-                            ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-800 dark:text-green-300'
-                            : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300'
+                            ? 'bg-green-50 dark:bg-green-900/20 ring-green-200 dark:ring-green-900/50 text-green-800 dark:text-green-300'
+                            : 'bg-red-50 dark:bg-red-900/20 ring-red-200 dark:ring-red-900/50 text-red-800 dark:text-red-300'
                         }`}>
                           <div className="font-bold">{birthdayResult.message}</div>
                           {birthdayResult.members && birthdayResult.members.length > 0 && (
                             <div className="mt-2 text-sm space-y-1">
                               {birthdayResult.members.map((member: any, idx: number) => (
                                 <div key={idx} className="flex items-center gap-2">
-                                  <span>✅</span>
+                                  <svg {...stroke} className="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                  </svg>
                                   <span>{member.name} (#{member.memberNumber}): +{member.pointsAwarded} {t('members.pointsLabel')}</span>
                                 </div>
                               ))}
@@ -1330,32 +1496,60 @@ export default function SettingsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.points.perEGP')}</label>
-                      <input type="number" min="0" step="0.1" value={serviceSettings.pointsPerEGPSpent} onChange={(e) => updateSetting('pointsPerEGPSpent', parseFloat(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-purple-300 dark:border-purple-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.points.perEGPDesc')}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.points.perEGP')}</label>
+                      <input type="number" min="0" step="0.1" value={serviceSettings.pointsPerEGPSpent} onChange={(e) => updateSetting('pointsPerEGPSpent', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.points.perEGPDesc')}</p>
                     </div>
-                    <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.points.valueInEGP')}</label>
-                      <input type="number" min="0" step="0.1" value={serviceSettings.pointsValueInEGP} onChange={(e) => updateSetting('pointsValueInEGP', parseFloat(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-orange-300 dark:border-orange-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.points.valueInEGPDesc')}</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.points.valueInEGP')}</label>
+                      <input type="number" min="0" step="0.1" value={serviceSettings.pointsValueInEGP} onChange={(e) => updateSetting('pointsValueInEGP', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.points.valueInEGPDesc')}</p>
                     </div>
                   </div>
                 )}
-                <div className="mt-6 flex justify-end"><button onClick={saveServiceSettings} disabled={isSaving} className="px-6 py-2.5 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400 text-white font-medium rounded-lg">{isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}</button></div>
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={saveServiceSettings}
+                    disabled={isSaving}
+                    className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {activeSection === 'referral' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-3"><span className="text-4xl">🎁</span><div><h2 className="text-2xl font-bold">{t('settingsPage.referral.title')}</h2><p className="text-purple-50 text-sm mt-1">{t('settingsPage.referral.description')}</p></div></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.referral.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.referral.description')}</p>
+                  </div>
+                </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-                <div className="p-5 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3"><span className="text-2xl">🥗</span><div><h4 className="font-semibold text-gray-800 dark:text-gray-100">{t('settingsPage.referral.nutritionTitle')}</h4><p className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.referral.nutritionDesc')}</p></div></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-5">
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center justify-center flex-shrink-0">
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0v-9m0 0a4.5 4.5 0 0 0 4.5-4.5M12 12a4.5 4.5 0 0 1-4.5-4.5" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.referral.nutritionTitle')}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.referral.nutritionDesc')}</p>
+                      </div>
+                    </div>
                     <label className="toggle-switch toggle-purple">
                       <input
                         type="checkbox"
@@ -1368,16 +1562,26 @@ export default function SettingsPage() {
                     </label>
                   </div>
                   {serviceSettings.nutritionReferralEnabled && (
-                    <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.referral.percentage')}</label>
-                      <input type="number" min="0" max="100" step="0.5" value={serviceSettings.nutritionReferralPercentage} onChange={(e) => updateSetting('nutritionReferralPercentage', parseFloat(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-purple-300 dark:border-purple-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" placeholder="5" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.referral.exampleNutrition')}</p>
+                    <div className="mt-3 p-4 bg-white dark:bg-gray-800 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.referral.percentage')}</label>
+                      <input type="number" min="0" max="100" step="0.5" value={serviceSettings.nutritionReferralPercentage} onChange={(e) => updateSetting('nutritionReferralPercentage', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" placeholder="5" />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.referral.exampleNutrition')}</p>
                     </div>
                   )}
                 </div>
-                <div className="p-5 bg-pink-50 dark:bg-pink-900/20 border-2 border-pink-200 dark:border-pink-700 rounded-xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3"><span className="text-2xl">💆</span><div><h4 className="font-semibold text-gray-800 dark:text-gray-100">{t('settingsPage.referral.physioTitle')}</h4><p className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.referral.physioDesc')}</p></div></div>
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 flex items-center justify-center flex-shrink-0">
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.referral.physioTitle')}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.referral.physioDesc')}</p>
+                      </div>
+                    </div>
                     <label className="toggle-switch toggle-pink">
                       <input
                         type="checkbox"
@@ -1390,37 +1594,60 @@ export default function SettingsPage() {
                     </label>
                   </div>
                   {serviceSettings.physioReferralEnabled && (
-                    <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.referral.percentage')}</label>
-                      <input type="number" min="0" max="100" step="0.5" value={serviceSettings.physioReferralPercentage} onChange={(e) => updateSetting('physioReferralPercentage', parseFloat(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-pink-300 dark:border-pink-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" placeholder="3" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.referral.examplePhysio')}</p>
+                    <div className="mt-3 p-4 bg-white dark:bg-gray-800 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.referral.percentage')}</label>
+                      <input type="number" min="0" max="100" step="0.5" value={serviceSettings.physioReferralPercentage} onChange={(e) => updateSetting('physioReferralPercentage', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" placeholder="3" />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.referral.examplePhysio')}</p>
                     </div>
                   )}
                 </div>
-                <div className="flex justify-end"><button onClick={saveServiceSettings} disabled={isSaving} className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium rounded-lg">{isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}</button></div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={saveServiceSettings}
+                    disabled={isSaving}
+                    className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {activeSection === 'receipts' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-3"><span className="text-4xl">📋</span><div><h2 className="text-2xl font-bold">{t('settingsPage.receipts.title')}</h2><p className="text-indigo-50 text-sm mt-1">{t('settingsPage.receipts.description')}</p></div></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4m6-4V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3-2 3 2 3-2 3 2v-4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.receipts.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.receipts.description')}</p>
+                  </div>
+                </div>
               </div>
 
               {/* الموقع الإلكتروني */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                  <span className="text-2xl">🌐</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-5">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                  </svg>
                   {t('settingsPage.receipts.website')}
                 </h3>
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.receipts.websiteUrl')}</label>
-                  <input type="url" value={serviceSettings.websiteUrl} onChange={(e) => updateSetting('websiteUrl', e.target.value)} placeholder="https://www.example.com" className="w-full px-4 py-2 border-2 border-blue-300 dark:border-blue-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" dir="ltr" />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.receipts.websiteUrlDesc')}</p>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.receipts.websiteUrl')}</label>
+                  <input type="url" value={serviceSettings.websiteUrl} onChange={(e) => updateSetting('websiteUrl', e.target.value)} placeholder="https://www.example.com" className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" dir="ltr" />
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.receipts.websiteUrlDesc')}</p>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <div><h4 className="font-semibold text-gray-800 dark:text-gray-100">{t('settingsPage.receipts.showOnReceipts')}</h4><p className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.receipts.showOnReceiptsDesc')}</p></div>
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                  <div>
+                    <h4 className="font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.receipts.showOnReceipts')}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.receipts.showOnReceiptsDesc')}</p>
+                  </div>
                   <label className="toggle-switch toggle-indigo">
                     <input
                       type="checkbox"
@@ -1434,15 +1661,19 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* عرض QR التطبيق في الإيصالات (الروابط ثابتة - مخفية) */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              {/* عرض QR التطبيق في الإيصالات */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                      <span className="text-2xl">📱</span>
-                      عرض QR التطبيق في الإيصال المطبوع والواتساب
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">يظهر QR code الأندرويد والـ iOS في أسفل الإيصال</p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 dark:text-gray-100">عرض QR التطبيق في الإيصال المطبوع والواتساب</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">يظهر QR code الأندرويد والـ iOS في أسفل الإيصال</p>
+                    </div>
                   </div>
                   <label className="toggle-switch toggle-indigo">
                     <input type="checkbox" checked={(serviceSettings as any).showAppLinksOnReceipts || false} onChange={() => updateSetting('showAppLinksOnReceipts', !(serviceSettings as any).showAppLinksOnReceipts)} />
@@ -1452,15 +1683,17 @@ export default function SettingsPage() {
               </div>
 
               {/* الأرقام التسلسلية */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                  <span className="text-2xl">🔢</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-4">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
+                  </svg>
                   {t('settingsPage.receipts.serialNumbers')}
                 </h3>
-                <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg">
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{t('settingsPage.receipts.nextReceiptNumber')}</h4>
+                      <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-1">{t('settingsPage.receipts.nextReceiptNumber')}</h4>
                       {editingReceiptNumber ? (
                         <div className="flex items-center gap-2 mt-2">
                           <input
@@ -1468,42 +1701,61 @@ export default function SettingsPage() {
                             min={1}
                             value={tempReceiptNumber}
                             onChange={(e) => setTempReceiptNumber(parseInt(e.target.value) || 1)}
-                            className="w-32 px-3 py-2 border-2 border-orange-400 dark:border-orange-600 dark:bg-gray-700 dark:text-white rounded-lg font-bold text-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            className="w-32 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                             autoFocus
                           />
                           <button
                             onClick={saveReceiptNumber}
                             disabled={savingReceiptNumber}
-                            className="px-3 py-2 bg-orange-600 text-white rounded-lg font-bold text-sm hover:bg-orange-700 disabled:opacity-50"
+                            className="inline-flex items-center justify-center w-9 h-9 bg-primary-500 hover:bg-primary-600 text-primary-contrast rounded-lg transition-colors duration-200 disabled:opacity-50"
+                            aria-label="Save receipt number"
                           >
-                            {savingReceiptNumber ? '...' : '✅'}
+                            {savingReceiptNumber ? (
+                              <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                              </svg>
+                            ) : (
+                              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                              </svg>
+                            )}
                           </button>
                           <button
                             onClick={() => setEditingReceiptNumber(false)}
-                            className="px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold text-sm hover:bg-gray-300"
+                            className="inline-flex items-center justify-center w-9 h-9 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors duration-200"
+                            aria-label="Cancel editing"
                           >
-                            ✕
+                            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
                           </button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{nextReceiptNumber}</p>
+                          <p className="text-3xl font-bold text-primary-700 dark:text-primary-400">{nextReceiptNumber}</p>
                           <button
                             onClick={() => { setTempReceiptNumber(nextReceiptNumber); setEditingReceiptNumber(true) }}
-                            className="px-2 py-1 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded-lg text-sm"
+                            className="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                            aria-label="Edit next receipt number"
                           >
-                            ✏️
+                            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                            </svg>
                           </button>
                         </div>
                       )}
                     </div>
-                    <span className="text-4xl">🧾</span>
+                    <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-7 h-7" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4m6-4V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3-2 3 2 3-2 3 2v-4" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{t('settingsPage.receipts.nextMemberNumber')}</h4>
+                      <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-1">{t('settingsPage.receipts.nextMemberNumber')}</h4>
                       {editingMemberNumber ? (
                         <div className="flex items-center gap-2 mt-2">
                           <input
@@ -1511,21 +1763,33 @@ export default function SettingsPage() {
                             min={1}
                             value={tempMemberNumber}
                             onChange={(e) => setTempMemberNumber(parseInt(e.target.value) || 1)}
-                            className="w-32 px-3 py-2 border-2 border-blue-400 dark:border-blue-600 dark:bg-gray-700 dark:text-white rounded-lg font-bold text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-32 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                             autoFocus
                           />
                           <button
                             onClick={saveMemberNumber}
                             disabled={savingMemberNumber}
-                            className="px-3 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 disabled:opacity-50"
+                            className="inline-flex items-center justify-center w-9 h-9 bg-primary-500 hover:bg-primary-600 text-primary-contrast rounded-lg transition-colors duration-200 disabled:opacity-50"
+                            aria-label="Save member number"
                           >
-                            {savingMemberNumber ? '...' : '✅'}
+                            {savingMemberNumber ? (
+                              <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                              </svg>
+                            ) : (
+                              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                              </svg>
+                            )}
                           </button>
                           <button
                             onClick={() => setEditingMemberNumber(false)}
-                            className="px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold text-sm hover:bg-gray-300"
+                            className="inline-flex items-center justify-center w-9 h-9 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors duration-200"
+                            aria-label="Cancel editing"
                           >
-                            ✕
+                            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
                           </button>
                         </div>
                       ) : (
@@ -1533,79 +1797,133 @@ export default function SettingsPage() {
                           <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{nextMemberNumber}</p>
                           <button
                             onClick={() => { setTempMemberNumber(nextMemberNumber); setEditingMemberNumber(true) }}
-                            className="px-2 py-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg text-sm"
+                            className="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                            aria-label="Edit next member number"
                           >
-                            ✏️
+                            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                            </svg>
                           </button>
                         </div>
                       )}
                     </div>
-                    <span className="text-4xl">👤</span>
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-7 h-7" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-300">ℹ️ {t('settingsPage.receipts.serialInfo')}</p>
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg flex items-start gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                  </svg>
+                  <p className="text-sm text-amber-800 dark:text-amber-200">{t('settingsPage.receipts.serialInfo')}</p>
                 </div>
               </div>
 
               {/* شروط وأحكام الإيصال */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                  <span className="text-2xl">📝</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                  </svg>
                   {t('settingsPage.receipts.terms')}
                 </h3>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t('settingsPage.receipts.termsLabel')}</label>
-                <textarea value={serviceSettings.receiptTerms} onChange={(e) => updateSetting('receiptTerms', e.target.value)} rows={12} className="w-full px-4 py-3 border-2 border-indigo-200 dark:border-indigo-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none resize-none" placeholder={t('settingsPage.receipts.termsPlaceholder')} />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.receipts.termsDesc')}</p>
-                <div className="mt-6 flex justify-end"><button onClick={saveServiceSettings} disabled={isSaving} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-medium rounded-lg">{isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}</button></div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.receipts.termsLabel')}</label>
+                <textarea value={serviceSettings.receiptTerms} onChange={(e) => updateSetting('receiptTerms', e.target.value)} rows={12} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 resize-none" placeholder={t('settingsPage.receipts.termsPlaceholder')} />
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.receipts.termsDesc')}</p>
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={saveServiceSettings}
+                    disabled={isSaving}
+                    className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {activeSection === 'quick-links' && (user?.role === 'ADMIN' || user?.role === 'OWNER') && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-3"><span className="text-4xl">⚡</span><div><h2 className="text-2xl font-bold">{t('settingsPage.quickLinks.title')}</h2><p className="text-red-50 text-sm mt-1">{t('settingsPage.quickLinks.description')}</p></div></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.quickLinks.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.quickLinks.description')}</p>
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Link href="/admin/users" className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-xl p-6 border-2 border-red-200 dark:border-red-700 hover:shadow-lg transition-all hover:scale-105">
-                  <div className="flex items-center gap-4">
-                    <span className="text-4xl">👥</span>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.quickLinks.users.title')}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.quickLinks.users.desc')}</p>
+                <Link href="/admin/users" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 hover:ring-primary-300 dark:hover:ring-primary-700 transition-colors duration-200 group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                      </svg>
                     </div>
-                    <span className="text-2xl">→</span>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.quickLinks.users.title')}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.quickLinks.users.desc')}</p>
+                    </div>
+                    <svg {...stroke} className={`w-5 h-5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
                   </div>
                 </Link>
-                <Link href="/offers" className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-xl p-6 border-2 border-orange-200 dark:border-orange-700 hover:shadow-lg transition-all hover:scale-105">
-                  <div className="flex items-center gap-4">
-                    <span className="text-4xl">🎁</span>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.quickLinks.offers.title')}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.quickLinks.offers.desc')}</p>
+                <Link href="/offers" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 hover:ring-primary-300 dark:hover:ring-primary-700 transition-colors duration-200 group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21" />
+                      </svg>
                     </div>
-                    <span className="text-2xl">→</span>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.quickLinks.offers.title')}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.quickLinks.offers.desc')}</p>
+                    </div>
+                    <svg {...stroke} className={`w-5 h-5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
                   </div>
                 </Link>
-                <Link href="/settings/packages" className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-700 hover:shadow-lg transition-all hover:scale-105">
-                  <div className="flex items-center gap-4">
-                    <span className="text-4xl">📦</span>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.quickLinks.packages.title')}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.quickLinks.packages.desc')}</p>
+                <Link href="/settings/packages" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 hover:ring-primary-300 dark:hover:ring-primary-700 transition-colors duration-200 group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                      </svg>
                     </div>
-                    <span className="text-2xl">→</span>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.quickLinks.packages.title')}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.quickLinks.packages.desc')}</p>
+                    </div>
+                    <svg {...stroke} className={`w-5 h-5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
                   </div>
                 </Link>
-                <Link href="/admin/audit" className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border-2 border-purple-200 dark:border-purple-700 hover:shadow-lg transition-all hover:scale-105">
-                  <div className="flex items-center gap-4">
-                    <span className="text-4xl">🔒</span>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.quickLinks.audit.title')}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.quickLinks.audit.desc')}</p>
+                <Link href="/admin/audit" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 hover:ring-primary-300 dark:hover:ring-primary-700 transition-colors duration-200 group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                      </svg>
                     </div>
-                    <span className="text-2xl">→</span>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.quickLinks.audit.title')}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.quickLinks.audit.desc')}</p>
+                    </div>
+                    <svg {...stroke} className={`w-5 h-5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
                   </div>
                 </Link>
               </div>
@@ -1614,12 +1932,25 @@ export default function SettingsPage() {
 
           {activeSection === 'free-sessions' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-3"><span className="text-4xl">🎫</span><div><h2 className="text-2xl font-bold">{t('settingsPage.freeSessions.title')}</h2><p className="text-teal-50 text-sm mt-1">{t('settingsPage.freeSessions.description')}</p></div></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.freeSessions.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.freeSessions.description')}</p>
+                  </div>
+                </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <div><h4 className="font-semibold text-gray-800 dark:text-gray-100">{t('settingsPage.freeSessions.enable')}</h4><p className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.freeSessions.enableDesc')}</p></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-5">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                  <div>
+                    <h4 className="font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.freeSessions.enable')}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.freeSessions.enableDesc')}</p>
+                  </div>
                   <label className="toggle-switch toggle-teal">
                     <input
                       type="checkbox"
@@ -1632,38 +1963,50 @@ export default function SettingsPage() {
                   </label>
                 </div>
                 {serviceSettings.trackFreeSessionsCost && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.freeSessions.ptPrice')}</label>
-                      <input type="number" min="0" value={serviceSettings.freePTSessionPrice} onChange={(e) => updateSetting('freePTSessionPrice', parseFloat(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-green-300 dark:border-green-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
+                  <div className="space-y-3">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.freeSessions.ptPrice')}</label>
+                      <input type="number" min="0" value={serviceSettings.freePTSessionPrice} onChange={(e) => updateSetting('freePTSessionPrice', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
                     </div>
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.freeSessions.nutritionPrice')}</label>
-                      <input type="number" min="0" value={serviceSettings.freeNutritionSessionPrice} onChange={(e) => updateSetting('freeNutritionSessionPrice', parseFloat(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-blue-300 dark:border-blue-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.freeSessions.nutritionPrice')}</label>
+                      <input type="number" min="0" value={serviceSettings.freeNutritionSessionPrice} onChange={(e) => updateSetting('freeNutritionSessionPrice', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
                     </div>
-                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.freeSessions.physioPrice')}</label>
-                      <input type="number" min="0" value={serviceSettings.freePhysioSessionPrice} onChange={(e) => updateSetting('freePhysioSessionPrice', parseFloat(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-purple-300 dark:border-purple-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.freeSessions.physioPrice')}</label>
+                      <input type="number" min="0" value={serviceSettings.freePhysioSessionPrice} onChange={(e) => updateSetting('freePhysioSessionPrice', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
                     </div>
-                    <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settingsPage.freeSessions.groupClassPrice')}</label>
-                      <input type="number" min="0" value={serviceSettings.freeGroupClassSessionPrice} onChange={(e) => updateSetting('freeGroupClassSessionPrice', parseFloat(e.target.value) || 0)} className="w-full px-4 py-2 border-2 border-orange-300 dark:border-orange-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none" />
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.freeSessions.groupClassPrice')}</label>
+                      <input type="number" min="0" value={serviceSettings.freeGroupClassSessionPrice} onChange={(e) => updateSetting('freeGroupClassSessionPrice', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200" />
                     </div>
                   </div>
                 )}
-                <div className="flex justify-end"><button onClick={saveServiceSettings} disabled={isSaving} className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400 text-white font-medium rounded-lg">{isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}</button></div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={saveServiceSettings}
+                    disabled={isSaving}
+                    className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
+                  </button>
+                </div>
               </div>
 
               {/* نظام بواقي الاشتراك */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-                <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-700">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl">💰</span>
+                    <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4" />
+                      </svg>
+                    </div>
                     <div>
-                      <h4 className="font-semibold text-gray-800 dark:text-gray-100">
+                      <h4 className="font-bold text-gray-900 dark:text-gray-100">
                         {locale === 'ar' ? 'نظام بواقي الاشتراك' : 'Remaining Balance System'}
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         {locale === 'ar'
                           ? 'يتيح تسجيل مبلغ متبقي على العضو عند إنشاء/تجديد/ترقية الاشتراك - يظهر في الإيصال والفلتر'
                           : 'Allows recording a remaining balance when creating/renewing/upgrading subscriptions'}
@@ -1682,7 +2025,11 @@ export default function SettingsPage() {
                   </label>
                 </div>
                 <div className="flex justify-end">
-                  <button onClick={saveServiceSettings} disabled={isSaving} className="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-medium rounded-lg">
+                  <button
+                    onClick={saveServiceSettings}
+                    disabled={isSaving}
+                    className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
                     {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
                   </button>
                 </div>
@@ -1691,44 +2038,69 @@ export default function SettingsPage() {
           )}
 
           {activeSection === 'display' && (
-            <div className="space-y-6">
-              <div className="bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-3"><span className="text-4xl">🎨</span><div><h2 className="text-2xl font-bold">{t('settingsPage.display.title')}</h2><p className="text-violet-50 text-sm mt-1">{t('settingsPage.display.description')}</p></div></div>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.902a3.75 3.75 0 0 0 5.304 0l6.401-6.402M6.75 21A3.75 3.75 0 0 1 3 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 0 0 3.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008Z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.display.title')}</h2>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">{t('settingsPage.display.description')}</p>
+                  </div>
+                </div>
               </div>
 
               {/* لوجو واسم الجيم - OWNER فقط */}
               {user?.role === 'OWNER' && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                    <span className="text-2xl">🏷️</span>
-                    {locale === 'ar' ? 'لوجو واسم الجيم' : 'Gym Logo & Name'}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400 shrink-0" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
+                    </svg>
+                    <span>{locale === 'ar' ? 'لوجو واسم الجيم' : 'Gym Logo & Name'}</span>
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{locale === 'ar' ? 'ارفع لوجو الجيم واكتب اسمه (يظهر في الإيصالات والسايدبار)' : 'Upload gym logo and set its name (shown on receipts & sidebar)'}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">{locale === 'ar' ? 'ارفع لوجو الجيم واكتب اسمه (يظهر في الإيصالات والسايدبار)' : 'Upload gym logo and set its name (shown on receipts & sidebar)'}</p>
 
                   {/* اسم الجيم */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {locale === 'ar' ? '📝 اسم الجيم' : '📝 Gym Name'}
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                      <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                      </svg>
+                      {locale === 'ar' ? 'اسم الجيم' : 'Gym Name'}
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
                         value={serviceSettings.gymName || ''}
                         onChange={(e) => updateSetting('gymName', e.target.value)}
                         placeholder={locale === 'ar' ? 'مثال: FitBoost Gym' : 'e.g. FitBoost Gym'}
-                        className="flex-1 px-4 py-2.5 border-2 border-violet-200 dark:border-violet-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:border-violet-500 text-lg font-semibold"
+                        className="flex-1 min-w-0 px-3 py-2.5 min-h-[44px] rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-base sm:text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                       />
                       <button
                         onClick={saveServiceSettings}
                         disabled={isSaving}
-                        className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-all"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
                       >
-                        {isSaving ? '⏳' : '💾'} {locale === 'ar' ? 'حفظ' : 'Save'}
+                        {isSaving ? (
+                          <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                          </svg>
+                        ) : (
+                          <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                          </svg>
+                        )}
+                        {locale === 'ar' ? 'حفظ' : 'Save'}
                       </button>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden bg-white dark:bg-gray-800 shrink-0">
+                  <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl ring-2 ring-dashed ring-gray-300 dark:ring-gray-600 flex items-center justify-center overflow-hidden bg-white dark:bg-gray-800 shrink-0">
                       <img
                         src={gymLogo || '/assets/icon.png'}
                         alt="Gym Logo"
@@ -1736,11 +2108,15 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div className="flex flex-col gap-2 flex-1">
-                      <label className={`cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${isUploadingLogo ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-700 text-white'}`}>
+                      <label className={`cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm transition-colors duration-200 ${isUploadingLogo ? 'bg-gray-300 dark:bg-gray-600 text-gray-700 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600 text-primary-contrast'}`}>
                         {isUploadingLogo ? (
-                          <span className="animate-spin">⏳</span>
+                          <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                          </svg>
                         ) : (
-                          <span>📤</span>
+                          <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                          </svg>
                         )}
                         {t('settingsPage.display.uploadLogo')}
                         <input
@@ -1755,9 +2131,11 @@ export default function SettingsPage() {
                         <button
                           onClick={handleLogoRemove}
                           disabled={isUploadingLogo}
-                          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm ring-1 ring-red-300 dark:ring-red-900/50 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
                         >
-                          <span>🗑️</span>
+                          <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                          </svg>
                           {t('settingsPage.display.removeLogo')}
                         </button>
                       )}
@@ -1768,15 +2146,17 @@ export default function SettingsPage() {
 
               {/* اللون الأساسي - OWNER فقط */}
               {user?.role === 'OWNER' && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                    <span className="text-2xl">🎨</span>
-                    {t('settingsPage.display.primaryColor')}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400 shrink-0" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.902a3.75 3.75 0 0 0 5.304 0l6.401-6.402M6.75 21A3.75 3.75 0 0 1 3 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 0 0 3.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008Z" />
+                    </svg>
+                    <span>{t('settingsPage.display.primaryColor')}</span>
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{t('settingsPage.display.primaryColorDesc')}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">{t('settingsPage.display.primaryColorDesc')}</p>
 
                   {/* ألوان جاهزة */}
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-4">
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-3 mb-4">
                     {[
                       { hex: '#fbe003', label: 'أصفر' },
                       { hex: '#ef4444', label: 'أحمر' },
@@ -1791,10 +2171,11 @@ export default function SettingsPage() {
                         key={c.hex}
                         onClick={() => handleColorChange(c.hex)}
                         disabled={isSavingColor}
-                        className={`w-full aspect-square rounded-xl border-3 transition-all hover:scale-110 active:scale-95 ${
+                        aria-label={`Set primary color to ${c.label}`}
+                        className={`w-full aspect-square rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-500 ${
                           primaryColor === c.hex || (!primaryColor && c.hex === '#fbe003')
-                            ? 'border-gray-800 dark:border-white shadow-lg scale-110 ring-2 ring-offset-2 ring-gray-400'
-                            : 'border-transparent'
+                            ? 'ring-2 ring-offset-2 ring-gray-800 dark:ring-white shadow-sm'
+                            : 'ring-1 ring-gray-200 dark:ring-gray-700'
                         }`}
                         style={{ backgroundColor: c.hex }}
                         title={c.label}
@@ -1803,7 +2184,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* لون مخصص */}
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
                     <input
                       type="color"
                       value={primaryColor || '#fbe003'}
@@ -1811,7 +2192,8 @@ export default function SettingsPage() {
                         setCustomColorInput(e.target.value)
                         handleColorChange(e.target.value)
                       }}
-                      className="w-10 h-10 rounded-lg border-2 border-gray-300 dark:border-gray-600 cursor-pointer"
+                      aria-label="Pick custom color"
+                      className="w-11 h-11 rounded-lg ring-1 ring-gray-300 dark:ring-gray-600 cursor-pointer shrink-0"
                     />
                     <input
                       type="text"
@@ -1823,14 +2205,14 @@ export default function SettingsPage() {
                           handleColorChange(customColorInput)
                         }
                       }}
-                      className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-mono text-gray-800 dark:text-gray-200"
+                      className="flex-1 min-w-0 px-3 py-2 min-h-[44px] rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-mono text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                       dir="ltr"
                     />
                     {primaryColor && primaryColor !== '#fbe003' && (
                       <button
                         onClick={() => { handleColorChange('#fbe003'); setCustomColorInput('') }}
                         disabled={isSavingColor}
-                        className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+                        className="min-h-[44px] w-full sm:w-auto px-3 py-2 text-sm font-bold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                       >
                         {t('settingsPage.display.resetColor')}
                       </button>
@@ -1839,54 +2221,127 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* المظهر */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                  <span className="text-2xl">{isDarkMode ? '🌙' : '☀️'}</span>
-                  {t('settingsPage.display.appearance')}
+              {/* لون النص على الـ Primary (Auto / White / Black) */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400 shrink-0" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.42 15.171a4.5 4.5 0 0 0 1.242 7.244l.83.41a48.282 48.282 0 0 0 8.835-2.535 4.5 4.5 0 0 0 .732-7.844l-3.41-3.41a.75.75 0 0 0-1.06 0L9.51 12.36a.75.75 0 0 1-1.06 0L6.42 15.171Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 7.5 19.5 2.25M19.5 2.25 22.5 5.25M19.5 2.25 16.5 5.25" />
+                  </svg>
+                  <span>{locale === 'ar' ? 'لون النص على الـ Primary' : 'Text Color on Primary'}</span>
                 </h3>
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{isDarkMode ? t('settingsPage.display.darkMode') : t('settingsPage.display.lightMode')}</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{isDarkMode ? t('settingsPage.display.switchToLight') : t('settingsPage.display.switchToDark')}</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {locale === 'ar'
+                    ? 'لون النص اللي بيظهر على الأزرار والعناصر اللي خلفيتها بلون البراند. تلقائي بيختار الأفضل حسب التباين، أو اختاره يدوياً.'
+                    : 'Text color on buttons and elements with the brand background. Auto picks the best by contrast, or set it manually.'}
+                </p>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  {(['auto', 'white', 'black'] as const).map(opt => {
+                    const isActive = primaryTextOverride === opt
+                    const labels = {
+                      auto: locale === 'ar' ? 'تلقائي' : 'Auto',
+                      white: locale === 'ar' ? 'أبيض' : 'White',
+                      black: locale === 'ar' ? 'أسود' : 'Black',
+                    }
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => handlePrimaryTextOverride(opt)}
+                        aria-pressed={isActive}
+                        className={`min-h-[60px] flex flex-col items-center justify-center gap-1.5 rounded-xl ring-1 transition-colors duration-200 ${
+                          isActive
+                            ? 'ring-primary-500 bg-primary-50 dark:bg-primary-900/30 shadow-sm'
+                            : 'ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40'
+                        }`}
+                      >
+                        {/* Preview pill */}
+                        <span
+                          className={`inline-flex items-center justify-center min-w-[44px] px-2 py-0.5 rounded-full text-xs font-bold bg-primary-500 ${
+                            opt === 'white' ? 'text-white' : opt === 'black' ? 'text-[#0F172A]' : 'text-primary-contrast'
+                          }`}
+                        >
+                          Aa
+                        </span>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{labels[opt]}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* المظهر */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400 shrink-0" aria-hidden="true">
+                    {isDarkMode ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                    )}
+                  </svg>
+                  <span>{t('settingsPage.display.appearance')}</span>
+                </h3>
+                <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-sm sm:text-base text-gray-900 dark:text-gray-100 mb-0.5 sm:mb-1">{isDarkMode ? t('settingsPage.display.darkMode') : t('settingsPage.display.lightMode')}</h4>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{isDarkMode ? t('settingsPage.display.switchToLight') : t('settingsPage.display.switchToDark')}</p>
                   </div>
                   <button
                     onClick={toggleDarkMode}
-                    className={`relative inline-flex h-10 w-20 items-center rounded-full transition-colors ${isDarkMode ? 'bg-slate-600' : 'bg-gray-300'}`}
+                    aria-label="Toggle dark mode"
+                    aria-pressed={isDarkMode}
+                    className={`relative inline-flex h-10 w-20 items-center rounded-full transition-colors duration-200 shrink-0 ${isDarkMode ? 'bg-slate-700' : 'bg-gray-300'}`}
                     dir="ltr"
                   >
-                    <span className={`flex h-8 w-8 rounded-full bg-white shadow-lg transition-transform items-center justify-center text-xl ${isDarkMode ? 'translate-x-11' : 'translate-x-1'}`}>
-                      {isDarkMode ? '🌙' : '☀️'}
+                    <span className={`flex h-8 w-8 rounded-full bg-white shadow-lg transition-transform items-center justify-center text-gray-700 ${isDarkMode ? 'translate-x-11' : 'translate-x-1'}`}>
+                      <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                        {isDarkMode ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                        )}
+                      </svg>
                     </span>
                   </button>
                 </div>
               </div>
 
               {/* اللغة */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                  <span className="text-2xl">🌍</span>
-                  {t('settingsPage.display.language')}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400 shrink-0" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                  </svg>
+                  <span>{t('settingsPage.display.language')}</span>
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <button onClick={() => handleLanguageChange('ar')} className={`p-6 rounded-xl border-2 transition-all ${locale === 'ar' ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 shadow-md' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'}`}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <button onClick={() => handleLanguageChange('ar')} aria-pressed={locale === 'ar'} className={`p-3 sm:p-5 min-h-[64px] rounded-xl ring-1 transition-colors duration-200 ${locale === 'ar' ? 'ring-primary-500 bg-primary-50 dark:bg-primary-900/30 shadow-sm' : 'ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40'}`}>
                     <div className="flex items-center gap-3">
-                      <span className="text-4xl">🇸🇦</span>
-                      <div className="flex-1 text-right">
-                        <div className="font-bold text-lg">{t('settingsPage.display.arabic')}</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.display.arabicSubtitle')}</div>
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0 font-bold text-sm">AR</div>
+                      <div className="flex-1 min-w-0 text-start">
+                        <div className="font-bold text-sm sm:text-base text-gray-900 dark:text-gray-100">{t('settingsPage.display.arabic')}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{t('settingsPage.display.arabicSubtitle')}</div>
                       </div>
-                      {locale === 'ar' && <span className="text-violet-500 text-2xl">✓</span>}
+                      {locale === 'ar' && (
+                        <svg {...stroke} className="w-5 h-5 sm:w-6 sm:h-6 text-primary-700 dark:text-primary-400 shrink-0" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
+                      )}
                     </div>
                   </button>
-                  <button onClick={() => handleLanguageChange('en')} className={`p-6 rounded-xl border-2 transition-all ${locale === 'en' ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 shadow-md' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'}`}>
+                  <button onClick={() => handleLanguageChange('en')} aria-pressed={locale === 'en'} className={`p-3 sm:p-5 min-h-[64px] rounded-xl ring-1 transition-colors duration-200 ${locale === 'en' ? 'ring-primary-500 bg-primary-50 dark:bg-primary-900/30 shadow-sm' : 'ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40'}`}>
                     <div className="flex items-center gap-3">
-                      <span className="text-4xl">🇬🇧</span>
-                      <div className="flex-1 text-left">
-                        <div className="font-bold text-lg">{t('settingsPage.display.english')}</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-300">{t('settingsPage.display.englishSubtitle')}</div>
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0 font-bold text-sm">EN</div>
+                      <div className="flex-1 min-w-0 text-start">
+                        <div className="font-bold text-sm sm:text-base text-gray-900 dark:text-gray-100">{t('settingsPage.display.english')}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{t('settingsPage.display.englishSubtitle')}</div>
                       </div>
-                      {locale === 'en' && <span className="text-violet-500 text-2xl">✓</span>}
+                      {locale === 'en' && (
+                        <svg {...stroke} className="w-5 h-5 sm:w-6 sm:h-6 text-primary-700 dark:text-primary-400 shrink-0" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
+                      )}
                     </div>
                   </button>
                 </div>
@@ -1897,22 +2352,28 @@ export default function SettingsPage() {
           {/* License Section */}
           {activeSection === 'license' && user?.role === 'OWNER' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl p-6 shadow-lg">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
                 <div className="flex items-center gap-3">
-                  <span className="text-4xl">🔑</span>
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                    </svg>
+                  </div>
                   <div>
-                    <h2 className="text-2xl font-bold">{t('settingsPage.license.title')}</h2>
-                    <p className="text-purple-50 text-sm mt-1">{t('settingsPage.license.subtitle')}</p>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.license.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.license.subtitle')}</p>
                   </div>
                 </div>
               </div>
 
               {/* Current License Info */}
               {currentLicense && (
-                <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-2xl">✅</span>
-                    <h3 className="text-lg font-bold text-green-800 dark:text-green-300">{t('settingsPage.license.activated')}</h3>
+                <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg {...stroke} className="w-5 h-5 text-green-700 dark:text-green-300" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <h3 className="text-base font-bold text-green-800 dark:text-green-300">{t('settingsPage.license.activated')}</h3>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -1925,7 +2386,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">{t('settingsPage.license.licenseStatus')}:</span>
-                      <span className={`font-bold ${currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className={`font-bold ${currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                         {currentLicense.systemLicense === 'true' || currentLicense.systemLicense === 'active' ? t('settingsPage.license.statusActive') : t('settingsPage.license.statusExpired')}
                       </span>
                     </div>
@@ -1935,15 +2396,23 @@ export default function SettingsPage() {
 
               {/* Offline Mode Toggle */}
               {currentLicense && offlineStatus && (
-                <div className={`rounded-xl p-6 border-2 ${offlineStatus.offlineModeEnabled
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
-                    : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700'
+                <div className={`rounded-xl p-5 ring-1 ${offlineStatus.offlineModeEnabled
+                    ? 'bg-blue-50 dark:bg-blue-900/20 ring-blue-200 dark:ring-blue-900/50'
+                    : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700'
                   }`}>
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl">{offlineStatus.offlineModeEnabled ? '☁️' : '📴'}</span>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${offlineStatus.offlineModeEnabled ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          {offlineStatus.offlineModeEnabled ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546M5.106 18.894c-3.808-3.808-3.808-9.98 0-13.788m13.788 0c3.808 3.808 3.808 9.98 0 13.788M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                          )}
+                        </svg>
+                      </div>
                       <div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
                           وضع الأوفلاين (Offline Mode)
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -1956,50 +2425,52 @@ export default function SettingsPage() {
                     <button
                       onClick={toggleOfflineMode}
                       disabled={offlineToggling}
-                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition shrink-0 ${offlineStatus.offlineModeEnabled ? 'bg-blue-600' : 'bg-gray-300'
-                        } ${offlineToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      aria-label="Toggle offline mode"
+                      aria-pressed={offlineStatus.offlineModeEnabled}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 shrink-0 ${offlineStatus.offlineModeEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'} ${offlineToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
-                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${offlineStatus.offlineModeEnabled ? 'translate-x-6' : 'translate-x-1'
-                        }`} />
+                      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${offlineStatus.offlineModeEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
 
                   {/* Sync Stats */}
                   {offlineStatus.offlineModeEnabled && (
-                    <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
+                    <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-900/50">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                        <div className="bg-white dark:bg-gray-900 p-3 rounded-lg">
-                          <div className="text-gray-500 dark:text-gray-400">في الانتظار</div>
-                          <div className={`text-xl font-bold ${offlineStatus.stats.pending > 0 ? 'text-orange-600' : 'text-gray-700 dark:text-gray-200'}`}>
+                        <div className="bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 p-3 rounded-lg">
+                          <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">في الانتظار</div>
+                          <div className={`mt-1 text-xl font-bold ${offlineStatus.stats.pending > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-gray-100'}`}>
                             {offlineStatus.stats.pending}
                           </div>
                         </div>
-                        <div className="bg-white dark:bg-gray-900 p-3 rounded-lg">
-                          <div className="text-gray-500 dark:text-gray-400">تم الإرسال</div>
-                          <div className="text-xl font-bold text-green-600">
+                        <div className="bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 p-3 rounded-lg">
+                          <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">تم الإرسال</div>
+                          <div className="mt-1 text-xl font-bold text-green-700 dark:text-green-400">
                             {offlineStatus.stats.sent}
                           </div>
                         </div>
-                        <div className="bg-white dark:bg-gray-900 p-3 rounded-lg">
-                          <div className="text-gray-500 dark:text-gray-400">فشل</div>
-                          <div className={`text-xl font-bold ${offlineStatus.stats.failed > 0 ? 'text-red-600' : 'text-gray-700 dark:text-gray-200'}`}>
+                        <div className="bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 p-3 rounded-lg">
+                          <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">فشل</div>
+                          <div className={`mt-1 text-xl font-bold ${offlineStatus.stats.failed > 0 ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>
                             {offlineStatus.stats.failed}
                           </div>
                         </div>
-                        <div className="bg-white dark:bg-gray-900 p-3 rounded-lg">
-                          <div className="text-gray-500 dark:text-gray-400">آخر إرسال</div>
-                          <div className="text-sm font-bold text-gray-700 dark:text-gray-200">
+                        <div className="bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 p-3 rounded-lg">
+                          <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">آخر إرسال</div>
+                          <div className="mt-1 text-sm font-bold text-gray-900 dark:text-gray-100">
                             {offlineStatus.stats.lastSentAt
                               ? new Date(offlineStatus.stats.lastSentAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
                               : '—'}
                           </div>
                         </div>
                       </div>
-                      {/* Last error (if any) — surfaces stuck items so they're easy to debug */}
+                      {/* Last error (if any) */}
                       {offlineStatus.stats.lastError && (
-                        <div className="mt-3 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg p-3">
+                        <div className="mt-3 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-3">
                           <div className="flex items-start gap-2">
-                            <span className="text-lg">⚠️</span>
+                            <svg {...stroke} className="w-5 h-5 text-red-700 dark:text-red-300 flex-shrink-0 mt-0.5" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                            </svg>
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-bold text-red-800 dark:text-red-300 mb-1">
                                 خطأ في الإرسال ({offlineStatus.stats.lastErrorResource} — {offlineStatus.stats.lastErrorAttempts} محاولة)
@@ -2008,9 +2479,9 @@ export default function SettingsPage() {
                                 {offlineStatus.stats.lastError}
                               </div>
                               <div className="text-xs text-red-600 dark:text-red-400 mt-2">
-                                💡 لو الجداول لسه ما اتعملتش على Supabase، شغّل ملف{' '}
+                                لو الجداول لسه ما اتعملتش على Supabase، شغّل ملف{' '}
                                 <code className="bg-red-100 dark:bg-red-900/40 px-1 rounded">offline-mode-system.sql</code>{' '}
-                                الأول، وبعدين اضغط "إرسال يدوي".
+                                الأول، وبعدين اضغط &quot;إرسال يدوي&quot;.
                               </div>
                             </div>
                           </div>
@@ -2019,14 +2490,28 @@ export default function SettingsPage() {
 
                       <div className="flex items-center justify-between mt-3 gap-2">
                         <p className="text-xs text-blue-700 dark:text-blue-300">
-                          💡 البيانات بتتمسح تلقائياً بعد ٦٠ يوم - بنخزن الإجمالي بس
+                          البيانات بتتمسح تلقائياً بعد ٦٠ يوم - بنخزن الإجمالي بس
                         </p>
                         <button
                           onClick={flushSyncQueue}
                           disabled={flushingSync}
-                          className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium disabled:opacity-50 shrink-0"
+                          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors duration-200 disabled:opacity-50 shrink-0"
                         >
-                          {flushingSync ? '⏳ جاري...' : '🔄 إرسال يدوي'}
+                          {flushingSync ? (
+                            <>
+                              <svg {...stroke} className="w-3.5 h-3.5 animate-spin" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                              </svg>
+                              جاري...
+                            </>
+                          ) : (
+                            <>
+                              <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                              </svg>
+                              إرسال يدوي
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -2035,16 +2520,18 @@ export default function SettingsPage() {
               )}
 
               {/* License Selection Form */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                  <span className="text-2xl">🏢</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-5">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                  </svg>
                   {t('settingsPage.license.selectGymAndBranch')}
                 </h3>
 
                 {/* Debug Info */}
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg">
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
                       {t('settingsPage.license.diagnosticInfo')}
                     </span>
                     <button
@@ -2058,7 +2545,7 @@ export default function SettingsPage() {
                           alert('Test failed - check console')
                         }
                       }}
-                      className="text-xs px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded"
+                      className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors duration-200"
                     >
                       {t('settingsPage.license.testConnection')}
                     </button>
@@ -2072,14 +2559,14 @@ export default function SettingsPage() {
 
                 {/* Gym Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {t('settingsPage.license.gymLabel')}
                   </label>
                   <select
                     value={selectedGymId}
                     onChange={(e) => handleGymChange(e.target.value)}
                     disabled={loadingGyms}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 disabled:opacity-50"
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
                   >
                     <option value="">{t('settingsPage.license.selectGym')}</option>
                     {gyms.map(gym => (
@@ -2088,22 +2575,27 @@ export default function SettingsPage() {
                       </option>
                     ))}
                   </select>
-                  {loadingGyms && <p className="text-xs text-gray-500 mt-1">جاري التحميل...</p>}
+                  {loadingGyms && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">جاري التحميل...</p>}
                   {!loadingGyms && gyms.length === 0 && (
-                    <p className="text-xs text-red-500 mt-1">⚠️ لم يتم تحميل أي صالات - تحقق من الكونسول</p>
+                    <p className="flex items-center gap-1.5 text-xs text-red-700 dark:text-red-400 mt-1.5">
+                      <svg {...stroke} className="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                      </svg>
+                      لم يتم تحميل أي صالات - تحقق من الكونسول
+                    </p>
                   )}
                 </div>
 
                 {/* Branch Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     الفرع *
                   </label>
                   <select
                     value={selectedBranchId}
                     onChange={(e) => setSelectedBranchId(e.target.value)}
                     disabled={!selectedGymId || loadingBranches}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-primary-500 disabled:opacity-50"
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
                   >
                     <option value="">-- اختر الفرع --</option>
                     {branches.map(branch => (
@@ -2113,24 +2605,28 @@ export default function SettingsPage() {
                       </option>
                     ))}
                   </select>
-                  {loadingBranches && <p className="text-xs text-gray-500 mt-1">جاري تحميل الفروع...</p>}
+                  {loadingBranches && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5">جاري تحميل الفروع...</p>}
                 </div>
 
                 {/* Save Button */}
-                <div className="pt-4">
+                <div className="pt-2">
                   <button
                     onClick={saveLicenseSelection}
                     disabled={!selectedGymId || !selectedBranchId || savingLicense}
-                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold py-2.5 px-4 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {savingLicense ? (
                       <>
-                        <span className="animate-spin">⏳</span>
+                        <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                        </svg>
                         <span>جاري الحفظ...</span>
                       </>
                     ) : (
                       <>
-                        <span>💾</span>
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                        </svg>
                         <span>حفظ الاختيار</span>
                       </>
                     )}
@@ -2138,9 +2634,11 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Info Note */}
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <span className="text-xl">ℹ️</span>
+                    <svg {...stroke} className="w-5 h-5 text-blue-700 dark:text-blue-300 flex-shrink-0 mt-0.5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
                     <div className="text-sm text-gray-700 dark:text-gray-300">
                       <p className="font-bold mb-1">ملاحظة:</p>
                       <p>• يجب اختيار الصالة والفرع الصحيح لتفعيل الرخصة</p>
@@ -2155,112 +2653,154 @@ export default function SettingsPage() {
 
           {activeSection === 'database' && user?.role === 'OWNER' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-3"><span className="text-4xl">💾</span><div><h2 className="text-2xl font-bold">{t('settingsPage.database.title')}</h2><p className="text-blue-50 text-sm mt-1">{t('settingsPage.database.description')}</p></div></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.database.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.database.description')}</p>
+                  </div>
+                </div>
               </div>
 
               {/* استعادة قاعدة البيانات */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                  <span className="text-2xl">📥</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-5">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
                   {t('settingsPage.database.restore')}
                 </h3>
 
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg">
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">⚠️</span>
-                    <h4 className="font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.database.warningTitle')}</h4>
+                    <svg {...stroke} className="w-5 h-5 text-amber-700 dark:text-amber-300" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    <h4 className="font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.database.warningTitle')}</h4>
                   </div>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{t('settingsPage.database.warningText')}</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t('settingsPage.database.uploadLabel')}</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('settingsPage.database.uploadLabel')}</label>
                   <input
                     type="file"
                     accept=".db"
                     onChange={handleDbUpload}
                     disabled={dbUploading}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none disabled:opacity-50"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settingsPage.database.uploadDesc')}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('settingsPage.database.uploadDesc')}</p>
                 </div>
 
                 {dbUploading && (
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl animate-spin">⏳</span>
+                      <svg {...stroke} className="w-5 h-5 animate-spin text-blue-700 dark:text-blue-300" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                      </svg>
                       <span className="text-gray-700 dark:text-gray-300">{t('settingsPage.database.uploading')}</span>
                     </div>
                   </div>
                 )}
 
                 {dbUploadResult?.success && (
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg">
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg flex items-start gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-green-700 dark:text-green-300 flex-shrink-0 mt-0.5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
                     <p className="text-green-800 dark:text-green-200">{dbUploadResult.success}</p>
                   </div>
                 )}
 
                 {dbUploadResult?.error && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 rounded-lg">
-                    <p className="text-red-800 dark:text-red-200">❌ {dbUploadResult.error}</p>
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg flex items-start gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-red-700 dark:text-red-300 flex-shrink-0 mt-0.5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                    <p className="text-red-800 dark:text-red-200">{dbUploadResult.error}</p>
                   </div>
                 )}
               </div>
 
               {/* مزامنة قاعدة البيانات - All-in-One */}
               {syncMessage && (
-                <div className={`p-4 rounded-xl border-2 ${syncMessage.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'}`}>
+                <div className={`p-4 rounded-xl ring-1 ${syncMessage.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 ring-green-200 dark:ring-green-900/50' : 'bg-red-50 dark:bg-red-900/20 ring-red-200 dark:ring-red-900/50'}`}>
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">{syncMessage.type === 'success' ? '✅' : '❌'}</span>
+                    <svg {...stroke} className={`w-6 h-6 flex-shrink-0 mt-0.5 ${syncMessage.type === 'success' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`} aria-hidden="true">
+                      {syncMessage.type === 'success' ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                      )}
+                    </svg>
                     <div className="flex-1">
                       <p className={`text-sm whitespace-pre-line ${syncMessage.type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>{syncMessage.text}</p>
                     </div>
-                    <button onClick={() => setSyncMessage(null)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">✕</button>
+                    <button
+                      onClick={() => setSyncMessage(null)}
+                      aria-label="Dismiss"
+                      className="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                    >
+                      <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               )}
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                  <span className="text-2xl">🔄</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-5">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                  </svg>
                   مزامنة قاعدة البيانات (الكل في واحد)
                 </h3>
 
-                <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg">
-                  <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                    <span>✨</span>
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg">
+                  <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                    </svg>
                     ماذا يفعل هذا الزر؟
                   </h4>
                   <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
                     زر واحد يقوم بجميع عمليات التحديث بشكل تلقائي:
                   </p>
-                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 mr-4">
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 ms-4">
                     <li className="flex items-start gap-2">
-                      <span className="text-green-600 dark:text-green-400 font-bold">1️⃣</span>
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs font-bold flex-shrink-0">1</span>
                       <span><strong>إصلاح الصلاحيات:</strong> يتحقق من صلاحيات قاعدة البيانات ويصلحها تلقائياً</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400 font-bold">2️⃣</span>
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold flex-shrink-0">2</span>
                       <span><strong>مزامنة Schema:</strong> يطبق التغييرات من schema.prisma على قاعدة البيانات</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-purple-600 dark:text-purple-400 font-bold">3️⃣</span>
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-bold flex-shrink-0">3</span>
                       <span><strong>تطبيق Migrations:</strong> يشغل جميع التحديثات الجديدة من مجلد migrations/</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-orange-600 dark:text-orange-400 font-bold">4️⃣</span>
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-xs font-bold flex-shrink-0">4</span>
                       <span><strong>تحديث Prisma Client:</strong> يولد Prisma Client الجديد للتعامل مع قاعدة البيانات</span>
                     </li>
                   </ul>
                 </div>
 
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
-                  <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                    <span>📅</span>
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg">
+                  <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-blue-700 dark:text-blue-300" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                    </svg>
                     متى تستخدم هذا الزر؟
                   </h4>
-                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 mr-4">
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ms-4">
                     <li>• بعد تحديث النظام لإصدار جديد</li>
                     <li>• إذا ظهرت رسالة خطأ: &quot;attempt to write a readonly database&quot;</li>
                     <li>• إذا ظهرت رسالة خطأ عن جدول أو عمود مفقود</li>
@@ -2269,12 +2809,14 @@ export default function SettingsPage() {
                   </ul>
                 </div>
 
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg">
-                  <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                    <span>⚠️</span>
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg">
+                  <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-amber-700 dark:text-amber-300" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
                     قبل الضغط على الزر:
                   </h4>
-                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 mr-4">
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ms-4">
                     <li>• أغلق Prisma Studio إذا كان مفتوحاً</li>
                     <li>• أغلق أي برامج أخرى تستخدم قاعدة البيانات</li>
                     <li>• في Mac: قد تحتاج منح Full Disk Access للتطبيق في إعدادات النظام</li>
@@ -2284,49 +2826,75 @@ export default function SettingsPage() {
                 <button
                   onClick={handleSyncDatabase}
                   disabled={syncingDatabase}
-                  className={`w-full px-6 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold rounded-lg transition-all shadow-lg flex items-center justify-center gap-3 ${syncingDatabase ? 'opacity-70 cursor-not-allowed' : 'hover:scale-105'}`}
+                  className="w-full px-4 py-3 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {syncingDatabase ? (
                     <>
-                      <span className="animate-spin text-xl">⏳</span>
+                      <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                      </svg>
                       <span>جاري المزامنة... (قد يستغرق دقيقة)</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-xl">🚀</span>
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                      </svg>
                       <span>مزامنة وتحديث قاعدة البيانات (الكل في واحد)</span>
                     </>
                   )}
                 </button>
 
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div className="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    💡 <strong>آمن تماماً:</strong> هذا الزر يقوم بجميع العمليات بالترتيب الصحيح ولن يؤثر على بياناتك الموجودة. إذا فشلت أي خطوة، سيتوقف تلقائياً ويعرض رسالة الخطأ. يُنصح بتطبيق التحديثات بعد كل تحديث للنظام.
+                    <strong>آمن تماماً:</strong> هذا الزر يقوم بجميع العمليات بالترتيب الصحيح ولن يؤثر على بياناتك الموجودة. إذا فشلت أي خطوة، سيتوقف تلقائياً ويعرض رسالة الخطأ. يُنصح بتطبيق التحديثات بعد كل تحديث للنظام.
                   </p>
                 </div>
               </div>
 
-              {/* 🧼 تنظيف وتصغير ملف قاعدة البيانات (VACUUM) */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                  <span>🧼</span>
+              {/* تنظيف وتصغير ملف قاعدة البيانات (VACUUM) */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-4">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636M2.41 9a2.25 2.25 0 0 0-.16.832V12a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 0 1 .382-.632l3.285-3.832a2.25 2.25 0 0 1 1.708-.786h8.43c.66 0 1.288.29 1.708.786l3.285 3.832c.163.19.291.404.382.632M4.5 20.25h15A2.25 2.25 0 0 0 21.75 18v-2.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125V18a2.25 2.25 0 0 0 2.25 2.25Z" />
+                  </svg>
                   <span>تنظيف وتصغير ملف قاعدة البيانات</span>
                 </h3>
 
-                <div className="p-4 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border-2 border-teal-200 dark:border-teal-700 rounded-lg space-y-2">
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg space-y-2">
                   <p className="text-sm text-gray-700 dark:text-gray-300">
                     مع مرور الوقت، ملف قاعدة البيانات بيحتوي على صفحات فارغة (free pages) ناتجة عن الحذف والتعديل.
                     الزر ده بيشغّل <strong>VACUUM</strong> اللي بيعيد بناء الملف بدون الصفحات الفاضية — بيصغّر الحجم بنسبة 50-90% أحياناً.
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    ✅ آمن تماماً — البيانات بتفضل زي ما هي.<br />
-                    ✅ بيعمل فحص سلامة (integrity check) قبل التنظيف، ولو الملف فيه مشكلة بيوقف.<br />
-                    ⚠️ يُفضَّل عمل Backup (من زر النسخ الاحتياطي) قبل تنظيف الملف الأساسي.
-                  </p>
+                  <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                    <li className="flex items-start gap-1.5">
+                      <svg {...stroke} className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                      آمن تماماً — البيانات بتفضل زي ما هي.
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <svg {...stroke} className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                      بيعمل فحص سلامة (integrity check) قبل التنظيف، ولو الملف فيه مشكلة بيوقف.
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <svg {...stroke} className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                      </svg>
+                      يُفضَّل عمل Backup (من زر النسخ الاحتياطي) قبل تنظيف الملف الأساسي.
+                    </li>
+                  </ul>
                 </div>
 
                 {loadingDbFiles ? (
-                  <div className="text-sm text-gray-500 dark:text-gray-400">⏳ جاري تحميل قائمة الملفات...</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                    </svg>
+                    جاري تحميل قائمة الملفات...
+                  </div>
                 ) : dbFiles.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 px-2">
@@ -2334,24 +2902,24 @@ export default function SettingsPage() {
                       <span>الحجم الإجمالي: <strong>{dbFilesTotalMB} MB</strong></span>
                     </div>
 
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <div className="ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg overflow-hidden">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300">
+                        <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                           <tr>
-                            <th className="px-3 py-2 text-start font-medium">الملف</th>
-                            <th className="px-3 py-2 text-start font-medium">الحجم</th>
-                            <th className="px-3 py-2 text-start font-medium">آخر تعديل</th>
-                            <th className="px-3 py-2 text-start font-medium">الإجراء</th>
+                            <th className="px-3 py-3 text-start font-bold">الملف</th>
+                            <th className="px-3 py-3 text-start font-bold">الحجم</th>
+                            <th className="px-3 py-3 text-start font-bold">آخر تعديل</th>
+                            <th className="px-3 py-3 text-start font-bold">الإجراء</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                           {dbFiles.map((f) => (
-                            <tr key={f.name} className="border-t border-gray-200 dark:border-gray-700">
+                            <tr key={f.name} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
                               <td className="px-3 py-2">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-gray-800 dark:text-gray-200 font-mono text-xs">{f.name}</span>
+                                  <span className="text-gray-900 dark:text-gray-200 font-mono text-xs">{f.name}</span>
                                   {f.isLive && (
-                                    <span className="px-2 py-0.5 text-[10px] rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">الأساسي</span>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">الأساسي</span>
                                   )}
                                 </div>
                               </td>
@@ -2363,9 +2931,12 @@ export default function SettingsPage() {
                                 <button
                                   onClick={() => handleOptimizeDb(f.name)}
                                   disabled={optimizingDb}
-                                  className="px-3 py-1.5 text-xs bg-teal-500 hover:bg-teal-600 text-white rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary-500 hover:bg-primary-600 text-primary-contrast rounded-lg font-bold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  🧼 تنظيف
+                                  <svg {...stroke} className="w-3.5 h-3.5" aria-hidden="true">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636" />
+                                  </svg>
+                                  تنظيف
                                 </button>
                               </td>
                             </tr>
@@ -2375,15 +2946,15 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-500 dark:text-gray-400">مفيش ملفات.</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">مفيش ملفات.</div>
                 )}
 
                 {optimizeMessage && (
                   <div
-                    className={`p-3 rounded-lg text-sm whitespace-pre-line font-mono ${
+                    className={`p-3 rounded-lg text-sm whitespace-pre-line font-mono ring-1 ${
                       optimizeMessage.type === 'success'
-                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-300'
-                        : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300'
+                        ? 'bg-green-50 dark:bg-green-900/20 ring-green-200 dark:ring-green-900/50 text-green-800 dark:text-green-300'
+                        : 'bg-red-50 dark:bg-red-900/20 ring-red-200 dark:ring-red-900/50 text-red-800 dark:text-red-300'
                     }`}
                   >
                     {optimizeMessage.text}
@@ -2394,18 +2965,20 @@ export default function SettingsPage() {
                   <button
                     onClick={() => handleOptimizeDb('gym.db')}
                     disabled={optimizingDb}
-                    className={`flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${
-                      optimizingDb ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'
-                    }`}
+                    className="flex-1 px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {optimizingDb ? (
                       <>
-                        <span className="animate-spin">⏳</span>
+                        <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                        </svg>
                         <span>جاري التنظيف...</span>
                       </>
                     ) : (
                       <>
-                        <span>🧼</span>
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636" />
+                        </svg>
                         <span>تنظيف الملف الأساسي (gym.db)</span>
                       </>
                     )}
@@ -2414,62 +2987,86 @@ export default function SettingsPage() {
                   <button
                     onClick={() => handleOptimizeDb(undefined, true)}
                     disabled={optimizingDb || dbFiles.filter((f) => !f.isLive).length === 0}
-                    className={`flex-1 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${
-                      optimizingDb || dbFiles.filter((f) => !f.isLive).length === 0 ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'
-                    }`}
+                    className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-800 text-white font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    <span>📦</span>
+                    <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                    </svg>
                     <span>تنظيف كل النسخ القديمة ({dbFiles.filter((f) => !f.isLive).length})</span>
                   </button>
                 </div>
               </div>
 
-              {/* 🗜️ تنظيف قاعدة البيانات (نقل صور base64 لملفات) */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                  <span className="text-2xl">🗜️</span>
+              {/* تنظيف قاعدة البيانات (نقل صور base64 لملفات) */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-4">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                  </svg>
                   تنظيف قاعدة البيانات (الصور القديمة)
                 </h3>
 
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg text-sm">
-                  <p className="font-bold mb-2 text-gray-800 dark:text-gray-100">💡 ايه ده؟</p>
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg text-sm">
+                  <p className="font-bold mb-2 text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <svg {...stroke} className="w-4 h-4 text-amber-700 dark:text-amber-300" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                    </svg>
+                    ايه ده؟
+                  </p>
                   <p className="text-gray-700 dark:text-gray-200 leading-relaxed">
-                    النظام بيخزن صور الأعضاء القديمة كنصوص <strong>base64</strong> جوه قاعدة البيانات نفسها — ده بيخلي ملف <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">gym.db</code> يكبر بشكل كبير. التنظيف ده بينقل الصور دي لملفات منفصلة في فولدر <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">uploads/</code> ويرجّع حجم قاعدة البيانات لطبيعته. مفيش بيانات هتضيع.
+                    النظام بيخزن صور الأعضاء القديمة كنصوص <strong>base64</strong> جوه قاعدة البيانات نفسها — ده بيخلي ملف <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">gym.db</code> يكبر بشكل كبير. التنظيف ده بينقل الصور دي لملفات منفصلة في فولدر <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">uploads/</code> ويرجّع حجم قاعدة البيانات لطبيعته. مفيش بيانات هتضيع.
                   </p>
                 </div>
 
                 {cleanupLoading && (
-                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm flex items-center gap-2 text-gray-700 dark:text-gray-200">
-                    <span className="animate-spin">⏳</span>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg text-sm flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                    <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                    </svg>
                     جاري فحص حالة قاعدة البيانات...
                   </div>
                 )}
 
                 {!cleanupLoading && cleanupInfo && cleanupInfo.candidates === 0 && (
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg text-sm">
-                    <p className="text-green-800 dark:text-green-200">
-                      ✅ قاعدة البيانات نضيفة، مفيش صور قديمة تحتاج نقل.
-                      <br />
-                      📦 الحجم الحالي: <strong>{cleanupInfo.currentDbSizeMb} MB</strong>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg text-sm">
+                    <p className="flex items-start gap-2 text-green-800 dark:text-green-200">
+                      <svg {...stroke} className="w-5 h-5 text-green-700 dark:text-green-300 flex-shrink-0 mt-0.5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                      <span>
+                        قاعدة البيانات نضيفة، مفيش صور قديمة تحتاج نقل.
+                        <br />
+                        الحجم الحالي: <strong>{cleanupInfo.currentDbSizeMb} MB</strong>
+                      </span>
                     </p>
                   </div>
                 )}
 
                 {!cleanupLoading && cleanupInfo && cleanupInfo.candidates > 0 && (
-                  <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg text-sm">
-                    <p className="font-bold mb-2 text-gray-800 dark:text-gray-100">⚠️ وُجدت بيانات قديمة:</p>
-                    <ul className="list-disc list-inside space-y-1 text-orange-900 dark:text-orange-200">
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg text-sm">
+                    <p className="font-bold mb-2 text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                      <svg {...stroke} className="w-4 h-4 text-amber-700 dark:text-amber-300" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                      </svg>
+                      وُجدت بيانات قديمة:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-amber-900 dark:text-amber-200">
                       <li>عدد الصور القديمة: <strong>{cleanupInfo.candidates}</strong></li>
                       <li>الحجم في قاعدة البيانات: <strong>{cleanupInfo.estimatedBase64Mb} MB</strong></li>
-                      <li>الحجم الكلي لـ <code className="bg-orange-100 dark:bg-orange-900/40 px-1 rounded">gym.db</code>: <strong>{cleanupInfo.currentDbSizeMb} MB</strong></li>
+                      <li>الحجم الكلي لـ <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">gym.db</code>: <strong>{cleanupInfo.currentDbSizeMb} MB</strong></li>
                       <li>الحجم المتوقع بعد التنظيف: <strong>~{Math.max(0.5, +(cleanupInfo.currentDbSizeMb - cleanupInfo.estimatedBase64Mb).toFixed(1))} MB</strong></li>
                     </ul>
                   </div>
                 )}
 
                 {cleanupResult && (
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg text-sm">
-                    <p className="font-bold mb-2 text-gray-800 dark:text-gray-100">📊 نتيجة آخر عملية تنظيف:</p>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg text-sm">
+                    <p className="font-bold mb-2 text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                      <svg {...stroke} className="w-4 h-4 text-green-700 dark:text-green-300" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                      </svg>
+                      نتيجة آخر عملية تنظيف:
+                    </p>
                     <ul className="list-disc list-inside space-y-1 text-green-900 dark:text-green-200">
                       <li>تم نقل: <strong>{cleanupResult.migrated}</strong> صورة</li>
                       {cleanupResult.failed > 0 && (
@@ -2482,14 +3079,17 @@ export default function SettingsPage() {
                       )}
                     </ul>
                     {cleanupResult.vacuumError && (
-                      <p className="mt-3 text-orange-800 dark:text-orange-300">
-                        ⚠️ تحذير: VACUUM فشل ({cleanupResult.vacuumError}). البيانات اتنقلت بس الحجم ما اتقللش — اعمل "تنظيف الملف الأساسي" يدوياً من الـ section اللي فوق.
+                      <p className="mt-3 flex items-start gap-2 text-amber-800 dark:text-amber-300">
+                        <svg {...stroke} className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                        </svg>
+                        <span>تحذير: VACUUM فشل ({cleanupResult.vacuumError}). البيانات اتنقلت بس الحجم ما اتقللش — اعمل &quot;تنظيف الملف الأساسي&quot; يدوياً من الـ section اللي فوق.</span>
                       </p>
                     )}
                     {cleanupResult.failures.length > 0 && (
                       <details className="mt-3">
-                        <summary className="cursor-pointer text-orange-700 dark:text-orange-400 font-medium">عرض الأعضاء اللي فشل نقلهم ({cleanupResult.failures.length})</summary>
-                        <ul className="mt-2 ml-4 space-y-1 text-xs text-gray-700 dark:text-gray-300">
+                        <summary className="cursor-pointer text-amber-700 dark:text-amber-400 font-bold">عرض الأعضاء اللي فشل نقلهم ({cleanupResult.failures.length})</summary>
+                        <ul className="mt-2 ms-4 space-y-1 text-xs text-gray-700 dark:text-gray-300">
                           {cleanupResult.failures.map((f) => (
                             <li key={f.id}>
                               <strong>{f.name}</strong> ({f.id.slice(0, 8)}…): {f.reason}
@@ -2504,18 +3104,20 @@ export default function SettingsPage() {
                 <button
                   onClick={handleRunCleanup}
                   disabled={cleanupRunning || cleanupLoading || !cleanupInfo || cleanupInfo.candidates === 0}
-                  className={`w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${
-                    cleanupRunning || cleanupLoading || !cleanupInfo || cleanupInfo.candidates === 0 ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'
-                  }`}
+                  className="w-full px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {cleanupRunning ? (
                     <>
-                      <span className="animate-spin">⏳</span>
+                      <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                      </svg>
                       <span>جاري التنظيف... (ممكن ياخد دقيقة أو اتنين)</span>
                     </>
                   ) : (
                     <>
-                      <span>🗜️</span>
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+                      </svg>
                       <span>ابدأ التنظيف</span>
                     </>
                   )}
@@ -2527,34 +3129,44 @@ export default function SettingsPage() {
 
           {activeSection === 'apply-features' && user?.role === 'OWNER' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-6 shadow-lg">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
                 <div className="flex items-center gap-3">
-                  <span className="text-4xl">📦</span>
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                    </svg>
+                  </div>
                   <div>
-                    <h2 className="text-2xl font-bold">تطبيق مميزات الباقات على الأعضاء</h2>
-                    <p className="text-amber-50 text-sm mt-1">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">تطبيق مميزات الباقات على الأعضاء</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       السكريبت بيمشي على كل الأعضاء اللي عندهم باقة محفوظة، ويطبق عليهم الحصص + الفريز + الدعوات + InBody.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* 💪 مميزات اشتراك PT */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                  <span>💪</span>
+              {/* مميزات اشتراك PT */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                  <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.115 5.19l.319 1.913A6 6 0 0 0 8.11 10.36L9.75 12l-.387.775c-.217.433-.132.956.21 1.298l1.348 1.348c.21.21.329.497.329.795v1.089c0 .426.24.815.622 1.006l.153.076c.433.217.956.132 1.298-.21l.723-.723a8.7 8.7 0 0 0 2.288-4.042 1.087 1.087 0 0 0-.358-1.099l-1.33-1.108c-.32-.267-.526-.65-.578-1.064l-.111-.857a.972.972 0 0 0-.575-.766 1.21 1.21 0 0 1-.518-.396l-.394-.522a1.13 1.13 0 0 0-1.299-.38l-1.328.475a4.5 4.5 0 0 1-1.679.215 11.21 11.21 0 0 1-.45-2.069M3.75 12C3.75 6.96 7.96 2.75 13 2.75c5.04 0 9.25 4.21 9.25 9.25 0 5.04-4.21 9.25-9.25 9.25-5.04 0-9.25-4.21-9.25-9.25Z" />
+                  </svg>
                   <span>مميزات اشتراك PT</span>
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
                   تفعيل مميزات إضافية على اشتراكات الـ PT (الفريز والترقية). الزرارين بيظهروا في كروت الـ PT بعد التفعيل.
                 </p>
                 <div className="grid gap-3">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl">❄️</span>
+                      <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center flex-shrink-0">
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18m9-9H3M5.636 5.636l12.728 12.728M18.364 5.636L5.636 18.364" />
+                        </svg>
+                      </div>
                       <div>
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100">فريز اشتراك PT</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">السماح بتجميد اشتراك الـ PT لعدد أيام محدد ومدّ تاريخ الانتهاء.</p>
+                        <h4 className="font-bold text-gray-900 dark:text-gray-100">فريز اشتراك PT</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">السماح بتجميد اشتراك الـ PT لعدد أيام محدد ومدّ تاريخ الانتهاء.</p>
                       </div>
                     </div>
                     <label className="toggle-switch toggle-green">
@@ -2567,12 +3179,16 @@ export default function SettingsPage() {
                     </label>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl">🚀</span>
+                      <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                        </svg>
+                      </div>
                       <div>
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100">ترقية باقة PT</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">السماح بترقية باقة الـ PT لباقة أعلى مع حساب فرق السعر وإصدار إيصال.</p>
+                        <h4 className="font-bold text-gray-900 dark:text-gray-100">ترقية باقة PT</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">السماح بترقية باقة الـ PT لباقة أعلى مع حساب فرق السعر وإصدار إيصال.</p>
                       </div>
                     </div>
                     <label className="toggle-switch toggle-green">
@@ -2589,17 +3205,19 @@ export default function SettingsPage() {
                   <button
                     onClick={saveServiceSettings}
                     disabled={isSaving}
-                    className="px-5 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium rounded-lg text-sm"
+                    className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed text-sm"
                   >
                     {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
                   </button>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
-                  <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                    <span>ℹ️</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-4">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg">
+                  <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-blue-700 dark:text-blue-300" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
                     إزاي بيعرف الباقة بتاعت العضو؟
                   </h4>
                   <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -2609,9 +3227,9 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-3">
-                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-700 rounded-lg">
-                    <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                      <span>🟢</span>
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-900/50 rounded-lg">
+                    <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                      <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" />
                       وضع آمن (الأعضاء الجدد بس)
                     </h4>
                     <p className="text-xs text-gray-700 dark:text-gray-300 mb-3">
@@ -2621,16 +3239,26 @@ export default function SettingsPage() {
                     <button
                       onClick={() => setApplyFeaturesConfirm('fresh')}
                       disabled={applyingFeatures}
-                      className={`w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${applyingFeatures ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      className="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      {applyingFeatures ? <span className="animate-spin">⏳</span> : <span>✨</span>}
+                      {applyingFeatures ? (
+                        <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                        </svg>
+                      ) : (
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                        </svg>
+                      )}
                       <span>تطبيق على الأعضاء الجدد</span>
                     </button>
                   </div>
 
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 rounded-lg">
-                    <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                      <span>⚠️</span>
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg">
+                    <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                      <svg {...stroke} className="w-4 h-4 text-red-700 dark:text-red-300" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                      </svg>
                       استبدال القيم (لكل الأعضاء)
                     </h4>
                     <p className="text-xs text-gray-700 dark:text-gray-300 mb-3">
@@ -2640,71 +3268,84 @@ export default function SettingsPage() {
                     <button
                       onClick={() => setApplyFeaturesConfirm('force')}
                       disabled={applyingFeatures}
-                      className={`w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all shadow flex items-center justify-center gap-2 ${applyingFeatures ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      className="w-full px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      {applyingFeatures ? <span className="animate-spin">⏳</span> : <span>🔁</span>}
+                      {applyingFeatures ? (
+                        <svg {...stroke} className="w-5 h-5 animate-spin" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                        </svg>
+                      ) : (
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                        </svg>
+                      )}
                       <span>استبدال لكل الأعضاء</span>
                     </button>
                   </div>
                 </div>
 
                 {applyFeaturesError && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 rounded-lg">
-                    <p className="text-red-800 dark:text-red-200 font-medium">❌ {applyFeaturesError}</p>
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg flex items-start gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-red-700 dark:text-red-300 flex-shrink-0 mt-0.5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                    <p className="text-red-800 dark:text-red-200 font-bold">{applyFeaturesError}</p>
                   </div>
                 )}
 
                 {applyFeaturesResult && (
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-lg space-y-3">
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg space-y-3">
                     <h4 className="font-bold text-green-800 dark:text-green-200 flex items-center gap-2">
-                      <span>✅</span>
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
                       <span>تم — النتيجة:</span>
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                        <p className="text-gray-500 dark:text-gray-400 text-xs">اتعالج</p>
-                        <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{applyFeaturesResult.processed}</p>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-gray-200 dark:ring-gray-700">
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">اتعالج</p>
+                        <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{applyFeaturesResult.processed}</p>
                       </div>
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
-                        <p className="text-emerald-600 dark:text-emerald-400 text-xs">اتحدّث</p>
-                        <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{applyFeaturesResult.updated}</p>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-emerald-200 dark:ring-emerald-900/50">
+                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">اتحدّث</p>
+                        <p className="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-300">{applyFeaturesResult.updated}</p>
                       </div>
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-yellow-200 dark:border-yellow-700">
-                        <p className="text-yellow-600 dark:text-yellow-400 text-xs">اتخطّى</p>
-                        <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{applyFeaturesResult.skipped}</p>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-amber-200 dark:ring-amber-900/50">
+                        <p className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">اتخطّى</p>
+                        <p className="mt-1 text-2xl font-bold text-amber-700 dark:text-amber-300">{applyFeaturesResult.skipped}</p>
                       </div>
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-red-200 dark:border-red-700">
-                        <p className="text-red-600 dark:text-red-400 text-xs">مفيش باقة بنفس المدة</p>
-                        <p className="text-2xl font-bold text-red-700 dark:text-red-300">{applyFeaturesResult.noDurationMatch}</p>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-red-200 dark:ring-red-900/50">
+                        <p className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">مفيش باقة بنفس المدة</p>
+                        <p className="mt-1 text-2xl font-bold text-red-700 dark:text-red-300">{applyFeaturesResult.noDurationMatch}</p>
                       </div>
                     </div>
 
                     {applyFeaturesResult.results.length > 0 && (
-                      <details className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <summary className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg">
+                      <details className="bg-white dark:bg-gray-800 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                        <summary className="px-4 py-2 cursor-pointer text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/40 rounded-lg">
                           عرض تفاصيل كل عضو ({applyFeaturesResult.results.length})
                         </summary>
                         <div className="max-h-96 overflow-y-auto border-t border-gray-200 dark:border-gray-700">
                           <table className="w-full text-xs">
-                            <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0">
+                            <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase sticky top-0">
                               <tr>
-                                <th className="px-3 py-2 text-start font-medium">رقم العضوية</th>
-                                <th className="px-3 py-2 text-start font-medium">الاسم</th>
-                                <th className="px-3 py-2 text-start font-medium">الحالة</th>
-                                <th className="px-3 py-2 text-start font-medium">السبب</th>
+                                <th className="px-3 py-2 text-start font-bold">رقم العضوية</th>
+                                <th className="px-3 py-2 text-start font-bold">الاسم</th>
+                                <th className="px-3 py-2 text-start font-bold">الحالة</th>
+                                <th className="px-3 py-2 text-start font-bold">السبب</th>
                               </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                               {applyFeaturesResult.results.map((r, i) => (
-                                <tr key={r.memberId + i} className="border-t border-gray-200 dark:border-gray-700">
-                                  <td className="px-3 py-1.5 font-mono">{r.memberNumber || '—'}</td>
-                                  <td className="px-3 py-1.5">{r.name}</td>
+                                <tr key={r.memberId + i} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                                  <td className="px-3 py-1.5 font-mono text-gray-700 dark:text-gray-300">{r.memberNumber || '—'}</td>
+                                  <td className="px-3 py-1.5 text-gray-700 dark:text-gray-300">{r.name}</td>
                                   <td className="px-3 py-1.5">
-                                    {r.status === 'updated' && <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">اتحدّث</span>}
-                                    {r.status === 'skipped' && <span className="px-2 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300">اتخطّى</span>}
-                                    {r.status === 'no-duration-match' && <span className="px-2 py-0.5 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">مفيش باقة بنفس المدة</span>}
+                                    {r.status === 'updated' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">اتحدّث</span>}
+                                    {r.status === 'skipped' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">اتخطّى</span>}
+                                    {r.status === 'no-duration-match' && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">مفيش باقة بنفس المدة</span>}
                                   </td>
-                                  <td className="px-3 py-1.5 text-gray-500 dark:text-gray-400">{r.reason || '—'}</td>
+                                  <td className="px-3 py-1.5 text-gray-600 dark:text-gray-400">{r.reason || '—'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2715,9 +3356,9 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div className="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    💡 <strong>إزاي بيشتغل:</strong> السكريبت بيطابق كل عضو بالباقة المناسبة بناءً على <strong>مدة الاشتراك</strong> (الفرق بين تاريخ البداية والنهاية) مع تسامح ±3 أيام —
+                    <strong>إزاي بيشتغل:</strong> السكريبت بيطابق كل عضو بالباقة المناسبة بناءً على <strong>مدة الاشتراك</strong> (الفرق بين تاريخ البداية والنهاية) مع تسامح ±3 أيام —
                     يعني عضو مشترك 28 أو 29 أو 30 أو 31 يوم بياخد مميزات الباقة الشهرية تلقائياً، حتى لو الـ <code>offerId</code> فاضي عنده.
                   </p>
                 </div>
@@ -2725,22 +3366,32 @@ export default function SettingsPage() {
 
               {applyFeaturesConfirm && (
                 <div
-                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]"
+                  className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in z-[10000] flex items-center justify-center p-4"
                   onClick={() => !applyingFeatures && setApplyFeaturesConfirm(null)}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="apply-features-confirm-title"
+                  onKeyDown={(e) => { if (e.key === 'Escape' && !applyingFeatures) setApplyFeaturesConfirm(null) }}
                 >
                   <div
-                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-md w-full overflow-hidden"
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full overflow-hidden animate-modal-in"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div
                       className={`p-5 text-white flex items-center gap-3 ${
                         applyFeaturesConfirm === 'force'
-                          ? 'bg-gradient-to-r from-red-500 to-rose-600'
-                          : 'bg-gradient-to-r from-emerald-500 to-green-600'
+                          ? 'bg-red-600'
+                          : 'bg-emerald-600'
                       }`}
                     >
-                      <span className="text-3xl">{applyFeaturesConfirm === 'force' ? '⚠️' : '✨'}</span>
-                      <h3 className="text-xl font-bold">
+                      <svg {...stroke} className="w-7 h-7" aria-hidden="true">
+                        {applyFeaturesConfirm === 'force' ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                        )}
+                      </svg>
+                      <h3 id="apply-features-confirm-title" className="text-xl font-bold">
                         {applyFeaturesConfirm === 'force'
                           ? 'تأكيد استبدال القيم'
                           : 'تأكيد تطبيق المميزات'}
@@ -2750,10 +3401,10 @@ export default function SettingsPage() {
                     <div className="p-5 space-y-3">
                       {applyFeaturesConfirm === 'force' ? (
                         <>
-                          <p className="text-gray-800 dark:text-gray-100 font-medium">
+                          <p className="text-gray-900 dark:text-gray-100 font-bold">
                             هل تريد تطبيق مميزات الباقات على <strong>كل الأعضاء</strong> (استبدال القيم الحالية)؟
                           </p>
-                          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-800 dark:text-red-200">
+                          <div className="p-3 bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg text-sm text-red-800 dark:text-red-200">
                             القيم الحالية للحصص/الفريز/الدعوات هتتمسح وتترجع لقيم الباقة.
                             <br />
                             ده مناسب لو لسه عاملين استيراد جديد.
@@ -2761,10 +3412,10 @@ export default function SettingsPage() {
                         </>
                       ) : (
                         <>
-                          <p className="text-gray-800 dark:text-gray-100 font-medium">
+                          <p className="text-gray-900 dark:text-gray-100 font-bold">
                             تطبيق مميزات الباقات على <strong>الأعضاء الجدد</strong> (اللي قيمهم لسه 0)؟
                           </p>
-                          <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg text-sm text-emerald-800 dark:text-emerald-200">
+                          <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-900/50 rounded-lg text-sm text-emerald-800 dark:text-emerald-200">
                             مش هيلمس أي عضو مستخدم حصصه بالفعل.
                           </div>
                         </>
@@ -2775,20 +3426,25 @@ export default function SettingsPage() {
                       <button
                         onClick={() => setApplyFeaturesConfirm(null)}
                         disabled={applyingFeatures}
-                        className="px-5 py-2.5 rounded-lg font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition disabled:opacity-50"
+                        className="px-4 py-2.5 rounded-lg font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
                       >
                         إلغاء
                       </button>
                       <button
+                        autoFocus
                         onClick={() => handleApplyPackageFeatures(applyFeaturesConfirm)}
                         disabled={applyingFeatures}
-                        className={`px-5 py-2.5 rounded-lg font-bold text-white shadow transition flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${
+                        className={`px-4 py-2.5 rounded-lg font-bold text-white transition-colors duration-200 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${
                           applyFeaturesConfirm === 'force'
-                            ? 'bg-red-600 hover:bg-red-700'
-                            : 'bg-emerald-600 hover:bg-emerald-700'
-                        }`}
+                            ? 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500'
+                            : 'bg-emerald-600 hover:bg-emerald-700 focus-visible:ring-emerald-500'
+                        } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
                       >
-                        {applyingFeatures && <span className="animate-spin">⏳</span>}
+                        {applyingFeatures && (
+                          <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                          </svg>
+                        )}
                         <span>{applyFeaturesConfirm === 'force' ? 'تأكيد الاستبدال' : 'تأكيد التطبيق'}</span>
                       </button>
                     </div>
@@ -2800,62 +3456,83 @@ export default function SettingsPage() {
 
           {activeSection === 'whatsapp' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-6 shadow-lg">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
                 <div className="flex items-center gap-3">
-                  <span className="text-4xl">📱</span>
+                  <div className="w-11 h-11 rounded-xl bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z" />
+                    </svg>
+                  </div>
                   <div>
-                    <h2 className="text-2xl font-bold">{t('settingsPage.whatsapp.title')}</h2>
-                    <p className="text-green-50 text-sm mt-1">{t('settingsPage.whatsapp.description')}</p>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.whatsapp.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.whatsapp.description')}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
-                <div className="text-center space-y-6">
-                  <div className="inline-block p-6 bg-green-50 dark:bg-green-900/20 rounded-full">
-                    <span className="text-7xl">📲</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+                <div className="text-center space-y-5">
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-green-50 dark:bg-green-900/20 rounded-full text-green-700 dark:text-green-300">
+                    <svg {...stroke} className="w-10 h-10" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                    </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                     {t('settingsPage.whatsapp.autoSendTitle')}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                  <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                     {t('settingsPage.whatsapp.autoSendDescription')}
                   </p>
 
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-6">
                     <Link
                       href="/settings/whatsapp"
-                      className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all hover:scale-105 shadow-lg"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                     >
-                      <span className="text-2xl">⚙️</span>
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
                       <span>{t('settingsPage.whatsapp.manageButton')}</span>
                     </Link>
                   </div>
 
-                  <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg text-right">
+                  <div className="mt-6 p-5 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-lg text-start">
                     <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
-                      <span>✨</span>
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                      </svg>
                       <span>{t('settingsPage.whatsapp.availableFeatures')}</span>
                     </h4>
                     <ul className="space-y-2 text-blue-700 dark:text-blue-300 text-sm">
                       <li className="flex items-start gap-2">
-                        <span className="text-green-500">✓</span>
+                        <svg {...stroke} className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
                         <span>{t('settingsPage.whatsapp.featureAutoReceipts')}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-green-500">✓</span>
+                        <svg {...stroke} className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
                         <span>{t('settingsPage.whatsapp.featureSubReminders')}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-green-500">✓</span>
+                        <svg {...stroke} className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
                         <span>{t('settingsPage.whatsapp.featureSessionNotifications')}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-green-500">✓</span>
+                        <svg {...stroke} className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
                         <span>{t('settingsPage.whatsapp.featureWelcomeMessages')}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-green-500">✓</span>
+                        <svg {...stroke} className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
                         <span>{t('settingsPage.whatsapp.featureAutoFollowUp')}</span>
                       </li>
                     </ul>
@@ -2867,39 +3544,47 @@ export default function SettingsPage() {
 
           {activeSection === 'port-forwarding' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl p-6 shadow-lg">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
                 <div className="flex items-center gap-3">
-                  <span className="text-4xl">🌐</span>
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                    </svg>
+                  </div>
                   <div>
-                    <h2 className="text-2xl font-bold">{t('settingsPage.portForwarding.title')}</h2>
-                    <p className="text-blue-50 text-sm mt-1">{t('settingsPage.portForwarding.description')}</p>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.portForwarding.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.portForwarding.description')}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
-                <div className="space-y-8">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+                <div className="space-y-7">
                   {/* Local Network Access */}
-                  <div className="text-center space-y-6">
-                    <div className="inline-block p-6 bg-blue-50 dark:bg-blue-900/20 rounded-full">
-                      <span className="text-7xl">📱</span>
+                  <div className="text-center space-y-5">
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-full text-blue-700 dark:text-blue-300">
+                      <svg {...stroke} className="w-10 h-10" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                      </svg>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                       {t('settingsPage.portForwarding.localAccess')}
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                    <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                       {t('settingsPage.portForwarding.localAccessDesc')}
                     </p>
 
                     {/* QR Code & URL */}
                     {isLoadingIP ? (
                       <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin text-6xl">⏳</div>
+                        <svg {...stroke} className="w-12 h-12 animate-spin text-primary-500" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                        </svg>
                       </div>
                     ) : localURL ? (
-                      <div className="flex flex-col items-center gap-6">
+                      <div className="flex flex-col items-center gap-5">
                         {/* QR Code */}
-                        <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border-4 border-blue-200 dark:border-blue-700">
+                        <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg ring-1 ring-blue-200 dark:ring-blue-900/50">
                           <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(localURL)}&color=2563eb&bgcolor=ffffff`}
                             alt="QR Code"
@@ -2909,13 +3594,13 @@ export default function SettingsPage() {
 
                         {/* URL Display */}
                         <div className="w-full max-w-2xl">
-                          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border-2 border-gray-200 dark:border-gray-600">
+                          <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-5 ring-1 ring-gray-200 dark:ring-gray-700">
                             <div className="flex items-center justify-between gap-4">
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                  {t('settingsPage.portForwarding.localURL')}:
+                                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+                                  {t('settingsPage.portForwarding.localURL')}
                                 </p>
-                                <p className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400 break-all" dir="ltr">
+                                <p className="text-lg font-mono font-bold text-blue-700 dark:text-blue-400 break-all" dir="ltr">
                                   {localURL}
                                 </p>
                               </div>
@@ -2925,20 +3610,23 @@ export default function SettingsPage() {
                                   setSaveMessage({ type: 'success', text: t('settingsPage.portForwarding.urlCopied') })
                                   setTimeout(() => setSaveMessage(null), 3000)
                                 }}
-                                className="flex-shrink-0 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:scale-105"
+                                className="flex-shrink-0 inline-flex items-center justify-center w-11 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+                                aria-label={t('settingsPage.portForwarding.copyURL')}
                                 title={t('settingsPage.portForwarding.copyURL')}
                               >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
                                 </svg>
                               </button>
                             </div>
                           </div>
 
                           {localIP && (
-                            <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                            <div className="mt-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 ring-1 ring-blue-200 dark:ring-blue-900/50">
                               <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-                                <span>🔌</span>
+                                <svg {...stroke} className="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
+                                </svg>
                                 <span>{t('settingsPage.portForwarding.localIP')}:</span>
                                 <span className="font-mono font-bold" dir="ltr">{localIP}</span>
                               </div>
@@ -2949,20 +3637,22 @@ export default function SettingsPage() {
                         {/* Refresh Button */}
                         <button
                           onClick={fetchLocalIP}
-                          className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all hover:scale-105 flex items-center gap-2"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-bold transition-colors duration-200"
                         >
-                          <span className="text-xl">🔄</span>
+                          <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                          </svg>
                           <span>{t('settingsPage.portForwarding.refresh')}</span>
                         </button>
                       </div>
                     ) : (
                       <div className="py-8">
-                        <p className="text-gray-500 dark:text-gray-400">
+                        <p className="text-gray-600 dark:text-gray-400">
                           {t('settingsPage.portForwarding.noConnection')}
                         </p>
                         <button
                           onClick={fetchLocalIP}
-                          className="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:scale-105"
+                          className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                         >
                           {t('settingsPage.portForwarding.tryAgain')}
                         </button>
@@ -2971,33 +3661,37 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Instructions */}
-                  <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl">
-                    <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2 text-lg">
-                      <span>📖</span>
+                  <div className="mt-6 p-5 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 rounded-xl">
+                    <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2 text-base">
+                      <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                      </svg>
                       <span>{t('settingsPage.portForwarding.instructions.title')}</span>
                     </h4>
                     <ul className="space-y-3 text-blue-700 dark:text-blue-300 text-sm">
                       <li className="flex items-start gap-3">
-                        <span className="text-green-500 text-xl flex-shrink-0">1️⃣</span>
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold flex-shrink-0">1</span>
                         <span>{t('settingsPage.portForwarding.instructions.step1')}</span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <span className="text-green-500 text-xl flex-shrink-0">2️⃣</span>
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold flex-shrink-0">2</span>
                         <span>{t('settingsPage.portForwarding.instructions.step2')}</span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <span className="text-green-500 text-xl flex-shrink-0">3️⃣</span>
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold flex-shrink-0">3</span>
                         <span>{t('settingsPage.portForwarding.instructions.step3')}</span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <span className="text-green-500 text-xl flex-shrink-0">4️⃣</span>
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold flex-shrink-0">4</span>
                         <span>{t('settingsPage.portForwarding.instructions.step4')}</span>
                       </li>
                     </ul>
 
-                    <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-                      <div className="flex items-start gap-2 text-yellow-800 dark:text-yellow-300 text-sm">
-                        <span className="text-xl flex-shrink-0">⚠️</span>
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg">
+                      <div className="flex items-start gap-2 text-amber-800 dark:text-amber-300 text-sm">
+                        <svg {...stroke} className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                        </svg>
                         <p>{t('settingsPage.portForwarding.instructions.warning')}</p>
                       </div>
                     </div>
@@ -3009,12 +3703,16 @@ export default function SettingsPage() {
 
           {activeSection === 'updates' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl p-6 shadow-lg">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
                 <div className="flex items-center gap-3">
-                  <span className="text-4xl">🔄</span>
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                    </svg>
+                  </div>
                   <div>
-                    <h2 className="text-2xl font-bold">{t('settingsPage.updates.title')}</h2>
-                    <p className="text-blue-50 text-sm mt-1">{t('settingsPage.updates.description')}</p>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.updates.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.updates.description')}</p>
                   </div>
                 </div>
               </div>
@@ -3024,22 +3722,43 @@ export default function SettingsPage() {
 
           {activeSection === 'support' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-3"><span className="text-4xl">📞</span><div><h2 className="text-2xl font-bold">{t('settingsPage.support.title')}</h2><p className="text-green-50 text-sm mt-1">{t('settingsPage.support.description')}</p></div></div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <div className="text-center space-y-4">
-                  <div className="inline-block p-6 bg-green-50 dark:bg-green-900/20 rounded-full">
-                    <span className="text-6xl">💬</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                    </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t('settingsPage.support.needHelp')}</h3>
-                  <p className="text-gray-600 dark:text-gray-300">{t('settingsPage.support.contactText')}</p>
-                  <div className="flex items-center justify-center gap-2 text-lg font-semibold text-green-700 dark:text-green-300">
-                    <span>📱</span>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.support.title')}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('settingsPage.support.description')}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
+                <div className="text-center space-y-4">
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-green-50 dark:bg-green-900/20 rounded-full text-green-700 dark:text-green-300">
+                    <svg {...stroke} className="w-10 h-10" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.support.needHelp')}</h3>
+                  <p className="text-gray-600 dark:text-gray-400">{t('settingsPage.support.contactText')}</p>
+                  <div className="flex items-center justify-center gap-2 text-lg font-bold text-green-700 dark:text-green-300">
+                    <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                    </svg>
                     <span dir="ltr">01028518754</span>
                   </div>
-                  <a href="https://wa.me/201028518754" target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all hover:scale-105 shadow-lg">
-                    <span className="text-xl mr-2">💬</span>
+                  <a
+                    href="https://wa.me/201028518754"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+                  >
+                    <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z" />
+                    </svg>
                     {t('settingsPage.support.whatsappButton')}
                   </a>
                 </div>

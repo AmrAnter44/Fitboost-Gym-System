@@ -9,13 +9,101 @@ import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
 import { getReceiptTypeTranslationKey, isFloorReceipt, isPTReceipt, isNutritionReceipt, isPhysiotherapyReceipt } from '../../lib/translateReceiptType'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
+import { LoadingScreen } from '../../components/Spinner'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
+const IconCash = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M3 12h18M3 17h18M7 7v10M17 7v10"/></svg>
+)
+const IconCard = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/></svg>
+)
+const IconPhone = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zm4 17h.01"/></svg>
+)
+const IconWallet = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-1M16 12h5v4h-5a2 2 0 010-4z"/></svg>
+)
+const IconTrophy = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 21h8M12 17v4M6 4h12v4a6 6 0 11-12 0V4zM6 4H3v3a3 3 0 003 3M18 4h3v3a3 3 0 01-3 3"/></svg>
+)
+const IconPrint = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/></svg>
+)
+const IconExport = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+)
+const IconRefresh = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 0014.65-3.36M19 5a9 9 0 00-14.65 3.36"/></svg>
+)
+const IconReceipt = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 14h6m-6-4h6m-6-4h6M7 21l1.5-1.5L10 21l1.5-1.5L13 21l1.5-1.5L16 21l1.5-1.5L19 21V3H5v18l1-1z"/></svg>
+)
+const IconExpense = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zM3 12c0 4.97 4.03 9 9 9s9-4.03 9-9-4.03-9-9-9-9 4.03-9 9z"/></svg>
+)
+const IconCheck = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+)
+const IconX = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6"/></svg>
+)
+const IconCalendar = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+)
+const IconChartBar = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 4 4 5-5"/></svg>
+)
+const IconNutrition = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7zm0 9a2 2 0 100-4 2 2 0 000 4z"/></svg>
+)
+const IconPhysio = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-3v6M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+)
+const IconEmptyBox = (
+  <svg className="w-12 h-12 text-gray-400" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0l-2 7H6l-2-7m16 0H4"/></svg>
+)
+const IconChevronDown = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6"/></svg>
+)
+const IconChevronRight = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6"/></svg>
+)
+const IconChevronLeftSvg = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+)
+const IconChevronRightSvg = (
+  <svg className="w-5 h-5" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+)
+const IconShuffle = (
+  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+)
+const IconSpinner = (
+  <svg className="w-8 h-8 animate-spin text-primary-500" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+)
+const IconArrowUp = (
+  <svg className="w-3.5 h-3.5 inline" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5M5 12l7-7 7 7"/></svg>
+)
+const IconArrowDown = (
+  <svg className="w-3.5 h-3.5 inline" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M19 12l-7 7-7-7"/></svg>
+)
+const IconTrendUp = (
+  <svg className="w-5 h-5 inline" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3 17l6-6 4 4 8-8M14 7h7v7"/></svg>
+)
+const IconTrendDown = (
+  <svg className="w-5 h-5 inline" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7l6 6 4-4 8 8M14 17h7v-7"/></svg>
+)
+const IconTrendFlat = (
+  <svg className="w-5 h-5 inline" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M14 7l5 5-5 5"/></svg>
+)
 
 const ClosingCharts = dynamic(() => import('@/components/ClosingCharts'), {
   ssr: false,
   loading: () => (
     <div className="space-y-6">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="animate-pulse h-[420px] bg-gray-200 dark:bg-gray-700 rounded-lg" />
+        <div key={i} className="skeleton-shimmer h-[420px] rounded-lg" />
       ))}
     </div>
   ),
@@ -34,10 +122,10 @@ interface DailyData {
   instapay: number
   cash: number
   wallet: number
-  points: number  // 🏆 النقاط المستخدمة
-  remainingAmount: number  // 💰 الفلوس الباقية
-  remainingInstapay: number // 💰 الفلوس الباقية - إنستاباي
-  remainingWallet: number   // 💰 الفلوس الباقية - محفظة
+  points: number  // النقاط المستخدمة
+  remainingAmount: number  // الفلوس الباقية
+  remainingInstapay: number // الفلوس الباقية - إنستاباي
+  remainingWallet: number   // الفلوس الباقية - محفظة
   staffLoans: { [key: string]: number }
   receipts: any[]
   expensesList: any[]
@@ -79,10 +167,10 @@ export default function ClosingPage() {
     instapay: 0,
     cash: 0,
     wallet: 0,
-    points: 0,               // 🏆 النقاط المستخدمة
-    remainingAmount: 0,      // 💰 الفلوس الباقية
-    remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
-    remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
+    points: 0,               // النقاط المستخدمة
+    remainingAmount: 0,      // الفلوس الباقية
+    remainingInstapay: 0,    // الفلوس الباقية - إنستاباي
+    remainingWallet: 0,      // الفلوس الباقية - محفظة
     totalPayments: 0,
     totalRevenue: 0,
     netProfit: 0
@@ -145,7 +233,7 @@ export default function ClosingPage() {
       const filteredReceipts = receipts.filter((r: any) => !r.isCancelled && filterDate(r.createdAt))
       const filteredExpenses = expenses.filter((e: any) => filterDate(e.createdAt))
 
-      // 💰 بناء map للمدفوعات اللاحقة (Payment receipts) عشان نحسب الباقي الفعلي الحالي
+      // بناء map للمدفوعات اللاحقة (Payment receipts) عشان نحسب الباقي الفعلي الحالي
       // نـ index الـ payments بـ memberId / ptNumber + تاريخها — مرتبة من الأقدم للأحدث.
       // ملاحظة: بنشتغل على كل الإيصالات (مش filteredReceipts) عشان الـ payments اللي حصلت
       // بعد الفترة المعروضة بتأثر برضو على البواقي الحالية للإيصالات القديمة.
@@ -247,10 +335,10 @@ export default function ClosingPage() {
             instapay: 0,
             cash: 0,
             wallet: 0,
-            points: 0,               // 🏆 النقاط المستخدمة
-            remainingAmount: 0,      // 💰 الفلوس الباقية
-            remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
-            remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
+            points: 0,               // النقاط المستخدمة
+            remainingAmount: 0,      // الفلوس الباقية
+            remainingInstapay: 0,    // الفلوس الباقية - إنستاباي
+            remainingWallet: 0,      // الفلوس الباقية - محفظة
             staffLoans: {},
             receipts: [],
             expensesList: []
@@ -312,7 +400,7 @@ export default function ClosingPage() {
           }
         }
 
-        // ✅ CRITICAL: توزيع المبالغ حسب وسائل الدفع الفعلية (دعم الدفع المتعدد)
+        // CRITICAL: توزيع المبالغ حسب وسائل الدفع الفعلية (دعم الدفع المتعدد)
         const paymentMethodRaw = receipt.paymentMethod || 'cash'
         if (isMultiPayment(paymentMethodRaw)) {
           // دفع متعدد - توزيع المبالغ حسب كل طريقة
@@ -368,10 +456,10 @@ export default function ClosingPage() {
             instapay: 0,
             cash: 0,
             wallet: 0,
-            points: 0,               // 🏆 النقاط المستخدمة
-            remainingAmount: 0,      // 💰 الفلوس الباقية
-            remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
-            remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
+            points: 0,               // النقاط المستخدمة
+            remainingAmount: 0,      // الفلوس الباقية
+            remainingInstapay: 0,    // الفلوس الباقية - إنستاباي
+            remainingWallet: 0,      // الفلوس الباقية - محفظة
             staffLoans: {},
             receipts: [],
             expensesList: []
@@ -412,10 +500,10 @@ export default function ClosingPage() {
         acc.instapay += day.instapay
         acc.cash += day.cash
         acc.wallet += day.wallet
-        acc.points += day.points                          // 🏆 النقاط المستخدمة
-        acc.remainingAmount += day.remainingAmount        // 💰 الفلوس الباقية
-        acc.remainingInstapay += day.remainingInstapay    // 💰 الفلوس الباقية - إنستاباي
-        acc.remainingWallet += day.remainingWallet        // 💰 الفلوس الباقية - محفظة
+        acc.points += day.points                          // النقاط المستخدمة
+        acc.remainingAmount += day.remainingAmount        // الفلوس الباقية
+        acc.remainingInstapay += day.remainingInstapay    // الفلوس الباقية - إنستاباي
+        acc.remainingWallet += day.remainingWallet        // الفلوس الباقية - محفظة
         return acc
       }, {
         floor: 0,
@@ -428,10 +516,10 @@ export default function ClosingPage() {
         instapay: 0,
         cash: 0,
         wallet: 0,
-        points: 0,               // 🏆 النقاط المستخدمة
-        remainingAmount: 0,      // 💰 الفلوس الباقية
-        remainingInstapay: 0,    // 💰 الفلوس الباقية - إنستاباي
-        remainingWallet: 0,      // 💰 الفلوس الباقية - محفظة
+        points: 0,               // النقاط المستخدمة
+        remainingAmount: 0,      // الفلوس الباقية
+        remainingInstapay: 0,    // الفلوس الباقية - إنستاباي
+        remainingWallet: 0,      // الفلوس الباقية - محفظة
         totalPayments: 0,
         totalRevenue: 0,
         netProfit: 0
@@ -835,7 +923,7 @@ export default function ClosingPage() {
 
 
     } catch (error) {
-      console.error('❌ خطأ في التصدير:', error)
+      console.error('خطأ في التصدير:', error)
       // يمكن استخدام toast هنا إذا تم إضافة ToastContext
       console.error(t('closing.excel.error'))
     }
@@ -850,22 +938,25 @@ export default function ClosingPage() {
     return t(translationKey as any) || type
   }
 
+  const renderMethodIcon = (m: string) => {
+    if (m === 'visa') return IconCard
+    if (m === 'instapay') return IconPhone
+    if (m === 'wallet') return IconWallet
+    if (m === 'points') return IconTrophy
+    return IconCash
+  }
+
   const getPaymentMethodLabel = (method: string, amount?: number) => {
-    // ✅ معالجة الدفع المتعدد
     if (isMultiPayment(method)) {
       const normalized = normalizePaymentMethod(method, amount || 0)
-      const emojis = normalized.methods.map(m => {
-        if (m.method === 'cash') return '💵'
-        if (m.method === 'visa') return '💳'
-        if (m.method === 'instapay') return '📱'
-        if (m.method === 'wallet') return '💰'
-        if (m.method === 'points') return '🏆'
-        return '💵'
-      }).join('')
-
       return (
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-bold text-primary-600">🔀 {emojis}</span>
+          <span className="text-xs font-bold text-primary-700 dark:text-primary-400 inline-flex items-center gap-1">
+            {IconShuffle}
+            <span className="inline-flex items-center gap-0.5">
+              {normalized.methods.map((m, i) => <span key={i}>{renderMethodIcon(m.method)}</span>)}
+            </span>
+          </span>
           {normalized.methods.map((m, idx) => {
             const methodLabels: { [key: string]: string } = {
               'cash': t('closing.paymentMethods.cash'),
@@ -884,18 +975,22 @@ export default function ClosingPage() {
       )
     }
 
-    // دفع واحد
-    const methods: { [key: string]: string } = {
-      'cash': `${t('closing.paymentMethods.cash')} 💵`,
-      'visa': `${t('closing.paymentMethods.visa')} 💳`,
-      'instapay': `${t('closing.paymentMethods.instapay')} 📱`,
-      'wallet': `${t('closing.paymentMethods.wallet')} 💰`,
-      'points': `${t('closing.paymentMethods.points')} 🏆`
+    const labels: { [key: string]: string } = {
+      'cash': t('closing.paymentMethods.cash'),
+      'visa': t('closing.paymentMethods.visa'),
+      'instapay': t('closing.paymentMethods.instapay'),
+      'wallet': t('closing.paymentMethods.wallet'),
+      'points': t('closing.paymentMethods.points')
     }
-    return methods[method] || `${t('closing.paymentMethods.cash')} 💵`
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs">
+        {renderMethodIcon(method)}
+        <span>{labels[method] || t('closing.paymentMethods.cash')}</span>
+      </span>
+    )
   }
 
-  // ✅ التحقق من صلاحية الوصول
+  // التحقق من صلاحية الوصول
   if (!permissionsLoading && !hasPermission('canAccessClosing')) {
     return <PermissionDenied message="ليس لديك صلاحية الوصول لصفحة الإقفال" />
   }
@@ -903,50 +998,61 @@ export default function ClosingPage() {
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
       <div className="mb-4 sm:mb-6 no-print">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">💰 {t('closing.title')}</h1>
-        <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">{t('closing.subtitle')}</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <svg className="w-7 h-7 text-primary-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 4 4 5-5"/></svg>
+          <span>{t('closing.title')}</span>
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('closing.subtitle')}</p>
 
         {/* View Mode Tabs */}
         <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
           <button
             onClick={() => setViewMode('daily')}
-            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
+            aria-current={viewMode === 'daily' ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition-colors duration-200 text-xs sm:text-sm md:text-base ${
               viewMode === 'daily'
-                ? 'bg-primary-600 text-white shadow-lg'
-                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                ? 'bg-primary-500 text-primary-contrast'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            📅 {t('closing.viewMode.daily')}
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            {t('closing.viewMode.daily')}
           </button>
           <button
             onClick={() => setViewMode('monthly')}
-            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
+            aria-current={viewMode === 'monthly' ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition-colors duration-200 text-xs sm:text-sm md:text-base ${
               viewMode === 'monthly'
-                ? 'bg-primary-600 text-white shadow-lg'
-                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                ? 'bg-primary-500 text-primary-contrast'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            📆 {t('closing.viewMode.monthly')}
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5h18M3 12h18M3 19h18"/></svg>
+            {t('closing.viewMode.monthly')}
           </button>
           <button
             onClick={() => setViewMode('yearly')}
-            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
+            aria-current={viewMode === 'yearly' ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition-colors duration-200 text-xs sm:text-sm md:text-base ${
               viewMode === 'yearly'
-                ? 'bg-primary-600 text-white shadow-lg'
-                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                ? 'bg-primary-500 text-primary-contrast'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            📅 {t('closing.viewMode.yearly')}
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            {t('closing.viewMode.yearly')}
           </button>
           <button
             onClick={() => setViewMode('comparison')}
-            className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition text-xs sm:text-sm md:text-base ${
+            aria-current={viewMode === 'comparison' ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition-colors duration-200 text-xs sm:text-sm md:text-base ${
               viewMode === 'comparison'
-                ? 'bg-primary-600 text-white shadow-lg'
-                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                ? 'bg-primary-500 text-primary-contrast'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            📊 {t('closing.viewMode.comparison')}
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6m0 13l-3-3m3 3l3-3m6 3V10m0 9l3-3m-3 3l-3-3"/></svg>
+            {t('closing.viewMode.comparison')}
           </button>
         </div>
       </div>
@@ -965,9 +1071,10 @@ export default function ClosingPage() {
                       d.setDate(d.getDate() - 1)
                       setSelectedDay(d.toISOString().split('T')[0])
                     }}
-                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                    aria-label={direction === 'rtl' ? 'التالي' : 'Previous'}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors duration-200"
                   >
-                    {direction === 'rtl' ? '▶' : '◀'}
+                    {direction === 'rtl' ? IconChevronRightSvg : IconChevronLeftSvg}
                   </button>
                   <div className="text-center text-white">
                     <p className="text-lg sm:text-xl font-bold">
@@ -985,9 +1092,10 @@ export default function ClosingPage() {
                       d.setDate(d.getDate() + 1)
                       setSelectedDay(d.toISOString().split('T')[0])
                     }}
-                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                    aria-label={direction === 'rtl' ? 'السابق' : 'Next'}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors duration-200"
                   >
-                    {direction === 'rtl' ? '◀' : '▶'}
+                    {direction === 'rtl' ? IconChevronLeftSvg : IconChevronRightSvg}
                   </button>
                 </div>
               </div>
@@ -1000,7 +1108,7 @@ export default function ClosingPage() {
                 />
                 <button
                   onClick={() => setSelectedDay(new Date().toISOString().split('T')[0])}
-                  className="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 transition font-medium"
+                  className="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors duration-200 font-bold"
                 >
                   {t('time.today')}
                 </button>
@@ -1019,9 +1127,10 @@ export default function ClosingPage() {
                       const d = new Date(y, m - 2, 1)
                       setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
                     }}
-                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                    aria-label={direction === 'rtl' ? 'التالي' : 'Previous'}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors duration-200"
                   >
-                    {direction === 'rtl' ? '▶' : '◀'}
+                    {direction === 'rtl' ? IconChevronRightSvg : IconChevronLeftSvg}
                   </button>
                   <div className="text-center text-white">
                     <p className="text-lg sm:text-xl font-bold">
@@ -1037,9 +1146,10 @@ export default function ClosingPage() {
                       const d = new Date(y, m, 1)
                       setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
                     }}
-                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                    aria-label={direction === 'rtl' ? 'السابق' : 'Next'}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors duration-200"
                   >
-                    {direction === 'rtl' ? '◀' : '▶'}
+                    {direction === 'rtl' ? IconChevronLeftSvg : IconChevronRightSvg}
                   </button>
                 </div>
               </div>
@@ -1052,7 +1162,7 @@ export default function ClosingPage() {
                 />
                 <button
                   onClick={() => setSelectedMonth(new Date().toISOString().slice(0, 7))}
-                  className="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 transition font-medium"
+                  className="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors duration-200 font-bold"
                 >
                   {t('time.thisMonth')}
                 </button>
@@ -1065,18 +1175,20 @@ export default function ClosingPage() {
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => setSelectedYear((parseInt(selectedYear) - 1).toString())}
-                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                    aria-label={direction === 'rtl' ? 'التالي' : 'Previous'}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors duration-200"
                   >
-                    {direction === 'rtl' ? '▶' : '◀'}
+                    {direction === 'rtl' ? IconChevronRightSvg : IconChevronLeftSvg}
                   </button>
                   <div className="text-center text-white">
                     <p className="text-lg sm:text-xl font-bold">{selectedYear}</p>
                   </div>
                   <button
                     onClick={() => setSelectedYear((parseInt(selectedYear) + 1).toString())}
-                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                    aria-label={direction === 'rtl' ? 'السابق' : 'Next'}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors duration-200"
                   >
-                    {direction === 'rtl' ? '◀' : '▶'}
+                    {direction === 'rtl' ? IconChevronLeftSvg : IconChevronRightSvg}
                   </button>
                 </div>
               </div>
@@ -1085,7 +1197,7 @@ export default function ClosingPage() {
             /* اختيار فترة المقارنة */
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border dark:border-gray-700 overflow-hidden">
               <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 px-4 py-3">
-                <p className="text-center text-white text-lg sm:text-xl font-bold">📊 {t('closing.viewMode.comparison')}</p>
+                <p className="text-center text-white text-lg sm:text-xl font-bold inline-flex items-center justify-center gap-2 w-full">{IconChartBar}<span>{t('closing.viewMode.comparison')}</span></p>
               </div>
               <div className="p-3 sm:p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -1122,33 +1234,33 @@ export default function ClosingPage() {
           <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3">
             <button
               onClick={handlePrint}
-              className="bg-green-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
+              className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm md:text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
             >
-              🖨️ <span className="hidden sm:inline">{t('closing.buttons.print')}</span>
+              {IconPrint}
+              <span className="hidden sm:inline">{t('closing.buttons.print')}</span>
             </button>
             {user?.role === 'OWNER' && (
             <button
               onClick={handleExportExcel}
-              className="bg-primary-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-800 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
+              className="inline-flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-primary-contrast px-3 sm:px-4 md:px-6 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm md:text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
             >
-              📊 <span className="hidden sm:inline">{t('closing.buttons.export')}</span>
+              {IconExport}
+              <span className="hidden sm:inline">{t('closing.buttons.export')}</span>
             </button>
             )}
             <button
               onClick={fetchData}
-              className="bg-primary-600 text-white px-3 sm:px-4 md:px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-800 transition flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base"
+              className="inline-flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-primary-contrast px-3 sm:px-4 md:px-6 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm md:text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
             >
-              🔄 <span className="hidden sm:inline">{t('closing.buttons.refresh')}</span>
+              {IconRefresh}
+              <span className="hidden sm:inline">{t('closing.buttons.refresh')}</span>
             </button>
           </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-20">
-          <div className="inline-block animate-spin text-6xl mb-4">⏳</div>
-          <p className="text-xl text-gray-600 dark:text-gray-300">{t('closing.loading')}</p>
-        </div>
+        <LoadingScreen message={t('closing.loading')} />
       ) : (
         <>
           {/* Header للطباعة */}
@@ -1169,27 +1281,27 @@ export default function ClosingPage() {
               {monthlyComparison.length > 0 && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    <div className="bg-gradient-to-br from-red-500 to-red-600 dark:from-red-700 dark:to-red-800 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
-                      <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalExpenses')}</p>
-                      <p className="text-2xl sm:text-3xl font-bold">
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 dark:from-red-700 dark:to-red-800 text-white p-4 sm:p-5 md:p-6 rounded-xl shadow-sm transition-colors duration-200">
+                      <p className="text-xs sm:text-sm uppercase tracking-wider opacity-90 font-bold">{t('closing.comparison.totalExpenses')}</p>
+                      <p className="text-2xl sm:text-3xl font-bold mt-1">
                         {monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0).toFixed(0)}
                       </p>
                       <p className="text-[10px] sm:text-xs opacity-75 mt-2">
                         {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0) / monthlyComparison.length).toFixed(0)}
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-green-500 to-green-600 dark:from-green-700 dark:to-green-800 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
-                      <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalNetProfit')}</p>
-                      <p className="text-2xl sm:text-3xl font-bold">
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 dark:from-green-700 dark:to-green-800 text-white p-4 sm:p-5 md:p-6 rounded-xl shadow-sm transition-colors duration-200">
+                      <p className="text-xs sm:text-sm uppercase tracking-wider opacity-90 font-bold">{t('closing.comparison.totalNetProfit')}</p>
+                      <p className="text-2xl sm:text-3xl font-bold mt-1">
                         {monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0).toFixed(0)}
                       </p>
                       <p className="text-[10px] sm:text-xs opacity-75 mt-2">
                         {t('closing.comparison.average')}: {(monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0) / monthlyComparison.length).toFixed(0)}
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white p-4 sm:p-5 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer">
-                      <p className="text-xs sm:text-sm opacity-90">{t('closing.comparison.totalSubscriptions')}</p>
-                      <p className="text-2xl sm:text-3xl font-bold">
+                    <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-primary-contrast dark:text-primary-contrast p-4 sm:p-5 md:p-6 rounded-xl shadow-sm transition-colors duration-200">
+                      <p className="text-xs sm:text-sm uppercase tracking-wider opacity-90 font-bold">{t('closing.comparison.totalSubscriptions')}</p>
+                      <p className="text-2xl sm:text-3xl font-bold mt-1">
                         {monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0)}
                       </p>
                       <p className="text-[10px] sm:text-xs opacity-75 mt-2">
@@ -1201,50 +1313,51 @@ export default function ClosingPage() {
                   <ClosingCharts monthlyComparison={monthlyComparison} />
 
                   {/* Detailed Comparison Table */}
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-x-auto border dark:border-gray-700 hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 hover:border-primary-200 dark:hover:border-primary-700">
-                    <h3 className="text-xl font-bold p-6 border-b dark:border-gray-700 text-gray-900 dark:text-gray-100">{t('closing.comparison.detailedTable')}</h3>
-                    <table className="w-full border-collapse text-xs sm:text-sm">
-                      <thead>
-                        <tr className="bg-gray-200 dark:bg-gray-700">
-                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold dark:text-gray-200">{t('closing.comparison.month')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.floorRevenue')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-green-100 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.ptRevenue')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-red-100 dark:bg-red-900/50 dark:text-gray-200">{t('closing.comparison.expenses')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-green-200 dark:bg-green-900/50 dark:text-gray-200">{t('closing.comparison.netProfit')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-primary-100 dark:bg-primary-900/50 dark:text-gray-200">{t('closing.comparison.subscriptions')}</th>
-                          <th className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold bg-gray-100 dark:bg-gray-700 dark:text-gray-200">{t('closing.comparison.growth')}</th>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-x-auto ring-1 ring-gray-200 dark:ring-gray-700 transition-colors duration-200">
+                    <h3 className="text-lg font-bold p-5 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100">{t('closing.comparison.detailedTable')}</h3>
+                    <table className="w-full text-xs sm:text-sm">
+                      <thead className="bg-gray-50 dark:bg-gray-900/40">
+                        <tr className="text-gray-700 dark:text-gray-300 uppercase text-xs">
+                          <th className="px-2 sm:px-4 py-3 text-start font-bold">{t('closing.comparison.month')}</th>
+                          <th className="px-2 sm:px-4 py-3 text-start font-bold">{t('closing.comparison.floorRevenue')}</th>
+                          <th className="px-2 sm:px-4 py-3 text-start font-bold">{t('closing.comparison.ptRevenue')}</th>
+                          <th className="px-2 sm:px-4 py-3 text-start font-bold">{t('closing.comparison.expenses')}</th>
+                          <th className="px-2 sm:px-4 py-3 text-start font-bold">{t('closing.comparison.netProfit')}</th>
+                          <th className="px-2 sm:px-4 py-3 text-center font-bold">{t('closing.comparison.subscriptions')}</th>
+                          <th className="px-2 sm:px-4 py-3 text-center font-bold">{t('closing.comparison.growth')}</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                         {monthlyComparison.map((month, index) => {
                           const prevMonth = index > 0 ? monthlyComparison[index - 1] : null
                           const growthPercent = prevMonth ? ((month.netProfit - prevMonth.netProfit) / prevMonth.netProfit * 100) : 0
 
                           return (
-                            <tr key={month.month} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-200 cursor-pointer`}>
-                              <td className="border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 font-medium dark:text-gray-200">{month.monthName}</td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600 dark:text-primary-400`}>
+                            <tr key={month.month} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors duration-200">
+                              <td className="px-2 sm:px-4 py-3 font-bold text-gray-900 dark:text-gray-100">{month.monthName}</td>
+                              <td className="px-2 sm:px-4 py-3 text-start font-bold text-primary-700 dark:text-primary-400">
                                 {month.floorRevenue.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600 dark:text-green-400`}>
+                              <td className="px-2 sm:px-4 py-3 text-start font-bold text-green-700 dark:text-green-400">
                                 {month.ptRevenue.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600 dark:text-red-400`}>
+                              <td className="px-2 sm:px-4 py-3 text-start font-bold text-red-700 dark:text-red-400">
                                 {month.totalExpenses.toFixed(0)}
                               </td>
-                              <td className={`border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700 dark:text-green-400 text-lg`}>
+                              <td className="px-2 sm:px-4 py-3 text-start font-bold text-green-700 dark:text-green-400 text-lg">
                                 {month.netProfit.toFixed(0)}
                               </td>
-                              <td className="border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold text-primary-600 dark:text-primary-400">
+                              <td className="px-2 sm:px-4 py-3 text-center font-bold text-primary-700 dark:text-primary-400">
                                 {month.totalSubscriptions}
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-normal">
                                   {t('closing.comparison.members')}: {month.memberSubscriptions} | PT: {month.ptSubscriptions}
                                 </div>
                               </td>
-                              <td className="border border-gray-300 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center">
+                              <td className="px-2 sm:px-4 py-3 text-center">
                                 {prevMonth ? (
-                                  <span className={`font-bold ${growthPercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                    {growthPercent >= 0 ? '↑' : '↓'} {Math.abs(growthPercent).toFixed(1)}%
+                                  <span className={`inline-flex items-center gap-1 font-bold ${growthPercent >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                    {growthPercent >= 0 ? IconArrowUp : IconArrowDown}
+                                    <span>{Math.abs(growthPercent).toFixed(1)}%</span>
                                   </span>
                                 ) : (
                                   <span className="text-gray-400 dark:text-gray-500">-</span>
@@ -1255,37 +1368,37 @@ export default function ClosingPage() {
                         })}
                       </tbody>
                       <tfoot>
-                        <tr className="bg-yellow-100 dark:bg-yellow-900/50 font-bold">
-                          <td className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center dark:text-gray-200">{t('closing.comparison.total')}</td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700 dark:text-primary-400`}>
+                        <tr className="bg-primary-100 dark:bg-primary-900/40 font-bold border-t border-gray-200 dark:border-gray-700">
+                          <td className="px-2 sm:px-4 py-3 text-start text-gray-900 dark:text-gray-100">{t('closing.comparison.total')}</td>
+                          <td className="px-2 sm:px-4 py-3 text-start text-primary-700 dark:text-primary-400">
                             {monthlyComparison.reduce((sum, m) => sum + m.floorRevenue, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 dark:text-green-400`}>
+                          <td className="px-2 sm:px-4 py-3 text-start text-green-700 dark:text-green-400">
                             {monthlyComparison.reduce((sum, m) => sum + m.ptRevenue, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400`}>
+                          <td className="px-2 sm:px-4 py-3 text-start text-red-700 dark:text-red-400">
                             {monthlyComparison.reduce((sum, m) => sum + m.totalExpenses, 0).toFixed(0)}
                           </td>
-                          <td className={`border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 dark:text-green-400 text-lg`}>
+                          <td className="px-2 sm:px-4 py-3 text-start text-green-700 dark:text-green-400 text-lg">
                             {monthlyComparison.reduce((sum, m) => sum + m.netProfit, 0).toFixed(0)}
                           </td>
-                          <td className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3 text-center text-primary-700 dark:text-primary-400">
+                          <td className="px-2 sm:px-4 py-3 text-center text-primary-700 dark:text-primary-400">
                             {monthlyComparison.reduce((sum, m) => sum + m.totalSubscriptions, 0)}
                           </td>
-                          <td className="border border-gray-400 dark:border-gray-600 px-2 sm:px-4 py-2 sm:py-3"></td>
+                          <td className="px-2 sm:px-4 py-3"></td>
                         </tr>
                       </tfoot>
                     </table>
                   </div>
 
                   {/* Performance Insights */}
-                  <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
-                    <h3 className="text-xl font-bold mb-4">{t('closing.comparison.insights')}</h3>
+                  <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-primary-contrast dark:text-primary-contrast p-5 sm:p-6 rounded-xl shadow-sm transition-colors duration-200">
+                    <h3 className="text-lg font-bold mb-4">{t('closing.comparison.insights')}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {monthlyComparison.length > 0 && (
                         <>
-                          <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm hover:bg-white/30 dark:hover:bg-gray-800/40 transition-all duration-300 cursor-pointer">
-                            <p className="text-sm opacity-90">{t('closing.comparison.bestMonth')}</p>
+                          <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm transition-colors duration-200">
+                            <p className="text-xs uppercase tracking-wider font-bold opacity-90">{t('closing.comparison.bestMonth')}</p>
                             <p className="text-2xl font-bold mt-2">
                               {monthlyComparison.reduce((best, m) => m.netProfit > best.netProfit ? m : best).monthName}
                             </p>
@@ -1293,8 +1406,8 @@ export default function ClosingPage() {
                               {monthlyComparison.reduce((best, m) => m.netProfit > best.netProfit ? m : best).netProfit.toFixed(0)} {t('closing.currency')}
                             </p>
                           </div>
-                          <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm hover:bg-white/30 dark:hover:bg-gray-800/40 transition-all duration-300 cursor-pointer">
-                            <p className="text-sm opacity-90">{t('closing.comparison.worstMonth')}</p>
+                          <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm transition-colors duration-200">
+                            <p className="text-xs uppercase tracking-wider font-bold opacity-90">{t('closing.comparison.worstMonth')}</p>
                             <p className="text-2xl font-bold mt-2">
                               {monthlyComparison.reduce((worst, m) => m.netProfit < worst.netProfit ? m : worst).monthName}
                             </p>
@@ -1302,15 +1415,15 @@ export default function ClosingPage() {
                               {monthlyComparison.reduce((worst, m) => m.netProfit < worst.netProfit ? m : worst).netProfit.toFixed(0)} {t('closing.currency')}
                             </p>
                           </div>
-                          <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm hover:bg-white/30 dark:hover:bg-gray-800/40 transition-all duration-300 cursor-pointer">
-                            <p className="text-sm opacity-90">{t('closing.comparison.trend')}</p>
-                            <p className="text-2xl font-bold mt-2">
+                          <div className="bg-white/20 dark:bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm transition-colors duration-200">
+                            <p className="text-xs uppercase tracking-wider font-bold opacity-90">{t('closing.comparison.trend')}</p>
+                            <p className="text-2xl font-bold mt-2 inline-flex items-center gap-2">
                               {monthlyComparison.length > 1 &&
                                 monthlyComparison[monthlyComparison.length - 1].netProfit > monthlyComparison[0].netProfit
-                                ? `↗ ${t('closing.comparison.growing')}`
+                                ? <>{IconTrendUp}<span>{t('closing.comparison.growing')}</span></>
                                 : monthlyComparison[monthlyComparison.length - 1].netProfit < monthlyComparison[0].netProfit
-                                ? `↘ ${t('closing.comparison.declining')}`
-                                : `→ ${t('closing.comparison.stable')}`
+                                ? <>{IconTrendDown}<span>{t('closing.comparison.declining')}</span></>
+                                : <>{IconTrendFlat}<span>{t('closing.comparison.stable')}</span></>
                               }
                             </p>
                           </div>
@@ -1322,9 +1435,10 @@ export default function ClosingPage() {
               )}
 
               {monthlyComparison.length === 0 && (
-                <div className="bg-white dark:bg-gray-800 p-12 rounded-lg shadow-lg text-center border dark:border-gray-700">
-                  <p className="text-gray-500 dark:text-gray-400 text-xl">{t('closing.comparison.noData')}</p>
-                  <p className="text-gray-400 dark:text-gray-500 mt-2">{t('closing.comparison.selectPeriod')}</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+                  {IconEmptyBox}
+                  <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('closing.comparison.noData')}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('closing.comparison.selectPeriod')}</p>
                 </div>
               )}
             </div>
@@ -1333,23 +1447,23 @@ export default function ClosingPage() {
               {/* Summary Cards - hidden in daily view */}
               {viewMode !== 'daily' && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
-            <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
-              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalExpenses')}</p>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.expenses.toFixed(0)}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+              <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('closing.stats.totalExpenses')}</div>
+              <div className="mt-1 text-xl sm:text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">{totals.expenses.toFixed(0)}</div>
             </div>
-            <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
-              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.netProfit')}</p>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.netProfit.toFixed(0)}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+              <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('closing.stats.netProfit')}</div>
+              <div className="mt-1 text-xl sm:text-2xl md:text-3xl font-bold text-primary-700 dark:text-primary-400">{totals.netProfit.toFixed(0)}</div>
             </div>
-            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
-              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.totalPayments')}</p>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{totals.totalPayments.toFixed(0)}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+              <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('closing.stats.totalPayments')}</div>
+              <div className="mt-1 text-xl sm:text-2xl md:text-3xl font-bold text-amber-600 dark:text-amber-400">{totals.totalPayments.toFixed(0)}</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-3 sm:p-4 rounded-lg shadow-lg">
-              <p className="text-[10px] sm:text-xs md:text-sm opacity-90">{t('closing.stats.dailyAverage')}</p>
-              <p className="text-xl sm:text-2xl md:text-3xl font-bold">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+              <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('closing.stats.dailyAverage')}</div>
+              <div className="mt-1 text-xl sm:text-2xl md:text-3xl font-bold text-orange-600 dark:text-orange-400">
                 {dailyData.length > 0 ? (totals.totalPayments / dailyData.length).toFixed(0) : 0}
-              </p>
+              </div>
             </div>
           </div>
               )}
@@ -1357,52 +1471,62 @@ export default function ClosingPage() {
           {/* Payment Methods Summary - hidden in daily view */}
           {viewMode !== 'daily' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
-            <div className="bg-white dark:bg-gray-800 border-2 border-green-300 dark:border-green-700 p-3 sm:p-4 rounded-lg shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.cash')} 💵</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">{totals.cash.toFixed(0)}</p>
+            <div className="bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('closing.paymentMethods.cash')}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-700 dark:text-green-400 mt-1">{totals.cash.toFixed(0)}</p>
                 </div>
-                <span className="text-2xl sm:text-3xl md:text-4xl">💵</span>
+                <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center justify-center flex-shrink-0">
+                  {IconCash}
+                </div>
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 p-3 sm:p-4 rounded-lg shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.visa')} 💳</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600 dark:text-primary-400">{totals.visa.toFixed(0)}</p>
+            <div className="bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('closing.paymentMethods.visa')}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-700 dark:text-primary-400 mt-1">{totals.visa.toFixed(0)}</p>
                 </div>
-                <span className="text-2xl sm:text-3xl md:text-4xl">💳</span>
+                <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                  {IconCard}
+                </div>
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 p-3 sm:p-4 rounded-lg shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.instapay')} 📱</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-600 dark:text-primary-400">{totals.instapay.toFixed(0)}</p>
+            <div className="bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('closing.paymentMethods.instapay')}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary-700 dark:text-primary-400 mt-1">{totals.instapay.toFixed(0)}</p>
                 </div>
-                <span className="text-2xl sm:text-3xl md:text-4xl">📱</span>
+                <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                  {IconPhone}
+                </div>
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 border-2 border-orange-300 dark:border-orange-700 p-3 sm:p-4 rounded-lg shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.wallet')} 💰</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 dark:text-orange-400">{totals.wallet.toFixed(0)}</p>
+            <div className="bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('closing.paymentMethods.wallet')}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-700 dark:text-orange-400 mt-1">{totals.wallet.toFixed(0)}</p>
                 </div>
-                <span className="text-2xl sm:text-3xl md:text-4xl">💰</span>
+                <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 flex items-center justify-center flex-shrink-0">
+                  {IconWallet}
+                </div>
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 border-2 border-yellow-300 dark:border-yellow-700 p-3 sm:p-4 rounded-lg shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.points')} 🏆</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 dark:text-yellow-400">{totals.points.toFixed(0)}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+            <div className="bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('closing.paymentMethods.points')}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{totals.points.toFixed(0)}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {t('closing.pointsValueLabel')}: {(totals.points * pointsValueInEGP).toFixed(2)} {t('common.egp')}
                   </p>
                 </div>
-                <span className="text-2xl sm:text-3xl md:text-4xl">🏆</span>
+                <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
+                  {IconTrophy}
+                </div>
               </div>
             </div>
           </div>
@@ -1414,77 +1538,78 @@ export default function ClosingPage() {
           {/* Excel-like Table */}
           {viewMode !== 'comparison' && (
             <>
-              <div className="bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 lg:hidden">
+              <div className="bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-900/50 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 lg:hidden">
                 <p className="text-xs sm:text-sm text-primary-800 dark:text-primary-300 flex items-center gap-2">
-                  <span>👉</span>
-                  <span>اسحب الجدول يميناً ويساراً لرؤية جميع البيانات</span>
+                  <svg className="w-4 h-4" {...stroke} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h13M3 12l4-4m0 8l-4-4"/></svg>
+                  <span>{direction === 'rtl' ? 'اسحب الجدول يميناً ويساراً لرؤية جميع البيانات' : 'Scroll the table horizontally to see all data'}</span>
                 </p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-x-auto mb-4 sm:mb-6 border dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-x-auto mb-4 sm:mb-6 ring-1 ring-gray-200 dark:ring-gray-700">
               {viewMode === 'daily' ? (
               /* عرض تفاصيل اليوم المحدد مباشرة */
               dailyData.length > 0 ? (
-                <div className="p-6 space-y-6">
+                <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
                   {dailyData.map((day) => (
-                    <div key={day.date} className="space-y-4">
+                    <div key={day.date} className="space-y-3 sm:space-y-4">
                       {/* معلومات اليوم */}
-                      <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white p-4 rounded-lg shadow-lg">
-                        <h2 className="text-2xl font-bold mb-2">
-                          📅 {new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
+                      <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-primary-contrast dark:text-primary-contrast p-3 sm:p-4 rounded-xl shadow-sm">
+                        <h2 className="text-sm sm:text-xl md:text-2xl font-bold mb-2 inline-flex items-start gap-2 break-words text-gray-900 dark:text-white">
+                          <span className="shrink-0 mt-0.5">{IconCalendar}</span>
+                          <span>{new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
                             weekday: 'long',
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
-                          })}
+                          })}</span>
                         </h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                          <div className="bg-white/20 dark:bg-gray-800/20 p-3 rounded-lg">
-                            <p className="text-sm opacity-90">{t('closing.table.floor')}</p>
-                            <p className="text-xl font-bold">{day.floor > 0 ? day.floor.toFixed(0) : '0'} {t('closing.currency')}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-3 sm:mt-4">
+                          <div className="bg-white/30 dark:bg-white/10 p-2.5 sm:p-3 rounded-lg">
+                            <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.floor')}</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{day.floor > 0 ? day.floor.toFixed(0) : '0'} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>
                           </div>
-                          <div className="bg-white/20 dark:bg-gray-800/20 p-3 rounded-lg">
-                            <p className="text-sm opacity-90">{t('closing.table.pt')}</p>
-                            <p className="text-xl font-bold">{day.pt > 0 ? day.pt.toFixed(0) : '0'} {t('closing.currency')}</p>
+                          <div className="bg-white/30 dark:bg-white/10 p-2.5 sm:p-3 rounded-lg">
+                            <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.pt')}</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{day.pt > 0 ? day.pt.toFixed(0) : '0'} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>
                           </div>
-                          <div className="bg-white/20 dark:bg-gray-800/20 p-3 rounded-lg">
-                            <p className="text-sm opacity-90">{t('closing.table.expenses')}</p>
-                            <p className="text-xl font-bold">{day.expenses > 0 ? day.expenses.toFixed(0) : '0'} {t('closing.currency')}</p>
+                          <div className="bg-white/30 dark:bg-white/10 p-2.5 sm:p-3 rounded-lg">
+                            <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.expenses')}</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{day.expenses > 0 ? day.expenses.toFixed(0) : '0'} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>
                           </div>
-                          <div className="bg-white/20 dark:bg-gray-800/20 p-3 rounded-lg">
-                            <p className="text-sm opacity-90">{t('closing.table.total')}</p>
-                            <p className="text-xl font-bold">{((day.floor + day.pt + day.nutrition + day.physiotherapy) - day.expenses).toFixed(0)} {t('closing.currency')}</p>
+                          <div className="bg-white/30 dark:bg-white/10 p-2.5 sm:p-3 rounded-lg">
+                            <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.total')}</p>
+                            <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{((day.floor + day.pt + day.nutrition + day.physiotherapy) - day.expenses).toFixed(0)} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>
                           </div>
                         </div>
                       </div>
 
                       {/* طرق الدفع */}
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border dark:border-gray-600">
-                        <h3 className="font-bold text-lg mb-3 dark:text-white">💳 {t('closing.paymentMethods.title')}</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-green-200 dark:border-green-700">
-                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.cash')} 💵</p>
-                            <p className="text-lg font-bold text-green-600 dark:text-green-400">{day.cash > 0 ? day.cash.toFixed(0) : '0'}</p>
-                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                      <div className="bg-gray-50 dark:bg-gray-900/40 p-3 sm:p-4 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700">
+                        <h3 className="font-bold text-base sm:text-lg mb-3 text-gray-900 dark:text-gray-100 inline-flex items-center gap-2">{IconCard}<span>{t('closing.paymentMethods.title')}</span></h3>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-green-200 dark:ring-green-900/50">
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconCash}<span>{t('closing.paymentMethods.cash')}</span></p>
+                            <p className="text-lg font-bold text-green-700 dark:text-green-400 mt-1">{day.cash > 0 ? day.cash.toFixed(0) : '0'}</p>
+                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                               <p className="text-xs text-gray-500 dark:text-gray-400">{t('closing.paymentMethods.netCash')}</p>
                               <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.cash - day.expenses).toFixed(0)} {t('closing.currency')}</p>
                             </div>
                           </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-primary-200 dark:border-primary-700">
-                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.visa')} 💳</p>
-                            <p className="text-lg font-bold text-primary-600 dark:text-primary-400">{day.visa > 0 ? day.visa.toFixed(0) : '0'}</p>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-primary-200 dark:ring-primary-900/50">
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconCard}<span>{t('closing.paymentMethods.visa')}</span></p>
+                            <p className="text-lg font-bold text-primary-700 dark:text-primary-400 mt-1">{day.visa > 0 ? day.visa.toFixed(0) : '0'}</p>
                           </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-primary-200 dark:border-primary-700">
-                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.instapay')} 📱</p>
-                            <p className="text-lg font-bold text-primary-600 dark:text-primary-400">{day.instapay > 0 ? day.instapay.toFixed(0) : '0'}</p>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-primary-200 dark:ring-primary-900/50">
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconPhone}<span>{t('closing.paymentMethods.instapay')}</span></p>
+                            <p className="text-lg font-bold text-primary-700 dark:text-primary-400 mt-1">{day.instapay > 0 ? day.instapay.toFixed(0) : '0'}</p>
                           </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-orange-200 dark:border-orange-700">
-                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.wallet')} 💰</p>
-                            <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{day.wallet > 0 ? day.wallet.toFixed(0) : '0'}</p>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-orange-200 dark:ring-orange-900/50">
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconWallet}<span>{t('closing.paymentMethods.wallet')}</span></p>
+                            <p className="text-lg font-bold text-orange-700 dark:text-orange-400 mt-1">{day.wallet > 0 ? day.wallet.toFixed(0) : '0'}</p>
                           </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-yellow-200 dark:border-yellow-700">
-                            <p className="text-sm text-gray-600 dark:text-gray-300">{t('closing.paymentMethods.points')} 🏆</p>
-                            <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{day.points > 0 ? day.points.toFixed(0) : '0'}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-amber-200 dark:ring-amber-900/50">
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconTrophy}<span>{t('closing.paymentMethods.points')}</span></p>
+                            <p className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-1">{day.points > 0 ? day.points.toFixed(0) : '0'}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                               {t('closing.pointsValueLabel')}: {(day.points * pointsValueInEGP).toFixed(2)} {t('common.egp')}
                             </p>
                           </div>
@@ -1493,13 +1618,13 @@ export default function ClosingPage() {
 
                       {/* السلف */}
                       {Object.keys(day.staffLoans).length > 0 && (
-                        <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg border-2 border-yellow-200 dark:border-yellow-700">
-                          <h3 className="font-bold text-lg mb-3 dark:text-white">💰 {t('closing.staffLoans.title')}</h3>
+                        <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl ring-1 ring-amber-200 dark:ring-amber-900/50">
+                          <h3 className="font-bold text-lg mb-3 text-gray-900 dark:text-gray-100 inline-flex items-center gap-2">{IconWallet}<span>{t('closing.staffLoans.title')}</span></h3>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {Object.entries(day.staffLoans).map(([staffName, amount]) => (
-                              <div key={staffName} className="bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700">
-                                <p className="text-sm text-gray-600 dark:text-gray-300">{staffName}</p>
-                                <p className="text-lg font-bold text-red-600 dark:text-red-400">{amount.toFixed(0)} {t('closing.currency')}</p>
+                              <div key={staffName} className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{staffName}</p>
+                                <p className="text-lg font-bold text-red-700 dark:text-red-400">{amount.toFixed(0)} {t('closing.currency')}</p>
                               </div>
                             ))}
                           </div>
@@ -1509,57 +1634,91 @@ export default function ClosingPage() {
                       {/* الإيصالات */}
                       {day.receipts.length > 0 ? (
                         <div>
-                          <h4 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-white">
-                            <span>🧾</span>
+                          <h4 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                            {IconReceipt}
                             <span>{t('closing.receipts.count', { count: day.receipts.length.toString() })}</span>
                           </h4>
-                          <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border-2 border-primary-200 dark:border-primary-700">
+
+                          {/* Mobile cards (<md) */}
+                          <div className="md:hidden space-y-2">
+                            {day.receipts.map((receipt: any) => {
+                              const details = JSON.parse(receipt.itemDetails)
+                              return (
+                                <div key={receipt.id} className="bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg p-3">
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-bold text-green-700 dark:text-green-400 text-sm">#{receipt.receiptNumber}</span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
+                                          {getTypeLabel(receipt.type)}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1.5 truncate">
+                                        {details.memberName ? `${details.memberName}${details.memberNumber ? ` (#${details.memberNumber})` : ''}` : details.clientName || details.name || '-'}
+                                      </p>
+                                    </div>
+                                    <div className="text-end shrink-0">
+                                      <p className="font-bold text-green-700 dark:text-green-400 text-sm whitespace-nowrap">{receipt.amount} {t('closing.currency')}</p>
+                                      <p className="font-mono text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                        {new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('closing.receipts.paymentMethod')}:</p>
+                                    <div className="mt-0.5 text-xs">{getPaymentMethodLabel(receipt.paymentMethod)}</div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          {/* Desktop table (≥md) */}
+                          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
                             <table className="w-full text-sm">
-                              <thead className="bg-primary-100 dark:bg-primary-900/50">
+                              <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                                 <tr>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.time')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.receiptNumber')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.type')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.details')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.amount')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.paymentMethod')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.time')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.receiptNumber')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.type')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.details')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.amount')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.paymentMethod')}</th>
                                 </tr>
                               </thead>
-                              <tbody>
+                              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                                 {day.receipts.map((receipt: any) => {
                                   const details = JSON.parse(receipt.itemDetails)
                                   return (
-                                    <tr key={receipt.id} className="border-t dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-900/20">
-                                      <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
+                                    <tr key={receipt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors duration-200">
+                                      <td className="px-3 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
                                         {new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                       </td>
-                                      <td className="px-3 py-2 font-bold text-green-600 dark:text-green-400">
+                                      <td className="px-3 py-3 font-bold text-green-700 dark:text-green-400">
                                         #{receipt.receiptNumber}
                                       </td>
-                                      <td className="px-3 py-2">
-                                        <span className="px-2 py-1 bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300 rounded text-xs">
+                                      <td className="px-3 py-3">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
                                           {getTypeLabel(receipt.type)}
                                         </span>
                                       </td>
-                                      <td className="px-3 py-2 dark:text-gray-300">
+                                      <td className="px-3 py-3 text-gray-700 dark:text-gray-300">
                                         {details.memberName && (
                                           <div>
                                             {details.memberName}
                                             {details.memberNumber && (
-                                              <span className="text-xs text-gray-600 dark:text-gray-400"> (#{details.memberNumber})</span>
+                                              <span className="text-xs text-gray-500 dark:text-gray-400"> (#{details.memberNumber})</span>
                                             )}
                                           </div>
                                         )}
                                         {details.clientName && <div>{details.clientName}</div>}
                                         {details.name && <div>{details.name}</div>}
                                       </td>
-                                      <td className="px-3 py-2 font-bold text-green-600 dark:text-green-400">
+                                      <td className="px-3 py-3 font-bold text-green-700 dark:text-green-400">
                                         {receipt.amount} {t('closing.currency')}
                                       </td>
-                                      <td className="px-3 py-2">
-                                        <span className="text-xs">
-                                          {getPaymentMethodLabel(receipt.paymentMethod)}
-                                        </span>
+                                      <td className="px-3 py-3">
+                                        {getPaymentMethodLabel(receipt.paymentMethod)}
                                       </td>
                                     </tr>
                                   )
@@ -1569,62 +1728,112 @@ export default function ClosingPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-gray-50 dark:bg-gray-700 p-8 rounded-lg text-center border dark:border-gray-600">
-                          <p className="text-gray-500 dark:text-gray-400 text-lg">📭 {t('closing.receipts.noReceipts')}</p>
+                        <div className="flex flex-col items-center justify-center py-12 text-center bg-gray-50 dark:bg-gray-900/40 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700">
+                          {IconEmptyBox}
+                          <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('closing.receipts.noReceipts')}</h3>
                         </div>
                       )}
 
                       {/* المصروفات */}
                       {day.expensesList.length > 0 ? (
                         <div>
-                          <h4 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-white">
-                            <span>💸</span>
+                          <h4 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                            {IconExpense}
                             <span>{t('closing.expenses.count', { count: day.expensesList.length.toString() })}</span>
                           </h4>
-                          <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border-2 border-red-200 dark:border-red-700">
+
+                          {/* Mobile cards (<md) */}
+                          <div className="md:hidden space-y-2">
+                            {day.expensesList.map((expense: any) => (
+                              <div key={expense.id} className="bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg p-3">
+                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                        expense.type === 'gym_expense'
+                                          ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
+                                          : expense.type === 'staff_salary'
+                                          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
+                                          : 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300'
+                                      }`}>
+                                        {expense.type === 'gym_expense' ? t('closing.expenses.gymExpense') : expense.type === 'staff_salary' ? t('closing.expenses.staffSalary') : t('closing.expenses.staffLoan')}
+                                      </span>
+                                      {expense.type === 'staff_loan' && (
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                          expense.isPaid
+                                            ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                                            : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+                                        }`}>
+                                          {expense.isPaid ? IconCheck : IconX}
+                                          <span>{expense.isPaid ? t('closing.expenses.paid') : t('closing.expenses.unpaid')}</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-end shrink-0">
+                                    <p className="font-bold text-red-700 dark:text-red-400 text-sm whitespace-nowrap">{expense.amount} {t('closing.currency')}</p>
+                                    <p className="font-mono text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                      {new Date(expense.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">{expense.description}</p>
+                                {expense.staff && (
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                                    <span>{t('closing.expenses.staff')}:</span>
+                                    <span className="ms-1 text-gray-600 dark:text-gray-300 font-medium">{expense.staff.name}</span>
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Desktop table (≥md) */}
+                          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
                             <table className="w-full text-sm">
-                              <thead className="bg-red-100 dark:bg-red-900/50">
+                              <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                                 <tr>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.time')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.type')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.description')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.staff')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.amount')}</th>
-                                  <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.status')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.time')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.type')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.description')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.staff')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.amount')}</th>
+                                  <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.status')}</th>
                                 </tr>
                               </thead>
-                              <tbody>
+                              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                                 {day.expensesList.map((expense: any) => (
-                                  <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 dark:bg-red-900/20">
-                                    <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
+                                  <tr key={expense.id} className="hover:bg-red-50/40 dark:hover:bg-red-900/10 transition-colors duration-200">
+                                    <td className="px-3 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
                                       {new Date(expense.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                     </td>
-                                    <td className="px-3 py-2">
-                                      <span className={`px-2 py-1 rounded text-xs ${
+                                    <td className="px-3 py-3">
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                                         expense.type === 'gym_expense'
-                                          ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300'
+                                          ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
                                           : expense.type === 'staff_salary'
-                                          ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-300'
-                                          : 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300'
+                                          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
+                                          : 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300'
                                       }`}>
                                         {expense.type === 'gym_expense' ? t('closing.expenses.gymExpense') : expense.type === 'staff_salary' ? t('closing.expenses.staffSalary') : t('closing.expenses.staffLoan')}
                                       </span>
                                     </td>
-                                    <td className="px-3 py-2 dark:text-gray-300">{expense.description}</td>
-                                    <td className="px-3 py-2 dark:text-gray-300">
+                                    <td className="px-3 py-3 text-gray-700 dark:text-gray-300">{expense.description}</td>
+                                    <td className="px-3 py-3 text-gray-700 dark:text-gray-300">
                                       {expense.staff ? expense.staff.name : '-'}
                                     </td>
-                                    <td className="px-3 py-2 font-bold text-red-600 dark:text-red-400">
+                                    <td className="px-3 py-3 font-bold text-red-700 dark:text-red-400">
                                       {expense.amount} {t('closing.currency')}
                                     </td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-3 py-3">
                                       {expense.type === 'staff_loan' && (
-                                        <span className={`px-2 py-1 rounded text-xs ${
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                                           expense.isPaid
-                                            ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
-                                            : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
+                                            ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                                            : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                                         }`}>
-                                          {expense.isPaid ? `✅ ${t('closing.expenses.paid')}` : `❌ ${t('closing.expenses.unpaid')}`}
+                                          {expense.isPaid ? IconCheck : IconX}
+                                          <span>{expense.isPaid ? t('closing.expenses.paid') : t('closing.expenses.unpaid')}</span>
                                         </span>
                                       )}
                                     </td>
@@ -1635,169 +1844,175 @@ export default function ClosingPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-gray-50 dark:bg-gray-700 p-8 rounded-lg text-center border dark:border-gray-600">
-                          <p className="text-gray-500 dark:text-gray-400 text-lg">📭 {t('closing.expenses.noExpenses')}</p>
+                        <div className="flex flex-col items-center justify-center py-12 text-center bg-gray-50 dark:bg-gray-900/40 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700">
+                          {IconEmptyBox}
+                          <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('closing.expenses.noExpenses')}</h3>
                         </div>
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center">
-                  <p className="text-gray-500 dark:text-gray-400 text-lg">📭 {t('closing.noData')}</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+                  {IconEmptyBox}
+                  <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('closing.noData')}</h3>
                 </div>
               )
             ) : (
               /* الجدول العادي للعرض الشهري */
-            <table className="w-full border-collapse text-sm excel-table">
-              <thead className="bg-gray-200 dark:bg-gray-700">
-                <tr className="border-2 border-gray-400 dark:border-gray-600">
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700">{t('closing.table.date')}</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-primary-100 dark:bg-primary-900/50">{t('closing.table.floor')}</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-red-100 dark:bg-red-900/50">💰 {direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining'}</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-green-100 dark:bg-green-900/50">{t('closing.table.pt')}</th>
-                  {nutritionEnabled && <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-lime-100 dark:bg-lime-900/50">{direction === 'rtl' ? 'تغذية' : 'Nutrition'} 🥗</th>}
-                  {physiotherapyEnabled && <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-teal-100 dark:bg-teal-900/50">{direction === 'rtl' ? 'علاج طبيعي' : 'Physio'} 🏥</th>}
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-green-50 dark:bg-green-900/30">{t('closing.table.cash')} 💵</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-primary-50 dark:bg-primary-900/30">{t('closing.table.visa')} 💳</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-primary-50 dark:bg-primary-900/30">{t('closing.table.instapay')} 📱</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-orange-50 dark:bg-orange-900/30">{t('closing.table.wallet')} 💰</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-yellow-50 dark:bg-yellow-900/30">{t('closing.table.points')} 🏆</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-yellow-100 dark:bg-yellow-900/50">{t('closing.table.total')} 💰</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-orange-100 dark:bg-orange-900/50">{t('closing.table.expenses')}</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 min-w-[300px]">{t('closing.table.expenseDetails')}</th>
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-yellow-50 dark:bg-yellow-900/30">{t('closing.table.loans')}</th>
+            <table className="w-full text-sm excel-table">
+              <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
+                <tr>
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.date')}</th>
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.floor')}</th>
+                  <th className="px-3 py-3 text-center font-bold">{direction === 'rtl' ? 'الفلوس الباقية' : 'Remaining'}</th>
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.pt')}</th>
+                  {nutritionEnabled && <th className="px-3 py-3 text-center font-bold">{direction === 'rtl' ? 'تغذية' : 'Nutrition'}</th>}
+                  {physiotherapyEnabled && <th className="px-3 py-3 text-center font-bold">{direction === 'rtl' ? 'علاج طبيعي' : 'Physio'}</th>}
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.cash')}</th>
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.visa')}</th>
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.instapay')}</th>
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.wallet')}</th>
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.points')}</th>
+                  <th className="px-3 py-3 text-center font-bold bg-primary-50 dark:bg-primary-900/30">{t('closing.table.total')}</th>
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.expenses')}</th>
+                  <th className="px-3 py-3 text-center font-bold min-w-[300px]">{t('closing.table.expenseDetails')}</th>
+                  <th className="px-3 py-3 text-center font-bold">{t('closing.table.loans')}</th>
                   {(staffList || []).map(staff => (
-                    <th key={staff.id} className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-red-50 dark:bg-red-900/30 min-w-[80px]">
+                    <th key={staff.id} className="px-3 py-3 text-center font-bold min-w-[80px]">
                       {staff.name}
                     </th>
                   ))}
-                  <th className="border border-gray-400 dark:border-gray-600 px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 no-print">{t('closing.table.details')}</th>
+                  <th className="px-3 py-3 text-center font-bold no-print">{t('closing.table.details')}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                 {dailyData.map((day, index) => (
                   <React.Fragment key={day.date}>
                     <tr
-                      className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'} cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20`}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors duration-200 cursor-pointer"
                       onClick={() => toggleDayDetails(day.date)}
                     >
-                      <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center font-mono dark:text-gray-200">
+                      <td className="px-3 py-3 text-center font-mono text-gray-700 dark:text-gray-300">
                         {new Date(day.date).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-600 dark:text-primary-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-primary-700 dark:text-primary-400">
                         {day.floor > 0 ? day.floor.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600 dark:text-red-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-red-700 dark:text-red-400">
                         {day.remainingAmount > 0 ? day.remainingAmount.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-600 dark:text-green-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-green-700 dark:text-green-400">
                         {day.pt > 0 ? day.pt.toFixed(0) : '-'}
                       </td>
-                      {nutritionEnabled && <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-lime-600 dark:text-lime-400`}>
+                      {nutritionEnabled && <td className="px-3 py-3 text-start font-bold text-lime-700 dark:text-lime-400">
                         {day.nutrition > 0 ? day.nutrition.toFixed(0) : '-'}
                       </td>}
-                      {physiotherapyEnabled && <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-teal-600 dark:text-teal-400`}>
+                      {physiotherapyEnabled && <td className="px-3 py-3 text-start font-bold text-teal-700 dark:text-teal-400">
                         {day.physiotherapy > 0 ? day.physiotherapy.toFixed(0) : '-'}
                       </td>}
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-green-700 dark:text-green-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-green-700 dark:text-green-400">
                         {day.cash > 0 ? day.cash.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-700 dark:text-primary-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-primary-700 dark:text-primary-400">
                         {day.visa > 0 ? day.visa.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-primary-700 dark:text-primary-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-primary-700 dark:text-primary-400">
                         {day.instapay > 0 ? day.instapay.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-orange-700 dark:text-orange-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-orange-700 dark:text-orange-400">
                         {day.wallet > 0 ? day.wallet.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-600 dark:text-yellow-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-amber-600 dark:text-amber-400">
                         {day.points > 0 ? day.points.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30`}>
+                      <td className="px-3 py-3 text-start font-bold text-primary-700 dark:text-primary-400 bg-primary-50/60 dark:bg-primary-900/20">
                         {(day.cash + day.visa + day.instapay + day.wallet + day.points).toFixed(0)}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-red-600 dark:text-red-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-red-700 dark:text-red-400">
                         {day.expenses > 0 ? day.expenses.toFixed(0) : '-'}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} text-xs dark:text-gray-300`}>
+                      <td className="px-3 py-3 text-start text-xs text-gray-600 dark:text-gray-400">
                         {day.expenseDetails || '-'}
                       </td>
-                      <td className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} font-bold text-orange-600 dark:text-orange-400`}>
+                      <td className="px-3 py-3 text-start font-bold text-orange-700 dark:text-orange-400">
                         {Object.values(day.staffLoans).reduce((a, b) => a + b, 0).toFixed(0) || '-'}
                       </td>
                       {(staffList || []).map(staff => (
-                        <td key={staff.id} className={`border border-gray-300 dark:border-gray-600 px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} text-red-600 dark:text-red-400`}>
+                        <td key={staff.id} className="px-3 py-3 text-start text-red-700 dark:text-red-400">
                           {day.staffLoans[staff.name] ? day.staffLoans[staff.name].toFixed(0) : '-'}
                         </td>
                       ))}
-                      <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center no-print">
-                        <button className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-bold">
-                          {expandedDay === day.date ? `▼ ${t('closing.buttons.hide')}` : `▶ ${t('closing.buttons.show')}`}
+                      <td className="px-3 py-3 text-center no-print">
+                        <button
+                          type="button"
+                          aria-label={expandedDay === day.date ? t('closing.buttons.hide') : t('closing.buttons.show')}
+                          aria-expanded={expandedDay === day.date}
+                          className="inline-flex items-center gap-1 text-primary-700 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-bold transition-colors duration-200"
+                        >
+                          {expandedDay === day.date ? IconChevronDown : IconChevronRight}
+                          <span>{expandedDay === day.date ? t('closing.buttons.hide') : t('closing.buttons.show')}</span>
                         </button>
                       </td>
                     </tr>
 
                     {/* تفاصيل اليوم */}
                     {expandedDay === day.date && (
-                      <tr className="bg-primary-50 dark:bg-primary-900/30 no-print">
-                        <td colSpan={(staffList?.length || 0) + 17} className="border border-gray-400 dark:border-gray-600 p-4">
+                      <tr className="bg-primary-50/40 dark:bg-primary-900/20 no-print">
+                        <td colSpan={(staffList?.length || 0) + 17} className="p-4">
                           <div className="space-y-4">
                             {/* الإيصالات */}
                             {day.receipts.length > 0 && (
                               <div>
-                                <h4 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-white">
-                                  <span>🧾</span>
+                                <h4 className="font-bold text-lg mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                                  {IconReceipt}
                                   <span>{t('closing.receipts.count', { count: day.receipts.length.toString() })}</span>
                                 </h4>
-                                <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border-2 border-primary-200 dark:border-primary-700">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
                                   <table className="w-full text-sm">
-                                    <thead className="bg-primary-100 dark:bg-primary-900/50">
+                                    <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                                       <tr>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.time')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.receiptNumber')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.type')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.details')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.amount')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.receipts.paymentMethod')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.time')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.receiptNumber')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.type')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.details')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.amount')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.receipts.paymentMethod')}</th>
                                       </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                                       {day.receipts.map((receipt: any) => {
                                         const details = JSON.parse(receipt.itemDetails)
                                         return (
-                                          <tr key={receipt.id} className="border-t dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-900/20">
-                                            <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
+                                          <tr key={receipt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors duration-200">
+                                            <td className="px-3 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
                                               {new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                             </td>
-                                            <td className="px-3 py-2 font-bold text-green-600 dark:text-green-400">
+                                            <td className="px-3 py-3 font-bold text-green-700 dark:text-green-400">
                                               #{receipt.receiptNumber}
                                             </td>
-                                            <td className="px-3 py-2">
-                                              <span className="px-2 py-1 bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300 rounded text-xs">
+                                            <td className="px-3 py-3">
+                                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
                                                 {getTypeLabel(receipt.type)}
                                               </span>
                                             </td>
-                                            <td className="px-3 py-2 dark:text-gray-300">
+                                            <td className="px-3 py-3 text-gray-700 dark:text-gray-300">
                                               {details.memberName && (
                                                 <div>
                                                   {details.memberName}
                                                   {details.memberNumber && (
-                                                    <span className="text-xs text-gray-600 dark:text-gray-400"> (#{details.memberNumber})</span>
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400"> (#{details.memberNumber})</span>
                                                   )}
                                                 </div>
                                               )}
                                               {details.clientName && <div>{details.clientName}</div>}
                                               {details.name && <div>{details.name}</div>}
                                             </td>
-                                            <td className="px-3 py-2 font-bold text-green-600 dark:text-green-400">
+                                            <td className="px-3 py-3 font-bold text-green-700 dark:text-green-400">
                                               {receipt.amount} {t('closing.currency')}
                                             </td>
-                                            <td className="px-3 py-2">
-                                              <span className="text-xs">
-                                                {getPaymentMethodLabel(receipt.paymentMethod)}
-                                              </span>
+                                            <td className="px-3 py-3">
+                                              {getPaymentMethodLabel(receipt.paymentMethod)}
                                             </td>
                                           </tr>
                                         )
@@ -1811,52 +2026,53 @@ export default function ClosingPage() {
                             {/* المصروفات */}
                             {day.expensesList.length > 0 && (
                               <div>
-                                <h4 className="font-bold text-lg mb-3 flex items-center gap-2 dark:text-white">
-                                  <span>💸</span>
+                                <h4 className="font-bold text-lg mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                                  {IconExpense}
                                   <span>{t('closing.expenses.count', { count: day.expensesList.length.toString() })}</span>
                                 </h4>
-                                <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border-2 border-red-200 dark:border-red-700">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
                                   <table className="w-full text-sm">
-                                    <thead className="bg-red-100 dark:bg-red-900/50">
+                                    <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                                       <tr>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.time')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.type')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.description')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.staff')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.amount')}</th>
-                                        <th className={`px-3 py-2 text-${direction === 'rtl' ? 'right' : 'left'} dark:text-gray-200`}>{t('closing.expenses.status')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.time')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.type')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.description')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.staff')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.amount')}</th>
+                                        <th className="px-3 py-3 text-start font-bold">{t('closing.expenses.status')}</th>
                                       </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                                       {day.expensesList.map((expense: any) => (
-                                        <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 dark:bg-red-900/20">
-                                          <td className="px-3 py-2 font-mono text-xs dark:text-gray-300">
+                                        <tr key={expense.id} className="hover:bg-red-50/40 dark:hover:bg-red-900/10 transition-colors duration-200">
+                                          <td className="px-3 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
                                             {new Date(expense.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                           </td>
-                                          <td className="px-3 py-2">
-                                            <span className={`px-2 py-1 rounded text-xs ${
+                                          <td className="px-3 py-3">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                                               expense.type === 'gym_expense'
-                                                ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300'
-                                                : 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-300'
+                                                ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
+                                                : 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300'
                                             }`}>
                                               {expense.type === 'gym_expense' ? t('closing.expenses.gymExpense') : t('closing.expenses.staffLoan')}
                                             </span>
                                           </td>
-                                          <td className="px-3 py-2 dark:text-gray-300">{expense.description}</td>
-                                          <td className="px-3 py-2 dark:text-gray-300">
+                                          <td className="px-3 py-3 text-gray-700 dark:text-gray-300">{expense.description}</td>
+                                          <td className="px-3 py-3 text-gray-700 dark:text-gray-300">
                                             {expense.staff ? expense.staff.name : '-'}
                                           </td>
-                                          <td className="px-3 py-2 font-bold text-red-600 dark:text-red-400">
+                                          <td className="px-3 py-3 font-bold text-red-700 dark:text-red-400">
                                             {expense.amount} {t('closing.currency')}
                                           </td>
-                                          <td className="px-3 py-2">
+                                          <td className="px-3 py-3">
                                             {expense.type === 'staff_loan' && (
-                                              <span className={`px-2 py-1 rounded text-xs ${
+                                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                                                 expense.isPaid
-                                                  ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
-                                                  : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
+                                                  ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                                                  : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                                               }`}>
-                                                {expense.isPaid ? `✅ ${t('closing.expenses.paid')}` : `❌ ${t('closing.expenses.unpaid')}`}
+                                                {expense.isPaid ? IconCheck : IconX}
+                                                <span>{expense.isPaid ? t('closing.expenses.paid') : t('closing.expenses.unpaid')}</span>
                                               </span>
                                             )}
                                           </td>
@@ -1875,46 +2091,46 @@ export default function ClosingPage() {
                 ))}
 
                 {/* Totals Row */}
-                <tr className="bg-yellow-100 dark:bg-yellow-900/50 border-t-4 border-yellow-600 dark:border-yellow-700 font-bold">
-                  <td className="border border-gray-400 dark:border-gray-600 px-3 py-3 text-center dark:text-gray-200">{t('closing.table.totalLabel')}</td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-700 dark:text-primary-400 text-lg`}>
+                <tr className="bg-primary-100 dark:bg-primary-900/40 font-bold border-t border-gray-200 dark:border-gray-700">
+                  <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100">{t('closing.table.totalLabel')}</td>
+                  <td className="px-3 py-3 text-start text-primary-700 dark:text-primary-400 text-lg">
                     {totals.floor.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400 text-lg`}>
+                  <td className="px-3 py-3 text-start text-red-700 dark:text-red-400 text-lg">
                     {totals.remainingAmount.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-700 dark:text-green-400 text-lg`}>
+                  <td className="px-3 py-3 text-start text-green-700 dark:text-green-400 text-lg">
                     {totals.pt.toFixed(0)}
                   </td>
-                  {nutritionEnabled && <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-lime-700 dark:text-lime-400 text-lg`}>
+                  {nutritionEnabled && <td className="px-3 py-3 text-start text-lime-700 dark:text-lime-400 text-lg">
                     {totals.nutrition.toFixed(0)}
                   </td>}
-                  {physiotherapyEnabled && <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-teal-700 dark:text-teal-400 text-lg`}>
+                  {physiotherapyEnabled && <td className="px-3 py-3 text-start text-teal-700 dark:text-teal-400 text-lg">
                     {totals.physiotherapy.toFixed(0)}
                   </td>}
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-green-800 dark:text-green-400 text-lg`}>
+                  <td className="px-3 py-3 text-start text-green-700 dark:text-green-400 text-lg">
                     {totals.cash.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-800 dark:text-primary-400 text-lg`}>
+                  <td className="px-3 py-3 text-start text-primary-700 dark:text-primary-400 text-lg">
                     {totals.visa.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-primary-800 dark:text-primary-400 text-lg`}>
+                  <td className="px-3 py-3 text-start text-primary-700 dark:text-primary-400 text-lg">
                     {totals.instapay.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-orange-800 dark:text-orange-400 text-lg`}>
+                  <td className="px-3 py-3 text-start text-orange-700 dark:text-orange-400 text-lg">
                     {totals.wallet.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-700 dark:text-yellow-400 text-lg`}>
+                  <td className="px-3 py-3 text-start text-amber-600 dark:text-amber-400 text-lg">
                     {totals.points.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-yellow-800 dark:text-yellow-400 text-lg bg-yellow-200 dark:bg-yellow-900/50`}>
+                  <td className="px-3 py-3 text-start text-primary-800 dark:text-primary-300 text-lg bg-primary-200/60 dark:bg-primary-900/60">
                     {totals.totalPayments.toFixed(0)}
                   </td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400 text-lg`}>
+                  <td className="px-3 py-3 text-start text-red-700 dark:text-red-400 text-lg">
                     {totals.expenses.toFixed(0)}
                   </td>
-                  <td className="border border-gray-400 dark:border-gray-600 px-3 py-3"></td>
-                  <td className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-orange-700 dark:text-orange-400 text-lg`}>
+                  <td className="px-3 py-3"></td>
+                  <td className="px-3 py-3 text-start text-orange-700 dark:text-orange-400 text-lg">
                     {dailyData.reduce((sum, day) =>
                       sum + Object.values(day.staffLoans).reduce((a, b) => a + b, 0), 0
                     ).toFixed(0)}
@@ -1924,20 +2140,20 @@ export default function ClosingPage() {
                       sum + (day.staffLoans[staff.name] || 0), 0
                     )
                     return (
-                      <td key={staff.id} className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-red-700 dark:text-red-400`}>
+                      <td key={staff.id} className="px-3 py-3 text-start text-red-700 dark:text-red-400">
                         {total > 0 ? total.toFixed(0) : '-'}
                       </td>
                     )
                   })}
-                  <td className="border border-gray-400 dark:border-gray-600 px-3 py-3 no-print"></td>
+                  <td className="px-3 py-3 no-print"></td>
                 </tr>
 
                 {/* Net Profit Row */}
-                <tr className="bg-green-100 dark:bg-green-900/50 border-t-2 border-green-600 dark:border-green-700 font-bold">
-                  <td colSpan={8} className="border border-gray-400 dark:border-gray-600 px-3 py-3 text-center text-lg dark:text-gray-200">
+                <tr className="bg-green-100 dark:bg-green-900/40 font-bold border-t border-green-200 dark:border-green-900/50">
+                  <td colSpan={8} className="px-3 py-3 text-center text-lg text-gray-900 dark:text-gray-100">
                     {t('closing.stats.netProfit')}
                   </td>
-                  <td colSpan={(staffList?.length || 0) + 9} className={`border border-gray-400 dark:border-gray-600 px-3 py-3 text-${direction === 'rtl' ? 'right' : 'left'} text-2xl text-green-700 dark:text-green-400`}>
+                  <td colSpan={(staffList?.length || 0) + 9} className="px-3 py-3 text-start text-2xl text-green-700 dark:text-green-400">
                     {totals.netProfit.toFixed(0)} {t('closing.currency')}
                   </td>
                 </tr>
