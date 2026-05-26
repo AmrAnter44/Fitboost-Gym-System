@@ -3,6 +3,9 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import PhysiotherapyRenewalForm from '../../../components/PhysiotherapyRenewalForm'
+import { LoadingScreen } from '../../../components/Spinner'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface PhysiotherapySession {
   physioNumber: number
@@ -61,14 +64,14 @@ function PhysiotherapyRenewContent() {
 
   if (!physioNumber) {
     return (
-      <div className="container mx-auto p-6 text-center" dir="rtl">
-        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-8 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-2xl font-bold mb-2">رقم Physiotherapy غير محدد</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">يرجى تحديد رقم Physiotherapy للتجديد</p>
+      <div className="container mx-auto p-6" dir="rtl">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-red-200 dark:ring-red-900/50 p-8 flex flex-col items-center justify-center text-center">
+          <svg {...stroke} className="w-12 h-12 text-red-500" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+          <h2 className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-100">رقم Physiotherapy غير محدد</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-4">يرجى تحديد رقم Physiotherapy للتجديد</p>
           <button
             onClick={() => router.push('/physiotherapy')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
             العودة لصفحة العلاج الطبيعي
           </button>
@@ -78,23 +81,18 @@ function PhysiotherapyRenewContent() {
   }
 
   if (loading) {
-    return (
-      <div className="container mx-auto p-6 text-center" dir="rtl">
-        <div className="text-6xl mb-4">⏳</div>
-        <p className="text-xl text-gray-600 dark:text-gray-300">جاري التحميل...</p>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   if (error || !session) {
     return (
-      <div className="container mx-auto p-6 text-center" dir="rtl">
-        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-8 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-2xl font-bold mb-2">{error || 'جلسة العلاج الطبيعي غير موجودة'}</h2>
+      <div className="container mx-auto p-6" dir="rtl">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-red-200 dark:ring-red-900/50 p-8 flex flex-col items-center justify-center text-center">
+          <svg {...stroke} className="w-12 h-12 text-red-500" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+          <h2 className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-100">{error || 'جلسة العلاج الطبيعي غير موجودة'}</h2>
           <button
             onClick={() => router.push('/physiotherapy')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
             العودة لصفحة العلاج الطبيعي
           </button>
@@ -114,7 +112,7 @@ function PhysiotherapyRenewContent() {
 
 export default function PhysiotherapyRenewPage() {
   return (
-    <Suspense fallback={<div className="container mx-auto p-6 text-center">جاري التحميل...</div>}>
+    <Suspense fallback={<div className="container mx-auto p-6 text-center text-sm text-gray-600 dark:text-gray-400">جاري التحميل...</div>}>
       <PhysiotherapyRenewContent />
     </Suspense>
   )

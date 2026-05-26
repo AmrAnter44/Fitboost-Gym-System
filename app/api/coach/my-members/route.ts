@@ -24,9 +24,21 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'لا يوجد staffId للمدرب' }, { status: 400 })
     }
 
+    // "Potential" = a member assigned to this coach who is NOT currently
+    // an active subscriber. The moment a member becomes active+unexpired,
+    // they drop off this list.
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
     const members = await prisma.member.findMany({
       where: {
         coachId: user.staffId,
+        OR: [
+          { isActive: false },                  // غير نشط
+          { expiryDate: null },                 // مفيش تاريخ انتهاء (مش مشترك)
+          { expiryDate: { lt: today } },        // انتهى اشتراكه
+          { memberNumber: null },               // مفيش رقم عضوية (محتمل خالص)
+        ],
       },
       select: {
         id: true,
@@ -39,6 +51,7 @@ export async function GET(request: Request) {
         expiryDate: true,
         freePTSessions: true,
         subscriptionPrice: true,
+        remainingAmount: true,
       },
       orderBy: { createdAt: 'desc' },
     })

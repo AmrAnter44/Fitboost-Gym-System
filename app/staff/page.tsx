@@ -6,12 +6,15 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
+import { LoadingScreen } from '../../components/Spinner'
 import StaffBarcodeWhatsApp from '../../components/StaffBarcodeWhatsApp'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { fetchStaff } from '../../lib/api/staff'
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface StaffDeduction {
   id: string
@@ -55,7 +58,7 @@ interface Attendance {
 
 interface Staff {
   id: string
-  staffCode: string  // ✅ الرقم مع s في البداية (مثل s001, s022)
+  staffCode: string // الرقم مع s في البداية (مثل s001, s022)
   name: string
   phone?: string
   position?: string
@@ -97,21 +100,21 @@ export default function StaffPage() {
 
   // Dynamic positions based on service settings
   const POSITIONS = [
-    { value: 'مدرب', label: `💪 ${t('positions.trainer')}`, icon: '💪' },
-    { value: 'ريسبشن', label: `👔 ${t('positions.receptionist')}`, icon: '👔' },
-    { value: 'بار', label: `☕ ${t('positions.barista')}`, icon: '☕' },
-    { value: 'HK', label: `🧹 ${t('positions.housekeeping')}`, icon: '🧹' },
-    { value: 'مدير', label: `👨‍💼 ${t('positions.manager')}`, icon: '👨‍💼' },
-    { value: 'محاسب', label: `💼 ${t('positions.accountant')}`, icon: '💼' },
-    { value: 'صيانة', label: `🔧 ${t('positions.maintenance')}`, icon: '🔧' },
-    { value: 'أمن', label: `🛡️ ${t('positions.security')}`, icon: '🛡️' },
-    { value: 'sales', label: `💰 ${t('positions.sales')}`, icon: '💰' },
-    ...(settings.nutritionEnabled ? [{ value: 'أخصائي تغذية', label: `🥗 ${t('positions.nutritionist')}`, icon: '🥗' }] : []),
-    ...(settings.physiotherapyEnabled ? [{ value: 'أخصائي علاج طبيعي', label: `🏥 ${t('positions.physiotherapist')}`, icon: '🏥' }] : []),
-    { value: 'other', label: `📝 ${t('positions.other')}`, icon: '📝' },
+    { value: 'مدرب', label: t('positions.trainer') },
+    { value: 'ريسبشن', label: t('positions.receptionist') },
+    { value: 'بار', label: t('positions.barista') },
+    { value: 'HK', label: t('positions.housekeeping') },
+    { value: 'مدير', label: t('positions.manager') },
+    { value: 'محاسب', label: t('positions.accountant') },
+    { value: 'صيانة', label: t('positions.maintenance') },
+    { value: 'أمن', label: t('positions.security') },
+    { value: 'sales', label: t('positions.sales') },
+    ...(settings.nutritionEnabled ? [{ value: 'أخصائي تغذية', label: t('positions.nutritionist') }] : []),
+    ...(settings.physiotherapyEnabled ? [{ value: 'أخصائي علاج طبيعي', label: t('positions.physiotherapist') }] : []),
+    { value: 'other', label: t('positions.other') },
   ]
 
-  // ✅ تحويل staffCode من s022 إلى 100000022 (9 أرقام)
+  // تحويل staffCode من s022 إلى 100000022 (9 أرقام)
   const toNineDigitCode = (code: string): string => {
     if (!code) return '000000000'
     if (code.startsWith('s') || code.startsWith('S')) {
@@ -156,7 +159,7 @@ export default function StaffPage() {
   const [staffToDelete, setStaffToDelete] = useState<Staff | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   
-  // ✅ حالة Scanner
+  // حالة Scanner
   const [scannerInput, setScannerInput] = useState('')
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null)
   const [scanMessage, setScanMessage] = useState('')
@@ -164,7 +167,7 @@ export default function StaffPage() {
   const audioContextRef = useRef<AudioContext | null>(null)
 
   const [formData, setFormData] = useState({
-    staffCode: '',  // ✅ الرقم البسيط
+    staffCode: '', // الرقم البسيط
     name: '',
     phone: '',
     position: '',
@@ -177,11 +180,11 @@ export default function StaffPage() {
     shiftEndTime: '',
   })
 
-  // ✅ توليد رقم عشوائي من 9 أرقام للموظف
+  // توليد رقم عشوائي من 9 أرقام للموظف
   const [randomStaffCode, setRandomStaffCode] = useState('')
 
   useEffect(() => {
-    // ✅ توليد رقم عشوائي فقط عند فتح النموذج لإضافة موظف جديد
+    // توليد رقم عشوائي فقط عند فتح النموذج لإضافة موظف جديد
     if (showForm && !editingStaff) {
       const randomNum = Math.floor(Math.random() * 999) + 1
       const nineDigitCode = (100000000 + randomNum).toString()
@@ -207,7 +210,7 @@ export default function StaffPage() {
 
   const fetchTodayAttendance = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0]  // YYYY-MM-DD
+      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
       const response = await fetch(`/api/attendance?dateFrom=${today}&dateTo=${today}`)
       const data = await response.json()
       setTodayAttendance(data)
@@ -223,7 +226,7 @@ export default function StaffPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // ✅ دوال الصوت
+  // دوال الصوت
   const playSuccessSound = () => {
     try {
       if (!audioContextRef.current) {
@@ -271,13 +274,13 @@ export default function StaffPage() {
     }
   }
 
-  // ✅ معالجة السكان بالرقم
+  // معالجة السكان بالرقم
 const handleScan = async (staffCode: string) => {
   try {
-    // 🟢 تنظيف الكود فقط (إزالة المسافات)
+    // تنظيف الكود فقط (إزالة المسافات)
     let cleanCode = staffCode.trim();
 
-    // ✅ لو الكود رقم من 9 خانات (100000000+)، فهو موظف
+    // لو الكود رقم من 9 خانات (100000000+)، فهو موظف
     if (/^\d+$/.test(cleanCode)) {
       const numericCode = parseInt(cleanCode, 10);
       if (numericCode >= 100000000) {
@@ -310,7 +313,7 @@ const handleScan = async (staffCode: string) => {
       setTimeout(() => setScanMessage(''), 5000);
     } else {
       playErrorSound();
-      setScanMessage(`❌ ${data.error || t('staff.scanner.errorRegister')}`);
+      setScanMessage(` ${data.error || t('staff.scanner.errorRegister')}`);
       setTimeout(() => setScanMessage(''), 5000);
     }
   } catch (error) {
@@ -322,7 +325,7 @@ const handleScan = async (staffCode: string) => {
 };
 
 
-  // ✅ معالجة إدخال Scanner
+  // معالجة إدخال Scanner
   const handleScannerInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && scannerInput.trim()) {
       handleScan(scannerInput.trim())
@@ -330,22 +333,22 @@ const handleScan = async (staffCode: string) => {
     }
   }
 
-  // ✅ التحقق من حضور الموظف اليوم
+  // التحقق من حضور الموظف اليوم
   const isStaffPresent = (staffId: string) => {
     return todayAttendance.some((att) => att.staffId === staffId)
   }
 
-  // ✅ التحقق إذا كان الموظف داخل حالياً (لم يسجل انصراف)
+  // التحقق إذا كان الموظف داخل حالياً (لم يسجل انصراف)
   const isStaffCurrentlyInside = (staffId: string) => {
     return todayAttendance.some((att) => att.staffId === staffId && att.checkOut === null)
   }
 
-  // ✅ الحصول على معلومات حضور الموظف
+  // الحصول على معلومات حضور الموظف
   const getStaffAttendanceInfo = (staffId: string) => {
     return todayAttendance.find((att) => att.staffId === staffId)
   }
 
-  // ✅ تنسيق مدة العمل
+  // تنسيق مدة العمل
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return '-'
     const hours = Math.floor(minutes / 60)
@@ -417,7 +420,7 @@ const handleScan = async (staffCode: string) => {
       return
     }
 
-    // ✅ التحقق من أن الرقم 9 أرقام
+    // التحقق من أن الرقم 9 أرقام
     const numericCode = formData.staffCode.replace(/[sS]/g, '')
     if (!/^\d{9}$/.test(numericCode)) {
       toast.warning(t('staff.messages.invalidNumber'))
@@ -429,7 +432,7 @@ const handleScan = async (staffCode: string) => {
       const url = '/api/staff'
       const method = editingStaff ? 'PUT' : 'POST'
 
-      // ✅ نحول الرقم من 9 خانات إلى s + رقم بسيط
+      // نحول الرقم من 9 خانات إلى s + رقم بسيط
       // مثال: 100000022 -> s022
       const staffNumber = parseInt(numericCode, 10) - 100000000
       const staffCodeWithS = `s${staffNumber.toString().padStart(3, '0')}`
@@ -513,26 +516,21 @@ const handleScan = async (staffCode: string) => {
     }
   }
 
-  const getPositionIcon = (position: string): string => {
-    const pos = POSITIONS.find((p) => p.value === position)
-    return pos ? pos.icon : '👤'
-  }
-
   const getPositionColor = (position: string): string => {
     const colors: { [key: string]: string } = {
-      مدرب: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700',
-      ريسبشن: 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-700',
-      بار: 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700',
-      HK: 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-700',
-      مدير: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700',
-      محاسب: 'bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-700',
-      صيانة: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700',
-      أمن: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600',
-      sales: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700',
-      'أخصائي تغذية': 'bg-lime-100 dark:bg-lime-900/50 text-lime-800 dark:text-lime-200 border border-lime-200 dark:border-lime-700',
-      'أخصائي علاج طبيعي': 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700',
+      مدرب: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
+      ريسبشن: 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300',
+      بار: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
+      HK: 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300',
+      مدير: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',
+      محاسب: 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300',
+      صيانة: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
+      أمن: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+      sales: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300',
+      'أخصائي تغذية': 'bg-lime-100 dark:bg-lime-900/40 text-lime-700 dark:text-lime-300',
+      'أخصائي علاج طبيعي': 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
     }
-    return colors[position] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600'
+    return colors[position] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
   }
 
   const getStaffByPosition = () => {
@@ -546,15 +544,13 @@ const handleScan = async (staffCode: string) => {
   }
 
   const staffByPosition = getStaffByPosition()
-  const presentStaff = todayAttendance.filter((att) => att.checkOut === null).length  // الموجودين الآن (لم ينصرفوا)
-  const totalCheckedIn = todayAttendance.length  // إجمالي من سجلوا حضور اليوم
+  const presentStaff = todayAttendance.filter((att) => att.checkOut === null).length // الموجودين الآن (لم ينصرفوا)
+  const totalCheckedIn = todayAttendance.length // إجمالي من سجلوا حضور اليوم
 
-  // ✅ التحقق من الصلاحيات
+  // التحقق من الصلاحيات
   if (permissionsLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl">{t('staff.loading')}</div>
-      </div>
+      <LoadingScreen fullScreen message={t('staff.loading')} />
     )
   }
 
@@ -564,120 +560,121 @@ const handleScan = async (staffCode: string) => {
 
   return (
     <div className="container mx-auto px-4 py-6 md:px-6" dir={direction}>
-      {/* ✅ قسم Scanner للحضور والانصراف */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-600 dark:from-primary-700 dark:to-primary-700 rounded-2xl shadow-2xl p-4 sm:p-8 mb-8 text-white">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-3">
-              <span className="text-4xl sm:text-5xl">🔢</span>
-              <span>{t('staff.scanner.title')}</span>
-            </h2>
-            <p className="text-primary-100 dark:text-primary-200 text-sm sm:text-base">{t('staff.scanner.subtitle')}</p>
+      {/* Scanner Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+              <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5ZM13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5Z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('staff.scanner.title')}</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('staff.scanner.subtitle')}</p>
+            </div>
           </div>
           {lastScanTime && (
-            <div className="bg-white/90 dark:bg-gray-800/30 backdrop-blur px-4 sm:px-6 py-2 sm:py-3 rounded-xl w-full sm:w-auto border border-white/20 dark:border-gray-700/50">
-              <p className="text-xs sm:text-sm text-gray-100 dark:text-gray-200">{t('staff.scanner.lastScan')}</p>
-              <p className="text-lg sm:text-xl font-bold text-white dark:text-gray-100">{lastScanTime.toLocaleTimeString('ar-EG')}</p>
+            <div className="bg-gray-50 dark:bg-gray-900/40 ring-1 ring-gray-200 dark:ring-gray-700 px-4 py-2 rounded-lg">
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t('staff.scanner.lastScan')}</p>
+              <p className="text-base font-bold text-gray-900 dark:text-gray-100">{lastScanTime.toLocaleTimeString('ar-EG')}</p>
             </div>
           )}
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+        <div>
           <input
             ref={scannerRef}
             type="text"
             value={scannerInput}
             onChange={(e) => setScannerInput(e.target.value)}
             onKeyPress={handleScannerInput}
-            className="w-full px-4 sm:px-6 py-4 sm:py-6 border-4 border-primary-400 dark:border-primary-500 rounded-xl text-2xl sm:text-4xl font-bold text-center focus:border-primary-600 dark:focus:border-primary-400 focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700"
+            className="w-full px-4 py-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-2xl sm:text-3xl font-bold text-center"
             placeholder={t('staff.scanner.placeholder')}
             autoFocus
+            aria-label={t('staff.scanner.placeholder')}
           />
-          <p className="text-center text-gray-600 dark:text-gray-300 mt-3 text-xs sm:text-sm">
+          <p className="text-center text-gray-600 dark:text-gray-400 mt-2 text-xs">
             {t('staff.scanner.hint')}
           </p>
         </div>
 
         {scanMessage && (
           <div
-            className={`mt-4 p-4 sm:p-6 rounded-xl text-center font-bold text-lg sm:text-2xl animate-pulse border-2 ${
-              scanMessage.includes('✅')
-                ? 'bg-green-500 dark:bg-green-600 border-green-400 dark:border-green-500 text-white'
-                : 'bg-red-500 dark:bg-red-600 border-red-400 dark:border-red-500 text-white'
+            className={`mt-4 p-4 rounded-lg text-center font-bold text-base flex items-center justify-center gap-2 ring-1 ${
+              scanMessage.includes('')
+                ? 'bg-red-50 dark:bg-red-900/20 ring-red-200 dark:ring-red-900/50 text-red-700 dark:text-red-300'
+                : 'bg-green-50 dark:bg-green-900/20 ring-green-200 dark:ring-green-900/50 text-green-700 dark:text-green-300'
             }`}
+            role="status"
+            aria-live="polite"
           >
-            {scanMessage}
+            <svg {...stroke} className="w-5 h-5 flex-shrink-0" aria-hidden="true">
+              {scanMessage.includes('') ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              )}
+            </svg>
+            <span>{scanMessage.replace(/[]/g, '').trim()}</span>
           </div>
         )}
       </div>
 
-      {/* ✅ قسم حضور اليوم */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border-4 border-green-200 dark:border-green-700">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
-            <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
-              <span>📊</span>
+      {/* Today's attendance */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 mb-6">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto">
+            <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+              <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+              </svg>
               <span>{t('staff.attendance.title')}</span>
             </h3>
             <Link
               href="/attendance-report"
-              className="w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-600 dark:from-primary-700 dark:to-primary-700 text-white px-4 sm:px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-700 dark:hover:from-primary-600 dark:hover:to-primary-600 transition transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm font-bold"
+              className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-bold transition-colors duration-200 text-sm"
             >
-              <span>📋</span>
+              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
+              </svg>
               <span>{t('nav.staffAttendance')}</span>
             </Link>
           </div>
-          <div className="flex gap-2 sm:gap-4 w-full lg:w-auto">
-            <div className="flex-1 lg:flex-none bg-green-100 dark:bg-green-900/50 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center border border-green-200 dark:border-green-700">
-              <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">{t('staff.attendance.presentNow')}</p>
-              <p className="text-2xl sm:text-3xl font-bold text-green-800 dark:text-green-200">{presentStaff}</p>
+          <div className="flex gap-3 w-full lg:w-auto">
+            <div className="flex-1 lg:flex-none bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 px-4 py-2 rounded-lg text-center">
+              <p className="text-xs font-bold uppercase tracking-wider text-green-700 dark:text-green-400">{t('staff.attendance.presentNow')}</p>
+              <p className="text-2xl font-bold text-green-700 dark:text-green-300">{presentStaff}</p>
             </div>
-            <div className="flex-1 lg:flex-none bg-primary-100 dark:bg-primary-900/50 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center border border-primary-200 dark:border-primary-700">
-              <p className="text-xs sm:text-sm text-primary-700 dark:text-primary-300">{t('staff.attendance.totalPresent')}</p>
-              <p className="text-2xl sm:text-3xl font-bold text-primary-800 dark:text-primary-200">{totalCheckedIn}</p>
+            <div className="flex-1 lg:flex-none bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-900/50 px-4 py-2 rounded-lg text-center">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary-700 dark:text-primary-400">{t('staff.attendance.totalPresent')}</p>
+              <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{totalCheckedIn}</p>
             </div>
           </div>
         </div>
 
         {todayAttendance.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-primary-100 to-primary-100 dark:from-primary-900/50 dark:to-primary-900/50 border-b-2 border-primary-200 dark:border-primary-700">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 uppercase text-xs">
                 <tr>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm">{t('staff.attendance.number')}</th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm">{t('staff.attendance.name')}</th>
-                  <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-right font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm">{t('staff.attendance.position')}</th>
-                  <th className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-200">
-                    <div className="flex items-center justify-center gap-2">
-                      <span>🕐</span>
-                      <span>وقت الدخول</span>
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-200">
-                    <div className="flex items-center justify-center gap-2">
-                      <span>🕐</span>
-                      <span>وقت الخروج</span>
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-200">
-                    <div className="flex items-center justify-center gap-2">
-                      <span>⏱️</span>
-                      <span>ساعات العمل</span>
-                    </div>
-                  </th>
-                  <th className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-center font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm">{t('staff.attendance.status')}</th>
+                  <th className="px-4 py-3 text-start font-bold">{t('staff.attendance.number')}</th>
+                  <th className="px-4 py-3 text-start font-bold">{t('staff.attendance.name')}</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-start font-bold">{t('staff.attendance.position')}</th>
+                  <th className="px-4 py-3 text-center font-bold">وقت الدخول</th>
+                  <th className="px-4 py-3 text-center font-bold">وقت الخروج</th>
+                  <th className="px-4 py-3 text-center font-bold">ساعات العمل</th>
+                  <th className="hidden sm:table-cell px-4 py-3 text-center font-bold">{t('staff.attendance.status')}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                 {todayAttendance.map((att) => {
                   const checkInTime = new Date(att.checkIn)
                   const checkOutTime = att.checkOut ? new Date(att.checkOut) : null
                   const currentTime = new Date()
 
-                  // حساب الساعات الفعلية
                   let actualMinutes = att.duration || 0
                   if (!att.checkOut) {
-                    // إذا لم يسجل الخروج بعد، احسب حتى الآن
                     actualMinutes = Math.floor((currentTime.getTime() - checkInTime.getTime()) / (1000 * 60))
                   }
 
@@ -685,86 +682,64 @@ const handleScan = async (staffCode: string) => {
                   const minutes = actualMinutes % 60
 
                   return (
-                    <tr key={att.id} className={`border-t border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition ${att.checkOut === null ? 'bg-green-50 dark:bg-green-900/30 border-r-4 border-green-500 dark:border-green-600' : 'bg-white dark:bg-gray-800'}`}>
-                      <td className="px-2 sm:px-4 py-2 sm:py-4">
-                        <span className="bg-primary-500 dark:bg-primary-600 text-white px-2 sm:px-3 py-1 rounded-lg font-bold text-xs sm:text-sm">
+                    <tr key={att.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
                           #{toNineDigitCode(att.staff.staffCode)}
                         </span>
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-4 font-bold text-gray-800 dark:text-gray-100 text-xs sm:text-sm">{att.staff.name}</td>
-                      <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-4">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${getPositionColor(
-                            att.staff.position || ''
-                          )}`}
-                        >
-                          {getPositionIcon(att.staff.position || '')} {getPositionLabel(att.staff.position)}
+                      <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">{att.staff.name}</td>
+                      <td className="hidden md:table-cell px-4 py-3">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${getPositionColor(att.staff.position || '')}`}>
+                          {getPositionLabel(att.staff.position)}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-center">
-                        <div className="bg-primary-50 dark:bg-primary-900/50 px-4 py-2 rounded-lg inline-block border-2 border-primary-200 dark:border-primary-700">
-                          <div className="text-lg font-bold text-primary-800 dark:text-primary-200">
+                      <td className="px-4 py-3 text-center">
+                        <div className="inline-block bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-900/50 px-3 py-1.5 rounded-lg">
+                          <div className="text-sm font-bold text-primary-700 dark:text-primary-300">
                             {checkInTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                           </div>
-                          <div className="text-xs text-primary-600 dark:text-primary-300">
+                          <div className="text-[10px] text-primary-600 dark:text-primary-400">
                             {checkInTime.toLocaleDateString('ar-EG', { weekday: 'short' })}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-center">
+                      <td className="px-4 py-3 text-center">
                         {checkOutTime ? (
-                          <div className="bg-orange-50 dark:bg-orange-900/50 px-4 py-2 rounded-lg inline-block border-2 border-orange-200 dark:border-orange-700">
-                            <div className="text-lg font-bold text-orange-800 dark:text-orange-200">
+                          <div className="inline-block bg-orange-50 dark:bg-orange-900/30 ring-1 ring-orange-200 dark:ring-orange-900/50 px-3 py-1.5 rounded-lg">
+                            <div className="text-sm font-bold text-orange-700 dark:text-orange-300">
                               {checkOutTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                             </div>
-                            <div className="text-xs text-orange-600 dark:text-orange-300">
+                            <div className="text-[10px] text-orange-600 dark:text-orange-400">
                               {checkOutTime.toLocaleDateString('ar-EG', { weekday: 'short' })}
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-yellow-50 dark:bg-yellow-900/50 px-4 py-2 rounded-lg inline-block border-2 border-yellow-300 dark:border-yellow-700">
-                            <div className="text-sm font-bold text-yellow-800 dark:text-yellow-200">
-                              لم ينصرف بعد
-                            </div>
-                            <div className="text-xs text-yellow-600 dark:text-yellow-300">
-                              جاري العمل...
-                            </div>
+                          <div className="inline-block bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-200 dark:ring-amber-900/50 px-3 py-1.5 rounded-lg">
+                            <div className="text-xs font-bold text-amber-700 dark:text-amber-300">لم ينصرف بعد</div>
+                            <div className="text-[10px] text-amber-600 dark:text-amber-400">جاري العمل</div>
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-center">
-                        <div className={`px-4 py-3 rounded-lg inline-block border-2 ${att.checkOut ? 'bg-primary-50 dark:bg-primary-900/50 border-primary-200 dark:border-primary-700' : 'bg-green-50 dark:bg-green-900/50 border-green-300 dark:border-green-700'}`}>
-                          {hours === 0 && minutes === 0 ? (
-                            <div className="text-lg font-bold text-gray-600 dark:text-gray-300">بدأ للتو</div>
-                          ) : (
-                            <div className="flex gap-2 justify-center mb-2">
-                              {hours > 0 && (
-                                <div className="bg-white dark:bg-gray-700 border-2 border-primary-300 dark:border-primary-600 rounded px-3 py-1">
-                                  <div className="text-xl font-bold text-primary-800 dark:text-primary-200">{hours}</div>
-                                  <div className="text-xs text-primary-600 dark:text-primary-300">ساعة</div>
-                                </div>
-                              )}
-                              {minutes > 0 && (
-                                <div className="bg-white dark:bg-gray-700 border-2 border-primary-300 dark:border-primary-600 rounded px-3 py-1">
-                                  <div className="text-xl font-bold text-primary-800 dark:text-primary-200">{minutes}</div>
-                                  <div className="text-xs text-primary-600 dark:text-primary-300">دقيقة</div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          <div className={`text-xs ${att.checkOut ? 'text-primary-600 dark:text-primary-300' : 'text-green-600 dark:text-green-300'} font-semibold`}>
-                            {att.checkOut ? '✅ انتهى' : '⏳ يعمل الآن'}
-                          </div>
-                        </div>
+                      <td className="px-4 py-3 text-center">
+                        {hours === 0 && minutes === 0 ? (
+                          <span className="text-sm text-gray-600 dark:text-gray-400">بدأ للتو</span>
+                        ) : (
+                          <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                            {hours > 0 && `${hours} س`}{hours > 0 && minutes > 0 ? ' ' : ''}{minutes > 0 && `${minutes} د`}
+                          </span>
+                        )}
                       </td>
-                      <td className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-4 text-center">
+                      <td className="hidden sm:table-cell px-4 py-3 text-center">
                         {att.checkOut === null ? (
-                          <span className="px-2 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-green-500 dark:bg-green-600 text-white shadow-lg animate-pulse">
-                            🟢 {t('staff.attendance.inside')}
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                            <span className="w-2 h-2 rounded-full bg-green-500" />
+                            {t('staff.attendance.inside')}
                           </span>
                         ) : (
-                          <span className="px-2 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
-                            🔴 {t('staff.attendance.outside')}
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            <span className="w-2 h-2 rounded-full bg-gray-400" />
+                            {t('staff.attendance.outside')}
                           </span>
                         )}
                       </td>
@@ -775,75 +750,87 @@ const handleScan = async (staffCode: string) => {
             </table>
           </div>
         ) : (
-          <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-            <div className="text-6xl mb-4">😴</div>
-            <p className="text-xl">{t('staff.attendance.noAttendance')}</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <svg {...stroke} className="w-12 h-12 text-gray-400" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('staff.attendance.noAttendance')}</h3>
           </div>
         )}
       </div>
 
-      {/* باقي الصفحة - إدارة الموظفين */}
+      {/* Staff management header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900 dark:text-white">👥 {t('staff.title')}</h1>
-
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+            <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('staff.title')}</h1>
         </div>
-        <div className="flex gap-3 w-full sm:w-auto">
+        <div className="flex gap-2 w-full sm:w-auto flex-wrap">
           {hasPermission('canViewDeductions') && (
             <Link
               href="/staff-deductions"
-              className="flex-1 sm:flex-none text-center bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 px-5 py-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition font-medium shadow-sm"
+              className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/50 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
             >
-              📉 {t('nav.staffDeductions')}
+              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181" />
+              </svg>
+              <span>{t('nav.staffDeductions')}</span>
             </Link>
           )}
           <Link
             href="/staff-hr-assistant"
-            className="flex-1 sm:flex-none text-center bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-700 dark:to-indigo-700 text-white px-5 py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 dark:hover:from-purple-600 dark:hover:to-indigo-600 transition transform hover:scale-105 shadow-lg font-medium"
+            className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
           >
-            {t('staff.hrAssistant.title')}
+            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+            </svg>
+            <span>{t('staff.hrAssistant.title')}</span>
           </Link>
           <button
-            onClick={() => {
-              resetForm()
-              setShowForm(true)
-            }}
-            className="flex-1 sm:flex-none bg-primary-600 dark:bg-primary-700 text-white px-6 py-2 rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition transform hover:scale-105 shadow-md"
+            onClick={() => { resetForm(); setShowForm(true) }}
+            className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 text-sm"
           >
-            ➕ {t('staff.addNewStaff')}
+            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>{t('staff.addNewStaff')}</span>
           </button>
         </div>
       </div>
 
-      {/* نموذج الإضافة/التعديل - Modal */}
+      {/* Add/Edit Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) resetForm() }}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto" dir={direction} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="staff-form-title" onClick={(e) => { if (e.target === e.currentTarget) resetForm() }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-3xl w-full p-6 my-8" dir={direction} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                {editingStaff ? (
-                  <>
-                    <span>✏️</span>
-                    <span>{t('staff.editStaff')}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>➕</span>
-                    <span>{t('staff.addStaff')}</span>
-                  </>
-                )}
+              <h2 id="staff-form-title" className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
+                  {editingStaff ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a2.122 2.122 0 1 1 3 3L19.862 7.487m-3-3L8.078 13.27a2 2 0 0 0-.5.831l-1.111 4.222 4.222-1.111a2 2 0 0 0 .832-.5l8.781-8.781m-3-3 3 3" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  )}
+                </svg>
+                <span>{editingStaff ? t('staff.editStaff') : t('staff.addStaff')}</span>
               </h2>
               <button
                 onClick={resetForm}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-3xl leading-none"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label={t('staff.form.cancel')}
               >
-                ×
+                <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* ✅ رقم الموظف */}
+              {/* رقم الموظف */}
               <div>
                 <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
                   {t('staff.form.staffNumberRequired')}
@@ -853,7 +840,7 @@ const handleScan = async (staffCode: string) => {
                   required
                   value={formData.staffCode}
                   onChange={(e) => setFormData({ ...formData, staffCode: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition text-2xl font-bold bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-xl font-bold disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder={randomStaffCode || "100000022"}
                   minLength={9}
                   maxLength={9}
@@ -863,7 +850,7 @@ const handleScan = async (staffCode: string) => {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {editingStaff
                     ? isAdmin
-                      ? (direction === 'rtl' ? '✏️ تقدر تغيّر الرقم — مسموح للأدمن والأونر فقط' : '✏️ You can change the number — admin/owner only')
+                      ? (direction === 'rtl' ? ' تقدر تغيّر الرقم — مسموح للأدمن والأونر فقط' : ' You can change the number — admin/owner only')
                       : t('staff.form.staffNumberLocked')
                     : t('staff.form.staffNumberHint')}
                 </p>
@@ -879,7 +866,7 @@ const handleScan = async (staffCode: string) => {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('staff.form.namePlaceholder')}
                 />
               </div>
@@ -891,7 +878,7 @@ const handleScan = async (staffCode: string) => {
                   type="text"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('staff.form.phonePlaceholder')}
                 />
               </div>
@@ -910,19 +897,19 @@ const handleScan = async (staffCode: string) => {
                   onChange={(e) =>
                     setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })
                   }
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('staff.form.salaryPlaceholder')}
                 />
               </div>
               )}
             </div>
 
-              {/* الوظيفة - اختيار متعدد */}
+              {/* Positions - multi-select */}
               <div>
-                <label className="block text-sm font-bold mb-3 text-gray-700 dark:text-gray-200">
+                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">
                   {t('staff.form.positionRequired')} (يمكن اختيار أكثر من وظيفة)
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40">
                   {POSITIONS.map((pos) => {
                     const selectedPositions = formData.position ? formData.position.split(',') : []
                     const isSelected = selectedPositions.includes(pos.value)
@@ -930,10 +917,10 @@ const handleScan = async (staffCode: string) => {
                     return (
                       <label
                         key={pos.value}
-                        className={`flex items-center gap-2 p-2.5 rounded-lg cursor-pointer transition-all text-sm ${
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors duration-200 text-sm ring-1 ${
                           isSelected
-                            ? 'bg-primary-100 dark:bg-primary-900/40 border-2 border-primary-500'
-                            : 'bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-700'
+                            ? 'bg-primary-100 dark:bg-primary-900/40 ring-primary-300 dark:ring-primary-700'
+                            : 'bg-white dark:bg-gray-700 ring-gray-200 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/80'
                         }`}
                       >
                         <input
@@ -948,7 +935,7 @@ const handleScan = async (staffCode: string) => {
                               setFormData({ ...formData, position: [...positions, pos.value].join(',') })
                             }
                           }}
-                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                          className="w-4 h-4 rounded accent-primary-500"
                         />
                         <span className={`font-medium ${isSelected ? 'text-primary-900 dark:text-primary-100' : 'text-gray-700 dark:text-gray-200'}`}>
                           {pos.label}
@@ -959,10 +946,10 @@ const handleScan = async (staffCode: string) => {
                 </div>
               </div>
 
-              {/* حقل الوظيفة المخصصة */}
+              {/* Custom position */}
               {showOtherPosition && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-4">
-                  <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
+                <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg p-4">
+                  <label className="block text-sm font-bold mb-1.5 text-gray-700 dark:text-gray-300">
                     {t('staff.form.customPositionRequired')}
                   </label>
                   <input
@@ -972,7 +959,7 @@ const handleScan = async (staffCode: string) => {
                     onChange={(e) =>
                       setFormData({ ...formData, customPosition: e.target.value })
                     }
-                    className="w-full px-4 py-3 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 dark:focus:ring-yellow-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                     placeholder={t('staff.form.customPositionPlaceholder')}
                   />
                 </div>
@@ -989,7 +976,7 @@ const handleScan = async (staffCode: string) => {
                   max="24"
                   value={formData.workingHours}
                   onChange={(e) => setFormData({ ...formData, workingHours: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('staff.form.workingHoursPlaceholder')}
                 />
               </div>
@@ -1002,7 +989,7 @@ const handleScan = async (staffCode: string) => {
                   max="31"
                   value={formData.monthlyVacationDays}
                   onChange={(e) => setFormData({ ...formData, monthlyVacationDays: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('staff.form.monthlyVacationDaysPlaceholder')}
                 />
               </div>
@@ -1016,7 +1003,7 @@ const handleScan = async (staffCode: string) => {
                   type="time"
                   value={formData.shiftStartTime}
                   onChange={(e) => setFormData({ ...formData, shiftStartTime: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 />
               </div>
               <div>
@@ -1025,7 +1012,7 @@ const handleScan = async (staffCode: string) => {
                   type="time"
                   value={formData.shiftEndTime}
                   onChange={(e) => setFormData({ ...formData, shiftEndTime: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 />
               </div>
             </div>
@@ -1036,25 +1023,34 @@ const handleScan = async (staffCode: string) => {
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600 rounded-lg focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-900/50 transition resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 rows={3}
                 placeholder={t('staff.form.notesPlaceholder')}
               />
             </div>
 
-            {/* أزرار التحكم */}
-            <div className="flex gap-3 pt-2">
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 text-white py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 dark:hover:from-primary-600 dark:hover:to-primary-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg shadow-lg transform transition hover:scale-105 active:scale-95 disabled:hover:scale-100"
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed text-sm"
               >
-                {submitting ? `⏳ ${t('staff.form.saving')}` : editingStaff ? `✅ ${t('staff.form.update')}` : `➕ ${t('staff.form.addStaff')}`}
+                {submitting ? (
+                  <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                  </svg>
+                ) : (
+                  <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                )}
+                <span>{submitting ? t('staff.form.saving') : editingStaff ? t('staff.form.update') : t('staff.form.addStaff')}</span>
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-8 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:from-gray-300 hover:to-gray-400 dark:hover:from-gray-600 dark:hover:to-gray-500 font-bold shadow-lg transform transition hover:scale-105 active:scale-95"
+                className="px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
               >
                 {t('staff.form.cancel')}
               </button>
@@ -1064,104 +1060,100 @@ const handleScan = async (staffCode: string) => {
         </div>
       )}
 
-      {/* الإحصائيات */}
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-        <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-primary-100 dark:text-primary-200 text-xs sm:text-sm mb-1">{t('staff.stats.totalStaff')}</p>
-              <p className="text-2xl sm:text-4xl font-bold">{staff.length}</p>
+        {[
+          {
+            label: t('staff.stats.totalStaff'),
+            value: staff.length,
+            tone: 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400',
+            icon: (<path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />)
+          },
+          {
+            label: t('staff.stats.activeStaff'),
+            value: staff.filter((s) => s.isActive).length,
+            tone: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+            icon: (<path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />)
+          },
+          ...(isAdmin ? [{
+            label: t('staff.stats.totalSalaries'),
+            value: `${staff.filter(s => s.isActive).reduce((sum, s) => sum + (s.salary || 0), 0).toFixed(0)} ج.م`,
+            tone: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+            icon: (<path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4M9 9V6m6 12v-3" />)
+          }] : []),
+          {
+            label: t('staff.stats.coaches'),
+            value: staffByPosition['مدرب'] || 0,
+            tone: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+            icon: (<path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3 2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75 2.25-1.313M12 21.75V19.5m0 2.25-2.25-1.313m0-16.875L12 2.25l2.25 1.313" />)
+          }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4">
+            <div className={`w-10 h-10 rounded-lg ${stat.tone} flex items-center justify-center mb-2`}>
+              <svg {...stroke} className="w-5 h-5" aria-hidden="true">{stat.icon}</svg>
             </div>
-            <div className="text-3xl sm:text-5xl opacity-20">👥</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{stat.label}</div>
+            <div className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</div>
           </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-green-600 dark:from-green-700 dark:to-green-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 dark:text-green-200 text-xs sm:text-sm mb-1">{t('staff.stats.activeStaff')}</p>
-              <p className="text-2xl sm:text-4xl font-bold">{staff.filter((s) => s.isActive).length}</p>
-            </div>
-            <div className="text-3xl sm:text-5xl opacity-20">✅</div>
-          </div>
-        </div>
-
-        {isAdmin && (
-        <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-primary-100 dark:text-primary-200 text-xs sm:text-sm mb-1">{t('staff.stats.totalSalaries')}</p>
-              <p className="text-xl sm:text-3xl font-bold">
-                {staff.filter(s => s.isActive).reduce((sum, s) => sum + (s.salary || 0), 0).toFixed(0)} ج.م
-              </p>
-            </div>
-            <div className="text-3xl sm:text-5xl opacity-20">💰</div>
-          </div>
-        </div>
-        )}
-
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-700 dark:to-orange-800 text-white rounded-lg p-4 sm:p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 dark:text-orange-200 text-xs sm:text-sm mb-1">{t('staff.stats.coaches')}</p>
-              <p className="text-2xl sm:text-4xl font-bold">{staffByPosition['مدرب'] || 0}</p>
-            </div>
-            <div className="text-3xl sm:text-5xl opacity-20">💪</div>
-          </div>
-        </div>
+        ))}
 
         <Link
           href="/expenses"
-          className="col-span-2 sm:col-span-3 lg:col-span-1 bg-gradient-to-br from-red-500 to-red-600 dark:from-red-700 dark:to-red-800 text-white rounded-lg p-4 sm:p-6 shadow-lg hover:shadow-2xl transition-all hover:scale-105 active:scale-95"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 hover:ring-red-300 dark:hover:ring-red-700 transition-colors duration-200 group"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-red-100 dark:text-red-200 text-xs sm:text-sm mb-1">{t('staff.loans.title')}</p>
-              <p className="text-lg sm:text-xl font-bold">{t('staff.loans.viewInExpenses')}</p>
-            </div>
-            <div className="text-3xl sm:text-5xl opacity-20">💸</div>
+          <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center justify-center mb-2">
+            <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
           </div>
+          <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('staff.loans.title')}</div>
+          <div className="mt-1 text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">{t('staff.loans.viewInExpenses')}</div>
         </Link>
       </div>
 
-      {/* جدول الموظفين */}
+      {/* Staff cards */}
       {loading ? (
-        <div className="text-center py-12">{t('staff.loading')}</div>
+        <LoadingScreen message={t('staff.loading')} />
       ) : (
         <>
-          {/* Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" dir={direction}>
             {staff.map((staffMember) => (
               <div
                 key={staffMember.id}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg dark:hover:shadow-2xl transition ${
-                  !staffMember.isActive ? 'opacity-60 border-gray-300 dark:border-gray-600' : isStaffCurrentlyInside(staffMember.id) ? 'border-green-400 dark:border-green-600' : 'border-gray-200 dark:border-gray-600'
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 overflow-hidden transition-colors duration-200 ${
+                  !staffMember.isActive ? 'opacity-60 ring-gray-200 dark:ring-gray-700' : isStaffCurrentlyInside(staffMember.id) ? 'ring-green-300 dark:ring-green-800' : 'ring-gray-200 dark:ring-gray-700'
                 }`}
               >
                 {/* Header */}
-                <div className={`p-3 ${!staffMember.isActive ? 'bg-gray-500 dark:bg-gray-600' : isStaffCurrentlyInside(staffMember.id) ? 'bg-gradient-to-r from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800' : 'bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700'}`}>
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-lg text-white/80">👤</span>
+                      <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                        </svg>
                       </div>
                       <div>
-                        <div className="font-bold text-white text-base">{staffMember.name}</div>
-                        <div className="text-white/80 text-xs">
+                        <div className="font-bold text-gray-900 dark:text-gray-100 text-base">{staffMember.name}</div>
+                        <div className="text-gray-600 dark:text-gray-400 text-xs">
                           #{toNineDigitCode(staffMember.staffCode)} {staffMember.phone ? `• ${staffMember.phone}` : ''}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {isStaffCurrentlyInside(staffMember.id) && (
-                        <span className="bg-green-400 dark:bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse font-bold">
-                          🟢 {t('staff.attendance.inside')}
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                          <span className="w-2 h-2 rounded-full bg-green-500" />
+                          {t('staff.attendance.inside')}
                         </span>
                       )}
                       <button
                         onClick={() => toggleActive(staffMember)}
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                          staffMember.isActive ? 'bg-green-500 dark:bg-green-600 text-white' : 'bg-red-500 dark:bg-red-600 text-white'
+                        aria-label={staffMember.isActive ? t('staff.table.active') : t('staff.table.inactive')}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold transition-colors duration-200 ${
+                          staffMember.isActive
+                            ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                            : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                         }`}
                       >
                         {staffMember.isActive ? t('staff.table.active') : t('staff.table.inactive')}
@@ -1177,10 +1169,9 @@ const handleScan = async (staffCode: string) => {
                     {staffMember.position ? staffMember.position.split(',').filter(p => p).map((pos, idx) => (
                       <span
                         key={idx}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${getPositionColor(pos)}`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${getPositionColor(pos)}`}
                       >
-                        <span>{getPositionIcon(pos)}</span>
-                        <span>{getPositionLabel(pos)}</span>
+                        {getPositionLabel(pos)}
                       </span>
                     )) : <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>}
                   </div>
@@ -1223,12 +1214,11 @@ const handleScan = async (staffCode: string) => {
                     ) : null}
                   </div>
 
-                  {/* 📝 الملاحظات */}
+                  {/* Notes */}
                   {staffMember.notes && staffMember.notes.trim() && (
-                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-2">
-                      <div className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold mb-0.5 flex items-center gap-1">
-                        <span>📝</span>
-                        <span>{t('staff.form.notes')}</span>
+                    <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 rounded-lg p-2">
+                      <div className="text-[10px] text-amber-700 dark:text-amber-300 font-bold mb-0.5 uppercase tracking-wider">
+                        {t('staff.form.notes')}
                       </div>
                       <div className="text-xs text-amber-900 dark:text-amber-100 whitespace-pre-wrap break-words">
                         {staffMember.notes}
@@ -1240,17 +1230,21 @@ const handleScan = async (staffCode: string) => {
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <button
                       onClick={() => handleEdit(staffMember)}
-                      className="bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1 transition-all hover:scale-105 active:scale-95"
+                      className="inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 rounded-lg text-sm font-bold transition-colors duration-200"
                     >
-                      <span>✏️</span>
+                      <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a2.122 2.122 0 1 1 3 3L19.862 7.487m-3-3L8.078 13.27a2 2 0 0 0-.5.831l-1.111 4.222 4.222-1.111a2 2 0 0 0 .832-.5l8.781-8.781m-3-3 3 3" />
+                      </svg>
                       <span>{t('staff.table.edit')}</span>
                     </button>
                     {hasPermission('canDeleteStaff') ? (
                       <button
                         onClick={() => handleDelete(staffMember)}
-                        className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 dark:hover:bg-red-800 font-bold flex items-center justify-center gap-1 transition-all hover:scale-105 active:scale-95"
+                        className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-bold transition-colors duration-200"
                       >
-                        <span>🗑️</span>
+                        <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" />
+                        </svg>
                         <span>{t('staff.table.delete')}</span>
                       </button>
                     ) : staffMember.phone ? (
@@ -1276,10 +1270,12 @@ const handleScan = async (staffCode: string) => {
           </div>
 
           {staff.length === 0 && (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <div className="text-6xl mb-4">😕</div>
-              <p className="text-xl">{t('staff.empty.title')}</p>
-              <p className="text-sm mt-2">{t('staff.empty.subtitle')}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 flex flex-col items-center justify-center py-12 text-center">
+              <svg {...stroke} className="w-12 h-12 text-gray-400" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+              </svg>
+              <h3 className="text-gray-600 dark:text-gray-300 font-bold mt-3">{t('staff.empty.title')}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('staff.empty.subtitle')}</p>
             </div>
           )}
         </>

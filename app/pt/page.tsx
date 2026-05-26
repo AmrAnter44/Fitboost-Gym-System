@@ -20,8 +20,11 @@ import LoadingSkeleton from '../../components/LoadingSkeleton'
 import PTRenewalForm from '../../components/PTRenewalForm'
 import PTFreezeForm from '../../components/PTFreezeForm'
 import PTUpgradeForm from '../../components/PTUpgradeForm'
+import { LoadingScreen } from '../../components/Spinner'
 
 const SignaturePad = dynamic(() => import('../../components/SignaturePad'), { ssr: false })
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 interface Staff {
   id: string
@@ -59,7 +62,7 @@ export default function PTPage() {
   const queryClient = useQueryClient()
   const isCoach = user?.role === 'COACH'
 
-  // ✅ استخدام useQuery لجلب جلسات PT
+  // استخدام useQuery لجلب جلسات PT
   const {
     data: sessions = [],
     isLoading: loading,
@@ -73,7 +76,7 @@ export default function PTPage() {
     staleTime: 2 * 60 * 1000,
   })
 
-  // ✅ استخدام useQuery لجلب المدربين
+  // استخدام useQuery لجلب المدربين
   const {
     data: coaches = [],
     isLoading: coachesLoading
@@ -130,7 +133,7 @@ export default function PTPage() {
     expiryDate: string
     paymentMethod: string | PaymentMethod[]
     staffName: string
-    ptCommissionAmount: number | null  // 💰 عمولة الكوتش من الباقة
+    ptCommissionAmount: number | null // عمولة الكوتش من الباقة
   }>({
     ptNumber: '',
     clientName: '',
@@ -144,10 +147,10 @@ export default function PTPage() {
     expiryDate: '',
     paymentMethod: 'cash',
     staffName: user?.name || '',
-    ptCommissionAmount: null,  // 💰 عمولة الكوتش من الباقة
+    ptCommissionAmount: null, // عمولة الكوتش من الباقة
   })
 
-  // ✅ معالجة أخطاء جلسات PT
+  // معالجة أخطاء جلسات PT
   useEffect(() => {
     if (sessionsError) {
       const errorMessage = (sessionsError as Error).message
@@ -245,8 +248,8 @@ export default function PTPage() {
       sessionsPurchased: pkg.sessions,
       sessionsRemaining: pkg.sessions,
       totalPrice: pkg.price,
-      expiryDate: calculatedExpiry || prev.expiryDate,  // ✅ حساب تاريخ الانتهاء تلقائيًا
-      ptCommissionAmount: pkg.ptCommission || null  // 💰 حفظ عمولة الباقة
+      expiryDate: calculatedExpiry || prev.expiryDate, // حساب تاريخ الانتهاء تلقائيًا
+      ptCommissionAmount: pkg.ptCommission || null // حفظ عمولة الباقة
     }))
     toast.success(`تم تطبيق باقة: ${pkg.name} (${pkg.durationDays} يوم)`)
   }
@@ -255,7 +258,7 @@ export default function PTPage() {
   const fetchMemberByNumber = async (memberNumber: string) => {
     if (!memberNumber.trim()) return
 
-    // ✅ التحقق من صلاحية عرض الأعضاء
+    // التحقق من صلاحية عرض الأعضاء
     if (!hasPermission('canViewMembers')) {
       toast.warning('لا تملك صلاحية عرض بيانات الأعضاء')
       return
@@ -305,7 +308,7 @@ export default function PTPage() {
       expiryDate: '',
       paymentMethod: 'cash',
       staffName: user?.name || '',
-      ptCommissionAmount: null,  // 💰 عمولة الكوتش من الباقة
+      ptCommissionAmount: null, // عمولة الكوتش من الباقة
     })
     setEditingSession(null)
     setShowForm(false)
@@ -394,7 +397,7 @@ export default function PTPage() {
 
     if (!confirmed) return
 
-    // ✅ Optimistic Update
+    // Optimistic Update
     const previousData = queryClient.getQueryData<any[]>(['pt-sessions'])
     queryClient.setQueryData<any[]>(['pt-sessions'], (old) =>
       old ? old.filter(s => s.ptNumber !== ptNumber) : old
@@ -598,12 +601,10 @@ export default function PTPage() {
     return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType
   })
 
-  // ✅ التحقق من الصلاحيات
+  // التحقق من الصلاحيات
   if (permissionsLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl">{t('pt.loading')}</div>
-      </div>
+      <LoadingScreen fullScreen message={t('pt.loading')} />
     )
   }
 
@@ -611,12 +612,12 @@ export default function PTPage() {
     return <PermissionDenied message={t('pt.noPermission')} />
   }
 
-  // ✅ حالة التحميل مع Skeleton
+  // حالة التحميل مع Skeleton
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6" aria-busy="true" aria-live="polite">
         <div className="mb-6">
-          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4"></div>
+          <div className="h-8 w-48 skeleton-shimmer rounded mb-4"></div>
           <LoadingSkeleton type="stats" />
         </div>
         <LoadingSkeleton type="table" count={8} />
@@ -627,25 +628,30 @@ export default function PTPage() {
   return (
     <div className="container mx-auto p-4 sm:p-6" dir={direction}>
       <div className="mb-6">
-        <div className="mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 dark:text-white">💪 {t('pt.title')}</h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-            {isCoach ? t('pt.viewSessions') : t('pt.manageSessions')}
-          </p>
+        <div className="mb-4 flex items-center gap-3">
+          <span className="inline-flex w-10 h-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
+            <svg {...stroke} className="w-6 h-6" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.115 5.19l.319 1.913A6 6 0 008.11 10.36L9.75 12l-.387.775c-.217.435-.132.956.21 1.298l1.348 1.348c.21.21.329.497.329.795v1.089c0 .426.24.815.622 1.006l.153.076c.433.217.956.132 1.298-.21l.723-.723a8.7 8.7 0 002.288-4.042 1.087 1.087 0 00-.358-1.099l-1.33-1.108c-.251-.21-.582-.299-.905-.245l-1.17.195a1.125 1.125 0 01-.98-.314l-.295-.295a1.125 1.125 0 010-1.591l.13-.132a1.125 1.125 0 011.3-.21l.603.302a.809.809 0 001.086-1.086L14.25 7.5l1.256-.837a4.5 4.5 0 001.528-1.732l.146-.292M6.115 5.19A9 9 0 1017.18 4.64M6.115 5.19A8.965 8.965 0 0112 3c1.929 0 3.716.607 5.18 1.64"/></svg>
+          </span>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('pt.title')}</h1>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+              {isCoach ? t('pt.viewSessions') : t('pt.manageSessions')}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
           <button
             onClick={() => router.push('/pt/commission')}
-            className="flex-1 min-w-[140px] sm:flex-none bg-gradient-to-r from-primary-600 to-primary-700 text-white px-3 sm:px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
+            className="flex-1 min-w-[140px] sm:flex-none bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 inline-flex items-center justify-center gap-2 text-sm sm:text-base"
           >
-            <span>💰</span>
+            <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
             <span>{t('pt.commissionCalculator')}</span>
           </button>
           <button
             onClick={() => router.push('/pt/sessions/history')}
-            className="flex-1 min-w-[140px] sm:flex-none bg-gradient-to-r from-primary-600 to-primary-700 text-white px-3 sm:px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
+            className="flex-1 min-w-[140px] sm:flex-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg transition-colors duration-200 inline-flex items-center justify-center gap-2 text-sm sm:text-base"
           >
-            <span>📊</span>
+            <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
             <span>{t('pt.attendanceLog')}</span>
           </button>
           {!isCoach && (
@@ -654,24 +660,32 @@ export default function PTPage() {
                 resetForm()
                 setShowForm(!showForm)
               }}
-              className="w-full sm:w-auto bg-primary-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-primary-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+              className="w-full sm:w-auto bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 inline-flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              {showForm ? t('pt.hideForm') : `➕ ${t('pt.addNewSession')}`}
+              {showForm ? (
+                <span>{t('pt.hideForm')}</span>
+              ) : (
+                <>
+                  <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                  <span>{t('pt.addNewSession')}</span>
+                </>
+              )}
             </button>
           )}
         </div>
       </div>
 
       {!isCoach && showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6" dir={direction}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="pt-form-title" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6 animate-modal-in" dir={direction}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
+            <h2 id="pt-form-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
               {editingSession ? t('pt.editSession') : t('pt.addSession')}
             </h2>
             {editingSession && isDayUse && (
-              <span className="bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 px-3 py-1 rounded-full text-sm font-bold">
-                🏃 Day Use
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
+                <svg {...stroke} className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                Day Use
               </span>
             )}
           </div>
@@ -680,7 +694,7 @@ export default function PTPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {t('pt.ptId')} <span className="text-xs text-gray-500 dark:text-gray-400">(اختياري)</span>
                   </label>
                   <input
@@ -692,12 +706,12 @@ export default function PTPage() {
                     className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-white"
                     placeholder="اختياري - يمكن تركه فارغ"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">💡 اضغط Enter لتحميل بيانات العضو تلقائياً</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">اضغط Enter لتحميل بيانات العضو تلقائياً</p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('pt.clientName')} <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -711,7 +725,7 @@ export default function PTPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('pt.phoneNumber')} <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -725,7 +739,7 @@ export default function PTPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   {t('pt.coachName')} <span className="text-red-600">*</span>
                 </label>
                 {coachesLoading ? (
@@ -742,8 +756,9 @@ export default function PTPage() {
                       className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                       placeholder={t('pt.coachNamePlaceholder')}
                     />
-                    <p className="text-xs text-amber-600">
-                      ⚠️ {t('pt.noActiveCoaches')}
+                    <p className="text-xs text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
+                      <svg {...stroke} className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+                      {t('pt.noActiveCoaches')}
                     </p>
                   </div>
                 ) : (
@@ -765,7 +780,7 @@ export default function PTPage() {
 
               {/* Day Use Checkbox - مخفي في وضع التعديل */}
               {!editingSession && (
-                <div className="bg-primary-50 dark:bg-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-3">
+                <div className="bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-700 rounded-lg p-3">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -791,10 +806,11 @@ export default function PTPage() {
                     className="w-5 h-5"
                   />
                   <div>
-                    <span className="text-sm font-bold text-primary-800 dark:text-primary-200">
-                      🏃 Day Use (استخدام يومي)
+                    <span className="text-sm font-bold text-primary-800 dark:text-primary-200 inline-flex items-center gap-1">
+                      <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                      Day Use (استخدام يومي)
                     </span>
-                    <p className="text-xs text-primary-600 dark:text-primary-300 mt-1">
+                    <p className="text-xs text-primary-700 dark:text-primary-300 mt-1">
                       تسجيل مبسط - اسم ورقم وسعر الجلسة فقط
                     </p>
                   </div>
@@ -805,8 +821,9 @@ export default function PTPage() {
               {/* اختيار باقة جاهزة */}
               {!isDayUse && !editingSession && packages.length > 0 && (
                 <div className="col-span-full">
-                  <label className="block text-sm font-medium mb-2">
-                    ⚡ {t('packages.selectPackage')}
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 inline-flex items-center gap-1">
+                    <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+                    {t('packages.selectPackage')}
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {packages.map((pkg) => (
@@ -814,20 +831,23 @@ export default function PTPage() {
                         key={pkg.id}
                         type="button"
                         onClick={() => applyPackage(pkg)}
-                        className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-900/30 hover:from-primary-100 hover:to-primary-200 dark:hover:from-primary-800/40 dark:hover:to-primary-800/40 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-3 transition-all hover:scale-105 hover:shadow-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        className="bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/40 ring-1 ring-primary-200 dark:ring-primary-700 rounded-lg p-3 transition-colors duration-200"
                       >
                         <div className="text-center">
-                          <div className="text-2xl mb-1">💪</div>
-                          <div className="font-bold text-gray-800 dark:text-gray-100 text-sm">{pkg.name}</div>
-                          <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                          <div className="mb-1 flex justify-center text-primary-700 dark:text-primary-400">
+                            <svg {...stroke} className="w-6 h-6" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.115 5.19l.319 1.913A6 6 0 008.11 10.36L9.75 12l-.387.775c-.217.435-.132.956.21 1.298l1.348 1.348c.21.21.329.497.329.795v1.089c0 .426.24.815.622 1.006l.153.076c.433.217.956.132 1.298-.21l.723-.723a8.7 8.7 0 002.288-4.042 1.087 1.087 0 00-.358-1.099l-1.33-1.108c-.251-.21-.582-.299-.905-.245l-1.17.195a1.125 1.125 0 01-.98-.314l-.295-.295a1.125 1.125 0 010-1.591l.13-.132a1.125 1.125 0 011.3-.21l.603.302a.809.809 0 001.086-1.086L14.25 7.5l1.256-.837a4.5 4.5 0 001.528-1.732l.146-.292"/></svg>
+                          </div>
+                          <div className="font-bold text-gray-900 dark:text-gray-100 text-sm">{pkg.name}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                             {pkg.sessions} {t('packages.sessions')}
                           </div>
                           {pkg.durationDays && (
-                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                              📅 {pkg.durationDays} يوم
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 inline-flex items-center gap-1">
+                              <svg {...stroke} className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+                              {pkg.durationDays} يوم
                             </div>
                           )}
-                          <div className="text-lg font-bold text-primary-600 dark:text-primary-400 mt-1">
+                          <div className="text-lg font-bold text-primary-700 dark:text-primary-400 mt-1">
                             {pkg.price} {t('pt.egp')}
                           </div>
                         </div>
@@ -835,14 +855,14 @@ export default function PTPage() {
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    💡 {t('packages.customPackage')}: يمكنك تعديل القيم بعد اختيار الباقة
+                    {t('packages.customPackage')}: يمكنك تعديل القيم بعد اختيار الباقة
                   </p>
                 </div>
               )}
 
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {t('pt.sessionsCount')} <span className="text-red-600">*</span>
                   </label>
                   <input
@@ -859,7 +879,7 @@ export default function PTPage() {
 
               {!isDayUse && editingSession && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     الجلسات المتبقية <span className="text-red-600">*</span>
                   </label>
                   <input
@@ -868,18 +888,18 @@ export default function PTPage() {
                     min="0"
                     value={formData.sessionsRemaining}
                     onChange={(e) => setFormData({ ...formData, sessionsRemaining: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border rounded-lg bg-primary-50 dark:bg-primary-900/50 border-primary-300 dark:border-primary-600 dark:text-white"
+                    className="w-full px-3 py-2 border rounded-lg bg-primary-50 dark:bg-primary-900/50 border-primary-300 dark:border-primary-600 dark:text-primary-contrast"
                     placeholder="عدد الجلسات المتبقية"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    💡 يمكنك تعديل عدد الجلسات المتبقية للعميل
+                    يمكنك تعديل عدد الجلسات المتبقية للعميل
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {isDayUse ? 'سعر الجلسة 💰' : t('pt.totalPrice')} <span className="text-red-600">*</span>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {isDayUse ? 'سعر الجلسة' : t('pt.totalPrice')} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="number"
@@ -895,7 +915,7 @@ export default function PTPage() {
 
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {t('pt.remainingAmount')}
                   </label>
                   <input
@@ -915,7 +935,7 @@ export default function PTPage() {
 
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {t('pt.startDate')} <span className="text-xs text-gray-500 dark:text-gray-400">{t('pt.startDateFormat')}</span>
                   </label>
                   <input
@@ -931,7 +951,7 @@ export default function PTPage() {
 
               {!isDayUse && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {t('pt.expiryDate')} <span className="text-xs text-gray-500 dark:text-gray-400">{t('pt.startDateFormat')}</span>
                   </label>
                   <input
@@ -948,14 +968,14 @@ export default function PTPage() {
 
             {!isDayUse && (
               <div>
-                <p className="text-sm font-medium mb-2">{t('pt.quickAdd')}</p>
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('pt.quickAdd')}</p>
                 <div className="flex flex-wrap gap-2">
                   {[1, 2, 3, 6, 9, 12].map(months => (
                     <button
                       key={months}
                       type="button"
                       onClick={() => calculateExpiryFromMonths(months)}
-                      className="px-3 py-2 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg text-sm transition font-medium"
+                      className="px-3 py-2 bg-primary-100 hover:bg-primary-200 dark:bg-primary-900/30 dark:hover:bg-primary-900/50 text-primary-800 dark:text-primary-200 rounded-lg text-sm font-bold transition-colors duration-200"
                     >
                       + {months} {months === 1 ? t('pt.month') : t('pt.months')}
                     </button>
@@ -978,7 +998,7 @@ export default function PTPage() {
             </div>
 
             {formData.sessionsPurchased > 0 && formData.totalPrice > 0 && (
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+              <div className="bg-green-50 ring-1 ring-green-200 rounded-lg p-4 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">{t('pt.finalTotal')}</span>
                   <span className="text-2xl font-bold text-green-600">
@@ -1006,7 +1026,7 @@ export default function PTPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400"
+                className="flex-1 bg-primary-600 text-primary-contrast py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400"
               >
                 {loading ? t('pt.saving') : editingSession ? t('pt.updateButton') : t('pt.addSessionButton')}
               </button>
@@ -1025,23 +1045,26 @@ export default function PTPage() {
         </div>
       )}
 
-      {/* 🔍 البحث والفلاتر السريعة */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border-2 border-primary-200 dark:border-primary-700" dir={direction}>
-        <div className="mb-6">
+      {/* Search and filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6 mb-6" dir={direction}>
+        <div className="mb-6 relative">
+          <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-gray-400 dark:text-gray-500">
+            <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          </span>
           <input
             type="text"
-            placeholder={`🔍 ${t('pt.searchPlaceholder')}`}
+            placeholder={t('pt.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-3 border-2 border-primary-200 dark:border-primary-600 rounded-lg text-lg focus:border-primary-400 focus:outline-none transition dark:bg-gray-700 dark:text-white"
+            className="w-full ps-10 pe-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
           />
         </div>
 
-        {/* 🎯 فلاتر الحالة السريعة */}
+        {/* Quick filters */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <span>🎯</span>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 inline-flex items-center gap-2">
+              <svg {...stroke} className="w-5 h-5 text-primary-700 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
               <span>{t('pt.quickFilters')}</span>
             </h3>
             {(filterStatus !== 'all' || filterSessions !== 'all') && (
@@ -1050,9 +1073,10 @@ export default function PTPage() {
                   setFilterStatus('all')
                   setFilterSessions('all')
                 }}
-                className="bg-primary-100 text-primary-600 px-3 py-1.5 rounded-lg hover:bg-primary-200 text-sm font-medium"
+                className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors duration-200 inline-flex items-center gap-1"
               >
-                ✖️ إعادة تعيين
+                <svg {...stroke} className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                إعادة تعيين
               </button>
             )}
           </div>
@@ -1060,64 +1084,72 @@ export default function PTPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <button
               onClick={() => setFilterStatus('all')}
-              className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+              className={`px-4 py-3 rounded-xl font-bold transition-colors duration-200 ${
                 filterStatus === 'all'
-                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-xl border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-800 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 shadow-md'
+                  ? 'bg-primary-500 text-primary-contrast shadow-sm ring-1 ring-primary-400'
+                  : 'bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/40 shadow-sm'
               }`}
             >
-              <div className="text-xl mb-1">📊</div>
+              <div className="mb-1 flex justify-center">
+                <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+              </div>
               <div className="text-xs">{t('pt.allStatus')}</div>
-              <div className="text-lg font-bold dark:text-white">{sessions.length}</div>
+              <div className="text-lg font-bold">{sessions.length}</div>
             </button>
 
             <button
               onClick={() => setFilterStatus('active')}
-              className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+              className={`px-4 py-3 rounded-xl font-bold transition-colors duration-200 ${
                 filterStatus === 'active'
-                  ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-xl border-2 border-green-400'
-                  : 'bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-green-700 text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/50 hover:border-green-300 shadow-md'
+                  ? 'bg-green-600 text-white shadow-sm ring-1 ring-green-500'
+                  : 'bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/30 shadow-sm'
               }`}
             >
-              <div className="text-xl mb-1">🟢</div>
+              <div className="mb-1 flex justify-center">
+                <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
               <div className="text-xs">{t('pt.statusActive')}</div>
-              <div className="text-lg font-bold dark:text-white">{sessions.filter(s => !isExpired(s) && !isExpiringSoon(s)).length}</div>
+              <div className="text-lg font-bold">{sessions.filter(s => !isExpired(s) && !isExpiringSoon(s)).length}</div>
             </button>
 
             <button
               onClick={() => setFilterStatus('expiring')}
-              className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+              className={`px-4 py-3 rounded-xl font-bold transition-colors duration-200 ${
                 filterStatus === 'expiring'
-                  ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl border-2 border-orange-400'
-                  : 'bg-white dark:bg-gray-800 border-2 border-orange-200 dark:border-orange-700 text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-orange-900/50 hover:border-orange-300 shadow-md'
+                  ? 'bg-orange-500 text-white shadow-sm ring-1 ring-orange-400'
+                  : 'bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-orange-900/30 shadow-sm'
               }`}
             >
-              <div className="text-xl mb-1">🟡</div>
+              <div className="mb-1 flex justify-center">
+                <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3h.007m-.391-15.36a1.125 1.125 0 011.768 0l8.04 11.7c.46.668-.018 1.555-.884 1.555H4.077c-.866 0-1.343-.887-.884-1.555l8.04-11.7z"/></svg>
+              </div>
               <div className="text-xs">{t('pt.statusExpiring')}</div>
-              <div className="text-lg font-bold dark:text-white">{sessions.filter(s => isExpiringSoon(s)).length}</div>
+              <div className="text-lg font-bold">{sessions.filter(s => isExpiringSoon(s)).length}</div>
             </button>
 
             <button
               onClick={() => setFilterStatus('expired')}
-              className={`px-4 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
+              className={`px-4 py-3 rounded-xl font-bold transition-colors duration-200 ${
                 filterStatus === 'expired'
-                  ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-xl border-2 border-red-400'
-                  : 'bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-700 text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/50 hover:border-red-300 shadow-md'
+                  ? 'bg-red-600 text-white shadow-sm ring-1 ring-red-500'
+                  : 'bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/30 shadow-sm'
               }`}
             >
-              <div className="text-xl mb-1">🔴</div>
+              <div className="mb-1 flex justify-center">
+                <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
               <div className="text-xs">{t('pt.statusExpired')}</div>
-              <div className="text-lg font-bold dark:text-white">{sessions.filter(s => isExpired(s)).length}</div>
+              <div className="text-lg font-bold">{sessions.filter(s => isExpired(s)).length}</div>
             </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <button
               onClick={() => setFilterSessions('all')}
-              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+              className={`px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 ${
                 filterSessions === 'all'
-                  ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg border-2 border-primary-400'
-                  : 'bg-white dark:bg-gray-800 border-2 border-primary-200 dark:border-primary-700 text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/50 hover:border-primary-300 shadow'
+                  ? 'bg-primary-500 text-primary-contrast shadow-sm ring-1 ring-primary-400'
+                  : 'bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/40 shadow-sm'
               }`}
             >
               <div className="text-sm">{t('pt.allSessions')}</div>
@@ -1125,10 +1157,10 @@ export default function PTPage() {
 
             <button
               onClick={() => setFilterSessions('low')}
-              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+              className={`px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 ${
                 filterSessions === 'low'
-                  ? 'bg-gradient-to-br from-yellow-500 to-yellow-600 text-white shadow-lg border-2 border-yellow-400'
-                  : 'bg-white dark:bg-gray-800 border-2 border-yellow-200 dark:border-yellow-700 text-gray-700 dark:text-gray-200 hover:bg-yellow-50 dark:hover:bg-yellow-900/50 hover:border-yellow-300 shadow'
+                  ? 'bg-amber-500 text-white shadow-sm ring-1 ring-amber-400'
+                  : 'bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-900/30 shadow-sm'
               }`}
             >
               <div className="text-sm">{t('pt.sessionsLow')}</div>
@@ -1137,10 +1169,10 @@ export default function PTPage() {
 
             <button
               onClick={() => setFilterSessions('zero')}
-              className={`px-4 py-2.5 rounded-lg font-bold transition-all transform hover:scale-105 ${
+              className={`px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 ${
                 filterSessions === 'zero'
-                  ? 'bg-gradient-to-br from-gray-600 to-gray-700 text-white shadow-lg border-2 border-gray-500'
-                  : 'bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 shadow'
+                  ? 'bg-gray-700 text-white shadow-sm ring-1 ring-gray-600'
+                  : 'bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/40 shadow-sm'
               }`}
             >
               <div className="text-sm">{t('pt.sessionsZero')}</div>
@@ -1149,14 +1181,17 @@ export default function PTPage() {
           </div>
         </div>
 
-        {/* 👨‍🏫 فلتر المدربين والنوع */}
+        {/* Coach and type filters */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium mb-2">👨‍🏫 {t('pt.filterByCoach')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 inline-flex items-center gap-1.5">
+              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+              {t('pt.filterByCoach')}
+            </label>
             <select
               value={filterCoach}
               onChange={(e) => setFilterCoach(e.target.value)}
-              className="w-full px-3 py-2.5 border-2 border-primary-200 dark:border-primary-600 rounded-lg focus:border-primary-400 focus:outline-none transition dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             >
               <option value="">{t('pt.allCoaches')}</option>
               {(Array.from(new Set(sessions.map(s => s.coachName).filter((name): name is string => !!name))) as string[]).sort().map(coach => (
@@ -1166,11 +1201,14 @@ export default function PTPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">📝 {t('pt.sessionType')}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 inline-flex items-center gap-1.5">
+              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+              {t('pt.sessionType')}
+            </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as any)}
-              className="w-full px-3 py-2.5 border-2 border-primary-200 dark:border-primary-600 rounded-lg focus:border-primary-400 focus:outline-none transition dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
             >
               <option value="all">{t('pt.typeAll')}</option>
               <option value="regular">{t('pt.typeRegular')}</option>
@@ -1181,7 +1219,7 @@ export default function PTPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">{t('pt.loading')}</div>
+        <LoadingScreen message={t('pt.loading')} />
       ) : (
         <>
           {/* Cards Grid */}
@@ -1198,7 +1236,7 @@ export default function PTPage() {
               return (
                 <div
                   key={session.ptNumber}
-                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border-2 hover:shadow-lg dark:hover:shadow-2xl transition ${
+                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden ring-1 hover:shadow-lg dark:hover:shadow-2xl transition ${
                     isExpired ? 'border-red-300 dark:border-red-700' : isExpiringSoon ? 'border-orange-300 dark:border-orange-700' : 'border-gray-200 dark:border-gray-600'
                   }`}
                 >
@@ -1211,13 +1249,13 @@ export default function PTPage() {
                           {session.profileImage ? (
                             <img src={session.profileImage} alt={session.clientName} className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-lg text-white/80">👤</span>
+                            <svg {...stroke} className="w-5 h-5 text-white/80" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
                           )}
                         </div>
                         <div>
                           <div className="font-bold text-white text-base">{session.clientName}</div>
                           <div className="text-white/80 text-xs">
-                            {session.ptNumber < 0 ? '🏃 Day Use' : `#${session.ptNumber}`} • {session.phone}
+                            {session.ptNumber < 0 ? 'Day Use' : `#${session.ptNumber}`} • {session.phone}
                           </div>
                         </div>
                       </div>
@@ -1239,7 +1277,7 @@ export default function PTPage() {
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full transition-all ${
+                          className={`h-2 rounded-full transition-colors duration-200 ${
                             progressPercentage >= 80 ? 'bg-red-500' :
                             progressPercentage >= 50 ? 'bg-orange-500' :
                             'bg-green-500'
@@ -1275,7 +1313,7 @@ export default function PTPage() {
                         isExpired ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : isExpiringSoon ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
                       }`}>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span>📅</span>
+                          <svg {...stroke} className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
                           {session.startDate && <span>{formatDateYMD(session.startDate)}</span>}
                           {session.startDate && session.expiryDate && <span>→</span>}
                           {session.expiryDate && (
@@ -1295,9 +1333,10 @@ export default function PTPage() {
                         <button
                           onClick={() => handleRegisterSession(session)}
                           disabled={session.sessionsRemaining === 0}
-                          className={`${isCoach ? 'col-span-2' : ''} bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 dark:hover:bg-green-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1`}
+                          className={`${isCoach ? 'col-span-2' : ''} bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
                         >
-                          {t('pt.attendance')}
+                          <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                          <span>{t('pt.attendance')}</span>
                         </button>
                       )}
                       {!isCoach && (
@@ -1305,56 +1344,58 @@ export default function PTPage() {
                           {session.ptNumber >= 0 && (
                             <button
                               onClick={() => handleRenew(session)}
-                              className="bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700 dark:hover:bg-primary-800 font-bold flex items-center justify-center gap-1"
+                              className="bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                             >
-                              {t('pt.renew')}
+                              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06"/></svg>
+                              <span>{t('pt.renew')}</span>
                             </button>
                           )}
-                          {/* ❄️ Freeze - gated بإعدادات الـ ptFreezeEnabled */}
+                          {/* Freeze - gated by ptFreezeEnabled */}
                           {settings.ptFreezeEnabled && session.ptNumber >= 0 && (
                             <button
                               onClick={() => setFreezeSession(session)}
-                              className={`py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 ${
+                              className={`py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors duration-200 ${
                                 session.isFrozen
                                   ? 'bg-cyan-600 text-white hover:bg-cyan-700'
                                   : 'bg-blue-600 text-white hover:bg-blue-700'
                               }`}
                             >
-                              <span>❄️</span>
+                              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18M5.636 5.636l12.728 12.728M18.364 5.636L5.636 18.364"/></svg>
                               <span>{session.isFrozen ? (locale === 'ar' ? 'مجمّد' : 'Frozen') : (locale === 'ar' ? 'فريز' : 'Freeze')}</span>
                             </button>
                           )}
-                          {/* 🚀 Upgrade - gated بإعدادات الـ ptUpgradeEnabled */}
+                          {/* Upgrade - gated by ptUpgradeEnabled */}
                           {settings.ptUpgradeEnabled && session.ptNumber >= 0 && (
                             <button
                               onClick={() => setUpgradeSession(session)}
-                              className="bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1"
+                              className="bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1 transition-colors duration-200"
                             >
-                              <span>🚀</span>
+                              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"/></svg>
                               <span>{locale === 'ar' ? 'ترقية' : 'Upgrade'}</span>
                             </button>
                           )}
                           {(session.remainingAmount || 0) > 0 && (
                             <button
                               onClick={() => handleOpenPaymentModal(session)}
-                              className="col-span-2 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1"
+                              className="col-span-2 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1 transition-colors duration-200"
                             >
-                              <span>💰</span>
-                              <span>{t('pt.payRemaining').replace('💰 ', '')} ({(session.remainingAmount || 0).toFixed(0)} {t('pt.egp')})</span>
+                              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
+                              <span>{t('pt.payRemaining')} ({(session.remainingAmount || 0).toFixed(0)} {t('pt.egp')})</span>
                             </button>
                           )}
                           <button
                             onClick={() => handleEdit(session)}
-                            className="bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700 dark:hover:bg-primary-800 font-bold flex items-center justify-center gap-1"
+                            className="bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors duration-200"
                           >
-                            <span>✏️</span>
+                            <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
                             <span>{t('pt.edit')}</span>
                           </button>
                           <button
                             onClick={() => handleDelete(session.ptNumber)}
-                            className="bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700 dark:hover:bg-red-800 font-bold flex items-center justify-center gap-1"
+                            aria-label={t('pt.deleteSubscription')}
+                            className="bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                           >
-                            <span>🗑️</span>
+                            <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                             <span>{t('pt.deleteSubscription')}</span>
                           </button>
                         </>
@@ -1367,9 +1408,9 @@ export default function PTPage() {
           </div>
 
           {filteredSessions.length === 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center text-gray-500 dark:text-gray-400">
-              <div className="text-6xl mb-4">📋</div>
-              <p className="text-xl">{searchTerm ? t('pt.noSearchResults') : t('pt.noSessions')}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-12 flex flex-col items-center justify-center text-center">
+              <svg {...stroke} className="w-12 h-12 text-gray-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <h3 className="mt-3 text-gray-700 dark:text-gray-300 font-bold">{searchTerm ? t('pt.noSearchResults') : t('pt.noSessions')}</h3>
             </div>
           )}
         </>
@@ -1377,18 +1418,19 @@ export default function PTPage() {
 
       {/* Payment Modal */}
       {showPaymentModal && paymentSession && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl dark:bg-gray-800 max-w-3xl w-full p-6" dir={direction}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="pt-payment-title" onClick={(e) => { if (e.target === e.currentTarget) { setShowPaymentModal(false); setPaymentSession(null) } }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-3xl w-full p-6 animate-modal-in" dir={direction}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">{t('pt.paymentModal.title')}</h2>
+              <h2 id="pt-payment-title" className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('pt.paymentModal.title')}</h2>
               <button
                 onClick={() => {
                   setShowPaymentModal(false)
                   setPaymentSession(null)
                 }}
-                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
+                aria-label="Close"
+                className="p-1 rounded text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200"
               >
-                ×
+                <svg {...stroke} className="w-6 h-6" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
 
@@ -1396,23 +1438,23 @@ export default function PTPage() {
               {/* العمود الأيسر - معلومات الاشتراك */}
               <div className="space-y-3">
                 {/* معلومات الاشتراك */}
-                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <div className="bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-200 dark:ring-orange-800/60 rounded-lg p-3">
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">{t('pt.ptNumber')}:</span>
-                      <span className="font-bold">#{paymentSession.ptNumber}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('pt.ptNumber')}:</span>
+                      <span className="font-bold text-gray-900 dark:text-gray-100">#{paymentSession.ptNumber}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">{t('pt.client')}:</span>
-                      <span className="font-bold">{paymentSession.clientName}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('pt.client')}:</span>
+                      <span className="font-bold text-gray-900 dark:text-gray-100">{paymentSession.clientName}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">{t('pt.coach')}:</span>
-                      <span className="font-bold">{paymentSession.coachName}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('pt.coach')}:</span>
+                      <span className="font-bold text-gray-900 dark:text-gray-100">{paymentSession.coachName}</span>
                     </div>
-                    <div className="flex justify-between border-t pt-1.5">
-                      <span className="text-orange-700 font-semibold">{t('pt.paymentModal.remainingAmount')}</span>
-                      <span className="font-bold text-orange-600 text-lg">
+                    <div className="flex justify-between border-t border-orange-200 dark:border-orange-800/60 pt-1.5">
+                      <span className="text-orange-700 dark:text-orange-300 font-semibold">{t('pt.paymentModal.remainingAmount')}</span>
+                      <span className="font-bold text-orange-700 dark:text-orange-300 text-lg">
                         {(paymentSession.remainingAmount || 0).toFixed(0)} {t('pt.egp')}
                       </span>
                     </div>
@@ -1421,12 +1463,12 @@ export default function PTPage() {
 
                 {/* المبلغ المتبقي بعد الدفع */}
                 {paymentFormData.paymentAmount > 0 && (
-                  <div className="bg-primary-50 border-2 border-primary-200 rounded-lg p-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                  <div className="bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-800/60 rounded-lg p-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-primary-700 font-semibold">
+                      <span className="text-sm text-primary-800 dark:text-primary-300 font-semibold">
                         {t('pt.paymentModal.remainingAfterPayment')}
                       </span>
-                      <span className="text-lg font-bold text-primary-600">
+                      <span className="text-lg font-bold text-primary-800 dark:text-primary-300">
                         {((paymentSession.remainingAmount || 0) - paymentFormData.paymentAmount).toFixed(0)} {t('pt.egp')}
                       </span>
                     </div>
@@ -1438,7 +1480,7 @@ export default function PTPage() {
               <div className="space-y-3">
                 {/* مبلغ الدفع */}
                 <div>
-                  <label className="block text-sm font-bold mb-1.5">
+                  <label className="block text-sm font-bold mb-1.5 text-gray-700 dark:text-gray-300">
                     {t('pt.paymentModal.paymentAmountRequired')}
                   </label>
                   <input
@@ -1453,7 +1495,7 @@ export default function PTPage() {
                         paymentAmount: parseFloat(e.target.value) || 0
                       })
                     }
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-lg font-bold dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-lg ring-1 ring-gray-300 dark:ring-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   />
                   <div className="flex gap-2 mt-2">
                     <button
@@ -1464,7 +1506,7 @@ export default function PTPage() {
                           paymentAmount: paymentSession.remainingAmount || 0
                         })
                       }
-                      className="flex-1 px-3 py-1.5 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded text-sm font-medium"
+                      className="flex-1 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 text-orange-800 dark:text-orange-200 rounded text-sm font-medium transition-colors duration-200"
                     >
                       {t('pt.paymentModal.payAll')} ({(paymentSession.remainingAmount || 0).toFixed(0)})
                     </button>
@@ -1476,7 +1518,7 @@ export default function PTPage() {
                           paymentAmount: (paymentSession.remainingAmount || 0) / 2
                         })
                       }
-                      className="flex-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded text-sm font-medium"
+                      className="flex-1 px-3 py-1.5 bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-900/50 text-primary-800 dark:text-primary-200 rounded text-sm font-medium transition-colors duration-200"
                     >
                       {t('pt.paymentModal.payHalf')} ({((paymentSession.remainingAmount || 0) / 2).toFixed(0)})
                     </button>
@@ -1506,14 +1548,14 @@ export default function PTPage() {
                   setShowPaymentModal(false)
                   setPaymentSession(null)
                 }}
-                className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 font-bold"
+                className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
               >
                 {t('pt.deleteConfirm.cancel')}
               </button>
               <button
                 onClick={handlePayRemaining}
                 disabled={loading || paymentFormData.paymentAmount <= 0 || paymentFormData.paymentAmount > (paymentSession.remainingAmount || 0)}
-                className="bg-orange-600 text-white py-2.5 rounded-lg hover:bg-orange-700 font-bold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
               >
                 {loading ? t('pt.paymentModal.paying') : t('pt.paymentModal.confirmPayment')}
               </button>
@@ -1559,7 +1601,7 @@ export default function PTPage() {
         />
       )}
 
-      {/* ❄️ Freeze Modal */}
+      {/* Freeze Modal */}
       {freezeSession && (
         <PTFreezeForm
           session={freezeSession as any}
@@ -1572,7 +1614,7 @@ export default function PTPage() {
         />
       )}
 
-      {/* 🚀 Upgrade Modal */}
+      {/* Upgrade Modal */}
       {upgradeSession && (
         <PTUpgradeForm
           session={upgradeSession as any}

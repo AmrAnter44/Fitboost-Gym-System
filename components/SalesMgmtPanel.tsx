@@ -4,6 +4,59 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
+const iconSend = (
+  <svg {...stroke} className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+  </svg>
+)
+const iconExchange = (
+  <svg {...stroke} className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 16V4M7 4 3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/>
+  </svg>
+)
+const iconShuffle = (
+  <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+  </svg>
+)
+const iconUser = (
+  <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 14a4 4 0 1 0-8 0m12 7a8 8 0 1 0-16 0"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+)
+const iconBan = (
+  <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M5 5l14 14"/>
+  </svg>
+)
+const iconWarning = (
+  <svg {...stroke} className="w-4 h-4 shrink-0" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+    <path d="M12 9v4M12 17h.01"/>
+  </svg>
+)
+const iconCheck = (
+  <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 13l4 4L19 7"/>
+  </svg>
+)
+const iconCheckLg = (
+  <svg {...stroke} className="w-10 h-10" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M8 12l3 3 5-6"/>
+  </svg>
+)
+const iconBriefcase = (
+  <svg {...stroke} className="w-10 h-10" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2"/>
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+  </svg>
+)
+
 interface SalesStaff {
   staffId: string
   name: string
@@ -32,7 +85,7 @@ export default function SalesMgmtPanel() {
 
   // Transfer state
   const [fromStaffId, setFromStaffId] = useState('')
-  const [toStaffId, setToStaffId] = useState('')  // 'unassigned' = إلغاء التعيين
+  const [toStaffId, setToStaffId] = useState('') // 'unassigned' = إلغاء التعيين
   const [transferTypes, setTransferTypes] = useState<string[]>(['members'])
   const [transferring, setTransferring] = useState(false)
   const [confirmTransfer, setConfirmTransfer] = useState(false)
@@ -95,7 +148,7 @@ export default function SalesMgmtPanel() {
       setToStaffId('')
       setTransferTypes(['members'])
       fetchStaff()
-      // 📢 يخبر CollectionDashboard إنه يعيد جلب التارجت/المحصّل
+      // يخبر CollectionDashboard إنه يعيد جلب التارجت/المحصّل
       window.dispatchEvent(new Event('sales-data-changed'))
     } catch (e: any) {
       toast.error(e.message || (ar ? 'فشل النقل' : 'Transfer failed'))
@@ -125,7 +178,7 @@ export default function SalesMgmtPanel() {
       setConfirmAssign(false)
       setAssignStaffId('')
       fetchStaff()
-      // 📢 إعادة احتساب التارجت/المحصّل في CollectionDashboard
+      // إعادة احتساب التارجت/المحصّل في CollectionDashboard
       window.dispatchEvent(new Event('sales-data-changed'))
     } catch (e: any) {
       toast.error(e.message || (ar ? 'فشل التوزيع' : 'Assignment failed'))
@@ -141,7 +194,7 @@ export default function SalesMgmtPanel() {
     return (
       <div className="space-y-4">
         {[1, 2].map(i => (
-          <div key={i} className="animate-pulse h-24 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div key={i} className="skeleton-shimmer h-24 rounded-xl" />
         ))}
       </div>
     )
@@ -149,9 +202,11 @@ export default function SalesMgmtPanel() {
 
   if (staff.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-        <div className="text-4xl mb-3">💼</div>
-        <p>{ar ? 'لا يوجد موظفو سيلز' : 'No sales staff found'}</p>
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="text-gray-400 dark:text-gray-500">
+          {iconBriefcase}
+        </div>
+        <p className="mt-3 text-gray-600 dark:text-gray-300 font-bold">{ar ? 'لا يوجد موظفو سيلز' : 'No sales staff found'}</p>
       </div>
     )
   }
@@ -161,27 +216,30 @@ export default function SalesMgmtPanel() {
 
       {/* ── قسم توزيع الغير مُسنَّدين ── */}
       <div>
-        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-          📤 {ar ? 'توزيع الغير مُسنَّدين' : 'Assign Unassigned'}
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+          <span className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
+            {iconSend}
+          </span>
+          <span>{ar ? 'توزيع الغير مُسنَّدين' : 'Assign Unassigned'}</span>
         </h2>
 
         {/* بطاقات الإحصاء */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-yellow-700 dark:text-yellow-300">{unassigned.membersCount}</p>
-            <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">{ar ? 'عضو بدون سيلز' : 'Unassigned Members'}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 text-center">
+            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{unassigned.membersCount}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mt-1">{ar ? 'عضو بدون سيلز' : 'Unassigned Members'}</p>
           </div>
-          <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{unassigned.followUpsCount}</p>
-            <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">{ar ? 'متابعة بدون موظف' : 'Unassigned Follow-ups'}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 text-center">
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{unassigned.followUpsCount}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mt-1">{ar ? 'متابعة بدون موظف' : 'Unassigned Follow-ups'}</p>
           </div>
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{unassigned.dayUseCount}</p>
-            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">{ar ? 'داي يوز بدون سيلز' : 'Unassigned Day Use'}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 text-center">
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{unassigned.dayUseCount}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mt-1">{ar ? 'داي يوز بدون سيلز' : 'Unassigned Day Use'}</p>
           </div>
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-green-700 dark:text-green-300">{unassigned.invitationCount}</p>
-            <p className="text-sm text-green-600 dark:text-green-400 mt-1">{ar ? 'انفيتيشن بدون سيلز' : 'Unassigned Invitations'}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 text-center">
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{unassigned.invitationCount}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mt-1">{ar ? 'انفيتيشن بدون سيلز' : 'Unassigned Invitations'}</p>
           </div>
         </div>
 
@@ -223,7 +281,7 @@ export default function SalesMgmtPanel() {
                     onChange={() => { setAssignMode('distribute'); setAssignStaffId(''); setConfirmAssign(false) }}
                     className="accent-primary-600" />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
-                    🔀 {ar ? 'توزيع تلقائي بالتساوي بين السيلز' : 'Auto round-robin'}
+                     {ar ? 'توزيع تلقائي بالتساوي بين السيلز' : 'Auto round-robin'}
                   </span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -231,7 +289,7 @@ export default function SalesMgmtPanel() {
                     onChange={() => { setAssignMode('single'); setConfirmAssign(false) }}
                     className="accent-primary-600" />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
-                    👤 {ar ? 'تعيين لموظف محدد' : 'Assign to one staff'}
+                     {ar ? 'تعيين لموظف محدد' : 'Assign to one staff'}
                   </span>
                 </label>
               </div>
@@ -261,14 +319,14 @@ export default function SalesMgmtPanel() {
               <button
                 onClick={() => setConfirmAssign(true)}
                 disabled={assignTypes.length === 0 || (assignMode === 'single' && !assignStaffId)}
-                className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed text-primary-contrast rounded-lg font-medium transition-colors"
               >
-                📤 {ar ? 'توزيع الآن' : 'Assign Now'}
+                 {ar ? 'توزيع الآن' : 'Assign Now'}
               </button>
             ) : (
               <div className="space-y-3">
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3 text-sm text-yellow-800 dark:text-yellow-200">
-                  ⚠️ {(() => {
+                   {(() => {
                     const confirmParts: string[] = []
                     if (assignTypes.includes('members') && unassigned.membersCount > 0) confirmParts.push(ar ? `${unassigned.membersCount} عضو` : `${unassigned.membersCount} members`)
                     if (assignTypes.includes('followups') && unassigned.followUpsCount > 0) confirmParts.push(ar ? `${unassigned.followUpsCount} متابعة` : `${unassigned.followUpsCount} follow-ups`)
@@ -285,7 +343,7 @@ export default function SalesMgmtPanel() {
                 <div className="flex gap-3">
                   <button onClick={handleAssignUnassigned} disabled={assigning}
                     className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors">
-                    {assigning ? (ar ? 'جاري التوزيع...' : 'Assigning...') : (ar ? '✅ تأكيد' : '✅ Confirm')}
+                    {assigning ? (ar ? 'جاري التوزيع...' : 'Assigning...') : (ar ? ' تأكيد' : ' Confirm')}
                   </button>
                   <button onClick={() => setConfirmAssign(false)} disabled={assigning}
                     className="flex-1 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors">
@@ -297,7 +355,7 @@ export default function SalesMgmtPanel() {
           </div>
         ) : (
           <div className="text-center py-6 text-gray-400 dark:text-gray-500">
-            <p className="text-2xl mb-2">✅</p>
+            
             <p className="text-sm">{ar ? 'كل الأعضاء والمتابعات والزوار مُسنَّدين' : 'All members, follow-ups & visitors are assigned'}</p>
           </div>
         )}
@@ -306,7 +364,7 @@ export default function SalesMgmtPanel() {
       {/* ── قسم نقل البيانات بين السيلز ── */}
       <div>
         <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-          🔄 {ar ? 'نقل البيانات بين موظفي السيلز' : 'Transfer Data Between Sales Staff'}
+           {ar ? 'نقل البيانات بين موظفي السيلز' : 'Transfer Data Between Sales Staff'}
         </h2>
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -338,7 +396,7 @@ export default function SalesMgmtPanel() {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
               >
                 <option value="">{ar ? '— اختر موظف —' : '— Select staff —'}</option>
-                <option value="unassigned">🚫 {ar ? 'إلغاء التعيين (بدون موظف)' : 'Unassign (no staff)'}</option>
+                <option value="unassigned"> {ar ? 'إلغاء التعيين (بدون موظف)' : 'Unassign (no staff)'}</option>
                 {staff.map(s => (
                   <option key={s.staffId} value={s.staffId} disabled={s.staffId === fromStaffId}>
                     {s.name} ({ar ? 'أعضاء:' : 'members:'} {(s as any).members?.length ?? 0})
@@ -382,7 +440,7 @@ export default function SalesMgmtPanel() {
           {fromStaffId && toStaffId && transferTypes.length > 0 && (
             <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg p-4">
               <p className="text-sm text-orange-800 dark:text-orange-200 font-medium">
-                ⚠️ {(() => {
+                 {(() => {
                   const typeLabels = transferTypes.map(t => {
                     if (t === 'members') return ar ? 'الأعضاء' : 'members'
                     if (t === 'followups') return ar ? 'المتابعات' : 'follow-ups'
@@ -409,7 +467,7 @@ export default function SalesMgmtPanel() {
               disabled={!fromStaffId || !toStaffId || transferTypes.length === 0 || (toStaffId !== 'unassigned' && fromStaffId === toStaffId)}
               className="w-full py-2.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
             >
-              🔄 {ar ? 'نقل البيانات' : 'Transfer Data'}
+               {ar ? 'نقل البيانات' : 'Transfer Data'}
             </button>
           ) : (
             <div className="flex gap-3">
@@ -418,7 +476,7 @@ export default function SalesMgmtPanel() {
                 disabled={transferring}
                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
               >
-                {transferring ? (ar ? 'جاري النقل...' : 'Transferring...') : (ar ? '✅ تأكيد النقل' : '✅ Confirm Transfer')}
+                {transferring ? (ar ? 'جاري النقل...' : 'Transferring...') : (ar ? ' تأكيد النقل' : ' Confirm Transfer')}
               </button>
               <button
                 onClick={() => setConfirmTransfer(false)}

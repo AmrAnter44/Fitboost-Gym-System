@@ -45,6 +45,15 @@ function hexToRgb(hex) {
   return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
 }
 
+// لون نص متباين (#000 أو #fff) لخلفية معطاة — YIQ luminance
+function contrastFor(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  if (!m) return '#0F172A'
+  const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16)
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000
+  return yiq >= 150 ? '#0F172A' : '#FFFFFF'
+}
+
 // بناء CSS variables
 let cssVars = `:root {
   /* Primary Colors - الألوان الأساسية */
@@ -65,6 +74,11 @@ Object.entries(primaryColors).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).fo
 })
 
 cssVars += `
+  /* Contrast text colors (auto-computed for accessibility) */
+  --color-primary-contrast: ${contrastFor(primaryColors['500'])};
+  --color-primary-contrast-600: ${contrastFor(primaryColors['600'])};
+  --color-primary-contrast-700: ${contrastFor(primaryColors['700'])};
+
   /* Other colors */
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 249, 250, 251;
@@ -86,7 +100,17 @@ sortedColors.forEach(([shade, _], index) => {
   darkModeVars += `  --color-primary-${shade}: ${reversedColor};\n`
 })
 
+// في dark mode، primary-500 يبقى نفسه (آخر لون في الـ reversed = أفتح لون)، فالـ contrast بيتحسب من نفس اللون
+const darkPrimary500 = reversedColors[sortedColors.findIndex(([s]) => s === '500')][1]
+const darkPrimary600 = reversedColors[sortedColors.findIndex(([s]) => s === '600')][1]
+const darkPrimary700 = reversedColors[sortedColors.findIndex(([s]) => s === '700')][1]
+
 darkModeVars += `
+  /* Contrast text colors (auto-computed for accessibility) */
+  --color-primary-contrast: ${contrastFor(darkPrimary500)};
+  --color-primary-contrast-600: ${contrastFor(darkPrimary600)};
+  --color-primary-contrast-700: ${contrastFor(darkPrimary700)};
+
   /* Dark Mode Background & Foreground */
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 17, 24, 39;

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 interface Coach {
   id: string
   name: string
@@ -18,6 +20,15 @@ interface CoachSelectorProps {
   value: string | null
   onChange: (coachId: string | null) => void
   required?: boolean
+}
+
+function CoachIcon({ className = 'w-7 h-7' }: { className?: string }) {
+  return (
+    <svg {...stroke} className={className}>
+      <circle cx="12" cy="8" r="4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 21a8 8 0 0116 0" />
+    </svg>
+  )
 }
 
 export default function CoachSelector({ value, onChange, required = false }: CoachSelectorProps) {
@@ -52,30 +63,30 @@ export default function CoachSelector({ value, onChange, required = false }: Coa
   const selectedCoach = coaches.find(c => c.id === value)
 
   return (
-    <div className="bg-primary-50 dark:bg-primary-900/50 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-3">
+    <div className="bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-800 rounded-lg p-3">
       <h3 className="font-bold text-base mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
-        <span>👨‍🏫</span>
+        <CoachIcon className="w-5 h-5 text-primary-700 dark:text-primary-300" />
         <span>{required ? t('members.form.selectCoach') : t('members.form.selectCoachOptional')} {required && <span className="text-red-500 dark:text-red-400">*</span>}</span>
       </h3>
 
       {loading ? (
-        <div className="text-center py-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">⏳ {t('members.form.loadingCoaches')}</p>
+        <div className="text-center py-4" aria-busy="true" aria-live="polite">
+          <p className="text-sm text-gray-600 dark:text-gray-400">{t('members.form.loadingCoaches')}</p>
         </div>
       ) : error ? (
-        <div className="bg-red-100 dark:bg-red-900/50 border-2 border-red-300 dark:border-red-700 rounded-lg p-3 text-center">
+        <div className="bg-red-50 dark:bg-red-900/30 ring-1 ring-red-200 dark:ring-red-800 rounded-lg p-3 text-center">
           <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
           <button
             type="button"
             onClick={fetchCoaches}
-            className="mt-2 text-xs text-red-600 dark:text-red-400 underline hover:text-red-800 dark:hover:text-red-200"
+            className="mt-2 text-xs text-red-700 dark:text-red-300 underline hover:text-red-900 dark:hover:text-red-200 transition-colors duration-200"
           >
             {t('members.form.retry')}
           </button>
         </div>
       ) : coaches.length === 0 ? (
-        <div className="text-center py-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
-          <p className="text-gray-500 dark:text-gray-400 text-sm">{t('members.form.noCoachesAvailable')}</p>
+        <div className="text-center py-6 bg-white dark:bg-gray-800 rounded-xl ring-1 ring-dashed ring-gray-300 dark:ring-gray-600">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">{t('members.form.noCoachesAvailable')}</p>
         </div>
       ) : (
         <>
@@ -87,36 +98,36 @@ export default function CoachSelector({ value, onChange, required = false }: Coa
                 onClick={() => {
                   onChange(coach.id)
                 }}
+                aria-pressed={value === coach.id}
                 className={`
-                  relative p-3 rounded-lg border-2 transition-all
+                  relative p-3 rounded-lg ring-1 transition-colors duration-200
                   ${value === coach.id
-                    ? 'bg-primary-200 dark:bg-primary-800 border-primary-500 dark:border-primary-400 shadow-md scale-105'
-                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/50'
+                    ? 'bg-primary-200 dark:bg-primary-800/60 ring-primary-500 dark:ring-primary-400 shadow-sm'
+                    : 'bg-white dark:bg-gray-800 ring-gray-200 dark:ring-gray-700 hover:bg-primary-50 dark:hover:bg-primary-900/40'
                   }
                   ${coach.isCheckedIn ? 'ring-2 ring-green-400 dark:ring-green-500' : ''}
                   ${!coach.isActive ? 'opacity-60' : ''}
                 `}
               >
-                {/* نقطة خضراء للمتواجدين */}
                 {coach.isCheckedIn && (
-                  <div className="absolute top-1 right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <div className="absolute top-1 end-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                 )}
 
                 <div className="text-center">
-                  <div className="text-2xl mb-1">👨‍🏫</div>
-                  <div className="font-bold text-sm text-gray-800 dark:text-gray-100 mb-1">
+                  <div className="flex justify-center mb-1 text-primary-700 dark:text-primary-300">
+                    <CoachIcon className="w-7 h-7" />
+                  </div>
+                  <div className="font-bold text-sm text-gray-900 dark:text-gray-100 mb-1">
                     {coach.name}
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-300 mb-2">
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
                     #{coach.staffCode}
                   </div>
 
-                  {/* عدد الأعضاء */}
-                  <div className="bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 text-xs font-bold py-1 px-2 rounded-full">
+                  <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
                     {coach.memberCount} {t('members.form.memberCount')}
                   </div>
 
-                  {/* علامة غير نشط */}
                   {!coach.isActive && (
                     <div className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">
                       {t('members.form.inactive')}
@@ -127,39 +138,42 @@ export default function CoachSelector({ value, onChange, required = false }: Coa
             ))}
           </div>
 
-          {/* زر إلغاء الاختيار */}
           {value && !required && (
             <button
               type="button"
               onClick={() => onChange(null)}
-              className="w-full py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition"
+              className="w-full inline-flex items-center justify-center gap-1.5 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors duration-200"
             >
-              ✕ {t('members.form.cancelSelection')}
+              <svg {...stroke} className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+              </svg>
+              {t('members.form.cancelSelection')}
             </button>
           )}
 
-          {/* معلومات المدرب المختار */}
           {selectedCoach && (
-            <div className="mt-3 bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-lg p-2">
-              <p className="text-xs text-gray-600 dark:text-gray-300">
+            <div className="mt-3 bg-white dark:bg-gray-800 ring-1 ring-primary-200 dark:ring-primary-800 rounded-lg p-2">
+              <p className="text-xs text-gray-700 dark:text-gray-300">
                 {t('members.form.selectedCoach')}
-                <span className="font-bold text-primary-600 dark:text-primary-400 mr-1">
+                <span className="font-bold text-primary-700 dark:text-primary-400 ms-1">
                   {selectedCoach.name}
                 </span>
                 {selectedCoach.isCheckedIn && (
-                  <span className="text-green-600 dark:text-green-400 mr-1">● {t('members.form.presentNow')}</span>
+                  <span className="text-green-600 dark:text-green-400 ms-1">● {t('members.form.presentNow')}</span>
                 )}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                 {t('members.form.hasMembers', { count: selectedCoach.memberCount.toString() })}
               </p>
             </div>
           )}
 
-          {/* ملاحظة توضيحية */}
-          <div className="mt-3 bg-primary-50 dark:bg-primary-900/50 border-l-4 border-primary-500 dark:border-primary-600 p-2 rounded">
-            <p className="text-xs text-primary-800 dark:text-primary-200">
-              <strong>💡 {t('common.notes')}:</strong> {t('members.form.coachNote')}
+          <div className="mt-3 bg-primary-50 dark:bg-primary-900/30 ring-1 ring-primary-200 dark:ring-primary-800 border-s-4 border-primary-500 dark:border-primary-600 p-2 rounded">
+            <p className="text-xs text-primary-800 dark:text-primary-200 inline-flex items-start gap-1.5">
+              <svg {...stroke} className="w-4 h-4 mt-0.5 flex-shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span><strong>{t('common.notes')}:</strong> {t('members.form.coachNote')}</span>
             </p>
           </div>
         </>

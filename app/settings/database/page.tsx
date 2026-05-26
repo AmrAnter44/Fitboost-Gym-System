@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DatabaseSettings from '../../../components/settings/DatabaseSettings';
+import { LoadingScreen } from '../../../components/Spinner';
+
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
 export default function DatabaseSettingsPage() {
   const router = useRouter();
@@ -10,7 +13,6 @@ export default function DatabaseSettingsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // فحص تسجيل الدخول والصلاحيات
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/auth/me');
@@ -21,7 +23,6 @@ export default function DatabaseSettingsPage() {
 
         const data = await response.json();
 
-        // فقط الـ OWNER يمكنه الوصول
         if (data.user.role !== 'OWNER') {
           router.push('/');
           return;
@@ -40,14 +41,7 @@ export default function DatabaseSettingsPage() {
   }, [router]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">جاري التحميل...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen fullScreen />;
   }
 
   if (!user) {
@@ -55,27 +49,39 @@ export default function DatabaseSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="mb-6">
           <button
             onClick={() => router.push('/settings')}
-            className="mb-4 flex items-center gap-2 text-blue-600 hover:text-blue-700"
+            className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-700 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 transition-colors duration-200"
+            aria-label="العودة للإعدادات"
           >
-            <span>←</span>
+            <svg {...stroke} className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
             <span>العودة للإعدادات</span>
           </button>
 
-          <h1 className="text-3xl font-bold text-gray-900">
-            🗄️ إعدادات قاعدة البيانات
-          </h1>
-          <p className="text-gray-600 mt-2">
-            إدارة وصيانة قاعدة بيانات النظام
-          </p>
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+              <svg {...stroke} className="w-6 h-6">
+                <ellipse cx="12" cy="5" rx="9" ry="3" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v6c0 1.657 4.03 3 9 3s9-1.343 9-3V5" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 11v6c0 1.657 4.03 3 9 3s9-1.343 9-3v-6" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                إعدادات قاعدة البيانات
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                إدارة وصيانة قاعدة بيانات النظام
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Database Settings Component */}
         <DatabaseSettings />
       </div>
     </div>

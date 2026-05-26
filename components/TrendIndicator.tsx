@@ -1,5 +1,7 @@
 'use client'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
 interface TrendIndicatorProps {
   value: number
   previousValue?: number
@@ -23,14 +25,22 @@ export default function TrendIndicator({
   if (isNeutral) return null
 
   return (
-    <div className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-      isPositive
-        ? 'bg-green-100 text-green-700'
-        : 'bg-red-100 text-red-700'
-    }`}>
-      <span className="text-sm">
-        {isPositive ? '↗️' : '↘️'}
-      </span>
+    <div
+      role="status"
+      aria-label={`${isPositive ? '+' : ''}${percentageChange}% ${isPositive ? 'increase' : 'decrease'}`}
+      className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${
+        isPositive
+          ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+          : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+      }`}
+    >
+      <svg {...stroke} className="w-3.5 h-3.5">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d={isPositive ? 'M3 17l6-6 4 4 8-8M14 7h7v7' : 'M3 7l6 6 4-4 8 8M14 17h7v-7'}
+        />
+      </svg>
       <span>
         {isPositive ? '+' : ''}{percentageChange}%
       </span>

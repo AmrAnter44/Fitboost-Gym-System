@@ -90,6 +90,44 @@ export function generatePalette(baseHex: string): ColorPalette {
 }
 
 /**
+ * Compute a readable text color (#000 or #fff) for a given hex background.
+ * Uses YIQ luminance — light backgrounds get dark text, dark backgrounds get white.
+ */
+export function getContrastText(hex: string): string {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.substring(0, 2), 16)
+  const g = parseInt(h.substring(2, 4), 16)
+  const b = parseInt(h.substring(4, 6), 16)
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000
+  return yiq >= 150 ? '#0F172A' : '#FFFFFF'
+}
+
+export type PrimaryTextOverride = 'auto' | 'white' | 'black'
+
+/**
+ * Apply primary-contrast CSS variables based on user override (or auto from base color)
+ */
+export function applyPrimaryTextOverride(baseHex: string, override: PrimaryTextOverride): void {
+  if (typeof document === 'undefined') return
+  const root = document.documentElement
+  const palette = generatePalette(baseHex)
+
+  let c500: string, c600: string, c700: string
+  if (override === 'white') {
+    c500 = c600 = c700 = '#FFFFFF'
+  } else if (override === 'black') {
+    c500 = c600 = c700 = '#0F172A'
+  } else {
+    c500 = getContrastText(palette['500'].hex)
+    c600 = getContrastText(palette['600'].hex)
+    c700 = getContrastText(palette['700'].hex)
+  }
+  root.style.setProperty('--color-primary-contrast', c500)
+  root.style.setProperty('--color-primary-contrast-600', c600)
+  root.style.setProperty('--color-primary-contrast-700', c700)
+}
+
+/**
  * تطبيق الألوان على CSS variables في document
  */
 export function applyPaletteToDOM(baseHex: string): void {
@@ -100,6 +138,12 @@ export function applyPaletteToDOM(baseHex: string): void {
     root.style.setProperty(`--color-primary-${shade}`, hex)
     root.style.setProperty(`--color-primary-${shade}-rgb`, rgb)
   }
+
+  // Contrast text colors — respect user override if present
+  const override = (typeof localStorage !== 'undefined'
+    ? localStorage.getItem('primaryTextOverride')
+    : null) as PrimaryTextOverride | null
+  applyPrimaryTextOverride(baseHex, override === 'white' || override === 'black' ? override : 'auto')
 }
 
 /**
@@ -144,6 +188,7 @@ export function getColorBlockingScript(): string {
         var hsl = hexToHSL(pc);
         var shades = {50:96,100:91,200:82,300:70,400:58,500:49,600:40,700:32,800:25,900:19,950:11};
         var root = document.documentElement;
+        var contrastForShade = {};
 
         for (var shade in shades) {
           var lgt = shades[shade];
@@ -152,10 +197,25 @@ export function getColorBlockingScript(): string {
           if (lgt < 25) adjS = Math.max(hsl.s * 0.8, 15);
           var hex = hslToHex(hsl.h, adjS, lgt);
           var hx = hex.replace('#', '');
-          var rgb = parseInt(hx.substring(0,2),16)+' '+parseInt(hx.substring(2,4),16)+' '+parseInt(hx.substring(4,6),16);
+          var rN = parseInt(hx.substring(0,2),16);
+          var gN = parseInt(hx.substring(2,4),16);
+          var bN = parseInt(hx.substring(4,6),16);
+          var rgb = rN + ' ' + gN + ' ' + bN;
           root.style.setProperty('--color-primary-' + shade, hex);
           root.style.setProperty('--color-primary-' + shade + '-rgb', rgb);
+          var yiq = (rN * 299 + gN * 587 + bN * 114) / 1000;
+          contrastForShade[shade] = yiq >= 150 ? '#0F172A' : '#FFFFFF';
         }
+
+        // Respect user override (auto / white / black)
+        var override = localStorage.getItem('primaryTextOverride');
+        var c500, c600, c700;
+        if (override === 'white') { c500 = c600 = c700 = '#FFFFFF'; }
+        else if (override === 'black') { c500 = c600 = c700 = '#0F172A'; }
+        else { c500 = contrastForShade['500']; c600 = contrastForShade['600']; c700 = contrastForShade['700']; }
+        root.style.setProperty('--color-primary-contrast', c500);
+        root.style.setProperty('--color-primary-contrast-600', c600);
+        root.style.setProperty('--color-primary-contrast-700', c700);
       } catch(e) {}
     })();
   `

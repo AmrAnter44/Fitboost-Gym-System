@@ -48,8 +48,8 @@ export default function ClosingCharts({ monthlyComparison }: ClosingChartsProps)
   return (
     <>
       {/* Revenue & Expenses Trend Chart */}
-      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-        <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.revenueExpensesTrend')}</h3>
+      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.revenueExpensesTrend')}</h3>
         <ResponsiveContainer width="100%" height={300} className="sm:!h-[350px] md:!h-[400px]">
           <LineChart data={monthlyComparison}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -65,8 +65,8 @@ export default function ClosingCharts({ monthlyComparison }: ClosingChartsProps)
       </div>
 
       {/* Revenue Breakdown Chart */}
-      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-        <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.revenueBreakdown')}</h3>
+      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 md:p-6 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.revenueBreakdown')}</h3>
         <ResponsiveContainer width="100%" height={300} className="sm:!h-[350px] md:!h-[400px]">
           <BarChart data={monthlyComparison}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -81,8 +81,8 @@ export default function ClosingCharts({ monthlyComparison }: ClosingChartsProps)
       </div>
 
       {/* Subscriptions Chart */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.subscriptionsChart')}</h3>
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.subscriptionsChart')}</h3>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={monthlyComparison}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -97,8 +97,8 @@ export default function ClosingCharts({ monthlyComparison }: ClosingChartsProps)
       </div>
 
       {/* Payment Methods Distribution (PieChart) */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.paymentMethodsDistribution')}</h3>
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.paymentMethodsDistribution')}</h3>
         <ResponsiveContainer width="100%" height={400}>
           <PieChart>
             <Pie
@@ -120,8 +120,8 @@ export default function ClosingCharts({ monthlyComparison }: ClosingChartsProps)
       </div>
 
       {/* Cumulative Growth (AreaChart) */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.cumulativeGrowth')}</h3>
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.cumulativeGrowth')}</h3>
         <ResponsiveContainer width="100%" height={400}>
           <AreaChart data={cumulativeData}>
             <defs>
@@ -151,8 +151,8 @@ export default function ClosingCharts({ monthlyComparison }: ClosingChartsProps)
       </div>
 
       {/* Performance Radar Chart */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl dark:hover:shadow-2xl transition-shadow duration-300 border border-transparent dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700">
-        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.performanceRadar')}</h3>
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">{t('closing.comparison.performanceRadar')}</h3>
         <ResponsiveContainer width="100%" height={500}>
           <RadarChart data={monthlyComparison.slice(-6)}>
             <PolarGrid />

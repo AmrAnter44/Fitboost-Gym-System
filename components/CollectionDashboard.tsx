@@ -5,6 +5,50 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 import { usePermissions } from '../hooks/usePermissions'
 
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
+
+const iconRefresh = (
+  <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 0 1 15.5-6.5L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.5L3 16M3 21v-5h5"/>
+  </svg>
+)
+const iconMoney = (
+  <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8v8m0 0v2m0-10V6"/>
+    <circle cx="12" cy="12" r="9"/>
+  </svg>
+)
+const iconUsers = (
+  <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+    <circle cx="9" cy="7" r="4"/>
+  </svg>
+)
+const iconMedal = (
+  <svg {...stroke} className="w-4 h-4" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="15" r="6"/>
+    <path d="m8 9-3-7M16 9l3-7M12 9V2"/>
+  </svg>
+)
+const iconSettings = (
+  <svg {...stroke} className="w-3.5 h-3.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+)
+const iconBriefcase = (
+  <svg {...stroke} className="w-3.5 h-3.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2"/>
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+  </svg>
+)
+const iconUsersLg = (
+  <svg {...stroke} className="w-12 h-12" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+    <circle cx="9" cy="7" r="4"/>
+  </svg>
+)
+
 interface CommissionTier { target: number; rate: number }
 
 interface SalesStaffData {
@@ -14,7 +58,7 @@ interface SalesStaffData {
   position: string | null
   salesCommissionType: 'fixed' | 'tiered' | null
   salesCommissionRate: number | null
-  salesCommissionTiers: string | null   // JSON
+  salesCommissionTiers: string | null // JSON
   collectedThisMonth: number
   leadsCount: number
   leads: Array<{
@@ -66,11 +110,11 @@ export default function CollectionDashboard() {
   const [loading, setLoading] = useState(true)
   const [expandedStaff, setExpandedStaff] = useState<string | null>(null)
 
-  // 📅 Date range filter — defaults to current month
+  // Date range filter — defaults to current month
   const todayDate = new Date()
   const firstOfMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1)
   const lastOfMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0)
-  // ⚠️ مش نستخدم toISOString() عشان بتـ shift للتوقيت العالمي؛ هنبني YYYY-MM-DD محلياً
+  // مش نستخدم toISOString() عشان بتـ shift للتوقيت العالمي؛ هنبني YYYY-MM-DD محلياً
   const fmt = (d: Date) => {
     const y = d.getFullYear()
     const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -109,7 +153,7 @@ export default function CollectionDashboard() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // ✅ إعادة الجلب تلقائياً لما يتم نقل ميمبر/أعضاء لسيلز تاني
+  // إعادة الجلب تلقائياً لما يتم نقل ميمبر/أعضاء لسيلز تاني
   // (يطلق من SalesMgmtPanel أو من صفحة تعديل العضو)
   useEffect(() => {
     const handler = () => { fetchData() }
@@ -207,7 +251,7 @@ export default function CollectionDashboard() {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse h-40 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div key={i} className="skeleton-shimmer h-40 rounded-xl" />
         ))}
       </div>
     )
@@ -223,64 +267,86 @@ export default function CollectionDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* 📅 Date Range Filter */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+      {/* Date Range Filter */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">{ar ? 'من' : 'From'}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{ar ? 'من' : 'From'}</label>
             <input
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">{ar ? 'إلى' : 'To'}</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{ar ? 'إلى' : 'To'}</label>
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
-            <button onClick={() => setQuickRange('today')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <button onClick={() => setQuickRange('today')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
               {ar ? 'اليوم' : 'Today'}
             </button>
-            <button onClick={() => setQuickRange('this-week')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <button onClick={() => setQuickRange('this-week')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
               {ar ? 'هذا الأسبوع' : 'This Week'}
             </button>
-            <button onClick={() => setQuickRange('this-month')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <button onClick={() => setQuickRange('this-month')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
               {ar ? 'الشهر الحالي' : 'This Month'}
             </button>
-            <button onClick={() => setQuickRange('last-month')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <button onClick={() => setQuickRange('last-month')} className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
               {ar ? 'الشهر الماضي' : 'Last Month'}
             </button>
           </div>
           <button
             onClick={() => fetchData()}
             disabled={loading}
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
+            className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary-500 hover:bg-primary-600 text-primary-contrast disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-1.5"
           >
-            {loading ? '...' : (ar ? '🔄 تحديث' : '🔄 Refresh')}
+            {iconRefresh}
+            <span>{loading ? '...' : (ar ? 'تحديث' : 'Refresh')}</span>
           </button>
         </div>
       </div>
 
       {/* Summary header */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl p-4 text-center">
-          <p className="text-sm text-green-600 dark:text-green-400 mb-1">{ar ? 'المحصّل' : 'Collected'} ({monthName})</p>
-          <p className="text-2xl font-bold text-green-700 dark:text-green-300">{totalCollected.toLocaleString()} {ar ? 'ج' : 'EGP'}</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{ar ? 'المحصّل' : 'Collected'} ({monthName})</div>
+              <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{totalCollected.toLocaleString()} {ar ? 'ج' : 'EGP'}</div>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center justify-center shrink-0">
+              {iconMoney}
+            </div>
+          </div>
         </div>
-        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl p-4 text-center">
-          <p className="text-sm text-purple-600 dark:text-purple-400 mb-1">{ar ? 'العمولة المستحقة' : 'Commission Earned'}</p>
-          <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{Math.round(totalCommission).toLocaleString()} {ar ? 'ج' : 'EGP'}</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{ar ? 'العمولة المستحقة' : 'Commission Earned'}</div>
+              <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{Math.round(totalCommission).toLocaleString()} {ar ? 'ج' : 'EGP'}</div>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 flex items-center justify-center shrink-0">
+              {iconMoney}
+            </div>
+          </div>
         </div>
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4 text-center">
-          <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">{ar ? 'الليدز النشطة' : 'Active Leads'}</p>
-          <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{displayData.reduce((s, d) => s + d.leadsCount, 0)}</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{ar ? 'الليدز النشطة' : 'Active Leads'}</div>
+              <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{displayData.reduce((s, d) => s + d.leadsCount, 0)}</div>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex items-center justify-center shrink-0">
+              {iconUsers}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -291,7 +357,7 @@ export default function CollectionDashboard() {
         const isEditingComm = editingCommission === staff.staffId
 
         return (
-          <div key={staff.staffId} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div key={staff.staffId} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
             <div className="p-5 space-y-4">
               {/* Header row */}
               <div className="flex items-center justify-between flex-wrap gap-3">
@@ -314,9 +380,10 @@ export default function CollectionDashboard() {
 
               {/* Commission summary */}
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex gap-3 text-sm flex-wrap">
-                  <span className="text-purple-700 dark:text-purple-300 font-semibold">
-                    💰 {ar ? 'العمولة:' : 'Commission:'} {Math.round(commission).toLocaleString()} {ar ? 'ج' : 'EGP'}
+                <div className="flex gap-3 text-sm flex-wrap items-center">
+                  <span className="text-purple-700 dark:text-purple-300 font-semibold inline-flex items-center gap-1">
+                    {iconMoney}
+                    <span>{ar ? 'العمولة:' : 'Commission:'} {Math.round(commission).toLocaleString()} {ar ? 'ج' : 'EGP'}</span>
                     {staff.salesCommissionType === 'fixed' && staff.salesCommissionRate != null && (
                       <span className="text-gray-500 dark:text-gray-400 font-normal"> ({staff.salesCommissionRate}%)</span>
                     )}
@@ -324,23 +391,30 @@ export default function CollectionDashboard() {
                       <span className="text-gray-500 dark:text-gray-400 font-normal"> ({ar ? 'شرائح' : 'tiered'})</span>
                     )}
                     {!staff.salesCommissionType && (
-                      <span className="text-gray-400 font-normal"> — {ar ? 'غير محددة' : 'not set'}</span>
+                      <span className="text-gray-500 dark:text-gray-400 font-normal"> — {ar ? 'غير محددة' : 'not set'}</span>
                     )}
                   </span>
-                  <span className="text-blue-600 dark:text-blue-400">👥 {staff.leadsCount} {ar ? 'ليد' : 'leads'}</span>
-                  <span className="text-emerald-600 dark:text-emerald-400">🏅 {staff.membersCount} {ar ? 'عضو' : 'members'}</span>
+                  <span className="text-blue-600 dark:text-blue-400 inline-flex items-center gap-1">
+                    {iconUsers}
+                    <span>{staff.leadsCount} {ar ? 'ليد' : 'leads'}</span>
+                  </span>
+                  <span className="text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                    {iconMedal}
+                    <span>{staff.membersCount} {ar ? 'عضو' : 'members'}</span>
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   {!isSales && (
                     <button onClick={() => isEditingComm ? setEditingCommission(null) : openCommEditor(staff)}
-                      className="text-xs px-3 py-1 border border-purple-300 dark:border-purple-600 text-purple-600 dark:text-purple-400 rounded hover:bg-purple-50 dark:hover:bg-purple-900/20">
-                      ⚙️ {ar ? 'إعداد العمولة' : 'Commission Setup'}
+                      className="text-xs px-3 py-1.5 ring-1 ring-purple-300 dark:ring-purple-700 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors duration-200 inline-flex items-center gap-1.5">
+                      {iconSettings}
+                      <span>{ar ? 'إعداد العمولة' : 'Commission Setup'}</span>
                     </button>
                   )}
                   {(staff.leadsCount > 0 || staff.membersCount > 0) && (
                     <button onClick={() => setExpandedStaff(isExpanded ? null : staff.staffId)}
-                      className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
-                      {isExpanded ? (ar ? 'إخفاء ▲' : 'Hide ▲') : (ar ? 'تفاصيل ▼' : 'Details ▼')}
+                      className="text-xs text-primary-600 dark:text-primary-400 hover:underline transition-colors duration-200">
+                      {isExpanded ? (ar ? 'إخفاء' : 'Hide') : (ar ? 'تفاصيل' : 'Details')}
                     </button>
                   )}
                 </div>
@@ -348,8 +422,11 @@ export default function CollectionDashboard() {
 
               {/* Commission editor (admin only) */}
               {isEditingComm && !isSales && (
-                <div className="border border-purple-200 dark:border-purple-700 rounded-lg p-4 bg-purple-50 dark:bg-purple-900/10 space-y-3">
-                  <p className="font-semibold text-purple-800 dark:text-purple-200 text-sm">⚙️ {ar ? 'إعداد نظام العمولة' : 'Commission Setup'}</p>
+                <div className="ring-1 ring-purple-200 dark:ring-purple-900/50 rounded-lg p-4 bg-purple-50 dark:bg-purple-900/10 space-y-3">
+                  <p className="font-semibold text-purple-800 dark:text-purple-200 text-sm inline-flex items-center gap-1.5">
+                    {iconSettings}
+                    <span>{ar ? 'إعداد نظام العمولة' : 'Commission Setup'}</span>
+                  </p>
 
                   {/* Type selector */}
                   <div className="flex gap-2 flex-wrap">
@@ -360,7 +437,7 @@ export default function CollectionDashboard() {
                     ].map(opt => (
                       <button key={opt.val}
                         onClick={() => setCommForm(prev => ({ ...prev, type: opt.val as any }))}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors duration-200 ${
                           commForm.type === opt.val
                             ? 'bg-purple-600 text-white border-purple-600'
                             : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:border-purple-400'
@@ -416,7 +493,7 @@ export default function CollectionDashboard() {
                           <span className="text-xs text-gray-500">%</span>
                           {commForm.tiers.length > 1 && (
                             <button onClick={() => setCommForm(prev => ({ ...prev, tiers: prev.tiers.filter((_, i) => i !== idx) }))}
-                              className="text-red-400 hover:text-red-600 text-xs px-1">✕</button>
+                              className="text-red-400 hover:text-red-600 text-xs px-1"></button>
                           )}
                         </div>
                       ))}
@@ -449,20 +526,23 @@ export default function CollectionDashboard() {
 
             {/* Expanded details */}
             {isExpanded && (
-              <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-800/50 grid md:grid-cols-2 gap-6">
+              <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-900/40 grid md:grid-cols-2 gap-6">
                 {staff.leadsCount > 0 && (
                   <div>
-                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">👥 {ar ? 'الليدز النشطة' : 'Active Leads'}</h4>
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3 inline-flex items-center gap-1.5">
+                      {iconUsers}
+                      <span>{ar ? 'الليدز النشطة' : 'Active Leads'}</span>
+                    </h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {staff.leads.map(lead => {
                         const stage = STAGE_LABELS[lead.stage] || STAGE_LABELS.new
                         return (
-                          <div key={lead.id} className="bg-white dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between gap-2">
+                          <div key={lead.id} className="bg-white dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between gap-2 ring-1 ring-gray-200 dark:ring-gray-700">
                             <div>
                               <p className="font-medium text-sm text-gray-900 dark:text-gray-100">{lead.visitorName}</p>
                               <p className="text-xs text-gray-500 dark:text-gray-400">{lead.visitorPhone}</p>
                             </div>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stage.color}`}>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${stage.color}`}>
                               {ar ? stage.ar : stage.en}
                             </span>
                           </div>
@@ -473,23 +553,26 @@ export default function CollectionDashboard() {
                 )}
                 {staff.membersCount > 0 && (
                   <div>
-                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">🏅 {ar ? 'الأعضاء المحوّلون' : 'Converted Members'}</h4>
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3 inline-flex items-center gap-1.5">
+                      {iconMedal}
+                      <span>{ar ? 'الأعضاء المحوّلون' : 'Converted Members'}</span>
+                    </h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {staff.members.map(member => (
-                        <div key={member.id} className="bg-white dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between gap-2">
+                        <div key={member.id} className="bg-white dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between gap-2 ring-1 ring-gray-200 dark:ring-gray-700">
                           <div>
                             <p className="font-medium text-sm text-gray-900 dark:text-gray-100">
                               {member.memberNumber ? `#${member.memberNumber} ` : ''}{member.name}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">{member.phone}</p>
                           </div>
-                          <div className="text-right">
+                          <div className="text-end">
                             {member.collectedThisMonth > 0 && (
                               <p className="text-xs font-bold text-green-600 dark:text-green-400">
                                 +{member.collectedThisMonth.toLocaleString()} {ar ? 'ج' : 'EGP'}
                               </p>
                             )}
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${member.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${member.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
                               {member.isActive ? (ar ? 'نشط' : 'Active') : (ar ? 'منتهي' : 'Expired')}
                             </span>
                           </div>
@@ -505,9 +588,11 @@ export default function CollectionDashboard() {
       })}
 
       {displayData.length === 0 && (
-        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-          <p className="text-4xl mb-3">👥</p>
-          <p>{ar ? 'لا يوجد بيانات' : 'No data found'}</p>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="text-gray-400 dark:text-gray-500">
+            {iconUsersLg}
+          </div>
+          <p className="mt-3 text-gray-600 dark:text-gray-300 font-bold">{ar ? 'لا يوجد بيانات' : 'No data found'}</p>
         </div>
       )}
     </div>
