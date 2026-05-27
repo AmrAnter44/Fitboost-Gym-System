@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canViewVisitors')
 
     const body = await request.json()
-    const { name, phone, notes, source, interestedIn, salesStaffId } = body
+    const { name, phone, notes, source, interestedIn, salesStaffId, referrerMemberNumber } = body
 
     // التحقق من البيانات المطلوبة
     if (!name || !phone) {
@@ -177,10 +177,11 @@ export async function POST(request: Request) {
           name: name.trim(),
           phone: phone.trim(),
           notes: notes?.trim(),
-          source: source || 'walk-in', // walk-in, facebook, instagram, friend, other
+          source: source || 'walk-in', // walk-in, call-in, suggestion, facebook, instagram, tiktok, website, friend_referral
           interestedIn: interestedIn?.trim(),
           status: 'pending', // pending, contacted, subscribed, rejected
-        },
+          referrerMemberNumber: typeof referrerMemberNumber === 'string' && referrerMemberNumber.trim() ? referrerMemberNumber.trim() : null,
+        } as any,
       })
 
       await tx.followUp.create({

@@ -428,6 +428,13 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
       }
     }
 
+    // 🚫 المصدر إجباري
+    if (!formData.source || formData.source.trim() === '') {
+      toast.error(t('members.form.sourceRequiredError'))
+      setLoading(false)
+      return
+    }
+
     const cleanedData = {
       ...formData,
       isOther: formData.isOther,
@@ -673,66 +680,6 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           )}
         </div>
 
-        {/* حقل رقم العضو المُحيل - يظهر فقط إذا كان نظام النقاط مفعّل */}
-        {settings?.pointsEnabled && settings?.pointsPerReferral > 0 && (
-          <div>
-            <label className="flex items-center text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 gap-1.5">
-              <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              {t('members.referralMemberNumber')}
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.referralMemberNumber}
-                onChange={(e) => setFormData({ ...formData, referralMemberNumber: e.target.value })}
-                className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 transition-colors duration-200 ${
-                  referrerInfo
-                    ? 'border-green-500 dark:border-green-600 focus:ring-green-500'
-                    : referrerError
-                    ? 'border-red-500 dark:border-red-600 focus:ring-red-500'
-                    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
-                }`}
-                placeholder={t('members.referralMemberNumberPlaceholder')}
-                dir="ltr"
-              />
-              {referrerLoading && (
-                <div className="absolute end-3 top-1/2 -translate-y-1/2">
-                  <svg className="animate-spin h-4 w-4 text-primary-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                </div>
-              )}
-            </div>
-
-            {/* Display referrer name in green when found */}
-            {referrerInfo && (
-              <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/30 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg">
-                <p className="text-sm font-bold text-green-700 dark:text-green-400 flex items-center gap-2">
-                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-                  <span>{referrerInfo.name} (#{referrerInfo.memberNumber})</span>
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                  {t('members.referrerWillReceive')} {settings.pointsPerReferral} {t('members.pointsLabel')}
-                </p>
-              </div>
-            )}
-
-            {/* Display error message in red when member not found */}
-            {referrerError && formData.referralMemberNumber.trim() !== '' && (
-              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/30 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg">
-                <p className="text-sm font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
-                  <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                  <span>{referrerError}</span>
-                </p>
-              </div>
-            )}
-
-            {/* Display help text when no validation result */}
-            {!referrerInfo && !referrerError && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {t('members.referralMemberNumberHelp')} ({settings.pointsPerReferral} {t('members.pointsLabel')})
-              </p>
-            )}
-          </div>
-        )}
 
         {nextReceiptNumber && (
           <div className="bg-green-50 dark:bg-green-900/30 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg p-2 mb-3">
@@ -887,21 +834,97 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.sourceOptional')}</label>
-            <select
-              value={formData.source}
-              onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-            >
-              <option value="">{t('members.form.selectSource')}</option>
-              <option value="walk-in">{t('members.form.sourceWalkIn')}</option>
-              <option value="call-in">{t('members.form.sourceCallIn')}</option>
-              <option value="facebook">{t('members.form.sourceFacebook')}</option>
-              <option value="instagram">{t('members.form.sourceInstagram')}</option>
-              <option value="tiktok">{t('members.form.sourceTiktok')}</option>
-              <option value="google_maps">{t('members.form.sourceGoogleMaps')}</option>
-              <option value="friend_referral">{t('members.form.sourceFriendReferral')}</option>
-            </select>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              {t('members.form.sourceRequired')} <span className="text-red-500">*</span>
+            </label>
+            {/* select أنيق — chevron مخصص، focus ناعم بدون ring أحمر */}
+            <div className="relative">
+              <select
+                required
+                value={formData.source}
+                onChange={(e) => {
+                  const next = e.target.value
+                  setFormData({
+                    ...formData,
+                    source: next,
+                    ...(next !== 'friend_referral' ? { referralMemberNumber: '' } : {}),
+                  })
+                }}
+                className="w-full appearance-none ps-3 pe-10 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/60 text-gray-900 dark:text-gray-100 text-sm font-medium shadow-inner hover:bg-white dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-blue-400 dark:focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all duration-200 cursor-pointer"
+              >
+                <option value="">{t('members.form.selectSource')}</option>
+                <option value="walk-in">{t('members.form.sourceWalkIn')}</option>
+                <option value="call-in">{t('members.form.sourceCallIn')}</option>
+                <option value="suggestion">{t('members.form.sourceSuggestion')}</option>
+                <option value="facebook">{t('members.form.sourceFacebook')}</option>
+                <option value="instagram">{t('members.form.sourceInstagram')}</option>
+                <option value="tiktok">{t('members.form.sourceTiktok')}</option>
+                <option value="website">{t('members.form.sourceWebsite')}</option>
+                <option value="friend_referral">{t('members.form.sourceFriendReferral')}</option>
+                {/* احتفظ بالقيمة القديمة لو العضو متسجّل قبل كده بـ source غير موجود في القائمة الجديدة */}
+                {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','website','friend_referral'].includes(formData.source) && (
+                  <option value={formData.source}>{formData.source}</option>
+                )}
+              </select>
+              {/* chevron container بـ background صغير عشان يبان أنيق */}
+              <div className="absolute end-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-white dark:bg-gray-600 shadow-sm flex items-center justify-center pointer-events-none">
+                <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" {...stroke}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
+            </div>
+
+            {/* 👥 حقل ID اللي جاب العضو — يظهر تحت لما friend_referral مختار */}
+            {formData.source === 'friend_referral' && (
+              <div className="mt-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.referralMemberNumber}
+                    onChange={(e) => setFormData({ ...formData, referralMemberNumber: e.target.value })}
+                    className={`w-full px-3 py-2.5 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm shadow-sm focus:outline-none focus:ring-2 transition-colors duration-200 font-mono ${
+                      referrerInfo
+                        ? 'border-green-500 dark:border-green-600 focus:ring-green-500'
+                        : referrerError
+                        ? 'border-red-500 dark:border-red-600 focus:ring-red-500'
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
+                    }`}
+                    placeholder={`👥 ${t('members.referralMemberNumberPlaceholder')}`}
+                    dir="ltr"
+                  />
+                  {referrerLoading && (
+                    <div className="absolute end-3 top-1/2 -translate-y-1/2">
+                      <svg className="animate-spin h-4 w-4 text-primary-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </div>
+                  )}
+                </div>
+
+                {referrerInfo && (
+                  <p className="mt-1.5 text-xs font-bold text-green-700 dark:text-green-400 inline-flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    <span>{referrerInfo.name} (#{referrerInfo.memberNumber})</span>
+                    {settings?.pointsEnabled && (settings?.pointsPerReferral ?? 0) > 0 && (
+                      <span className="text-gray-500 dark:text-gray-400 font-normal ms-1">
+                        — {t('members.referrerWillReceive')} {settings.pointsPerReferral} {t('members.pointsLabel')}
+                      </span>
+                    )}
+                  </p>
+                )}
+                {referrerError && formData.referralMemberNumber.trim() !== '' && (
+                  <p className="mt-1.5 text-xs font-bold text-red-700 dark:text-red-400 inline-flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    {referrerError}
+                  </p>
+                )}
+                {!referrerInfo && !referrerError && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                    {settings?.pointsEnabled && (settings?.pointsPerReferral ?? 0) > 0
+                      ? `${t('members.referralMemberNumberHelp')} (${settings.pointsPerReferral} ${t('members.pointsLabel')})`
+                      : t('members.form.referrerIdHelp')}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div>

@@ -50,6 +50,8 @@ export default function PTSessionHistoryPage() {
   const [filterPTNumber, setFilterPTNumber] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  // 🎁 فلتر نوع الجلسة: all / paid (مش مجانية) / free (مجانية)
+  const [sessionTypeFilter, setSessionTypeFilter] = useState<'all' | 'paid' | 'free'>('all')
   const [viewingSignature, setViewingSignature] = useState<string | null>(null)
 
   const isCoach = user?.role === 'COACH'
@@ -109,7 +111,8 @@ export default function PTSessionHistoryPage() {
     }
   }
 
-  const filteredSessions = sessions.filter(session => {
+  // الجلسات اللي بتطابق كل الفلاتر ما عدا فلتر نوع الجلسة — عشان نحسب الـ counts الصحيحة للأزرار
+  const sessionsMatchingOtherFilters = sessions.filter(session => {
     const term = debouncedSearchTerm.toLowerCase()
     const matchesSearch = !term ||
       (session.clientName && session.clientName.toLowerCase().includes(term)) ||
@@ -127,6 +130,44 @@ export default function PTSessionHistoryPage() {
 
     let matchesDateFrom = true
     if (dateFrom) {
+      const fromDate = new Date(dateFrom); fromDate.setHours(0, 0, 0, 0)
+      matchesDateFrom = sessionDate >= fromDate
+    }
+    let matchesDateTo = true
+    if (dateTo) {
+      const toDate = new Date(dateTo); toDate.setHours(23, 59, 59, 999)
+      matchesDateTo = sessionDate <= toDate
+    }
+    return matchesSearch && matchesPTNumber && matchesDateFrom && matchesDateTo
+  })
+
+  const paidCount = sessionsMatchingOtherFilters.filter(s => !s.isFreeSession).length
+  const freeCount = sessionsMatchingOtherFilters.filter(s => !!s.isFreeSession).length
+  const allCount = sessionsMatchingOtherFilters.length
+
+  const filteredSessions = sessions.filter(session => {
+    const term = debouncedSearchTerm.toLowerCase()
+    const matchesSearch = !term ||
+      (session.clientName && session.clientName.toLowerCase().includes(term)) ||
+      (session.coachName && session.coachName.toLowerCase().includes(term)) ||
+      (session.ptNumber && session.ptNumber.toString().includes(term)) ||
+      (session.member?.name && session.member.name.toLowerCase().includes(term)) ||
+      (session.member?.memberNumber && session.member.memberNumber.toString().includes(term))
+
+    const matchesPTNumber = !filterPTNumber || (session.ptNumber && session.ptNumber.toString() === filterPTNumber)
+
+    // 🎁 فلتر نوع الجلسة (مجانية / مدفوعة)
+    let matchesSessionType = true
+    if (sessionTypeFilter === 'free') matchesSessionType = !!session.isFreeSession
+    else if (sessionTypeFilter === 'paid') matchesSessionType = !session.isFreeSession
+
+    const sessionDate = session.sessionDate ? new Date(session.sessionDate) : null
+    if (!sessionDate || isNaN(sessionDate.getTime())) {
+      return matchesSearch && matchesPTNumber && matchesSessionType && !dateFrom && !dateTo
+    }
+
+    let matchesDateFrom = true
+    if (dateFrom) {
       const fromDate = new Date(dateFrom)
       fromDate.setHours(0, 0, 0, 0)
       matchesDateFrom = sessionDate >= fromDate
@@ -139,7 +180,7 @@ export default function PTSessionHistoryPage() {
       matchesDateTo = sessionDate <= toDate
     }
 
-    return matchesSearch && matchesPTNumber && matchesDateFrom && matchesDateTo
+    return matchesSearch && matchesPTNumber && matchesSessionType && matchesDateFrom && matchesDateTo
   })
 
   const totalSessions = filteredSessions.length
@@ -219,7 +260,55 @@ export default function PTSessionHistoryPage() {
           {t('pt.sessionHistory.filtersAndSearch')}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* 🎯 فلتر نوع الجلسة — Segmented control */}
+        <div className="mb-4">
+          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">نوع الجلسة</label>
+          <div
+            role="tablist"
+            aria-label="فلتر نوع الجلسة"
+            className="inline-flex flex-wrap gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-900/60 ring-1 ring-gray-200 dark:ring-gray-700"
+          >
+            {([
+              { key: 'all',  label: 'الكل',         count: allCount,  icon: (
+                <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6h16.5M3.75 12h16.5m-16.5 6h16.5"/></svg>
+              ) },
+              { key: 'paid', label: 'مدفوعة',       count: paidCount, icon: (
+                <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              ) },
+              { key: 'free', label: 'مجانية',        count: freeCount, icon: (
+                <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+              ) },
+            ] as const).map(opt => {
+              const active = sessionTypeFilter === opt.key
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setSessionTypeFilter(opt.key)}
+                  className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-900 ${
+                    active
+                      ? 'bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-300 shadow ring-1 ring-primary-300 dark:ring-primary-700'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-white/50 dark:hover:bg-gray-800/50'
+                  }`}
+                >
+                  {opt.icon}
+                  <span>{opt.label}</span>
+                  <span className={`inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full text-[11px] font-bold tabular-nums ${
+                    active
+                      ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                  }`}>
+                    {opt.count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('pt.sessionHistory.generalSearch')}</label>
             <input
@@ -263,13 +352,14 @@ export default function PTSessionHistoryPage() {
           </div>
         </div>
 
-        {(searchTerm || filterPTNumber || dateFrom || dateTo) && (
+        {(searchTerm || filterPTNumber || dateFrom || dateTo || sessionTypeFilter !== 'all') && (
           <button
             onClick={() => {
               setSearchTerm('')
               setFilterPTNumber('')
               setDateFrom('')
               setDateTo('')
+              setSessionTypeFilter('all')
             }}
             className="mt-4 inline-flex items-center gap-1 text-sm text-primary-700 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 transition-colors duration-200"
           >
