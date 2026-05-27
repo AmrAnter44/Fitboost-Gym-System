@@ -161,16 +161,17 @@ model DayUseInBody {
 }
 
 model Visitor {
-  id           String     @id @default(cuid())
-  name         String
-  phone        String     @unique
-  notes        String?
-  source       String     @default("walk-in")
-  interestedIn String?
-  status       String     @default("pending")
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  followUps    FollowUp[]
+  id                   String     @id @default(cuid())
+  name                 String
+  phone                String     @unique
+  notes                String?
+  source               String     @default("walk-in")
+  interestedIn         String?
+  status               String     @default("pending")
+  referrerMemberNumber String?    // 👥 رقم العضو اللي جاب الزائر (للـ tracking لما النقاط معطلة)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  followUps            FollowUp[]
 
   @@index([status])
   @@index([createdAt])

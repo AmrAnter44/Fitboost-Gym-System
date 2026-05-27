@@ -12,6 +12,7 @@ import { fetchVisitors, fetchFollowUps } from '../../lib/api/visitors'
 import { fetchMembers } from '../../lib/api/members'
 import { useDebounce } from '../../hooks/useDebounce'
 import { usePermissions } from '../../hooks/usePermissions'
+import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -52,6 +53,7 @@ export default function VisitorsPage() {
   const { t, direction } = useLanguage()
   const toast = useToast()
   const { user } = usePermissions()
+  const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
 
   // Filters
@@ -190,6 +192,7 @@ export default function VisitorsPage() {
     source: 'walk-in',
     interestedIn: '',
     salesStaffId: '',
+    referrerMemberNumber: '', // 👥 رقم العضو اللي جاب الزائر (اختياري)
   })
 
   // جلب موظفي السيلز واقتراح الأقل تحميلاً
@@ -310,7 +313,7 @@ export default function VisitorsPage() {
 
       if (response.ok) {
         const leastLoadedId = salesStaff.length > 0 ? salesStaff[0].id : ''
-        setFormData({ name: '', phone: '', notes: '', source: 'walk-in', interestedIn: '', salesStaffId: leastLoadedId })
+        setFormData({ name: '', phone: '', notes: '', source: 'walk-in', interestedIn: '', salesStaffId: leastLoadedId, referrerMemberNumber: '' })
         toast.success(t('visitors.messages.addSuccess'))
 
         // تحديث جميع الصفحات المرتبطة بالزوار والمتابعات
@@ -647,19 +650,59 @@ export default function VisitorsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('visitors.form.source')}</label>
-                <select
-                  value={formData.source}
-                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                >
-                  <option value="walk-in">{t('visitors.sources.walkIn')}</option>
-                  <option value="call-in">{t('visitors.sources.callIn')}</option>
-                  <option value="facebook">{t('visitors.sources.facebook')}</option>
-                  <option value="instagram">{t('visitors.sources.instagram')}</option>
-                  <option value="friend">{t('visitors.sources.friend')}</option>
-                  <option value="other">{t('visitors.sources.other')}</option>
-                </select>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {t('visitors.form.source')} <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    required
+                    value={formData.source}
+                    onChange={(e) => {
+                      const next = e.target.value
+                      setFormData({
+                        ...formData,
+                        source: next,
+                        ...(next !== 'friend_referral' ? { referrerMemberNumber: '' } : {}),
+                      })
+                    }}
+                    className="w-full appearance-none ps-3 pe-10 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/60 text-gray-900 dark:text-gray-100 text-sm font-medium shadow-inner hover:bg-white dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-blue-400 dark:focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all duration-200 cursor-pointer"
+                  >
+                    <option value="">{t('members.form.selectSource')}</option>
+                    <option value="walk-in">{t('visitors.sources.walkIn')}</option>
+                    <option value="call-in">{t('visitors.sources.callIn')}</option>
+                    <option value="suggestion">{t('visitors.sources.suggestion')}</option>
+                    <option value="facebook">{t('visitors.sources.facebook')}</option>
+                    <option value="instagram">{t('visitors.sources.instagram')}</option>
+                    <option value="tiktok">{t('visitors.sources.tiktok')}</option>
+                    <option value="website">{t('visitors.sources.website')}</option>
+                    <option value="friend_referral">{t('visitors.sources.friendReferral')}</option>
+                    {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','website','friend_referral'].includes(formData.source) && (
+                      <option value={formData.source}>{formData.source === 'friend' ? t('visitors.sources.friend') : formData.source === 'other' ? t('visitors.sources.other') : formData.source}</option>
+                    )}
+                  </select>
+                  <div className="absolute end-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-white dark:bg-gray-600 shadow-sm flex items-center justify-center pointer-events-none">
+                    <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 text-gray-600 dark:text-gray-300">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </div>
+                </div>
+
+                {/* 👥 حقل ID اللي جاب الزائر — يظهر تحت لما friend_referral مختار */}
+                {formData.source === 'friend_referral' && (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      value={formData.referrerMemberNumber}
+                      onChange={(e) => setFormData({ ...formData, referrerMemberNumber: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 font-mono"
+                      placeholder={`👥 ${t('members.referralMemberNumberPlaceholder')}`}
+                      dir="ltr"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                      {t('members.form.referrerIdHelp')}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>
