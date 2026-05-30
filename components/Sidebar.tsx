@@ -169,9 +169,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       title: t('nav.management'),
       links: [
         { href: '/staff', label: t('nav.staff'), icon: NavIcons.staff, permission: 'canViewStaff' as keyof Permissions },
-        ...((user?.role === 'OWNER' || user?.role === 'ADMIN') ? [
-          { href: '/staff/schedule', label: locale === 'ar' ? 'الجدول والإجازات' : 'Schedule & Leaves', icon: NavIcons.schedule, permission: null },
-        ] : []),
         ...(user?.staffId && user?.role !== 'OWNER' && user?.role !== 'ADMIN' ? [
           { href: '/my-payslips', label: locale === 'ar' ? 'مرتباتي' : 'My Payslips', icon: NavIcons.myPayslips, permission: null },
         ] : []),
