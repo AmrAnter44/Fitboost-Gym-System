@@ -24,8 +24,8 @@ ALTER TABLE "Permission" ADD COLUMN "canEditGroupClass" BOOLEAN NOT NULL DEFAULT
 ALTER TABLE "Permission" ADD COLUMN "canDeleteGroupClass" BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE "Permission" ADD COLUMN "canRegisterClassAttendance" BOOLEAN NOT NULL DEFAULT false;
 
--- Delete Staff Permission
-ALTER TABLE "Permission" ADD COLUMN "canDeleteStaff" BOOLEAN NOT NULL DEFAULT false;
+-- Delete Staff Permission (column already added in init migration — kept here as no-op)
+-- ALTER TABLE "Permission" ADD COLUMN "canDeleteStaff" BOOLEAN NOT NULL DEFAULT false; -- removed: duplicate
 
 -- Expense Permissions
 ALTER TABLE "Permission" ADD COLUMN "canViewExpenses" BOOLEAN NOT NULL DEFAULT false;

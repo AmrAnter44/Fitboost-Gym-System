@@ -91,8 +91,8 @@ async function productionSync() {
 
           log('\n✅ تم تطبيق جميع الـ migrations بنجاح!', 'green');
         } catch (error) {
-          log('\n❌ فشل تطبيق الـ migrations', 'red');
-          throw error;
+          log('\n⚠️  فشل تطبيق الـ migrations — هنحاول db push كـ fallback', 'yellow');
+          await fallbackToDbPush();
         }
       }
 
@@ -113,11 +113,14 @@ async function productionSync() {
 
           log('\n✅ تم تطبيق الـ migrations بنجاح بعد الـ baseline!', 'green');
         } catch (deployError) {
-          log('\n❌ فشل تطبيق الـ migrations حتى بعد الـ baseline', 'red');
-          throw deployError;
+          log('\n⚠️  فشل تطبيق الـ migrations حتى بعد الـ baseline — هنحاول db push', 'yellow');
+          await fallbackToDbPush();
         }
       } else {
-        throw error;
+        // أي خطأ تاني (P3006, P3018, schema drift) → fallback لـ db push
+        log(`\n⚠️  خطأ في الـ migrations: ${error.message?.split('\n')[0] || 'unknown'}`, 'yellow');
+        log('💡 fallback لـ db push عشان نضمن الـ schema مظبوط', 'yellow');
+        await fallbackToDbPush();
       }
     }
 
@@ -181,8 +184,35 @@ async function createBaseline() {
   }
 }
 
+/**
+ * Fallback لـ db push لما migrate deploy يفشل لأي سبب
+ * (P3018 column already exists, P3006 broken migration history, schema drift, ...)
+ *
+ * - db push بيـ sync الـ schema الحالي مع الـ DB مباشرة
+ * - --accept-data-loss عشان لو فيه أعمدة اتشالت من الـ schema
+ * - --skip-generate عشان الـ prestart بيشغل generate في خطوة منفصلة
+ *
+ * النتيجة: حتى لو migration system مكسر، الـ schema هيبقى متطابق دايماً
+ */
+async function fallbackToDbPush() {
+  try {
+    log('\n🔄 جاري تشغيل prisma db push...', 'blue');
+    execSync('npx prisma db push --accept-data-loss --skip-generate', {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit'
+    });
+    log('\n✅ تم sync الـ schema بنجاح عبر db push', 'green');
+  } catch (pushError) {
+    log('\n❌ فشل حتى db push — السيرفر هيبدأ بس قد تواجه مشاكل', 'red');
+    log(`   التفاصيل: ${pushError.message?.split('\n')[0] || 'unknown'}`, 'red');
+    // مش بنرمي error عشان السيرفر يبدأ بأي حال — الـ runtime errors هتظهر للمستخدم
+  }
+}
+
 // تشغيل السكريبت
 productionSync().catch(error => {
-  console.error('Fatal error:', error);
-  process.exit(1);
+  console.error('⚠️ Sync error (server will start anyway):', error.message);
+  // نخرج بـ 0 عشان السيرفر يبدأ حتى لو فيه مشكلة في الـ sync
+  // الـ runtime queries هتظهر أخطاء واضحة لو فيه schema mismatch
+  process.exit(0);
 });

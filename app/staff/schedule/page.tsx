@@ -16,7 +16,7 @@ const MONTH_NAMES_EN = ['January', 'February', 'March', 'April', 'May', 'June', 
 const DAY_NAMES_AR = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت']
 const DAY_NAMES_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-interface Staff { id: string; name: string; staffCode: string; shiftStartTime: string | null; shiftEndTime: string | null; monthlyVacationDays?: number | null }
+interface Staff { id: string; name: string; staffCode: string; shiftStartTime: string | null; shiftEndTime: string | null; monthlyVacationDays?: number | null; salary?: number | null }
 interface Shift { id: string; staffId: string; date: string; startTime: string; endTime: string; staff: Staff }
 interface Leave { id: string; staffId: string; startDate: string; endDate: string; type: string; isPaid: boolean; staff: Staff; status?: string }
 interface Holiday { id: string; date: string; name: string; isPaid: boolean; recurring: boolean }
@@ -59,6 +59,7 @@ export default function StaffSchedulePage() {
         id: s.id, name: s.name, staffCode: s.staffCode,
         shiftStartTime: s.shiftStartTime, shiftEndTime: s.shiftEndTime,
         monthlyVacationDays: s.monthlyVacationDays,
+        salary: s.salary,
       })))
     })
     fetch('/api/holidays').then(r => r.ok ? r.json() : []).then(setHolidays).catch(() => {})
@@ -415,6 +416,7 @@ function DayEditModal({
   toast: any
 }) {
   const [tab, setTab] = useState<'shift' | 'leave'>('shift')
+  const [swapDialog, setSwapDialog] = useState<{ absentStaffId: string; absentStaffName: string; startTime: string; endTime: string } | null>(null)
   const [staffId, setStaffId] = useState('')
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('17:00')
@@ -561,56 +563,136 @@ function DayEditModal({
           </button>
         </div>
 
-        {/* Existing entries */}
-        {existing.length > 0 && (
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{locale === 'ar' ? 'الموجود حالياً' : 'Currently'}</h3>
-            <div className="space-y-2">
-              {existing.map((e, i) => {
-                const sid = e.item.staffId
-                const y = parseInt(date.slice(0, 4), 10)
-                const m = parseInt(date.slice(5, 7), 10)
-                return (
-                  <div key={i} className={`flex items-center justify-between p-2 rounded ${getEntryStyle(e)}`}>
-                    <span className="text-sm">{entryLabel(e, locale)}{e.kind === 'shift' ? ` → ${e.item.endTime}` : ''}</span>
-                    <div className="flex gap-1">
-                      <a href={`/staff-hr-assistant?staffId=${sid}&month=${m}&year=${y}`} className="text-xs px-2 py-1 bg-white/70 hover:bg-white rounded text-primary-700 font-bold" title={locale === 'ar' ? 'HR' : 'HR'}>HR</a>
-                      <button onClick={() => deleteEntry(e)} className="text-xs px-2 py-1 bg-white/70 hover:bg-white rounded text-red-600 font-bold">
-                        {locale === 'ar' ? 'حذف' : 'Delete'}
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        {/* Sectioned: On Shift today (shift entries + matching rotations) + On Leave today */}
+        {(() => {
+          const y = parseInt(date.slice(0, 4), 10)
+          const m = parseInt(date.slice(5, 7), 10)
 
-        {/* Recurring rotations (delete for this month only) */}
-        {rotations.length > 0 && (
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{locale === 'ar' ? 'ورديات أسبوعية' : 'Recurring Shifts'}</h3>
-            <div className="space-y-2">
-              {rotations.map(r => (
-                <div key={r.id} className="flex items-center justify-between gap-2 p-2 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-dashed border-blue-300/60 dark:border-blue-700/60">
-                  <span className="text-sm truncate">
-                    {r.staff.name} · {r.isVariable ? (locale === 'ar' ? 'متغير' : 'Variable') : `${r.startTime} → ${r.endTime}`}
-                  </span>
-                  <button
-                    onClick={() => deleteRotationForMonth(r)}
-                    disabled={submitting}
-                    className="text-xs px-2 py-1 bg-white/70 hover:bg-white rounded text-red-600 font-bold whitespace-nowrap disabled:opacity-60"
-                  >
-                    {locale === 'ar' ? 'حذف هذا الشهر' : 'Delete This Month'}
-                  </button>
+          const shiftEntries = existing.filter(e => e.kind === 'shift') as Extract<CellEntry, { kind: 'shift' }>[]
+          const leaveEntries = existing.filter(e => e.kind === 'leave') as Extract<CellEntry, { kind: 'leave' }>[]
+
+          type CombinedShift =
+            | { source: 'assignment'; staffId: string; staffName: string; startTime: string; endTime: string; assignmentId: string }
+            | { source: 'rotation'; staffId: string; staffName: string; startTime: string; endTime: string; isVariable: boolean; rotationId: string }
+
+          const combined: CombinedShift[] = [
+            ...shiftEntries.map(e => ({
+              source: 'assignment' as const,
+              staffId: e.item.staffId,
+              staffName: e.item.staff.name,
+              startTime: e.item.startTime,
+              endTime: e.item.endTime,
+              assignmentId: e.item.id,
+            })),
+            ...rotations.map(r => ({
+              source: 'rotation' as const,
+              staffId: r.staffId,
+              staffName: r.staff.name,
+              startTime: r.startTime,
+              endTime: r.endTime,
+              isVariable: r.isVariable,
+              rotationId: r.id,
+            })),
+          ]
+
+          const onShiftCount = combined.length
+          const onLeaveCount = leaveEntries.length
+
+          if (onShiftCount === 0 && onLeaveCount === 0) return null
+
+          return (
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-4">
+              {/* On Shift section */}
+              {onShiftCount > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold">{onShiftCount}</span>
+                    <span>{locale === 'ar' ? 'بشيفت اليوم' : 'On Shift Today'}</span>
+                  </h3>
+                  <div className="space-y-2">
+                    {combined.map((item, i) => (
+                      <div key={`${item.source}-${item.staffId}-${i}`} className={`flex items-center justify-between gap-2 p-2 rounded ${item.source === 'assignment' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-dashed border-blue-300/60 dark:border-blue-700/60'}`}>
+                        <div className="min-w-0 text-sm truncate">
+                          <span className="font-bold">{item.staffName}</span>
+                          <span className="mx-1.5 text-blue-500/70">·</span>
+                          <span>{item.source === 'rotation' && (item as any).isVariable ? (locale === 'ar' ? 'متغير' : 'Variable') : `${item.startTime} → ${item.endTime}`}</span>
+                          {item.source === 'rotation' && (
+                            <span className="ms-1.5 text-[10px] px-1 py-0.5 rounded bg-white/70 text-blue-600">{locale === 'ar' ? 'أسبوعي' : 'Recurring'}</span>
+                          )}
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => setSwapDialog({
+                              absentStaffId: item.staffId,
+                              absentStaffName: item.staffName,
+                              startTime: item.startTime,
+                              endTime: item.endTime,
+                            })}
+                            className="text-xs px-2 py-1 bg-white/80 hover:bg-white rounded text-amber-700 font-bold whitespace-nowrap"
+                            title={locale === 'ar' ? 'تبديل' : 'Swap'}
+                          >
+                            ⇄ {locale === 'ar' ? 'تبديل' : 'Swap'}
+                          </button>
+                          <a href={`/staff-hr-assistant?staffId=${item.staffId}&month=${m}&year=${y}`} className="text-xs px-2 py-1 bg-white/70 hover:bg-white rounded text-primary-700 font-bold" title="HR">HR</a>
+                          {item.source === 'assignment' ? (
+                            <button onClick={() => deleteEntry(shiftEntries.find(e => e.item.id === (item as any).assignmentId)!)} className="text-xs px-2 py-1 bg-white/70 hover:bg-white rounded text-red-600 font-bold">
+                              {locale === 'ar' ? 'حذف' : 'Delete'}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                const rotation = rotations.find(r => r.id === (item as any).rotationId)
+                                if (rotation) deleteRotationForMonth(rotation)
+                              }}
+                              disabled={submitting}
+                              className="text-xs px-2 py-1 bg-white/70 hover:bg-white rounded text-red-600 font-bold whitespace-nowrap disabled:opacity-60"
+                              title={locale === 'ar' ? 'حذف الوردية لهذا الشهر فقط' : 'Delete rotation for this month only'}
+                            >
+                              {locale === 'ar' ? 'حذف الشهر' : 'Delete Month'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
+
+              {/* On Leave section */}
+              {onLeaveCount > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-[10px] font-bold">{onLeaveCount}</span>
+                    <span>{locale === 'ar' ? 'في إجازة اليوم' : 'On Leave Today'}</span>
+                  </h3>
+                  <div className="space-y-2">
+                    {leaveEntries.map((e, i) => (
+                      <div key={i} className={`flex items-center justify-between p-2 rounded ${getEntryStyle(e)}`}>
+                        <span className="text-sm">
+                          <span className="font-bold">{e.item.staff.name}</span>
+                          <span className="mx-1.5">·</span>
+                          <span>
+                            {e.item.type === 'off' ? (locale === 'ar' ? 'راحة' : 'Off')
+                              : e.item.type === 'sick' ? (locale === 'ar' ? 'مرضية' : 'Sick')
+                              : e.item.type === 'unpaid' ? (locale === 'ar' ? 'بدون مرتب' : 'Unpaid')
+                              : e.item.isPaid ? (locale === 'ar' ? 'مدفوعة' : 'Paid') : (locale === 'ar' ? 'إجازة' : 'Leave')}
+                          </span>
+                        </span>
+                        <div className="flex gap-1">
+                          <a href={`/staff-hr-assistant?staffId=${e.item.staffId}&month=${m}&year=${y}`} className="text-xs px-2 py-1 bg-white/70 hover:bg-white rounded text-primary-700 font-bold" title="HR">HR</a>
+                          <button onClick={() => deleteEntry(e)} className="text-xs px-2 py-1 bg-white/70 hover:bg-white rounded text-red-600 font-bold">
+                            {locale === 'ar' ? 'حذف' : 'Delete'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              {locale === 'ar' ? 'الحذف بيشيل الوردية من كل أيام هذا اليوم في الشهر الحالي فقط — الشهور الجاية بتفضل زي ما هي.' : 'Removes the shift for every matching weekday in the current month only — future months are unchanged.'}
-            </p>
-          </div>
-        )}
+          )
+        })()}
+
 
         {/* Add tabs */}
         <div className="p-4">
@@ -724,6 +806,28 @@ function DayEditModal({
           </div>
         </div>
       </div>
+
+      {swapDialog && (
+        <SwapShiftDialog
+          date={date}
+          year={year}
+          month={month}
+          absentStaffId={swapDialog.absentStaffId}
+          absentStaffName={swapDialog.absentStaffName}
+          startTime={swapDialog.startTime}
+          endTime={swapDialog.endTime}
+          staff={staff}
+          onClose={() => setSwapDialog(null)}
+          onSwapped={async () => {
+            setSwapDialog(null)
+            await onRefresh()
+            onClose()
+          }}
+          locale={locale}
+          direction={direction}
+          toast={toast}
+        />
+      )}
 
       {confirmDialog && (
         <div
@@ -872,6 +976,190 @@ function BulkLeaveModal({
           <button onClick={submit} disabled={submitting} className="w-full min-h-[44px] bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold rounded-lg disabled:opacity-60">
             {submitting ? '...' : (locale === 'ar' ? 'إنشاء' : 'Create')}
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SwapShiftDialog({
+  date, year, month, absentStaffId, absentStaffName, startTime, endTime,
+  staff, onClose, onSwapped, locale, direction, toast,
+}: {
+  date: string
+  year: number
+  month: number
+  absentStaffId: string
+  absentStaffName: string
+  startTime: string
+  endTime: string
+  staff: Staff[]
+  onClose: () => void
+  onSwapped: () => Promise<void>
+  locale: string
+  direction: 'rtl' | 'ltr'
+  toast: any
+}) {
+  const absentStaff = staff.find(s => s.id === absentStaffId)
+  const workingDays = absentStaff?.monthlyVacationDays != null
+    ? Math.max(1, 30 - (absentStaff.monthlyVacationDays ?? 0))
+    : 26
+  const suggestedDailyRate = absentStaff?.salary ? Math.round((absentStaff.salary / workingDays) * 100) / 100 : 0
+
+  const [replacementId, setReplacementId] = useState('')
+  const [deductionAmount, setDeductionAmount] = useState<string>(suggestedDailyRate > 0 ? String(suggestedDailyRate) : '')
+  const [bonusAmount, setBonusAmount] = useState<string>(suggestedDailyRate > 0 ? String(suggestedDailyRate) : '')
+  const [reason, setReason] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const otherStaff = staff.filter(s => s.id !== absentStaffId)
+
+  async function submit() {
+    if (!replacementId) { toast.error(locale === 'ar' ? 'اختر الموظف البديل' : 'Pick replacement'); return }
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/shifts/swap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date,
+          absentStaffId,
+          replacementStaffId: replacementId,
+          startTime,
+          endTime,
+          deductionAmount: deductionAmount ? parseFloat(deductionAmount) : 0,
+          deductionReason: reason || undefined,
+          bonusAmount: bonusAmount ? parseFloat(bonusAmount) : 0,
+          bonusReason: reason || undefined,
+        }),
+      })
+      if (res.ok) {
+        toast.success(locale === 'ar' ? 'تم تبديل الشيفت بنجاح' : 'Shift swapped successfully')
+        await onSwapped()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error || 'Failed')
+      }
+    } finally { setSubmitting(false) }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[10001] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-backdrop-in"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full max-h-[92vh] overflow-y-auto animate-modal-in" dir={direction}>
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <span className="text-amber-500">⇄</span>
+            <span>{locale === 'ar' ? 'تبديل شيفت' : 'Swap Shift'}</span>
+          </h2>
+          <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center">
+            <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div className="p-4 sm:p-6 space-y-4">
+          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/40">
+            <p className="text-xs text-red-700 dark:text-red-300 font-bold mb-1">{locale === 'ar' ? 'الموظف الغايب' : 'Absent Staff'}</p>
+            <p className="text-sm text-gray-900 dark:text-gray-100">
+              <span className="font-bold">{absentStaffName}</span>
+              <span className="text-gray-500 mx-1.5">·</span>
+              <span dir="ltr">{startTime} → {endTime}</span>
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{date}</p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              {locale === 'ar' ? 'الموظف البديل' : 'Replacement Staff'} <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={replacementId}
+              onChange={e => setReplacementId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="">{locale === 'ar' ? '— اختر —' : '— Select —'}</option>
+              {otherStaff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-red-700 dark:text-red-300 mb-1">
+                {locale === 'ar' ? 'خصم على الغايب' : 'Absent Deduction'}
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={deductionAmount}
+                onChange={e => setDeductionAmount(e.target.value)}
+                placeholder={suggestedDailyRate > 0 ? String(suggestedDailyRate) : '0'}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+              {suggestedDailyRate > 0 && (
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                  {locale === 'ar' ? `مقترح (يومية): ${suggestedDailyRate}` : `Suggested (daily): ${suggestedDailyRate}`}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-emerald-700 dark:text-emerald-300 mb-1">
+                {locale === 'ar' ? 'بونص للبديل' : 'Replacement Bonus'}
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={bonusAmount}
+                onChange={e => setBonusAmount(e.target.value)}
+                placeholder={suggestedDailyRate > 0 ? String(suggestedDailyRate) : '0'}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                {locale === 'ar' ? 'سيب فاضي = من غير بونص' : 'Leave empty = no bonus'}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              {locale === 'ar' ? 'السبب (اختياري)' : 'Reason (optional)'}
+            </label>
+            <input
+              type="text"
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder={locale === 'ar' ? 'مثال: مرض مفاجئ، طارئ عائلي...' : 'e.g. Sudden illness, family emergency...'}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-800 dark:text-amber-300">
+            {locale === 'ar'
+              ? 'الـ swap هيعمل: راحة للغايب + شيفت للبديل + خصم على الغايب (لو محدد) + بونص للبديل (لو محدد) — كلها في عملية واحدة.'
+              : 'Swap creates: Off-leave for absent + Shift for replacement + Deduction for absent (if set) + Bonus for replacement (if set) — all atomic.'}
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={onClose}
+              disabled={submitting}
+              className="flex-1 min-h-[44px] bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-lg text-sm disabled:opacity-60"
+            >
+              {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+            </button>
+            <button
+              onClick={submit}
+              disabled={submitting || !replacementId}
+              className="flex-1 min-h-[44px] bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-sm disabled:opacity-60"
+            >
+              {submitting ? '...' : (locale === 'ar' ? 'تأكيد التبديل' : 'Confirm Swap')}
+            </button>
+          </div>
         </div>
       </div>
     </div>

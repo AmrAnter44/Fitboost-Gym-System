@@ -179,6 +179,8 @@ export default function StaffPage() {
     shiftIsVariable: false,
     shiftStartTime: '',
     shiftEndTime: '',
+    // Per-day times when shift is variable: { Sunday: {start, end}, Monday: {...}, ... }
+    dailyShiftTimes: {} as Record<string, { start: string; end: string }>,
   })
 
   // توليد رقم عشوائي من 9 أرقام للموظف
@@ -371,6 +373,7 @@ const handleScan = async (staffCode: string) => {
       shiftIsVariable: false,
       shiftStartTime: '',
       shiftEndTime: '',
+      dailyShiftTimes: {},
     })
     setShowOtherPosition(false)
     setEditingStaff(null)
@@ -380,11 +383,12 @@ const handleScan = async (staffCode: string) => {
   const handleEdit = async (staffMember: Staff) => {
     const displayCode = toNineDigitCode(staffMember.staffCode)
 
-    // Derive weekly off days + variable flag from existing rotations
+    // Derive weekly off days + variable flag + per-day times from existing rotations
     let weeklyOffDays: string[] = []
     let shiftIsVariable = false
     let shiftStartTime = staffMember.shiftStartTime || ''
     let shiftEndTime = staffMember.shiftEndTime || ''
+    let dailyShiftTimes: Record<string, { start: string; end: string }> = {}
     try {
       const res = await fetch(`/api/rotations?staffId=${staffMember.id}`)
       if (res.ok) {
@@ -398,6 +402,10 @@ const handleScan = async (staffCode: string) => {
             shiftStartTime = rotations[0].startTime
             shiftEndTime = rotations[0].endTime
           }
+          // Pre-fill per-day times from existing rotations
+          rotations.forEach(r => {
+            dailyShiftTimes[r.dayOfWeek] = { start: r.startTime, end: r.endTime }
+          })
         }
       }
     } catch {}
@@ -415,6 +423,7 @@ const handleScan = async (staffCode: string) => {
       shiftIsVariable,
       shiftStartTime,
       shiftEndTime,
+      dailyShiftTimes,
     })
     setShowOtherPosition(false)
     setEditingStaff(staffMember)
@@ -424,6 +433,75 @@ const handleScan = async (staffCode: string) => {
   const handlePositionChange = (value: string) => {
     setFormData({ ...formData, position: value, customPosition: '' })
     setShowOtherPosition(value === 'other')
+  }
+
+  // Build the rotations array from form state — used by both handleSubmit and
+  // the explicit "Update schedule" button.
+  const buildRotationsForBulk = (
+    weeklyOffDays: string[],
+    shiftIsVariable: boolean,
+    fallbackStart: string,
+    fallbackEnd: string,
+    dailyShiftTimes: Record<string, { start: string; end: string }>
+  ) => {
+    const ALL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const workingDays = ALL_DAYS.filter(d => !weeklyOffDays.includes(d))
+    return workingDays.map(d => {
+      const perDay = dailyShiftTimes[d]
+      const start = shiftIsVariable
+        ? (perDay?.start || fallbackStart || '09:00')
+        : (fallbackStart || '09:00')
+      const end = shiftIsVariable
+        ? (perDay?.end || fallbackEnd || '17:00')
+        : (fallbackEnd || '17:00')
+      return { dayOfWeek: d, startTime: start, endTime: end, isVariable: shiftIsVariable }
+    })
+  }
+
+  const syncRotationsToCalendar = async (
+    staffId: string,
+    weeklyOffDays: string[],
+    shiftIsVariable: boolean,
+    fallbackStart: string,
+    fallbackEnd: string,
+    dailyShiftTimes: Record<string, { start: string; end: string }>
+  ) => {
+    const rotations = buildRotationsForBulk(weeklyOffDays, shiftIsVariable, fallbackStart, fallbackEnd, dailyShiftTimes)
+    return fetch('/api/rotations/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ staffId, rotations }),
+    })
+  }
+
+  // Explicit button handler — pushes the schedule to the calendar without saving
+  // the full staff form. Useful when the user just adjusted per-day times.
+  const [syncingSchedule, setSyncingSchedule] = useState(false)
+  const handleSyncSchedule = async () => {
+    if (!editingStaff?.id) {
+      toast.warning(locale === 'ar' ? 'احفظ الموظف أولاً' : 'Save the staff member first')
+      return
+    }
+    setSyncingSchedule(true)
+    try {
+      const res = await syncRotationsToCalendar(
+        editingStaff.id,
+        formData.weeklyOffDays,
+        formData.shiftIsVariable,
+        formData.shiftStartTime,
+        formData.shiftEndTime,
+        formData.dailyShiftTimes
+      )
+      if (res.ok) {
+        toast.success(locale === 'ar' ? 'تم تحديث جدول العمل في الكاليندر' : 'Schedule updated in calendar')
+      } else {
+        toast.error(locale === 'ar' ? 'فشل التحديث' : 'Update failed')
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'فشل التحديث' : 'Update failed')
+    } finally {
+      setSyncingSchedule(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -462,7 +540,7 @@ const handleScan = async (staffCode: string) => {
       const staffNumber = parseInt(numericCode, 10) - 100000000
       const staffCodeWithS = `s${staffNumber.toString().padStart(3, '0')}`
 
-      const { salary: _salary, weeklyOffDays, shiftIsVariable, ...formDataRest } = formData
+      const { salary: _salary, weeklyOffDays, shiftIsVariable, dailyShiftTimes, ...formDataRest } = formData
       const safeFormDataBase = isAdmin ? { ...formDataRest, salary: formData.salary } : formDataRest
       const body = editingStaff
         ? { id: editingStaff.id, ...safeFormDataBase, position: finalPosition, staffCode: staffCodeWithS }
@@ -477,27 +555,11 @@ const handleScan = async (staffCode: string) => {
       const data = await response.json()
 
       if (response.ok) {
-        // Auto-create/replace Rotation records based on weekly off days
+        // Auto-create/replace Rotation records based on weekly off days + per-day times (if variable)
         const savedStaffId = editingStaff ? editingStaff.id : data?.id
         if (savedStaffId && isAdmin) {
-          const ALL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-          const workingDays = ALL_DAYS.filter(d => !weeklyOffDays.includes(d))
-          const start = shiftIsVariable ? '00:00' : (formData.shiftStartTime || '09:00')
-          const end = shiftIsVariable ? '23:59' : (formData.shiftEndTime || '17:00')
           try {
-            await fetch('/api/rotations/bulk', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                staffId: savedStaffId,
-                rotations: workingDays.map(d => ({
-                  dayOfWeek: d,
-                  startTime: start,
-                  endTime: end,
-                  isVariable: shiftIsVariable,
-                })),
-              }),
-            })
+            await syncRotationsToCalendar(savedStaffId, weeklyOffDays, shiftIsVariable, formData.shiftStartTime, formData.shiftEndTime, dailyShiftTimes)
           } catch (err) {
             console.error('Failed to sync rotations:', err)
           }
@@ -842,6 +904,17 @@ const handleScan = async (staffCode: string) => {
               <span>{t('nav.staffBonuses')}</span>
             </Link>
           )}
+          {isAdmin && (
+            <Link
+              href="/staff/schedule"
+              className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
+            >
+              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              </svg>
+              <span>{locale === 'ar' ? 'الجدول والإجازات' : 'Schedule & Leaves'}</span>
+            </Link>
+          )}
           <Link
             href="/staff-hr-assistant"
             className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
@@ -1130,8 +1203,8 @@ const handleScan = async (staffCode: string) => {
                 <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/40 space-y-3">
                   <p className="text-xs text-amber-700 dark:text-amber-300">
                     {locale === 'ar'
-                      ? 'الشيفت متغير — مفيش وقت ثابت. حدّد عدد الساعات اللي المفروض يشتغلها.'
-                      : 'Variable shift — no fixed time. Set the number of hours expected per shift.'}
+                      ? 'الشيفت متغير — حدّد وقت لكل يوم عمل في الأسبوع. الأيام الفاضية بتـ default على 09:00 → 17:00.'
+                      : 'Variable shift — set a time per working weekday. Empty days default to 09:00 → 17:00.'}
                   </p>
                   <div>
                     <label className="block text-xs font-bold mb-1 text-amber-800 dark:text-amber-200">
@@ -1148,7 +1221,73 @@ const handleScan = async (staffCode: string) => {
                       placeholder="8"
                     />
                   </div>
+
+                  {/* Per-day time inputs (only for non-off days) */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-200">
+                      {locale === 'ar' ? 'الأوقات لكل يوم' : 'Times per day'}
+                    </p>
+                    {[
+                      { key: 'Sunday', ar: 'الأحد', en: 'Sunday' },
+                      { key: 'Monday', ar: 'الإثنين', en: 'Monday' },
+                      { key: 'Tuesday', ar: 'الثلاثاء', en: 'Tuesday' },
+                      { key: 'Wednesday', ar: 'الأربعاء', en: 'Wednesday' },
+                      { key: 'Thursday', ar: 'الخميس', en: 'Thursday' },
+                      { key: 'Friday', ar: 'الجمعة', en: 'Friday' },
+                      { key: 'Saturday', ar: 'السبت', en: 'Saturday' },
+                    ].map(day => {
+                      const isOff = formData.weeklyOffDays.includes(day.key)
+                      const current = formData.dailyShiftTimes[day.key] || { start: '', end: '' }
+                      if (isOff) {
+                        return (
+                          <div key={day.key} className="flex items-center gap-2 opacity-50">
+                            <span className="text-xs font-bold w-20 text-gray-600 dark:text-gray-400">{locale === 'ar' ? day.ar : day.en}</span>
+                            <span className="text-xs text-gray-500 italic">{locale === 'ar' ? 'يوم راحة' : 'Off day'}</span>
+                          </div>
+                        )
+                      }
+                      return (
+                        <div key={day.key} className="flex items-center gap-2">
+                          <span className="text-xs font-bold w-20 text-amber-800 dark:text-amber-200">{locale === 'ar' ? day.ar : day.en}</span>
+                          <input
+                            type="time"
+                            value={current.start}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              dailyShiftTimes: { ...formData.dailyShiftTimes, [day.key]: { start: e.target.value, end: current.end } }
+                            })}
+                            className="flex-1 px-2 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          />
+                          <span className="text-gray-500 text-xs">→</span>
+                          <input
+                            type="time"
+                            value={current.end}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              dailyShiftTimes: { ...formData.dailyShiftTimes, [day.key]: { start: current.start, end: e.target.value } }
+                            })}
+                            className="flex-1 px-2 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
+              )}
+
+              {/* Explicit "Update schedule in calendar" button — visible when editing an existing staff */}
+              {editingStaff && (
+                <button
+                  type="button"
+                  onClick={handleSyncSchedule}
+                  disabled={syncingSchedule}
+                  className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold px-4 py-2.5 rounded-lg disabled:opacity-60 transition-colors"
+                >
+                  <svg {...stroke} className={`w-4 h-4 ${syncingSchedule ? 'animate-spin' : ''}`} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                  </svg>
+                  <span>{syncingSchedule ? (locale === 'ar' ? 'جاري التحديث…' : 'Updating…') : (locale === 'ar' ? 'تحديث جدول العمل في الكاليندر' : 'Update Work Schedule in Calendar')}</span>
+                </button>
               )}
             </div>
 
