@@ -94,7 +94,7 @@ const POSITION_MAP: { [key: string]: string } = {
 
 export default function StaffPage() {
   const router = useRouter()
-  const { t, direction } = useLanguage()
+  const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const { settings } = useServiceSettings()
 
@@ -175,7 +175,8 @@ export default function StaffPage() {
     salary: 0,
     notes: '',
     workingHours: 0,
-    monthlyVacationDays: 0,
+    weeklyOffDays: [] as string[], // e.g. ['Friday', 'Saturday']
+    shiftIsVariable: false,
     shiftStartTime: '',
     shiftEndTime: '',
   })
@@ -366,7 +367,8 @@ const handleScan = async (staffCode: string) => {
       salary: 0,
       notes: '',
       workingHours: 0,
-      monthlyVacationDays: 0,
+      weeklyOffDays: [],
+      shiftIsVariable: false,
       shiftStartTime: '',
       shiftEndTime: '',
     })
@@ -375,8 +377,30 @@ const handleScan = async (staffCode: string) => {
     setShowForm(false)
   }
 
-  const handleEdit = (staffMember: Staff) => {
+  const handleEdit = async (staffMember: Staff) => {
     const displayCode = toNineDigitCode(staffMember.staffCode)
+
+    // Derive weekly off days + variable flag from existing rotations
+    let weeklyOffDays: string[] = []
+    let shiftIsVariable = false
+    let shiftStartTime = staffMember.shiftStartTime || ''
+    let shiftEndTime = staffMember.shiftEndTime || ''
+    try {
+      const res = await fetch(`/api/rotations?staffId=${staffMember.id}`)
+      if (res.ok) {
+        const rotations: Array<{ dayOfWeek: string; startTime: string; endTime: string; isVariable: boolean }> = await res.json()
+        const ALL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        const workingDays = new Set(rotations.map(r => r.dayOfWeek))
+        weeklyOffDays = ALL_DAYS.filter(d => !workingDays.has(d))
+        if (rotations.length > 0) {
+          shiftIsVariable = rotations[0].isVariable
+          if (!shiftIsVariable) {
+            shiftStartTime = rotations[0].startTime
+            shiftEndTime = rotations[0].endTime
+          }
+        }
+      }
+    } catch {}
 
     setFormData({
       staffCode: displayCode,
@@ -387,9 +411,10 @@ const handleScan = async (staffCode: string) => {
       salary: staffMember.salary || 0,
       notes: staffMember.notes || '',
       workingHours: staffMember.workingHours || 0,
-      monthlyVacationDays: staffMember.monthlyVacationDays || 0,
-      shiftStartTime: staffMember.shiftStartTime || '',
-      shiftEndTime: staffMember.shiftEndTime || '',
+      weeklyOffDays,
+      shiftIsVariable,
+      shiftStartTime,
+      shiftEndTime,
     })
     setShowOtherPosition(false)
     setEditingStaff(staffMember)
@@ -437,11 +462,11 @@ const handleScan = async (staffCode: string) => {
       const staffNumber = parseInt(numericCode, 10) - 100000000
       const staffCodeWithS = `s${staffNumber.toString().padStart(3, '0')}`
 
-      const { salary: _salary, ...formDataWithoutSalary } = formData
-      const safeFormData = isAdmin ? formData : formDataWithoutSalary
+      const { salary: _salary, weeklyOffDays, shiftIsVariable, ...formDataRest } = formData
+      const safeFormDataBase = isAdmin ? { ...formDataRest, salary: formData.salary } : formDataRest
       const body = editingStaff
-        ? { id: editingStaff.id, ...safeFormData, position: finalPosition, staffCode: staffCodeWithS }
-        : { ...safeFormData, position: finalPosition, staffCode: staffCodeWithS }
+        ? { id: editingStaff.id, ...safeFormDataBase, position: finalPosition, staffCode: staffCodeWithS }
+        : { ...safeFormDataBase, position: finalPosition, staffCode: staffCodeWithS }
 
       const response = await fetch(url, {
         method,
@@ -452,6 +477,31 @@ const handleScan = async (staffCode: string) => {
       const data = await response.json()
 
       if (response.ok) {
+        // Auto-create/replace Rotation records based on weekly off days
+        const savedStaffId = editingStaff ? editingStaff.id : data?.id
+        if (savedStaffId && isAdmin) {
+          const ALL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+          const workingDays = ALL_DAYS.filter(d => !weeklyOffDays.includes(d))
+          const start = shiftIsVariable ? '00:00' : (formData.shiftStartTime || '09:00')
+          const end = shiftIsVariable ? '23:59' : (formData.shiftEndTime || '17:00')
+          try {
+            await fetch('/api/rotations/bulk', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                staffId: savedStaffId,
+                rotations: workingDays.map(d => ({
+                  dayOfWeek: d,
+                  startTime: start,
+                  endTime: end,
+                  isVariable: shiftIsVariable,
+                })),
+              }),
+            })
+          } catch (err) {
+            console.error('Failed to sync rotations:', err)
+          }
+        }
         toast.success(editingStaff ? t('staff.messages.updated') : t('staff.messages.added'))
         refetchStaff()
         resetForm()
@@ -781,6 +831,17 @@ const handleScan = async (staffCode: string) => {
               <span>{t('nav.staffDeductions')}</span>
             </Link>
           )}
+          {hasPermission('canViewBonuses') && (
+            <Link
+              href="/staff-bonuses"
+              className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
+            >
+              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+              </svg>
+              <span>{t('nav.staffBonuses')}</span>
+            </Link>
+          )}
           <Link
             href="/staff-hr-assistant"
             className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
@@ -804,8 +865,8 @@ const handleScan = async (staffCode: string) => {
 
       {/* Add/Edit Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="staff-form-title" onClick={(e) => { if (e.target === e.currentTarget) resetForm() }}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-3xl w-full p-6 my-8" dir={direction} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="staff-form-title" onClick={(e) => { if (e.target === e.currentTarget) resetForm() }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in max-w-3xl w-full p-6 my-4 sm:my-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto" dir={direction} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 id="staff-form-title" className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
                 <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
@@ -965,56 +1026,130 @@ const handleScan = async (staffCode: string) => {
                 </div>
               )}
 
-            {/* ساعات العمل + أيام الإجازة */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.workingHours')}</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  max="24"
-                  value={formData.workingHours}
-                  onChange={(e) => setFormData({ ...formData, workingHours: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                  placeholder={t('staff.form.workingHoursPlaceholder')}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.monthlyVacationDays')}</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="31"
-                  value={formData.monthlyVacationDays}
-                  onChange={(e) => setFormData({ ...formData, monthlyVacationDays: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                  placeholder={t('staff.form.monthlyVacationDaysPlaceholder')}
-                />
-              </div>
+            {/* ساعات العمل */}
+            <div>
+              <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.workingHours')}</label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.workingHours}
+                onChange={(e) => setFormData({ ...formData, workingHours: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                placeholder={t('staff.form.workingHoursPlaceholder')}
+              />
             </div>
 
-            {/* ساعة بداية ونهاية الشيفت */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.shiftStartTime')}</label>
-                <input
-                  type="time"
-                  value={formData.shiftStartTime}
-                  onChange={(e) => setFormData({ ...formData, shiftStartTime: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                />
+            {/* أيام الراحة الأسبوعية */}
+            <div>
+              <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">
+                {locale === 'ar' ? 'أيام الراحة الأسبوعية' : 'Weekly Off Days'}
+              </label>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                {[
+                  { key: 'Sunday', ar: 'الأحد', en: 'Sun' },
+                  { key: 'Monday', ar: 'الإثنين', en: 'Mon' },
+                  { key: 'Tuesday', ar: 'الثلاثاء', en: 'Tue' },
+                  { key: 'Wednesday', ar: 'الأربعاء', en: 'Wed' },
+                  { key: 'Thursday', ar: 'الخميس', en: 'Thu' },
+                  { key: 'Friday', ar: 'الجمعة', en: 'Fri' },
+                  { key: 'Saturday', ar: 'السبت', en: 'Sat' },
+                ].map(day => {
+                  const isOff = formData.weeklyOffDays.includes(day.key)
+                  return (
+                    <button
+                      key={day.key}
+                      type="button"
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          weeklyOffDays: isOff
+                            ? formData.weeklyOffDays.filter(d => d !== day.key)
+                            : [...formData.weeklyOffDays, day.key],
+                        })
+                      }}
+                      className={`min-h-[44px] px-2 py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors ${
+                        isOff
+                          ? 'bg-primary-500 text-primary-contrast ring-2 ring-primary-500'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {locale === 'ar' ? day.ar : day.en}
+                    </button>
+                  )
+                })}
               </div>
-              <div>
-                <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-200">{t('staff.form.shiftEndTime')}</label>
-                <input
-                  type="time"
-                  value={formData.shiftEndTime}
-                  onChange={(e) => setFormData({ ...formData, shiftEndTime: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                {locale === 'ar'
+                  ? 'اختر الأيام اللي الموظف بياخدها راحة كل أسبوع'
+                  : 'Select the days this staff member takes off each week'}
+              </p>
+            </div>
+
+            {/* الشيفت + خيار متغير */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200">
+                  {locale === 'ar' ? 'وقت الشيفت' : 'Shift Time'}
+                </label>
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.shiftIsVariable}
+                    onChange={(e) => setFormData({ ...formData, shiftIsVariable: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
+                    {locale === 'ar' ? 'متغير' : 'Variable'}
+                  </span>
+                </label>
               </div>
+              {!formData.shiftIsVariable ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold mb-1 text-gray-600 dark:text-gray-400">{t('staff.form.shiftStartTime')}</label>
+                    <input
+                      type="time"
+                      value={formData.shiftStartTime}
+                      onChange={(e) => setFormData({ ...formData, shiftStartTime: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1 text-gray-600 dark:text-gray-400">{t('staff.form.shiftEndTime')}</label>
+                    <input
+                      type="time"
+                      value={formData.shiftEndTime}
+                      onChange={(e) => setFormData({ ...formData, shiftEndTime: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/40 space-y-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    {locale === 'ar'
+                      ? 'الشيفت متغير — مفيش وقت ثابت. حدّد عدد الساعات اللي المفروض يشتغلها.'
+                      : 'Variable shift — no fixed time. Set the number of hours expected per shift.'}
+                  </p>
+                  <div>
+                    <label className="block text-xs font-bold mb-1 text-amber-800 dark:text-amber-200">
+                      {locale === 'ar' ? 'عدد الساعات في الشيفت' : 'Hours per shift'}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="24"
+                      value={formData.workingHours}
+                      onChange={(e) => setFormData({ ...formData, workingHours: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors duration-200"
+                      placeholder="8"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ملاحظات */}

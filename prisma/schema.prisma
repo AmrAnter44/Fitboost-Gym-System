@@ -169,6 +169,8 @@ model Visitor {
   interestedIn         String?
   status               String     @default("pending")
   referrerMemberNumber String?    // 👥 رقم العضو اللي جاب الزائر (للـ tracking لما النقاط معطلة)
+  isDeleted            Boolean    @default(false)
+  deletedAt            DateTime?
   createdAt            DateTime   @default(now())
   updatedAt            DateTime   @updatedAt
   followUps            FollowUp[]
@@ -176,6 +178,7 @@ model Visitor {
   @@index([status])
   @@index([createdAt])
   @@index([phone])
+  @@index([isDeleted])
 }
 
 model FollowUp {
@@ -306,6 +309,8 @@ model Staff {
   shiftStartTime String?     // ساعة بداية الشيفت (e.g., "09:00")
   shiftEndTime   String?     // ساعة نهاية الشيفت (e.g., "17:00")
   isActive     Boolean        @default(true)
+  joinedDate   DateTime?      // تاريخ الانضمام — يُستخدم لحساب الراتب الـ pro-rated في الشهر الأول
+  terminatedAt DateTime?      // تاريخ إنهاء الخدمة
   salesTarget          Float?   @default(0)   // التارجت الشهري بالجنيه لموظف السيلز
   salesCommissionType  String?               // 'fixed' | 'tiered'
   salesCommissionRate  Float?                // نسبة ثابتة (fixed mode)
@@ -323,6 +328,11 @@ model Staff {
   followUpActivities  FollowUpActivity[]
   deductions          StaffDeduction[]
   whatsappAssignments WhatsAppConversation[] @relation("WhatsAppAssignments")
+  bonuses             Bonus[]
+  leaves              Leave[]
+  shiftAssignments    ShiftAssignment[]
+  payslips            Payslip[]
+  salaryHistory       SalaryChangeLog[]
 
   @@index([staffCode])
   @@index([isActive])
@@ -365,12 +375,124 @@ model Expense {
   updatedAt   DateTime @updatedAt
   staffId     String?
   isPaid      Boolean  @default(false)
+  paidAmount  Float    @default(0)  // إجمالي المبلغ المسدّد فعلياً (للسلف اللي بتتخصم على أقساط)
+  installmentLimit Float?           // الحد الأقصى للخصم الشهري (لو فاضي = خصم كامل عند الإمكان)
   staff       Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([staffId])
   @@index([type])
   @@index([isPaid])
+}
+
+// ================================================================
+// HR / Payroll Models
+// ================================================================
+
+// مكافآت شهرية يدوية
+model Bonus {
+  id        String   @id @default(cuid())
+  staffId   String
+  amount    Float
+  reason    String
+  month     Int      // 1-12
+  year      Int
+  notes     String?
+  createdAt DateTime @default(now())
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, year, month])
+}
+
+// إجازات بـ date range — تحل محل monthlyVacationDays counter
+model Leave {
+  id        String   @id @default(cuid())
+  staffId   String
+  startDate DateTime
+  endDate   DateTime
+  type      String   // 'annual' | 'sick' | 'unpaid' | 'other'
+  isPaid    Boolean  @default(true)
+  reason    String?
+  status    String   @default("approved") // 'pending' | 'approved' | 'rejected'
+  createdAt DateTime @default(now())
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, startDate])
+}
+
+// تعيين وردية ليوم محدد — يجوّز override للـ Rotation الأسبوعية
+// مفيش unique constraint عشان نسمح بـ 2 shifts في اليوم (صباحي + مسائي)
+model ShiftAssignment {
+  id        String   @id @default(cuid())
+  staffId   String
+  date      DateTime // اليوم المحدد (تاريخ بدون وقت)
+  startTime String   // "HH:MM"
+  endTime   String   // "HH:MM"
+  notes     String?
+  createdAt DateTime @default(now())
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, date])
+  @@index([date])
+}
+
+// snapshot الـ payroll لشهر معين — immutable history
+model Payslip {
+  id               String    @id @default(cuid())
+  staffId          String
+  month            Int
+  year             Int
+  baseSalary       Float
+  totalBonuses     Float     @default(0)
+  totalCommission  Float     @default(0)
+  absenceDays      Int       @default(0)
+  absenceDeduction Float     @default(0)
+  lateMinutes      Int       @default(0)
+  latePenalty      Float     @default(0)
+  manualDeductions Float     @default(0)
+  loansDeducted    Float     @default(0)
+  netSalary        Float
+  breakdown        String    // JSON snapshot لكل التفاصيل (items + amounts)
+  paidAt           DateTime?
+  paidBy           String?
+  paymentMethod    String?   // 'cash' | 'bank_transfer' | 'instapay' | 'other'
+  paymentNote      String?   // مرجع التحويل البنكي مثلاً
+  voidedAt         DateTime?
+  voidedBy         String?
+  voidReason       String?
+  createdAt        DateTime  @default(now())
+  staff            Staff     @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, year, month])
+  @@index([year, month])
+  @@index([voidedAt])
+}
+
+// تاريخ تغييرات الراتب — للـ audit
+model SalaryChangeLog {
+  id         String   @id @default(cuid())
+  staffId    String
+  oldSalary  Float?
+  newSalary  Float?
+  changedBy  String   // userId
+  reason     String?
+  createdAt  DateTime @default(now())
+  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, createdAt])
+}
+
+// أجازات رسمية / إجازات عامة (عيد، رأس السنة، إلخ) — تطبق على كل الموظفين النشطين
+model Holiday {
+  id        String   @id @default(cuid())
+  date      DateTime
+  name      String
+  isPaid    Boolean  @default(true)
+  recurring Boolean  @default(false) // لو متكرر سنوياً (نفس اليوم/الشهر)
+  createdAt DateTime @default(now())
+
+  @@unique([date])
+  @@index([date])
 }
 
 model Commission {
@@ -516,6 +638,7 @@ model Rotation {
   dayOfWeek   String   // Monday, Tuesday, etc.
   startTime   String   // "09:00"
   endTime     String   // "17:00"
+  isVariable  Boolean  @default(false)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1022,6 +1145,12 @@ model SystemSettings {
 
   // نظام نقاط عيد الميلاد التلقائي
   lastBirthdayPointsCheck     String?  @default("1970-01-01")  // آخر تاريخ تم فيه التحقق من أعياد الميلاد (YYYY-MM-DD)
+
+  // إعدادات نظام الـ Payroll
+  payrollLateGraceMinutes     Int      @default(5)   // فترة السماحة للتأخير بالدقائق (للـ reporting فقط)
+  payrollWorkingDaysPerMonth  Int      @default(26)  // عدد أيام العمل الشهري الافتراضي (fallback لو الـ Rotation فاضي)
+  payrollMonthEndDay          Int      @default(28)  // اليوم اللي بيتقفل عنده الشهر للـ payroll
+  payrollSuggestedLatePerMinute Float  @default(2)   // السعر المقترح للدقيقة المتأخرة (suggested value في pre-payroll checklist، مش بيتطبق تلقائياً)
 
   updatedAt             DateTime @updatedAt
   updatedBy             String?

@@ -109,6 +109,18 @@ export interface Permissions {
   canEditDeduction: boolean
   canDeleteDeduction: boolean
 
+  // صلاحيات بونصات الموظفين
+  canViewBonuses: boolean
+  canCreateBonus: boolean
+  canDeleteBonus: boolean
+
+  // صلاحيات الرواتب والـ HR
+  canViewAllPayslips: boolean    // يشوف payslips كل الموظفين
+  canManagePayroll: boolean      // generate + void payslips
+  canApproveLeaves: boolean      // approve/reject leave requests
+  canManageHolidays: boolean     // إدارة الأجازات الرسمية
+  canManageStaffSalaries: boolean // تعديل الرواتب (مع log)
+
   // صلاحيات المحظورين
   canManageBannedMembers: boolean
 
@@ -243,6 +255,14 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateDeduction: true,
     canEditDeduction: true,
     canDeleteDeduction: true,
+    canViewBonuses: true,
+    canCreateBonus: true,
+    canDeleteBonus: true,
+    canViewAllPayslips: true,
+    canManagePayroll: true,
+    canApproveLeaves: true,
+    canManageHolidays: true,
+    canManageStaffSalaries: true,
     canManageBannedMembers: true,
     canViewWhatsAppInbox: true,
     canSendWhatsApp: true,
@@ -315,6 +335,14 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateDeduction: true,
     canEditDeduction: true,
     canDeleteDeduction: true,
+    canViewBonuses: true,
+    canCreateBonus: true,
+    canDeleteBonus: true,
+    canViewAllPayslips: true,
+    canManagePayroll: true,
+    canApproveLeaves: true,
+    canManageHolidays: true,
+    canManageStaffSalaries: true,
     canManageBannedMembers: true,
     canViewWhatsAppInbox: true,
     canSendWhatsApp: true,
@@ -387,6 +415,14 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateDeduction: true,
     canEditDeduction: true,
     canDeleteDeduction: false,
+    canViewBonuses: true,
+    canCreateBonus: true,
+    canDeleteBonus: false,
+    canViewAllPayslips: true,
+    canManagePayroll: true,
+    canApproveLeaves: true,
+    canManageHolidays: true,
+    canManageStaffSalaries: false,
     canManageBannedMembers: true,
     canViewWhatsAppInbox: true,
     canSendWhatsApp: true,
@@ -459,6 +495,14 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateDeduction: false,
     canEditDeduction: false,
     canDeleteDeduction: false,
+    canViewBonuses: false,
+    canCreateBonus: false,
+    canDeleteBonus: false,
+    canViewAllPayslips: false,
+    canManagePayroll: false,
+    canApproveLeaves: false,
+    canManageHolidays: false,
+    canManageStaffSalaries: false,
     canManageBannedMembers: false,
     canViewWhatsAppInbox: true,
     canSendWhatsApp: true,
@@ -532,6 +576,14 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateDeduction: false,
     canEditDeduction: false,
     canDeleteDeduction: false,
+    canViewBonuses: false,
+    canCreateBonus: false,
+    canDeleteBonus: false,
+    canViewAllPayslips: false,
+    canManagePayroll: false,
+    canApproveLeaves: false,
+    canManageHolidays: false,
+    canManageStaffSalaries: false,
     canManageBannedMembers: false,
     canViewWhatsAppInbox: false,
     canSendWhatsApp: false,
@@ -609,6 +661,14 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canCreateDeduction: 'إضافة خصم',
   canEditDeduction: 'تعديل خصم',
   canDeleteDeduction: 'حذف خصم',
+  canViewBonuses: 'عرض البونصات',
+  canCreateBonus: 'إضافة بونص',
+  canDeleteBonus: 'حذف بونص',
+  canViewAllPayslips: 'عرض كل الرواتب',
+  canManagePayroll: 'إدارة الرواتب',
+  canApproveLeaves: 'الموافقة على الإجازات',
+  canManageHolidays: 'إدارة الأجازات الرسمية',
+  canManageStaffSalaries: 'تعديل الرواتب',
   canManageBannedMembers: 'إدارة المحظورين',
   canViewWhatsAppInbox: 'عرض صندوق الواتساب',
   canSendWhatsApp: 'إرسال رسائل واتساب',
@@ -765,6 +825,24 @@ export const PERMISSION_GROUPS = {
       'canDeleteDeduction',
     ] as Array<keyof Permissions>,
   },
+  bonuses: {
+    label: '🎁 بونصات الموظفين',
+    permissions: [
+      'canViewBonuses',
+      'canCreateBonus',
+      'canDeleteBonus',
+    ] as Array<keyof Permissions>,
+  },
+  payroll: {
+    label: '💰 الرواتب والـ HR',
+    permissions: [
+      'canViewAllPayslips',
+      'canManagePayroll',
+      'canApproveLeaves',
+      'canManageHolidays',
+      'canManageStaffSalaries',
+    ] as Array<keyof Permissions>,
+  },
   bannedMembers: {
     label: '🚫 المحظورون',
     permissions: [
@@ -851,6 +929,14 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canCreateDeduction: '➕',
   canEditDeduction: '✏️',
   canDeleteDeduction: '🗑️',
+  canViewBonuses: '👁️',
+  canCreateBonus: '➕',
+  canDeleteBonus: '🗑️',
+  canViewAllPayslips: '👁️',
+  canManagePayroll: '💰',
+  canApproveLeaves: '✅',
+  canManageHolidays: '📅',
+  canManageStaffSalaries: '💵',
   canManageBannedMembers: '🚫',
   canViewWhatsAppInbox: '👁️',
   canSendWhatsApp: '📤',

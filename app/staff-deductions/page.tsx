@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
@@ -62,7 +63,16 @@ export default function StaffDeductionsPage() {
       fetchDeductions()
       fetchStaff()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading])
+
+  // Apply URL params for deep-link filters
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const sid = params.get('staffId')
+    if (sid) setFilterStaffId(sid)
+  }, [])
 
   const fetchDeductions = async () => {
     setLoading(true)
@@ -452,7 +462,7 @@ export default function StaffDeductionsPage() {
                 <div className="p-4 space-y-2">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-bold text-gray-900 dark:text-gray-100">{d.staff.name}</p>
+                      <Link href={`/staff-hr-assistant?staffId=${d.staffId}`} className="font-bold text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400 hover:underline block">{d.staff.name}</Link>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{d.staff.position || '-'}</p>
                     </div>
                     <p className="text-xl font-bold text-red-600 dark:text-red-400">- {d.amount.toLocaleString(localeString)} {t('deductions.currency')}</p>
@@ -485,7 +495,7 @@ export default function StaffDeductionsPage() {
                 {filteredDeductions.map(d => (
                   <tr key={d.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-bold text-gray-900 dark:text-gray-100">{d.staff.name}</p>
+                      <Link href={`/staff-hr-assistant?staffId=${d.staffId}`} className="font-bold text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400 hover:underline block">{d.staff.name}</Link>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{d.staff.position || '-'}</p>
                     </td>
                     <td className="px-4 py-3 font-bold text-red-600 dark:text-red-400">

@@ -56,6 +56,8 @@ interface Visitor {
   status: string
   createdAt?: string
   interestedIn?: string
+  notes?: string
+  referrerMemberNumber?: string
 }
 
 interface FollowUp {
@@ -541,15 +543,12 @@ export default function FollowUpsPage() {
       if (m.phone) memberPhones.add(normalizePhone(m.phone))
     })
 
-    //  فلترة المتابعات الحقيقية - إزالة متابعات الزوار الذين أصبحوا أعضاء
-    // + عرض أحدث متابعة فقط لكل زائر (الباقي موجود في الداتابيز ويظهر في السجل)
+    // عرض أحدث متابعة لكل زائر (الباقي محفوظ في الـ DB ويظهر في الـ history)
+    // المتابعات بتاعت الزوار اللي بقوا أعضاء بتظهر زي ما هي مع badge "✓ عضو الآن"
     const latestByVisitor = new Map<string, any>()
     followUps.forEach(fu => {
-      //  متابعات "مشترك" (subscribed) تظهر دايمًا — حتى لو مؤرشفة أو صاحبها أصبح عضو
+      // المتابعات المأرشفة يدوياً تتخفى ما عدا 'subscribed' (سجل تاريخي مهم)
       if (fu.archived && fu.result !== 'subscribed') return
-      //  متابعات الأعضاء المنتهيين/القريبين من الانتهاء تظهر دايمًا — لأنها نُشئت للعضو مباشرة
-      const isMemberDirectFollow = ['expiring-member', 'expired-member'].includes(fu.visitor?.source || '')
-      if (fu.visitor?.phone && memberPhones.has(normalizePhone(fu.visitor.phone)) && fu.result !== 'subscribed' && !isMemberDirectFollow) return
       const phone = fu.visitor?.phone ? normalizePhone(fu.visitor.phone) : fu.id
       const existing = latestByVisitor.get(phone)
       if (!existing || new Date(fu.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
@@ -690,45 +689,9 @@ export default function FollowUpsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading])
 
-  //  أرشفة تلقائية للمتابعات بتاعت الزوار اللي اشتركوا كأعضاء
-  const cleanupSignatureRef = useRef<string>('')
-  useEffect(() => {
-    if (loadingFollowUps || !allMembersData?.length) return
-
-    const memberPhones = new Set<string>()
-    allMembersData.forEach((m: Member) => {
-      if (m.phone) memberPhones.add(normalizePhone(m.phone))
-    })
-
-    // لقي متابعات نشطة لزوار أصبحوا أعضاء — مع الإبقاء على:
-    // - متابعات "مشترك" (تاريخ التحويل)
-    // - متابعات الأعضاء المنتهيين/القريبين من الانتهاء (نُشئت للعضو مباشرة)
-    const idsToArchive = followUps
-      .filter(fu => {
-        if (fu.archived) return false
-        if (fu.result === 'subscribed') return false
-        if (['expiring-member', 'expired-member'].includes(fu.visitor?.source || '')) return false
-        return fu.visitor?.phone && memberPhones.has(normalizePhone(fu.visitor.phone))
-      })
-      .map(fu => fu.id)
-
-    if (idsToArchive.length === 0) return
-
-    const signature = idsToArchive.sort().join(',')
-    if (cleanupSignatureRef.current === signature) return
-
-    fetch('/api/followups/bulk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ followUpIds: idsToArchive, action: 'archive', data: { archivedReason: 'converted' } })
-    })
-      .then(r => r.json())
-      .then(() => {
-        cleanupSignatureRef.current = signature
-        queryClient.invalidateQueries({ queryKey: ['followups'] })
-      })
-      .catch(() => {})
-  }, [followUps, allMembersData, loadingFollowUps, normalizePhone, queryClient])
+  // الأرشفة التلقائية للمتابعات بعد تحويل الزائر لعضوية اتشالت — السجل بقى يفضل ظاهر
+  // مع badge "✓ عضو الآن" بدل ما يتأرشف. لو فيه متابعات قديمة متأرشفة بـ reason='converted'
+  // المستخدم يقدر يفك أرشفتها يدوياً من الـ UI لو حب.
 
   //  إعادة فتح المتابعات المأرشفة لما عضو يقرب ينتهي أو ينتهي
   // عشان السجل والتاريخ يفضل محفوظ ويظهر في القائمة بدل entry جديد فاضي
@@ -3568,11 +3531,19 @@ export default function FollowUpsPage() {
                           </div>
                           <div className="flex-1">
                             <div className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{locale === 'ar' ? 'الاسم' : 'Name'}</div>
-                            <span className={`font-bold text-base sm:text-lg ${
-                              isExpired ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'
-                            }`}>
-                              {followUp.visitor.name}
-                            </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`font-bold text-base sm:text-lg ${
+                                isExpired ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'
+                              }`}>
+                                {followUp.visitor.name}
+                              </span>
+                              {isVisitorAMember(followUp.visitor.phone) && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-800">
+                                  <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                  {locale === 'ar' ? 'عضو الآن' : 'Now a Member'}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -3637,6 +3608,48 @@ export default function FollowUpsPage() {
                         )}
                       </div>
                     </div>
+
+                    {/* تفاصيل الزائر الإضافية: تاريخ أول تواصل، حالة الزائر، العضو المُحيل، الملاحظات */}
+                    {(followUp.visitor.createdAt || followUp.visitor.status || followUp.visitor.referrerMemberNumber || followUp.visitor.notes) && (
+                      <div className="flex items-center gap-2 flex-wrap text-xs">
+                        {followUp.visitor.createdAt && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                            <span>{locale === 'ar' ? 'أول تواصل:' : 'First contact:'} {new Date(followUp.visitor.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}</span>
+                          </span>
+                        )}
+                        {followUp.visitor.status && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold ${
+                            followUp.visitor.status === 'contacted' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                            : followUp.visitor.status === 'subscribed' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                            : followUp.visitor.status === 'rejected' || followUp.visitor.status === 'lost' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
+                          }`}>
+                            {locale === 'ar'
+                              ? (followUp.visitor.status === 'pending' ? 'في الانتظار' : followUp.visitor.status === 'contacted' ? 'تم التواصل' : followUp.visitor.status === 'subscribed' ? 'مشترك' : followUp.visitor.status === 'rejected' ? 'رفض' : followUp.visitor.status === 'lost' ? 'مفقود' : followUp.visitor.status)
+                              : followUp.visitor.status}
+                          </span>
+                        )}
+                        {followUp.visitor.referrerMemberNumber && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                            <svg className="w-3 h-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
+                            <span>{locale === 'ar' ? 'جابه عضو:' : 'Referred by:'} #{followUp.visitor.referrerMemberNumber}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {followUp.visitor.notes && (
+                      <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/40 rounded-lg p-2.5 text-xs">
+                        <div className="flex items-start gap-1.5">
+                          <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-700 dark:text-amber-300" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+                          <div>
+                            <span className="font-bold text-amber-800 dark:text-amber-200 me-1">{locale === 'ar' ? 'ملاحظات الزائر:' : 'Visitor notes:'}</span>
+                            <span className="text-amber-900 dark:text-amber-100 whitespace-pre-wrap">{followUp.visitor.notes}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* موظف المبيعات */}
                     {followUp.salesName && (

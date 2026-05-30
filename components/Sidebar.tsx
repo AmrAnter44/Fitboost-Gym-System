@@ -82,6 +82,15 @@ const NavIcons: Record<string, ReactNode> = {
   logout: (
     <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
   ),
+  payroll: (
+    <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+  ),
+  schedule: (
+    <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
+  ),
+  myPayslips: (
+    <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"/></svg>
+  ),
   chevronDown: (
     <svg className="w-4 h-4 text-gray-500 flex-shrink-0" {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
   ),
@@ -160,6 +169,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       title: t('nav.management'),
       links: [
         { href: '/staff', label: t('nav.staff'), icon: NavIcons.staff, permission: 'canViewStaff' as keyof Permissions },
+        ...((user?.role === 'OWNER' || user?.role === 'ADMIN') ? [
+          { href: '/staff/schedule', label: locale === 'ar' ? 'الجدول والإجازات' : 'Schedule & Leaves', icon: NavIcons.schedule, permission: null },
+        ] : []),
+        ...(user?.staffId && user?.role !== 'OWNER' && user?.role !== 'ADMIN' ? [
+          { href: '/my-payslips', label: locale === 'ar' ? 'مرتباتي' : 'My Payslips', icon: NavIcons.myPayslips, permission: null },
+        ] : []),
         ...(!isCoach ? [{ href: '/whatsapp-web', label: 'WhatsApp Web', icon: NavIcons.whatsapp, permission: 'canViewWhatsAppInbox' as keyof Permissions }] : []),
         { href: '/settings', label: t('nav.settings'), icon: NavIcons.settings, permission: null },
       ]

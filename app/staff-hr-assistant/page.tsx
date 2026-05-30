@@ -8,6 +8,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { getStatusColors } from '@/lib/hrCalculations'
 import Link from 'next/link'
 import { LoadingScreen } from '@/components/Spinner'
+import type { PayrollBreakdown } from '@/lib/payroll/types'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -129,6 +130,22 @@ export default function StaffHRAssistantPage() {
   const [advanceNotes, setAdvanceNotes] = useState('')
   const [advanceSubmitting, setAdvanceSubmitting] = useState(false)
 
+  // Payroll breakdown for selected staff
+  const [payroll, setPayroll] = useState<PayrollBreakdown | null>(null)
+  const [payrollLoading, setPayrollLoading] = useState(false)
+  const [payslipMeta, setPayslipMeta] = useState<{ id: string; paidAt: string | null } | null>(null)
+
+  // Quick action modals
+  const [showBonusModal, setShowBonusModal] = useState(false)
+  const [bonusAmount, setBonusAmount] = useState('')
+  const [bonusReason, setBonusReason] = useState('')
+  const [bonusSubmitting, setBonusSubmitting] = useState(false)
+
+  const [showDeductionModal, setShowDeductionModal] = useState(false)
+  const [deductionAmount, setDeductionAmount] = useState('')
+  const [deductionReason, setDeductionReason] = useState('')
+  const [deductionSubmitting, setDeductionSubmitting] = useState(false)
+
   // Fetch analytics
   const fetchAnalytics = async () => {
     try {
@@ -163,6 +180,49 @@ export default function StaffHRAssistantPage() {
       setSelectedStaffId(analytics.analytics[0].staffId)
     }
   }, [analytics])
+
+  // URL params: staffId, month, year (for deep-links from other pages)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const sid = params.get('staffId')
+    const m = params.get('month')
+    const y = params.get('year')
+    if (sid) setSelectedStaffId(sid)
+    if (m) setSelectedMonth(parseInt(m, 10))
+    if (y) setSelectedYear(parseInt(y, 10))
+  }, [])
+
+  // Fetch payroll breakdown for selected staff
+  const fetchPayroll = async (staffId: string) => {
+    setPayrollLoading(true)
+    setPayroll(null)
+    setPayslipMeta(null)
+    try {
+      const [pRes, psRes] = await Promise.all([
+        fetch(`/api/payroll/${staffId}?year=${selectedYear}&month=${selectedMonth}`),
+        fetch(`/api/payslips?staffId=${staffId}&year=${selectedYear}&month=${selectedMonth}`),
+      ])
+      if (pRes.ok) {
+        const data = await pRes.json()
+        setPayroll(data)
+      }
+      if (psRes.ok) {
+        const list = await psRes.json()
+        const live = Array.isArray(list) ? list.find((p: any) => !p.voidedAt) : null
+        if (live) setPayslipMeta({ id: live.id, paidAt: live.paidAt })
+      }
+    } catch (e) {
+      console.error('Payroll fetch failed', e)
+    } finally {
+      setPayrollLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (selectedStaffId) fetchPayroll(selectedStaffId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStaffId, selectedMonth, selectedYear])
 
   // Calculate overview stats
   const calculateOverview = () => {
@@ -217,6 +277,110 @@ export default function StaffHRAssistantPage() {
   }
 
   // تغيير حالة السلفة
+  // ---- Quick Actions ----
+  const handleAddBonus = async () => {
+    if (!selectedStaffId || !bonusAmount || parseFloat(bonusAmount) <= 0 || !bonusReason.trim()) return
+    setBonusSubmitting(true)
+    try {
+      const res = await fetch('/api/bonuses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staffId: selectedStaffId,
+          amount: parseFloat(bonusAmount),
+          reason: bonusReason.trim(),
+          month: selectedMonth,
+          year: selectedYear,
+        }),
+      })
+      if (res.ok) {
+        toast.success(direction === 'rtl' ? 'تم إضافة البونص' : 'Bonus added')
+        setShowBonusModal(false)
+        setBonusAmount(''); setBonusReason('')
+        fetchPayroll(selectedStaffId)
+      } else {
+        const e = await res.json().catch(() => ({}))
+        toast.error(e.error || 'Failed')
+      }
+    } finally { setBonusSubmitting(false) }
+  }
+
+  const handleAddDeduction = async () => {
+    if (!selectedStaffId || !deductionAmount || parseFloat(deductionAmount) <= 0 || !deductionReason.trim()) return
+    setDeductionSubmitting(true)
+    try {
+      const res = await fetch('/api/staff-deductions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staffId: selectedStaffId,
+          amount: parseFloat(deductionAmount),
+          reason: deductionReason.trim(),
+        }),
+      })
+      if (res.ok) {
+        toast.success(direction === 'rtl' ? 'تم إضافة الخصم' : 'Deduction added')
+        setShowDeductionModal(false)
+        setDeductionAmount(''); setDeductionReason('')
+        fetchPayroll(selectedStaffId)
+      } else {
+        const e = await res.json().catch(() => ({}))
+        toast.error(e.error || 'Failed')
+      }
+    } finally { setDeductionSubmitting(false) }
+  }
+
+  const handleConvertAllLate = async () => {
+    if (!selectedStaffId || !payroll || payroll.deductions.lateArrivals.totalMinutes === 0) return
+    const amount = payroll.deductions.lateArrivals.suggestedPenalty
+    if (amount <= 0) {
+      toast.warning(direction === 'rtl' ? 'مفيش مبلغ مقترح — راجع الإعدادات' : 'No suggested penalty — check settings')
+      return
+    }
+    const confirmMsg = direction === 'rtl'
+      ? `هيتم إنشاء خصم بقيمة ${amount} ج عن إجمالي ${payroll.deductions.lateArrivals.totalMinutes} دقيقة تأخير. تأكيد؟`
+      : `Create a deduction of ${amount} EGP for total ${payroll.deductions.lateArrivals.totalMinutes} minutes late. Confirm?`
+    if (!confirm(confirmMsg)) return
+    try {
+      const res = await fetch('/api/staff-deductions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staffId: selectedStaffId,
+          amount,
+          reason: direction === 'rtl'
+            ? `تأخيرات شهر ${selectedMonth}/${selectedYear} — ${payroll.deductions.lateArrivals.totalMinutes} دقيقة`
+            : `Late arrivals ${selectedMonth}/${selectedYear} — ${payroll.deductions.lateArrivals.totalMinutes} min`,
+        }),
+      })
+      if (res.ok) {
+        toast.success(direction === 'rtl' ? 'تم تحويل التأخيرات لخصم' : 'Late converted to deduction')
+        fetchPayroll(selectedStaffId)
+      } else {
+        const e = await res.json().catch(() => ({}))
+        toast.error(e.error || 'Failed')
+      }
+    } catch { toast.error('Failed') }
+  }
+
+  const handleGeneratePayslip = async () => {
+    if (!selectedStaffId) return
+    try {
+      const res = await fetch('/api/payroll/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: selectedYear, month: selectedMonth, staffIds: [selectedStaffId] }),
+      })
+      if (res.ok) {
+        toast.success(direction === 'rtl' ? 'تم إنشاء القسيمة' : 'Payslip generated')
+        fetchPayroll(selectedStaffId)
+      } else {
+        const e = await res.json().catch(() => ({}))
+        toast.error(e.error || 'Failed')
+      }
+    } catch { toast.error('Failed') }
+  }
+
   const toggleAdvancePaid = async (expenseId: string, currentPaid: boolean) => {
     try {
       const res = await fetch('/api/expenses', {
@@ -690,6 +854,200 @@ export default function StaffHRAssistantPage() {
                       )}
                     </div>
 
+                    {/* === NET SALARY HERO + BREAKDOWN === */}
+                    <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                      {payrollLoading ? (
+                        <div className="py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+                          {direction === 'rtl' ? 'جارٍ حساب الراتب...' : 'Calculating salary...'}
+                        </div>
+                      ) : payroll ? (
+                        <>
+                          {/* Hero Card */}
+                          <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 p-5 sm:p-6 text-white shadow-lg">
+                            <div className="flex items-start justify-between gap-3 flex-wrap">
+                              <div>
+                                <p className="text-xs sm:text-sm font-bold text-emerald-100 uppercase tracking-wider">
+                                  {direction === 'rtl' ? `راتب ${monthOptions.find(m => m.value === selectedMonth)?.label} ${selectedYear}` : `Salary ${monthOptions.find(m => m.value === selectedMonth)?.label} ${selectedYear}`}
+                                </p>
+                                <p className="text-3xl sm:text-4xl md:text-5xl font-bold mt-1">
+                                  {payroll.net.toLocaleString(direction === 'rtl' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 0 })} <span className="text-base sm:text-lg font-normal">{direction === 'rtl' ? 'ج.م' : 'EGP'}</span>
+                                </p>
+                                <p className="text-xs text-emerald-100 mt-1.5">
+                                  {direction === 'rtl'
+                                    ? `الدخل ${payroll.totalEarnings.toLocaleString('ar-EG', { maximumFractionDigits: 0 })} ج · الخصومات ${payroll.totalDeductions.toLocaleString('ar-EG', { maximumFractionDigits: 0 })} ج`
+                                    : `Earnings ${payroll.totalEarnings.toLocaleString('en-US', { maximumFractionDigits: 0 })} · Deductions ${payroll.totalDeductions.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end gap-2">
+                                {payslipMeta ? (
+                                  <Link
+                                    href={`/payroll/payslip/${payslipMeta.id}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-emerald-700 text-xs font-bold transition-colors"
+                                  >
+                                    <svg {...stroke} className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                    <span>{direction === 'rtl' ? 'صدرت قسيمة' : 'Payslip issued'}</span>
+                                  </Link>
+                                ) : (
+                                  <button
+                                    onClick={handleGeneratePayslip}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-emerald-700 text-xs font-bold transition-colors"
+                                  >
+                                    <svg {...stroke} className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                    <span>{direction === 'rtl' ? 'إنشاء قسيمة' : 'Generate Payslip'}</span>
+                                  </button>
+                                )}
+                                {payslipMeta?.paidAt && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-white font-bold">
+                                    {direction === 'rtl' ? '✓ مدفوع' : '✓ Paid'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Actions */}
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setShowBonusModal(true)}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-sm font-bold transition-colors"
+                            >
+                              <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                              {direction === 'rtl' ? 'بونص' : 'Bonus'}
+                            </button>
+                            <button
+                              onClick={() => setShowDeductionModal(true)}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50 text-sm font-bold transition-colors"
+                            >
+                              <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                              {direction === 'rtl' ? 'خصم' : 'Deduction'}
+                            </button>
+                            <Link
+                              href={`/staff/schedule?staffId=${staff.staffId}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-sm font-bold transition-colors"
+                            >
+                              <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+                              {direction === 'rtl' ? 'الجدول' : 'Schedule'}
+                            </Link>
+                            <button
+                              onClick={() => fetchPayroll(staff.staffId)}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-bold transition-colors"
+                            >
+                              <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" /></svg>
+                              {direction === 'rtl' ? 'تحديث' : 'Refresh'}
+                            </button>
+                          </div>
+
+                          {/* Breakdown Table */}
+                          <div className="mt-5 bg-gray-50 dark:bg-gray-900/40 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+                            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                              {/* Earnings */}
+                              <div className="p-3 bg-emerald-50/50 dark:bg-emerald-900/10">
+                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                                  {direction === 'rtl' ? 'الدخل' : 'Earnings'}
+                                </p>
+                              </div>
+                              <BreakdownRow
+                                label={direction === 'rtl' ? `الراتب الأساسي${payroll.base.daysAttended ? ` (${payroll.base.daysAttended} يوم)` : ''}` : `Base Salary${payroll.base.daysAttended ? ` (${payroll.base.daysAttended} days)` : ''}`}
+                                amount={payroll.earnings.base}
+                                sign="+"
+                                tone="emerald"
+                              />
+                              <BreakdownRow
+                                label={direction === 'rtl' ? `البونصات (${payroll.earnings.bonuses.items.length})` : `Bonuses (${payroll.earnings.bonuses.items.length})`}
+                                amount={payroll.earnings.bonuses.total}
+                                sign="+"
+                                tone="emerald"
+                                href={`/staff-bonuses?staffId=${staff.staffId}&month=${selectedMonth}&year=${selectedYear}`}
+                              />
+                              <BreakdownRow
+                                label={direction === 'rtl' ? `العمولات (${payroll.earnings.commission.items.length})` : `Commission (${payroll.earnings.commission.items.length})`}
+                                amount={payroll.earnings.commission.total}
+                                sign="+"
+                                tone="emerald"
+                              />
+                              <div className="p-3 bg-emerald-50/30 dark:bg-emerald-900/5 flex justify-between font-bold text-emerald-700 dark:text-emerald-300">
+                                <span>{direction === 'rtl' ? 'إجمالي الدخل' : 'Total Earnings'}</span>
+                                <span>+ {payroll.totalEarnings.toLocaleString(direction === 'rtl' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 0 })}</span>
+                              </div>
+
+                              {/* Deductions */}
+                              <div className="p-3 bg-red-50/50 dark:bg-red-900/10">
+                                <p className="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-300">
+                                  {direction === 'rtl' ? 'الخصومات' : 'Deductions'}
+                                </p>
+                              </div>
+                              <BreakdownRow
+                                label={direction === 'rtl' ? `غياب (${payroll.deductions.absences.days} يوم)` : `Absences (${payroll.deductions.absences.days} days)`}
+                                amount={payroll.deductions.absences.amount}
+                                sign="−"
+                                tone="red"
+                                href={`/staff/schedule?staffId=${staff.staffId}&year=${selectedYear}&month=${selectedMonth}`}
+                              />
+                              <BreakdownRow
+                                label={direction === 'rtl' ? `خصومات يدوية (${payroll.deductions.manual.items.length})` : `Manual Deductions (${payroll.deductions.manual.items.length})`}
+                                amount={payroll.deductions.manual.total}
+                                sign="−"
+                                tone="red"
+                                href={`/staff-deductions?staffId=${staff.staffId}`}
+                              />
+                              <BreakdownRow
+                                label={direction === 'rtl' ? `سلف هذا الشهر (${payroll.deductions.loans.items.length})` : `Loans This Month (${payroll.deductions.loans.items.length})`}
+                                amount={payroll.deductions.loans.total}
+                                sign="−"
+                                tone="red"
+                              />
+                              <div className="p-3 bg-red-50/30 dark:bg-red-900/5 flex justify-between font-bold text-red-700 dark:text-red-300">
+                                <span>{direction === 'rtl' ? 'إجمالي الخصومات' : 'Total Deductions'}</span>
+                                <span>− {payroll.totalDeductions.toLocaleString(direction === 'rtl' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 0 })}</span>
+                              </div>
+
+                              {/* Net */}
+                              <div className="p-4 bg-gradient-to-r from-emerald-100 to-emerald-50 dark:from-emerald-900/40 dark:to-emerald-900/20 flex justify-between items-center">
+                                <span className="font-bold text-emerald-900 dark:text-emerald-100 text-base">
+                                  {direction === 'rtl' ? 'الصافي' : 'Net Salary'}
+                                </span>
+                                <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                                  = {payroll.net.toLocaleString(direction === 'rtl' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 0 })} {direction === 'rtl' ? 'ج.م' : 'EGP'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Late Arrivals Quick Convert */}
+                          {payroll.deductions.lateArrivals.totalMinutes > 0 && (
+                            <div className="mt-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/40 p-4">
+                              <div className="flex items-start justify-between gap-3 flex-wrap">
+                                <div>
+                                  <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                                    {direction === 'rtl'
+                                      ? `${payroll.deductions.lateArrivals.totalMinutes} دقيقة تأخير في ${payroll.deductions.lateArrivals.occurrences.length} يوم`
+                                      : `${payroll.deductions.lateArrivals.totalMinutes} late minutes across ${payroll.deductions.lateArrivals.occurrences.length} days`}
+                                  </p>
+                                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                                    {direction === 'rtl'
+                                      ? `خصم مقترح: ${payroll.deductions.lateArrivals.suggestedPenalty.toLocaleString('ar-EG', { maximumFractionDigits: 0 })} ج (مش متخصم تلقائياً)`
+                                      : `Suggested deduction: ${payroll.deductions.lateArrivals.suggestedPenalty.toLocaleString('en-US', { maximumFractionDigits: 0 })} EGP (not auto-applied)`}
+                                  </p>
+                                </div>
+                                {payroll.deductions.lateArrivals.suggestedPenalty > 0 && (
+                                  <button
+                                    onClick={handleConvertAllLate}
+                                    className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold whitespace-nowrap"
+                                  >
+                                    {direction === 'rtl' ? 'حوّل لخصم' : 'Convert to Deduction'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+                          {direction === 'rtl' ? 'مفيش بيانات راتب لهذا الشهر' : 'No salary data for this month'}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Details Body */}
                     <div className="p-6 bg-gray-50 dark:bg-gray-900 border-t-2 border-gray-200 dark:border-gray-700 space-y-6">
                     {/* Revenue Breakdown */}
@@ -1117,6 +1475,90 @@ export default function StaffHRAssistantPage() {
           </div>
         </div>
       )}
+
+      {/* Bonus Modal */}
+      {showBonusModal && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" onClick={(e) => { if (e.target === e.currentTarget) setShowBonusModal(false) }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-5 animate-modal-in" dir={direction}>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              {direction === 'rtl' ? `إضافة بونص` : 'Add Bonus'}
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold mb-1 text-gray-700 dark:text-gray-300">{direction === 'rtl' ? 'المبلغ' : 'Amount'}</label>
+                <input type="number" min="0" step="0.01" value={bonusAmount} onChange={e => setBonusAmount(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1 text-gray-700 dark:text-gray-300">{direction === 'rtl' ? 'السبب' : 'Reason'}</label>
+                <input type="text" value={bonusReason} onChange={e => setBonusReason(e.target.value)} placeholder={direction === 'rtl' ? 'مثال: أداء متميز' : 'e.g. Outstanding performance'} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {direction === 'rtl' ? `لشهر ${monthOptions.find(m => m.value === selectedMonth)?.label} ${selectedYear}` : `For ${monthOptions.find(m => m.value === selectedMonth)?.label} ${selectedYear}`}
+              </p>
+              <div className="flex gap-2 pt-2">
+                <button onClick={handleAddBonus} disabled={bonusSubmitting} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg disabled:opacity-60">
+                  {bonusSubmitting ? '...' : (direction === 'rtl' ? 'حفظ' : 'Save')}
+                </button>
+                <button onClick={() => setShowBonusModal(false)} className="px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 py-2.5 rounded-lg font-bold">
+                  {direction === 'rtl' ? 'إلغاء' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deduction Modal */}
+      {showDeductionModal && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" onClick={(e) => { if (e.target === e.currentTarget) setShowDeductionModal(false) }}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full p-5 animate-modal-in" dir={direction}>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              {direction === 'rtl' ? 'إضافة خصم' : 'Add Deduction'}
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold mb-1 text-gray-700 dark:text-gray-300">{direction === 'rtl' ? 'المبلغ' : 'Amount'}</label>
+                <input type="number" min="0" step="0.01" value={deductionAmount} onChange={e => setDeductionAmount(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1 text-gray-700 dark:text-gray-300">{direction === 'rtl' ? 'السبب' : 'Reason'}</label>
+                <input type="text" value={deductionReason} onChange={e => setDeductionReason(e.target.value)} placeholder={direction === 'rtl' ? 'مثال: غياب بدون إذن' : 'e.g. Unauthorized absence'} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+              </div>
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                {direction === 'rtl' ? 'الخصم بيتعمل pending — لازم يتطبق من صفحة الخصومات' : 'Deduction is pending — must be applied from deductions page'}
+              </p>
+              <div className="flex gap-2 pt-2">
+                <button onClick={handleAddDeduction} disabled={deductionSubmitting} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg disabled:opacity-60">
+                  {deductionSubmitting ? '...' : (direction === 'rtl' ? 'حفظ' : 'Save')}
+                </button>
+                <button onClick={() => setShowDeductionModal(false)} className="px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 py-2.5 rounded-lg font-bold">
+                  {direction === 'rtl' ? 'إلغاء' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+function BreakdownRow({ label, amount, sign, tone, href }: { label: string; amount: number; sign: '+' | '−'; tone: 'emerald' | 'red'; href?: string }) {
+  const toneCls = tone === 'emerald' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'
+  const content = (
+    <div className="px-4 py-2.5 flex justify-between items-center hover:bg-gray-100/60 dark:hover:bg-gray-800/60 transition-colors">
+      <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+        {label}
+        {href && (
+          <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="w-3 h-3 text-gray-400">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" />
+          </svg>
+        )}
+      </span>
+      <span className={`text-sm font-bold ${toneCls}`}>
+        {sign} {amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+      </span>
+    </div>
+  )
+  return href ? <Link href={href} className="block">{content}</Link> : content
 }
