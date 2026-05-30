@@ -100,7 +100,11 @@ async function updateSettings(request: Request) {
       'remainingEnabled',
       'gymName',
       'gymLogo',
-      'primaryColor'
+      'primaryColor',
+      'payrollLateGraceMinutes',
+      'payrollWorkingDaysPerMonth',
+      'payrollMonthEndDay',
+      'payrollSuggestedLatePerMinute',
     ]
 
     validFields.forEach(field => {

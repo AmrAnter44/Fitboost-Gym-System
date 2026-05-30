@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
 
-    const where: any = {}
+    const where: any = { isDeleted: false }
 
     // البحث بالاسم أو رقم الهاتف
     if (search) {
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
       where: { phone },
     })
 
-    if (existingVisitor) {
+    if (existingVisitor && !existingVisitor.isDeleted) {
       return NextResponse.json(
         {
           error: 'رقم الهاتف مسجل مسبقاً كزائر',
@@ -167,6 +167,35 @@ export async function POST(request: Request) {
         },
         { status: 409 }
       )
+    }
+
+    // لو فيه visitor soft-deleted بنفس الرقم، احييه بدل ما نعمل واحد جديد
+    if (existingVisitor && existingVisitor.isDeleted) {
+      const revived = await prisma.$transaction(async (tx) => {
+        const v = await tx.visitor.update({
+          where: { id: existingVisitor.id },
+          data: {
+            isDeleted: false,
+            deletedAt: null,
+            name: name.trim(),
+            notes: notes?.trim(),
+            source: source || existingVisitor.source,
+            interestedIn: interestedIn?.trim(),
+            status: 'pending',
+            referrerMemberNumber: typeof referrerMemberNumber === 'string' && referrerMemberNumber.trim() ? referrerMemberNumber.trim() : existingVisitor.referrerMemberNumber,
+          },
+        })
+        await tx.followUp.create({
+          data: {
+            visitorId: v.id,
+            notes: 'زيارة أولية - في انتظار التواصل',
+            nextFollowUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            ...(salesStaffId ? { assignedTo: salesStaffId } : {})
+          },
+        })
+        return v
+      })
+      return NextResponse.json(revived, { status: 201 })
     }
 
     // ✅ إنشاء الزائر + أول متابعة في transaction واحد عشان لو الـ followup فشل
@@ -309,31 +338,11 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'الزائر غير موجود' }, { status: 404 })
     }
 
-    // حذف الأنشطة أولاً (deleteMany مش بيعمل cascade)
-    // حذف الأنشطة والمتابعات والزائر + الـ WebsiteLeadImport في transaction واحد
-    await prisma.$transaction(async (tx) => {
-      const followUpIds = (await tx.followUp.findMany({
-        where: { visitorId: id },
-        select: { id: true }
-      })).map(f => f.id)
-
-      if (followUpIds.length > 0) {
-        await tx.followUpActivity.deleteMany({
-          where: { followUpId: { in: followUpIds } }
-        })
-      }
-
-      await tx.followUp.deleteMany({ where: { visitorId: id } })
-
-      // ✅ لو الزائر جاي من الموقع، نخلي الـ remoteId في WebsiteLeadImport
-      // محفوظ (عشان الـ background sync ميرجعش يجيبه تاني)، بس ننظف الـ FK
-      // عشان مفيش orphan reference لزائر مش موجود.
-      await tx.websiteLeadImport.updateMany({
-        where: { visitorId: id },
-        data: { visitorId: null }
-      })
-
-      await tx.visitor.delete({ where: { id } })
+    // Soft delete الزائر — المتابعات + الأنشطة + الـ WebsiteLeadImport links يفضلوا موجودين
+    // للحفاظ على سجل التواصل لو الشخص بقى عضو بعدين
+    await prisma.visitor.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() }
     })
 
     createAuditLog({

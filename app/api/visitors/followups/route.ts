@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         orderBy: { createdAt: 'desc' },
         include: {
           visitor: {
-            select: { id: true, name: true, phone: true, source: true, status: true, interestedIn: true },
+            select: { id: true, name: true, phone: true, source: true, status: true, interestedIn: true, notes: true, referrerMemberNumber: true, createdAt: true },
           },
           assignedStaff: {
             select: { id: true, name: true, position: true },
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
     const includes = {
       visitor: {
-        select: { id: true, name: true, phone: true, source: true, status: true, interestedIn: true },
+        select: { id: true, name: true, phone: true, source: true, status: true, interestedIn: true, notes: true, referrerMemberNumber: true, createdAt: true },
       },
       assignedStaff: {
         select: { id: true, name: true, position: true },

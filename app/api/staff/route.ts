@@ -200,10 +200,17 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canEditStaff')
 
     const body = await request.json()
-    const { id, staffCode, name, phone, position, salary, salesTarget, salesCommissionType, salesCommissionRate, salesCommissionTiers, notes, isActive, customPosition, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime } = body
+    const { id, staffCode, name, phone, position, salary, salesTarget, salesCommissionType, salesCommissionRate, salesCommissionTiers, notes, isActive, customPosition, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime, joinedDate, terminatedAt, salaryChangeReason } = body
 
     // ✅ تحضير البيانات للتحديث (فقط الحقول المسموحة)
     const updateData: any = {}
+
+    // For salary change logging — fetch current salary FIRST
+    let prevSalary: number | null = null
+    if (salary !== undefined && (user.role === 'OWNER' || user.role === 'ADMIN')) {
+      const current = await prisma.staff.findUnique({ where: { id }, select: { salary: true } })
+      prevSalary = current?.salary ?? null
+    }
 
     if (name !== undefined) updateData.name = name
     if (phone !== undefined) updateData.phone = phone
@@ -212,6 +219,12 @@ export async function PUT(request: Request) {
     if (salary !== undefined && (user.role === 'OWNER' || user.role === 'ADMIN')) updateData.salary = salary
     if (notes !== undefined) updateData.notes = notes
     if (isActive !== undefined) updateData.isActive = isActive
+    if (joinedDate !== undefined) {
+      updateData.joinedDate = joinedDate ? new Date(joinedDate) : null
+    }
+    if (terminatedAt !== undefined) {
+      updateData.terminatedAt = terminatedAt ? new Date(terminatedAt) : null
+    }
     if (workingHours !== undefined) {
       updateData.workingHours = workingHours !== null && workingHours !== '' ? parseFloat(workingHours) : null
     }
@@ -256,6 +269,19 @@ export async function PUT(request: Request) {
       where: { id },
       data: updateData,
     })
+
+    // Salary change log — if salary changed, record it for HR audit
+    if (salary !== undefined && (user.role === 'OWNER' || user.role === 'ADMIN') && salary !== prevSalary) {
+      await prisma.salaryChangeLog.create({
+        data: {
+          staffId: staff.id,
+          oldSalary: prevSalary,
+          newSalary: salary,
+          changedBy: user.userId,
+          reason: salaryChangeReason ?? null,
+        },
+      })
+    }
 
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,

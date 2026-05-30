@@ -340,7 +340,11 @@ export default function SettingsPage() {
     freeGroupClassSessionPrice: 0,
     remainingEnabled: false,
     ptFreezeEnabled: false,
-    ptUpgradeEnabled: false
+    ptUpgradeEnabled: false,
+    payrollLateGraceMinutes: 5,
+    payrollWorkingDaysPerMonth: 26,
+    payrollMonthEndDay: 28,
+    payrollSuggestedLatePerMinute: 2,
   })
 
   const [nextReceiptNumber, setNextReceiptNumber] = useState(1)
@@ -1165,6 +1169,8 @@ export default function SettingsPage() {
       { id: 'points', label: t('settingsPage.navigation.points') },
       { id: 'referral', label: t('settingsPage.navigation.referral') },
       { id: 'free-sessions', label: t('settingsPage.navigation.freeSessions') },
+      { id: 'payroll', label: locale === 'ar' ? 'الرواتب' : 'Payroll' },
+      { id: 'holidays', label: locale === 'ar' ? 'الأجازات الرسمية' : 'Holidays' },
       { id: 'receipts', label: t('settingsPage.navigation.receipts') },
       { id: 'port-forwarding', label: t('settingsPage.navigation.portForwarding') }
     ] : []),
@@ -1929,6 +1935,96 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+
+          {activeSection === 'payroll' && (
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'إعدادات الرواتب' : 'Payroll Settings'}</h2>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">{locale === 'ar' ? 'إعدادات نظام حساب المرتبات الذكي' : 'Settings for the smart payroll system'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5 space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    {locale === 'ar' ? 'عدد أيام العمل الشهري الافتراضي' : 'Default Working Days per Month'}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'يُستخدم لما الموظف ما عندوش Rotation محدد' : 'Used when the staff has no Rotation set'}</p>
+                  <input
+                    type="number"
+                    value={serviceSettings.payrollWorkingDaysPerMonth}
+                    onChange={e => updateSetting('payrollWorkingDaysPerMonth', parseInt(e.target.value) || 26)}
+                    min={20}
+                    max={31}
+                    className="w-full sm:w-48 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    {locale === 'ar' ? 'فترة السماحة للتأخير (بالدقائق)' : 'Late Grace Period (minutes)'}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'دقائق التأخير اللي ما بتتحسبش — للـ reporting بس، مفيش خصم تلقائي' : 'Late minutes not counted — for reporting only, no auto-deduction'}</p>
+                  <input
+                    type="number"
+                    value={serviceSettings.payrollLateGraceMinutes}
+                    onChange={e => updateSetting('payrollLateGraceMinutes', parseInt(e.target.value) || 0)}
+                    min={0}
+                    max={60}
+                    className="w-full sm:w-48 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    {locale === 'ar' ? 'السعر المقترح للدقيقة المتأخرة (ج.م)' : 'Suggested Penalty per Late Minute (EGP)'}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'بيظهر كاقتراح في الـ pre-payroll checklist عشان تختار تضمه يدوياً' : 'Shown as a suggestion in the pre-payroll checklist for manual approval'}</p>
+                  <input
+                    type="number"
+                    value={serviceSettings.payrollSuggestedLatePerMinute}
+                    onChange={e => updateSetting('payrollSuggestedLatePerMinute', parseFloat(e.target.value) || 0)}
+                    min={0}
+                    step={0.5}
+                    className="w-full sm:w-48 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    {locale === 'ar' ? 'يوم قفل الشهر للـ payroll' : 'Payroll Month-End Day'}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'اليوم في الشهر اللي بعده الـ payroll بيتقفل تلقائياً' : 'Day of the month when payroll auto-locks'}</p>
+                  <input
+                    type="number"
+                    value={serviceSettings.payrollMonthEndDay}
+                    onChange={e => updateSetting('payrollMonthEndDay', parseInt(e.target.value) || 28)}
+                    min={25}
+                    max={31}
+                    className="w-full sm:w-48 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                  />
+                </div>
+
+                <button
+                  onClick={saveServiceSettings}
+                  disabled={isSaving}
+                  className="bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-5 py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                >
+                  {isSaving ? (locale === 'ar' ? 'جارٍ الحفظ...' : 'Saving...') : (locale === 'ar' ? 'حفظ' : 'Save')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'holidays' && <HolidaysSection locale={locale} direction={direction} />}
 
           {activeSection === 'free-sessions' && (
             <div className="space-y-6">
@@ -3766,6 +3862,127 @@ export default function SettingsPage() {
             </div>
           )}
         </main>
+      </div>
+    </div>
+  )
+}
+
+// ====================================================================
+// Holidays settings sub-component
+// ====================================================================
+interface HolidayItem {
+  id: string
+  date: string
+  name: string
+  isPaid: boolean
+  recurring: boolean
+}
+
+function HolidaysSection({ locale, direction }: { locale: 'ar' | 'en'; direction: 'rtl' | 'ltr' }) {
+  const [holidays, setHolidays] = useState<HolidayItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({ date: '', name: '', isPaid: true, recurring: false })
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/holidays').then(r => r.ok ? r.json() : []).then(d => { setHolidays(d); setLoading(false) })
+  }, [])
+
+  async function addHoliday() {
+    if (!form.date || !form.name) {
+      alert(locale === 'ar' ? 'التاريخ والاسم مطلوبين' : 'Date and name required')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/holidays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) {
+        const created = await res.json()
+        setHolidays(prev => [...prev, created].sort((a, b) => a.date.localeCompare(b.date)))
+        setForm({ date: '', name: '', isPaid: true, recurring: false })
+      } else {
+        const err = await res.json().catch(() => ({}))
+        alert(err.error || 'Failed')
+      }
+    } finally { setSubmitting(false) }
+  }
+
+  async function deleteHoliday(id: string) {
+    if (!confirm(locale === 'ar' ? 'حذف؟' : 'Delete?')) return
+    const res = await fetch(`/api/holidays/${id}`, { method: 'DELETE' })
+    if (res.ok) setHolidays(prev => prev.filter(h => h.id !== id))
+  }
+
+  return (
+    <div className="space-y-4 sm:space-y-6" dir={direction}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">{locale === 'ar' ? 'الأجازات الرسمية' : 'Public Holidays'}</h2>
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'الأجازات الرسمية بتُحسب لكل الموظفين النشطين تلقائياً في الـ payroll' : 'Public holidays apply to all active staff automatically in payroll'}</p>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-3">{locale === 'ar' ? 'إضافة إجازة' : 'Add Holiday'}</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">{locale === 'ar' ? 'التاريخ' : 'Date'}</label>
+            <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">{locale === 'ar' ? 'الاسم' : 'Name'}</label>
+            <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+              placeholder={locale === 'ar' ? 'مثال: عيد الفطر' : 'e.g. Eid al-Fitr'}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+          </div>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input type="checkbox" checked={form.isPaid} onChange={e => setForm({ ...form, isPaid: e.target.checked })} />
+            <span>{locale === 'ar' ? 'مدفوعة' : 'Paid'}</span>
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input type="checkbox" checked={form.recurring} onChange={e => setForm({ ...form, recurring: e.target.checked })} />
+            <span>{locale === 'ar' ? 'متكرر سنوياً' : 'Recurring yearly'}</span>
+          </label>
+        </div>
+        <button onClick={addHoliday} disabled={submitting} className="mt-4 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-5 py-2.5 rounded-lg transition-colors disabled:opacity-60">
+          {submitting ? '...' : (locale === 'ar' ? 'إضافة' : 'Add')}
+        </button>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
+          {locale === 'ar' ? `الأجازات (${holidays.length})` : `Holidays (${holidays.length})`}
+        </h3>
+        {loading ? (
+          <p className="p-6 text-center text-gray-500">{locale === 'ar' ? 'جارٍ التحميل...' : 'Loading...'}</p>
+        ) : holidays.length === 0 ? (
+          <p className="p-6 text-center text-gray-500">{locale === 'ar' ? 'مفيش أجازات' : 'No holidays'}</p>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {holidays.map(h => (
+              <div key={h.id} className="p-3 sm:p-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-gray-900 dark:text-gray-100">{h.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {new Date(h.date).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                    {h.recurring && <span className="ms-2 px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">{locale === 'ar' ? 'متكرر' : 'Recurring'}</span>}
+                    {h.isPaid ? (
+                      <span className="ms-2 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">{locale === 'ar' ? 'مدفوعة' : 'Paid'}</span>
+                    ) : (
+                      <span className="ms-2 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">{locale === 'ar' ? 'بدون مرتب' : 'Unpaid'}</span>
+                    )}
+                  </p>
+                </div>
+                <button onClick={() => deleteHoliday(h.id)} className="text-xs font-bold px-3 py-1.5 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg">
+                  {locale === 'ar' ? 'حذف' : 'Delete'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
