@@ -53,6 +53,7 @@ model Member {
   coachId           String?
   salesStaffId      String?
   offerId           String?      // 📦 الباقة اللي اشترك فيها العضو (للرجوع لمميزاتها)
+  referrerMemberNumber String?   // 👥 رقم العضو اللي جاب العضو ده (لما المصدر = friend_referral)
   createdAt         DateTime     @default(now())
   invitationRecords    Invitation[]
   receipts             Receipt[]

@@ -114,7 +114,7 @@ export default function FollowUpsPage() {
 
   //  تعديل زائر/دعوة
   const [showEditModal, setShowEditModal] = useState(false)
-  const [editTarget, setEditTarget] = useState<{id: string, name: string, phone: string, type: 'visitor' | 'invitation', originalId: string} | null>(null)
+  const [editTarget, setEditTarget] = useState<{id: string, name: string, phone: string, type: 'visitor' | 'invitation', originalId: string, source?: string, referrerMemberNumber?: string} | null>(null)
 
   //  اشتراك سريع - تحويل الزائر إلى عضو
   const [showQuickSubscribeModal, setShowQuickSubscribeModal] = useState(false)
@@ -1056,7 +1056,9 @@ export default function FollowUpsPage() {
       name: followUp.visitor.name,
       phone: followUp.visitor.phone,
       type: isInvitation ? 'invitation' : 'visitor',
-      originalId
+      originalId,
+      source: followUp.visitor?.source || '',
+      referrerMemberNumber: followUp.visitor?.referrerMemberNumber || '',
     })
     setShowEditModal(true)
   }, [])
@@ -1084,10 +1086,22 @@ export default function FollowUpsPage() {
         })
         if (!res.ok) throw new Error('Failed to update invitation')
       } else {
+        const body: any = {
+          id: editTarget.originalId,
+          name: trimmedName,
+          phone: trimmedPhone,
+        }
+        // 🆕 لو في source متبعّت، نبعته (والـ referrerMemberNumber لو friend_referral)
+        if (editTarget.source !== undefined) {
+          body.source = editTarget.source || null
+          body.referrerMemberNumber = editTarget.source === 'friend_referral'
+            ? (editTarget.referrerMemberNumber?.trim() || null)
+            : null
+        }
         const res = await fetch('/api/visitors', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editTarget.originalId, name: trimmedName, phone: trimmedPhone })
+          body: JSON.stringify(body)
         })
         if (!res.ok) throw new Error('Failed to update visitor')
       }
@@ -4126,6 +4140,69 @@ export default function FollowUpsPage() {
                   dir="ltr"
                 />
               </div>
+
+              {/* 🆕 مصدر الزائر — للزوار فقط (مش الدعوات) */}
+              {editTarget.type === 'visitor' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 text-gray-700 dark:text-gray-300">
+                      {locale === 'ar' ? 'المصدر' : 'Source'}
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={editTarget.source || ''}
+                        onChange={(e) => {
+                          const next = e.target.value
+                          setEditTarget({
+                            ...editTarget,
+                            source: next,
+                            // لو غيّر لمصدر غير friend_referral، نمسح الـ ID
+                            ...(next !== 'friend_referral' ? { referrerMemberNumber: '' } : {}),
+                          })
+                        }}
+                        className="w-full appearance-none ps-3 pe-10 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/60 text-gray-900 dark:text-gray-100 text-sm font-medium shadow-inner hover:bg-white dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-blue-400 dark:focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] transition-all duration-200 cursor-pointer"
+                      >
+                        <option value="">— {locale === 'ar' ? 'اختر المصدر' : 'Select source'} —</option>
+                        <option value="walk-in">{locale === 'ar' ? 'زيارة مباشرة / Walk In' : 'Walk In'}</option>
+                        <option value="call-in">{locale === 'ar' ? 'اتصال / Call In' : 'Call In'}</option>
+                        <option value="suggestion">{locale === 'ar' ? 'اقتراح / Suggestion' : 'Suggestion'}</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="website">{locale === 'ar' ? 'الموقع / Website' : 'Website'}</option>
+                        <option value="friend_referral">{locale === 'ar' ? 'إحالة من صديق / Friend Referral' : 'Friend Referral'}</option>
+                        {/* احتفاظ بالقيمة القديمة لو الزائر متسجّل بمصدر مش في القائمة */}
+                        {editTarget.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','website','friend_referral'].includes(editTarget.source) && (
+                          <option value={editTarget.source}>{editTarget.source}</option>
+                        )}
+                      </select>
+                      <div className="absolute end-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-white dark:bg-gray-600 shadow-sm flex items-center justify-center pointer-events-none">
+                        <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" {...stroke}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 👥 ID اللي جابه — يظهر لما المصدر = friend_referral */}
+                  {editTarget.source === 'friend_referral' && (
+                    <div>
+                      <label className="flex items-center gap-1.5 text-sm font-bold mb-1.5 text-gray-700 dark:text-gray-300">
+                        <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        {locale === 'ar' ? 'رقم العضو المُحيل' : 'Referrer Member #'}
+                      </label>
+                      <input
+                        type="text"
+                        value={editTarget.referrerMemberNumber || ''}
+                        onChange={(e) => setEditTarget({ ...editTarget, referrerMemberNumber: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
+                        placeholder={locale === 'ar' ? 'مثال: 1234' : 'e.g. 1234'}
+                        dir="ltr"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="flex gap-3">

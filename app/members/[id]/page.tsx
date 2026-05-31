@@ -6,6 +6,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { ReceiptToPrint } from '../../../components/ReceiptToPrint'
 import PaymentMethodSelector from '../../../components/Paymentmethodselector'
+import Link from 'next/link'
 import RenewalForm from '../../../components/RenewalForm'
 import UpgradeForm from '../../../components/UpgradeForm'
 import TransferMembershipForm from '../../../components/TransferMembershipForm'
@@ -1846,10 +1847,66 @@ export default function MemberDetailPage() {
  <p className="text-xs opacity-75">#{(member as any).salesStaff.staffCode}</p>
  </div>
  )}
+ {/* 👥 العضو اللي جاب العضو ده — لما المصدر = friend_referral */}
+ {(member as any).referrerMemberNumber && (
+ <div className="bg-white/10 rounded-lg p-3">
+ <p className="text-xs opacity-80 mb-1">👥 {locale === 'ar' ? 'تم إحالته بواسطة' : 'Referred By'}</p>
+ {(member as any).referrerInfo ? (
+ <Link href={`/members/${(member as any).referrerInfo.id}`} className="hover:opacity-80 transition-opacity">
+ <p className="text-base font-bold underline decoration-dotted">{(member as any).referrerInfo.name}</p>
+ <p className="text-xs opacity-75">#{(member as any).referrerMemberNumber}</p>
+ </Link>
+ ) : (
+ <>
+ <p className="text-base font-bold">#{(member as any).referrerMemberNumber}</p>
+ <p className="text-xs opacity-60">{locale === 'ar' ? 'العضو غير موجود الآن' : 'Member no longer exists'}</p>
+ </>
+ )}
+ </div>
+ )}
+ {/* 🤝 الأصدقاء اللي العضو ده جابهم — count + collapsible list */}
+ {((member as any).referredMembersCount ?? 0) > 0 && (
+ <details className="bg-white/10 rounded-lg p-3 group">
+ <summary className="cursor-pointer list-none flex items-center justify-between">
+ <div>
+ <p className="text-xs opacity-80 mb-1">🤝 {locale === 'ar' ? 'الأصدقاء اللي جابهم' : 'Friends Brought'}</p>
+ <p className="text-base font-bold">
+ {(member as any).referredMembersCount}{' '}
+ <span className="text-xs font-normal opacity-75">
+ {locale === 'ar'
+ ? ((member as any).referredMembersCount === 1 ? 'صديق' : 'أصدقاء')
+ : ((member as any).referredMembersCount === 1 ? 'friend' : 'friends')}
+ </span>
+ </p>
+ </div>
+ <svg className="w-4 h-4 opacity-60 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+ </svg>
+ </summary>
+ <div className="mt-3 space-y-1.5 max-h-64 overflow-y-auto">
+ {((member as any).referredMembers || []).map((r: any) => (
+ <Link
+ key={r.id}
+ href={`/members/${r.id}`}
+ className="flex items-center justify-between gap-2 bg-white/10 hover:bg-white/20 rounded px-2.5 py-1.5 transition-colors"
+ >
+ <div className="flex items-center gap-2 min-w-0">
+ <span className={`w-2 h-2 rounded-full flex-shrink-0 ${r.isActive ? 'bg-green-400' : 'bg-red-400'}`} />
+ <span className="text-sm font-bold truncate">{r.name}</span>
+ {r.memberNumber && <span className="text-[10px] opacity-70 font-mono flex-shrink-0">#{r.memberNumber}</span>}
+ </div>
+ <span className="text-[10px] opacity-60 font-mono flex-shrink-0">
+ {new Date(r.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: '2-digit', month: 'short', year: '2-digit' })}
+ </span>
+ </Link>
+ ))}
+ </div>
+ </details>
+ )}
  </div>
 
  <div className="mt-6 pt-6 border-t border-white dark:border-gray-400 border-opacity-20">
- <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+ <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-white">
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
  <p className="text-sm opacity-90">{t('memberDetails.status')}</p>
  <p className="text-lg font-bold">
