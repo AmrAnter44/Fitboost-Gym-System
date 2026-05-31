@@ -82,7 +82,33 @@ export async function GET(
       }
     }
 
-    return NextResponse.json(member, { status: 200 })
+    // 👥 لو في referrerMemberNumber، نجيب بياناته للعرض في الصفحة
+    let referrerInfo: { id: string; name: string; memberNumber: string | null } | null = null
+    const refNum = (member as any).referrerMemberNumber as string | null
+    if (refNum) {
+      const ref = await prisma.member.findUnique({
+        where: { memberNumber: refNum },
+        select: { id: true, name: true, memberNumber: true }
+      })
+      if (ref) referrerInfo = ref
+    }
+
+    // 👥 كل الأعضاء اللي العضو ده جابهم (referredMembers) — للعرض في البروفايل
+    let referredMembers: { id: string; name: string; memberNumber: string | null; createdAt: Date; isActive: boolean }[] = []
+    if (member.memberNumber) {
+      referredMembers = await prisma.member.findMany({
+        where: { referrerMemberNumber: member.memberNumber } as any,
+        select: { id: true, name: true, memberNumber: true, createdAt: true, isActive: true },
+        orderBy: { createdAt: 'desc' }
+      })
+    }
+
+    return NextResponse.json({
+      ...member,
+      referrerInfo,
+      referredMembers,
+      referredMembersCount: referredMembers.length,
+    }, { status: 200 })
   } catch (error: any) {
     console.error('❌ Error fetching member:', error)
     return NextResponse.json(

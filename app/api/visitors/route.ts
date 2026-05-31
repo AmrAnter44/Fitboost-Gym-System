@@ -249,7 +249,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canViewVisitors')
 
     const body = await request.json()
-    const { id, name, phone, notes, status, interestedIn, source } = body
+    const { id, name, phone, notes, status, interestedIn, source, referrerMemberNumber } = body
 
     if (!id) {
       return NextResponse.json({ error: 'معرف الزائر مطلوب' }, { status: 400 })
@@ -293,6 +293,11 @@ export async function PUT(request: Request) {
     if (status !== undefined) updateData.status = status
     if (interestedIn !== undefined) updateData.interestedIn = interestedIn?.trim()
     if (source !== undefined) updateData.source = source
+    if (referrerMemberNumber !== undefined) {
+      updateData.referrerMemberNumber = typeof referrerMemberNumber === 'string' && referrerMemberNumber.trim()
+        ? referrerMemberNumber.trim()
+        : null
+    }
 
     const visitor = await prisma.visitor.update({
       where: { id },

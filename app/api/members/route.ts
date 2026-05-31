@@ -387,15 +387,19 @@ export async function POST(request: Request) {
     }
 
     // 👥 التحقق من رقم العضو المُحيل إذا تم إدخاله
+    // ملاحظة: Zod schema بيـ coerce القيمة لـ number، فبنحوّلها لـ string قبل ما نـ trim/findUnique
     let referrerId = null
-    if (referralMemberNumber && referralMemberNumber.trim() !== '') {
+    const referralStr = referralMemberNumber !== null && referralMemberNumber !== undefined
+      ? String(referralMemberNumber).trim()
+      : ''
+    if (referralStr !== '') {
       const referrer = await prisma.member.findUnique({
-        where: { memberNumber: referralMemberNumber.trim() }
+        where: { memberNumber: referralStr }
       })
 
       if (!referrer) {
         return NextResponse.json(
-          { error: 'رقم العضو المُحيل غير موجود' },
+          { error: `رقم العضو المُحيل ${referralStr} غير موجود` },
           { status: 400 }
         )
       }
@@ -466,6 +470,8 @@ export async function POST(request: Request) {
       coachId: coachId || null,
       salesStaffId: effectiveSalesStaffId,
       offerId: offerId || null,
+      // 👥 سجّل اللي جابه (لو في) عشان نقدر نرجع نعرف من جابه بعدين
+      referrerMemberNumber: referralStr || null,
       allowedCheckInStart: allowedCheckInStart || null,
       allowedCheckInEnd: allowedCheckInEnd || null,
     }
