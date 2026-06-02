@@ -790,7 +790,7 @@ export default function CoachDashboard() {
                     )}
 
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 min-w-0 ps-16">
+                      <div className={`flex-1 min-w-0 ${locale === 'ar' ? 'ps-24' : 'ps-12'}`}>
                         <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 truncate">{pt.clientName}</h3>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">{t('coachDashboard.ptNumber')}: #{pt.ptNumber}</p>
                         {pt.phone && (

@@ -859,10 +859,11 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
                 <option value="facebook">{t('members.form.sourceFacebook')}</option>
                 <option value="instagram">{t('members.form.sourceInstagram')}</option>
                 <option value="tiktok">{t('members.form.sourceTiktok')}</option>
+                <option value="chatgpt">{t('members.form.sourceChatGPT')}</option>
                 <option value="website">{t('members.form.sourceWebsite')}</option>
                 <option value="friend_referral">{t('members.form.sourceFriendReferral')}</option>
                 {/* احتفظ بالقيمة القديمة لو العضو متسجّل قبل كده بـ source غير موجود في القائمة الجديدة */}
-                {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','website','friend_referral'].includes(formData.source) && (
+                {formData.source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','website','friend_referral'].includes(formData.source) && (
                   <option value={formData.source}>{formData.source}</option>
                 )}
               </select>
