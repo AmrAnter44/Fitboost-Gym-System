@@ -4169,6 +4169,7 @@ export default function FollowUpsPage() {
                         <option value="facebook">Facebook</option>
                         <option value="instagram">Instagram</option>
                         <option value="tiktok">TikTok</option>
+                        <option value="chatgpt">{locale === 'ar' ? 'شات جي بي تي / ChatGPT' : 'ChatGPT'}</option>
                         <option value="website">{locale === 'ar' ? 'الموقع / Website' : 'Website'}</option>
                         <option value="friend_referral">{locale === 'ar' ? 'إحالة من صديق / Friend Referral' : 'Friend Referral'}</option>
                         {/* احتفاظ بالقيمة القديمة لو الزائر متسجّل بمصدر مش في القائمة */}

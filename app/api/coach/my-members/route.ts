@@ -24,21 +24,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'لا يوجد staffId للمدرب' }, { status: 400 })
     }
 
-    // "Potential" = a member assigned to this coach who is NOT currently
-    // an active subscriber. The moment a member becomes active+unexpired,
-    // they drop off this list.
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
+    // 🐛 BUG FIX: كان فيه OR filter بيستثني الأعضاء النشطين (isActive + expiryDate في المستقبل + memberNumber)،
+    // فالكوتش لو معاه عضو اشتراكه ساري وعنده حصص PT مجانية ما كانش بيشوفه في الصفحة دي.
+    // الـ page UI أصلاً مصمّم يعرض زرار "خصم حصة PT" للأعضاء النشطين بس، فالـ filter كان غلط منطقياً.
+    // دلوقتي بنرجّع كل الأعضاء المعيّنين للكوتش (نشط + منتهي + غير نشط) والـ UI بيعالج كل حالة.
     const members = await prisma.member.findMany({
       where: {
         coachId: user.staffId,
-        OR: [
-          { isActive: false },                  // غير نشط
-          { expiryDate: null },                 // مفيش تاريخ انتهاء (مش مشترك)
-          { expiryDate: { lt: today } },        // انتهى اشتراكه
-          { memberNumber: null },               // مفيش رقم عضوية (محتمل خالص)
-        ],
       },
       select: {
         id: true,

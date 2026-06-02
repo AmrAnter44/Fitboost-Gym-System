@@ -1582,7 +1582,7 @@ export default function MemberDetailPage() {
  <div className="container mx-auto p-6" dir={direction}>
  <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
  <div>
- <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+ <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
  <svg className="w-7 h-7 text-primary-500" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
  <span>{t('memberDetails.title')}</span>
  </h1>
@@ -1590,7 +1590,7 @@ export default function MemberDetailPage() {
  </div>
  <button
  onClick={() => router.push('/members')}
- className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold"
+ className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white px-4 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-bold"
  >
  <svg className={`w-4 h-4 ${direction === 'rtl' ? 'rotate-180' : ''}`} {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
  {t('memberDetails.back')}
@@ -2003,7 +2003,7 @@ export default function MemberDetailPage() {
 
  {/* المكافآت والخصائص */}
  <div className="mb-6">
- <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+ <h3 className="text-base font-bold text-gray-700 dark:text-white mb-3 flex items-center gap-2">
  
  {locale === 'ar' ? 'المكافآت والخصائص' : 'Rewards & Features'}
  </h3>
@@ -2011,7 +2011,7 @@ export default function MemberDetailPage() {
  {settings.pointsEnabled && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-primary-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.points')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.points')}</p>
  
  </div>
  <p className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-3">{member.points ?? 0}</p>
@@ -2036,7 +2036,7 @@ export default function MemberDetailPage() {
 
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-primary-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.invitations')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.invitations')}</p>
  
  </div>
  <p className="text-3xl font-bold text-primary-600 mb-3">{member.invitations ?? 0}</p>
@@ -2053,7 +2053,7 @@ export default function MemberDetailPage() {
 
  {/* الجلسات المجانية */}
  <div className="mb-6">
- <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+ <h3 className="text-base font-bold text-gray-700 dark:text-white mb-3 flex items-center gap-2">
  
  {locale === 'ar' ? 'الجلسات المجانية' : 'Free Sessions'}
  </h3>
@@ -2061,7 +2061,7 @@ export default function MemberDetailPage() {
  {settings.inBodyEnabled && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-green-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.inBody')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.inBody')}</p>
  
  </div>
  <p className="text-3xl font-bold text-green-600 mb-3">{member.inBodyScans ?? 0}</p>
@@ -2077,7 +2077,7 @@ export default function MemberDetailPage() {
 
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-orange-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.freePTSessions')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.freePTSessions')}</p>
  
  </div>
  <p className="text-3xl font-bold text-orange-600 mb-1">{member.freePTSessions ?? 0}</p>
@@ -2109,7 +2109,7 @@ export default function MemberDetailPage() {
  {settings.nutritionEnabled && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-lime-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.nutritionSessions')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.nutritionSessions')}</p>
  
  </div>
  <p className="text-3xl font-bold text-lime-600 dark:text-lime-400 mb-1">{member.freeNutritionSessions ?? 0}</p>
@@ -2142,7 +2142,7 @@ export default function MemberDetailPage() {
  {settings.physiotherapyEnabled && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-blue-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.physioSessions')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.physioSessions')}</p>
  
  </div>
  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">{member.freePhysioSessions ?? 0}</p>
@@ -2175,7 +2175,7 @@ export default function MemberDetailPage() {
  {settings.groupClassEnabled && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-fuchsia-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.groupClassSessions')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.groupClassSessions')}</p>
  
  </div>
  <p className="text-3xl font-bold text-fuchsia-600 dark:text-fuchsia-400 mb-1">{member.freeGroupClassSessions ?? 0}</p>
@@ -2208,7 +2208,7 @@ export default function MemberDetailPage() {
  {settings.poolEnabled && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-teal-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.poolSessions')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.poolSessions')}</p>
  
  </div>
  <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 mb-3">{member.freePoolSessions ?? 0}</p>
@@ -2225,7 +2225,7 @@ export default function MemberDetailPage() {
  {settings.padelEnabled && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-amber-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.padelSessions')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.padelSessions')}</p>
  
  </div>
  <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-3">{member.freePadelSessions ?? 0}</p>
@@ -2242,7 +2242,7 @@ export default function MemberDetailPage() {
  {settings.assessmentEnabled && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-indigo-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.assessmentSessions')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.assessmentSessions')}</p>
  
  </div>
  <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-3">{member.freeAssessmentSessions ?? 0}</p>
@@ -2258,7 +2258,7 @@ export default function MemberDetailPage() {
 
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 ${member.isFrozen ? 'border-orange-500' : 'border-cyan-500'}`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold">{t('memberDetails.freezeDays')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.freezeDays')}</p>
  <span className="text-2xl">{member.isFrozen ? '' : ''}</span>
  </div>
  <p className="text-3xl font-bold text-cyan-600 mb-3">{member.remainingFreezeDays ?? 0}</p>
@@ -2357,7 +2357,7 @@ export default function MemberDetailPage() {
  </div>
  <div>
  <h3 className="text-xl font-bold">{t('memberDetails.paymentModal.title')}</h3>
- <p className="text-sm text-gray-600 dark:text-gray-300">{t('memberDetails.paymentModal.remainingLabel', { amount: member.remainingAmount.toString() })}</p>
+ <p className="text-sm text-gray-600 dark:text-white">{t('memberDetails.paymentModal.remainingLabel', { amount: member.remainingAmount.toString() })}</p>
  </div>
  </div>
  <button
@@ -2373,7 +2373,7 @@ export default function MemberDetailPage() {
 
  {/* إجراءات العضوية */}
  <div className="mb-6">
- <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+ <h3 className="text-base font-bold text-gray-700 dark:text-white mb-3 flex items-center gap-2">
  
  {locale === 'ar' ? 'إجراءات العضوية' : 'Membership Actions'}
  </h3>
@@ -2382,7 +2382,7 @@ export default function MemberDetailPage() {
  {hasPermission('canCreateMembers') && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-green-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">{t('renewall.title')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold truncate">{t('renewall.title')}</p>
  
  </div>
  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 min-h-[2rem]">{t('renewall.subtitle')}</p>
@@ -2406,7 +2406,7 @@ export default function MemberDetailPage() {
  {hasPermission('canCreateMembers') && member?.startDate && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-orange-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">{t('upgrade.upgradePackage')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold truncate">{t('upgrade.upgradePackage')}</p>
  
  </div>
  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2 min-h-[2rem]">{t('upgrade.upgradeDescription')}</p>
@@ -2435,7 +2435,7 @@ export default function MemberDetailPage() {
  {hasPermission('canCreateMembers') && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-purple-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">
+ <p className="text-xs text-gray-600 dark:text-white font-semibold truncate">
  {locale === 'ar' ? 'نقل عضوية' : 'Transfer'}
  </p>
  
@@ -2474,7 +2474,7 @@ export default function MemberDetailPage() {
  {hasPermission('canManageBannedMembers') && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-gray-700`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">{locale === 'ar' ? 'حظر العضو' : 'Ban Member'}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold truncate">{locale === 'ar' ? 'حظر العضو' : 'Ban Member'}</p>
  
  </div>
  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 min-h-[2rem]">{locale === 'ar' ? 'إضافة لقائمة المحظورين' : 'Add to banned list'}</p>
@@ -2491,7 +2491,7 @@ export default function MemberDetailPage() {
  {/* Delete */}
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-red-500`}>
  <div className="flex items-center justify-between mb-2">
- <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold truncate">{t('memberDetails.deleteModal.title')}</p>
+ <p className="text-xs text-gray-600 dark:text-white font-semibold truncate">{t('memberDetails.deleteModal.title')}</p>
  
  </div>
  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 min-h-[2rem]">{t('memberDetails.deleteModal.subtitle')}</p>
@@ -2515,7 +2515,7 @@ export default function MemberDetailPage() {
  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
  <div className="text-center mb-6">
  <h3 className="text-2xl font-bold mb-3">{confirmModal.title}</h3>
- <p className="text-gray-600 dark:text-gray-300 text-lg">{confirmModal.message}</p>
+ <p className="text-gray-600 dark:text-white text-lg">{confirmModal.message}</p>
  </div>
 
  <div className="flex gap-3">
@@ -2531,7 +2531,7 @@ export default function MemberDetailPage() {
  <button
  type="button"
  onClick={() => setConfirmModal(null)}
- className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+ className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
  >
   {t('memberDetails.confirmModal.cancel')}
  </button>
@@ -2554,7 +2554,7 @@ export default function MemberDetailPage() {
  <h3 className="text-2xl font-bold">{t('memberDetails.paymentModal.title')}</h3>
  <button
  onClick={() => setActiveModal(null)}
- className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl leading-none"
+ className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-white text-3xl leading-none"
  type="button"
  >
  ×
@@ -2569,7 +2569,7 @@ export default function MemberDetailPage() {
 
  <div className="space-y-4">
  <div>
- <label className="block text-sm font-medium mb-2 dark:text-gray-300">
+ <label className="block text-sm font-medium mb-2 dark:text-white">
  {t('memberDetails.paymentModal.amountPaid')} <span className="text-red-600">*</span>
  </label>
  <input
@@ -2595,7 +2595,7 @@ export default function MemberDetailPage() {
  </div>
 
  <div>
- <label className="block text-sm font-medium mb-2 dark:text-gray-300">{t('memberDetails.paymentModal.notes')}</label>
+ <label className="block text-sm font-medium mb-2 dark:text-white">{t('memberDetails.paymentModal.notes')}</label>
  <textarea
  value={paymentData.notes}
  onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
@@ -2626,7 +2626,7 @@ export default function MemberDetailPage() {
  <button
  type="button"
  onClick={() => setActiveModal(null)}
- className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+ className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
  >
  {t('memberDetails.confirmModal.cancel')}
  </button>
@@ -2650,7 +2650,7 @@ export default function MemberDetailPage() {
  <h3 className="text-base font-bold">{t('memberDetails.editModal.title')} {member.memberNumber !== null ? `#${member.memberNumber}` : 'Other'}</h3>
  <button
  onClick={() => setActiveModal(null)}
- className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-gray-300 text-2xl leading-none"
+ className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-white text-2xl leading-none"
  type="button"
  >
  ×
@@ -2770,7 +2770,7 @@ export default function MemberDetailPage() {
 
  {/* Benefits Section */}
  <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
- <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">البينفيتس والجلسات المجانية</h4>
+ <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">البينفيتس والجلسات المجانية</h4>
  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
  <div>
  <label className="block text-xs font-medium mb-1">
@@ -2969,7 +2969,7 @@ export default function MemberDetailPage() {
  {/* Coach Selector */}
  {settings.ptCommissionEnabled && (
  <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
- <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">الكوتش المسؤول</h4>
+ <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">الكوتش المسؤول</h4>
  <CoachSelector
  value={editBasicInfoData.coachId}
  onChange={(coachId) => setEditBasicInfoData({ ...editBasicInfoData, coachId })}
@@ -2980,7 +2980,7 @@ export default function MemberDetailPage() {
 
  {/* Sales Staff Selector */}
  <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
- <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">{locale === 'ar' ? 'موظف السيلز' : 'Sales Staff'}</h4>
+ <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">{locale === 'ar' ? 'موظف السيلز' : 'Sales Staff'}</h4>
  <SalesStaffSelector
  value={editBasicInfoData.salesStaffId}
  onChange={(salesStaffId) => setEditBasicInfoData({ ...editBasicInfoData, salesStaffId })}
@@ -2990,7 +2990,7 @@ export default function MemberDetailPage() {
 
  {/* ساعات الدخول المسموح بها */}
  <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
- <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+ <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">
  {locale === 'ar' ? 'ساعات الدخول المسموح بها (اختياري)' : 'Allowed Check-in Hours (Optional)'}
  </h4>
  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -3063,7 +3063,7 @@ export default function MemberDetailPage() {
  <button
  type="button"
  onClick={() => setActiveModal(null)}
- className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-sm"
+ className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-sm"
  >
  {t('memberDetails.editModal.buttons.cancel')}
  </button>
@@ -3111,28 +3111,28 @@ export default function MemberDetailPage() {
  {/* Body — scrollable */}
  <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+ <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
  {t('memberDetails.invitationModal.guestName')} <span className="text-red-600 dark:text-red-400">{t('memberDetails.invitationModal.required')}</span>
  </label>
  <input
  type="text"
  value={invitationData.guestName}
  onChange={(e) => setInvitationData({ ...invitationData, guestName: e.target.value })}
- className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600/60 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
+ className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600/60 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
  placeholder={t('memberDetails.invitationModal.guestNamePlaceholder')}
  autoFocus
  />
  </div>
 
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+ <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
  {t('memberDetails.invitationModal.guestPhone')} <span className="text-red-600 dark:text-red-400">{t('memberDetails.invitationModal.required')}</span>
  </label>
  <input
  type="tel"
  value={invitationData.guestPhone}
  onChange={(e) => setInvitationData({ ...invitationData, guestPhone: e.target.value })}
- className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600/60 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 font-mono"
+ className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600/60 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 font-mono"
  placeholder={t('memberDetails.invitationModal.guestPhonePlaceholder')}
  dir="ltr"
  />
@@ -3146,7 +3146,7 @@ export default function MemberDetailPage() {
  : null
  return (
  <div>
- <label className="block text-sm font-bold text-gray-700 dark:text-gray-100 mb-2">
+ <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
  موظف السيلز المسؤول
  </label>
  {lockToMemberSales && (
@@ -3161,7 +3161,7 @@ export default function MemberDetailPage() {
  className={`w-full px-4 py-3 border rounded-lg focus:outline-none ${
  lockToMemberSales
  ? 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed'
- : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-primary-500 dark:focus:border-primary-400'
+ : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-400'
  }`}
  >
  <option value="">— بدون تعيين (تلقائي) —</option>
@@ -3179,11 +3179,11 @@ export default function MemberDetailPage() {
  })()}
 
  <div>
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('memberDetails.invitationModal.notes')}</label>
+ <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">{t('memberDetails.invitationModal.notes')}</label>
  <textarea
  value={invitationData.notes}
  onChange={(e) => setInvitationData({ ...invitationData, notes: e.target.value })}
- className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600/60 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
+ className="w-full px-4 py-3 ring-1 ring-gray-300 dark:ring-gray-600/60 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
  rows={3}
  placeholder={t('memberDetails.invitationModal.notesPlaceholder')}
  />
@@ -3213,7 +3213,7 @@ export default function MemberDetailPage() {
  setActiveModal(null)
  setInvitationData({ guestName: '', guestPhone: '', notes: '', salesStaffId: '' })
  }}
- className="px-4 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-sm"
+ className="px-4 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold text-sm"
  >
  {t('memberDetails.invitationModal.cancel')}
  </button>
@@ -3227,10 +3227,10 @@ export default function MemberDetailPage() {
  <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4">
  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
  <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold dark:text-gray-100">{t('memberDetails.freezeModal.title')}</h3>
+ <h3 className="text-2xl font-bold dark:text-white">{t('memberDetails.freezeModal.title')}</h3>
  <button
  onClick={() => setActiveModal(null)}
- className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-gray-300 text-3xl"
+ className="text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:text-white text-3xl"
  >
  ×
  </button>
@@ -3256,7 +3256,7 @@ export default function MemberDetailPage() {
 
  <div className="space-y-4">
  <div>
- <label className="block text-sm font-medium mb-2 dark:text-gray-300">
+ <label className="block text-sm font-medium mb-2 dark:text-white">
  {t('memberDetails.freezeModal.freezeDays')} <span className="text-red-600">*</span>
  </label>
  <input
@@ -3302,7 +3302,7 @@ export default function MemberDetailPage() {
  </button>
  <button
  onClick={() => setActiveModal(null)}
- className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+ className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
  >
  {t('common.cancel')}
  </button>
@@ -3324,7 +3324,7 @@ export default function MemberDetailPage() {
  
  </div>
  <div>
- <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+ <h3 className="text-xl font-bold text-gray-800 dark:text-white">
  {locale === 'ar' ? 'فك تجميد الاشتراك' : 'Unfreeze Subscription'}
  </h3>
  <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -3343,15 +3343,15 @@ export default function MemberDetailPage() {
 
  {member.freezeRequests?.[0]?.endDate && (
  <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 mb-5 text-sm">
- <p className="text-gray-600 dark:text-gray-300">
+ <p className="text-gray-600 dark:text-white">
  {locale === 'ar' ? 'التجميد ينتهي' : 'Freeze ends'}:{' '}
- <strong className="text-gray-800 dark:text-gray-100">
+ <strong className="text-gray-800 dark:text-white">
  {new Date(member.freezeRequests[0].endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
  </strong>
  </p>
- <p className="text-gray-600 dark:text-gray-300 mt-1">
+ <p className="text-gray-600 dark:text-white mt-1">
  {locale === 'ar' ? 'رصيد الفريز الحالي' : 'Current freeze balance'}:{' '}
- <strong className="text-gray-800 dark:text-gray-100">
+ <strong className="text-gray-800 dark:text-white">
  {member.remainingFreezeDays ?? 0} {t('common.day')}
  </strong>
  </p>
@@ -3371,7 +3371,7 @@ export default function MemberDetailPage() {
  <button
  onClick={() => setActiveModal(null)}
  disabled={loading}
- className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40"
+ className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-3 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40"
  >
  {t('common.cancel')}
  </button>
@@ -3389,7 +3389,7 @@ export default function MemberDetailPage() {
  
  </div>
  <div>
- <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+ <h3 className="text-xl font-bold text-gray-800 dark:text-white">
  {locale === 'ar' ? 'حظر العضو' : 'Ban Member'}
  </h3>
  <p className="text-sm text-gray-500 dark:text-gray-400">{member.name} - {member.memberNumber !== null ? `#${member.memberNumber}` : 'Other'}</p>
@@ -3397,7 +3397,7 @@ export default function MemberDetailPage() {
  </div>
 
  <div className="mb-5">
- <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+ <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
  {locale === 'ar' ? 'سبب الحظر' : 'Ban Reason'} <span className="text-red-500">*</span>
  </label>
  <textarea
@@ -3420,7 +3420,7 @@ export default function MemberDetailPage() {
  </button>
  <button
  onClick={() => setActiveModal(null)}
- className="px-6 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 rounded-xl font-medium transition-colors"
+ className="px-6 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-xl font-medium transition-colors"
  >
  {locale === 'ar' ? 'إلغاء' : 'Cancel'}
  </button>
@@ -3502,15 +3502,15 @@ export default function MemberDetailPage() {
  <h4 className="font-bold mb-3 text-lg">معلومات العضو</h4>
  <div className="grid grid-cols-3 gap-4">
  <div>
- <p className="text-gray-600 dark:text-gray-300 text-sm">رقم العضوية</p>
+ <p className="text-gray-600 dark:text-white text-sm">رقم العضوية</p>
  <p className="font-bold text-lg">{member?.memberNumber !== null ? `#${member?.memberNumber}` : 'Other'}</p>
  </div>
  <div>
- <p className="text-gray-600 dark:text-gray-300 text-sm">الاسم</p>
+ <p className="text-gray-600 dark:text-white text-sm">الاسم</p>
  <p className="font-bold text-lg">{member?.name}</p>
  </div>
  <div>
- <p className="text-gray-600 dark:text-gray-300 text-sm">الهاتف</p>
+ <p className="text-gray-600 dark:text-white text-sm">الهاتف</p>
  <p className="font-bold text-lg">{member?.phone}</p>
  </div>
  </div>
@@ -3676,7 +3676,7 @@ export default function MemberDetailPage() {
  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
  <div className="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b mb-6">
  <h3 className="text-2xl font-bold text-center">عرض اختبار اللياقة</h3>
- <p className="text-center text-gray-600 dark:text-gray-300 mt-2">تم إنشاؤه بواسطة: {fitnessTestData.coachName}</p>
+ <p className="text-center text-gray-600 dark:text-white mt-2">تم إنشاؤه بواسطة: {fitnessTestData.coachName}</p>
  </div>
 
  <div className="space-y-6">
@@ -3684,15 +3684,15 @@ export default function MemberDetailPage() {
  <h4 className="font-bold mb-3">معلومات العضو</h4>
  <div className="grid grid-cols-3 gap-4 text-sm">
  <div>
- <p className="text-gray-600 dark:text-gray-300">رقم العضوية</p>
+ <p className="text-gray-600 dark:text-white">رقم العضوية</p>
  <p className="font-bold">{fitnessTestData.memberNumber ? `#${fitnessTestData.memberNumber}` : 'Other'}</p>
  </div>
  <div>
- <p className="text-gray-600 dark:text-gray-300">الاسم</p>
+ <p className="text-gray-600 dark:text-white">الاسم</p>
  <p className="font-bold">{fitnessTestData.memberName}</p>
  </div>
  <div>
- <p className="text-gray-600 dark:text-gray-300">تاريخ الاختبار</p>
+ <p className="text-gray-600 dark:text-white">تاريخ الاختبار</p>
  <p className="font-bold">{new Date(fitnessTestData.testDate).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</p>
  </div>
  </div>
@@ -3711,7 +3711,7 @@ export default function MemberDetailPage() {
  {Object.entries(fitnessTestData.medicalQuestions).map(([key, value]) => (
  <div key={key} className="flex items-center gap-2">
  <span>{value ? '' : ''}</span>
- <span className="text-gray-700 dark:text-gray-200">{key}</span>
+ <span className="text-gray-700 dark:text-white">{key}</span>
  </div>
  ))}
  </div>
@@ -3722,7 +3722,7 @@ export default function MemberDetailPage() {
  <div className="grid grid-cols-4 gap-3 text-sm">
  {Object.entries(fitnessTestData.flexibility).map(([key, value]) => (
  <div key={key} className="bg-white dark:bg-gray-800 p-2 rounded">
- <p className="text-gray-600 dark:text-gray-300 text-xs">{key}</p>
+ <p className="text-gray-600 dark:text-white text-xs">{key}</p>
  <p className="font-bold">{String(value)}</p>
  </div>
  ))}
@@ -3762,7 +3762,7 @@ export default function MemberDetailPage() {
  
  </div>
  <div>
- <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t('memberDetails.attendanceLog.title')}</h2>
+ <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('memberDetails.attendanceLog.title')}</h2>
  <p className="text-sm text-gray-500 dark:text-gray-400">{t('memberDetails.attendanceLog.subtitle')}</p>
  </div>
  </div>
@@ -3770,10 +3770,10 @@ export default function MemberDetailPage() {
 
  {/* Filters */}
  <div className="bg-gradient-to-br from-gray-50 to-primary-50 dark:from-gray-800 dark:to-primary-900/30 p-5 rounded-xl mb-6 border border-primary-200 dark:border-primary-700">
- <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3">{t('memberDetails.attendanceLog.filterByPeriod')}</h3>
+ <h3 className="text-sm font-bold text-gray-700 dark:text-white mb-3">{t('memberDetails.attendanceLog.filterByPeriod')}</h3>
  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
  <div>
- <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">{t('memberDetails.attendanceLog.dateFrom')}</label>
+ <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-2">{t('memberDetails.attendanceLog.dateFrom')}</label>
  <input
  type="date"
  value={attendanceStartDate}
@@ -3782,7 +3782,7 @@ export default function MemberDetailPage() {
  />
  </div>
  <div>
- <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">{t('memberDetails.attendanceLog.dateTo')}</label>
+ <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-2">{t('memberDetails.attendanceLog.dateTo')}</label>
  <input
  type="date"
  value={attendanceEndDate}
@@ -3806,12 +3806,12 @@ export default function MemberDetailPage() {
  {attendanceLoading ? (
  <div className="text-center py-12">
  <svg className="w-10 h-10 mx-auto mb-4 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
- <p className="text-gray-600 dark:text-gray-300">{t('memberDetails.attendanceLog.loadingData')}</p>
+ <p className="text-gray-600 dark:text-white">{t('memberDetails.attendanceLog.loadingData')}</p>
  </div>
  ) : attendanceHistory.length === 0 ? (
  <div className="text-center py-12">
  <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
- <p className="text-xl text-gray-600 dark:text-gray-300">{t('memberDetails.attendanceLog.noRecordsForPeriod')}</p>
+ <p className="text-xl text-gray-600 dark:text-white">{t('memberDetails.attendanceLog.noRecordsForPeriod')}</p>
  </div>
  ) : (
  <>
@@ -3858,11 +3858,11 @@ export default function MemberDetailPage() {
 
  return (
  <tr key={checkIn.id} className="border-t hover:bg-primary-50 transition-colors">
- <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-200">
+ <td className="px-6 py-4 font-bold text-gray-700 dark:text-white">
  {index + 1}
  </td>
  <td className="px-6 py-4">
- <span className="font-semibold text-gray-700 dark:text-gray-200">
+ <span className="font-semibold text-gray-700 dark:text-white">
  {checkInTime.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', {
  year: 'numeric',
  month: 'short',
@@ -3893,7 +3893,7 @@ export default function MemberDetailPage() {
  <div className="flex items-center justify-between mb-4">
  <div className="flex items-center gap-3">
  
- <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+ <h3 className="text-lg font-bold text-gray-900 dark:text-white">
  {locale === 'ar' ? 'سجل المتابعات' : 'Follow-up History'}
  </h3>
  </div>
@@ -3904,7 +3904,7 @@ export default function MemberDetailPage() {
  }
  setShowFollowUpHistory(v => !v)
  }}
- className="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+ className="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-white"
  >
  {showFollowUpHistory ? (locale === 'ar' ? 'إخفاء' : 'Hide') : (locale === 'ar' ? 'عرض' : 'Show')}
  </button>
@@ -3953,7 +3953,7 @@ export default function MemberDetailPage() {
  </span>
  )}
  </div>
- {fu.notes && <p className="text-sm text-gray-700 dark:text-gray-300">{fu.notes}</p>}
+ {fu.notes && <p className="text-sm text-gray-700 dark:text-white">{fu.notes}</p>}
  </div>
  {fu.result && (
  <span className={`text-xs px-2 py-1 rounded-full font-medium ${resultColor}`}>
@@ -4154,17 +4154,17 @@ export default function MemberDetailPage() {
  </div>
  <div>
  <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الطريقة:' : 'Method:'}</span>
- <span className="font-semibold dark:text-gray-200 mr-2">{paymentMethodLabel}</span>
+ <span className="font-semibold dark:text-white mr-2">{paymentMethodLabel}</span>
  </div>
  {itemDetails.packageType && (
  <div>
  <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الباقة:' : 'Package:'}</span>
- <span className="font-semibold dark:text-gray-200 mr-2">{itemDetails.packageType}</span>
+ <span className="font-semibold dark:text-white mr-2">{itemDetails.packageType}</span>
  </div>
  )}
  <div>
  <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'التاريخ:' : 'Date:'}</span>
- <span className="font-mono text-xs dark:text-gray-200 mr-2">
+ <span className="font-mono text-xs dark:text-white mr-2">
  {new Date(receipt.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
  year: 'numeric',
  month: 'short',
@@ -4177,7 +4177,7 @@ export default function MemberDetailPage() {
  </div>
  {itemDetails.startDate && itemDetails.expiryDate && (
  <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
- <div className="text-xs text-gray-600 dark:text-gray-300">
+ <div className="text-xs text-gray-600 dark:text-white">
  <span className="font-semibold">{locale === 'ar' ? 'الفترة:' : 'Period:'}</span>
  <span className="font-mono mr-2">
  {new Date(itemDetails.startDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -4215,7 +4215,7 @@ export default function MemberDetailPage() {
 
  {/* Footer */}
  <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-between items-center">
- <div className="text-sm text-gray-600 dark:text-gray-300">
+ <div className="text-sm text-gray-600 dark:text-white">
  {locale === 'ar' ? 'إجمالي الإيصالات:' : 'Total Receipts:'} <span className="font-bold">{memberReceipts.length}</span>
  </div>
  <button
@@ -4271,7 +4271,7 @@ export default function MemberDetailPage() {
  <span className="text-2xl">
  {entry.action === 'check-in' ? '' : entry.action === 'manual' ? '' : ''}
  </span>
- <span className="font-bold text-gray-800 dark:text-gray-100">
+ <span className="font-bold text-gray-800 dark:text-white">
  {entry.action === 'check-in'
  ? t('memberDetails.checkInPoints')
  : entry.action === 'manual'
@@ -4280,7 +4280,7 @@ export default function MemberDetailPage() {
  </span>
  </div>
  {entry.description && (
- <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{entry.description}</p>
+ <p className="text-sm text-gray-600 dark:text-white mb-2">{entry.description}</p>
  )}
  <p className="text-xs text-gray-500 dark:text-gray-400">
  {new Date(entry.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
@@ -4340,7 +4340,7 @@ export default function MemberDetailPage() {
  {/* Content */}
  <div className="p-6 space-y-4">
  <div>
- <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+ <label className="block text-gray-700 dark:text-white font-bold mb-2">
  {t('memberDetails.pointsAmount')} <span className="text-red-500">*</span>
  </label>
  <input
@@ -4356,7 +4356,7 @@ export default function MemberDetailPage() {
  </div>
 
  <div>
- <label className="block text-gray-700 dark:text-gray-200 font-bold mb-2">
+ <label className="block text-gray-700 dark:text-white font-bold mb-2">
  {t('memberDetails.reason')} <span className="text-red-500">*</span>
  </label>
  <textarea
@@ -4608,7 +4608,7 @@ export default function MemberDetailPage() {
  />
  </div>
 
- <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-4">
+ <p className="text-sm text-gray-600 dark:text-white text-center mb-4">
  سيتم إرسال الباركود إلى <span className="font-bold">{member.phone}</span>
  </p>
 
@@ -4723,7 +4723,7 @@ export default function MemberDetailPage() {
 
  <button
  onClick={() => setBarcodePopup({ show: false, step: 'generating', image: '', error: '' })}
- className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+ className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
  >
  إلغاء
  </button>
@@ -4784,7 +4784,7 @@ export default function MemberDetailPage() {
  )}
  <button
  onClick={() => setBarcodePopup({ show: false, step: 'generating', image: '', error: '' })}
- className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+ className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
  >
  إغلاق
  </button>
