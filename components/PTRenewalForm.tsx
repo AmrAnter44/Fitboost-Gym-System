@@ -118,10 +118,12 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
 
   const fetchCoaches = async () => {
     try {
-      const response = await fetch('/api/staff')
+      // /api/coaches/with-stats مفتوح لأي حد مسجّل دخول (مش محتاج canViewStaff)
+      // عشان الكوتشيز يظهروا دايماً في فورم تجديد PT
+      const response = await fetch('/api/coaches/with-stats')
       const data: Staff[] = await response.json()
       const activeCoaches = data.filter(
-        (staff) => staff.isActive && staff.position?.toLowerCase().includes('مدرب')
+        (staff) => staff.isActive && (staff.position?.toLowerCase().includes('مدرب') || staff.position?.toLowerCase().includes('trainer'))
       )
       setCoaches(activeCoaches)
     } catch (error) {

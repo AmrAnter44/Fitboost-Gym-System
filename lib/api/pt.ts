@@ -46,8 +46,11 @@ export async function fetchStaff() {
 }
 
 // جلب المدربين فقط (للاستخدام في PT)
+// ملاحظة: بنستخدم /api/coaches/with-stats (يطلب auth فقط بدون صلاحية canViewStaff)
+// عشان الكوتشيز يظهروا دايماً لأي موظف بيضيف عضو أو اشتراك PT — حتى لو ما عندوش
+// صلاحية عرض الموظفين الكاملة.
 export async function fetchCoaches() {
-  const response = await fetch('/api/staff')
+  const response = await fetch('/api/coaches/with-stats')
 
   if (!response.ok) {
     const error = await response.json()
@@ -60,7 +63,7 @@ export async function fetchCoaches() {
     return []
   }
 
-  // فلترة المدربين فقط (دعم العربي والإنجليزي)
+  // فلترة المدربين فقط (دعم العربي والإنجليزي) + الموظفين الفعّالين
   return data.filter((staff: any) =>
     (staff.position === 'مدرب' || staff.position === 'trainer') && staff.isActive
   )
