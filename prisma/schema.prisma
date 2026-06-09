@@ -589,6 +589,7 @@ model Permission {
   canCreateFollowUp       Boolean @default(false)
   canEditFollowUp         Boolean @default(false)
   canDeleteFollowUp       Boolean @default(false)
+  canManageSales          Boolean @default(false)  // 💼 مسؤول السيلز
   canViewDayUse           Boolean @default(false)
   canCreateDayUse         Boolean @default(false)
   canEditDayUse           Boolean @default(false)
@@ -597,6 +598,7 @@ model Permission {
   canViewFinancials       Boolean @default(false)
   canViewAttendance       Boolean @default(false)
   canAccessClosing        Boolean @default(false)
+  canCloseDayOnly         Boolean @default(false)  // 📅 صلاحية اليوم — تقفيل أمس/اليوم/غدا فقط
   canAccessSettings       Boolean @default(false)
   canAccessAdmin          Boolean @default(false)
   canViewSpaBookings      Boolean @default(false)

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
-import { requireAdmin } from '../../../../lib/auth'
+import { verifyAuth } from '../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/sales/assign-single
- * Admin-only — assign/transfer a single entity (member/visitor/dayuse/invitation) to a sales staff.
+ * متاح لـ Admin/Owner، أو لأي حد عنده صلاحية canManageSales (مسؤول السيلز).
  *
  * body:
  *   {
@@ -17,7 +17,18 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: Request) {
   try {
-    await requireAdmin(request)
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
+    }
+    const isPrivileged = user.role === 'OWNER' || user.role === 'ADMIN'
+    const canManage = !!user.permissions?.canManageSales
+    if (!isPrivileged && !canManage) {
+      return NextResponse.json(
+        { error: 'هذه العملية متاحة للأدمن أو مسؤول السيلز فقط' },
+        { status: 403 }
+      )
+    }
 
     const { entityType, entityId, salesStaffId } = await request.json()
 
@@ -155,7 +166,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })
     }
     if (error.message?.includes('Forbidden')) {
-      return NextResponse.json({ error: 'هذه العملية متاحة للأدمن فقط' }, { status: 403 })
+      return NextResponse.json({ error: 'هذه العملية متاحة للأدمن أو مسؤول السيلز' }, { status: 403 })
     }
     console.error('assign-single error:', error)
     return NextResponse.json({ error: 'فشل التعيين' }, { status: 500 })

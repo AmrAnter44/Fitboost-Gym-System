@@ -103,7 +103,8 @@ const STAGE_LABELS: Record<string, { ar: string; en: string; color: string }> = 
 export default function CollectionDashboard() {
   const { locale } = useLanguage()
   const toast = useToast()
-  const { user } = usePermissions()
+  const { user, hasPermission } = usePermissions()
+  const canManageSales = hasPermission('canManageSales')
   const ar = locale === 'ar'
 
   const [data, setData] = useState<SalesStaffData[]>([])
@@ -258,7 +259,8 @@ export default function CollectionDashboard() {
   }
 
   // لو سيلز → يشوف بياناته بس
-  const isSales = user?.isSales
+  //  مسؤول السيلز (canManageSales) يشوف كل موظفي السيلز زي الأدمن، مش بس نفسه
+  const isSales = !!user?.isSales && !canManageSales
   const myData = isSales && user?.staffId ? data.find(s => s.staffId === user.staffId) : null
   const displayData = isSales ? (myData ? [myData] : []) : data
 

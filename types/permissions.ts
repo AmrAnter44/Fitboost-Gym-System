@@ -77,6 +77,7 @@ export interface Permissions {
   canCreateFollowUp: boolean
   canEditFollowUp: boolean
   canDeleteFollowUp: boolean
+  canManageSales: boolean  // 💼 مسؤول السيلز — يقدر يدير كل حاجة في إدارة السيلز (توزيع/نقل/تارجت/إعدادات)
 
   // صلاحيات يوم الاستخدام
   canViewDayUse: boolean
@@ -89,6 +90,7 @@ export interface Permissions {
   canViewFinancials: boolean
   canViewAttendance: boolean
   canAccessClosing: boolean
+  canCloseDayOnly: boolean  // 📅 صلاحية اليوم — يقدر يقفّل اليوم/أمس/غدا فقط (بدون شهري/سنوي)
 
   // صلاحيات الإعدادات والإدارة
   canAccessSettings: boolean
@@ -236,6 +238,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: true,
+    canManageSales: true,
     canViewDayUse: true,
     canCreateDayUse: true,
     canEditDayUse: true,
@@ -244,6 +247,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewFinancials: true,
     canViewAttendance: true,
     canAccessClosing: true,
+    canCloseDayOnly: true,
     canAccessSettings: true,
     canAccessAdmin: true,
     canViewSpaBookings: true,
@@ -316,6 +320,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: true,
+    canManageSales: true,
     canViewDayUse: true,
     canCreateDayUse: true,
     canEditDayUse: true,
@@ -324,6 +329,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewFinancials: true,
     canViewAttendance: true,
     canAccessClosing: true,
+    canCloseDayOnly: true,
     canAccessSettings: true,
     canAccessAdmin: true,
     canViewSpaBookings: true,
@@ -396,6 +402,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateFollowUp: true,
     canEditFollowUp: true,
     canDeleteFollowUp: false,
+    canManageSales: true,
     canViewDayUse: true,
     canCreateDayUse: true,
     canEditDayUse: true,
@@ -404,6 +411,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewFinancials: true,
     canViewAttendance: true,
     canAccessClosing: true,
+    canCloseDayOnly: true,
     canAccessSettings: false,
     canAccessAdmin: false,
     canViewSpaBookings: true,
@@ -476,6 +484,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateFollowUp: false,
     canEditFollowUp: false,
     canDeleteFollowUp: false,
+    canManageSales: false,
     canViewDayUse: true,
     canCreateDayUse: true,
     canEditDayUse: false,
@@ -484,6 +493,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewFinancials: false,
     canViewAttendance: false,
     canAccessClosing: false,
+    canCloseDayOnly: false,
     canAccessSettings: false,
     canAccessAdmin: false,
     canViewSpaBookings: true,
@@ -557,6 +567,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canCreateFollowUp: false,
     canEditFollowUp: false,
     canDeleteFollowUp: false,
+    canManageSales: false,
     canViewDayUse: false,
     canCreateDayUse: false,
     canEditDayUse: false,
@@ -565,6 +576,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewFinancials: false,
     canViewAttendance: false,
     canAccessClosing: false,
+    canCloseDayOnly: false,
     canAccessSettings: false,
     canAccessAdmin: false,
     canViewSpaBookings: false,
@@ -642,6 +654,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canCreateFollowUp: 'إضافة متابعة',
   canEditFollowUp: 'تعديل متابعة',
   canDeleteFollowUp: 'حذف متابعة',
+  canManageSales: 'مسؤول السيلز (إدارة كاملة)',
   canViewDayUse: 'عرض يوم الاستخدام',
   canCreateDayUse: 'إضافة يوم استخدام',
   canEditDayUse: 'تعديل يوم استخدام',
@@ -649,7 +662,8 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canViewReports: 'عرض التقارير',
   canViewFinancials: 'عرض الماليات',
   canViewAttendance: 'عرض الحضور',
-  canAccessClosing: 'الوصول للتقفيل',
+  canAccessClosing: 'التقفيل الكامل (يومي/شهري/سنوي)',
+  canCloseDayOnly: 'صلاحية اليوم (أمس/اليوم/غدا فقط)',
   canAccessSettings: 'الوصول للإعدادات',
   canAccessAdmin: 'الوصول للوحة الإدارة',
   canViewSpaBookings: 'عرض حجوزات SPA',
@@ -779,6 +793,7 @@ export const PERMISSION_GROUPS = {
       'canCreateFollowUp',
       'canEditFollowUp',
       'canDeleteFollowUp',
+      'canManageSales',
     ] as Array<keyof Permissions>,
   },
   dayuse: {
@@ -796,7 +811,13 @@ export const PERMISSION_GROUPS = {
       'canViewReports',
       'canViewFinancials',
       'canViewAttendance',
+    ] as Array<keyof Permissions>,
+  },
+  closing: {
+    label: '🔒 صلاحيات التقفيل',
+    permissions: [
       'canAccessClosing',
+      'canCloseDayOnly',
     ] as Array<keyof Permissions>,
   },
   settings: {
@@ -910,6 +931,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canCreateFollowUp: '➕',
   canEditFollowUp: '✏️',
   canDeleteFollowUp: '🗑️',
+  canManageSales: '💼',
   canViewDayUse: '👁️',
   canCreateDayUse: '➕',
   canEditDayUse: '✏️',
@@ -918,6 +940,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canViewFinancials: '💰',
   canViewAttendance: '📋',
   canAccessClosing: '🔒',
+  canCloseDayOnly: '📅',
   canAccessSettings: '⚙️',
   canAccessAdmin: '👨‍💼',
   canViewSpaBookings: '👁️',
