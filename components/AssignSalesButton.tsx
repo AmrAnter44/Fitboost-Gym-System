@@ -52,7 +52,8 @@ export default function AssignSalesButton({
   onAssigned,
   className = '',
 }: AssignSalesButtonProps) {
-  const { isAdmin, loading: authLoading } = usePermissions()
+  const { isAdmin, hasPermission, loading: authLoading } = usePermissions()
+  const canManageSales = hasPermission('canManageSales')
   const { locale } = useLanguage()
   const toast = useToast()
 
@@ -83,7 +84,8 @@ export default function AssignSalesButton({
       .finally(() => setLoadingStaff(false))
   }, [open])
 
-  if (authLoading || !isAdmin) return null
+  // الزرار يظهر للأدمن/أونر، أو لأي حد عنده صلاحية مسؤول السيلز
+  if (authLoading || (!isAdmin && !canManageSales)) return null
 
   const buttonLabel = hasSales
     ? (locale === 'ar' ? 'تحويل سيلز' : 'Transfer Sales')
@@ -184,18 +186,68 @@ export default function AssignSalesButton({
                   {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
                 </div>
               ) : (
-                <select
-                  value={selected}
-                  onChange={(e) => setSelected(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-colors duration-200"
-                >
-                  <option value="">{locale === 'ar' ? '— بدون موظف سيلز —' : '— No Sales Staff —'}</option>
-                  {staff.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} — #{s.staffCode}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={selected}
+                    onChange={(e) => setSelected(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-colors duration-200"
+                  >
+                    <option value="">{locale === 'ar' ? '— بدون موظف سيلز —' : '— No Sales Staff —'}</option>
+                    {staff.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} — #{s.staffCode}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* 💼 كارت بيظهر اسم الموظف المختار بشكل واضح */}
+                  {(() => {
+                    const picked = staff.find(s => s.id === selected)
+                    if (picked) {
+                      return (
+                        <div className="mt-3 flex items-center gap-3 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/40 dark:to-emerald-800/30 ring-2 ring-emerald-300 dark:ring-emerald-700 rounded-xl px-4 py-3 shadow-sm">
+                          <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                            <BriefcaseIcon className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-base text-emerald-900 dark:text-emerald-100 truncate">
+                              {picked.name}
+                            </p>
+                            <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 font-mono">
+                              #{picked.staffCode}
+                              {picked.position && <span className="ms-2 font-sans opacity-80">({picked.position})</span>}
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-200 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            {locale === 'ar' ? 'المختار' : 'SELECTED'}
+                          </span>
+                        </div>
+                      )
+                    }
+                    if (selected === '') {
+                      // ما اختارش حد — يعني هيلغي التعيين
+                      return currentSalesStaff?.id ? (
+                        <div className="mt-3 flex items-center gap-3 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/30 ring-2 ring-red-300 dark:ring-red-700 rounded-xl px-4 py-3 shadow-sm">
+                          <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0">
+                            <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5">
+                              <circle cx="12" cy="12" r="9"/>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5l14 14"/>
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-bold text-base text-red-900 dark:text-red-100">
+                              {locale === 'ar' ? 'إلغاء التعيين' : 'Unassign'}
+                            </p>
+                            <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
+                              {locale === 'ar' ? 'هيتشال موظف السيلز الحالي' : 'Current sales staff will be removed'}
+                            </p>
+                          </div>
+                        </div>
+                      ) : null
+                    }
+                    return null
+                  })()}
+                </>
               )}
               {staff.length === 0 && !loadingStaff && (
                 <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">

@@ -196,8 +196,9 @@ export async function POST(request: Request) {
 // PUT - تحديث موظف
 export async function PUT(request: Request) {
   try {
-    // ✅ التحقق من صلاحية تعديل موظف
-    const user = await requirePermission(request, 'canEditStaff')
+    // ✅ التحقق من الصلاحية: canEditStaff (موظف عادي) أو canManageSales (تارجت/عمولة السيلز فقط)
+    const user = await requireAnyPermission(request, ['canEditStaff', 'canManageSales'])
+    const hasEditStaff = user.role === 'OWNER' || user.role === 'ADMIN' || !!user.permissions?.canEditStaff
 
     const body = await request.json()
     const { id, staffCode, name, phone, position, salary, salesTarget, salesCommissionType, salesCommissionRate, salesCommissionTiers, notes, isActive, customPosition, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime, joinedDate, terminatedAt, salaryChangeReason } = body
@@ -212,31 +213,36 @@ export async function PUT(request: Request) {
       prevSalary = current?.salary ?? null
     }
 
-    if (name !== undefined) updateData.name = name
-    if (phone !== undefined) updateData.phone = phone
-    if (position !== undefined) updateData.position = position
+    // 🔒 الحقول العامة (اسم/تليفون/منصب/ملاحظات/الخ) — تتطلب canEditStaff
+    if (hasEditStaff) {
+      if (name !== undefined) updateData.name = name
+      if (phone !== undefined) updateData.phone = phone
+      if (position !== undefined) updateData.position = position
+      if (notes !== undefined) updateData.notes = notes
+      if (isActive !== undefined) updateData.isActive = isActive
+      if (joinedDate !== undefined) {
+        updateData.joinedDate = joinedDate ? new Date(joinedDate) : null
+      }
+      if (terminatedAt !== undefined) {
+        updateData.terminatedAt = terminatedAt ? new Date(terminatedAt) : null
+      }
+      if (workingHours !== undefined) {
+        updateData.workingHours = workingHours !== null && workingHours !== '' ? parseFloat(workingHours) : null
+      }
+      if (monthlyVacationDays !== undefined) {
+        updateData.monthlyVacationDays = monthlyVacationDays !== null && monthlyVacationDays !== '' ? parseInt(monthlyVacationDays) : null
+      }
+      if (shiftStartTime !== undefined) {
+        updateData.shiftStartTime = shiftStartTime || null
+      }
+      if (shiftEndTime !== undefined) {
+        updateData.shiftEndTime = shiftEndTime || null
+      }
+    }
     // المرتب للأدمن والأونر فقط
     if (salary !== undefined && (user.role === 'OWNER' || user.role === 'ADMIN')) updateData.salary = salary
-    if (notes !== undefined) updateData.notes = notes
-    if (isActive !== undefined) updateData.isActive = isActive
-    if (joinedDate !== undefined) {
-      updateData.joinedDate = joinedDate ? new Date(joinedDate) : null
-    }
-    if (terminatedAt !== undefined) {
-      updateData.terminatedAt = terminatedAt ? new Date(terminatedAt) : null
-    }
-    if (workingHours !== undefined) {
-      updateData.workingHours = workingHours !== null && workingHours !== '' ? parseFloat(workingHours) : null
-    }
-    if (monthlyVacationDays !== undefined) {
-      updateData.monthlyVacationDays = monthlyVacationDays !== null && monthlyVacationDays !== '' ? parseInt(monthlyVacationDays) : null
-    }
-    if (shiftStartTime !== undefined) {
-      updateData.shiftStartTime = shiftStartTime || null
-    }
-    if (shiftEndTime !== undefined) {
-      updateData.shiftEndTime = shiftEndTime || null
-    }
+
+    // 💼 حقول السيلز (تارجت/نوع العمولة/نسبة/شرائح) — مسموحة لكل من عنده canEditStaff أو canManageSales
     if (salesTarget !== undefined) {
       updateData.salesTarget = salesTarget !== null && salesTarget !== '' ? parseFloat(salesTarget) : 0
     }

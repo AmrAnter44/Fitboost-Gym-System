@@ -384,6 +384,28 @@ export default function SalesMgmtPanel() {
                   </option>
                 ))}
               </select>
+
+              {/* 💼 بطاقة كبيرة بيظهر فيها اسم الموظف المختار */}
+              {fromStaff && (
+                <div className="mt-3 flex items-center gap-3 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/30 ring-2 ring-blue-300 dark:ring-blue-700 rounded-xl px-4 py-3 shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
+                    {iconUser}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-base text-blue-900 dark:text-blue-100 truncate">
+                      {fromStaff.name}
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                      <span className="font-mono">#{fromStaff.staffCode}</span>
+                      <span className="mx-2">•</span>
+                      <span>{(fromStaff as any).members?.length ?? 0} {ar ? 'عضو مرتبط' : 'members'}</span>
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-200 dark:bg-blue-900/50 px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {ar ? 'من' : 'FROM'}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -403,6 +425,46 @@ export default function SalesMgmtPanel() {
                   </option>
                 ))}
               </select>
+
+              {/* 💼 بطاقة كبيرة بيظهر فيها اسم الموظف المختار أو "بدون موظف" */}
+              {toStaffId === 'unassigned' && (
+                <div className="mt-3 flex items-center gap-3 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/30 ring-2 ring-red-300 dark:ring-red-700 rounded-xl px-4 py-3 shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0">
+                    {iconBan}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-base text-red-900 dark:text-red-100">
+                      {ar ? 'إلغاء التعيين' : 'Unassigned'}
+                    </p>
+                    <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
+                      {ar ? 'البيانات ها تبقى بدون موظف مسؤول' : 'Items will have no owner'}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-red-700 dark:text-red-300 bg-red-200 dark:bg-red-900/50 px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {ar ? 'إلى' : 'TO'}
+                  </span>
+                </div>
+              )}
+              {toStaff && toStaffId !== 'unassigned' && (
+                <div className="mt-3 flex items-center gap-3 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/40 dark:to-emerald-800/30 ring-2 ring-emerald-300 dark:ring-emerald-700 rounded-xl px-4 py-3 shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                    {iconUser}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-base text-emerald-900 dark:text-emerald-100 truncate">
+                      {toStaff.name}
+                    </p>
+                    <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+                      <span className="font-mono">#{toStaff.staffCode}</span>
+                      <span className="mx-2">•</span>
+                      <span>{(toStaff as any).members?.length ?? 0} {ar ? 'عضو مرتبط' : 'members'}</span>
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-200 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {ar ? 'إلى' : 'TO'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

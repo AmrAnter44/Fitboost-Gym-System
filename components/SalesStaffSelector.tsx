@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
+import ConfirmDialog from './ConfirmDialog'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -43,6 +44,8 @@ export default function SalesStaffSelector({ value, onChange, requireConfirmIfCh
   const { locale } = useLanguage()
   const [staff, setStaff] = useState<StaffOption[]>([])
   const [loading, setLoading] = useState(true)
+  // 💬 popup confirmation state (بدل native confirm البشع)
+  const [pendingChange, setPendingChange] = useState<{ from: string; to: string | null } | null>(null)
 
   useEffect(() => {
     const url = autoSelectLeastLoaded ? '/api/staff/sales-load' : '/api/staff'
@@ -83,14 +86,20 @@ export default function SalesStaffSelector({ value, onChange, requireConfirmIfCh
 
   const guardedChange = (next: string | null) => {
     if (requireConfirmIfChanging && value && next !== value) {
-      const fromName = nameOf(value)
-      const toName = next ? nameOf(next) : (locale === 'ar' ? 'بدون سيلز' : 'No sales staff')
-      const msg = locale === 'ar'
-        ? `هتغيّر السيلز من «${fromName}» لـ «${toName}»؟\nالعملية دي بتتسجل في الـ audit log.`
-        : `Change sales staff from "${fromName}" to "${toName}"?\nThis change will be recorded in the audit log.`
-      if (!confirm(msg)) return
+      // فتح popup confirmation بدل ما نـ apply مباشرة
+      setPendingChange({ from: value, to: next })
+      return
     }
     onChange(next)
+  }
+
+  const handleConfirmChange = () => {
+    if (pendingChange) onChange(pendingChange.to)
+    setPendingChange(null)
+  }
+
+  const handleCancelChange = () => {
+    setPendingChange(null)
   }
 
   return (
@@ -155,6 +164,22 @@ export default function SalesStaffSelector({ value, onChange, requireConfirmIfCh
           )}
         </div>
       )}
+
+      {/* 💬 Popup confirmation للتأكيد بدل native confirm */}
+      <ConfirmDialog
+        isOpen={!!pendingChange}
+        type="warning"
+        title={locale === 'ar' ? '🔁 تغيير موظف السيلز' : '🔁 Change Sales Staff'}
+        message={pendingChange
+          ? (locale === 'ar'
+              ? `هتغيّر موظف السيلز من «${nameOf(pendingChange.from)}» إلى «${pendingChange.to ? nameOf(pendingChange.to) : 'بدون سيلز'}»؟\n\nالعملية دي بتتسجل في الـ audit log.`
+              : `Change sales staff from "${nameOf(pendingChange.from)}" to "${pendingChange.to ? nameOf(pendingChange.to) : 'No sales staff'}"?\n\nThis change will be recorded in the audit log.`)
+          : ''}
+        confirmText={locale === 'ar' ? '✓ تأكيد التغيير' : '✓ Confirm'}
+        cancelText={locale === 'ar' ? 'إلغاء' : 'Cancel'}
+        onConfirm={handleConfirmChange}
+        onCancel={handleCancelChange}
+      />
     </div>
   )
 }

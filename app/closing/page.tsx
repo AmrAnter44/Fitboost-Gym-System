@@ -546,6 +546,16 @@ export default function ClosingPage() {
     }
   }, [viewMode, selectedDay, selectedMonth, selectedYear, comparisonStartMonth, comparisonEndMonth])
 
+  // 📅 لو اليوزر معاه canCloseDayOnly فقط — افتح على daily mode تلقائياً عند الـ load
+  useEffect(() => {
+    if (permissionsLoading) return
+    const fullClosing = hasPermission('canAccessClosing')
+    const dayOnly = hasPermission('canCloseDayOnly')
+    if (!fullClosing && dayOnly && viewMode !== 'daily') {
+      setViewMode('daily')
+    }
+  }, [permissionsLoading, hasPermission, viewMode])
+
   const fetchComparisonData = async () => {
     try {
       setLoading(true)
@@ -990,10 +1000,23 @@ export default function ClosingPage() {
     )
   }
 
-  // التحقق من صلاحية الوصول
-  if (!permissionsLoading && !hasPermission('canAccessClosing')) {
+  // التحقق من صلاحية الوصول — مفتوحة لو canAccessClosing أو canCloseDayOnly
+  const hasFullClosing = hasPermission('canAccessClosing')
+  const hasDayOnly = hasPermission('canCloseDayOnly')
+  if (!permissionsLoading && !hasFullClosing && !hasDayOnly) {
     return <PermissionDenied message="ليس لديك صلاحية الوصول لصفحة الإقفال" />
   }
+
+  // 📅 لو معاه canCloseDayOnly بس (مش canAccessClosing) — حصره على daily mode فقط
+  const restrictedToDayOnly = hasDayOnly && !hasFullClosing
+  // 🔧 helpers لـ التواريخ
+  const formatDate = (d: Date) => d.toISOString().split('T')[0]
+  const today = new Date()
+  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1)
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
+  const todayStr = formatDate(today)
+  const yesterdayStr = formatDate(yesterday)
+  const tomorrowStr = formatDate(tomorrow)
 
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6" dir={direction}>
@@ -1004,7 +1027,48 @@ export default function ClosingPage() {
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('closing.subtitle')}</p>
 
-        {/* View Mode Tabs */}
+        {/* 📅 صلاحية اليوم — أزرار سريعة لـ تقفيل أمس/اليوم/غدا */}
+        <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
+          <button
+            onClick={() => { setViewMode('daily'); setSelectedDay(yesterdayStr) }}
+            aria-current={viewMode === 'daily' && selectedDay === yesterdayStr ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition-colors duration-200 text-xs sm:text-sm md:text-base ${
+              viewMode === 'daily' && selectedDay === yesterdayStr
+                ? 'bg-amber-500 text-white shadow-md'
+                : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50'
+            }`}
+          >
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            تقفيل أمس
+          </button>
+          <button
+            onClick={() => { setViewMode('daily'); setSelectedDay(todayStr) }}
+            aria-current={viewMode === 'daily' && selectedDay === todayStr ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition-colors duration-200 text-xs sm:text-sm md:text-base ${
+              viewMode === 'daily' && selectedDay === todayStr
+                ? 'bg-emerald-500 text-white shadow-md'
+                : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+            }`}
+          >
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            تقفيل اليوم
+          </button>
+          <button
+            onClick={() => { setViewMode('daily'); setSelectedDay(tomorrowStr) }}
+            aria-current={viewMode === 'daily' && selectedDay === tomorrowStr ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg font-bold transition-colors duration-200 text-xs sm:text-sm md:text-base ${
+              viewMode === 'daily' && selectedDay === tomorrowStr
+                ? 'bg-sky-500 text-white shadow-md'
+                : 'bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 ring-1 ring-sky-300 dark:ring-sky-700 hover:bg-sky-100 dark:hover:bg-sky-900/50'
+            }`}
+          >
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+            تقفيل غدا
+          </button>
+        </div>
+
+        {/* View Mode Tabs — يختفي لو اليوزر معاه canCloseDayOnly فقط */}
+        {!restrictedToDayOnly && (
         <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
           <button
             onClick={() => setViewMode('daily')}
@@ -1055,6 +1119,7 @@ export default function ClosingPage() {
             {t('closing.viewMode.comparison')}
           </button>
         </div>
+        )}
       </div>
 
       {/* Controls */}

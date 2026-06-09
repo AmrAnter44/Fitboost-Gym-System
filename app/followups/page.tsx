@@ -93,7 +93,8 @@ interface Member {
 
 export default function FollowUpsPage() {
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
-  const canManageSales = hasPermission('canEditStaff')
+  // 💼 صلاحية مسؤول السيلز — مخصصة لإدارة كل حاجة في تاب إدارة السيلز
+  const canManageSales = hasPermission('canManageSales')
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const router = useRouter()
@@ -434,13 +435,14 @@ export default function FollowUpsPage() {
   const [dateToFilter, setDateToFilter] = useState('')   //  فلتر تاريخ إلى (YYYY-MM-DD)
 
   //  لو المستخدم سيلز  يشوف متابعاته بس تلقائياً (مرة واحدة بس)
+  //  استثناء: مسؤول السيلز (canManageSales) يشوف الكل افتراضياً
   const salesFilterInitRef = useRef(false)
   useEffect(() => {
-    if (user?.isSales && !salesFilterInitRef.current) {
+    if (user?.isSales && !canManageSales && !salesFilterInitRef.current) {
       salesFilterInitRef.current = true
       setSalesFilter('my-followups')
     }
-  }, [user?.isSales])
+  }, [user?.isSales, canManageSales])
   const [sortByPriority, setSortByPriority] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('followups-sortByPriority')
@@ -474,7 +476,8 @@ export default function FollowUpsPage() {
         //  منتهي = تاريخ الانتهاء فات (سواء اتعطل يدوي أو لا)
         if (!(expiryDate < today)) return false
         //  لو سيلز  بيشوف أعضاءه اللي assigned ليه بس
-        if (user?.isSales) {
+        //  استثناء: مسؤول السيلز (canManageSales) بيشوف الكل حتى لو هو نفسه isSales
+        if (user?.isSales && !canManageSales) {
           return user.staffId ? (m as any).salesStaffId === user.staffId : false
         }
         return true
@@ -487,7 +490,7 @@ export default function FollowUpsPage() {
         status: 'expired',
         salesStaffId: (m as any).salesStaffId || undefined
       }))
-  }, [allMembersData, user, permissionsLoading])
+  }, [allMembersData, user, permissionsLoading, canManageSales])
 
   //  حساب الأعضاء اللي اشتراكهم قرب ينتهي (حسب عدد الأيام المحدد)
   const expiringMembers = useMemo(() => {
@@ -505,7 +508,8 @@ export default function FollowUpsPage() {
         // الأعضاء النشطين اللي اشتراكهم هينتهي في خلال الأيام المحددة
         if (!(expiryDate >= today && expiryDate <= futureDate)) return false
         //  لو سيلز  بيشوف أعضاءه اللي assigned ليه بس
-        if (user?.isSales) {
+        //  استثناء: مسؤول السيلز (canManageSales) بيشوف الكل
+        if (user?.isSales && !canManageSales) {
           return user.staffId ? (m as any).salesStaffId === user.staffId : false
         }
         return true
@@ -523,7 +527,7 @@ export default function FollowUpsPage() {
           salesStaffId: (m as any).salesStaffId || undefined
         }
       })
-  }, [allMembersData, expiringDays, user, permissionsLoading])
+  }, [allMembersData, expiringDays, user, permissionsLoading, canManageSales])
 
   //  تحسين الأداء: تنظيف رقم التليفون (memoized)
   const normalizePhone = useCallback((phone: string) => {
@@ -677,7 +681,8 @@ export default function FollowUpsPage() {
 
     //  لو سيلز  فلترة موحّدة (real + ephemeral) — staffId only
     // الاستثناء الوحيد: الدعوات غير المسنَّدة (member-invitation بدون assignedTo) تظهر للجميع
-    if (!permissionsLoading && user?.isSales && user?.staffId) {
+    //  استثناء كمان: مسؤول السيلز (canManageSales) بيشوف الكل عشان يقدر يدير الفريق
+    if (!permissionsLoading && user?.isSales && user?.staffId && !canManageSales) {
       return merged.filter(fu => {
         if (fu.assignedTo === user.staffId) return true
         if (fu.visitor?.source === 'member-invitation' && !fu.assignedTo) return true
@@ -687,7 +692,7 @@ export default function FollowUpsPage() {
 
     return merged
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading])
+  }, [followUps, expiredMembers, expiringMembers, dayUseRecords, sortedInvitations, visitors, normalizePhone, user, permissionsLoading, canManageSales])
 
   // الأرشفة التلقائية للمتابعات بعد تحويل الزائر لعضوية اتشالت — السجل بقى يفضل ظاهر
   // مع badge "✓ عضو الآن" بدل ما يتأرشف. لو فيه متابعات قديمة متأرشفة بـ reason='converted'
@@ -1852,7 +1857,8 @@ export default function FollowUpsPage() {
     let todayCount = 0
     let notContacted = 0
     let contacted = 0
-    const isSales = !!user?.isSales
+    //  مسؤول السيلز بيشوف الكل، مش بس بتاعه
+    const isSales = !!user?.isSales && !canManageSales
 
     // فلتر مرة على كل المتابعات لتطبيق الفلاتر الأخرى (ما عدا contacted)
     const searchNormalized = normalizeArabic(debouncedSearchTerm)
@@ -1924,7 +1930,7 @@ export default function FollowUpsPage() {
       else notContacted++
     }
     return { myFollowUps, todayCount, notContacted, contacted }
-  }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter])
+  }, [allFollowUps, isMyFollowUp, getFollowUpPriority, user?.isSales, canManageSales, debouncedSearchTerm, resultFilter, priorityFilter, salesFilter, assignedStaffFilter, sourceFilter, dateFromFilter, dateToFilter])
 
   //  قائمة مفلترة بكل الفلاتر **ما عدا** فلتر المصدر (Source) — تُستخدم لحساب أرقام أزرار المصدر
   // عشان لما المستخدم يختار priority/contacted/search، الأرقام في أزرار المصدر تتحدّث برضو
@@ -2230,7 +2236,9 @@ export default function FollowUpsPage() {
             }`}
           >
             <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            {locale === 'ar' ? (user?.isSales ? 'عمولتي' : 'التحصيل') : (user?.isSales ? 'My Commission' : 'Collection')}
+            {locale === 'ar'
+              ? ((user?.isSales && !canManageSales) ? 'عمولتي' : 'التحصيل')
+              : ((user?.isSales && !canManageSales) ? 'My Commission' : 'Collection')}
           </button>
 
           <button

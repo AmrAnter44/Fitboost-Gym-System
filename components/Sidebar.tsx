@@ -182,6 +182,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
     ...group,
     links: group.links.filter(link => {
       if ('enabled' in link && link.enabled === false) return false
+      //  استثناء: /closing يظهر لو عنده canAccessClosing OR canCloseDayOnly
+      if (link.href === '/closing') {
+        return hasPermission('canAccessClosing') || hasPermission('canCloseDayOnly')
+      }
       if (link.permission && !hasPermission(link.permission)) return false
       return true
     })
