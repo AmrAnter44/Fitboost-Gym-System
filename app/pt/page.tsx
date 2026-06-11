@@ -21,8 +21,12 @@ import PTRenewalForm from '../../components/PTRenewalForm'
 import PTFreezeForm from '../../components/PTFreezeForm'
 import PTUpgradeForm from '../../components/PTUpgradeForm'
 import { LoadingScreen } from '../../components/Spinner'
+import { createWhatsAppUrl } from '@/lib/whatsappHelper'
+import type { MessageTemplate } from '../followups/MessageTemplateManager'
 
 const SignaturePad = dynamic(() => import('../../components/SignaturePad'), { ssr: false })
+//  مودال اختيار قالب الواتساب — reuse من صفحة المتابعات
+const MessageTemplateManager = dynamic(() => import('../followups/MessageTemplateManager'), { ssr: false })
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -114,6 +118,9 @@ export default function PTPage() {
   const [renewalSession, setRenewalSession] = useState<PTSession | null>(null)
   const [freezeSession, setFreezeSession] = useState<PTSession | null>(null)
   const [upgradeSession, setUpgradeSession] = useState<PTSession | null>(null)
+  //  مودال متابعة الواتساب للاشتراكات المنتهية
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [selectedSessionForTemplate, setSelectedSessionForTemplate] = useState<PTSession | null>(null)
 
   const [isDayUse, setIsDayUse] = useState(false)
   const [packages, setPackages] = useState<any[]>([])
@@ -424,6 +431,63 @@ export default function PTPage() {
   const handleRenew = (session: PTSession) => {
     setRenewalSession(session)
   }
+
+  //  فتح مودال التيمبليتس للعميل المنتهي اشتراكه
+  const openWhatsAppTemplate = (session: PTSession) => {
+    setSelectedSessionForTemplate(session)
+    setShowTemplateModal(true)
+  }
+
+  //  إرسال رسالة من القالب — يجرّب الـ WhatsApp API الأول، ولو مش متصل يفتح wa.me
+  const sendPTWhatsAppTemplate = useCallback(async (template: MessageTemplate) => {
+    if (!selectedSessionForTemplate) return
+    const target = selectedSessionForTemplate
+    const message = template.message
+      .replace(/\{name\}/g, target.clientName || '')
+      .replace(/\{salesName\}/g, user?.name || '')
+      .replace(/\{phone\}/g, target.phone || '')
+      .replace(/\{date\}/g, new Date().toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US'))
+      .replace(/\{time\}/g, new Date().toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' }))
+
+    try {
+      const statusResponse = await fetch('/api/whatsapp/status')
+      const status = statusResponse.ok ? await statusResponse.json() : null
+
+      if (status?.isReady) {
+        const sendResponse = await fetch('/api/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: target.phone, message })
+        })
+        const sendResult = await sendResponse.json()
+        if (sendResult?.success) {
+          toast.success(locale === 'ar' ? 'تم إرسال الرسالة بنجاح على الواتساب' : 'Message sent via WhatsApp')
+          setShowTemplateModal(false)
+          setSelectedSessionForTemplate(null)
+        } else {
+          //  Fallback لو الإرسال فشل: افتح wa.me
+          const url = createWhatsAppUrl(target.phone, message)
+          window.open(url, '_blank')
+          toast.info(locale === 'ar' ? 'فتح واتساب بالرسالة جاهزة' : 'WhatsApp opened with message')
+          setShowTemplateModal(false)
+          setSelectedSessionForTemplate(null)
+        }
+      } else {
+        // WhatsApp مش متصل → افتح wa.me link
+        const url = createWhatsAppUrl(target.phone, message)
+        window.open(url, '_blank')
+        setShowTemplateModal(false)
+        setSelectedSessionForTemplate(null)
+      }
+    } catch (error) {
+      console.error('Error sending WhatsApp template:', error)
+      // عند أي خطأ، fallback لـ wa.me
+      const url = createWhatsAppUrl(target.phone, message)
+      window.open(url, '_blank')
+      setShowTemplateModal(false)
+      setSelectedSessionForTemplate(null)
+    }
+  }, [selectedSessionForTemplate, user?.name, locale, toast])
 
   const handleRegisterSession = async (session: PTSession) => {
     // الكوتش يسجل بإمضاء
@@ -1329,7 +1393,7 @@ export default function PTPage() {
 
                     {/* Action Buttons */}
                     <div className="grid grid-cols-2 gap-2 pt-1">
-                      {session.ptNumber >= 0 && (
+                      {session.ptNumber >= 0 && !isExpired && (
                         <button
                           onClick={() => handleRegisterSession(session)}
                           disabled={session.sessionsRemaining === 0}
@@ -1337,6 +1401,19 @@ export default function PTPage() {
                         >
                           <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                           <span>{t('pt.attendance')}</span>
+                        </button>
+                      )}
+                      {/*  زرار متابعة الواتساب للاشتراكات المنتهية — يحل محل زرار الحضور */}
+                      {session.ptNumber >= 0 && isExpired && (
+                        <button
+                          onClick={() => openWhatsAppTemplate(session)}
+                          className={`${isCoach ? 'col-span-2' : ''} bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
+                          title={locale === 'ar' ? 'إرسال رسالة متابعة عبر واتساب' : 'Send WhatsApp follow-up'}
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 21.785h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.999-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.886 9.884zm8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.555 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                          </svg>
+                          <span>{locale === 'ar' ? 'متابعة واتساب' : 'WhatsApp'}</span>
                         </button>
                       )}
                       {!isCoach && (
@@ -1629,6 +1706,17 @@ export default function PTPage() {
             )
             queryClient.invalidateQueries({ queryKey: ['receipts'] })
           }}
+        />
+      )}
+
+      {/*  مودال اختيار قالب الواتساب للاشتراكات المنتهية */}
+      {showTemplateModal && selectedSessionForTemplate && (
+        <MessageTemplateManager
+          onClose={() => { setShowTemplateModal(false); setSelectedSessionForTemplate(null) }}
+          onSelect={sendPTWhatsAppTemplate}
+          visitorName={selectedSessionForTemplate.clientName}
+          visitorPhone={selectedSessionForTemplate.phone}
+          salesName={user?.name}
         />
       )}
     </div>

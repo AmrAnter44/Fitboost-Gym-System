@@ -152,8 +152,14 @@ export async function POST(request: Request) {
     if (activeRecord) {
       const hoursSinceCheckIn = (now.getTime() - activeRecord.checkIn.getTime()) / (1000 * 60 * 60)
 
-      // إذا كان السجل النشط خلال آخر 12 ساعة -> تسجيل انصراف
-      if (hoursSinceCheckIn <= 12) {
+      //  Window ديناميكي: max(workingHours + 4h buffer, 12h)
+      // ده بيدعم الشيفت الليلي والشيفت الطويل، ولو الموظف نسي يخرج
+      // ورجع تاني يوم لسه ممكن يتسجّل انصراف للسجل القديم
+      const baseHours = staff.workingHours && staff.workingHours > 0 ? staff.workingHours : 8
+      const checkOutWindow = Math.max(baseHours + 4, 12)
+
+      // إذا كان السجل النشط خلال الـ window -> تسجيل انصراف
+      if (hoursSinceCheckIn <= checkOutWindow) {
         const durationMinutes = Math.round((now.getTime() - activeRecord.checkIn.getTime()) / (1000 * 60))
 
         const updatedAttendance = await prisma.attendance.update({

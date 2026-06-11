@@ -138,6 +138,31 @@ export default function PhysiotherapyCommissionPage() {
 
   // طريقة حساب الكومشن (إيرادات أو حصص)
   const [calculationMethod, setCalculationMethod] = useState<'revenue' | 'sessions' | null>(null)
+  //  إعداد "تارجت منفصل لكل كوتش"
+  const [useSeparateCoachTarget, setUseSeparateCoachTarget] = useState(false)
+  const [savingSeparateTarget, setSavingSeparateTarget] = useState(false)
+  //  نسبة يدوية لما التارجت المنفصل ON
+  const [manualPercentage, setManualPercentage] = useState<string>('')
+  //  بيانات تارجت كل الكوتشات
+  type CoachTargetInfo = { name: string; coachTarget: number; collectedThisMonth: number; progressPercent: number }
+  const [coachTargets, setCoachTargets] = useState<CoachTargetInfo[]>([])
+  useEffect(() => {
+    if (!useSeparateCoachTarget) { setCoachTargets([]); return }
+    let cancelled = false
+    fetch('/api/coach/monthly-revenue')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (cancelled || !data) return
+        const arr: CoachTargetInfo[] = Array.isArray(data) ? data : [data]
+        setCoachTargets(arr)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [useSeparateCoachTarget])
+  const getCoachTargetInfo = (coachName: string): CoachTargetInfo | null => {
+    if (!coachName) return null
+    return coachTargets.find(c => c.name === coachName) || null
+  }
   const [sessionCommissions, setSessionCommissions] = useState<SessionBasedCommission[]>([])
   const [loadingSessionData, setLoadingSessionData] = useState(false)
   const [customSessionPercentage, setCustomSessionPercentage] = useState<string>('25')
@@ -482,6 +507,8 @@ export default function PhysiotherapyCommissionPage() {
           // إذا لم يكن هناك إعداد، استخدم القيمة الافتراضية
           setCalculationMethod('revenue')
         }
+        //  اقرأ إعداد الـ separate coach target
+        setUseSeparateCoachTarget(!!data.useSeparateCoachTarget)
       } else {
         console.error(' Failed to fetch default method:', response.status)
         const errorText = await response.text()
@@ -495,6 +522,29 @@ export default function PhysiotherapyCommissionPage() {
       setCalculationMethod('revenue')
     } finally {
       setMethodLoaded(true)
+    }
+  }
+
+  //  حفظ إعداد "تارجت منفصل لكل كوتش"
+  const toggleSeparateCoachTarget = async (next: boolean) => {
+    setSavingSeparateTarget(true)
+    const prev = useSeparateCoachTarget
+    setUseSeparateCoachTarget(next)
+    try {
+      const res = await fetch('/api/settings/commission', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useSeparateCoachTarget: next })
+      })
+      if (!res.ok) throw new Error('Failed')
+      toast.success(next
+        ? (locale === 'ar' ? 'تم تفعيل التارجت المنفصل' : 'Separate target enabled')
+        : (locale === 'ar' ? 'تم إلغاء التارجت المنفصل' : 'Separate target disabled'))
+    } catch {
+      setUseSeparateCoachTarget(prev)
+      toast.error(locale === 'ar' ? 'فشل حفظ الإعداد' : 'Failed to save')
+    } finally {
+      setSavingSeparateTarget(false)
     }
   }
 
@@ -533,6 +583,11 @@ export default function PhysiotherapyCommissionPage() {
 
   // دالة حساب النسبة حسب الدخل الشهري — flex tiers (2-5 مستوى)
   const calculatePercentage = (income: number): number => {
+    //  لما التارجت المنفصل ON، النسبة بتيجي يدوياً
+    if (useSeparateCoachTarget) {
+      const manual = parseFloat(manualPercentage)
+      return Number.isFinite(manual) && manual > 0 ? manual : 0
+    }
     const cs = commissionSettings
     const n = Math.min(5, Math.max(2, cs.tierCount || 5))
     const limits = [cs.tier1Limit, cs.tier2Limit, cs.tier3Limit, cs.tier4Limit]
@@ -1011,6 +1066,45 @@ export default function PhysiotherapyCommissionPage() {
         </div>
       </div>
 
+      {/*  زرار "تارجت منفصل لكل كوتش" — أدمن فقط */}
+      {isAdmin && methodLoaded && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-4 sm:mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎯</span>
+                <h3 className="font-bold text-gray-800 dark:text-gray-100">
+                  {locale === 'ar' ? 'تارجت منفصل لكل كوتش' : 'Separate target per coach'}
+                </h3>
+                {useSeparateCoachTarget && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                    {locale === 'ar' ? 'مفعّل' : 'ON'}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {locale === 'ar'
+                  ? 'لما مفعّل: كل كوتش هياخد تارجت شهري منفصل تقدر تظبطه من صفحة الموظفين، وهيظهر له كارد تقدّم في الداشبورد.'
+                  : 'When enabled: each coach gets a separate monthly target you can set from the staff page, and a progress card appears on their dashboard.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => toggleSeparateCoachTarget(!useSeparateCoachTarget)}
+              disabled={savingSeparateTarget}
+              aria-pressed={useSeparateCoachTarget}
+              className={`relative inline-flex h-8 w-14 shrink-0 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                useSeparateCoachTarget ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+              } ${savingSeparateTarget ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+            >
+              <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 mt-1 ${
+                useSeparateCoachTarget ? 'translate-x-7' : 'translate-x-1'
+              }`} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Calculation Method - Coach View (read-only) */}
       {!isAdmin && (
         /* Coach View - Show current method only (read-only) */
@@ -1103,6 +1197,46 @@ export default function PhysiotherapyCommissionPage() {
                       ))}
                     </select>
                   )}
+                  {/*  مؤشر تحقيق التارجت */}
+                  {useSeparateCoachTarget && selectedCoach && (() => {
+                    const info = getCoachTargetInfo(selectedCoach)
+                    if (!info) return (
+                      <div className="mt-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 text-xs text-gray-600 dark:text-gray-300">
+                        {locale === 'ar' ? 'لم يتم تحديد تارجت لهذا الكوتش' : 'No target set for this coach'}
+                      </div>
+                    )
+                    const p = info.progressPercent
+                    const level: 'low' | 'close' | 'achieved' | 'exceeded' =
+                      p >= 200 ? 'exceeded' : p >= 100 ? 'achieved' : p >= 75 ? 'close' : 'low'
+                    const styles = {
+                      low:       { bg: 'bg-red-50 dark:bg-red-900/20',          ring: 'ring-red-200 dark:ring-red-700',            text: 'text-red-700 dark:text-red-300',           num: 'text-red-600 dark:text-red-400' },
+                      close:     { bg: 'bg-amber-50 dark:bg-amber-900/30',      ring: 'ring-amber-200 dark:ring-amber-700',        text: 'text-amber-700 dark:text-amber-300',       num: 'text-amber-600 dark:text-amber-400' },
+                      achieved:  { bg: 'bg-emerald-50 dark:bg-emerald-900/30',  ring: 'ring-emerald-200 dark:ring-emerald-700',    text: 'text-emerald-700 dark:text-emerald-300',   num: 'text-emerald-600 dark:text-emerald-400' },
+                      exceeded:  { bg: 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30', ring: 'ring-purple-300 dark:ring-purple-600', text: 'text-purple-800 dark:text-purple-200', num: 'text-purple-700 dark:text-purple-300' },
+                    }[level]
+                    const icon = level === 'exceeded' ? '🚀' : level === 'achieved' ? '🏆' : level === 'close' ? '⚡' : '🎯'
+                    const message = locale === 'ar'
+                      ? (level === 'exceeded' ? (p >= 300 ? `🔥 ${Math.floor(p/100)}× أضعاف التارجت!` : '🚀 ضعف التارجت!')
+                        : level === 'achieved' ? (p > 100 ? `✅ تخطى التارجت بـ ${p - 100}%` : '✅ حقق التارجت')
+                        : `لم يحقق التارجت بعد (${p}%)`)
+                      : (level === 'exceeded' ? (p >= 300 ? `🔥 ${Math.floor(p/100)}× the target!` : '🚀 Double the target!')
+                        : level === 'achieved' ? (p > 100 ? `✅ Exceeded by ${p - 100}%` : '✅ Target achieved')
+                        : `Target not yet hit (${p}%)`)
+                    return (
+                      <div className={`mt-2 px-3 py-2.5 rounded-lg ring-1 flex items-center justify-between gap-2 flex-wrap ${styles.bg} ${styles.ring}`}>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-lg">{icon}</span>
+                          <div className="min-w-0">
+                            <div className={`text-xs font-bold ${styles.text}`}>{message}</div>
+                            <div className="text-[11px] text-gray-600 dark:text-gray-300">
+                              {info.collectedThisMonth.toLocaleString(localeString)} / {info.coachTarget.toLocaleString(localeString)} ج.م
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`text-xl font-extrabold ${styles.num}`}>{p}%</div>
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
 
@@ -1154,8 +1288,8 @@ export default function PhysiotherapyCommissionPage() {
                 </div>
               )}
 
-              {/* جدول النسب - Dynamic flex tiers */}
-              {calculationMethod === 'revenue' && (() => {
+              {/* جدول النسب - Dynamic flex tiers (مخفي لما التارجت المنفصل ON) */}
+              {calculationMethod === 'revenue' && !useSeparateCoachTarget && (() => {
                 const cs = commissionSettings
                 const n = Math.min(5, Math.max(2, cs.tierCount || 5))
                 const limits = [cs.tier1Limit, cs.tier2Limit, cs.tier3Limit, cs.tier4Limit]
@@ -1189,11 +1323,38 @@ export default function PhysiotherapyCommissionPage() {
                 )
               })()}
 
+              {/*  Input النسبة اليدوية — تظهر بس لما التارجت المنفصل ON */}
+              {useSeparateCoachTarget && calculationMethod === 'revenue' && (
+                <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-200 dark:ring-purple-700">
+                  <label className="block text-sm font-bold mb-2 text-purple-800 dark:text-purple-200">
+                    🎯 {locale === 'ar' ? 'النسبة المخصصة للكوتش (%)' : 'Custom commission rate (%)'}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={manualPercentage}
+                      onChange={(e) => setManualPercentage(e.target.value)}
+                      className="w-full px-4 py-3 pr-12 ring-2 ring-purple-300 dark:ring-purple-700 rounded-lg text-lg font-bold focus:border-purple-500 focus:ring-purple-400 transition dark:bg-gray-700 dark:text-white"
+                      placeholder={locale === 'ar' ? 'مثلاً: 30' : 'e.g. 30'}
+                    />
+                    <span className="absolute inset-y-0 right-4 flex items-center text-purple-600 dark:text-purple-300 font-bold">%</span>
+                  </div>
+                  <p className="text-xs text-purple-700 dark:text-purple-300 mt-2">
+                    {locale === 'ar'
+                      ? '💡 لما التارجت المنفصل مفعّل، النسبة بتتكتب يدوياً لكل حساب — مفيش tiers تلقائية.'
+                      : '💡 With separate target enabled, enter the rate manually each time — no auto tiers.'}
+                  </p>
+                </div>
+              )}
+
               {/* أزرار التحكم */}
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                   onClick={handleCalculate}
-                  disabled={!selectedCoach || (useCustomIncome && !customIncome)}
+                  disabled={!selectedCoach || (useCustomIncome && !customIncome) || (useSeparateCoachTarget && calculationMethod === 'revenue' && !parseFloat(manualPercentage))}
                   className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-primary-contrast py-3 sm:py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-base sm:text-lg shadow-lg transition-colors duration-200 active:scale-95"
                 >
                    {t('physiotherapy.commission.calculateButton')}
@@ -2317,8 +2478,27 @@ export default function PhysiotherapyCommissionPage() {
                 </div>
               </div>
 
+              {/*  لو التارجت المنفصل مفعّل → نخفي الـ tiers ونعرض ملاحظة */}
+              {calculationMethod === 'revenue' && useSeparateCoachTarget && (
+                <div className="mb-6 p-5 rounded-xl bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-200 dark:ring-purple-700">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl shrink-0">🎯</span>
+                    <div>
+                      <h3 className="font-bold text-purple-800 dark:text-purple-200 mb-1">
+                        {locale === 'ar' ? 'تارجت منفصل لكل كوتش (مفعّل)' : 'Separate target per coach (enabled)'}
+                      </h3>
+                      <p className="text-sm text-purple-700 dark:text-purple-300">
+                        {locale === 'ar'
+                          ? 'كل كوتش بياخد تارجت شهري منفصل بتظبطه من صفحة الموظفين. حدود الدخل الشهري + الـ tiers المشتركة مش هتتطبق هنا.'
+                          : 'Each coach gets a separate monthly target set from the staff page. Shared income tiers don\'t apply.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* حدود الدخل + النسب — Flex tiers (2-5) */}
-              {calculationMethod === 'revenue' && (() => {
+              {calculationMethod === 'revenue' && !useSeparateCoachTarget && (() => {
                 const cs = commissionSettings
                 const n = Math.min(5, Math.max(2, cs.tierCount || 5))
                 const limitKeys: Array<'tier1Limit' | 'tier2Limit' | 'tier3Limit' | 'tier4Limit'> = ['tier1Limit', 'tier2Limit', 'tier3Limit', 'tier4Limit']

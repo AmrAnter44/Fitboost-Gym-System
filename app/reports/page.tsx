@@ -301,6 +301,16 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
   const toast = useToast()
   const { data: followups = [], isLoading } = useQuery({ queryKey: ['followups-report'], queryFn: fetchFollowUpsData })
 
+  //  formatter بيعرض التاريخ + الساعة (مهم في تقارير المتابعات لمعرفة وقت التواصل)
+  const dateLocale = direction === 'rtl' ? 'ar-EG' : 'en-US'
+  const formatDateTime = (d: string | Date | null) => {
+    if (!d) return '-'
+    const dt = new Date(d)
+    const datePart = dt.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })
+    const timePart = dt.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', hour12: true })
+    return `${datePart} · ${timePart}`
+  }
+
   const filtered = useMemo(() => {
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
@@ -321,7 +331,7 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
       hdr.alignment = { horizontal: 'center', vertical: 'middle' }; hdr.height = 28
 
       filtered.forEach((f: any, i: number) => {
-        const row = ws.addRow([f.visitor?.name || '-', f.visitor?.phone || '-', f.visitor?.source || '-', f.assignedStaff?.name || '-', f.stage || '-', f.priority || '-', f.result || '-', f.contactCount || 0, formatDate(f.lastContactedAt), formatDate(f.createdAt)])
+        const row = ws.addRow([f.visitor?.name || '-', f.visitor?.phone || '-', f.visitor?.source || '-', f.assignedStaff?.name || '-', f.stage || '-', f.priority || '-', f.result || '-', f.contactCount || 0, formatDateTime(f.lastContactedAt), formatDateTime(f.createdAt)])
         if (i % 2 === 0) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }
         row.alignment = { horizontal: 'center', vertical: 'middle' }
       })
@@ -368,7 +378,7 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
                   <td className={tableTdCls}><PriorityBadge priority={f.priority} /></td>
                   <td className={tableTdCls}>{f.result || '-'}</td>
                   <td className={`${tableTdCls} text-center font-bold`}>{f.contactCount || 0}</td>
-                  <td className={tableTdCls}>{formatDate(f.lastContactedAt)}</td>
+                  <td className={`${tableTdCls} whitespace-nowrap`}>{formatDateTime(f.lastContactedAt)}</td>
                 </tr>
               ))}
             </tbody>

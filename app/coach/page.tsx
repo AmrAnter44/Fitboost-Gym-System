@@ -115,6 +115,15 @@ export default function CoachDashboard() {
     halfTimeWithBalance: HalfTimeNotification[]
     newAssignments: NewAssignmentNotification[]
   } | null>(null)
+  //  Target الشهري للكوتش + التقدّم
+  const [targetInfo, setTargetInfo] = useState<{
+    coachTarget: number
+    collectedThisMonth: number
+    progressPercent: number
+    commissionsCount: number
+  } | null>(null)
+  //  Flag بيحدد إذا الميزة مفعّلة من حاسبة التحصيل
+  const [useSeparateCoachTarget, setUseSeparateCoachTarget] = useState<boolean | null>(null)
 
   const dateLocale = locale === 'ar' ? 'ar-EG' : 'en-US'
 
@@ -164,6 +173,7 @@ export default function CoachDashboard() {
         fetchMyPTs(data.user.userId || data.user.id)
         fetchMyMore()
         fetchCoachNotifications(data.user.userId || data.user.id)
+        fetchCoachTarget()
       } else {
         setLoading(false)
       }
@@ -197,6 +207,30 @@ export default function CoachDashboard() {
       }
     } catch (error) {
       console.error('Error fetching More subscriptions:', error)
+    }
+  }
+
+  //  جلب التارجت الشهري للكوتش + الإيراد المحسوب من الـ commissions
+  const fetchCoachTarget = async () => {
+    try {
+      //  اقرأ إعداد الـ useSeparateCoachTarget الأول
+      const settingsRes = await fetch('/api/settings/commission')
+      let enabled = false
+      let method: 'revenue' | 'sessions' = 'revenue'
+      if (settingsRes.ok) {
+        const settings = await settingsRes.json()
+        enabled = !!settings.useSeparateCoachTarget
+        method = settings.defaultCommissionMethod || 'revenue'
+      }
+      const shouldShow = enabled && method === 'revenue'
+      setUseSeparateCoachTarget(shouldShow)
+      if (!shouldShow) return // الميزة مقفولة → بلاش fetch
+      const response = await fetch('/api/coach/monthly-revenue')
+      if (!response.ok) return
+      const data = await response.json()
+      if (data) setTargetInfo(data)
+    } catch (error) {
+      console.error('Error fetching coach target:', error)
     }
   }
 
@@ -615,6 +649,64 @@ export default function CoachDashboard() {
 
           </div>
         </div>
+
+        {/*  Monthly Target Card — يظهر بس لو الميزة مفعّلة في حاسبة التحصيل */}
+        {useSeparateCoachTarget && targetInfo && (
+          <div className="mb-6">
+            {targetInfo.coachTarget > 0 ? (
+              <div className="relative bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 text-white rounded-2xl shadow-xl p-5 sm:p-6 overflow-hidden">
+                <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-300/20 rounded-full blur-2xl pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wider opacity-90 flex items-center gap-1.5">
+                        🎯 {locale === 'ar' ? 'التارجت الشهري' : 'Monthly Target'}
+                      </div>
+                      <div className="text-3xl sm:text-4xl font-extrabold mt-1">
+                        {targetInfo.collectedThisMonth.toLocaleString()}
+                        <span className="text-base sm:text-lg font-bold opacity-80 ms-1">/ {targetInfo.coachTarget.toLocaleString()} ج</span>
+                      </div>
+                      <div className="text-xs opacity-85 mt-1">
+                        {locale === 'ar' ? `${targetInfo.commissionsCount} عملية هذا الشهر` : `${targetInfo.commissionsCount} commissions this month`}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-4xl sm:text-5xl font-extrabold leading-none">{targetInfo.progressPercent}%</div>
+                      <div className="text-[10px] sm:text-xs opacity-90 mt-1">
+                        {targetInfo.progressPercent >= 300
+                          ? (locale === 'ar' ? `🔥 ${Math.floor(targetInfo.progressPercent/100)}× أضعاف!` : `🔥 ${Math.floor(targetInfo.progressPercent/100)}× the target!`)
+                          : targetInfo.progressPercent >= 200
+                          ? (locale === 'ar' ? '🚀 ضعف التارجت!' : '🚀 Double the target!')
+                          : targetInfo.progressPercent > 100
+                          ? (locale === 'ar' ? `🏆 تخطّى التارجت بـ ${targetInfo.progressPercent - 100}%` : `🏆 Exceeded by ${targetInfo.progressPercent - 100}%`)
+                          : targetInfo.progressPercent >= 100
+                          ? (locale === 'ar' ? '🏆 وصلت التارجت!' : '🏆 Target reached!')
+                          : (locale === 'ar' ? `باقي ${(targetInfo.coachTarget - targetInfo.collectedThisMonth).toLocaleString()} ج` : `${(targetInfo.coachTarget - targetInfo.collectedThisMonth).toLocaleString()} EGP left`)}
+                      </div>
+                    </div>
+                  </div>
+                  {/*  الـ progress bar محدود بـ 100% بصرياً (overflow:hidden)
+                       حتى لو الـ percent > 100 (مثلاً 200%)، الـ bar هيمتلي بالكامل بس */}
+                  <div className="bg-white/15 rounded-full h-3 overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${targetInfo.progressPercent >= 100 ? 'bg-emerald-300' : 'bg-white'}`}
+                      style={{ width: `${Math.min(100, targetInfo.progressPercent)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-100 dark:bg-gray-800/60 ring-1 ring-gray-200 dark:ring-gray-700 rounded-2xl p-4 sm:p-5 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 flex items-center justify-center text-xl">🎯</span>
+                <div className="flex-1">
+                  <div className="font-bold text-gray-800 dark:text-gray-200">{locale === 'ar' ? 'لم يتم تحديد تارجت شهري' : 'No monthly target set'}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'تواصل مع الأدمن لتحديد التارجت' : 'Contact admin to set the target'}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">

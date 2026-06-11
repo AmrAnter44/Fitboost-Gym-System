@@ -316,6 +316,7 @@ model Staff {
   salesCommissionType  String?               // 'fixed' | 'tiered'
   salesCommissionRate  Float?                // نسبة ثابتة (fixed mode)
   salesCommissionTiers String?               // JSON: [{target:5000,rate:3},{target:10000,rate:5}]
+  coachTarget          Float?   @default(0)   //  التارجت الشهري بالجنيه للكوتش
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   attendance          Attendance[]

@@ -1,4 +1,5 @@
 import { prisma } from '../prisma'
+import { calcLateMinutes } from '../shiftTime'
 import type {
   PayrollBreakdown,
   LateOccurrence,
@@ -11,11 +12,6 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 function daysInMonth(year: number, month: number): number {
   // month is 1-12
   return new Date(year, month, 0).getDate()
-}
-
-function parseHMtoMinutes(hm: string): number {
-  const [h, m] = hm.split(':').map(n => parseInt(n, 10))
-  return h * 60 + m
 }
 
 function dateOnlyISO(date: Date): string {
@@ -212,10 +208,13 @@ export async function calculateNetSalary(
     const dayName = DAY_NAMES[checkInDate.getDay()]
     const rot = rotations.find(r => r.dayOfWeek === dayName)
     const shiftStartHM = rot?.startTime ?? staff.shiftStartTime
+    const shiftEndHM = rot?.endTime ?? staff.shiftEndTime
     if (!shiftStartHM) continue
-    const shiftStartMin = parseHMtoMinutes(shiftStartHM)
-    const checkInMin = checkInDate.getHours() * 60 + checkInDate.getMinutes()
-    const minutesLate = Math.max(0, checkInMin - shiftStartMin - grace)
+    //  استخدم helper بيدعم الـ overnight shifts (e.g. 20:00 → 03:00)
+    // لو shiftEnd مش متاح، fallback لـ نفس الـ start (هيتعامل كـ same-day)
+    const rawLate = calcLateMinutes(checkInDate, shiftStartHM, shiftEndHM || shiftStartHM)
+    if (rawLate === null) continue
+    const minutesLate = Math.max(0, rawLate - grace)
     if (minutesLate > 0) {
       lateOccurrences.push({
         date: dateOnlyISO(checkInDate),

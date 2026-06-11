@@ -10,6 +10,7 @@ import {
   getExpectedWorkingDays
 } from '../../../../lib/hrCalculations'
 import { getLocaleFromRequest } from '../../../../lib/serverTranslation'
+import { calcLateMinutes, calcEarlyMinutes } from '../../../../lib/shiftTime'
 
 export const dynamic = 'force-dynamic'
 
@@ -250,15 +251,11 @@ export async function GET(request: Request) {
         let earlyMins = 0
         let dayStatus = 'on-time'
 
-        // حساب التأخير
-        if (shiftStart) {
-          const [shiftH, shiftM] = shiftStart.split(':').map(Number)
-          const checkInH = checkInDate.getHours()
-          const checkInM = checkInDate.getMinutes()
-          const shiftStartMinutes = shiftH * 60 + shiftM
-          const checkInMinutes = checkInH * 60 + checkInM
-          if (checkInMinutes > shiftStartMinutes + 5) { // 5 دقائق سماح
-            lateMins = checkInMinutes - shiftStartMinutes
+        //  حساب التأخير — يستخدم helper بيدعم overnight shifts (e.g. 20:00 → 03:00)
+        if (shiftStart && shiftEnd) {
+          const raw = calcLateMinutes(checkInDate, shiftStart, shiftEnd)
+          if (raw !== null && raw > 5) { // 5 دقائق سماح
+            lateMins = raw
             lateArrivals.push({
               date: dateStr,
               checkInTime: checkInTimeStr,
@@ -269,16 +266,12 @@ export async function GET(request: Request) {
           }
         }
 
-        // حساب الخروج المبكر
-        if (shiftEnd && att.checkOut) {
-          const [shiftEH, shiftEM] = shiftEnd.split(':').map(Number)
+        //  حساب الخروج المبكر — نفس الـ helper
+        if (shiftStart && shiftEnd && att.checkOut) {
           const checkOutDate = new Date(att.checkOut)
-          const checkOutH = checkOutDate.getHours()
-          const checkOutM = checkOutDate.getMinutes()
-          const shiftEndMinutes = shiftEH * 60 + shiftEM
-          const checkOutMinutes = checkOutH * 60 + checkOutM
-          if (checkOutMinutes < shiftEndMinutes - 5) { // 5 دقائق سماح
-            earlyMins = shiftEndMinutes - checkOutMinutes
+          const raw = calcEarlyMinutes(checkInDate, checkOutDate, shiftStart, shiftEnd)
+          if (raw !== null && raw > 5) { // 5 دقائق سماح
+            earlyMins = raw
             earlyDepartures.push({
               date: dateStr,
               checkOutTime: checkOutTimeStr!,

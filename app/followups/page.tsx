@@ -33,7 +33,7 @@ const FollowUpCalendar = nextDynamic(() => import('../../components/FollowUpCale
 })
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   fetchFollowUpsPage,
   fetchVisitorsData,
@@ -98,6 +98,7 @@ export default function FollowUpsPage() {
   const { t, direction, locale } = useLanguage()
   const toast = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
 
   const [showForm, setShowForm] = useState(false)
@@ -543,16 +544,28 @@ export default function FollowUpsPage() {
   const allFollowUps = useMemo(() => {
     //  Set من أرقام الأعضاء (نشطين + منتهيين) — لإزالة الزوار الذين أصبحوا أعضاء
     const memberPhones = new Set<string>()
+    //  Set منفصل لـ الأعضاء النشطين فقط — يستخدم لإخفاء المتابعات بتاعت اللي بقوا أعضاء فعلاً
+    const activeMemberPhones = new Set<string>()
+    const today = new Date(); today.setHours(0, 0, 0, 0)
     allMembersData.forEach((m: Member) => {
-      if (m.phone) memberPhones.add(normalizePhone(m.phone))
+      if (!m.phone) return
+      const normalized = normalizePhone(m.phone)
+      memberPhones.add(normalized)
+      // عضو نشط = isActive + اشتراكه لسه ساري
+      const expiry = m.expiryDate ? new Date(m.expiryDate) : null
+      if (expiry) expiry.setHours(0, 0, 0, 0)
+      const isCurrentlyActive = m.isActive === true && expiry !== null && expiry >= today
+      if (isCurrentlyActive) activeMemberPhones.add(normalized)
     })
 
     // عرض أحدث متابعة لكل زائر (الباقي محفوظ في الـ DB ويظهر في الـ history)
-    // المتابعات بتاعت الزوار اللي بقوا أعضاء بتظهر زي ما هي مع badge "✓ عضو الآن"
+    //  إخفاء المتابعات بتاعت الزوار اللي بقوا أعضاء نشطين الآن
     const latestByVisitor = new Map<string, any>()
     followUps.forEach(fu => {
       // المتابعات المأرشفة يدوياً تتخفى ما عدا 'subscribed' (سجل تاريخي مهم)
       if (fu.archived && fu.result !== 'subscribed') return
+      //  لو الزائر بقى عضو نشط الآن، نخفي متابعاته (مش محتاج follow-up)
+      if (fu.visitor?.phone && activeMemberPhones.has(normalizePhone(fu.visitor.phone))) return
       const phone = fu.visitor?.phone ? normalizePhone(fu.visitor.phone) : fu.id
       const existing = latestByVisitor.get(phone)
       if (!existing || new Date(fu.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
@@ -1067,6 +1080,21 @@ export default function FollowUpsPage() {
     })
     setShowEditModal(true)
   }, [])
+
+  //  Deep-link من الـ Dashboard smart search — يفتح modal الزائر فور التحميل
+  const [hasOpenedFromUrl, setHasOpenedFromUrl] = useState(false)
+  useEffect(() => {
+    if (hasOpenedFromUrl) return
+    const targetVisitorId = searchParams.get('visitor')
+    if (!targetVisitorId) return
+    if (!allFollowUps || allFollowUps.length === 0) return
+    const match = allFollowUps.find(fu => fu.visitor?.id === targetVisitorId)
+    if (match) {
+      handleEditFollowUp(match)
+      setHasOpenedFromUrl(true)
+      router.replace('/followups', { scroll: false })
+    }
+  }, [searchParams, allFollowUps, hasOpenedFromUrl, handleEditFollowUp, router])
 
   const confirmEdit = useCallback(async () => {
     if (!editTarget) return

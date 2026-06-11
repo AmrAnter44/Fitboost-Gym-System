@@ -121,11 +121,17 @@ export default function AttendanceReportPage() {
       alert(direction === 'rtl' ? 'الموظف والتاريخ ووقت الحضور مطلوبين' : 'Staff, date, and check-in time are required')
       return
     }
-    const checkInISO = new Date(`${manualForm.date}T${manualForm.checkInTime}:00`).toISOString()
+    const checkInDate = new Date(`${manualForm.date}T${manualForm.checkInTime}:00`)
+    const checkInISO = checkInDate.toISOString()
     let checkOutISO: string | null = null
     if (manualForm.checkOutTime) {
-      // لو وقت الانصراف قبل الحضور بالعدد (نص الليل مثلاً) — نخليه نفس التاريخ، ولو طلع <= الحضور هيرجّع خطأ من السيرفر
-      checkOutISO = new Date(`${manualForm.date}T${manualForm.checkOutTime}:00`).toISOString()
+      const checkOutDate = new Date(`${manualForm.date}T${manualForm.checkOutTime}:00`)
+      //  لو الـ check-out وقته قبل الـ check-in (شيفت ليلي يعدّي 12:00 ليلاً)
+      // نزوّد يوم تلقائياً عشان السيرفر يقبل
+      if (checkOutDate.getTime() <= checkInDate.getTime()) {
+        checkOutDate.setDate(checkOutDate.getDate() + 1)
+      }
+      checkOutISO = checkOutDate.toISOString()
     }
 
     setManualSaving(true)
@@ -847,7 +853,7 @@ export default function AttendanceReportPage() {
               >
                 {manualSaving ? (
                   <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 ) : (
                   <svg {...stroke} className="w-4 h-4" aria-hidden="true">

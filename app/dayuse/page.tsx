@@ -2,8 +2,9 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useDebounce } from '../../hooks/useDebounce'
 import { ReceiptToPrint } from '../../components/ReceiptToPrint'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -51,6 +52,40 @@ export default function DayUsePage() {
 
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  //  بحث + فلتر على Day Use
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 250)
+  const [filterType, setFilterType] = useState<'all' | 'DayUse' | 'InBody' | 'LockerRental'>('all')
+  const [filterDate, setFilterDate] = useState<'all' | 'today' | 'week' | 'month'>('all')
+
+  //  الـ entries بعد تطبيق البحث + الفلتر
+  const filteredEntries = useMemo(() => {
+    let list = entries as DayUseEntry[]
+    if (filterType !== 'all') {
+      list = list.filter(e => e.serviceType === filterType)
+    }
+    if (filterDate !== 'all') {
+      const now = new Date(); now.setHours(0, 0, 0, 0)
+      const cutoff = new Date(now)
+      if (filterDate === 'week') cutoff.setDate(now.getDate() - 6)
+      else if (filterDate === 'month') cutoff.setDate(now.getDate() - 29)
+      list = list.filter(e => {
+        if (!e.createdAt) return false
+        const d = new Date(e.createdAt); d.setHours(0, 0, 0, 0)
+        return d >= cutoff
+      })
+    }
+    const q = debouncedSearch.trim()
+    if (q) {
+      const isDigits = /^\d+$/.test(q)
+      const ql = q.toLowerCase()
+      list = list.filter(e => {
+        if (isDigits) return (e.phone || '').includes(q)
+        return (e.name || '').toLowerCase().includes(ql)
+      })
+    }
+    return list
+  }, [entries, debouncedSearch, filterType, filterDate])
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -390,13 +425,93 @@ export default function DayUsePage() {
         </div>
       )}
 
+      {/*  Search + Filters Toolbar */}
+      {!loading && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-3 mb-4 space-y-3">
+          <div className="flex flex-col md:flex-row gap-2">
+            <div className="relative flex-1">
+              <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none`}>
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+              </span>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={`w-full ${direction === 'rtl' ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm`}
+                placeholder={direction === 'rtl' ? 'ابحث بالاسم أو التليفون...' : 'Search by name or phone...'}
+                dir={direction}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className={`absolute inset-y-0 ${direction === 'rtl' ? 'left-3' : 'right-3'} flex items-center text-gray-400 hover:text-red-500 transition-colors`}
+                  aria-label="clear"
+                >
+                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                </button>
+              )}
+            </div>
+            {/* Date filter dropdown */}
+            <select
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value as any)}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="all">{direction === 'rtl' ? '— كل الفترات —' : '— All time —'}</option>
+              <option value="today">{direction === 'rtl' ? 'اليوم' : 'Today'}</option>
+              <option value="week">{direction === 'rtl' ? 'آخر 7 أيام' : 'Last 7 days'}</option>
+              <option value="month">{direction === 'rtl' ? 'آخر 30 يوم' : 'Last 30 days'}</option>
+            </select>
+          </div>
+          {/* Service type filter chips */}
+          <div className="flex flex-wrap gap-2">
+            {([
+              { id: 'all', label: direction === 'rtl' ? 'الكل' : 'All', color: 'gray' },
+              { id: 'DayUse', label: t('dayUse.dayUse'), color: 'primary' },
+              ...(settings.inBodyEnabled ? [{ id: 'InBody', label: t('dayUse.inBody'), color: 'purple' }] : []),
+              { id: 'LockerRental', label: t('dayUse.lockerRental'), color: 'amber' },
+            ] as const).map(chip => {
+              const isActive = filterType === chip.id
+              const activeBg =
+                chip.color === 'primary' ? 'bg-primary-600 text-primary-contrast ring-primary-600' :
+                chip.color === 'purple' ? 'bg-purple-600 text-white ring-purple-600' :
+                chip.color === 'amber' ? 'bg-amber-600 text-white ring-amber-600' :
+                'bg-gray-700 text-white ring-gray-700'
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => setFilterType(chip.id as any)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold ring-1 transition-colors ${
+                    isActive ? activeBg : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              )
+            })}
+          </div>
+          {/*  عدّاد النتائج */}
+          {(search || filterType !== 'all' || filterDate !== 'all') && (
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {direction === 'rtl'
+                ? `${filteredEntries.length} نتيجة من إجمالي ${(entries as DayUseEntry[]).length}`
+                : `${filteredEntries.length} results of ${(entries as DayUseEntry[]).length}`}
+            </div>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <LoadingScreen message={t('dayUse.loading')} />
       ) : (
         <>
           {/* Mobile Cards View */}
           <div className="lg:hidden space-y-4">
-            {entries.map((entry) => (
+            {filteredEntries.map((entry) => (
               <div
                 key={entry.id}
                 className="bg-white dark:bg-gray-800 border-r-4 border-primary-500 rounded-lg shadow-md p-4"
@@ -484,10 +599,13 @@ export default function DayUsePage() {
               </div>
             ))}
 
-            {entries.length === 0 && (
+            {filteredEntries.length === 0 && (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                
-                <p>{t('dayUse.noOperationsYet')}</p>
+                <p>{
+                  (entries as DayUseEntry[]).length === 0
+                    ? t('dayUse.noOperationsYet')
+                    : (direction === 'rtl' ? 'لا توجد نتائج مطابقة' : 'No matching results')
+                }</p>
               </div>
             )}
           </div>
@@ -508,7 +626,7 @@ export default function DayUsePage() {
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry) => (
+                {filteredEntries.map((entry) => (
                   <tr key={entry.id} className="border-t hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-4 py-3">{entry.name}</td>
                     <td className="px-4 py-3">{entry.phone}</td>
@@ -566,9 +684,11 @@ export default function DayUsePage() {
               </tbody>
             </table>
 
-            {entries.length === 0 && (
+            {filteredEntries.length === 0 && (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                {t('dayUse.noOperationsYet')}
+                {(entries as DayUseEntry[]).length === 0
+                  ? t('dayUse.noOperationsYet')
+                  : (direction === 'rtl' ? 'لا توجد نتائج مطابقة' : 'No matching results')}
               </div>
             )}
           </div>

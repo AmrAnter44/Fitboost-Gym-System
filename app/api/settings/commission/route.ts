@@ -24,12 +24,14 @@ function readSettings() {
 
     // إعدادات افتراضية
     return {
-      defaultCommissionMethod: 'revenue' // revenue أو sessions
+      defaultCommissionMethod: 'revenue', // revenue أو sessions
+      useSeparateCoachTarget: false       //  تارجت منفصل لكل كوتش (off by default — backward-compat)
     }
   } catch (error) {
     console.error('Error reading settings:', error)
     return {
-      defaultCommissionMethod: 'revenue'
+      defaultCommissionMethod: 'revenue',
+      useSeparateCoachTarget: false
     }
   }
 }
@@ -87,21 +89,26 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { defaultCommissionMethod } = body
-
-    // التحقق من صحة القيمة
-    if (!['revenue', 'sessions'].includes(defaultCommissionMethod)) {
-      return NextResponse.json(
-        { error: 'طريقة حساب غير صحيحة' },
-        { status: 400 }
-      )
-    }
+    const { defaultCommissionMethod, useSeparateCoachTarget } = body
 
     // قراءة الإعدادات الحالية
     const currentSettings = readSettings()
 
-    // تحديث الطريقة
-    currentSettings.defaultCommissionMethod = defaultCommissionMethod
+    // التحقق من صحة وتحديث طريقة الحساب (لو متبعّتة)
+    if (defaultCommissionMethod !== undefined) {
+      if (!['revenue', 'sessions'].includes(defaultCommissionMethod)) {
+        return NextResponse.json(
+          { error: 'طريقة حساب غير صحيحة' },
+          { status: 400 }
+        )
+      }
+      currentSettings.defaultCommissionMethod = defaultCommissionMethod
+    }
+
+    //  تحديث إعداد الـ "تارجت منفصل" (لو متبعّت)
+    if (useSeparateCoachTarget !== undefined) {
+      currentSettings.useSeparateCoachTarget = !!useSeparateCoachTarget
+    }
 
     // حفظ الإعدادات
     const success = writeSettings(currentSettings)

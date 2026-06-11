@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -107,6 +107,7 @@ function isMemberActiveNow(member: Member): boolean {
 
 export default function MembersPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
   const { customCreatedAt } = useAdminDate()
   const { t, locale, direction } = useLanguage()
@@ -154,6 +155,24 @@ export default function MembersPage() {
   const totalMembersCount = pagesData?.pages?.[0]?.total ?? membersData.length
 
   const [showForm, setShowForm] = useState(false)
+  //  Prefill data من URL params (smart search من الـ Dashboard)
+  const [prefillData, setPrefillData] = useState<{ name?: string; phone?: string } | null>(null)
+
+  //  لو URL فيه ?action=new فتح فورم الإضافة + prefill من الـ params
+  useEffect(() => {
+    const action = searchParams.get('action')
+    const pName = searchParams.get('prefillName')
+    const pPhone = searchParams.get('prefillPhone')
+    if (action === 'new') {
+      setShowForm(true)
+      if (pName || pPhone) {
+        setPrefillData({ name: pName || undefined, phone: pPhone || undefined })
+      }
+      // نظّف الـ URL بعد ما نقرأ القيم — عشان لو رفرش الصفحة ميـ re-open الفورم
+      router.replace('/members', { scroll: false })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // سجل الحضور
   const [showAttendanceModal, setShowAttendanceModal] = useState(false)
@@ -169,9 +188,11 @@ export default function MembersPage() {
   })
 
   const [search, setSearch] = useState('')
+  const [searchId, setSearchId] = useState('')
 
   // Debounced search values - تأخير البحث لتحسين الأداء
   const debouncedSearch = useDebounce(search, 300)
+  const debouncedSearchId = useDebounce(searchId, 300)
 
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'other' | 'analytics' | 'banned'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
@@ -215,21 +236,34 @@ export default function MembersPage() {
       freezeUntil: m.isFrozen && m.freezeRequests?.[0]?.endDate ? m.freezeRequests[0].endDate : undefined
     }))
 
+    //  بحث برقم العضوية — exact match (نتيجة واحدة بالرقم المكتوب)
+    // بنقارن بطريقتين: exact string + numeric — عشان نتجاوز فرق الأصفار البادئة
+    if (debouncedSearchId) {
+      const qid = debouncedSearchId.trim()
+      const qidNum = /^\d+$/.test(qid) ? parseInt(qid, 10) : NaN
+      filtered = filtered.filter((member) => {
+        if (member.memberNumber === null) return false
+        const mid = String(member.memberNumber)
+        if (mid === qid) return true
+        if (!Number.isNaN(qidNum)) {
+          const midNum = parseInt(mid, 10)
+          if (!Number.isNaN(midNum) && midNum === qidNum) return true
+        }
+        return false
+      })
+    }
+
+    //  بحث بالاسم أو رقم التلفون
     if (debouncedSearch) {
       const q = debouncedSearch.trim()
       const isAllDigits = /^\d+$/.test(q)
 
       filtered = filtered.filter((member) => {
         if (isAllDigits) {
-          // أرقام → بحث صارم على memberNumber (الأصفار في الأول مهمة، "0122" ≠ "122")
-          // + بحث بالـ substring على التليفون
-          const matchByNumber =
-            member.memberNumber !== null &&
-            String(member.memberNumber) === q
-          const matchByPhone = member.phone.includes(q)
-          return matchByNumber || matchByPhone
+          // أرقام → بحث بالـ substring على التليفون فقط
+          return member.phone.includes(q)
         }
-        // نص (اسم) → بحث بالاسم
+        // نص → بحث بالاسم
         return fuzzyMatch(member.name, q)
       })
     }
@@ -325,7 +359,7 @@ export default function MembersPage() {
     })
 
     return sorted
-  }, [debouncedSearch, filterStatus, filterPackage, filterSalesId, filterCoachId, membersData])
+  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, membersData])
 
   // جلب المحظورين عند التحميل (لو عنده صلاحية)
   useEffect(() => {
@@ -474,7 +508,7 @@ export default function MembersPage() {
   // إعادة تعيين الصفحة عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, filterStatus, filterPackage, filterSalesId, filterCoachId])
+  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
@@ -493,10 +527,12 @@ export default function MembersPage() {
 
   const clearSearch = () => {
     setSearch('')
+    setSearchId('')
   }
 
   const clearAllFilters = () => {
     setSearch('')
+    setSearchId('')
     setFilterStatus('all')
     setFilterPackage('all')
     setFilterSalesId('all')
@@ -774,6 +810,19 @@ export default function MembersPage() {
         {/* Mobile sticky toolbar: search + filters button */}
         <div className="sticky top-0 z-20 -mx-3 px-3 py-2 mt-3 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm">
           <div className="flex gap-2">
+            {/*  ID search - small */}
+            <div className="relative w-24 shrink-0">
+              <input
+                type="search"
+                inputMode="numeric"
+                value={searchId}
+                onChange={(e) => setSearchId(e.target.value)}
+                className="w-full min-h-[44px] px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm text-center font-mono"
+                placeholder="ID"
+                dir="ltr"
+              />
+            </div>
+            {/*  Name / Phone search */}
             <div className="relative flex-1">
               <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none`}>
                 <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
@@ -785,10 +834,10 @@ export default function MembersPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={`w-full min-h-[44px] ${direction === 'rtl' ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm`}
-                placeholder={locale === 'ar' ? 'ابحث...' : 'Search...'}
+                placeholder={locale === 'ar' ? 'اسم أو تليفون...' : 'Name or phone...'}
                 dir={direction}
               />
-              {search && (
+              {(search || searchId) && (
                 <button
                   onClick={clearSearch}
                   type="button"
@@ -885,8 +934,10 @@ export default function MembersPage() {
             onSuccess={() => {
               refetchMembers()
               setShowForm(false)
+              setPrefillData(null)
             }}
             customCreatedAt={customCreatedAt}
+            prefillData={prefillData || undefined}
           />
         </div>
       )}
@@ -918,34 +969,49 @@ export default function MembersPage() {
           )}
         </div>
 
-        {/* Search */}
-        <div className="relative mb-3">
-          <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none`}>
-            <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-            </svg>
-          </span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`w-full ${direction === 'rtl' ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm`}
-            placeholder={locale === 'ar' ? 'ابحث بالاسم أو الرقم أو التليفون...' : 'Search by name, number or phone...'}
-            dir={direction}
-          />
-          {search && (
-            <button
-              onClick={clearSearch}
-              type="button"
-              aria-label={t('members.clearSearch')}
-              title={t('members.clearSearch')}
-              className={`absolute inset-y-0 ${direction === 'rtl' ? 'left-3' : 'right-3'} flex items-center text-gray-400 hover:text-red-500 transition-colors duration-200`}
-            >
+        {/* Search — صغير لـ ID + كبير للاسم/التليفون */}
+        <div className="flex gap-2 mb-3">
+          {/*  ID search - smaller */}
+          <div className="relative w-32 shrink-0">
+            <input
+              type="search"
+              inputMode="numeric"
+              value={searchId}
+              onChange={(e) => setSearchId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm text-center font-mono"
+              placeholder={locale === 'ar' ? 'رقم العضو' : 'Member #'}
+              dir="ltr"
+            />
+          </div>
+          {/*  Name / Phone search - larger */}
+          <div className="relative flex-1">
+            <span className={`absolute inset-y-0 ${direction === 'rtl' ? 'right-3' : 'left-3'} flex items-center text-gray-400 pointer-events-none`}>
               <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
               </svg>
-            </button>
-          )}
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={`w-full ${direction === 'rtl' ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm`}
+              placeholder={locale === 'ar' ? 'ابحث بالاسم أو رقم التليفون...' : 'Search by name or phone...'}
+              dir={direction}
+            />
+            {(search || searchId) && (
+              <button
+                onClick={clearSearch}
+                type="button"
+                aria-label={t('members.clearSearch')}
+                title={t('members.clearSearch')}
+                className={`absolute inset-y-0 ${direction === 'rtl' ? 'left-3' : 'right-3'} flex items-center text-gray-400 hover:text-red-500 transition-colors duration-200`}
+              >
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Quick filters — pill chips بتلف على أكتر من سطر لو محتاجة */}
