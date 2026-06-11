@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fitboost Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f1f5f9;
+      overflow: hidden;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+    .container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .logo {
+      width: 64px; height: 64px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 800;
+      color: #fff;
+      box-shadow: 0 10px 30px -10px rgba(249, 115, 22, 0.5);
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: 18px; font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 12px; color: #94a3b8;
+      margin-bottom: 24px;
+    }
+    .status {
+      font-size: 14px; font-weight: 600;
+      margin-bottom: 12px;
+      min-height: 22px;
+      color: #f1f5f9;
+    }
+    .progress-wrap {
+      width: 100%; max-width: 340px;
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #f97316, #fb923c);
+      transition: width 250ms ease;
+    }
+    .progress-text {
+      font-size: 11px;
+      color: #94a3b8;
+      min-height: 16px;
+    }
+    .divider {
+      width: 100%; max-width: 340px;
+      display: flex; align-items: center; gap: 12px;
+      margin: 22px 0 12px;
+      color: #475569; font-size: 11px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+    .manual {
+      width: 100%; max-width: 340px;
+      display: flex; flex-direction: column; gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: #f1f5f9;
+      font-size: 13px;
+      outline: none;
+      text-align: center;
+      direction: ltr;
+      font-family: 'Consolas', monospace;
+    }
+    input[type="text"]:focus {
+      border-color: #f97316;
+    }
+    button {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 8px;
+      background: #f97316;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 200ms;
+      font-family: inherit;
+    }
+    button:hover { background: #ea580c; }
+    button:disabled {
+      background: #475569; cursor: not-allowed;
+    }
+    .secondary {
+      background: transparent;
+      color: #94a3b8;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .secondary:hover {
+      background: rgba(255,255,255,0.04);
+      color: #f1f5f9;
+    }
+    .actions {
+      display: flex; gap: 8px;
+      width: 100%; max-width: 340px;
+      margin-top: 14px;
+      -webkit-app-region: no-drag;
+    }
+    .actions button { flex: 1; padding: 8px; font-size: 12px; }
+    .error {
+      color: #fca5a5;
+      font-size: 12px;
+      margin-top: 8px;
+      min-height: 16px;
+    }
+    .version {
+      position: absolute;
+      bottom: 12px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 10px;
+      color: #475569;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">F</div>
+    <h1>Fitboost Assistant</h1>
+    <div class="subtitle">جاري الاتصال بسيستم الجيم</div>
+
+    <div class="status" id="status">جاري البحث في الشبكة…</div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-text" id="progressText">—</div>
+
+    <div class="divider">أو اتصال يدوي</div>
+
+    <div class="manual">
+      <input id="ipInput" type="text" placeholder="192.168.1.10" maxlength="64" />
+      <button id="connectBtn" disabled>اتصال يدوي</button>
+      <div class="error" id="error"></div>
+    </div>
+
+    <div class="actions">
+      <button class="secondary" id="retryBtn">إعادة البحث</button>
+      <button class="secondary" id="forgetBtn">نسيان الـ IP المحفوظ</button>
+      <button class="secondary" id="quitBtn">خروج</button>
+    </div>
+  </div>
+
+  <div class="version" id="version">v?</div>
+
+  <script src="splash.js"></script>
+</body>
+</html>

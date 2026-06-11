@@ -83,7 +83,7 @@ export function middleware(request: NextRequest) {
   }
 
   // ✅ الصفحات العامة (Public Routes) - لا تحتاج authentication
-  const publicRoutes = ['/check', '/api/check']
+  const publicRoutes = ['/check', '/api/check', '/api/health']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   // ✅ إضافة headers لمنع الcaching على API routes

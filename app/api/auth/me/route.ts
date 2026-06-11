@@ -19,9 +19,16 @@ export async function GET(request: Request) {
         { status: 401 }
       )
 
+      // Match the Secure flag used at login so the browser actually clears the cookie.
+      // On HTTP (LAN access), Secure must be false; on HTTPS it must be true.
+      const isHttps = (() => {
+        const xfProto = request.headers.get('x-forwarded-proto')
+        if (xfProto) return xfProto.toLowerCase() === 'https'
+        try { return new URL(request.url).protocol === 'https:' } catch { return process.env.NODE_ENV === 'production' }
+      })()
       response.cookies.set('auth-token', '', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isHttps,
         sameSite: 'strict',
         maxAge: 0,
         path: '/'
