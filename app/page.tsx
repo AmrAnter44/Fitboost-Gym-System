@@ -9,6 +9,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import TrendIndicator from '@/components/TrendIndicator'
 import { DashboardSkeleton } from '@/components/LoadingSkeleton'
+import DashboardSmartSearch from '@/components/DashboardSmartSearch'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -409,6 +410,9 @@ export default function HomePage() {
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('dashboard.welcomeMessage')}</p>
         </div>
+
+        {/*  Smart Search — رقم/اسم/تليفون عبر الأعضاء، الزوار، والاستخدام اليومي */}
+        <DashboardSmartSearch />
 
         {/* Quick Actions */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 mb-6">

@@ -1533,6 +1533,38 @@ export default function ClosingPage() {
           </div>
               )}
 
+          {/*  Daily view: Total Income + Net cards */}
+          {viewMode === 'daily' && dailyData.length > 0 && (() => {
+            const dayTotalIncome = dailyData.reduce(
+              (s, d) => s + d.floor + d.pt + (d.nutrition || 0) + (d.physiotherapy || 0),
+              0
+            )
+            const dayExpenses = dailyData.reduce((s, d) => s + (d.expenses || 0), 0)
+            const dayNet = dayTotalIncome - dayExpenses
+            return (
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-900/10 rounded-xl shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-700/50 p-4 sm:p-5">
+                  <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                    {t('closing.stats.totalIncome') !== 'closing.stats.totalIncome' ? t('closing.stats.totalIncome') : (direction === 'rtl' ? 'إجمالي الدخل' : 'Total Income')}
+                  </div>
+                  <div className="mt-1 text-xl sm:text-2xl md:text-3xl font-bold text-emerald-700 dark:text-emerald-300">
+                    {dayTotalIncome.toFixed(0)}
+                    <span className="text-xs sm:text-sm font-medium text-emerald-600/80 dark:text-emerald-400/80 ms-1">{t('closing.currency')}</span>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-primary-50 to-primary-100/50 dark:from-primary-900/30 dark:to-primary-900/10 rounded-xl shadow-sm ring-1 ring-primary-200 dark:ring-primary-700/50 p-4 sm:p-5">
+                  <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary-700 dark:text-primary-300">
+                    {t('closing.stats.netProfit')}
+                  </div>
+                  <div className={`mt-1 text-xl sm:text-2xl md:text-3xl font-bold ${dayNet >= 0 ? 'text-primary-700 dark:text-primary-300' : 'text-red-600 dark:text-red-400'}`}>
+                    {dayNet.toFixed(0)}
+                    <span className={`text-xs sm:text-sm font-medium ms-1 ${dayNet >= 0 ? 'text-primary-600/80 dark:text-primary-400/80' : 'text-red-500/80 dark:text-red-400/80'}`}>{t('closing.currency')}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Payment Methods Summary - hidden in daily view */}
           {viewMode !== 'daily' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 no-print">
@@ -1627,7 +1659,7 @@ export default function ClosingPage() {
                             day: 'numeric'
                           })}</span>
                         </h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-3 sm:mt-4">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-3 sm:mt-4">
                           <div className="bg-white/30 dark:bg-white/10 p-2.5 sm:p-3 rounded-lg">
                             <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.floor')}</p>
                             <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{day.floor > 0 ? day.floor.toFixed(0) : '0'} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>
@@ -1639,10 +1671,6 @@ export default function ClosingPage() {
                           <div className="bg-white/30 dark:bg-white/10 p-2.5 sm:p-3 rounded-lg">
                             <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.expenses')}</p>
                             <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{day.expenses > 0 ? day.expenses.toFixed(0) : '0'} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>
-                          </div>
-                          <div className="bg-white/30 dark:bg-white/10 p-2.5 sm:p-3 rounded-lg">
-                            <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.total')}</p>
-                            <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{((day.floor + day.pt + day.nutrition + day.physiotherapy) - day.expenses).toFixed(0)} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>
                           </div>
                         </div>
                       </div>

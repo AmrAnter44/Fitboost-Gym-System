@@ -1,3 +1,4 @@
 {
-  "defaultCommissionMethod": "revenue"
+  "defaultCommissionMethod": "revenue",
+  "useSeparateCoachTarget": true
 }

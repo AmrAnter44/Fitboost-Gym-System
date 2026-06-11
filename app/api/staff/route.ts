@@ -130,7 +130,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateStaff')
     
     const body = await request.json()
-    const { staffCode, name, phone, position, salary, notes, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime } = body
+    const { staffCode, name, phone, position, salary, notes, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime, coachTarget } = body
 
     // ✅ التحقق من وجود staffCode
     if (!staffCode) {
@@ -161,6 +161,7 @@ export async function POST(request: Request) {
         monthlyVacationDays: monthlyVacationDays !== undefined && monthlyVacationDays !== null && monthlyVacationDays !== '' ? parseInt(monthlyVacationDays) : null,
         shiftStartTime: shiftStartTime || null,
         shiftEndTime: shiftEndTime || null,
+        coachTarget: coachTarget !== undefined && coachTarget !== null && coachTarget !== '' ? parseFloat(coachTarget) : 0,
       },
     })
 
@@ -201,7 +202,7 @@ export async function PUT(request: Request) {
     const hasEditStaff = user.role === 'OWNER' || user.role === 'ADMIN' || !!user.permissions?.canEditStaff
 
     const body = await request.json()
-    const { id, staffCode, name, phone, position, salary, salesTarget, salesCommissionType, salesCommissionRate, salesCommissionTiers, notes, isActive, customPosition, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime, joinedDate, terminatedAt, salaryChangeReason } = body
+    const { id, staffCode, name, phone, position, salary, salesTarget, salesCommissionType, salesCommissionRate, salesCommissionTiers, coachTarget, notes, isActive, customPosition, workingHours, monthlyVacationDays, shiftStartTime, shiftEndTime, joinedDate, terminatedAt, salaryChangeReason } = body
 
     // ✅ تحضير البيانات للتحديث (فقط الحقول المسموحة)
     const updateData: any = {}
@@ -249,6 +250,11 @@ export async function PUT(request: Request) {
     if (salesCommissionType !== undefined) updateData.salesCommissionType = salesCommissionType || null
     if (salesCommissionRate !== undefined) updateData.salesCommissionRate = salesCommissionRate !== null && salesCommissionRate !== '' ? parseFloat(salesCommissionRate) : null
     if (salesCommissionTiers !== undefined) updateData.salesCommissionTiers = salesCommissionTiers || null
+
+    //  تارجت الكوتش — مسموح لـ canEditStaff (نفس صلاحيات السيلز)
+    if (coachTarget !== undefined) {
+      updateData.coachTarget = coachTarget !== null && coachTarget !== '' ? parseFloat(coachTarget) : 0
+    }
 
     // ✅ إذا كان في تحديث للـ staffCode — مسموح فقط للـ OWNER/ADMIN
     if (staffCode !== undefined) {

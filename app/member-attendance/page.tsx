@@ -109,7 +109,7 @@ export default function MemberAttendancePage() {
               {loading ? (
                 <>
                   <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                   <span>{t('memberAttendance.loading')}</span>
                 </>

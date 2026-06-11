@@ -181,10 +181,33 @@ export default function StaffPage() {
     shiftEndTime: '',
     // Per-day times when shift is variable: { Sunday: {start, end}, Monday: {...}, ... }
     dailyShiftTimes: {} as Record<string, { start: string; end: string }>,
+    coachTarget: 0, //  التارجت الشهري للكوتش (بالجنيه)
   })
 
   // توليد رقم عشوائي من 9 أرقام للموظف
   const [randomStaffCode, setRandomStaffCode] = useState('')
+
+  //  إعدادات الكومشن — لتحديد إظهار التارجت (يظهر بس لو revenue + useSeparateCoachTarget مفعّل)
+  const [commissionConfig, setCommissionConfig] = useState<{ method: 'revenue' | 'sessions'; useSeparateCoachTarget: boolean }>({
+    method: 'revenue',
+    useSeparateCoachTarget: false
+  })
+  useEffect(() => {
+    fetch('/api/settings/commission')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setCommissionConfig({
+            method: data.defaultCommissionMethod || 'revenue',
+            useSeparateCoachTarget: !!data.useSeparateCoachTarget,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  // المؤشر النهائي لإظهار قسم تارجت الكوتش
+  const showCoachTargetSection = commissionConfig.useSeparateCoachTarget && commissionConfig.method === 'revenue'
 
   useEffect(() => {
     // توليد رقم عشوائي فقط عند فتح النموذج لإضافة موظف جديد
@@ -374,6 +397,7 @@ const handleScan = async (staffCode: string) => {
       shiftStartTime: '',
       shiftEndTime: '',
       dailyShiftTimes: {},
+      coachTarget: 0,
     })
     setShowOtherPosition(false)
     setEditingStaff(null)
@@ -424,6 +448,7 @@ const handleScan = async (staffCode: string) => {
       shiftStartTime,
       shiftEndTime,
       dailyShiftTimes,
+      coachTarget: (staffMember as any).coachTarget || 0,
     })
     setShowOtherPosition(false)
     setEditingStaff(staffMember)
@@ -1036,6 +1061,29 @@ const handleScan = async (staffCode: string) => {
                 />
               </div>
               )}
+
+              {/*  التارجت الشهري للكوتش — يظهر بس لو الـ position فيها "مدرب" + الميزة مفعّلة + الطريقة revenue */}
+              {showCoachTargetSection && (formData.position?.split(',') || []).map(p => p.trim()).includes('مدرب') && (
+                <div>
+                  <label className="block text-sm font-bold mb-2 text-purple-700 dark:text-purple-300 inline-flex items-center gap-1.5">
+                    🎯 التارجت الشهري للكوتش (ج.م)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={formData.coachTarget}
+                    onChange={(e) =>
+                      setFormData({ ...formData, coachTarget: parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border-2 border-purple-200 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-900/10 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors duration-200 font-bold"
+                    placeholder="مثلاً: 15000"
+                  />
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                    💡 إجمالي الإيراد المطلوب شهرياً من الـ subscriptions اللي بيعها المدرب
+                  </p>
+                </div>
+              )}
             </div>
 
               {/* Positions - multi-select */}
@@ -1284,7 +1332,7 @@ const handleScan = async (staffCode: string) => {
                   className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold px-4 py-2.5 rounded-lg disabled:opacity-60 transition-colors"
                 >
                   <svg {...stroke} className={`w-4 h-4 ${syncingSchedule ? 'animate-spin' : ''}`} aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                   <span>{syncingSchedule ? (locale === 'ar' ? 'جاري التحديث…' : 'Updating…') : (locale === 'ar' ? 'تحديث جدول العمل في الكاليندر' : 'Update Work Schedule in Calendar')}</span>
                 </button>
@@ -1312,7 +1360,7 @@ const handleScan = async (staffCode: string) => {
               >
                 {submitting ? (
                   <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.181 14.652a8.25 8.25 0 0 0 13.803 3.7l3.181-3.182m-9.348-4.992H3.825V4.356m0 0L7.006 7.538m12.992 8.924v-4.992" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 ) : (
                   <svg {...stroke} className="w-4 h-4" aria-hidden="true">
