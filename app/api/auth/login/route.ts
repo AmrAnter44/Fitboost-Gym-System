@@ -25,8 +25,25 @@ function getJwtSecret(): string {
   return secret
 }
 
-/** Cookies must be marked secure in production regardless of NEXT_PUBLIC_APP_URL value */
-function cookieSecure(): boolean {
+/**
+ * Cookies should be marked Secure only when actually served over HTTPS.
+ * On a gym LAN where employees connect via plain HTTP to the host PC's
+ * Fitboost server, Secure cookies would be silently dropped by the browser,
+ * forcing repeated login redirects and "access denied" loops.
+ *
+ * Detects the request's protocol from:
+ *   1. x-forwarded-proto header (proxies / reverse-proxies)
+ *   2. request.url scheme (direct connection)
+ *   3. Falls back to NODE_ENV (true in production HTTPS-by-default scenarios)
+ */
+function cookieSecure(request?: Request): boolean {
+  if (request) {
+    const xfProto = request.headers.get('x-forwarded-proto')
+    if (xfProto) return xfProto.toLowerCase() === 'https'
+    try {
+      return new URL(request.url).protocol === 'https:'
+    } catch { /* fall through */ }
+  }
   return process.env.NODE_ENV === 'production'
 }
 
@@ -117,7 +134,7 @@ export async function POST(request: Request) {
 
       response.cookies.set('auth-token', token, {
         httpOnly: true,
-        secure: cookieSecure(),
+        secure: cookieSecure(request),
         sameSite: 'strict',
         path: '/',
         maxAge: 60 * 60 * 24 * 7 // 7 days
@@ -281,7 +298,7 @@ export async function POST(request: Request) {
     // حفظ التوكن في الكوكيز
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: cookieSecure(), // ✅ secure في production دائماً
+      secure: cookieSecure(request), // ✅ secure في production دائماً
       sameSite: 'strict', // ✅ حماية أقوى من CSRF attacks
       path: '/',
       maxAge: 60 * 60 * 24 * 7 // 7 days

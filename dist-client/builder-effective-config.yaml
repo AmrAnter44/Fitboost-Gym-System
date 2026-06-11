@@ -1,0 +1,42 @@
+directories:
+  output: dist-client
+  buildResources: build
+appId: com.fitboost.assistant
+productName: Fitboost Assistant
+files:
+  - filter:
+      - electron/client/**/*
+      - public/icon.ico
+      - public/icon-512x512.png
+      - '!node_modules'
+      - package.json
+extraMetadata:
+  main: electron/client/main.js
+asar: true
+compression: maximum
+nodeGypRebuild: false
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: public/icon.ico
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Fitboost Assistant
+  deleteAppDataOnUninstall: false
+mac:
+  target: dmg
+  icon: public/icon-512x512.png
+  category: public.app-category.business
+  identity: null
+linux:
+  target:
+    - AppImage
+  icon: public/icon-512x512.png
+  category: Office
+electronVersion: 39.2.7

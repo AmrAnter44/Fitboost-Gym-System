@@ -1,0 +1,8 @@
+version: 6.8.7
+files:
+  - url: Fitboost-Assistant-Setup-6.8.7.exe
+    sha512: kMt461giBP4ct+uy4SM1dFu1K97y97wJysInic0D+5E8WOYvj72L6T9WSRoj57lybl4ErhrmR6QBfz8Qr/gV3A==
+    size: 95898611
+path: Fitboost-Assistant-Setup-6.8.7.exe
+sha512: kMt461giBP4ct+uy4SM1dFu1K97y97wJysInic0D+5E8WOYvj72L6T9WSRoj57lybl4ErhrmR6QBfz8Qr/gV3A==
+releaseDate: '2026-06-10T23:51:47.164Z'

@@ -36,6 +36,8 @@
     "prebuild:electron": "npm run build",
     "build:electron": "npm run prebuild:electron && node preelectron-build.js && electron-builder --publish never",
     "build:electron:win": "npm run prebuild:electron && node preelectron-build.js && electron-builder --win --x64 --publish never",
+    "build:assistant": "electron-builder --config electron-builder.client.json --publish never",
+    "build:assistant:win": "electron-builder --config electron-builder.client.json --win --x64 --publish never",
     "build:production": "node scripts/build-production.js",
     "electron:build": "npm run build:electron",
     "electron:build:win": "npm run build:electron:win",
