@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { Suspense, useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import nextDynamic from 'next/dynamic'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -91,7 +91,7 @@ interface Member {
   birthDate?: string
 }
 
-export default function FollowUpsPage() {
+function FollowUpsPageContent() {
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
   // 💼 صلاحية مسؤول السيلز — مخصصة لإدارة كل حاجة في تاب إدارة السيلز
   const canManageSales = hasPermission('canManageSales')
@@ -4309,5 +4309,13 @@ export default function FollowUpsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function FollowUpsPage() {
+  return (
+    <Suspense fallback={null}>
+      <FollowUpsPageContent />
+    </Suspense>
   )
 }

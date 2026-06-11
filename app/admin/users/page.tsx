@@ -65,6 +65,10 @@ export default function AdminUsersPage() {
   const [permissions, setPermissions] = useState<Partial<Permissions>>({})
   const [editingUserIsSales, setEditingUserIsSales] = useState(false)
   const [editingStaffId, setEditingStaffId] = useState<string>('')
+  // Search query للـ permissions في الـ edit modal
+  const [permSearch, setPermSearch] = useState('')
+  // Search query للـ permissions في الـ add modal
+  const [newPermSearch, setNewPermSearch] = useState('')
   
   // State للـ Modal التأكيد
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -115,6 +119,63 @@ export default function AdminUsersPage() {
     } catch (error) {
       console.error('Error fetching staff:', error)
     }
+  }
+
+  // Filter permissions by search query. Empty query → all groups.
+  // Returns groups with only the matching permissions (groups with 0 matches are skipped).
+  const filterPermissionGroups = (query: string) => {
+    const q = query.trim().toLowerCase()
+    if (!q) return Object.entries(PERMISSION_GROUPS).map(([k, g]) => [k, g, g.permissions] as const)
+    return Object.entries(PERMISSION_GROUPS)
+      .map(([k, g]) => {
+        const matching = g.permissions.filter(p => {
+          const label = (PERMISSION_LABELS[p] || '').toLowerCase()
+          return label.includes(q) || p.toLowerCase().includes(q)
+        })
+        return [k, g, matching] as const
+      })
+      .filter(([, , matching]) => matching.length > 0)
+  }
+
+  // Selection count per group (e.g. "3/8 محدد")
+  const groupSelectionCount = (
+    perms: Partial<Permissions>,
+    groupPermissions: Array<keyof Permissions>
+  ) => {
+    let n = 0
+    for (const p of groupPermissions) if (perms[p]) n++
+    return n
+  }
+
+  // View-gate filter: within a group, if there's a "canView*" permission and it's
+  // not granted, hide the Create/Edit/Delete ones — they're useless without view.
+  // The "view" permission stays visible as the gateway.
+  const applyViewGate = (
+    perms: Partial<Permissions>,
+    groupPermissions: Array<keyof Permissions>
+  ): Array<keyof Permissions> => {
+    const viewPerm = groupPermissions.find(p => String(p).startsWith('canView'))
+    if (!viewPerm) return groupPermissions // no gate → show all
+    if (perms[viewPerm]) return groupPermissions // view granted → show all
+    return [viewPerm] // view denied → only show the gate itself
+  }
+
+  // When user toggles OFF a "canView*" permission, automatically drop the
+  // related Create/Edit/Delete bits so they don't linger silently in DB.
+  const toggleWithViewCascade = (
+    current: Partial<Permissions>,
+    permission: keyof Permissions,
+    nextValue: boolean,
+    groupPermissions: Array<keyof Permissions>
+  ): Partial<Permissions> => {
+    const updated = { ...current, [permission]: nextValue }
+    if (!nextValue && String(permission).startsWith('canView')) {
+      // Strip every other permission in the same group
+      for (const p of groupPermissions) {
+        if (p !== permission) delete updated[p]
+      }
+    }
+    return updated
   }
 
   const handleAddUser = async () => {
@@ -175,6 +236,7 @@ export default function AdminUsersPage() {
     setPermissions(user.permissions || {})
     setEditingUserIsSales(user.isSales)
     setEditingStaffId(user.staff?.id || '')
+    setPermSearch('')
     setShowPermissionsModal(true)
   }
 
@@ -801,39 +863,99 @@ export default function AdminUsersPage() {
                   <span>{t('adminUsers.addModal.permissions')}</span>
                 </h3>
 
-                {(newUserData.role === 'ADMIN' || newUserData.role === 'OWNER') && (
-                  <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-2 rounded-lg mb-2">
-                    <p className="text-xs text-amber-800 dark:text-amber-300">
-                      <strong>{newUserData.role === 'OWNER' ? t('adminUsers.roles.owner') : t('adminUsers.roles.admin')}:</strong> {t('adminUsers.addModal.adminFullAccess')}
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-2 max-h-52 overflow-y-auto">
-                  {Object.entries(PERMISSION_GROUPS).map(([groupKey, group]) => (
-                    <div key={groupKey} className="rounded-lg p-2 ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40">
-                      <h4 className="font-bold mb-1 text-xs text-gray-700 dark:text-gray-300">
-                        {group.label}
-                      </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
-                        {group.permissions.map((permission) => (
-                          <label key={permission} className="flex items-center gap-1 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-1 rounded transition-colors duration-200">
-                            <input
-                              type="checkbox"
-                              checked={newUserPermissions[permission] || false}
-                              onChange={(e) => setNewUserPermissions({ ...newUserPermissions, [permission]: e.target.checked })}
-                              disabled={newUserData.role === 'ADMIN' || newUserData.role === 'OWNER'}
-                              className="w-3 h-3 rounded accent-primary-500"
-                            />
-                            <span className="text-xs text-gray-700 dark:text-gray-300">
-                              {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
+                {/* Admin/Owner: show only a notice — صلاحياتهم معروفة، الـ checkboxes هتشوش */}
+                {(newUserData.role === 'ADMIN' || newUserData.role === 'OWNER') ? (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-3 rounded-lg flex items-start gap-2">
+                    <svg {...stroke} className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                        {newUserData.role === 'OWNER' ? t('adminUsers.roles.owner') : t('adminUsers.roles.admin')}
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                        {t('adminUsers.addModal.adminFullAccess')}
+                      </p>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Search */}
+                    <div className="relative mb-2">
+                      <svg {...stroke} className="w-4 h-4 absolute top-1/2 -translate-y-1/2 start-2.5 text-gray-400 pointer-events-none">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                      </svg>
+                      <input
+                        type="text"
+                        value={newPermSearch}
+                        onChange={e => setNewPermSearch(e.target.value)}
+                        placeholder={direction === 'rtl' ? 'بحث في الصلاحيات...' : 'Search permissions...'}
+                        className="w-full ps-9 pe-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                      {newPermSearch && (
+                        <button onClick={() => setNewPermSearch('')} className="absolute top-1/2 -translate-y-1/2 end-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                          <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 max-h-52 overflow-y-auto">
+                      {filterPermissionGroups(newPermSearch).map(([groupKey, group, matchingPerms]) => {
+                        // Apply view-gate: hide actions when view isn't granted yet
+                        const visiblePerms = applyViewGate(newUserPermissions, matchingPerms as Array<keyof Permissions>)
+                        const selectedCount = groupSelectionCount(newUserPermissions, matchingPerms as Array<keyof Permissions>)
+                        const allSelected = selectedCount === matchingPerms.length
+                        const isGated = visiblePerms.length < matchingPerms.length
+                        return (
+                          <div key={groupKey} className="rounded-lg p-2 ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="font-bold text-xs text-gray-700 dark:text-gray-300">
+                                {group.label} <span className="text-gray-500">({selectedCount}/{matchingPerms.length})</span>
+                                {isGated && (
+                                  <span className="ms-1 text-[9px] text-gray-400">{direction === 'rtl' ? '· فعّل العرض لإظهار الباقي' : '· enable view to unlock'}</span>
+                                )}
+                              </h4>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = { ...newUserPermissions }
+                                  // Bulk uses the full matching list (not gated)
+                                  for (const p of matchingPerms) updated[p as keyof Permissions] = !allSelected
+                                  setNewUserPermissions(updated)
+                                }}
+                                className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline"
+                              >
+                                {allSelected ? (direction === 'rtl' ? 'إلغاء الكل' : 'Clear all') : (direction === 'rtl' ? 'تحديد الكل' : 'Select all')}
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+                              {visiblePerms.map((permission) => (
+                                <label key={permission} className="flex items-center gap-1 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-1 rounded transition-colors duration-200">
+                                  <input
+                                    type="checkbox"
+                                    checked={newUserPermissions[permission] || false}
+                                    onChange={(e) => setNewUserPermissions(
+                                      toggleWithViewCascade(newUserPermissions, permission, e.target.checked, matchingPerms as Array<keyof Permissions>)
+                                    )}
+                                    className="w-3 h-3 rounded accent-primary-500"
+                                  />
+                                  <span className="text-xs text-gray-700 dark:text-gray-300">
+                                    {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {filterPermissionGroups(newPermSearch).length === 0 && (
+                        <p className="text-xs text-center text-gray-500 dark:text-gray-400 py-4">
+                          {direction === 'rtl' ? 'مفيش صلاحيات مطابقة' : 'No matching permissions'}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="lg:col-span-4 flex gap-2">
@@ -898,10 +1020,21 @@ export default function AdminUsersPage() {
             </div>
 
             {(editingUser.role === 'ADMIN' || editingUser.role === 'OWNER') && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-4 rounded-lg mb-6">
-                <p className="text-sm text-amber-800 dark:text-amber-300">
-                  <strong>{editingUser.role === 'OWNER' ? t('adminUsers.roles.owner') : t('adminUsers.roles.admin')}:</strong> {t('adminUsers.permissionsModal.adminFullAccess')}
-                </p>
+              <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900/50 p-4 rounded-lg mb-6 flex items-start gap-3">
+                <svg {...stroke} className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                </svg>
+                <div>
+                  <p className="font-bold text-amber-800 dark:text-amber-300">
+                    {editingUser.role === 'OWNER' ? t('adminUsers.roles.owner') : t('adminUsers.roles.admin')}
+                  </p>
+                  <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                    {t('adminUsers.permissionsModal.adminFullAccess')}
+                  </p>
+                  <p className="text-xs text-amber-700/80 dark:text-amber-500 mt-2 italic">
+                    {direction === 'rtl' ? 'الصلاحيات للأدوار دي معروفة بشكل افتراضي — مفيش داعي لتحديدها.' : 'Permissions for this role are pre-defined — no need to set them.'}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -960,31 +1093,119 @@ export default function AdminUsersPage() {
               </div>
             )}
 
-            <div className="space-y-4">
-              {Object.entries(PERMISSION_GROUPS).map(([groupKey, group]) => (
-                <div key={groupKey} className="rounded-lg p-4 ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40">
-                  <h3 className="font-bold mb-3 text-sm text-gray-700 dark:text-gray-300">
-                    {group.label}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {group.permissions.map((permission) => (
-                      <label key={permission} className="flex items-center gap-2 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-2 rounded-lg transition-colors duration-200">
-                        <input
-                          type="checkbox"
-                          checked={permissions[permission] || false}
-                          onChange={(e) => setPermissions({ ...permissions, [permission]: e.target.checked })}
-                          disabled={editingUser.role === 'ADMIN' || editingUser.role === 'OWNER'}
-                          className="w-4 h-4 rounded accent-primary-500"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
-                        </span>
-                      </label>
-                    ))}
+            {/* Hide the permissions UI entirely for OWNER/ADMIN — they always have full access */}
+            {editingUser.role !== 'ADMIN' && editingUser.role !== 'OWNER' && (
+              <>
+                {/* Search + bulk actions header */}
+                <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <svg {...stroke} className="w-4 h-4 absolute top-1/2 -translate-y-1/2 start-3 text-gray-400 pointer-events-none">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                    <input
+                      type="text"
+                      value={permSearch}
+                      onChange={e => setPermSearch(e.target.value)}
+                      placeholder={direction === 'rtl' ? 'بحث في الصلاحيات...' : 'Search permissions...'}
+                      className="w-full ps-10 pe-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    {permSearch && (
+                      <button onClick={() => setPermSearch('')} className="absolute top-1/2 -translate-y-1/2 end-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                        <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const all: Partial<Permissions> = {}
+                        for (const [, group] of Object.entries(PERMISSION_GROUPS)) for (const p of group.permissions) all[p] = true
+                        setPermissions(all)
+                      }}
+                      className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300"
+                    >
+                      {direction === 'rtl' ? 'تحديد الكل' : 'Select all'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPermissions({})}
+                      className="px-3 py-2 text-xs font-bold rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
+                    >
+                      {direction === 'rtl' ? 'إلغاء الكل' : 'Clear all'}
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Summary chip — total selected */}
+                <div className="mb-3 text-xs text-gray-600 dark:text-gray-400">
+                  {direction === 'rtl' ? 'محدد:' : 'Selected:'}{' '}
+                  <span className="font-bold text-primary-600 dark:text-primary-400">
+                    {Object.values(permissions).filter(Boolean).length}
+                  </span>
+                  {' / '}
+                  {Object.entries(PERMISSION_GROUPS).reduce((sum, [, g]) => sum + g.permissions.length, 0)}
+                </div>
+
+                <div className="space-y-4">
+                  {filterPermissionGroups(permSearch).map(([groupKey, group, matchingPerms]) => {
+                    const visiblePerms = applyViewGate(permissions, matchingPerms as Array<keyof Permissions>)
+                    const selectedCount = groupSelectionCount(permissions, matchingPerms as Array<keyof Permissions>)
+                    const allSelected = selectedCount === matchingPerms.length
+                    const isGated = visiblePerms.length < matchingPerms.length
+                    return (
+                      <div key={groupKey} className="rounded-lg p-4 ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50 dark:bg-gray-900/40">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300">
+                            {group.label} <span className="text-gray-500">({selectedCount}/{matchingPerms.length})</span>
+                            {isGated && (
+                              <span className="ms-2 text-xs text-gray-400 font-normal">
+                                {direction === 'rtl' ? '· فعّل العرض لإظهار باقي الصلاحيات' : '· enable view to unlock the rest'}
+                              </span>
+                            )}
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = { ...permissions }
+                              for (const p of matchingPerms) updated[p as keyof Permissions] = !allSelected
+                              setPermissions(updated)
+                            }}
+                            className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
+                          >
+                            {allSelected
+                              ? (direction === 'rtl' ? 'إلغاء المجموعة' : 'Clear group')
+                              : (direction === 'rtl' ? 'تحديد المجموعة' : 'Select group')}
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {visiblePerms.map((permission) => (
+                            <label key={permission} className="flex items-center gap-2 cursor-pointer hover:bg-white dark:hover:bg-gray-700/50 p-2 rounded-lg transition-colors duration-200">
+                              <input
+                                type="checkbox"
+                                checked={permissions[permission] || false}
+                                onChange={(e) => setPermissions(
+                                  toggleWithViewCascade(permissions, permission, e.target.checked, matchingPerms as Array<keyof Permissions>)
+                                )}
+                                className="w-4 h-4 rounded accent-primary-500"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">
+                                {PERMISSION_ICONS[permission]} {PERMISSION_LABELS[permission]}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {filterPermissionGroups(permSearch).length === 0 && (
+                    <p className="text-sm text-center text-gray-500 dark:text-gray-400 py-8">
+                      {direction === 'rtl' ? 'مفيش صلاحيات مطابقة' : 'No matching permissions'}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="flex gap-3 mt-6">
               <button

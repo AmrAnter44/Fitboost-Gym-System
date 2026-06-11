@@ -114,9 +114,27 @@ model PT {
   freezeUntil       DateTime?
   sessions          PTSession[]
   receipts          Receipt[]
+  contactLogs       PTContactLog[]
 
   @@index([coachUserId])
   @@index([qrCode])
+}
+
+// 📞 سجل المتابعات للحصص المخصصة (متابعات تجديد اشتراكات PT المنتهية أو القريبة من الانتهاء)
+model PTContactLog {
+  id           String    @id @default(cuid())
+  ptNumber     Int
+  activityType String    // 'call' | 'whatsapp' | 'visit' | 'note'
+  result       String?   // 'no-answer' | 'busy' | 'agreed-renew' | 'rejected' | 'callback-later' | 'renewed'
+  notes        String?
+  nextContactAt DateTime?
+  createdBy    String?
+  createdAt    DateTime  @default(now())
+
+  pt           PT        @relation(fields: [ptNumber], references: [ptNumber], onDelete: Cascade)
+  staff        Staff?    @relation("PTContactLogs", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([ptNumber, createdAt])
 }
 
 model PTSession {
@@ -335,6 +353,7 @@ model Staff {
   shiftAssignments    ShiftAssignment[]
   payslips            Payslip[]
   salaryHistory       SalaryChangeLog[]
+  ptContactLogs       PTContactLog[]   @relation("PTContactLogs")
 
   @@index([staffCode])
   @@index([isActive])

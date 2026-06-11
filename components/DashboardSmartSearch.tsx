@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useDebounce } from '../hooks/useDebounce'
+import { usePermissions } from '../hooks/usePermissions'
 
 type MemberHit = {
   kind: 'member'
@@ -15,6 +16,7 @@ type MemberHit = {
   expiryDate: string | null
   isActive: boolean
   startDate: string | null
+  salesStaffId: string | null
 }
 
 type VisitorHit = {
@@ -24,6 +26,7 @@ type VisitorHit = {
   phone: string
   source: string | null
   status: string | null
+  assignedTo: string | null
 }
 
 type DayUseHit = {
@@ -33,6 +36,7 @@ type DayUseHit = {
   phone: string
   createdAt: string | null
   type: string | null
+  salesStaffId: string | null
 }
 
 type Hit = MemberHit | VisitorHit | DayUseHit
@@ -62,6 +66,23 @@ export default function DashboardSmartSearch() {
   const router = useRouter()
   const { locale } = useLanguage()
   const ar = locale === 'ar'
+
+  // Current user — used to highlight results assigned to the logged-in sales person.
+  // Sales users see all results but can only take actions (Subscribe / Renew /
+  // View) on the ones registered to them.
+  const { user } = usePermissions()
+  const currentStaffId = user?.staffId || null
+  // Restrict actions to "mine" only for sales accounts. Owners/admins/managers
+  // keep full access.
+  const isSalesRole = user?.isSales === true
+
+  const isMine = (hit: Hit): boolean => {
+    if (!currentStaffId) return false
+    if (hit.kind === 'member') return hit.salesStaffId === currentStaffId
+    if (hit.kind === 'visitor') return hit.assignedTo === currentStaffId
+    if (hit.kind === 'dayuse') return hit.salesStaffId === currentStaffId
+    return false
+  }
 
   const [query, setQuery] = useState('')
   const debounced = useDebounce(query, 250)
@@ -98,6 +119,7 @@ export default function DashboardSmartSearch() {
             expiryDate: m.expiryDate || null,
             isActive: !!m.isActive,
             startDate: m.startDate || null,
+            salesStaffId: m.salesStaffId || m.salesStaff?.id || null,
           })))
         }
         if (vRes.status === 'fulfilled' && vRes.value.ok) {
@@ -110,6 +132,8 @@ export default function DashboardSmartSearch() {
             phone: v.phone || '',
             source: v.source || null,
             status: v.status || null,
+            // الـ assignedTo بيتاخد من آخر متابعة (الـ API بترجع followUps: [{ assignedTo }])
+            assignedTo: v.followUps?.[0]?.assignedTo || null,
           })))
         }
         if (dRes.status === 'fulfilled' && dRes.value.ok) {
@@ -122,6 +146,7 @@ export default function DashboardSmartSearch() {
             phone: d.phone || '',
             createdAt: d.createdAt || d.date || null,
             type: d.type || null,
+            salesStaffId: d.salesStaffId || d.salesStaff?.id || null,
           })))
         }
       } finally {
@@ -190,8 +215,18 @@ export default function DashboardSmartSearch() {
   }
 
   function handleHitPrimary(hit: Hit) {
+    // Sales accounts cannot navigate to action pages for records not theirs.
+    // We let them view the active member profile (read-only) but block the
+    // expired-member renew flow and visitor/dayuse pages where they'd see
+    // subscribe actions.
+    if (isSalesRole && !isMine(hit)) {
+      if (hit.kind === 'member' && isMemberActiveNow(hit)) {
+        go(`/members/${hit.id}`) // view-only is fine
+      }
+      // else: silently no-op — the row stays open as a result preview
+      return
+    }
     if (hit.kind === 'member') {
-      // expired → renew action; active → view
       const active = isMemberActiveNow(hit)
       go(`/members/${hit.id}${active ? '' : '?action=renew'}`)
     } else if (hit.kind === 'visitor') {
@@ -271,13 +306,19 @@ export default function DashboardSmartSearch() {
 
           {results.length > 0 && (
             <ul className="divide-y divide-gray-100 dark:divide-gray-700/50" role="listbox">
-              {results.map((hit, idx) => (
+              {results.map((hit, idx) => {
+                const mine = isMine(hit)
+                return (
                 <li
                   key={`${hit.kind}-${hit.id}`}
                   role="option"
                   aria-selected={activeIdx === idx}
                   className={`p-3 flex items-center gap-3 cursor-pointer transition-colors ${
-                    activeIdx === idx ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    activeIdx === idx
+                      ? 'bg-primary-50 dark:bg-primary-900/20'
+                      : mine
+                        ? 'bg-amber-50/60 dark:bg-amber-900/15 hover:bg-amber-100/60 dark:hover:bg-amber-900/25 ring-1 ring-inset ring-amber-200/70 dark:ring-amber-800/40'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   }`}
                   onMouseEnter={() => setActiveIdx(idx)}
                 >
@@ -299,9 +340,19 @@ export default function DashboardSmartSearch() {
                   </div>
 
                   {/* Info */}
-                  <div className="min-w-0 flex-1" onClick={() => handleHitPrimary(hit)}>
+                  <div
+                    className={`min-w-0 flex-1 ${isSalesRole && !mine ? 'cursor-default' : 'cursor-pointer'}`}
+                    title={isSalesRole && !mine ? (ar ? 'مش مسجل معاك — مفيش صلاحية' : 'Not assigned to you') : undefined}
+                    onClick={() => handleHitPrimary(hit)}
+                  >
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-gray-900 dark:text-gray-100 truncate">{hit.name || (ar ? 'بدون اسم' : 'No name')}</span>
+                      {mine && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/90 text-amber-950 ring-1 ring-amber-500/40 shadow-sm">
+                          <svg fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" /></svg>
+                          {ar ? 'معايا' : 'Mine'}
+                        </span>
+                      )}
                       {hit.kind === 'member' && hit.memberNumber && (
                         <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">#{hit.memberNumber}</span>
                       )}
@@ -327,45 +378,68 @@ export default function DashboardSmartSearch() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {hit.kind === 'member' && !isMemberActiveNow(hit) && (
-                      <Link
-                        href={`/members/${hit.id}?action=renew`}
-                        onClick={() => { setOpen(false); setQuery('') }}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-primary-contrast transition-colors"
-                      >
-                        {ar ? 'تجديد' : 'Renew'}
-                      </Link>
-                    )}
-                    {hit.kind === 'member' && isMemberActiveNow(hit) && (
-                      <Link
-                        href={`/members/${hit.id}`}
-                        onClick={() => { setOpen(false); setQuery('') }}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
-                      >
-                        {ar ? 'عرض' : 'View'}
-                      </Link>
-                    )}
-                    {hit.kind === 'visitor' && (
-                      <Link
-                        href={`/members?action=new&prefillName=${encodeURIComponent(hit.name)}&prefillPhone=${encodeURIComponent(hit.phone)}`}
-                        onClick={() => { setOpen(false); setQuery('') }}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
-                      >
-                        {ar ? 'اشتراك' : 'Subscribe'}
-                      </Link>
-                    )}
-                    {hit.kind === 'dayuse' && (
-                      <Link
-                        href={`/members?action=new&prefillName=${encodeURIComponent(hit.name)}&prefillPhone=${encodeURIComponent(hit.phone)}`}
-                        onClick={() => { setOpen(false); setQuery('') }}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
-                      >
-                        {ar ? 'اشتراك' : 'Subscribe'}
-                      </Link>
-                    )}
+                    {(() => {
+                      // Sales accounts can only act on their own records.
+                      const restricted = isSalesRole && !mine
+                      const tip = ar ? 'مش مسجل معاك — مفيش صلاحية' : 'Not assigned to you'
+
+                      if (hit.kind === 'member' && !isMemberActiveNow(hit)) {
+                        return restricted ? (
+                          <button
+                            disabled
+                            title={tip}
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                          >
+                            {ar ? 'تجديد' : 'Renew'}
+                          </button>
+                        ) : (
+                          <Link
+                            href={`/members/${hit.id}?action=renew`}
+                            onClick={() => { setOpen(false); setQuery('') }}
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-primary-contrast transition-colors"
+                          >
+                            {ar ? 'تجديد' : 'Renew'}
+                          </Link>
+                        )
+                      }
+                      if (hit.kind === 'member' && isMemberActiveNow(hit)) {
+                        // "View" is read-only — sales can view but if you want to truly lock,
+                        // keep it disabled too. Here we leave View open since it's informational.
+                        return (
+                          <Link
+                            href={`/members/${hit.id}`}
+                            onClick={() => { setOpen(false); setQuery('') }}
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
+                          >
+                            {ar ? 'عرض' : 'View'}
+                          </Link>
+                        )
+                      }
+                      if (hit.kind === 'visitor' || hit.kind === 'dayuse') {
+                        return restricted ? (
+                          <button
+                            disabled
+                            title={tip}
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                          >
+                            {ar ? 'اشتراك' : 'Subscribe'}
+                          </button>
+                        ) : (
+                          <Link
+                            href={`/members?action=new&prefillName=${encodeURIComponent(hit.name)}&prefillPhone=${encodeURIComponent(hit.phone)}`}
+                            onClick={() => { setOpen(false); setQuery('') }}
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                          >
+                            {ar ? 'اشتراك' : 'Subscribe'}
+                          </Link>
+                        )
+                      }
+                      return null
+                    })()}
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           )}
 
