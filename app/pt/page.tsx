@@ -720,6 +720,15 @@ export default function PTPage() {
           </button>
           {!isCoach && (
             <button
+              onClick={() => router.push('/pt/followups')}
+              className="flex-1 min-w-[140px] sm:flex-none bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-200 dark:ring-amber-900/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 px-4 py-2.5 rounded-lg transition-colors duration-200 inline-flex items-center justify-center gap-2 text-sm sm:text-base font-bold"
+            >
+              <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/></svg>
+              <span>{locale === 'ar' ? 'متابعات الحصص' : 'PT Followups'}</span>
+            </button>
+          )}
+          {!isCoach && (
+            <button
               onClick={() => {
                 resetForm()
                 setShowForm(!showForm)

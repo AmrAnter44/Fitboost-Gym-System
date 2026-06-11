@@ -1,9 +1,7 @@
 // app/members/page.tsx - إصلاح الأرقام العشرية
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { Suspense, useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
@@ -105,7 +103,7 @@ function isMemberActiveNow(member: Member): boolean {
   return member.isActive && hasStarted && notExpired
 }
 
-export default function MembersPage() {
+function MembersPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
@@ -2380,5 +2378,13 @@ export default function MembersPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function MembersPage() {
+  return (
+    <Suspense fallback={null}>
+      <MembersPageContent />
+    </Suspense>
   )
 }

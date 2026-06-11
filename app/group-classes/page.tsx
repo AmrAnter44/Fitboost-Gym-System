@@ -1478,15 +1478,27 @@ export default function GroupClassPage() {
 
       {/* ── Schedule Modal ─────────────────────────────────────────────────── */}
       {showScheduleModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" dir={direction}>
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          dir={direction}
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowScheduleModal(false); resetScheduleForm() } }}
+        >
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
               <h2 className="text-2xl font-bold dark:text-white"> {t('settingsPage.groupClassSchedules.pageTitle')}</h2>
               <button
                 onClick={() => { setShowScheduleModal(false); resetScheduleForm() }}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none"
-              ></button>
+                aria-label="إغلاق"
+                title="إغلاق"
+                className="w-9 h-9 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+              >
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
             <div className="p-6">
