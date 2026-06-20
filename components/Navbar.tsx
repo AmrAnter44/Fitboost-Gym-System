@@ -154,7 +154,8 @@ export default function Navbar() {
     <>
       <nav
         dir={locale === 'ar' ? 'rtl' : 'ltr'}
-        className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-md backdrop-saturate-150 border-b border-gray-200 dark:border-gray-800 shadow-sm sticky top-0 z-40"
+        //  pt-[env(safe-area-inset-top)] عشان الـ notch بتاع الـ iPhone ميغطيش الأزرار
+        className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-md backdrop-saturate-150 border-b border-gray-200 dark:border-gray-800 shadow-sm sticky top-0 z-40 pt-[env(safe-area-inset-top)]"
       >
         <div className="w-full px-2 sm:px-4 relative z-10">
           <div className="flex items-center justify-between gap-2">
@@ -319,7 +320,7 @@ export default function Navbar() {
                 : `left-0 ${drawerClosing ? '-translate-x-full' : 'translate-x-0'}`
             } ${!drawerClosing ? (locale === 'ar' ? 'animate-slideRight' : 'animate-slideLeft') : ''}`}
           >
-            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between sticky top-0 z-10">
+            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 pt-[calc(env(safe-area-inset-top)+1rem)] flex items-center justify-between sticky top-0 z-10">
               <button
                 onClick={() => closeDrawer()}
                 className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex-shrink-0"

@@ -4,11 +4,14 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
+import dynamicImport from 'next/dynamic'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
 import { LoadingScreen } from '../../components/Spinner'
 import StaffBarcodeWhatsApp from '../../components/StaffBarcodeWhatsApp'
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal'
+//  Camera modal للسيلفي وقت السكان (anti buddy-punching)
+const CameraModal = dynamicImport(() => import('../../components/CameraModal'), { ssr: false })
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
@@ -165,6 +168,10 @@ export default function StaffPage() {
   const [scanMessage, setScanMessage] = useState('')
   const scannerRef = useRef<HTMLInputElement>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
+  //  Selfie capture state — للحماية ضد buddy-punching
+  const [showSelfieCamera, setShowSelfieCamera] = useState(false)
+  const [pendingAttendanceId, setPendingAttendanceId] = useState<string | null>(null)
+  const [pendingStaffName, setPendingStaffName] = useState<string>('')
 
   const [formData, setFormData] = useState({
     staffCode: '', // الرقم البسيط
@@ -337,6 +344,14 @@ const handleScan = async (staffCode: string) => {
       setLastScanTime(new Date());
       fetchTodayAttendance();
       setTimeout(() => setScanMessage(''), 5000);
+
+      //  السيلفي بتشتغل بس عند تسجيل الدخول (check-in) — مش عند الخروج
+      // الأونر طلب: الموظف يتصور بس لما يجي، مش لما يطلع
+      if (settings.requireSelfieOnCheckIn && data.action === 'check-in' && data.attendance?.id) {
+        setPendingAttendanceId(data.attendance.id);
+        setPendingStaffName(data.staffName || '');
+        setShowSelfieCamera(true);
+      }
     } else {
       playErrorSound();
       setScanMessage(` ${data.error || t('staff.scanner.errorRegister')}`);
@@ -347,6 +362,33 @@ const handleScan = async (staffCode: string) => {
     playErrorSound();
     setScanMessage(t('staff.scanner.errorOccurred'));
     setTimeout(() => setScanMessage(''), 5000);
+  }
+};
+
+//  رفع السيلفي بعد التقاطها
+const handleSelfieCapture = async (file: File) => {
+  if (!pendingAttendanceId) return;
+  try {
+    // تحويل الـ File لـ base64
+    const reader = new FileReader();
+    const base64 = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    await fetch('/api/attendance/upload-selfie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attendanceId: pendingAttendanceId, image: base64 }),
+    });
+  } catch (error) {
+    console.error('Selfie upload error:', error);
+    // الـ scan نجح بالفعل، فمفيش error message للمستخدم — نسيب الـ silent fail
+  } finally {
+    setPendingAttendanceId(null);
+    setPendingStaffName('');
+    setShowSelfieCamera(false);
   }
 };
 
@@ -1036,7 +1078,7 @@ const handleScan = async (staffCode: string) => {
                 <input
                   type="text"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/s/g, '') })}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   placeholder={t('staff.form.phonePlaceholder')}
                 />
@@ -1615,6 +1657,21 @@ const handleScan = async (staffCode: string) => {
         message={t('staff.deleteModal.message')}
         itemName={staffToDelete ? `${staffToDelete.name} (#${toNineDigitCode(staffToDelete.staffCode)})` : ''}
         loading={deleteLoading}
+      />
+
+      {/*  مودال السيلفي وقت السكان (auto-capture) — يظهر بس لو requireSelfieOnCheckIn مفعّل */}
+      <CameraModal
+        isOpen={showSelfieCamera}
+        autoCapture
+        autoCaptureSeconds={2}
+        title={locale === 'ar' ? `📸 ${pendingStaffName || 'سيلفي السكان'}` : `📸 ${pendingStaffName || 'Check-in selfie'}`}
+        onClose={() => {
+          //  لو قفل بدون تصوير، السجل اتعمل بدون selfieImage (مش هيخسر السكان)
+          setShowSelfieCamera(false)
+          setPendingAttendanceId(null)
+          setPendingStaffName('')
+        }}
+        onCapture={handleSelfieCapture}
       />
     </div>
   )

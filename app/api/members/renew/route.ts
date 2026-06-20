@@ -46,7 +46,8 @@ export async function POST(request: Request) {
       notes,
       paymentMethod,
       staffName,
-      offerId         // 📦 الباقة المطبَّقة عند التجديد (لو فيه)
+      offerId,         // 📦 الباقة المطبَّقة عند التجديد (لو فيه)
+      resetBenefits = false  //  وضع المزايا: false = تجميع (default) | true = ريست
     } = body
 
 
@@ -75,36 +76,41 @@ export async function POST(request: Request) {
       }
     }
 
-    // 🔄 سياسة التجديد: بنصفّر البينفيتس القديمة ونحط بس اللي جاي مع الباقة الجديدة
-    //   (مش بنجمعهم) — لأن الفورم بيبعت اللي مع الباقة، ولو جمعنا هيتضاعف.
+    //  سياسة التجديد:
+    //   - default (resetBenefits=false) → تجميع: الباقي من القديم + اللي جاي مع الباقة الجديدة
+    //     (عادل للعميل اللي دفع ولسه ما استخدمش)
+    //   - opt-in (resetBenefits=true) → ريست: المزايا القديمة بتتمسح ويبتدي بالجديد فقط
     //   بنحتفظ بالقيم القديمة (previous*) عشان تظهر في الإيصال للشفافية.
+    const accumulate = (current: number, additional: number) =>
+      resetBenefits ? additional : current + additional
+
     const currentFreePT = member.freePTSessions || 0
     const additionalFreePT = freePTSessions || 0
-    const totalFreePT = additionalFreePT
+    const totalFreePT = accumulate(currentFreePT, additionalFreePT)
 
     const currentInBody = member.inBodyScans || 0
     const additionalInBody = inBodyScans || 0
-    const totalInBody = additionalInBody
+    const totalInBody = accumulate(currentInBody, additionalInBody)
 
     const currentInvitations = member.invitations || 0
     const additionalInvitations = invitations || 0
-    const totalInvitations = additionalInvitations
+    const totalInvitations = accumulate(currentInvitations, additionalInvitations)
 
     const currentFreezeDays = member.remainingFreezeDays || 0
     const additionalFreezeDays = remainingFreezeDays || 0
-    const totalFreezeDays = additionalFreezeDays
+    const totalFreezeDays = accumulate(currentFreezeDays, additionalFreezeDays)
 
     const currentNutritionSessions = member.freeNutritionSessions || 0
     const additionalNutritionSessions = freeNutritionSessions || 0
-    const totalNutritionSessions = additionalNutritionSessions
+    const totalNutritionSessions = accumulate(currentNutritionSessions, additionalNutritionSessions)
 
     const currentPhysioSessions = member.freePhysioSessions || 0
     const additionalPhysioSessions = freePhysioSessions || 0
-    const totalPhysioSessions = additionalPhysioSessions
+    const totalPhysioSessions = accumulate(currentPhysioSessions, additionalPhysioSessions)
 
     const currentGroupClassSessions = member.freeGroupClassSessions || 0
     const additionalGroupClassSessions = freeGroupClassSessions || 0
-    const totalGroupClassSessions = additionalGroupClassSessions
+    const totalGroupClassSessions = accumulate(currentGroupClassSessions, additionalGroupClassSessions)
 
 
     // ✅ حساب isActive: العضو نشط طالما اشتراكه ما انتهاش (حتى لو ما بدأش بعد)
@@ -213,6 +219,7 @@ export async function POST(request: Request) {
               newExpiryDate: expiryDate,
               subscriptionDays: subscriptionDays,
               isRenewal: true,
+              benefitsMode: resetBenefits ? 'reset' : 'accumulate', //  وضع المزايا
               staffName: safeStaffName,
               salesPersonName: member.salesStaff?.name || null,
             }),

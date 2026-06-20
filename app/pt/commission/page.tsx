@@ -5,6 +5,8 @@ import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
 import { useServiceSettings } from '../../../contexts/ServiceSettingsContext'
 import { LoadingScreen } from '../../../components/Spinner'
+import { usePermissions } from '../../../hooks/usePermissions'
+import PermissionDenied from '../../../components/PermissionDenied'
 
 interface Staff {
   id: string
@@ -109,6 +111,8 @@ export default function CoachCommissionPage() {
   const toast = useToast()
   const { refetch: refetchServiceSettings } = useServiceSettings()
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
+  //  Permission gating لصفحة التقفيل/الـ commission
+  const { hasPermission, loading: permissionsLoading, user: permUser } = usePermissions()
   const [coaches, setCoaches] = useState<Staff[]>([])
   const [ptSessions, setPtSessions] = useState<PTSession[]>([])
   const [ptAttendanceRecords, setPtAttendanceRecords] = useState<any[]>([]) // سجلات الحضور الفعلية
@@ -1122,6 +1126,17 @@ export default function CoachCommissionPage() {
       earnings,
     }
   })
+
+  //  Permission gate — لازم تكون OWNER/ADMIN، أو COACH (يشوف commission نفسه)، أو عندك canAccessPTCommission
+  if (!permissionsLoading) {
+    const role = permUser?.role
+    const isOwnerOrAdmin = role === 'OWNER' || role === 'ADMIN'
+    const isCoachUser = role === 'COACH'
+    const canAccess = hasPermission('canAccessPTCommission')
+    if (!isOwnerOrAdmin && !isCoachUser && !canAccess) {
+      return <PermissionDenied message={locale === 'ar' ? 'ليس لديك صلاحية الوصول لصفحة تقفيل الـ PT' : "You don't have permission to access PT commission"} />
+    }
+  }
 
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6" dir="rtl">

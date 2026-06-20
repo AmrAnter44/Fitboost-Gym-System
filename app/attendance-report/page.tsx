@@ -25,6 +25,7 @@ interface Attendance {
   checkOut: string | null
   duration: number | null
   notes: string | null
+  selfieImage: string | null  //  صورة السكان (anti buddy-punching)
   createdAt: string
 }
 
@@ -67,6 +68,9 @@ export default function AttendanceReportPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [attendanceToDelete, setAttendanceToDelete] = useState<Attendance | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  //  معاينة صورة السكان بالحجم الكامل
+  const [viewingSelfie, setViewingSelfie] = useState<{ url: string; staffName: string; checkIn: string } | null>(null)
 
   // Manual entry / edit modal
   const [showManualModal, setShowManualModal] = useState(false)
@@ -592,6 +596,25 @@ export default function AttendanceReportPage() {
                   <div className="flex justify-between items-start mb-4 gap-3 flex-wrap">
                     <div>
                       <div className="flex items-center gap-3 mb-2">
+                        {/*  صورة السكان (Selfie) — يضغط عليها للتكبير */}
+                        {att.selfieImage ? (
+                          <button
+                            type="button"
+                            onClick={() => setViewingSelfie({ url: att.selfieImage!, staffName: att.staff.name, checkIn: att.checkIn })}
+                            className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-emerald-400 dark:ring-emerald-600 hover:ring-emerald-500 transition-all shrink-0 group"
+                            aria-label={direction === 'rtl' ? 'عرض صورة السكان' : 'View check-in selfie'}
+                            title={direction === 'rtl' ? 'عرض صورة السكان' : 'View check-in selfie'}
+                          >
+                            <img src={att.selfieImage} alt="" className="w-full h-full object-cover" />
+                            <span className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-colors">
+                              <svg className="w-4 h-4 text-white opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </span>
+                          </button>
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 flex items-center justify-center shrink-0" title={direction === 'rtl' ? 'لا توجد صورة' : 'No selfie'}>
+                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316zM16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+                          </div>
+                        )}
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
                           #{att.staff.staffCode}
                         </span>
@@ -657,10 +680,16 @@ export default function AttendanceReportPage() {
                             {checkOutTime.toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'short' })}
                           </p>
                         </>
-                      ) : (
+                      ) : isToday ? (
                         <>
                           <p className="text-sm font-bold text-amber-700 dark:text-amber-300">{t('attendanceReport.notCheckedOut')}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('attendanceReport.working')}</p>
+                        </>
+                      ) : (
+                        //  سجل قديم بدون انصراف — مش بيشتغل دلوقتي
+                        <>
+                          <p className="text-sm font-bold text-red-700 dark:text-red-300">{direction === 'rtl' ? 'نسي يسجّل خروج' : 'Missed check-out'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{direction === 'rtl' ? 'سجل قديم' : 'Old record'}</p>
                         </>
                       )}
                     </div>
@@ -676,8 +705,18 @@ export default function AttendanceReportPage() {
                           {hours > 0 && `${hours} س`}{hours > 0 && minutes > 0 ? ' ' : ''}{minutes > 0 && `${minutes} د`}
                         </p>
                       )}
-                      <p className={`text-xs mt-1 font-semibold ${att.checkOut ? 'text-gray-500 dark:text-gray-400' : 'text-green-600 dark:text-green-400'}`}>
-                        {att.checkOut ? t('attendanceReport.finished') : t('attendanceReport.workingNow')}
+                      <p className={`text-xs mt-1 font-semibold ${
+                        att.checkOut
+                          ? 'text-gray-500 dark:text-gray-400'
+                          : isToday
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {att.checkOut
+                          ? t('attendanceReport.finished')
+                          : isToday
+                          ? t('attendanceReport.workingNow')
+                          : (direction === 'rtl' ? 'لم يسجّل خروج' : 'Missed check-out')}
                       </p>
                     </div>
 
@@ -723,6 +762,34 @@ export default function AttendanceReportPage() {
           </div>
         )}
       </div>
+
+      {/*  Selfie Preview Modal — معاينة صورة السكان بالحجم الكامل */}
+      {viewingSelfie && (
+        <div
+          className="fixed inset-0 z-[10000] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setViewingSelfie(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
+              <div>
+                <h3 className="text-lg font-bold">📸 {viewingSelfie.staffName}</h3>
+                <p className="text-xs opacity-90 mt-0.5">{new Date(viewingSelfie.checkIn).toLocaleString(direction === 'rtl' ? 'ar-EG' : 'en-US')}</p>
+              </div>
+              <button onClick={() => setViewingSelfie(null)} className="p-2 rounded-lg hover:bg-white/20 transition-colors" aria-label="Close">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="bg-gray-900 flex items-center justify-center p-4">
+              <img src={viewingSelfie.url} alt={viewingSelfie.staffName} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+            </div>
+            <div className="p-3 text-center text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/40">
+              {direction === 'rtl' ? 'تم التقاط الصورة تلقائياً وقت السكان' : 'Selfie auto-captured at check-in time'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       <ConfirmDeleteModal

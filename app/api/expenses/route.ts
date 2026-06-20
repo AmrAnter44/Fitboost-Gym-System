@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateExpense')
 
     const body = await request.json()
-    const { type, amount, description, notes, staffId, customCreatedAt } = body
+    const { type, amount, description, notes, staffId, customCreatedAt, paymentMethod } = body
 
     if (!type || !amount || !description) {
       return NextResponse.json(
@@ -114,6 +114,10 @@ export async function POST(request: Request) {
       )
     }
 
+    //  تحقق من صحة طريقة الدفع
+    const validPaymentMethods = ['cash', 'instapay', 'wallet']
+    const safePaymentMethod = validPaymentMethods.includes(paymentMethod) ? paymentMethod : 'cash'
+
     // ✅ تحضير البيانات مع دعم التاريخ المخصص
     const expenseData: any = {
       type,
@@ -121,6 +125,7 @@ export async function POST(request: Request) {
       description,
       notes,
       staffId: staffId || null,
+      paymentMethod: safePaymentMethod,
     }
 
     // ✅ إضافة التاريخ المخصص إذا كان موجوداً
@@ -171,7 +176,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canEditExpense')
 
     const body = await request.json()
-    const { id, amount, description, createdAt, isPaid } = body
+    const { id, amount, description, createdAt, isPaid, paymentMethod } = body
 
     // تحضير البيانات للتحديث
     const updateData: any = {}
@@ -180,6 +185,11 @@ export async function PUT(request: Request) {
     if (description !== undefined) updateData.description = description
     if (createdAt !== undefined) updateData.createdAt = new Date(createdAt)
     if (isPaid !== undefined) updateData.isPaid = isPaid
+    //  دعم تحديث طريقة الدفع
+    if (paymentMethod !== undefined) {
+      const validMethods = ['cash', 'instapay', 'wallet']
+      if (validMethods.includes(paymentMethod)) updateData.paymentMethod = paymentMethod
+    }
 
     const expense = await prisma.expense.update({
       where: { id },

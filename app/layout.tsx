@@ -86,16 +86,14 @@ export const metadata: Metadata = {
   keywords: ['gym', 'fitness', 'management', 'صالة رياضية', 'إدارة', 'جيم'],
   icons: {
     icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
+      //  أيقونة Fitboost — PNG لأنها مدعومة في كل المتصفحات والـ Android home screen
       { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
       { url: '/apple-touch-icon-180x180.png', sizes: '180x180', type: 'image/png' },
     ],
-    other: [
-      { rel: 'mask-icon', url: '/icon.svg', color: '#ff9915' },
-    ],
+    shortcut: ['/icon-192x192.png'],
   },
 }
 
@@ -195,7 +193,9 @@ export default function RootLayout({
         <link rel="preload" href="/fonts/Cairo-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/Cairo-Bold.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
 
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        {/*  أيقونة الـ Fitboost — PNG لأنها مدعومة في كل المتصفحات */}
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png" />
 
         {/* PWA Icons - iOS */}
         <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />

@@ -345,6 +345,7 @@ export default function SettingsPage() {
     payrollWorkingDaysPerMonth: 26,
     payrollMonthEndDay: 28,
     payrollSuggestedLatePerMinute: 2,
+    requireSelfieOnCheckIn: false, //  Anti buddy-punching
   })
 
   const [nextReceiptNumber, setNextReceiptNumber] = useState(1)
@@ -2011,6 +2012,63 @@ export default function SettingsPage() {
                     max={31}
                     className="w-full sm:w-48 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   />
+                </div>
+
+                {/*  Anti buddy-punching toggle — auto-save on toggle */}
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-5">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-sm font-bold text-gray-800 dark:text-gray-100 mb-1 inline-flex items-center gap-2">
+                        📸 {locale === 'ar' ? 'سيلفي إجباري مع كل سكان' : 'Mandatory selfie on check-in'}
+                        {serviceSettings.requireSelfieOnCheckIn && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                            {locale === 'ar' ? '✅ مفعّل ومحفوظ' : '✅ ON & saved'}
+                          </span>
+                        )}
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        {locale === 'ar'
+                          ? 'لما مفعّل: الكاميرا بتفتح تلقائياً بعد كل سكان، تتصور سيلفي، وتتخزن مع سجل الحضور. مينفعش موظف يـ scan لزميله.'
+                          : 'When enabled: camera auto-opens after each scan, takes a selfie, and stores it with the attendance record. Prevents buddy-punching.'}
+                      </p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                        {locale === 'ar' ? '⏱️ بيضيف ~3 ثوان لكل سكان · 💾 الحفظ تلقائي بمجرد ما تضغط التوجل' : '⏱️ Adds ~3s per scan · 💾 Auto-saves on click'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const next = !serviceSettings.requireSelfieOnCheckIn
+                        //  optimistic update
+                        updateSetting('requireSelfieOnCheckIn', next)
+                        //  auto-save immediately
+                        try {
+                          const res = await fetch('/api/settings/services', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ requireSelfieOnCheckIn: next }),
+                          })
+                          if (res.ok) {
+                            localStorage.removeItem('serviceSettingsCache')
+                            refetchServiceSettings()
+                          } else {
+                            //  rollback
+                            updateSetting('requireSelfieOnCheckIn', !next)
+                          }
+                        } catch {
+                          updateSetting('requireSelfieOnCheckIn', !next)
+                        }
+                      }}
+                      aria-pressed={serviceSettings.requireSelfieOnCheckIn}
+                      className={`relative inline-flex h-8 w-14 shrink-0 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                        serviceSettings.requireSelfieOnCheckIn ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-gray-600'
+                      } cursor-pointer`}
+                    >
+                      <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 mt-1 ${
+                        serviceSettings.requireSelfieOnCheckIn ? 'translate-x-7' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
                 </div>
 
                 <button

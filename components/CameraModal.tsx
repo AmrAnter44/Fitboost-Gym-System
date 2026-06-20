@@ -8,16 +8,22 @@ interface CameraModalProps {
   isOpen: boolean
   onClose: () => void
   onCapture: (file: File) => void
+  //  لو true: الكاميرا تلتقط تلقائياً بعد countdown قصير وتأكّد بدون تدخل المستخدم
+  autoCapture?: boolean
+  autoCaptureSeconds?: number
+  title?: string
 }
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
-export default function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
-  const { t, direction } = useLanguage()
+export default function CameraModal({ isOpen, onClose, onCapture, autoCapture = false, autoCaptureSeconds = 2, title }: CameraModalProps) {
+  const { t, direction, locale } = useLanguage()
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isCameraReady, setIsCameraReady] = useState(false)
+  //  countdown للـ auto-capture
+  const [countdown, setCountdown] = useState<number | null>(null)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -133,6 +139,38 @@ export default function CameraModal({ isOpen, onClose, onCapture }: CameraModalP
     }
   }
 
+  //  Auto-capture: لما الكاميرا تجهز، ابدأ countdown ثم التقط تلقائياً
+  useEffect(() => {
+    if (!autoCapture || !isCameraReady || capturedImage || error) {
+      setCountdown(null)
+      return
+    }
+    setCountdown(autoCaptureSeconds)
+    const interval = setInterval(() => {
+      setCountdown(c => {
+        if (c === null) return null
+        if (c <= 1) {
+          clearInterval(interval)
+          handleCapture()
+          return null
+        }
+        return c - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCameraReady, autoCapture, capturedImage, error])
+
+  //  Auto-confirm: بعد ما الصورة تتلقط في الـ autoCapture mode، نـ confirm تلقائياً
+  useEffect(() => {
+    if (!autoCapture || !capturedImage) return
+    const t = setTimeout(() => {
+      handleConfirm()
+    }, 600) // عرض الصورة 600ms كـ confirmation سريع
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capturedImage, autoCapture])
+
   if (!isOpen) return null
 
   return (
@@ -147,7 +185,7 @@ export default function CameraModal({ isOpen, onClose, onCapture }: CameraModalP
         dir={direction}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 id="camera-modal-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('members.form.capturePhoto')}</h2>
+          <h2 id="camera-modal-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">{title || t('members.form.capturePhoto')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -183,6 +221,17 @@ export default function CameraModal({ isOpen, onClose, onCapture }: CameraModalP
                 muted
                 className="max-w-full max-h-full object-contain rounded-lg"
               />
+              {/*  Countdown overlay لما الـ autoCapture مفعّل */}
+              {autoCapture && countdown !== null && isCameraReady && !capturedImage && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <div className="text-9xl font-extrabold text-white drop-shadow-2xl" style={{ textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
+                    {countdown}
+                  </div>
+                  <div className="mt-4 px-6 py-2 rounded-full bg-black/60 text-white text-lg font-bold">
+                    {locale === 'ar' ? '📸 ابتسم!' : '📸 Smile!'}
+                  </div>
+                </div>
+              )}
               {!isCameraReady && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
                   <div className="text-center text-white">
@@ -200,7 +249,14 @@ export default function CameraModal({ isOpen, onClose, onCapture }: CameraModalP
         </div>
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
-          {capturedImage ? (
+          {/*  في الـ autoCapture mode بنخفي الأزرار اليدوية — التقاط تلقائي */}
+          {autoCapture ? (
+            <div className="text-center text-sm text-gray-600 dark:text-gray-300">
+              {capturedImage
+                ? (locale === 'ar' ? '✅ تم الالتقاط — جاري الحفظ...' : '✅ Captured — saving...')
+                : (locale === 'ar' ? `📸 التقاط تلقائي خلال ${countdown ?? autoCaptureSeconds} ثانية` : `📸 Auto-capturing in ${countdown ?? autoCaptureSeconds}s`)}
+            </div>
+          ) : capturedImage ? (
             <div className="flex gap-3 justify-center">
               <button
                 type="button"

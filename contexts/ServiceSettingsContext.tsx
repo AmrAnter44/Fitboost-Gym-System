@@ -35,6 +35,8 @@ interface ServiceSettings {
   gymLogo?: string | null
   primaryColor?: string | null
   remainingEnabled: boolean
+  //  Anti buddy-punching: لو ON، الموظف لازم يتصور سيلفي مع كل سكان
+  requireSelfieOnCheckIn?: boolean
 }
 
 interface ServiceSettingsContextType {
@@ -80,7 +82,8 @@ function parseSettings(data: any): ServiceSettings {
     gymName: data.gymName || null,
     gymLogo: data.gymLogo || null,
     primaryColor: data.primaryColor || null,
-    remainingEnabled: data.remainingEnabled ?? false
+    remainingEnabled: data.remainingEnabled ?? false,
+    requireSelfieOnCheckIn: data.requireSelfieOnCheckIn ?? false,
   }
 }
 
@@ -160,6 +163,7 @@ function getDefaultSettings(): ServiceSettings {
     websiteUrl: '',
     showWebsiteOnReceipts: false,
     remainingEnabled: false,
+    requireSelfieOnCheckIn: false,
     gymName: null,
     // Use cached logo from blocking script or localStorage for instant display
     gymLogo: typeof window !== 'undefined'

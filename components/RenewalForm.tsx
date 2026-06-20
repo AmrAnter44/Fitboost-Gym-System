@@ -86,6 +86,18 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [createdReceipt, setCreatedReceipt] = useState<any>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
+  //  وضع المزايا: false = تجميع (افتراضي، عادل للعميل) | true = ريست (يبتدي من الصفر)
+  const [resetBenefits, setResetBenefits] = useState(false)
+
+  //  حساب الأيام المتبقية في الاشتراك القديم (لو لسه فيه)
+  // لما العضو يجدد قبل ما اشتراكه ينتهي، الأيام دي بتتضاف على مدة الاشتراك الجديد
+  const remainingDaysFromOldSub = (() => {
+    if (!member.expiryDate) return 0
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const oldExpiry = new Date(member.expiryDate); oldExpiry.setHours(0, 0, 0, 0)
+    const diff = Math.ceil((oldExpiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.max(0, diff)
+  })()
 
   useEffect(() => {
     if (user && !staffName) {
@@ -123,6 +135,10 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
     const start = new Date(startDate)
     const expiry = new Date(start)
     expiry.setMonth(expiry.getMonth() + months)
+    //  ضيف الأيام المتبقية من الاشتراك القديم
+    if (remainingDaysFromOldSub > 0) {
+      expiry.setDate(expiry.getDate() + remainingDaysFromOldSub)
+    }
 
     setExpiryDate(formatDateYMD(expiry))
   }
@@ -130,7 +146,8 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const applyOffer = (offer: any) => {
     const start = startDate || formatDateYMD(new Date())
     const expiry = new Date(start)
-    expiry.setDate(expiry.getDate() + offer.duration)
+    //  ضيف مدة الباقة + الأيام المتبقية من الاشتراك القديم
+    expiry.setDate(expiry.getDate() + offer.duration + remainingDaysFromOldSub)
 
     setSubscriptionPrice(offer.price.toString())
     setFreePTSessions(offer.freePTSessions.toString())
@@ -189,7 +206,9 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           notes,
           paymentMethod,
           staffName: user?.name || '',
-          offerId: selectedOfferId
+          offerId: selectedOfferId,
+          //  وضع المزايا: لو true → الـ API يـ reset، لو false → بيجمع القديم + الجديد
+          resetBenefits,
         })
       })
 
@@ -229,7 +248,11 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
 
   const duration = calculateDays(startDate, expiryDate)
   const totalAmount = subscriptionPrice ? parseInt(subscriptionPrice) : 0
-  const totalSessions = (member.freePTSessions || 0) + (parseInt(freePTSessions) || 0)
+  //  لو resetBenefits ON، الـ total = اللي بيجي مع الباقة فقط
+  //  لو OFF (default)، الـ total = القديم + اللي بيجي مع الباقة
+  const totalSessions = resetBenefits
+    ? (parseInt(freePTSessions) || 0)
+    : (member.freePTSessions || 0) + (parseInt(freePTSessions) || 0)
 
   return (
     <div
@@ -344,6 +367,61 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               </p>
             )}
           </div>
+        </div>
+
+        {/*  ملاحظة بالأيام المتبقية من الاشتراك القديم — لو فيه */}
+        {remainingDaysFromOldSub > 0 && (
+          <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-700 flex items-start gap-2">
+            <span className="text-xl shrink-0">⏰</span>
+            <div className="text-sm">
+              <div className="font-bold text-amber-800 dark:text-amber-200">
+                {direction === 'rtl'
+                  ? `العضو لسه عنده ${remainingDaysFromOldSub} يوم في الاشتراك القديم`
+                  : `Member still has ${remainingDaysFromOldSub} days left from the old subscription`}
+              </div>
+              <div className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                {direction === 'rtl'
+                  ? 'الأيام دي هتتضاف تلقائياً لمدة الاشتراك الجديد لما تختار باقة أو شهر.'
+                  : 'These days will be auto-added to the new subscription period when you pick a package or month.'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/*  Toggle: وضع المزايا (تجميع / ريست) */}
+        <div className="mt-3 p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-200 dark:ring-indigo-700">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={resetBenefits}
+              onChange={(e) => setResetBenefits(e.target.checked)}
+              className="mt-0.5 w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            />
+            <div className="flex-1 text-sm">
+              <div className="font-bold text-indigo-900 dark:text-indigo-100 flex items-center gap-2 flex-wrap">
+                🔁 {direction === 'rtl' ? 'ريست للمزايا (ابدأ من جديد)' : 'Reset benefits (start fresh)'}
+                {!resetBenefits && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                    {direction === 'rtl' ? 'تجميع مفعّل' : 'Accumulating'}
+                  </span>
+                )}
+                {resetBenefits && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+                    {direction === 'rtl' ? 'ريست مفعّل' : 'Reset on'}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                {direction === 'rtl'
+                  ? resetBenefits
+                    ? '⚠️ المزايا القديمة (حصص PT، تغذية، علاج طبيعي، جروب كلاس، InBody، دعوات، أيام التجميد) هتتمسح ويبتدي العضو بالمزايا الجديدة من الباقة فقط.'
+                    : '✅ المزايا الفاضلة من الاشتراك القديم هتتجمع مع مزايا الباقة الجديدة (عادل للعميل اللي دفع ولم يستخدم).'
+                  : resetBenefits
+                    ? '⚠️ Old benefits (PT/Nutrition/Physio/Group Class sessions, InBody scans, invitations, freeze days) will be wiped. Member starts with only the new package benefits.'
+                    : '✅ Unused benefits from the old subscription will be added to the new package benefits (fair to the member who paid).'}
+              </div>
+            </div>
+          </label>
         </div>
 
         {error && (

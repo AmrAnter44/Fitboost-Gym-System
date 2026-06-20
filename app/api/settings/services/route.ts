@@ -105,6 +105,7 @@ async function updateSettings(request: Request) {
       'payrollWorkingDaysPerMonth',
       'payrollMonthEndDay',
       'payrollSuggestedLatePerMinute',
+      'requireSelfieOnCheckIn', //  Anti buddy-punching
     ]
 
     validFields.forEach(field => {

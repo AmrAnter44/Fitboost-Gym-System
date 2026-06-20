@@ -712,7 +712,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
               type="tel"
               required
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/s/g, '') })}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
               placeholder="01234567890"
               dir="ltr"
@@ -942,14 +942,12 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
         </div>
       </div>
 
-      {/* ‍ اختيار الكوتش - يظهر فقط إذا كانت العمولة مفعلة */}
-      {settings.ptCommissionEnabled && (
-        <CoachSelector
-          value={formData.coachId}
-          onChange={(coachId) => setFormData({ ...formData, coachId })}
-          required={false}
-        />
-      )}
+      {/* 🏋️ اختيار الكوتش — يظهر دايماً (مش مرتبط بـ PT Commission) */}
+      <CoachSelector
+        value={formData.coachId}
+        onChange={(coachId) => setFormData({ ...formData, coachId })}
+        required={false}
+      />
 
       {/* اختيار موظف السيلز — مقفول لغير OWNER/ADMIN لما الرقم متطابق مع متابعة
               autoSelectLeastLoaded: لما الفورم يفتح من غير سيلز مسبق، يختار الأقل تحميلاً تلقائياً */}

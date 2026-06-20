@@ -379,6 +379,7 @@ model Attendance {
   checkOut  DateTime?
   duration  Int?
   notes     String?
+  selfieImage String?  //  مسار الصورة المخزّنة وقت السكان (anti buddy-punching)
   createdAt DateTime  @default(now())
   staff     Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
@@ -398,6 +399,7 @@ model Expense {
   isPaid      Boolean  @default(false)
   paidAmount  Float    @default(0)  // إجمالي المبلغ المسدّد فعلياً (للسلف اللي بتتخصم على أقساط)
   installmentLimit Float?           // الحد الأقصى للخصم الشهري (لو فاضي = خصم كامل عند الإمكان)
+  paymentMethod String  @default("cash") //  cash | instapay | wallet — البنك اللي اتخصم منه المصروف
   staff       Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
@@ -619,6 +621,7 @@ model Permission {
   canViewAttendance       Boolean @default(false)
   canAccessClosing        Boolean @default(false)
   canCloseDayOnly         Boolean @default(false)  // 📅 صلاحية اليوم — تقفيل أمس/اليوم/غدا فقط
+  canAccessPTCommission   Boolean @default(false)  //  صلاحية الوصول لصفحة تقفيل/حاسبة الـ PT
   canAccessSettings       Boolean @default(false)
   canAccessAdmin          Boolean @default(false)
   canViewSpaBookings      Boolean @default(false)
@@ -1174,6 +1177,9 @@ model SystemSettings {
   payrollWorkingDaysPerMonth  Int      @default(26)  // عدد أيام العمل الشهري الافتراضي (fallback لو الـ Rotation فاضي)
   payrollMonthEndDay          Int      @default(28)  // اليوم اللي بيتقفل عنده الشهر للـ payroll
   payrollSuggestedLatePerMinute Float  @default(2)   // السعر المقترح للدقيقة المتأخرة (suggested value في pre-payroll checklist، مش بيتطبق تلقائياً)
+
+  //  Anti buddy-punching: لما ON، الموظف لازم يتصور سيلفي مع كل سكان
+  requireSelfieOnCheckIn  Boolean   @default(false)
 
   updatedAt             DateTime @updatedAt
   updatedBy             String?

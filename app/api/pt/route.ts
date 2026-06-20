@@ -78,7 +78,7 @@ export async function GET(request: Request) {
         receipts: true,
         sessions: {
           orderBy: { sessionDate: 'desc' },
-          take: 5
+          //  بنرجّع كل الحصص (مش 5 بس) — صفحة الكوتش بتعرضهم بـ scroll
         }
       }
     })
