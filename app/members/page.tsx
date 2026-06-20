@@ -192,7 +192,7 @@ function MembersPageContent() {
   const debouncedSearch = useDebounce(search, 300)
   const debouncedSearchId = useDebounce(searchId, 300)
 
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'other' | 'analytics' | 'banned'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring-soon' | 'has-remaining' | 'other' | 'analytics' | 'banned' | 'no-coach'>('all')
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [filterSalesId, setFilterSalesId] = useState<string>('all') // فلتر السيلز ('all' / '__none__' / staff.id)
   const [filterCoachId, setFilterCoachId] = useState<string>('all') // ‍ فلتر الكوتش ('all' / '__none__' / staff.id)
@@ -287,6 +287,9 @@ function MembersPageContent() {
           return member.remainingAmount > 0
         } else if (filterStatus === 'other') {
           return member.memberNumber === null
+        } else if (filterStatus === 'no-coach') {
+          //  أعضاء بدون كوتش متعيّن
+          return !((member as any).coachId)
         }
         return true
       })
@@ -576,6 +579,7 @@ function MembersPageContent() {
     if (filterStatus === 'active') return isActiveNow
     if (filterStatus === 'has-remaining') return member.remainingAmount > 0
     if (filterStatus === 'other') return member.memberNumber === null
+    if (filterStatus === 'no-coach') return !((member as any).coachId)
     return true
   }
 
@@ -596,6 +600,7 @@ function MembersPageContent() {
     }).length,
     hasRemaining: membersData.filter(m => m.remainingAmount > 0).length,
     other: membersData.filter(m => m.memberNumber === null).length,
+    noCoach: membersData.filter(m => !((m as any).coachId)).length, //  أعضاء بدون كوتش
     packageMonth: membersData.filter(m => {
       if (!filterByStatus(m)) return false
       if (!m.startDate || !m.expiryDate) return false
@@ -1021,6 +1026,7 @@ function MembersPageContent() {
             { id: 'expired', dot: 'bg-red-500', label: t('members.expiredMembers'), count: stats.expired, activeBg: 'bg-red-600 text-white ring-red-600', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700' },
             ...(stats.other > 0 ? [{ id: 'other', dot: 'bg-gray-400', label: locale === 'ar' ? 'بدون عضوية' : 'Non-Members', count: stats.other, activeBg: 'bg-gray-600 text-white ring-gray-600', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700' }] : []),
             ...(settings.remainingEnabled && stats.hasRemaining > 0 ? [{ id: 'has-remaining', dot: 'bg-amber-500', label: locale === 'ar' ? 'بواقي' : 'Has Remaining', count: stats.hasRemaining, activeBg: 'bg-amber-600 text-white ring-amber-600', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700' }] : []),
+            ...(stats.noCoach > 0 ? [{ id: 'no-coach', dot: 'bg-purple-500', label: locale === 'ar' ? '🏋️ بدون كوتش' : '🏋️ No Coach', count: stats.noCoach, activeBg: 'bg-purple-600 text-white ring-purple-600', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700' }] : []),
             ...(hasPermission('canManageBannedMembers') ? [{ id: 'banned', dot: 'bg-red-700', label: locale === 'ar' ? 'محظورون' : 'Banned', count: bannedMembers.length, activeBg: 'bg-red-800 text-white ring-red-800', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700' }] : [])
           ] as const).map(chip => {
             const isActive = filterStatus === chip.id
@@ -1121,6 +1127,7 @@ function MembersPageContent() {
             { id: 'expired', label: t('members.expiredMembers'), count: stats.expired, activeBg: 'bg-red-600 text-white', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' },
             ...(stats.other > 0 ? [{ id: 'other', label: locale === 'ar' ? 'بدون عضوية' : 'Non-Members', count: stats.other, activeBg: 'bg-gray-600 text-white', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' }] : []),
             ...(settings.remainingEnabled && stats.hasRemaining > 0 ? [{ id: 'has-remaining', label: locale === 'ar' ? 'بواقي' : 'Remaining', count: stats.hasRemaining, activeBg: 'bg-amber-600 text-white', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' }] : []),
+            ...(stats.noCoach > 0 ? [{ id: 'no-coach', label: locale === 'ar' ? '🏋️ بدون كوتش' : '🏋️ No Coach', count: stats.noCoach, activeBg: 'bg-purple-600 text-white', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' }] : []),
             ...(hasPermission('canManageBannedMembers') ? [{ id: 'banned', label: locale === 'ar' ? 'محظور' : 'Banned', count: bannedMembers.length, activeBg: 'bg-red-800 text-white', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' }] : []),
           ] as const).map(chip => {
             const isActive = filterStatus === chip.id
@@ -1205,6 +1212,7 @@ function MembersPageContent() {
                     { id: 'expired', dot: 'bg-red-500', label: t('members.expiredMembers'), count: stats.expired, activeBg: 'bg-red-600 text-white ring-red-600', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' },
                     ...(stats.other > 0 ? [{ id: 'other', dot: 'bg-gray-400', label: locale === 'ar' ? 'بدون عضوية' : 'Non-Members', count: stats.other, activeBg: 'bg-gray-600 text-white ring-gray-600', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' }] : []),
                     ...(settings.remainingEnabled && stats.hasRemaining > 0 ? [{ id: 'has-remaining', dot: 'bg-amber-500', label: locale === 'ar' ? 'بواقي' : 'Has Remaining', count: stats.hasRemaining, activeBg: 'bg-amber-600 text-white ring-amber-600', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' }] : []),
+                    ...(stats.noCoach > 0 ? [{ id: 'no-coach', dot: 'bg-purple-500', label: locale === 'ar' ? '🏋️ بدون كوتش' : '🏋️ No Coach', count: stats.noCoach, activeBg: 'bg-purple-600 text-white ring-purple-600', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' }] : []),
                     ...(hasPermission('canManageBannedMembers') ? [{ id: 'banned', dot: 'bg-red-700', label: locale === 'ar' ? 'محظورون' : 'Banned', count: bannedMembers.length, activeBg: 'bg-red-800 text-white ring-red-800', inactiveBg: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-gray-200 dark:ring-gray-700' }] : []),
                   ] as const).map(chip => {
                     const isActive = filterStatus === chip.id
@@ -1585,7 +1593,7 @@ function MembersPageContent() {
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{locale === 'ar' ? 'رقم الهاتف' : 'Phone'}</label>
-                    <input type="text" value={banForm.phone} onChange={e => setBanForm(f => ({ ...f, phone: e.target.value }))}
+                    <input type="text" value={banForm.phone} onChange={e => setBanForm(f => ({ ...f, phone: e.target.value.replace(/s/g, '') }))}
                       className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200 text-sm font-mono"
                       placeholder="01xxxxxxxxx" />
                   </div>

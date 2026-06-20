@@ -25,3 +25,14 @@ export function isPathInsideMembersUploads(filepath: string): boolean {
   const uploadsRoot = path.resolve(getMembersUploadsDir())
   return resolved.startsWith(uploadsRoot + path.sep) || resolved === uploadsRoot
 }
+
+//  Staff check-in selfie uploads (anti buddy-punching)
+export function getStaffCheckinUploadsDir(): string {
+  const isElectron = process.env.UPLOADS_PATH !== undefined
+  if (isElectron && process.env.UPLOADS_PATH) {
+    return path.join(process.env.UPLOADS_PATH, 'staff-checkin')
+  }
+  return path.join(process.cwd(), 'public', 'uploads', 'staff-checkin')
+}
+
+export const STAFF_CHECKIN_UPLOADS_URL_PREFIX = '/uploads/staff-checkin/'

@@ -704,13 +704,16 @@ export default function PTPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
-          <button
-            onClick={() => router.push('/pt/commission')}
-            className="flex-1 min-w-[140px] sm:flex-none bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 inline-flex items-center justify-center gap-2 text-sm sm:text-base"
-          >
-            <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
-            <span>{t('pt.commissionCalculator')}</span>
-          </button>
+          {/*  زرار حاسبة الـ commission — يظهر بس للأدمن/كوتش أو اللي عنده canAccessPTCommission */}
+          {(user?.role === 'OWNER' || user?.role === 'ADMIN' || isCoach || hasPermission('canAccessPTCommission')) && (
+            <button
+              onClick={() => router.push('/pt/commission')}
+              className="flex-1 min-w-[140px] sm:flex-none bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 inline-flex items-center justify-center gap-2 text-sm sm:text-base"
+            >
+              <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
+              <span>{t('pt.commissionCalculator')}</span>
+            </button>
+          )}
           <button
             onClick={() => router.push('/pt/sessions/history')}
             className="flex-1 min-w-[140px] sm:flex-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg transition-colors duration-200 inline-flex items-center justify-center gap-2 text-sm sm:text-base"
@@ -805,7 +808,7 @@ export default function PTPage() {
                   type="tel"
                   required
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/s/g, '') })}
                   className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   placeholder={t('pt.phonePlaceholder')}
                 />

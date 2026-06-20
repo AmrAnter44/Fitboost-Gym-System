@@ -2709,7 +2709,7 @@ export default function MemberDetailPage() {
  <input
  type="tel"
  value={editBasicInfoData.phone}
- onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, phone: e.target.value })}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, phone: e.target.value.replace(/s/g, '') })}
  className="w-full px-2 py-1.5 border rounded text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  placeholder={t('memberDetails.editModal.fields.phonePlaceholder')}
  dir="ltr"
@@ -2966,17 +2966,15 @@ export default function MemberDetailPage() {
  </div>
  </div>
 
- {/* Coach Selector */}
- {settings.ptCommissionEnabled && (
+ {/* Coach Selector — يظهر دايماً بغض النظر عن إعداد PT Commission */}
  <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">
- <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">الكوتش المسؤول</h4>
+ <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-white">🏋️ الكوتش المسؤول</h4>
  <CoachSelector
  value={editBasicInfoData.coachId}
  onChange={(coachId) => setEditBasicInfoData({ ...editBasicInfoData, coachId })}
  required={false}
  />
  </div>
- )}
 
  {/* Sales Staff Selector */}
  <div className="col-span-2 md:col-span-3 border-t pt-3 mt-1">

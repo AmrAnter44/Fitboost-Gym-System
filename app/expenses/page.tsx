@@ -85,6 +85,7 @@ export default function ExpensesPage() {
     notes: '',
     staffId: '',
     createdAt: '',
+    paymentMethod: 'cash' as 'cash' | 'instapay' | 'wallet', //  البنك اللي بنخصم منه
   })
 
   // Error handling for expenses query
@@ -111,6 +112,7 @@ export default function ExpensesPage() {
       notes: expense.notes || '',
       staffId: expense.staff?.id || '',
       createdAt: new Date(expense.createdAt).toISOString().split('T')[0],
+      paymentMethod: ((expense as any).paymentMethod || 'cash') as 'cash' | 'instapay' | 'wallet',
     })
     setShowForm(true)
   }
@@ -158,6 +160,7 @@ export default function ExpensesPage() {
           notes: '',
           staffId: '',
           createdAt: '',
+          paymentMethod: 'cash',
         })
 
         toast.success(t('expenses.messages.addSuccess'))
@@ -183,6 +186,7 @@ export default function ExpensesPage() {
         amount: formData.amount,
         description: formData.description,
         createdAt: formData.createdAt,
+        paymentMethod: formData.paymentMethod, //  البنك اللي اتخصم منه
       }
 
       const response = await fetch('/api/expenses', {
@@ -199,6 +203,7 @@ export default function ExpensesPage() {
           notes: '',
           staffId: '',
           createdAt: '',
+          paymentMethod: 'cash',
         })
         setEditingExpense(null)
         toast.success(t('expenses.messages.updateSuccess'))
@@ -395,6 +400,7 @@ export default function ExpensesPage() {
                 notes: '',
                 staffId: '',
                 createdAt: '',
+                paymentMethod: 'cash',
               })
               setShowForm(true)
             }}
@@ -616,6 +622,41 @@ export default function ExpensesPage() {
                   />
                 </div>
               )}
+            </div>
+
+            {/*  اختيار البنك اللي اتخصم منه المصروف */}
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                💳 {direction === 'rtl' ? 'البنك اللي اتخصم منه المصروف' : 'Deduct from'}
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { id: 'cash',     label: direction === 'rtl' ? '💵 كاش'     : '💵 Cash',     activeBg: 'bg-green-600 ring-green-700' },
+                  { id: 'instapay', label: direction === 'rtl' ? '📲 إنستا باي' : '📲 Instapay', activeBg: 'bg-blue-600 ring-blue-700' },
+                  { id: 'wallet',   label: direction === 'rtl' ? '👛 محفظة'   : '👛 Wallet',   activeBg: 'bg-purple-600 ring-purple-700' },
+                ] as const).map(opt => {
+                  const isActive = formData.paymentMethod === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, paymentMethod: opt.id })}
+                      className={`px-3 py-2.5 rounded-lg text-sm font-bold transition-all ring-2 ${
+                        isActive
+                          ? `${opt.activeBg} text-white shadow-md`
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 ring-gray-200 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                {direction === 'rtl'
+                  ? '💡 المصروف هيتخصم من الفلوس الفعلية في البنك المختار وقت التقفيل'
+                  : '💡 The expense will be deducted from the selected payment bucket in the closing report'}
+              </p>
             </div>
 
             {/* الملاحظات */}

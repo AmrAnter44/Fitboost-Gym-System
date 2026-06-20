@@ -91,6 +91,7 @@ export interface Permissions {
   canViewAttendance: boolean
   canAccessClosing: boolean
   canCloseDayOnly: boolean  // 📅 صلاحية اليوم — يقدر يقفّل اليوم/أمس/غدا فقط (بدون شهري/سنوي)
+  canAccessPTCommission: boolean  //  صلاحية الوصول لصفحة تقفيل/حاسبة الـ PT
 
   // صلاحيات الإعدادات والإدارة
   canAccessSettings: boolean
@@ -248,6 +249,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewAttendance: true,
     canAccessClosing: true,
     canCloseDayOnly: true,
+    canAccessPTCommission: true,
     canAccessSettings: true,
     canAccessAdmin: true,
     canViewSpaBookings: true,
@@ -330,6 +332,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewAttendance: true,
     canAccessClosing: true,
     canCloseDayOnly: true,
+    canAccessPTCommission: true,
     canAccessSettings: true,
     canAccessAdmin: true,
     canViewSpaBookings: true,
@@ -412,6 +415,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewAttendance: true,
     canAccessClosing: true,
     canCloseDayOnly: true,
+    canAccessPTCommission: true,
     canAccessSettings: false,
     canAccessAdmin: false,
     canViewSpaBookings: true,
@@ -494,6 +498,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewAttendance: false,
     canAccessClosing: false,
     canCloseDayOnly: false,
+    canAccessPTCommission: false,
     canAccessSettings: false,
     canAccessAdmin: false,
     canViewSpaBookings: true,
@@ -577,6 +582,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canViewAttendance: false,
     canAccessClosing: false,
     canCloseDayOnly: false,
+    canAccessPTCommission: false,
     canAccessSettings: false,
     canAccessAdmin: false,
     canViewSpaBookings: false,
@@ -664,6 +670,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canViewAttendance: 'عرض الحضور',
   canAccessClosing: 'التقفيل الكامل (يومي/شهري/سنوي)',
   canCloseDayOnly: 'صلاحية اليوم (أمس/اليوم/غدا فقط)',
+  canAccessPTCommission: 'تقفيل/حاسبة الـ PT',
   canAccessSettings: 'الوصول للإعدادات',
   canAccessAdmin: 'الوصول للوحة الإدارة',
   canViewSpaBookings: 'عرض حجوزات SPA',
@@ -818,6 +825,7 @@ export const PERMISSION_GROUPS = {
     permissions: [
       'canAccessClosing',
       'canCloseDayOnly',
+      'canAccessPTCommission',
     ] as Array<keyof Permissions>,
   },
   settings: {
@@ -941,6 +949,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canViewAttendance: '📋',
   canAccessClosing: '🔒',
   canCloseDayOnly: '📅',
+  canAccessPTCommission: '🏋️',
   canAccessSettings: '⚙️',
   canAccessAdmin: '👨‍💼',
   canViewSpaBookings: '👁️',

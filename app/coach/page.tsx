@@ -994,17 +994,30 @@ export default function CoachDashboard() {
                         <p className="text-xs text-gray-600 dark:text-gray-300 font-bold mb-2">
                            {t('coachDashboard.recentSessions')} ({pt.sessions.length})
                         </p>
-                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {pt.sessions.slice(0, 3).map((session) => (
-                            <div key={session.id} className="bg-white dark:bg-gray-700 rounded p-2 text-xs flex justify-between items-center">
-                              <span className="text-gray-800 dark:text-gray-200">{new Date(session.sessionDate).toLocaleDateString(dateLocale)}</span>
-                              {session.attended ? (
-                                <span className="text-green-600 dark:text-green-400 font-bold"> {t('coachDashboard.attended')}</span>
-                              ) : (
-                                <span className="text-orange-600 dark:text-orange-400 font-bold"> {t('coachDashboard.registered')}</span>
-                              )}
-                            </div>
-                          ))}
+                        {/*  بنعرض كل الحصص بترتيب الأحدث الأول، مع scroll لو كتيرة
+                            (قبل كده كان بيعرض 3 فقط فالحضور الجديد بعد كده ما كانش يظهر) */}
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {[...pt.sessions]
+                            .sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime())
+                            .map((session) => {
+                              const dt = new Date(session.sessionDate)
+                              const dateStr = dt.toLocaleDateString(dateLocale)
+                              //  الوقت مع الساعة والدقيقة
+                              const timeStr = dt.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', hour12: true })
+                              return (
+                                <div key={session.id} className="bg-white dark:bg-gray-700 rounded p-2 text-xs flex justify-between items-center">
+                                  <div className="text-gray-800 dark:text-gray-200 flex flex-col">
+                                    <span>{dateStr}</span>
+                                    <span className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">🕐 {timeStr}</span>
+                                  </div>
+                                  {session.attended ? (
+                                    <span className="text-green-600 dark:text-green-400 font-bold"> {t('coachDashboard.attended')}</span>
+                                  ) : (
+                                    <span className="text-orange-600 dark:text-orange-400 font-bold"> {t('coachDashboard.registered')}</span>
+                                  )}
+                                </div>
+                              )
+                            })}
                         </div>
                       </div>
                     )}
