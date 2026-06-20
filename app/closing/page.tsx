@@ -1701,16 +1701,13 @@ export default function ClosingPage() {
                       <div className="bg-gray-50 dark:bg-gray-900/40 p-3 sm:p-4 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700">
                         <h3 className="font-bold text-base sm:text-lg mb-3 text-gray-900 dark:text-gray-100 inline-flex items-center gap-2">{IconCard}<span>{t('closing.paymentMethods.title')}</span></h3>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
+                          {/*  المصاريف كلها بتتخصم من الكاش (السلوك القديم) — paymentMethod للتسجيل فقط */}
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-green-200 dark:ring-green-900/50">
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconCash}<span>{t('closing.paymentMethods.cash')}</span></p>
                             <p className="text-lg font-bold text-green-700 dark:text-green-400 mt-1">{day.cash > 0 ? day.cash.toFixed(0) : '0'}</p>
                             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                               <p className="text-xs text-gray-500 dark:text-gray-400">{t('closing.paymentMethods.netCash')}</p>
-                              {/*  بنخصم فقط الـ expenses اللي اتدفعت كاش */}
-                              <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.cash - day.expensesCash).toFixed(0)} {t('closing.currency')}</p>
-                              {day.expensesCash > 0 && (
-                                <p className="text-[10px] text-red-500 dark:text-red-400 mt-0.5">-{day.expensesCash.toFixed(0)} {direction === 'rtl' ? 'مصروف' : 'expense'}</p>
-                              )}
+                              <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.cash - day.expenses).toFixed(0)} {t('closing.currency')}</p>
                             </div>
                           </div>
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-primary-200 dark:ring-primary-900/50">
@@ -1720,24 +1717,10 @@ export default function ClosingPage() {
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-primary-200 dark:ring-primary-900/50">
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconPhone}<span>{t('closing.paymentMethods.instapay')}</span></p>
                             <p className="text-lg font-bold text-primary-700 dark:text-primary-400 mt-1">{day.instapay > 0 ? day.instapay.toFixed(0) : '0'}</p>
-                            {day.expensesInstapay > 0 && (
-                              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{direction === 'rtl' ? 'صافي' : 'Net'}</p>
-                                <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.instapay - day.expensesInstapay).toFixed(0)} {t('closing.currency')}</p>
-                                <p className="text-[10px] text-red-500 dark:text-red-400 mt-0.5">-{day.expensesInstapay.toFixed(0)} {direction === 'rtl' ? 'مصروف' : 'expense'}</p>
-                              </div>
-                            )}
                           </div>
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-orange-200 dark:ring-orange-900/50">
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconWallet}<span>{t('closing.paymentMethods.wallet')}</span></p>
                             <p className="text-lg font-bold text-orange-700 dark:text-orange-400 mt-1">{day.wallet > 0 ? day.wallet.toFixed(0) : '0'}</p>
-                            {day.expensesWallet > 0 && (
-                              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{direction === 'rtl' ? 'صافي' : 'Net'}</p>
-                                <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.wallet - day.expensesWallet).toFixed(0)} {t('closing.currency')}</p>
-                                <p className="text-[10px] text-red-500 dark:text-red-400 mt-0.5">-{day.expensesWallet.toFixed(0)} {direction === 'rtl' ? 'مصروف' : 'expense'}</p>
-                              </div>
-                            )}
                           </div>
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-amber-200 dark:ring-amber-900/50">
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconTrophy}<span>{t('closing.paymentMethods.points')}</span></p>
