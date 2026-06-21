@@ -1017,7 +1017,7 @@ export default function MemberDetailPage() {
 
               <div>
                 <label className="block text-[8px] mb-0 text-gray-700 dark:text-gray-300 font-bold">الهاتف</label>
-                <input type="text" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value.replace(/s/g, '') })}
+                <input type="text" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
                   className="w-full px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-500" />
               </div>
 

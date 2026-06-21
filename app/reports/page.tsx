@@ -412,6 +412,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
     return (receipts || [])
+      .filter((r: any) => !r.isCancelled) //  استبعاد الملغية — مطابق للتقفيل
       .filter((r: any) => isPTReceipt(r.type))
       .filter((r: any) => {
         const d = new Date(r.createdAt)
