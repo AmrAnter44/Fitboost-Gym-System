@@ -2736,7 +2736,7 @@ export default function MemberDetailPage() {
  <input
  type="tel"
  value={editBasicInfoData.phone}
- onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, phone: e.target.value.replace(/s/g, '') })}
+ onChange={(e) => setEditBasicInfoData({ ...editBasicInfoData, phone: e.target.value })}
  className="w-full px-2 py-1.5 border rounded text-sm font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-white"
  placeholder={t('memberDetails.editModal.fields.phonePlaceholder')}
  dir="ltr"
