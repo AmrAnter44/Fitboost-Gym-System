@@ -11,6 +11,7 @@ import { fetchPTSessions } from '../../lib/api/pt'
 import { fetchStaff } from '../../lib/api/staff'
 import { useToast } from '../../contexts/ToastContext'
 import { LoadingScreen } from '../../components/Spinner'
+import { isPTReceipt } from '../../lib/translateReceiptType'
 
 export const dynamic = 'force-dynamic'
 
@@ -393,6 +394,8 @@ function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: an
 function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale, t }: any) {
   const toast = useToast()
   const { data: ptList = [], isLoading } = useQuery({ queryKey: ['pt-report'], queryFn: fetchPTSessions })
+  //  جلب الإيصالات كمان عشان نحسب الـ revenue الفعلي (مطابق للتقفيل الشهري)
+  const { data: receipts = [], isLoading: receiptsLoading } = useQuery({ queryKey: ['pt-report-receipts'], queryFn: fetchReceipts })
 
   const filtered = useMemo(() => {
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
@@ -403,7 +406,20 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
     })
   }, [ptList, dateFrom, dateTo])
 
-  const totalRevenue = useMemo(() => filtered.reduce((s: number, p: any) => s + ((p.sessionsPurchased || 0) * (p.pricePerSession || 0)), 0), [filtered])
+  //  totalRevenue من إيصالات PT الفعلية في النطاق — مطابق للتقفيل الشهري
+  // (قبل كده كان sessionsPurchased × pricePerSession اللي بيرجّع السعر الكامل مش الفلوس المحصّلة)
+  const totalRevenue = useMemo(() => {
+    const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
+    const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
+    return (receipts || [])
+      .filter((r: any) => isPTReceipt(r.type))
+      .filter((r: any) => {
+        const d = new Date(r.createdAt)
+        return d >= from && d <= to
+      })
+      .reduce((s: number, r: any) => s + (r.amount || 0), 0)
+  }, [receipts, dateFrom, dateTo])
+
   const totalRemaining = useMemo(() => filtered.reduce((s: number, p: any) => s + (p.remainingAmount || 0), 0), [filtered])
 
   const exportExcel = async () => {
@@ -422,6 +438,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
         row.alignment = { horizontal: 'center', vertical: 'middle' }
       })
 
+      //  totalRevenue من إيصالات PT الفعلية في النطاق (مطابق للتقفيل الشهري)
       const totRow = ws.addRow(['', '', '', t('reports.total' as any), '', '', '', totalRevenue, totalRemaining, '', ''])
       totRow.font = { bold: true, size: 13, name: 'Arial' }
       totRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD700' } }
@@ -434,7 +451,7 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
     } catch { toast.error(t('reports.exportError' as any)) }
   }
 
-  if (isLoading) return <Loading />
+  if (isLoading || receiptsLoading) return <Loading />
 
   return (
     <div>
@@ -443,6 +460,13 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
           <IconDownload className="w-4 h-4" />
           <span>{t('reports.exportExcel' as any)}</span>
         </button>
+      </div>
+
+      {/*  ملاحظة توضيحية: الـ Total Revenue من الإيصالات الفعلية (مطابق للتقفيل) */}
+      <div className="mb-3 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-700 text-xs text-blue-800 dark:text-blue-200">
+        💡 {locale === 'ar'
+          ? 'إجمالي الإيرادات بيتحسب من الإيصالات الفعلية في النطاق المحدد (مطابق للتقفيل الشهري)'
+          : 'Total Revenue is calculated from actual receipts in the date range (matches monthly closing)'}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">

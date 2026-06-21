@@ -26,19 +26,20 @@ export async function GET(
       return NextResponse.json({ error: 'Member not found' }, { status: 404 })
     }
 
-    // البحث عن Visitor بنفس رقم الهاتف
-    const visitor = await prisma.visitor.findFirst({
+    //  البحث عن كل الـ Visitor records بنفس رقم الهاتف
+    // (ممكن يكون فيه أكتر من visitor record نفس التليفون لو اتعمل من مصادر مختلفة)
+    const visitors = await prisma.visitor.findMany({
       where: { phone: member.phone },
       select: { id: true }
     })
 
-    if (!visitor) {
+    if (visitors.length === 0) {
       return NextResponse.json([])
     }
 
-    // جلب كل المتابعات لهذا الفيزيتور (بما فيهم archived)
+    // جلب كل المتابعات لهؤلاء الفيزيتورز (بما فيهم archived)
     const followUps = await prisma.followUp.findMany({
-      where: { visitorId: visitor.id },
+      where: { visitorId: { in: visitors.map(v => v.id) } },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

@@ -104,6 +104,9 @@
 
 
 
+
+
+
 /* Dark Mode Colors */
 .dark {
   /* Dark Mode Primary Colors */
@@ -777,7 +780,9 @@ table {
 .toggle-thumb {
   position: absolute;
   top: 0.25rem;
-  left: 0.25rem;
+  /*  inset-inline-start بيتعامل مع LTR/RTL تلقائياً
+       (left في LTR، right في RTL) — ما يحتاجش override يدوي */
+  inset-inline-start: 0.25rem;
   width: 1.5rem;
   height: 1.5rem;
   background-color: white;
@@ -790,17 +795,14 @@ table {
   background-color: #10b981;
 }
 
-[dir="ltr"] .toggle-switch input[type="checkbox"]:checked + .toggle-track .toggle-thumb {
+/*  Default = LTR (الـ rule بتشتغل من غير ما الصفحة تحدد dir="ltr" صريح) */
+.toggle-switch input[type="checkbox"]:checked + .toggle-track .toggle-thumb {
   transform: translateX(1.5rem);
 }
 
+/*  RTL override — لو الصفحة dir="rtl" بنعكس اتجاه الـ translate */
 [dir="rtl"] .toggle-switch input[type="checkbox"]:checked + .toggle-track .toggle-thumb {
   transform: translateX(-1.5rem);
-}
-
-[dir="rtl"] .toggle-thumb {
-  left: auto;
-  right: 0.25rem;
 }
 
 .toggle-switch input[type="checkbox"]:focus-visible + .toggle-track {

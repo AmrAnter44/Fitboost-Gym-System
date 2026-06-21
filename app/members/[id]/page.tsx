@@ -10,6 +10,7 @@ import Link from 'next/link'
 import RenewalForm from '../../../components/RenewalForm'
 import UpgradeForm from '../../../components/UpgradeForm'
 import TransferMembershipForm from '../../../components/TransferMembershipForm'
+import QuickMemberFollowUpModal from '../../../components/QuickMemberFollowUpModal'
 import ImageUpload from '../../../components/ImageUpload'
 import { LoadingScreen } from '../../../components/Spinner'
 import { formatDateYMD, calculateRemainingDays } from '../../../lib/dateFormatter'
@@ -177,9 +178,12 @@ export default function MemberDetailPage() {
  const [showReceipt, setShowReceipt] = useState(false)
  const [receiptData, setReceiptData] = useState<any>(null)
  const [showRenewalForm, setShowRenewalForm] = useState(false)
+ //  متابعة سريعة على العضو
+ const [showQuickFollowUp, setShowQuickFollowUp] = useState(false)
  const [followUpHistory, setFollowUpHistory] = useState<any[]>([])
  const [followUpHistoryLoading, setFollowUpHistoryLoading] = useState(false)
- const [showFollowUpHistory, setShowFollowUpHistory] = useState(false)
+ //  مفتوحة افتراضياً عشان اليوزر يشوف سجل المتابعات على طول
+ const [showFollowUpHistory, setShowFollowUpHistory] = useState(true)
  const [showUpgradeForm, setShowUpgradeForm] = useState(false)
  const [showTransferForm, setShowTransferForm] = useState(false)
  const [lastReceiptNumber, setLastReceiptNumber] = useState<number | null>(null)
@@ -390,6 +394,8 @@ export default function MemberDetailPage() {
 
  // جلب آخر إيصال للعضو
  fetchLastReceipt(memberId)
+ //  جلب سجل المتابعات على طول عشان يظهر في القسم
+ fetchFollowUpHistory()
  } else {
  toast.error(t('memberDetails.memberNotFound'))
  }
@@ -2378,6 +2384,27 @@ export default function MemberDetailPage() {
  {locale === 'ar' ? 'إجراءات العضوية' : 'Membership Actions'}
  </h3>
  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+ {/*  متابعة سريعة — تشتغل على أي عضو (نشط/منتهي/قارب على الانتهاء) */}
+ {hasPermission('canCreateFollowUp') && (
+ <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-purple-500`}>
+ <div className="flex items-center justify-between mb-2">
+ <p className="text-xs text-gray-600 dark:text-white font-semibold truncate">
+ 📞 {locale === 'ar' ? 'متابعة سريعة' : 'Quick Follow-up'}
+ </p>
+ </div>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 min-h-[2rem]">
+ {locale === 'ar' ? 'سجّل متابعة فورية على العضو ده' : 'Add a quick follow-up for this member'}
+ </p>
+ <button
+ onClick={() => setShowQuickFollowUp(true)}
+ disabled={loading}
+ className="w-full bg-purple-600 text-white text-xs py-1.5 rounded hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-bold"
+ >
+ {locale === 'ar' ? '+ إضافة متابعة' : '+ Add Follow-up'}
+ </button>
+ </div>
+ )}
+
  {/* Renewal */}
  {hasPermission('canCreateMembers') && (
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-green-500`}>
@@ -3891,8 +3918,13 @@ export default function MemberDetailPage() {
  <div className="flex items-center justify-between mb-4">
  <div className="flex items-center gap-3">
  
- <h3 className="text-lg font-bold text-gray-900 dark:text-white">
- {locale === 'ar' ? 'سجل المتابعات' : 'Follow-up History'}
+ <h3 className="text-lg font-bold text-gray-900 dark:text-white inline-flex items-center gap-2">
+ 📞 {locale === 'ar' ? 'سجل المتابعات' : 'Follow-up History'}
+ {followUpHistory.length > 0 && (
+ <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+ {followUpHistory.length}
+ </span>
+ )}
  </h3>
  </div>
  <button
@@ -3972,6 +4004,22 @@ export default function MemberDetailPage() {
  </div>
 
  {/* نموذج التجديد */}
+ {/*  Quick Follow-up Modal */}
+ {member && (
+ <QuickMemberFollowUpModal
+ isOpen={showQuickFollowUp}
+ onClose={() => setShowQuickFollowUp(false)}
+ onSuccess={() => fetchFollowUpHistory()} //  refresh السجل بعد إضافة متابعة جديدة
+ member={{
+ id: member.id,
+ name: member.name,
+ phone: member.phone,
+ isActive: !!member.isActive,
+ expiryDate: member.expiryDate || null,
+ }}
+ />
+ )}
+
  {showRenewalForm && (
  <RenewalForm
  member={member}

@@ -34,10 +34,20 @@ export default function CoachMyMembers() {
     step: 'confirm' | 'loading' | 'success' | 'error'
     message: string
   }>({ show: false, member: null, step: 'confirm', message: '' })
+  //  تكبير صورة العميل عند الضغط عليها
+  const [enlargedImage, setEnlargedImage] = useState<{ url: string; name: string } | null>(null)
 
   useEffect(() => {
     checkAuth()
   }, [])
+
+  //  Esc يقفل مودال الصورة
+  useEffect(() => {
+    if (!enlargedImage) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setEnlargedImage(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [enlargedImage])
 
   const checkAuth = async () => {
     try {
@@ -211,15 +221,34 @@ export default function CoachMyMembers() {
                           ? 'bg-red-50 dark:bg-red-900/10'
                           : 'bg-gray-50 dark:bg-gray-900/40'
                   }`}>
-                    <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 flex items-center justify-center">
-                      {member.profileImage ? (
-                        <img src={member.profileImage} alt={member.name} className="w-full h-full object-cover" />
-                      ) : (
+                    {/*  صورة العميل — قابلة للضغط للتكبير */}
+                    {member.profileImage ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          setEnlargedImage({ url: member.profileImage!, name: member.name })
+                        }}
+                        className="relative w-14 h-14 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 cursor-zoom-in hover:ring-2 hover:ring-primary-400 hover:scale-105 transition-all shadow-md"
+                        title={locale === 'ar' ? 'اضغط للتكبير' : 'Click to enlarge'}
+                        aria-label={locale === 'ar' ? 'تكبير الصورة' : 'Enlarge photo'}
+                      >
+                        <img src={member.profileImage} alt={member.name} className="w-full h-full object-cover pointer-events-none" />
+                        {/*  Icon زووم صغير في الكورنر */}
+                        <span className="absolute bottom-0 end-0 bg-primary-600 text-white rounded-full p-0.5 shadow-md">
+                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zm-7-3v6m-3-3h6" />
+                          </svg>
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 flex items-center justify-center">
                         <svg {...stroke} className="w-7 h-7 text-gray-400 dark:text-gray-300">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                         </svg>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-gray-900 dark:text-gray-100 truncate text-base">{member.name}</h3>
@@ -453,6 +482,37 @@ export default function CoachMyMembers() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/*  مودال تكبير صورة العميل */}
+      {enlargedImage && (
+        <div
+          className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4"
+          onClick={() => setEnlargedImage(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            onClick={() => setEnlargedImage(null)}
+            className="absolute top-4 end-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors"
+            aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="max-w-2xl w-full flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={enlargedImage.url}
+              alt={enlargedImage.name}
+              className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl"
+            />
+            <div className="mt-4 px-5 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white text-lg font-bold">
+              {enlargedImage.name}
+            </div>
           </div>
         </div>
       )}

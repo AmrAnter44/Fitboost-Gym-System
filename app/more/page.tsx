@@ -255,7 +255,8 @@ export default function MorePage() {
   }
 
   const filterSubscriptions = () => {
-    let filtered = [...moreSubscriptions]
+    //  استبعاد الاشتراكات المعطّلة (اللي اتجدّدت) عشان مايتكررش الكارت
+    let filtered = moreSubscriptions.filter(sub => sub.isActive !== false)
 
     if (searchTerm) {
       filtered = filtered.filter(sub =>

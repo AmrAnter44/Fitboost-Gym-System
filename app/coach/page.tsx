@@ -29,6 +29,7 @@ interface PTData {
   expiryDate: string | null
   remainingAmount: number | null
   sessions: PTSessionData[]
+  profileImage?: string | null //  صورة العميل من جدول Member
 }
 
 interface PTSessionData {
@@ -124,6 +125,15 @@ export default function CoachDashboard() {
   } | null>(null)
   //  Flag بيحدد إذا الميزة مفعّلة من حاسبة التحصيل
   const [useSeparateCoachTarget, setUseSeparateCoachTarget] = useState<boolean | null>(null)
+  //  تكبير صورة العميل عند الضغط عليها
+  const [enlargedImage, setEnlargedImage] = useState<{ url: string; name: string } | null>(null)
+  //  Esc يقفل مودال الصورة
+  useEffect(() => {
+    if (!enlargedImage) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setEnlargedImage(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [enlargedImage])
 
   const dateLocale = locale === 'ar' ? 'ar-EG' : 'en-US'
 
@@ -307,11 +317,14 @@ export default function CoachDashboard() {
   })
 
   // Filter More subscriptions based on the same active/expired tab
+  //  استبعاد الاشتراكات المعطّلة (اللي اتجدّدت) عشان مايظهروش كروت مكررة
   const activeMore = myMore.filter(m => {
+    if ((m as any).isActive === false) return false
     const expired = m.expiryDate ? new Date(m.expiryDate) < new Date() : false
     return !expired && m.sessionsRemaining > 0
   })
   const expiredMore = myMore.filter(m => {
+    if ((m as any).isActive === false) return false
     const expired = m.expiryDate ? new Date(m.expiryDate) < new Date() : false
     return expired || m.sessionsRemaining <= 0
   })
@@ -881,6 +894,36 @@ export default function CoachDashboard() {
                       </div>
                     )}
 
+                    {/*  صورة العميل — قابلة للضغط للتكبير
+                         شيلت الـ disabled prop عشان الضغط يشتغل صح، وضفت z-10 عشان يبقى فوق العناصر التانية */}
+                    {pt.profileImage ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEnlargedImage({ url: pt.profileImage!, name: pt.clientName })
+                        }}
+                        className={`absolute top-3 ${locale === 'ar' ? 'start-3' : 'end-3'} w-20 h-20 rounded-full overflow-hidden ring-2 ring-white dark:ring-gray-700 shadow-lg cursor-zoom-in hover:scale-105 hover:ring-primary-400 transition-all z-20`}
+                        aria-label={locale === 'ar' ? 'تكبير الصورة' : 'Enlarge photo'}
+                        title={locale === 'ar' ? 'اضغط للتكبير' : 'Click to enlarge'}
+                      >
+                        <img src={pt.profileImage} alt={pt.clientName} className="w-full h-full object-cover pointer-events-none" />
+                        {/*  Icon زووم صغير في الكورنر */}
+                        <span className="absolute bottom-0 end-0 bg-primary-600 text-white rounded-full p-1 shadow-md">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zm-7-3v6m-3-3h6" />
+                          </svg>
+                        </span>
+                      </button>
+                    ) : (
+                      <div
+                        className={`absolute top-3 ${locale === 'ar' ? 'start-3' : 'end-3'} w-20 h-20 rounded-full overflow-hidden ring-2 ring-white dark:ring-gray-700 shadow-lg flex items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900/50 dark:to-primary-800/50 text-primary-700 dark:text-primary-300 font-bold text-2xl z-10`}
+                        aria-label={locale === 'ar' ? 'بدون صورة' : 'No photo'}
+                      >
+                        {pt.clientName?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+
                     <div className="flex items-start justify-between mb-3">
                       <div className={`flex-1 min-w-0 ${locale === 'ar' ? 'ps-24' : 'ps-12'}`}>
                         <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 truncate">{pt.clientName}</h3>
@@ -1185,6 +1228,37 @@ export default function CoachDashboard() {
             sessionMessage.type === 'success' ? 'bg-green-600' : 'bg-red-600'
           }`}>
             {sessionMessage.text}
+          </div>
+        </div>
+      )}
+
+      {/*  مودال تكبير صورة العميل */}
+      {enlargedImage && (
+        <div
+          className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-backdrop-in"
+          onClick={() => setEnlargedImage(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            onClick={() => setEnlargedImage(null)}
+            className="absolute top-4 end-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors"
+            aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="max-w-2xl w-full flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={enlargedImage.url}
+              alt={enlargedImage.name}
+              className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl"
+            />
+            <div className="mt-4 px-5 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white text-lg font-bold">
+              {enlargedImage.name}
+            </div>
           </div>
         </div>
       )}

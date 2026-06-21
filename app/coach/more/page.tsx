@@ -80,12 +80,15 @@ export default function CoachMorePage() {
     }
   }
 
+  //  استبعاد المعطّل (اللي اتجدّد) عشان مايتكررش الكارت
   const activeMore = myMore.filter(m => {
+    if (m.isActive === false) return false
     if (!m.expiryDate) return true
     return new Date(m.expiryDate) >= new Date()
   })
 
   const expiredMore = myMore.filter(m => {
+    if (m.isActive === false) return false
     if (!m.expiryDate) return false
     return new Date(m.expiryDate) < new Date()
   })

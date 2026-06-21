@@ -129,6 +129,13 @@ export async function POST(request: Request) {
           data: newMoreData,
         })
 
+        //  تعطيل الاشتراك القديم عشان مايتكررش الكارت بعد التجديد
+        // (الكوتش كان بيشوف القديم + الجديد كاتنين كروت)
+        await tx.more.update({
+          where: { moreNumber: oldMore.moreNumber },
+          data: { isActive: false },
+        })
+
         // ✅ الحصول على رقم الإيصال التالي
         const receiptNumber = await getNextReceiptNumber(tx)
 
