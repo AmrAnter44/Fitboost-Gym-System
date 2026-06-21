@@ -35,6 +35,7 @@ interface NutritionistEarnings {
   completedSessions: number
   remainingSessions: number
   totalRevenue: number
+  serviceRevenue: number  //  تحصيل الخدمات فقط (التغذية) بدون قيمة الجلسات المجانية — يطابق كارت التارجت
   clients: number
 }
 
@@ -816,6 +817,7 @@ export default function NutritionCommissionPage() {
       completedSessions,
       remainingSessions,
       totalRevenue,
+      serviceRevenue: nutritionRevenue,  //  تحصيل التغذية بس (بدون قيمة الجلسات المجانية) — للجدول عشان يطابق الكارت
       clients,
     }
   }
@@ -2127,11 +2129,11 @@ export default function NutritionCommissionPage() {
               </thead>
               <tbody>
                 {allCoachesStats
-                  .filter((stat) => stat.earnings.totalRevenue > 0)
-                  .sort((a, b) => b.earnings.totalRevenue - a.earnings.totalRevenue)
+                  .filter((stat) => stat.earnings.serviceRevenue > 0)
+                  .sort((a, b) => b.earnings.serviceRevenue - a.earnings.serviceRevenue)
                   .map((stat) => {
-                    const percentage = calculatePercentage(stat.earnings.totalRevenue)
-                    const commission = (stat.earnings.totalRevenue * percentage) / 100
+                    const percentage = calculatePercentage(stat.earnings.serviceRevenue)
+                    const commission = (stat.earnings.serviceRevenue * percentage) / 100
 
                     return (
                       <tr key={stat.nutritionistName} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -2142,7 +2144,7 @@ export default function NutritionCommissionPage() {
                           {stat.earnings.completedSessions}
                         </td>
                         <td className="px-4 py-3 font-bold text-primary-600 dark:text-primary-400">
-                          {stat.earnings.totalRevenue.toLocaleString(localeString, {
+                          {stat.earnings.serviceRevenue.toLocaleString(localeString, {
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0,
                           })}
@@ -2182,7 +2184,7 @@ export default function NutritionCommissionPage() {
                   </td>
                   <td className="px-4 py-3 text-primary-600 dark:text-primary-400">
                     {allCoachesStats
-                      .reduce((sum, s) => sum + s.earnings.totalRevenue, 0)
+                      .reduce((sum, s) => sum + s.earnings.serviceRevenue, 0)
                       .toLocaleString(localeString, {
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0,
@@ -2193,8 +2195,8 @@ export default function NutritionCommissionPage() {
                   <td className="px-4 py-3 text-green-600 dark:text-green-400">
                     {allCoachesStats
                       .reduce((sum, s) => {
-                        const percentage = calculatePercentage(s.earnings.totalRevenue)
-                        return sum + (s.earnings.totalRevenue * percentage) / 100
+                        const percentage = calculatePercentage(s.earnings.serviceRevenue)
+                        return sum + (s.earnings.serviceRevenue * percentage) / 100
                       }, 0)
                       .toLocaleString(localeString, {
                         minimumFractionDigits: 0,
@@ -2207,7 +2209,7 @@ export default function NutritionCommissionPage() {
             </table>
           </div>
 
-          {allCoachesStats.filter((stat) => stat.earnings.totalRevenue > 0).length === 0 && (
+          {allCoachesStats.filter((stat) => stat.earnings.serviceRevenue > 0).length === 0 && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400 dark:text-gray-500">
               
               <p className="text-xl">{t('nutrition.commission.noPTDataForPeriod')}</p>
