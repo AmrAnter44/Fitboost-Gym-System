@@ -2064,8 +2064,10 @@ export default function SettingsPage() {
                         serviceSettings.requireSelfieOnCheckIn ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-gray-600'
                       } cursor-pointer`}
                     >
+                      {/*  rtl:-translate-x-* عشان في RTL الـ flex بيخلي الـ thumb يبدأ من اليمين،
+                           فلازم نعكس اتجاه الـ translate (سالب بدل موجب) عشان مايطلعش بره */}
                       <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 mt-1 ${
-                        serviceSettings.requireSelfieOnCheckIn ? 'translate-x-7' : 'translate-x-1'
+                        serviceSettings.requireSelfieOnCheckIn ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                       }`} />
                     </button>
                   </div>
@@ -2583,7 +2585,7 @@ export default function SettingsPage() {
                       aria-pressed={offlineStatus.offlineModeEnabled}
                       className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 shrink-0 ${offlineStatus.offlineModeEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'} ${offlineToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
-                      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${offlineStatus.offlineModeEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${offlineStatus.offlineModeEnabled ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1'}`} />
                     </button>
                   </div>
 

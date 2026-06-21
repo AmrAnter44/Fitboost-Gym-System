@@ -114,6 +114,19 @@ export function isPhysiotherapyReceipt(type: string): boolean {
 }
 
 /**
+ *  تحديد إذا كان الإيصال من نوع "المزيد" (More services)
+ */
+export function isMoreReceipt(type: string): boolean {
+  const moreTypes = [
+    'moreSubscription',
+    'moreRenewal',
+    'اشتراك المزيد',
+    'تجديد المزيد',
+  ]
+  return moreTypes.includes(type)
+}
+
+/**
  * تحديد إذا كان الإيصال من نوع جروب كلاسيس
  */
 export function isGroupClassReceipt(type: string): boolean {

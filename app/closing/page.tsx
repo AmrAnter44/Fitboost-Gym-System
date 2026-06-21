@@ -6,7 +6,7 @@ import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { normalizePaymentMethod, isMultiPayment } from '../../lib/paymentHelpers'
 import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
-import { getReceiptTypeTranslationKey, isFloorReceipt, isPTReceipt, isNutritionReceipt, isPhysiotherapyReceipt } from '../../lib/translateReceiptType'
+import { getReceiptTypeTranslationKey, isFloorReceipt, isPTReceipt, isNutritionReceipt, isPhysiotherapyReceipt, isMoreReceipt } from '../../lib/translateReceiptType'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
 import { LoadingScreen } from '../../components/Spinner'
@@ -115,6 +115,7 @@ interface DailyData {
   pt: number
   nutrition: number
   physiotherapy: number
+  more: number //  المزيد (more services)
   other: number
   expenses: number
   //  مصاريف منقسمة حسب البنك (cash/instapay/wallet)
@@ -165,6 +166,7 @@ export default function ClosingPage() {
     pt: 0,
     nutrition: 0,
     physiotherapy: 0,
+    more: 0,
     other: 0,
     expenses: 0,
     expensesCash: 0,
@@ -186,6 +188,7 @@ export default function ClosingPage() {
   const [pointsValueInEGP, setPointsValueInEGP] = useState(0.1) // القيمة الافتراضية
   const [nutritionEnabled, setNutritionEnabled] = useState(false)
   const [physiotherapyEnabled, setPhysiotherapyEnabled] = useState(false)
+  const [moreEnabled, setMoreEnabled] = useState(true) //  More services enabled flag
 
   const { t, direction } = useLanguage()
 
@@ -213,6 +216,7 @@ export default function ClosingPage() {
           }
           setNutritionEnabled(!!settings.nutritionEnabled)
           setPhysiotherapyEnabled(!!settings.physiotherapyEnabled)
+          setMoreEnabled(settings.moreEnabled ?? true)
         }
       } catch (error) {
         console.error('Error fetching settings:', error)
@@ -335,6 +339,7 @@ export default function ClosingPage() {
             pt: 0,
             nutrition: 0,
             physiotherapy: 0,
+    more: 0,
             other: 0,
             expenses: 0,
     expensesCash: 0,
@@ -376,6 +381,9 @@ export default function ClosingPage() {
           dailyMap[date].nutrition += receipt.amount
         } else if (isPhysiotherapyReceipt(receipt.type)) {
           dailyMap[date].physiotherapy += receipt.amount
+        } else if (isMoreReceipt(receipt.type)) {
+          //  المزيد (More services): اشتراكات/تجديدات
+          dailyMap[date].more += receipt.amount
         } else {
           // floor يشمل: عضويات، تجديدات، Payment، day use، upgrade، جروب كلاسيس، inBody، إلخ
           dailyMap[date].floor += receipt.amount
@@ -459,6 +467,7 @@ export default function ClosingPage() {
             pt: 0,
             nutrition: 0,
             physiotherapy: 0,
+    more: 0,
             other: 0,
             expenses: 0,
     expensesCash: 0,
@@ -513,6 +522,7 @@ export default function ClosingPage() {
         acc.pt += day.pt
         acc.nutrition += day.nutrition
         acc.physiotherapy += day.physiotherapy
+        acc.more += day.more //  المزيد
         acc.other += day.other
         acc.expenses += day.expenses
         acc.visa += day.visa
@@ -529,6 +539,7 @@ export default function ClosingPage() {
         pt: 0,
         nutrition: 0,
         physiotherapy: 0,
+    more: 0,
         other: 0,
         expenses: 0,
     expensesCash: 0,
@@ -548,7 +559,7 @@ export default function ClosingPage() {
       })
 
       newTotals.totalPayments = newTotals.cash + newTotals.visa + newTotals.instapay + newTotals.wallet + newTotals.points
-      newTotals.totalRevenue = newTotals.floor + newTotals.pt + newTotals.nutrition + newTotals.physiotherapy
+      newTotals.totalRevenue = newTotals.floor + newTotals.pt + newTotals.nutrition + newTotals.physiotherapy + newTotals.more
       newTotals.netProfit = newTotals.totalRevenue - newTotals.expenses
 
       setTotals(newTotals)
@@ -679,6 +690,7 @@ export default function ClosingPage() {
         t('closing.table.pt'),
         ...(nutritionEnabled ? [direction === 'rtl' ? 'تغذية' : 'Nutrition'] : []),
         ...(physiotherapyEnabled ? [direction === 'rtl' ? 'علاج طبيعي' : 'Physiotherapy'] : []),
+        ...(moreEnabled ? [direction === 'rtl' ? 'المزيد' : 'More'] : []),
         t('closing.table.cash'),
         t('closing.table.visa'),
         t('closing.table.instapay'),
@@ -715,6 +727,7 @@ export default function ClosingPage() {
           day.pt > 0 ? day.pt : 0,
           ...(nutritionEnabled ? [day.nutrition > 0 ? day.nutrition : 0] : []),
           ...(physiotherapyEnabled ? [day.physiotherapy > 0 ? day.physiotherapy : 0] : []),
+          ...(moreEnabled ? [day.more > 0 ? day.more : 0] : []),
           day.cash > 0 ? day.cash : 0,
           day.visa > 0 ? day.visa : 0,
           day.instapay > 0 ? day.instapay : 0,
@@ -758,6 +771,7 @@ export default function ClosingPage() {
         totals.pt,
         ...(nutritionEnabled ? [totals.nutrition] : []),
         ...(physiotherapyEnabled ? [totals.physiotherapy] : []),
+        ...(moreEnabled ? [totals.more] : []),
         totals.cash,
         totals.visa,
         totals.instapay,
@@ -1985,6 +1999,7 @@ export default function ClosingPage() {
                   <th className="px-3 py-3 text-center font-bold">{t('closing.table.pt')}</th>
                   {nutritionEnabled && <th className="px-3 py-3 text-center font-bold">{direction === 'rtl' ? 'تغذية' : 'Nutrition'}</th>}
                   {physiotherapyEnabled && <th className="px-3 py-3 text-center font-bold">{direction === 'rtl' ? 'علاج طبيعي' : 'Physio'}</th>}
+                  {moreEnabled && <th className="px-3 py-3 text-center font-bold text-violet-700 dark:text-violet-300">{direction === 'rtl' ? 'المزيد' : 'More'}</th>}
                   <th className="px-3 py-3 text-center font-bold">{t('closing.table.cash')}</th>
                   <th className="px-3 py-3 text-center font-bold">{t('closing.table.visa')}</th>
                   <th className="px-3 py-3 text-center font-bold">{t('closing.table.instapay')}</th>
@@ -2026,6 +2041,9 @@ export default function ClosingPage() {
                       </td>}
                       {physiotherapyEnabled && <td className="px-3 py-3 text-start font-bold text-teal-700 dark:text-teal-400">
                         {day.physiotherapy > 0 ? day.physiotherapy.toFixed(0) : '-'}
+                      </td>}
+                      {moreEnabled && <td className="px-3 py-3 text-start font-bold text-violet-700 dark:text-violet-400">
+                        {day.more > 0 ? day.more.toFixed(0) : '-'}
                       </td>}
                       <td className="px-3 py-3 text-start font-bold text-green-700 dark:text-green-400">
                         {day.cash > 0 ? day.cash.toFixed(0) : '-'}
@@ -2223,6 +2241,9 @@ export default function ClosingPage() {
                   </td>}
                   {physiotherapyEnabled && <td className="px-3 py-3 text-start text-teal-700 dark:text-teal-400 text-lg">
                     {totals.physiotherapy.toFixed(0)}
+                  </td>}
+                  {moreEnabled && <td className="px-3 py-3 text-start text-violet-700 dark:text-violet-400 text-lg">
+                    {totals.more.toFixed(0)}
                   </td>}
                   <td className="px-3 py-3 text-start text-green-700 dark:text-green-400 text-lg">
                     {totals.cash.toFixed(0)}

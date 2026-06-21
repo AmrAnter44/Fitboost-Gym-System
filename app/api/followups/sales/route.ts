@@ -124,6 +124,37 @@ export async function GET(request: Request) {
       }
     }
 
+    //  جلب إيصالات DayUse في الشهر المرتبطة بـ DayUse records مُسنَّدة لسيلز
+    // (السيلز ممكن يحصّل من DayUse برضوا — لازم تتعدّ في كوميشنه)
+    const dayUseReceipts = await prisma.receipt.findMany({
+      where: {
+        dayUseId: { not: null },
+        isCancelled: false,
+        createdAt: { gte: startOfMonth, lte: endOfMonth },
+      },
+      select: { amount: true, dayUseId: true },
+    })
+    //  بناء map: dayUseId → salesStaffId
+    const dayUseIds = dayUseReceipts.map(r => r.dayUseId!).filter(Boolean)
+    const dayUseRecords = dayUseIds.length > 0
+      ? await prisma.dayUseInBody.findMany({
+          where: { id: { in: dayUseIds }, salesStaffId: { not: null } },
+          select: { id: true, salesStaffId: true },
+        })
+      : []
+    const dayUseIdToSalesStaffId: Record<string, string> = {}
+    for (const d of dayUseRecords) {
+      if (d.salesStaffId) dayUseIdToSalesStaffId[d.id] = d.salesStaffId
+    }
+    //  جمع DayUse revenue حسب الـ sales staff
+    const dayUseRevenueByStaff: Record<string, number> = {}
+    for (const r of dayUseReceipts) {
+      const staffId = r.dayUseId ? dayUseIdToSalesStaffId[r.dayUseId] : null
+      if (staffId) {
+        dayUseRevenueByStaff[staffId] = (dayUseRevenueByStaff[staffId] || 0) + r.amount
+      }
+    }
+
     // بناء النتيجة لكل موظف
     const result = allStaff.map(staff => {
       const leads = activeFollowUps.filter(f => f.assignedTo === staff.id)
@@ -131,7 +162,10 @@ export async function GET(request: Request) {
       //    عشان لما المستخدم يغيّر التاريخ، عدد الأعضاء وقائمتهم تتحدّث برضو
       const allAssignedMembers = salesMembers.filter(m => m.salesStaffId === staff.id)
       const members = allAssignedMembers.filter(m => (memberRevenueMap[m.id] || 0) > 0)
-      const collectedThisMonth = members.reduce((sum, m) => sum + (memberRevenueMap[m.id] || 0), 0)
+      //  collectedThisMonth = إيصالات أعضائه + إيصالات DayUse المُسنَّدة له
+      const fromMembers = members.reduce((sum, m) => sum + (memberRevenueMap[m.id] || 0), 0)
+      const fromDayUse = dayUseRevenueByStaff[staff.id] || 0
+      const collectedThisMonth = fromMembers + fromDayUse
 
       return {
         staffId: staff.id,
@@ -143,6 +177,9 @@ export async function GET(request: Request) {
         salesCommissionRate: staff.salesCommissionRate || null,
         salesCommissionTiers: staff.salesCommissionTiers || null,
         collectedThisMonth,
+        //  Breakdown — يساعد في التشخيص ولـ UI لو احتجنا
+        collectedFromMembers: fromMembers,
+        collectedFromDayUse: fromDayUse,
         leadsCount: leads.length,
         leads: leads.map(f => ({
           id: f.id,

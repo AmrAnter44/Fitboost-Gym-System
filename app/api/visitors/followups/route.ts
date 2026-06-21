@@ -16,6 +16,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const visitorId = searchParams.get('visitorId')
+    const phone = searchParams.get('phone') //  بحث برقم التليفون (لعرض متابعات العضو في بروفايله)
     const limit = Math.min(parseInt(searchParams.get('limit') || '5000'), 10000)
     const pageParam = searchParams.get('page')
     const pageSizeParam = searchParams.get('pageSize')
@@ -24,6 +25,30 @@ export async function GET(request: Request) {
     if (visitorId) {
       const followUps = await prisma.followUp.findMany({
         where: { visitorId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          visitor: {
+            select: { id: true, name: true, phone: true, source: true, status: true, interestedIn: true, notes: true, referrerMemberNumber: true, createdAt: true },
+          },
+          assignedStaff: {
+            select: { id: true, name: true, position: true },
+          },
+        },
+      })
+      return NextResponse.json(followUps)
+    }
+
+    //  بحث برقم التليفون — يبحث في كل الـ visitors اللي بنفس التليفون
+    if (phone) {
+      const visitors = await prisma.visitor.findMany({
+        where: { phone, isDeleted: false },
+        select: { id: true },
+      })
+      if (visitors.length === 0) {
+        return NextResponse.json([])
+      }
+      const followUps = await prisma.followUp.findMany({
+        where: { visitorId: { in: visitors.map(v => v.id) } },
         orderBy: { createdAt: 'desc' },
         include: {
           visitor: {
@@ -101,8 +126,9 @@ export async function POST(request: Request) {
 
     let actualVisitorId = visitorId
 
-    // ✅ معالجة خاصة للأعضاء المنتهيين وDay Use والدعوات
-    if (visitorId.startsWith('expired-') || visitorId.startsWith('expiring-') || visitorId.startsWith('dayuse-') || visitorId.startsWith('invitation-')) {
+    // ✅ معالجة خاصة للأعضاء المنتهيين وDay Use والدعوات + أعضاء نشطين
+    //  prefix 'member-' = متابعة سريعة على عضو نشط (من صفحة الأعضاء أو البروفايل)
+    if (visitorId.startsWith('expired-') || visitorId.startsWith('expiring-') || visitorId.startsWith('dayuse-') || visitorId.startsWith('invitation-') || visitorId.startsWith('member-')) {
       // التحقق من وجود بيانات الزائر
       if (!visitorData || !visitorData.phone || !visitorData.name) {
         return NextResponse.json(
