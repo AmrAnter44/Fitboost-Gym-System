@@ -8,6 +8,22 @@ import { LoadingScreen } from '../../../components/Spinner'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
+interface PTSessionLite {
+  id: string
+  sessionDate: string
+  notes: string | null
+  isFreeSession: boolean
+  attended: boolean
+}
+
+interface ActivePTInfo {
+  ptNumber: number
+  sessionsPurchased: number
+  sessionsRemaining: number
+  startDate: string | null
+  expiryDate: string | null
+}
+
 interface AssignedMember {
   id: string
   memberNumber: string | null
@@ -20,6 +36,12 @@ interface AssignedMember {
   freePTSessions: number
   subscriptionPrice: number
   remainingAmount: number | null
+  //  حقول جديدة
+  coachConversionNote: string | null
+  coachConversionNoteAt: string | null
+  ptSessions: PTSessionLite[]
+  hasPaidPT: boolean
+  activePT: ActivePTInfo | null
 }
 
 export default function CoachMyMembers() {
@@ -33,9 +55,20 @@ export default function CoachMyMembers() {
     member: AssignedMember | null
     step: 'confirm' | 'loading' | 'success' | 'error'
     message: string
-  }>({ show: false, member: null, step: 'confirm', message: '' })
+    notes: string //  نوت التمرين بتاع الكوتش
+  }>({ show: false, member: null, step: 'confirm', message: '', notes: '' })
   //  تكبير صورة العميل عند الضغط عليها
   const [enlargedImage, setEnlargedImage] = useState<{ url: string; name: string } | null>(null)
+  //  مودال تسجيل سبب عدم اشتراك العضو في PT (بعد ما خلصت حصصه المجانية)
+  const [conversionPopup, setConversionPopup] = useState<{
+    show: boolean
+    member: AssignedMember | null
+    note: string
+    saving: boolean
+    error: string
+  }>({ show: false, member: null, note: '', saving: false, error: '' })
+  //  مودال عرض سجل الجلسات
+  const [historyPopup, setHistoryPopup] = useState<AssignedMember | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -76,11 +109,11 @@ export default function CoachMyMembers() {
   }
 
   const openDeductPopup = (member: AssignedMember) => {
-    setDeductPopup({ show: true, member, step: 'confirm', message: '' })
+    setDeductPopup({ show: true, member, step: 'confirm', message: '', notes: '' })
   }
 
   const closeDeductPopup = () => {
-    setDeductPopup({ show: false, member: null, step: 'confirm', message: '' })
+    setDeductPopup({ show: false, member: null, step: 'confirm', message: '', notes: '' })
   }
 
   const confirmDeduct = async () => {
@@ -90,7 +123,11 @@ export default function CoachMyMembers() {
       const res = await fetch('/api/coach/deduct-pt-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId: deductPopup.member.id })
+        body: JSON.stringify({
+          memberId: deductPopup.member.id,
+          //  نوت التمرين — لو الكوتش كتب، نبعتها؛ لو فاضي، الـ API بيستخدم default
+          notes: deductPopup.notes.trim() || undefined,
+        })
       })
       const data = await res.json()
       if (!res.ok) {
@@ -101,23 +138,50 @@ export default function CoachMyMembers() {
         }))
         return
       }
-      setMembers(prev => prev.map(m =>
-        m.id === deductPopup.member!.id
-          ? { ...m, freePTSessions: data.remainingFree }
-          : m
-      ))
+      //  بعد نجاح الخصم، نـ refetch عشان نجيب الجلسة الجديدة في الـ history
+      fetchMembers()
       setDeductPopup(prev => ({
         ...prev,
         step: 'success',
-        message: locale === 'ar' ? 'تم تسجيل جلسة PT مجانية بنجاح' : 'Free PT session registered successfully'
+        message: locale === 'ar' ? 'تم تسجيل الحصة مع الملاحظات' : 'Session registered with notes'
       }))
-      setTimeout(() => closeDeductPopup(), 2000)
+      setTimeout(() => closeDeductPopup(), 1800)
     } catch (error) {
       setDeductPopup(prev => ({
         ...prev,
         step: 'error',
         message: locale === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error'
       }))
+    }
+  }
+
+  //  حفظ سبب عدم الاشتراك في PT
+  const saveConversionNote = async () => {
+    if (!conversionPopup.member || !conversionPopup.note.trim()) return
+    setConversionPopup(prev => ({ ...prev, saving: true, error: '' }))
+    try {
+      const res = await fetch('/api/coach/conversion-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          memberId: conversionPopup.member.id,
+          note: conversionPopup.note.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setConversionPopup(prev => ({ ...prev, saving: false, error: data.error || 'فشل الحفظ' }))
+        return
+      }
+      //  تحديث الـ state محلياً
+      setMembers(prev => prev.map(m =>
+        m.id === conversionPopup.member!.id
+          ? { ...m, coachConversionNote: data.coachConversionNote, coachConversionNoteAt: data.coachConversionNoteAt }
+          : m
+      ))
+      setConversionPopup({ show: false, member: null, note: '', saving: false, error: '' })
+    } catch {
+      setConversionPopup(prev => ({ ...prev, saving: false, error: locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error' }))
     }
   }
 
@@ -316,9 +380,87 @@ export default function CoachMyMembers() {
                         <svg {...stroke} className="w-4 h-4">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
                         </svg>
-                        {locale === 'ar' ? 'خصم حصة PT' : 'Deduct PT Session'}
+                        {locale === 'ar' ? 'خصم حصة PT + كومنت' : 'Deduct PT + Add Note'}
                       </button>
+
+                      {/*  زرار عرض سجل التمارين — يظهر لو فيه جلسات سابقة */}
+                      {member.ptSessions.length > 0 && (
+                        <button
+                          onClick={() => setHistoryPopup(member)}
+                          className="w-full mt-2 py-1.5 rounded-lg text-xs font-bold bg-white/60 dark:bg-gray-800/60 ring-1 ring-purple-200 dark:ring-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors inline-flex items-center justify-center gap-1.5"
+                        >
+                          <svg {...stroke} className="w-3.5 h-3.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                          </svg>
+                          {locale === 'ar' ? `سجل الجلسات (${member.ptSessions.length})` : `Session log (${member.ptSessions.length})`}
+                        </button>
+                      )}
                     </div>
+
+                    {/*  بعد ما خلصت حصصه المجانية — إما اشترك في PT أو لازم نسجل سبب عدم الاشتراك */}
+                    {member.freePTSessions === 0 && (
+                      member.hasPaidPT ? (
+                        //  اشترك في PT — green badge
+                        <div className="bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-300 dark:ring-emerald-800 rounded-lg px-3 py-2.5">
+                          <div className="flex items-center gap-2 mb-1">
+                            <svg {...stroke} className="w-5 h-5 text-emerald-600 dark:text-emerald-400">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                            <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                              {locale === 'ar' ? 'اشترك في PT ✅' : 'Subscribed to PT ✅'}
+                            </span>
+                          </div>
+                          {member.activePT && (
+                            <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                              {locale === 'ar' ? 'الحصص المتبقية:' : 'Remaining sessions:'} {member.activePT.sessionsRemaining} / {member.activePT.sessionsPurchased}
+                              {' '}· PT #{member.activePT.ptNumber}
+                            </p>
+                          )}
+                        </div>
+                      ) : member.coachConversionNote ? (
+                        //  مسجّل سبب عدم الاشتراك بالفعل — show + edit
+                        <button
+                          type="button"
+                          onClick={() => setConversionPopup({ show: true, member, note: member.coachConversionNote || '', saving: false, error: '' })}
+                          className="w-full text-start bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-300 dark:ring-amber-800 rounded-lg px-3 py-2.5 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                              <svg {...stroke} className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                              </svg>
+                              {locale === 'ar' ? 'سبب عدم الاشتراك' : 'Reason not subscribed'}
+                            </span>
+                            {member.coachConversionNoteAt && (
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                                {new Date(member.coachConversionNoteAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-amber-800 dark:text-amber-200 line-clamp-2">{member.coachConversionNote}</p>
+                          <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">{locale === 'ar' ? 'اضغط للتعديل' : 'Tap to edit'}</p>
+                        </button>
+                      ) : (
+                        //  محتاج يسجل سبب عدم الاشتراك
+                        <button
+                          type="button"
+                          onClick={() => setConversionPopup({ show: true, member, note: '', saving: false, error: '' })}
+                          className="w-full bg-red-50 dark:bg-red-900/20 ring-1 ring-red-300 dark:ring-red-800 rounded-lg px-3 py-2.5 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center gap-2"
+                        >
+                          <svg {...stroke} className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                          </svg>
+                          <div className="flex-1 text-start">
+                            <p className="text-sm font-bold text-red-700 dark:text-red-300">
+                              {locale === 'ar' ? 'ما اشتركش في PT' : 'Did not subscribe to PT'}
+                            </p>
+                            <p className="text-xs text-red-600 dark:text-red-400">
+                              {locale === 'ar' ? 'سجل السبب' : 'Record the reason'}
+                            </p>
+                          </div>
+                        </button>
+                      )
+                    )}
 
                     {member.phone && (
                       <div className="flex items-center gap-2">
@@ -414,6 +556,24 @@ export default function CoachMyMembers() {
                     {locale === 'ar' ? 'المتبقي حالياً:' : 'Currently remaining:'} {deductPopup.member.freePTSessions}
                   </p>
                 </div>
+
+                {/*  textarea لكومنت التمرين — اختياري */}
+                <div className="mb-5">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    {locale === 'ar' ? 'كومنت التمرينة (اختياري)' : 'Workout Note (optional)'}
+                  </label>
+                  <textarea
+                    value={deductPopup.notes}
+                    onChange={(e) => setDeductPopup(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={3}
+                    placeholder={locale === 'ar' ? 'مثلاً: شدر + باي + سبلت — أداء جيد' : 'e.g., Chest + Bi + split — good form'}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors duration-200 text-sm resize-none"
+                  />
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                    {locale === 'ar' ? '📅 التاريخ بيتسجل تلقائياً — سيظهر في سجل العضو' : '📅 Date auto-recorded — visible in member log'}
+                  </p>
+                </div>
+
                 <div className="flex gap-3">
                   <button
                     onClick={closeDeductPopup}
@@ -481,6 +641,132 @@ export default function CoachMyMembers() {
                   {locale === 'ar' ? 'إغلاق' : 'Close'}
                 </button>
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/*  مودال تسجيل سبب عدم الاشتراك في PT */}
+      {conversionPopup.show && conversionPopup.member && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700">
+            <div className="text-center mb-5">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+                <svg {...stroke} className="w-7 h-7">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
+                {locale === 'ar' ? 'سبب عدم الاشتراك في PT' : 'Reason for not subscribing to PT'}
+              </h3>
+              <p className="font-bold text-gray-700 dark:text-gray-300">{conversionPopup.member.name}</p>
+            </div>
+
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              {locale === 'ar' ? 'اكتب السبب' : 'Write the reason'}
+            </label>
+            <textarea
+              value={conversionPopup.note}
+              onChange={(e) => setConversionPopup(prev => ({ ...prev, note: e.target.value }))}
+              rows={4}
+              placeholder={locale === 'ar' ? 'مثلاً: السعر مرتفع · معتقدش انه محتاج · المواعيد مش مناسبة' : 'e.g., Price too high · Not interested · Schedule conflict'}
+              autoFocus
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors duration-200 text-sm resize-none"
+            />
+            {conversionPopup.error && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{conversionPopup.error}</p>
+            )}
+
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setConversionPopup({ show: false, member: null, note: '', saving: false, error: '' })}
+                disabled={conversionPopup.saving}
+                className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-60"
+              >
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                onClick={saveConversionNote}
+                disabled={!conversionPopup.note.trim() || conversionPopup.saving}
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {conversionPopup.saving
+                  ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+                  : (locale === 'ar' ? 'حفظ' : 'Save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/*  مودال عرض سجل الجلسات */}
+      {historyPopup && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true" onClick={() => setHistoryPopup(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 flex items-center justify-center">
+                  <svg {...stroke} className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {locale === 'ar' ? 'سجل الجلسات' : 'Sessions Log'}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{historyPopup.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setHistoryPopup(null)}
+                className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 flex items-center justify-center transition-colors"
+                aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {historyPopup.ptSessions.length === 0 ? (
+              <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                {locale === 'ar' ? 'لا توجد جلسات مسجلة' : 'No sessions yet'}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {historyPopup.ptSessions.map((s) => (
+                  <div
+                    key={s.id}
+                    className={`rounded-lg p-3 ring-1 ${
+                      s.isFreeSession
+                        ? 'bg-purple-50 dark:bg-purple-900/20 ring-purple-200 dark:ring-purple-800'
+                        : 'bg-blue-50 dark:bg-blue-900/20 ring-blue-200 dark:ring-blue-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        s.isFreeSession
+                          ? 'bg-purple-200 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200'
+                          : 'bg-blue-200 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200'
+                      }`}>
+                        {s.isFreeSession
+                          ? (locale === 'ar' ? '🆓 مجانية' : '🆓 Free')
+                          : (locale === 'ar' ? '💰 مدفوعة' : '💰 Paid')}
+                      </span>
+                      <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                        {new Date(s.sessionDate).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+                          year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                    {s.notes ? (
+                      <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{s.notes}</p>
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">{locale === 'ar' ? 'بدون ملاحظات' : 'No notes'}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

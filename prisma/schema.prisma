@@ -51,6 +51,9 @@ model Member {
   allowedCheckInStart String?    // HH:MM format
   allowedCheckInEnd   String?    // HH:MM format
   coachId           String?
+  //  ملاحظة الكوتش عن سبب عدم اشتراك العضو في PT بعد ما خلصت جلساته المجانية
+  coachConversionNote String?
+  coachConversionNoteAt DateTime?
   salesStaffId      String?
   offerId           String?      // 📦 الباقة اللي اشترك فيها العضو (للرجوع لمميزاتها)
   referrerMemberNumber String?   // 👥 رقم العضو اللي جاب العضو ده (لما المصدر = friend_referral)
