@@ -28,6 +28,7 @@ export async function GET(request: Request) {
     }
 
     //  1. جلب كل الكباتن النشطين (position فيها "مدرب")
+    //  Staff مفيهاش profileImage — نـ select الـ fields الموجودة بس
     const coaches = await prisma.staff.findMany({
       where: { isActive: true },
       select: {
@@ -35,7 +36,6 @@ export async function GET(request: Request) {
         name: true,
         staffCode: true,
         position: true,
-        profileImage: true,
       },
       orderBy: { name: 'asc' },
     })
@@ -165,7 +165,6 @@ export async function GET(request: Request) {
           id: coach.id,
           name: coach.name,
           staffCode: coach.staffCode,
-          profileImage: coach.profileImage,
         },
         stats,
         members: coachMembers,
