@@ -1129,10 +1129,10 @@ export default function CoachCommissionPage() {
     }
   })
 
-  //  Permission gate — لازم تكون OWNER/ADMIN، أو COACH (يشوف commission نفسه)، أو عندك canAccessPTCommission
+  //  Permission gate — OWNER/ADMIN/MANAGER (الفتنس مانجر بيشوف الكل) | COACH (يشوف نفسه) | canAccessPTCommission
   if (!permissionsLoading) {
     const role = permUser?.role
-    const isOwnerOrAdmin = role === 'OWNER' || role === 'ADMIN'
+    const isOwnerOrAdmin = role === 'OWNER' || role === 'ADMIN' || role === 'MANAGER'
     const isCoachUser = role === 'COACH'
     const canAccess = hasPermission('canAccessPTCommission')
     if (!isOwnerOrAdmin && !isCoachUser && !canAccess) {

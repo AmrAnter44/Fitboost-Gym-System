@@ -44,11 +44,61 @@ export async function GET(request: Request) {
         freePTSessions: true,
         subscriptionPrice: true,
         remainingAmount: true,
+        coachConversionNote: true,
+        coachConversionNoteAt: true,
+        //  آخر 5 جلسات PT (مجانية أو مدفوعة) للعضو ده مع نوتس الكوتش
+        ptSessions: {
+          orderBy: { sessionDate: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            sessionDate: true,
+            notes: true,
+            isFreeSession: true,
+            attended: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json(members)
+    //  لكل عضو، نتحقق إذا له اشتراك PT نشط (لو خلصت حصصه المجانية واشترك)
+    // PT بيرتبط بـ Member عن طريق phone بس (مفيش memberId في PT model)
+    const memberPhones = members.map(m => m.phone).filter(Boolean) as string[]
+    const activePTs = memberPhones.length > 0
+      ? await prisma.pT.findMany({
+          where: {
+            phone: { in: memberPhones },
+            expiryDate: { gte: new Date() },
+          },
+          select: {
+            ptNumber: true,
+            phone: true,
+            sessionsPurchased: true,
+            sessionsRemaining: true,
+            startDate: true,
+            expiryDate: true,
+          },
+        })
+      : []
+
+    //  map: phone → PT info (أحدث اشتراك لو فيه كذا)
+    const ptByPhone = new Map<string, typeof activePTs[0]>()
+    for (const pt of activePTs) {
+      if (pt.phone) ptByPhone.set(pt.phone, pt)
+    }
+
+    const enriched = members.map(m => {
+      const activePT = m.phone ? ptByPhone.get(m.phone) || null : null
+      return {
+        ...m,
+        //  hasPaidPT: عند العضو اشتراك PT نشط (يعني اتحول من free → paid)
+        hasPaidPT: !!activePT,
+        activePT,
+      }
+    })
+
+    return NextResponse.json(enriched)
   } catch (error) {
     console.error('Error fetching coach assigned members:', error)
     return NextResponse.json(

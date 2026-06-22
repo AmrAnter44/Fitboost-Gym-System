@@ -704,8 +704,8 @@ export default function PTPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
-          {/*  زرار حاسبة الـ commission — يظهر بس للأدمن/كوتش أو اللي عنده canAccessPTCommission */}
-          {(user?.role === 'OWNER' || user?.role === 'ADMIN' || isCoach || hasPermission('canAccessPTCommission')) && (
+          {/*  زرار حاسبة الـ commission — OWNER/ADMIN/MANAGER (الفتنس مانجر) أو COACH أو اللي عنده الصلاحية */}
+          {(user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'MANAGER' || isCoach || hasPermission('canAccessPTCommission')) && (
             <button
               onClick={() => router.push('/pt/commission')}
               className="flex-1 min-w-[140px] sm:flex-none bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-4 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 inline-flex items-center justify-center gap-2 text-sm sm:text-base"
