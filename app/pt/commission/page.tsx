@@ -176,9 +176,11 @@ export default function CoachCommissionPage() {
   const [lastPayrollDates, setLastPayrollDates] = useState<Record<string, string>>({})
 
   // أنواع إيصالات PT المدعومة (جميع الأنواع الحالية والقديمة)
+  //  مطابق لـ isPTReceipt في lib/translateReceiptType.ts عشان نضمن
+  // التطابق مع التقفيل الشهري والتقارير
   const PT_RECEIPT_TYPES = [
     // أنواع حديثة (RECEIPT_TYPES constants)
-    'newPT', 'ptRenewal', 'ptDayUse',
+    'PT', 'newPT', 'ptRenewal', 'ptDayUse',
     // أنواع قديمة (backward compatibility)
     'برايفت جديد', 'تجديد برايفت', 'دفع باقي برايفت', 'new pt', 'اشتراك برايفت', 'PT Day Use'
   ]
@@ -202,12 +204,21 @@ export default function CoachCommissionPage() {
   })
 
   // تحديد الفترة الزمنية (أول يوم في الشهر الحالي إلى آخر يوم)
+  //  نبني الـ ISO date من المكوّنات المحلية بدلاً من toISOString()
+  // عشان نتجنّب الـ timezone shift اللي بيخلي يوم 1 يطلع يوم 31 من الشهر اللي فات
+  // (في مصر UTC+3، new Date(y, m, 1).toISOString() = "previousMonth-31T21:00:00Z")
   const today = new Date()
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+  const toLocalISO = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
 
-  const [dateFrom, setDateFrom] = useState(firstDay.toISOString().split('T')[0])
-  const [dateTo, setDateTo] = useState(lastDay.toISOString().split('T')[0])
+  const [dateFrom, setDateFrom] = useState(toLocalISO(firstDay))
+  const [dateTo, setDateTo] = useState(toLocalISO(lastDay))
 
   useEffect(() => {
     fetchData()
@@ -839,6 +850,9 @@ export default function CoachCommissionPage() {
     // حساب الإيرادات من إيصالات PT (جميع الأنواع)
 
     const ptReceipts = receipts.filter((receipt) => {
+      //  استبعاد الإيصالات الملغية — مطابق للتقفيل
+      if ((receipt as any).isCancelled) return false
+
       // فلترة إيصالات PT فقط
       if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
 
@@ -1080,6 +1094,8 @@ export default function CoachCommissionPage() {
     end.setHours(23, 59, 59, 999)
 
     const coachPTReceipts = receipts.filter((receipt) => {
+      //  استبعاد الإيصالات الملغية — مطابق للتقفيل
+      if ((receipt as any).isCancelled) return false
       if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
       const receiptDate = new Date(receipt.createdAt)
       if (receiptDate < start || receiptDate > end) return false
@@ -1699,6 +1715,8 @@ export default function CoachCommissionPage() {
                 end.setHours(23, 59, 59, 999)
 
                 const coachPTReceipts = receipts.filter((receipt) => {
+                  //  استبعاد الإيصالات الملغية — مطابق للتقفيل
+                  if ((receipt as any).isCancelled) return false
                   // فلترة كل أنواع إيصالات PT للعرض
                   if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
                   const receiptDate = new Date(receipt.createdAt)
@@ -1960,6 +1978,8 @@ export default function CoachCommissionPage() {
                     end.setHours(23, 59, 59, 999)
 
                     const coachPTReceipts = receipts.filter((receipt) => {
+                      //  استبعاد الإيصالات الملغية — مطابق للتقفيل
+                      if ((receipt as any).isCancelled) return false
                       if (!PT_RECEIPT_TYPES.includes(receipt.type)) return false
                       const receiptDate = new Date(receipt.createdAt)
                       if (receiptDate < start || receiptDate > end) return false
@@ -2400,6 +2420,56 @@ export default function CoachCommissionPage() {
               </tfoot>
             </table>
           </div>
+
+          {/*  Reconciliation box — يطابق إجمالي حساب التحصيل مع التقفيل/التقارير
+              ويوضح أي فرق ناتج عن إيصالات PT بدون coachName في itemDetails */}
+          {(() => {
+            const start = new Date(dateFrom)
+            const end = new Date(dateTo)
+            end.setHours(23, 59, 59, 999)
+            //  مجموع كل إيصالات PT في الفترة (نفس فلتر التقفيل بالظبط)
+            const allPTReceiptsInRange = receipts.filter((r: any) => {
+              if (r.isCancelled) return false
+              if (!PT_RECEIPT_TYPES.includes(r.type)) return false
+              const d = new Date(r.createdAt)
+              return d >= start && d <= end
+            })
+            const closingMatchTotal = allPTReceiptsInRange.reduce((sum, r) => sum + r.amount, 0)
+            const coachesSumTotal = allCoachesStats.reduce((sum, s) => sum + s.earnings.serviceRevenue, 0)
+            const orphan = closingMatchTotal - coachesSumTotal
+            const fmt = (n: number) => Math.round(n).toLocaleString(localeString)
+
+            return (
+              <div className="mt-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-800">
+                <h4 className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-2 flex items-center gap-1.5">
+                  💡 {locale === 'ar' ? 'مطابقة مع التقفيل الشهري والتقارير' : 'Match with Monthly Closing & Reports'}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-gray-200 dark:ring-gray-700">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'إجمالي PT في الفترة (مطابق للتقفيل)' : 'Total PT (matches closing)'}</p>
+                    <p className="text-lg font-black text-emerald-700 dark:text-emerald-400">{fmt(closingMatchTotal)} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 ring-1 ring-gray-200 dark:ring-gray-700">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'مجموع تحصيل الكوتشات' : 'Sum of coaches'}</p>
+                    <p className="text-lg font-black text-primary-700 dark:text-primary-400">{fmt(coachesSumTotal)} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
+                  </div>
+                  <div className={`rounded-lg p-3 ring-1 ${Math.abs(orphan) < 1 ? 'bg-green-50 dark:bg-green-900/20 ring-green-200 dark:ring-green-800' : 'bg-amber-50 dark:bg-amber-900/20 ring-amber-200 dark:ring-amber-800'}`}>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'إيصالات بدون كوتش' : 'Receipts without coach'}</p>
+                    <p className={`text-lg font-black ${Math.abs(orphan) < 1 ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                      {fmt(orphan)} {locale === 'ar' ? 'ج.م' : 'EGP'}
+                    </p>
+                  </div>
+                </div>
+                {Math.abs(orphan) >= 1 && (
+                  <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                    ⚠️ {locale === 'ar'
+                      ? 'الفرق ده من إيصالات PT اتعملت بدون تحديد كوتش في itemDetails. التحصيل بيتعد في التقفيل بس مش بينسب لأي كوتش هنا.'
+                      : 'This gap is from PT receipts created without a coach name in itemDetails. They count in closing but cannot be attributed to a specific coach here.'}
+                  </p>
+                )}
+              </div>
+            )
+          })()}
 
           {allCoachesStats.filter((stat) => stat.earnings.serviceRevenue > 0).length === 0 && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">

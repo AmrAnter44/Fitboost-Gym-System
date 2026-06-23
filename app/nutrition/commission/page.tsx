@@ -210,12 +210,19 @@ export default function NutritionCommissionPage() {
 
 
   // تحديد الفترة الزمنية (أول يوم في الشهر الحالي إلى آخر يوم)
+  //  نبني الـ ISO date من المكوّنات المحلية لتجنّب الـ timezone shift
   const today = new Date()
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+  const toLocalISO = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
 
-  const [dateFrom, setDateFrom] = useState(firstDay.toISOString().split('T')[0])
-  const [dateTo, setDateTo] = useState(lastDay.toISOString().split('T')[0])
+  const [dateFrom, setDateFrom] = useState(toLocalISO(firstDay))
+  const [dateTo, setDateTo] = useState(toLocalISO(lastDay))
 
   useEffect(() => {
     fetchData()

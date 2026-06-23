@@ -80,10 +80,22 @@ export default function ReportsPage() {
   const { hasPermission, user, loading: permLoading } = usePermissions()
 
   const [activeTab, setActiveTab] = useState<TabType>('revenue')
+  //  نبني الـ ISO date من المكوّنات المحلية (year/month/day) عشان نتجنّب
+  // الـ timezone shift اللي بيخلي toISOString() يرجّع يوم 31 من الشهر اللي فات
+  // (مثلاً في مصر UTC+3، يوم 1 الساعة 1 صباحاً = يوم 31 الساعة 22 UTC)
   const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0]
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    return `${y}-${m}-01`
   })
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0])
+  const [dateTo, setDateTo] = useState(() => {
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  })
   const [paymentFilter, setPaymentFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
 
