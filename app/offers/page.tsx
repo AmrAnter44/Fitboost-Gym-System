@@ -290,6 +290,18 @@ export default function OffersPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
+            {/*  زرار رجوع — يرجع للصفحة اللي جه منها (مثلاً الإعدادات/الروابط السريعة) */}
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center flex-shrink-0 transition-colors duration-200"
+              aria-label={direction === 'rtl' ? 'رجوع' : 'Back'}
+              title={direction === 'rtl' ? 'رجوع' : 'Back'}
+            >
+              <svg {...stroke} className={`w-5 h-5 ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
             <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
               <svg {...stroke} className="w-6 h-6" aria-hidden="true">{ICON_PATHS.gift}</svg>
             </div>

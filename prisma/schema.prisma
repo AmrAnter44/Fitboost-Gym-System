@@ -51,6 +51,9 @@ model Member {
   allowedCheckInStart String?    // HH:MM format
   allowedCheckInEnd   String?    // HH:MM format
   coachId           String?
+  //  تاريخ آخر تعيين/تغيير كوتش — يستخدم لإشعار الكوتش بـ "عضو جديد اتأسند ليك"
+  // حتى لو العضو نفسه قديم (re-assignment) لأن createdAt مش بيتغير
+  coachAssignedAt   DateTime?
   //  ملاحظة الكوتش عن سبب عدم اشتراك العضو في PT بعد ما خلصت جلساته المجانية
   coachConversionNote String?
   coachConversionNoteAt DateTime?

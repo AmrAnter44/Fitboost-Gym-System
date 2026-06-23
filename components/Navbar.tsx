@@ -126,6 +126,16 @@ export default function Navbar() {
 
     return allLinks.filter(link => {
       if ('enabled' in link && link.enabled === false) return false
+      //  /expenses يظهر لأي صلاحية من صلاحيات المصاريف (نفس الفلسفة بتاعت Sidebar)
+      if (link.href === '/expenses') {
+        if (hasPermission('canViewExpenses') ||
+            hasPermission('canCreateExpense') ||
+            hasPermission('canEditExpense') ||
+            hasPermission('canDeleteExpense')) {
+          return true
+        }
+        return false
+      }
       if (link.permission && !hasPermission(link.permission)) return false
       if (link.roleRequired && user?.role !== link.roleRequired) return false
       return true

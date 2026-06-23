@@ -31,11 +31,14 @@ export async function POST(request: Request) {
       sessionsPurchased,
       coachName,
       totalPrice,
+      remainingAmount, //  مبلغ متبقي على الميمبر في التجديد الجديد (اختياري)
       startDate,
       expiryDate,
       paymentMethod,
       staffName
     } = body
+    //  المبلغ المتبقي في التجديد الجديد — لازم يكون رقم بين 0 و totalPrice
+    const parsedRemaining = Math.max(0, Math.min(Number(remainingAmount) || 0, Number(totalPrice) || 0))
 
     // حساب سعر الحصة الواحدة من السعر الإجمالي
     const pricePerSession = sessionsPurchased > 0 ? totalPrice / sessionsPurchased : 0
@@ -80,7 +83,8 @@ export async function POST(request: Request) {
         pricePerSession,
         startDate: startDate ? new Date(startDate) : existingPT.startDate,
         expiryDate: expiryDate ? new Date(expiryDate) : existingPT.expiryDate,
-        remainingAmount: 0, // ✅ تصفير المبلغ المتبقي عند التجديد
+        //  المبلغ المتبقي في التجديد = اللي اليوزر دخّله (افتراضياً 0 لو ما حدّدش حاجة)
+        remainingAmount: parsedRemaining,
       },
     })
 
@@ -93,6 +97,8 @@ export async function POST(request: Request) {
       const totalAmount = totalPrice !== undefined && totalPrice !== null && totalPrice > 0
         ? Number(totalPrice)
         : Number(sessionsPurchased * pricePerSession)
+      //  المبلغ المدفوع فعلاً = الإجمالي - المتبقي
+      const paidAmount = Math.max(0, totalAmount - parsedRemaining)
 
       let subscriptionDays = null
       if (startDate && expiryDate) {
@@ -108,7 +114,8 @@ export async function POST(request: Request) {
         // ✅ معالجة وسائل الدفع المتعددة
         let finalPaymentMethod: string
         if (Array.isArray(paymentMethod)) {
-          const validation = validatePaymentDistribution(paymentMethod, totalAmount)
+          //  نتحقق من توزيع المبالغ بناءً على المدفوع فعلاً (مش الإجمالي)
+          const validation = validatePaymentDistribution(paymentMethod, paidAmount)
           if (!validation.valid) {
             throw new Error(validation.message || 'توزيع المبالغ غير صحيح')
           }
@@ -122,7 +129,9 @@ export async function POST(request: Request) {
           data: {
             receiptNumber: receiptNumber,
             type: RECEIPT_TYPES.PT_RENEWAL,
-            amount: totalAmount,
+            //  amount = المدفوع فعلاً (مش الإجمالي) عشان التقفيل والتقارير
+            // يحسبوا الفلوس اللي اتحصلت بالظبط
+            amount: paidAmount,
             paymentMethod: finalPaymentMethod,
             staffName: staffName || '',
             itemDetails: JSON.stringify({
@@ -132,6 +141,8 @@ export async function POST(request: Request) {
               sessionsPurchased: Number(sessionsPurchased),
               pricePerSession: Number(pricePerSession),
               totalAmount: totalAmount,
+              paidAmount: paidAmount,
+              remainingAmount: parsedRemaining,
               coachName: coachName || existingPT.coachName,
               startDate: startDate || null,
               expiryDate: expiryDate || null,
@@ -139,7 +150,7 @@ export async function POST(request: Request) {
               oldSessionsRemaining: existingPT.sessionsRemaining,
               newSessionsRemaining: updatedPT.sessionsRemaining,
               oldRemainingAmount: oldRemainingAmount, // ✅ المبلغ المتبقي القديم المرتجع
-              newRemainingAmount: 0, // ✅ المبلغ المتبقي الجديد (صفر)
+              newRemainingAmount: parsedRemaining, //  المبلغ المتبقي الجديد
             }),
             ptNumber: updatedPT.ptNumber,
           },

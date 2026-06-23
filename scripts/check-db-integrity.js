@@ -148,6 +148,7 @@ function syncSchemaIfNeeded(dbPath) {
   const REQUIRED_MEMBER_COLUMNS = [
     'coachConversionNote',
     'coachConversionNoteAt',
+    'coachAssignedAt',
   ];
 
   const missing = REQUIRED_MEMBER_COLUMNS.filter(c => !dbColumns.includes(c));

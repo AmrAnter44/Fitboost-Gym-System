@@ -270,6 +270,18 @@ export default function AuditPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6" dir={direction}>
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
+        {/*  زرار رجوع — يرجع للصفحة اللي جه منها */}
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center flex-shrink-0 transition-colors duration-200"
+          aria-label={direction === 'rtl' ? 'رجوع' : 'Back'}
+          title={direction === 'rtl' ? 'رجوع' : 'Back'}
+        >
+          <svg {...stroke} className={`w-5 h-5 ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
+        </button>
         <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
           <svg {...stroke} className="w-6 h-6" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />

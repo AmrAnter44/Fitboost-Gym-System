@@ -468,6 +468,8 @@ export async function POST(request: Request) {
       startDate: startDate ? new Date(startDate) : null,
       expiryDate: expiryDate ? new Date(expiryDate) : null,
       coachId: coachId || null,
+      //  لو فيه كوتش متعيّن، نحفظ تاريخ التعيين عشان الإشعار يطلع للكوتش
+      coachAssignedAt: coachId ? new Date() : null,
       salesStaffId: effectiveSalesStaffId,
       offerId: offerId || null,
       // 👥 سجّل اللي جابه (لو في) عشان نقدر نرجع نعرف من جابه بعدين
@@ -863,7 +865,22 @@ export async function PUT(request: Request) {
       updateData.freeMoreSessions = parseInt(data.freeMoreSessions.toString())
     }
     if (data.coachId !== undefined) {
-      updateData.coachId = data.coachId || null
+      const newCoachId: string | null = data.coachId || null
+      //  نتحقق إذا الكوتش اتغير فعلاً عشان نحدّث coachAssignedAt
+      // (عشان إشعار الكوتش يطلع في حالة re-assignment لعضو قديم)
+      const existingMemberCoach = await prisma.member.findUnique({
+        where: { id },
+        select: { coachId: true }
+      })
+      const oldCoachId = existingMemberCoach?.coachId || null
+      updateData.coachId = newCoachId
+      if (oldCoachId !== newCoachId && newCoachId) {
+        //  الكوتش اتغير لكوتش جديد → نسجّل تاريخ التعيين
+        updateData.coachAssignedAt = new Date()
+      } else if (!newCoachId) {
+        //  لو اتشال الكوتش (assigned to none) → نمسح التاريخ
+        updateData.coachAssignedAt = null
+      }
     }
     // قبل ما نطبق salesStaffId الجديد، نسجل القيمة القديمة عشان audit log واضح
     let salesStaffChange: { from: string | null; to: string | null; fromId: string | null; toId: string | null } | null = null

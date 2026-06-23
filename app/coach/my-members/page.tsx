@@ -566,7 +566,7 @@ export default function CoachMyMembers() {
                     value={deductPopup.notes}
                     onChange={(e) => setDeductPopup(prev => ({ ...prev, notes: e.target.value }))}
                     rows={3}
-                    placeholder={locale === 'ar' ? 'مثلاً: شدر + باي + سبلت — أداء جيد' : 'e.g., Chest + Bi + split — good form'}
+                    placeholder={locale === 'ar' ? 'مثلاً: صدر + باي + سبلت — أداء جيد' : 'e.g., Chest + Bi + split — good form'}
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors duration-200 text-sm resize-none"
                   />
                   <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">

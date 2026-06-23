@@ -149,6 +149,18 @@ export default function CoachDashboard() {
     return () => clearInterval(interval)
   }, [user])
 
+  //  Polling إشعارات الكوتش كل 3 دقايق — عشان لو حصل تعيين عضو/اشتراك جديد
+  // وهو ساكت في الصفحة، يتنبه فوراً (مش لازم يعمل refresh)
+  useEffect(() => {
+    if (!user || user.role !== 'COACH') return
+    const uid = user.userId || user.id
+    if (!uid) return
+    const interval = setInterval(() => {
+      fetchCoachNotifications(uid)
+    }, 180000) //  3 دقايق
+    return () => clearInterval(interval)
+  }, [user])
+
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/me')
@@ -251,29 +263,60 @@ export default function CoachDashboard() {
       const data = await response.json()
       setCoachNotifications(data)
 
-      // سجّل الإشعارات في الـ NotificationsCenter (الجرس) بدون toast مزعج
-      // dedupe key باليوم الحالي + userId — مرة واحدة باليوم بس
-      const todayKey = `coach-notifications-seen-${userId}-${new Date().toISOString().split('T')[0]}`
-      if (typeof window !== 'undefined' && !localStorage.getItem(todayKey)) {
-        const subTypeName = (t: string) => locale === 'ar'
-          ? ({ PT: 'PT', Nutrition: 'تغذية', Physiotherapy: 'علاج طبيعي', GroupClass: 'جروب كلاس', More: 'More' } as any)[t] || t
-          : t
+      if (typeof window === 'undefined') return
 
-        ;(data.renewals || []).forEach((r: RenewalNotification) =>
-          addToast(`${r.memberName} جدّد اشتراك ${subTypeName(r.type)}`, 'success', 0)
-        )
-        ;(data.expiringSoon || []).forEach((e: ExpiringNotification) =>
-          addToast(`${e.memberName} — اشتراك ${subTypeName(e.type)} ينتهي خلال ${e.daysLeft} يوم`, 'warning', 0)
-        )
-        ;(data.halfTimeWithBalance || []).forEach((h: HalfTimeNotification) =>
-          addToast(`${h.memberName} — استخدم نص جلسات ${subTypeName(h.type)} وعليه ${Math.round(h.remainingAmount)} ج`, 'warning', 0)
-        )
-        ;(data.newAssignments || []).forEach((n: NewAssignmentNotification) => {
-          const label = n.type === 'Member' ? 'عضو جديد' : `اشتراك ${subTypeName(n.type as any)} جديد`
-          addToast(`${n.memberName} — ${label} اتأسند ليك`, 'info', 0)
-        })
+      //  dedupe على مستوى الإشعار الواحد بدل مرة واحدة باليوم
+      // لو حصل تعيين جديد بعد ساعتين، الكوتش هيشوفه — مش هيستنى لبكرة
+      const seenKey = `coach-notifications-seen-${userId}`
+      const seenIds = new Set<string>(JSON.parse(localStorage.getItem(seenKey) || '[]'))
 
-        localStorage.setItem(todayKey, '1')
+      const subTypeName = (t: string) => locale === 'ar'
+        ? ({ PT: 'PT', Nutrition: 'تغذية', Physiotherapy: 'علاج طبيعي', GroupClass: 'جروب كلاس', More: 'More' } as any)[t] || t
+        : t
+
+      const newlySeen: string[] = []
+
+      //  Renewals
+      ;(data.renewals || []).forEach((r: RenewalNotification) => {
+        const id = `renewal-${r.type}-${r.subscriptionId}`
+        if (seenIds.has(id)) return
+        addToast(`${r.memberName} جدّد اشتراك ${subTypeName(r.type)}`, 'success', 0)
+        newlySeen.push(id)
+      })
+      //  Expiring soon
+      ;(data.expiringSoon || []).forEach((e: ExpiringNotification) => {
+        const id = `expiring-${e.type}-${e.subscriptionId}`
+        if (seenIds.has(id)) return
+        addToast(`${e.memberName} — اشتراك ${subTypeName(e.type)} ينتهي خلال ${e.daysLeft} يوم`, 'warning', 0)
+        newlySeen.push(id)
+      })
+      //  Half-time with balance
+      ;(data.halfTimeWithBalance || []).forEach((h: HalfTimeNotification) => {
+        const id = `halftime-${h.type}-${h.subscriptionId}`
+        if (seenIds.has(id)) return
+        addToast(`${h.memberName} — استخدم نص جلسات ${subTypeName(h.type)} وعليه ${Math.round(h.remainingAmount)} ج`, 'warning', 0)
+        newlySeen.push(id)
+      })
+      //  New assignments — اللي بنبني عليها التنبيه
+      ;(data.newAssignments || []).forEach((n: NewAssignmentNotification) => {
+        const id = `assignment-${n.type}-${(n as any).memberId || (n as any).subscriptionId}`
+        if (seenIds.has(id)) return
+        const label = n.type === 'Member'
+          ? (locale === 'ar' ? 'عضو جديد' : 'New member')
+          : (locale === 'ar' ? `اشتراك ${subTypeName(n.type as any)} جديد` : `New ${subTypeName(n.type as any)} subscription`)
+        const msg = locale === 'ar'
+          ? `🎉 ${n.memberName} — ${label} اتأسند ليك`
+          : `🎉 ${n.memberName} — ${label} assigned to you`
+        addToast(msg, 'info', 0)
+        newlySeen.push(id)
+      })
+
+      //  حفظ الـ IDs اللي عرضناها للكوتش
+      if (newlySeen.length > 0) {
+        const updated = [...Array.from(seenIds), ...newlySeen]
+        //  Cap على آخر 500 إشعار عشان الـ localStorage مايكبرش
+        const capped = updated.slice(-500)
+        localStorage.setItem(seenKey, JSON.stringify(capped))
       }
     } catch (error) {
       console.error('Error fetching coach notifications:', error)
@@ -458,6 +501,66 @@ export default function CoachDashboard() {
             </div>
           )}
         </div>
+
+        {/*  Banner واضح وملفت — كلاينت جديد دخل (آخر 24 ساعة) */}
+        {coachNotifications && coachNotifications.newAssignments
+          .filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1).length > 0 && (
+          <div className="mb-6 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 dark:from-purple-600 dark:via-pink-600 dark:to-rose-600 rounded-2xl shadow-xl p-5 relative overflow-hidden">
+            {/*  bg decorations */}
+            <div className="absolute -top-8 -end-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-6 -start-6 w-24 h-24 bg-yellow-300/20 rounded-full blur-xl pointer-events-none" />
+
+            <div className="relative flex items-start gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 animate-pulse">
+                <span className="text-3xl">🎉</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xl font-black text-white mb-1 flex items-center gap-2 flex-wrap">
+                  {locale === 'ar' ? 'كلاينت جديد دخلك!' : 'New client just joined!'}
+                  <span className="bg-white text-rose-700 text-xs font-black px-2.5 py-0.5 rounded-full">
+                    {coachNotifications.newAssignments.filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1).length}
+                  </span>
+                </h3>
+                <p className="text-white/90 text-sm mb-3">
+                  {locale === 'ar'
+                    ? 'في كلاينت جديد اتأسند ليك آخر 24 ساعة — اتأكد تشوفه وتتواصل معاه'
+                    : 'You have a new client assigned in the last 24 hours — check them out and reach out'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {coachNotifications.newAssignments
+                    .filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1)
+                    .slice(0, 4)
+                    .map((n, i) => (
+                      <span key={`fresh-${i}`} className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                        <span className="w-1.5 h-1.5 bg-yellow-300 rounded-full animate-pulse" />
+                        {n.memberName}
+                        <span className="opacity-80">·</span>
+                        <span className="opacity-90">
+                          {n.type === 'Member'
+                            ? (locale === 'ar' ? 'عضو' : 'Member')
+                            : n.type}
+                        </span>
+                      </span>
+                    ))}
+                  {coachNotifications.newAssignments.filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1).length > 4 && (
+                    <span className="inline-flex items-center bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                      +{coachNotifications.newAssignments.filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1).length - 4}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Link
+                href="/coach/my-members"
+                className="hidden sm:inline-flex items-center gap-1.5 bg-white text-rose-700 hover:bg-rose-50 font-bold text-sm px-4 py-2 rounded-lg transition-colors duration-200 flex-shrink-0"
+              >
+                {locale === 'ar' ? 'شوف' : 'View'}
+                <svg className={`w-4 h-4 ${locale === 'ar' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Coach Notifications Banner */}
         {coachNotifications && (

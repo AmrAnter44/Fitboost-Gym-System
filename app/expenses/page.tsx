@@ -45,7 +45,13 @@ export default function ExpensesPage() {
   } = useQuery({
     queryKey: ['expenses'],
     queryFn: fetchExpenses,
-    enabled: !permissionsLoading && hasPermission('canViewFinancials'),
+    //  نجلب البيانات لأي حد عنده صلاحية فتح الصفحة (مش canViewFinancials بس)
+    enabled: !permissionsLoading && (
+      hasPermission('canViewFinancials') ||
+      hasPermission('canCreateExpense') ||
+      hasPermission('canEditExpense') ||
+      hasPermission('canDeleteExpense')
+    ),
     retry: 1,
     staleTime: 2 * 60 * 1000,
   })
@@ -232,7 +238,19 @@ export default function ExpensesPage() {
     if (!deleteConfirm.expenseId) return
 
     try {
-      await fetch(`/api/expenses?id=${deleteConfirm.expenseId}`, { method: 'DELETE' })
+      const response = await fetch(`/api/expenses?id=${deleteConfirm.expenseId}`, { method: 'DELETE' })
+      //  لازم نشيك على response.ok قبل ما نقول "تم الحذف"
+      // قبل كده الكود كان بيطبع "نجح" حتى لو الـ API رفض (403/500)
+      // فاليوزر كان يشوف "تم الحذف" بس المصروف يفضل في الـ DB
+      if (!response.ok) {
+        let errMsg = t('expenses.messages.deleteError')
+        try {
+          const data = await response.json()
+          if (data?.error) errMsg = data.error
+        } catch {}
+        toast.error(errMsg)
+        return
+      }
       refetchExpenses()
       toast.success(t('expenses.messages.deleteSuccess'))
     } catch (error) {
@@ -249,14 +267,25 @@ export default function ExpensesPage() {
 
   const togglePaid = async (expense: Expense) => {
     try {
-      await fetch('/api/expenses', {
+      const response = await fetch('/api/expenses', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: expense.id, isPaid: !expense.isPaid }),
       })
+      //  نتأكد من النجاح قبل refetch — لو الـ API رفض، نظهر error واضح
+      if (!response.ok) {
+        let errMsg = t('expenses.messages.error') || 'فشل تحديث الحالة'
+        try {
+          const data = await response.json()
+          if (data?.error) errMsg = data.error
+        } catch {}
+        toast.error(errMsg)
+        return
+      }
       refetchExpenses()
     } catch (error) {
       console.error('Error:', error)
+      toast.error(t('expenses.messages.error') || 'حدث خطأ')
     }
   }
 
@@ -368,7 +397,19 @@ export default function ExpensesPage() {
     return <LoadingScreen fullScreen message={t('expenses.loading')} />
   }
 
-  if (!hasPermission('canViewFinancials')) {
+  //  السماح بفتح الصفحة لأي حد عنده واحدة من الصلاحيات دي:
+  // - canViewFinancials: يشوف كل التقارير الماليه
+  // - canCreateExpense: يقدر يضيف مصروف بس
+  // - canEditExpense / canDeleteExpense: يقدر يعدّل أو يحذف
+  // قبل كده الصفحة كانت مقفولة لو مفيش canViewFinancials بس → اللي عنده canCreateExpense
+  // ماكانش يقدر يفتحها أصلاً
+  const canOpenExpensesPage =
+    hasPermission('canViewFinancials') ||
+    hasPermission('canCreateExpense') ||
+    hasPermission('canEditExpense') ||
+    hasPermission('canDeleteExpense')
+
+  if (!canOpenExpensesPage) {
     return <PermissionDenied message={t('expenses.noPermission')} />
   }
 
