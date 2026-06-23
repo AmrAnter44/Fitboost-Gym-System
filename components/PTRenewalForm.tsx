@@ -69,6 +69,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     sessionsPurchased: number
     coachName: string
     totalPrice: number
+    remainingAmount: number //  مبلغ متبقي على الميمبر في التجديد الجديد
     startDate: string
     expiryDate: string
     paymentMethod: string | PaymentMethod[]
@@ -78,6 +79,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
     sessionsPurchased: 0,
     coachName: session.coachName,
     totalPrice: 0,
+    remainingAmount: 0,
     startDate: getDefaultStartDate(),
     expiryDate: '',
     paymentMethod: 'cash',
@@ -462,7 +464,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                 </div>
               </div>
 
-              <div className="mt-3">
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="pt-renew-price" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     {t('pt.renewal.totalPrice')} <span className="text-red-600">*</span>
@@ -477,6 +479,31 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                     className="w-full px-3 py-2 rounded-lg border border-green-400 dark:border-green-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200 font-bold"
                     placeholder="0.00"
                   />
+                </div>
+                {/*  المبلغ المتبقي (تبقية فلوس) — اختياري */}
+                <div>
+                  <label htmlFor="pt-renew-remaining" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    {direction === 'rtl' ? 'الباقي عليه (تبقية)' : 'Remaining (Owes)'}
+                  </label>
+                  <input
+                    id="pt-renew-remaining"
+                    type="number"
+                    min="0"
+                    max={formData.totalPrice || undefined}
+                    value={formData.remainingAmount || ''}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0
+                      const capped = Math.max(0, Math.min(val, formData.totalPrice || 0))
+                      setFormData({ ...formData, remainingAmount: capped })
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-orange-400 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 font-bold"
+                    placeholder="0.00"
+                  />
+                  {formData.remainingAmount > 0 && formData.totalPrice > 0 && (
+                    <p className="mt-1 text-xs text-green-700 dark:text-green-400 font-bold">
+                      💰 {direction === 'rtl' ? 'المدفوع:' : 'Paid:'} {(formData.totalPrice - formData.remainingAmount).toFixed(0)} {t('pt.egp')}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -572,7 +599,8 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
                     value={formData.paymentMethod}
                     onChange={(method) => setFormData({ ...formData, paymentMethod: method })}
                     allowMultiple={true}
-                    totalAmount={formData.totalPrice}
+                    //  المبلغ المطلوب توزيعه = المدفوع فعلاً (الإجمالي - التبقية)
+                    totalAmount={Math.max(0, formData.totalPrice - formData.remainingAmount)}
                     memberPoints={memberPoints}
                     pointsValueInEGP={settings.pointsValueInEGP}
                     pointsEnabled={settings.pointsEnabled}

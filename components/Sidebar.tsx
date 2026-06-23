@@ -186,6 +186,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       if (link.href === '/closing') {
         return hasPermission('canAccessClosing') || hasPermission('canCloseDayOnly')
       }
+      //  استثناء: /expenses يظهر لأي حد عنده صلاحية واحدة من صلاحيات المصاريف
+      // (canViewExpenses أو canCreateExpense أو canEditExpense أو canDeleteExpense)
+      // قبل كده كان لازم canViewExpenses بس → اللي عنده canCreateExpense ماكانش يلاقي الصفحة
+      if (link.href === '/expenses') {
+        return hasPermission('canViewExpenses') ||
+          hasPermission('canCreateExpense') ||
+          hasPermission('canEditExpense') ||
+          hasPermission('canDeleteExpense')
+      }
       if (link.permission && !hasPermission(link.permission)) return false
       return true
     })

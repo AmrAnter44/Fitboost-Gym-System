@@ -296,7 +296,15 @@ export default function SettingsPage() {
   const { isDarkMode, toggleDarkMode } = useDarkMode()
   const { refetch: refetchServiceSettings } = useServiceSettings()
   const [user, setUser] = useState<any>(null)
-  const [activeSection, setActiveSection] = useState('display')
+  //  بنقرأ الـ section من الـ URL hash (مثل /settings#quick-links)
+  // عشان لما اليوزر يرجع من /admin/users يلاقي نفس الـ section مفتوحة
+  const [activeSection, setActiveSection] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const fromHash = window.location.hash.replace('#', '')
+      if (fromHash) return fromHash
+    }
+    return 'display'
+  })
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isAwardingBirthday, setIsAwardingBirthday] = useState(false)
@@ -439,6 +447,18 @@ export default function SettingsPage() {
       fetchOfflineStatus()
     }
   }, [user])
+
+  //  بنحدّث الـ URL hash كل ما الـ section يتغير
+  // عشان لو اليوزر دخل صفحة تانية ورجع، الـ browser يرجع لنفس الـ section
+  // (مثلاً: /settings#quick-links → /admin/users → back → /settings#quick-links)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const newHash = `#${activeSection}`
+    if (window.location.hash !== newHash) {
+      //  بنستخدم replaceState عشان مايضيفش history entry جديد كل scroll
+      window.history.replaceState(null, '', newHash)
+    }
+  }, [activeSection])
 
   // Refresh offline sync stats every 30s while on the license tab
   useEffect(() => {

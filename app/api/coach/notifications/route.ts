@@ -415,14 +415,19 @@ export async function GET(request: Request) {
         select: { moreNumber: true, clientName: true, createdAt: true },
         orderBy: { createdAt: 'desc' },
       }),
-      // الأعضاء العامين اللي اتأسندوا لكوتش (Member.coachId)
+      //  الأعضاء العامين اللي اتأسندوا لكوتش (Member.coachId)
+      // بنفلتر على coachAssignedAt بدل createdAt — عشان يظهر الإشعار حتى لو العضو نفسه قديم
+      // بس اتأسند للكوتش حديثاً (re-assignment case)
       coachStaff
         ? prisma.member.findMany({
-            where: { coachId: coachStaff.id, ...createdRecently },
-            select: { id: true, name: true, createdAt: true },
-            orderBy: { createdAt: 'desc' },
+            where: {
+              coachId: coachStaff.id,
+              coachAssignedAt: { gte: sevenDaysAgo },
+            },
+            select: { id: true, name: true, createdAt: true, coachAssignedAt: true },
+            orderBy: { coachAssignedAt: 'desc' },
           })
-        : Promise.resolve([] as Array<{ id: string; name: string; createdAt: Date }>),
+        : Promise.resolve([] as Array<{ id: string; name: string; createdAt: Date; coachAssignedAt: Date | null }>),
     ])
 
     const daysAgo = (date: Date): number =>
@@ -474,12 +479,15 @@ export async function GET(request: Request) {
       })
     }
     for (const x of naMembers) {
+      //  بنستخدم coachAssignedAt لو موجود (الإشعار بيقول "اتأسند لك من X يوم")
+      // وبنرجع لـ createdAt كـ fallback للأعضاء القدامى اللي مفيش عندهم coachAssignedAt
+      const assignmentDate = x.coachAssignedAt || x.createdAt
       newAssignments.push({
         type: 'Member',
         memberName: x.name,
         memberId: x.id,
-        daysAgo: daysAgo(x.createdAt),
-        createdAt: x.createdAt.toISOString(),
+        daysAgo: daysAgo(assignmentDate),
+        createdAt: assignmentDate.toISOString(),
       })
     }
 
