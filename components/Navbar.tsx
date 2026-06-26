@@ -109,6 +109,8 @@ export default function Navbar() {
       { href: '/coach/notifications', label: locale === 'ar' ? 'إشعاراتي' : 'My Notifications', icon: Icon.bell, permission: null, roleRequired: 'COACH' },
       { href: '/members', label: t('nav.members'), icon: Icon.users, permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
       { href: '/pt', label: t('nav.pt'), icon: Icon.dumbbell, permission: 'canViewPT' as keyof Permissions, roleRequired: null },
+      //  لينك متابعة الكباتن — للفتنس مانجر (يشوف كل كوتش معاه كام عميل + نوتس)
+      { href: '/manager/coach-conversions', label: locale === 'ar' ? '📊 متابعة الكباتن' : '📊 Coach Tracking', icon: Icon.users, permission: 'canAccessPTCommission' as keyof Permissions, roleRequired: null },
       { href: '/nutrition', label: t('nav.nutrition'), icon: Icon.nutrition, permission: 'canViewNutrition' as keyof Permissions, roleRequired: null, enabled: settings.nutritionEnabled },
       { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: Icon.hospital, permission: 'canViewPhysiotherapy' as keyof Permissions, roleRequired: null, enabled: settings.physiotherapyEnabled },
       { href: '/group-classes', label: t('nav.groupClasses'), icon: Icon.users, permission: 'canViewGroupClass' as keyof Permissions, roleRequired: null, enabled: settings.groupClassEnabled },

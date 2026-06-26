@@ -628,6 +628,7 @@ model Permission {
   canAccessClosing        Boolean @default(false)
   canCloseDayOnly         Boolean @default(false)  // 📅 صلاحية اليوم — تقفيل أمس/اليوم/غدا فقط
   canAccessPTCommission   Boolean @default(false)  //  صلاحية الوصول لصفحة تقفيل/حاسبة الـ PT
+  canViewAllPT            Boolean @default(false)  //  صلاحية رؤية كل الحصص المخصصة + المتابعات (حتى لو الـ user كوتش)
   canAccessSettings       Boolean @default(false)
   canAccessAdmin          Boolean @default(false)
   canViewSpaBookings      Boolean @default(false)

@@ -29,8 +29,16 @@ export async function GET(request: Request) {
     // فلترة البيانات حسب الدور
     let whereClause: any = {}
 
-    if (user.role === 'COACH') {
-      // الكوتش يرى عملائه فقط
+    //  لو الـ user عنده canViewAllPT (الفتنس مانجر)، يبص على كل PT حتى لو كوتش
+    //  cast to any عشان الـ Prisma client مش متعمل regenerate لسه (dev server شغّال)
+    const permission = await (prisma.permission as any).findUnique({
+      where: { userId: user.userId },
+      select: { canViewAllPT: true }
+    })
+    const canViewAll = !!permission?.canViewAllPT
+
+    if (user.role === 'COACH' && !canViewAll) {
+      // الكوتش يرى عملائه فقط (إلا لو عنده canViewAllPT)
       // جلب اسم الكوتش من جدول Staff
       const coachStaff = await prisma.staff.findFirst({
         where: {

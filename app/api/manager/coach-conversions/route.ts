@@ -64,6 +64,9 @@ export async function GET(request: Request) {
         freePTSessions: true,
         subscriptionPrice: true,
         coachId: true,
+        //  تاريخ تعيين الكوتش — متى دخل العميل مع الكابتن ده
+        coachAssignedAt: true,
+        createdAt: true,
         coachConversionNote: true,
         coachConversionNoteAt: true,
         ptSessions: {
@@ -138,6 +141,8 @@ export async function GET(request: Request) {
             subscriptionPrice: m.subscriptionPrice,
             coachConversionNote: m.coachConversionNote,
             coachConversionNoteAt: m.coachConversionNoteAt,
+            //  تاريخ دخول الكلاينت مع الكابتن — fallback لـ createdAt للأعضاء القدامى
+            joinedCoachAt: (m as any).coachAssignedAt || m.createdAt,
             ptSessions: m.ptSessions,
             hasPaidPT: !!activePT,
             activePT,

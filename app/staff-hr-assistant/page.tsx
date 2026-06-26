@@ -983,6 +983,15 @@ export default function StaffHRAssistantPage() {
                                 tone="red"
                                 href={`/staff/schedule?staffId=${staff.staffId}&year=${selectedYear}&month=${selectedMonth}`}
                               />
+                              {/*  إجازة بدون راتب — صف منفصل عن الغياب */}
+                              {payroll.deductions.unpaidLeave && payroll.deductions.unpaidLeave.days > 0 && (
+                                <BreakdownRow
+                                  label={direction === 'rtl' ? `إجازة بدون راتب (${payroll.deductions.unpaidLeave.days} يوم)` : `Unpaid Leave (${payroll.deductions.unpaidLeave.days} days)`}
+                                  amount={payroll.deductions.unpaidLeave.amount}
+                                  sign="−"
+                                  tone="red"
+                                />
+                              )}
                               <BreakdownRow
                                 label={direction === 'rtl' ? `خصومات يدوية (${payroll.deductions.manual.items.length})` : `Manual Deductions (${payroll.deductions.manual.items.length})`}
                                 amount={payroll.deductions.manual.total}

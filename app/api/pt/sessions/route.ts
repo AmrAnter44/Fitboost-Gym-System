@@ -74,15 +74,22 @@ export async function GET(request: Request) {
         }
       })
 
-      // فلترة حسب الدور إذا كان كوتش
+      // فلترة حسب الدور إذا كان كوتش (إلا لو عنده canViewAllPT — يبص على كله)
       if (user.role === 'COACH') {
-        // الكوتش يرى فقط جلسات عملائه المدفوعة (التي لها pt.coachUserId)
-        // الجلسات المجانية متاحة للجميع
-        const filteredSessions = sessions.filter(session => {
-          if (session.isFreeSession) return true // الجلسات المجانية متاحة للكوتش
-          return session.pt?.coachUserId === user.userId // الجلسات المدفوعة الخاصة به فقط
+        //  الفتنس مانجر اللي عنده canViewAllPT يبص على كل الجلسات حتى لو دوره COACH
+        //  cast to any — Prisma client مش متعمل regenerate لسه
+        const permission = await (prisma.permission as any).findUnique({
+          where: { userId: user.userId },
+          select: { canViewAllPT: true }
         })
-        return NextResponse.json(filteredSessions)
+        if (!permission?.canViewAllPT) {
+          // الكوتش العادي يرى فقط جلسات عملائه المدفوعة + الجلسات المجانية
+          const filteredSessions = sessions.filter(session => {
+            if (session.isFreeSession) return true
+            return session.pt?.coachUserId === user.userId
+          })
+          return NextResponse.json(filteredSessions)
+        }
       }
 
       return NextResponse.json(sessions)

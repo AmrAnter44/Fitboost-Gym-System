@@ -141,6 +141,9 @@ function FollowUpsPageContent() {
   const [bulkScriptTestPhone, setBulkScriptTestPhone] = useState('')
   const [bulkScriptRunning, setBulkScriptRunning] = useState(false)
   const [bulkScriptPaused, setBulkScriptPaused] = useState(false)
+  //  Minimize — يخلي المودال كورة عائمة في الـ navbar/floating
+  // الـ script شغّال على refs فمش بيتأثر بإخفاء المودال (الأداء كما هو)
+  const [bulkScriptMinimized, setBulkScriptMinimized] = useState(false)
   const bulkScriptPausedRef = useRef(false)
   const bulkScriptAbortedRef = useRef(false)
   const [bulkScriptProgress, setBulkScriptProgress] = useState({ current: 0, total: 0, currentName: '', currentMsgIndex: 0, successCount: 0, failCount: 0, countdown: 0 })
@@ -1803,6 +1806,8 @@ function FollowUpsPageContent() {
     // Done - Save session info
     saveLastSession(successList.length, sourceFilter)
     setBulkScriptRunning(false)
+    //  لما الإرسال يخلص، نلغي الـ minimize عشان report يظهر كامل
+    setBulkScriptMinimized(false)
     setBulkScriptProgress(prev => ({ ...prev, countdown: 0, successCount: successList.length, failCount: failedList.length }))
     setBulkScriptReport({ success: successList, failed: failedList })
     await queryClient.invalidateQueries({ queryKey: ['followups'] })
@@ -2819,8 +2824,71 @@ function FollowUpsPageContent() {
         </div>
       )}
 
-      {/* Smart Bulk Script - Progress Modal */}
-      {bulkScriptRunning && (
+      {/*  Floating ball — يظهر لما الإرسال شغّال و minimized
+           - responsive: موبايل (bottom-end) + ديسك توب (نفس المكان لكن أكبر)
+           - الإرسال شغّال على refs ومستمر بدون أي تأثير على الأداء
+           - الـ progress بيتحدّث live حتى وهو minimized */}
+      {bulkScriptRunning && bulkScriptMinimized && (
+        <button
+          type="button"
+          onClick={() => setBulkScriptMinimized(false)}
+          className="fixed bottom-4 end-4 sm:bottom-6 sm:end-6 z-[9999] group"
+          aria-label={direction === 'rtl' ? 'فتح الإرسال الذكي' : 'Open smart sending'}
+          title={direction === 'rtl'
+            ? `${bulkScriptProgress.current} / ${bulkScriptProgress.total} — ${bulkScriptPaused ? 'متوقف' : 'شغّال'}`
+            : `${bulkScriptProgress.current} / ${bulkScriptProgress.total} — ${bulkScriptPaused ? 'paused' : 'running'}`}
+        >
+          {/*  Glow ring متحرك (animate-pulse) لو الإرسال شغّال */}
+          {!bulkScriptPaused && (
+            <span className="absolute inset-0 rounded-full bg-purple-400 dark:bg-purple-500 opacity-40 blur-md animate-pulse pointer-events-none" />
+          )}
+          <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-2xl ring-4 ring-white dark:ring-gray-800 flex flex-col items-center justify-center text-white transition-transform hover:scale-110 active:scale-95 ${
+            bulkScriptPaused
+              ? 'bg-gradient-to-br from-amber-500 to-orange-600'
+              : 'bg-gradient-to-br from-purple-500 via-fuchsia-500 to-indigo-600'
+          }`}>
+            {/*  Progress ring حوالين الكورة */}
+            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="4" />
+              <circle
+                cx="50" cy="50" r="46"
+                fill="none"
+                stroke="white"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 46}`}
+                strokeDashoffset={`${2 * Math.PI * 46 * (1 - bulkScriptProgress.current / Math.max(bulkScriptProgress.total, 1))}`}
+                style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+              />
+            </svg>
+            {/*  Center content — الأيقونة أو إيموجي + العدد */}
+            <span className="relative text-[10px] sm:text-xs font-black leading-none mb-0.5">
+              {bulkScriptPaused ? '⏸' : '📨'}
+            </span>
+            <span className="relative text-[10px] sm:text-xs font-black leading-none tabular-nums">
+              {bulkScriptProgress.current}/{bulkScriptProgress.total}
+            </span>
+          </div>
+          {/*  Success/fail badge — يظهر فوق الكورة */}
+          {(bulkScriptProgress.successCount > 0 || bulkScriptProgress.failCount > 0) && (
+            <div className="absolute -top-2 -start-2 flex gap-1 pointer-events-none">
+              {bulkScriptProgress.successCount > 0 && (
+                <span className="bg-green-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md">
+                  ✓{bulkScriptProgress.successCount}
+                </span>
+              )}
+              {bulkScriptProgress.failCount > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md">
+                  ✕{bulkScriptProgress.failCount}
+                </span>
+              )}
+            </div>
+          )}
+        </button>
+      )}
+
+      {/* Smart Bulk Script - Progress Modal — مخفي لما يكون minimized */}
+      {bulkScriptRunning && !bulkScriptMinimized && (
         <div
           className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
           role="dialog"
@@ -2828,7 +2896,19 @@ function FollowUpsPageContent() {
           aria-labelledby="bulk-script-progress-title"
           aria-busy="true"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in relative">
+            {/*  زرار minimize في الـ top-end */}
+            <button
+              type="button"
+              onClick={() => setBulkScriptMinimized(true)}
+              className="absolute top-3 end-3 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 flex items-center justify-center transition-colors"
+              aria-label={direction === 'rtl' ? 'تصغير' : 'Minimize'}
+              title={direction === 'rtl' ? 'تصغير (الإرسال هيكمل)' : 'Minimize (sending continues)'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5" />
+              </svg>
+            </button>
             <div className="text-center mb-5">
               <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 mx-auto mb-3 flex items-center justify-center">
                 {bulkScriptPaused ? (

@@ -168,10 +168,14 @@ export async function calculateNetSalary(
     }
   }
 
-  // ────────── 4. Detect absences (working day && no attendance && no PAID leave && not holiday && within employment)
-  // Unpaid leave still counts as absence (deduction)
+  // ────────── 4. Detect absences (working day && no attendance && no leave && not holiday && within employment)
+  //  أي إجازة معتمدة (مدفوعة أو غير مدفوعة) مش بتتحسب غياب
+  // - الإجازة المدفوعة: مفيش خصم
+  // - الإجازة بدون راتب: بتنخصم كـ "إجازة بدون راتب" منفصل (مش غياب)
   // Pre-employment days OR post-termination days do NOT count as absence (and don't earn salary either — pro-rated below)
   const absenceDates: string[] = []
+  //  أيام الإجازة بدون راتب — منفصلة عن الغياب
+  const unpaidLeaveDatesInMonth: string[] = []
   const monthStart = new Date(year, month - 1, 1)
   const monthEndExclusive = new Date(year, month, 1)
   const employmentStart = staff.joinedDate && staff.joinedDate > monthStart ? staff.joinedDate : monthStart
@@ -187,6 +191,11 @@ export async function calculateNetSalary(
     if (holidayDates.has(iso)) continue
     if (attendanceDates.has(iso)) continue
     if (leavePaidDates.has(iso)) continue
+    //  لو يوم إجازة بدون راتب — مش غياب، لكن بنخصمه من الراتب كـ unpaid leave
+    if (leaveUnpaidDates.has(iso)) {
+      unpaidLeaveDatesInMonth.push(iso)
+      continue
+    }
     // For days in the future (relative to today), don't count as absence yet
     const now = new Date()
     if (d > now) continue
@@ -194,6 +203,9 @@ export async function calculateNetSalary(
   }
   const absenceDays = absenceDates.length
   const absenceAmount = absenceDays * dailyRate
+  //  حساب خصم الإجازة بدون راتب (لو موجودة)
+  const unpaidLeaveDays = unpaidLeaveDatesInMonth.length
+  const unpaidLeaveAmount = unpaidLeaveDays * dailyRate
 
   // ────────── Pro-rate base salary if employment is partial within this month
   const isPartialMonth = employedDaysInMonth < workingDays
@@ -233,7 +245,8 @@ export async function calculateNetSalary(
   const totalManual = manualDeductions.reduce((s, d) => s + d.amount, 0)
 
   const earningsTotal = proRatedBase + totalBonuses + totalCommission
-  const nonLoanDeductions = absenceAmount + totalManual // late is NOT auto-deducted
+  //  ضفنا unpaidLeaveAmount للخصومات (إجازة بدون راتب — مش غياب)
+  const nonLoanDeductions = absenceAmount + unpaidLeaveAmount + totalManual // late is NOT auto-deducted
   let netSoFar = earningsTotal - nonLoanDeductions
 
   // ────────── 7. Apply partial-loan deductions
@@ -267,7 +280,7 @@ export async function calculateNetSalary(
 
   const totalLoansDeducted = loanItems.reduce((s, l) => s + l.willDeductThisMonth, 0)
 
-  const totalDeductions = absenceAmount + totalManual + totalLoansDeducted
+  const totalDeductions = absenceAmount + unpaidLeaveAmount + totalManual + totalLoansDeducted
 
   return {
     staffId,
@@ -303,6 +316,12 @@ export async function calculateNetSalary(
         days: absenceDays,
         amount: absenceAmount,
         dates: absenceDates,
+      },
+      //  إجازة بدون راتب — منفصلة عن الغياب (يوم إجازة ≠ يوم غياب)
+      unpaidLeave: {
+        days: unpaidLeaveDays,
+        amount: unpaidLeaveAmount,
+        dates: unpaidLeaveDatesInMonth,
       },
       lateArrivals: {
         totalMinutes: totalLateMinutes,
