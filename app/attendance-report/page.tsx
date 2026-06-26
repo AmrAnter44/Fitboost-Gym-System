@@ -10,6 +10,21 @@ import { LoadingScreen } from '../../components/Spinner'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
+//  Helper: يحوّل URL الصورة لـ /api/serve-image لو الصورة legacy
+// (الصور القديمة اللي اتخزنت قبل ما نصلح الـ Electron-aware URL)
+// نمط الـ legacy: "/uploads/staff-checkin/xxx.jpg" → بنفلتر عشان نتخطى الـ data: URLs
+function resolveSelfieUrl(raw: string): string {
+  if (!raw) return raw
+  //  الـ URLs الجديدة بتبدأ بـ /api/serve-image — استخدمها كما هي
+  if (raw.startsWith('/api/serve-image')) return raw
+  //  الـ data URL (مش متوقع في الـ DB) — كما هي
+  if (raw.startsWith('data:')) return raw
+  //  URLs absolute (http/https) — كما هي
+  if (raw.startsWith('http')) return raw
+  //  أي حاجة تانية: ندفعها عبر /api/serve-image عشان تشتغل في Electron + Web
+  return `/api/serve-image?path=${encodeURIComponent(raw)}`
+}
+
 interface Staff {
   id: string
   staffCode: string
@@ -600,13 +615,38 @@ export default function AttendanceReportPage() {
                         {att.selfieImage ? (
                           <button
                             type="button"
-                            onClick={() => setViewingSelfie({ url: att.selfieImage!, staffName: att.staff.name, checkIn: att.checkIn })}
-                            className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-emerald-400 dark:ring-emerald-600 hover:ring-emerald-500 transition-all shrink-0 group"
+                            onClick={() => setViewingSelfie({ url: resolveSelfieUrl(att.selfieImage!), staffName: att.staff.name, checkIn: att.checkIn })}
+                            className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-emerald-400 dark:ring-emerald-600 hover:ring-emerald-500 transition-all shrink-0 group bg-gray-100 dark:bg-gray-800"
                             aria-label={direction === 'rtl' ? 'عرض صورة السكان' : 'View check-in selfie'}
                             title={direction === 'rtl' ? 'عرض صورة السكان' : 'View check-in selfie'}
                           >
-                            <img src={att.selfieImage} alt="" className="w-full h-full object-cover" />
-                            <span className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-colors">
+                            <img
+                              src={resolveSelfieUrl(att.selfieImage)}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onLoad={(e) => {
+                                //  لو الصورة 1×1 (الـ transparent pixel — الملف مش موجود)
+                                const img = e.currentTarget
+                                if (img.naturalWidth <= 2 && img.naturalHeight <= 2) {
+                                  img.style.display = 'none'
+                                  const fallback = img.nextElementSibling as HTMLElement | null
+                                  if (fallback) fallback.style.display = 'flex'
+                                }
+                              }}
+                              onError={(e) => {
+                                const img = e.currentTarget
+                                img.style.display = 'none'
+                                const fallback = img.nextElementSibling as HTMLElement | null
+                                if (fallback) fallback.style.display = 'flex'
+                              }}
+                            />
+                            {/*  fallback إذا الـ file مش موجود — يظهر أيقونة الكاميرا بدل الـ pixel الشفاف */}
+                            <span className="hidden absolute inset-0 bg-gray-100 dark:bg-gray-800 items-center justify-center" title={direction === 'rtl' ? 'الصورة مش موجودة على القرص' : 'Image file missing'}>
+                              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316zM16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                              </svg>
+                            </span>
+                            <span className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-colors pointer-events-none">
                               <svg className="w-4 h-4 text-white opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </span>
                           </button>
@@ -781,8 +821,54 @@ export default function AttendanceReportPage() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="bg-gray-900 flex items-center justify-center p-4">
-              <img src={viewingSelfie.url} alt={viewingSelfie.staffName} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+            <div className="bg-gray-900 flex items-center justify-center p-4 min-h-[200px] relative">
+              <img
+                src={viewingSelfie.url}
+                alt={viewingSelfie.staffName}
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                onLoad={(e) => {
+                  //  لو الصورة 1×1 (transparent pixel من serve-image لما الملف مش موجود)
+                  // أو صغيرة جداً → نعتبرها فشل ونعرض الـ fallback
+                  const img = e.currentTarget
+                  if (img.naturalWidth <= 2 && img.naturalHeight <= 2) {
+                    //  جرّب الـ raw URL كـ fallback لو لسه ما جربناش
+                    const currentSrc = img.src
+                    if (currentSrc.includes('/api/serve-image?path=')) {
+                      try {
+                        const url = new URL(currentSrc, window.location.origin)
+                        const rawPath = url.searchParams.get('path') || ''
+                        if (rawPath && rawPath.startsWith('/uploads/')) {
+                          img.src = rawPath
+                          return
+                        }
+                      } catch {}
+                    }
+                    //  أخر محاولة فشلت — نعرض رسالة بدل الـ pixel الشفاف
+                    img.style.display = 'none'
+                    const fallback = img.nextElementSibling as HTMLElement | null
+                    if (fallback) fallback.style.display = 'block'
+                  }
+                }}
+                onError={(e) => {
+                  const img = e.currentTarget
+                  img.style.display = 'none'
+                  const fallback = img.nextElementSibling as HTMLElement | null
+                  if (fallback) fallback.style.display = 'block'
+                }}
+              />
+              {/*  fallback يظهر لو الصورة فشلت تماماً أو رجعت 1×1 pixel */}
+              <div className="hidden text-center text-white">
+                <p className="text-4xl mb-2">📷❌</p>
+                <p className="text-sm font-bold mb-2">
+                  {direction === 'rtl' ? 'الصورة مش موجودة على القرص' : 'Image file not found on disk'}
+                </p>
+                <p className="text-xs opacity-70 mt-2">
+                  {direction === 'rtl'
+                    ? 'الـ DB فيها URL للصورة، لكن الـ file مش موجود.'
+                    : 'DB has URL but file is missing.'}
+                </p>
+                <p className="text-xs opacity-60 mt-3 font-mono break-all px-4 max-w-md">{viewingSelfie.url}</p>
+              </div>
             </div>
             <div className="p-3 text-center text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/40">
               {direction === 'rtl' ? 'تم التقاط الصورة تلقائياً وقت السكان' : 'Selfie auto-captured at check-in time'}

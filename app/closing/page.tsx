@@ -1571,8 +1571,10 @@ export default function ClosingPage() {
 
           {/*  Daily view: Total Income + Net cards */}
           {viewMode === 'daily' && dailyData.length > 0 && (() => {
+            //  لازم نضيف d.more كمان (المزيد) عشان صافي اليوم يطابق
+            // صافي الربح في التقفيل الشهري (totals.netProfit) اللي بيشمل المزيد
             const dayTotalIncome = dailyData.reduce(
-              (s, d) => s + d.floor + d.pt + (d.nutrition || 0) + (d.physiotherapy || 0),
+              (s, d) => s + d.floor + d.pt + (d.nutrition || 0) + (d.physiotherapy || 0) + (d.more || 0),
               0
             )
             const dayExpenses = dailyData.reduce((s, d) => s + (d.expenses || 0), 0)

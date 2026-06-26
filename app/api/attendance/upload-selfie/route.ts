@@ -5,10 +5,7 @@ import { prisma } from '../../../../lib/prisma'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import crypto from 'crypto'
-import {
-  getStaffCheckinUploadsDir,
-  STAFF_CHECKIN_UPLOADS_URL_PREFIX,
-} from '../../../../lib/uploadsPath'
+import { getStaffCheckinUploadsDir, STAFF_CHECKIN_UPLOADS_URL_PREFIX } from '../../../../lib/uploadsPath'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,7 +58,12 @@ export async function POST(request: Request) {
     const filepath = path.join(uploadsDir, filename)
     await writeFile(filepath, buffer)
 
-    const imageUrl = `${STAFF_CHECKIN_UPLOADS_URL_PREFIX}${filename}`
+    //  في Electron، الملف بيتخزن خارج public/ — فلازم نستخدم /api/serve-image
+    // عشان نقرأه. في dev/web يكفي الـ relative URL لأنه في public/uploads
+    const isElectron = process.env.UPLOADS_PATH !== undefined
+    const imageUrl = isElectron
+      ? `/api/serve-image?path=${encodeURIComponent(filepath)}`
+      : `${STAFF_CHECKIN_UPLOADS_URL_PREFIX}${filename}`
 
     //  حدّث الـ Attendance
     await prisma.attendance.update({

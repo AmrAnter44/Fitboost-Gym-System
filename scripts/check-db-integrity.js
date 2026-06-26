@@ -130,12 +130,14 @@ function syncSchemaIfNeeded(dbPath) {
     return; //  تخطّي (الـ rebuild اللي فوق هيتعامل معاها)
   }
 
-  //  جلب أعمدة Member الحالية من DB
-  let dbColumns = [];
+  //  جلب أعمدة Member و Permission من DB
+  let memberCols = [];
+  let permCols = [];
   try {
     const db = new Database(dbPath, { readonly: true, fileMustExist: true });
     try {
-      dbColumns = db.prepare("PRAGMA table_info('Member')").all().map(c => c.name);
+      memberCols = db.prepare("PRAGMA table_info('Member')").all().map(c => c.name);
+      permCols = db.prepare("PRAGMA table_info('Permission')").all().map(c => c.name);
     } finally {
       db.close();
     }
@@ -150,11 +152,16 @@ function syncSchemaIfNeeded(dbPath) {
     'coachConversionNoteAt',
     'coachAssignedAt',
   ];
+  const REQUIRED_PERMISSION_COLUMNS = [
+    'canViewAllPT',
+  ];
 
-  const missing = REQUIRED_MEMBER_COLUMNS.filter(c => !dbColumns.includes(c));
+  const missingMember = REQUIRED_MEMBER_COLUMNS.filter(c => !memberCols.includes(c));
+  const missingPerm = REQUIRED_PERMISSION_COLUMNS.filter(c => !permCols.includes(c));
+  const missing = [...missingMember.map(c => `Member.${c}`), ...missingPerm.map(c => `Permission.${c}`)];
   if (missing.length === 0) return;
 
-  warn(`الـ DB ناقصة ${missing.length} عمود في Member: ${missing.join(', ')}`);
+  warn(`الـ DB ناقصة ${missing.length} عمود: ${missing.join(', ')}`);
   action('جاري تطبيق التحديثات على الـ DB (prisma db push)...');
 
   try {

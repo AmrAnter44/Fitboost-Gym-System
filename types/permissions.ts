@@ -92,6 +92,7 @@ export interface Permissions {
   canAccessClosing: boolean
   canCloseDayOnly: boolean  // 📅 صلاحية اليوم — يقدر يقفّل اليوم/أمس/غدا فقط (بدون شهري/سنوي)
   canAccessPTCommission: boolean  //  صلاحية الوصول لصفحة تقفيل/حاسبة الـ PT
+  canViewAllPT: boolean  //  رؤية كل الحصص المخصصة + المتابعات (حتى لو كوتش)
 
   // صلاحيات الإعدادات والإدارة
   canAccessSettings: boolean
@@ -250,6 +251,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: true,
     canCloseDayOnly: true,
     canAccessPTCommission: true,
+    canViewAllPT: true,
     canAccessSettings: true,
     canAccessAdmin: true,
     canViewSpaBookings: true,
@@ -333,6 +335,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: true,
     canCloseDayOnly: true,
     canAccessPTCommission: true,
+    canViewAllPT: true,
     canAccessSettings: true,
     canAccessAdmin: true,
     canViewSpaBookings: true,
@@ -416,6 +419,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: true,
     canCloseDayOnly: true,
     canAccessPTCommission: true,
+    canViewAllPT: true,
     canAccessSettings: false,
     canAccessAdmin: false,
     canViewSpaBookings: true,
@@ -499,6 +503,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: false,
     canCloseDayOnly: false,
     canAccessPTCommission: false,
+    canViewAllPT: false,
     canAccessSettings: false,
     canAccessAdmin: false,
     canViewSpaBookings: true,
@@ -583,6 +588,7 @@ export const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
     canAccessClosing: false,
     canCloseDayOnly: false,
     canAccessPTCommission: false,
+    canViewAllPT: false,
     canAccessSettings: false,
     canAccessAdmin: false,
     canViewSpaBookings: false,
@@ -671,6 +677,7 @@ export const PERMISSION_LABELS: Record<keyof Permissions, string> = {
   canAccessClosing: 'التقفيل الكامل (يومي/شهري/سنوي)',
   canCloseDayOnly: 'صلاحية اليوم (أمس/اليوم/غدا فقط)',
   canAccessPTCommission: 'تقفيل/حاسبة الـ PT',
+  canViewAllPT: 'رؤية كل الحصص المخصصة + متابعات PT (حتى لو كوتش)',
   canAccessSettings: 'الوصول للإعدادات',
   canAccessAdmin: 'الوصول للوحة الإدارة',
   canViewSpaBookings: 'عرض حجوزات SPA',
@@ -717,6 +724,7 @@ export const PERMISSION_GROUPS = {
       'canEditPT',
       'canDeletePT',
       'canRegisterPTAttendance',
+      'canViewAllPT',
     ] as Array<keyof Permissions>,
   },
   groupClass: {
@@ -950,6 +958,7 @@ export const PERMISSION_ICONS: Record<keyof Permissions, string> = {
   canAccessClosing: '🔒',
   canCloseDayOnly: '📅',
   canAccessPTCommission: '🏋️',
+  canViewAllPT: '👁️',
   canAccessSettings: '⚙️',
   canAccessAdmin: '👨‍💼',
   canViewSpaBookings: '👁️',

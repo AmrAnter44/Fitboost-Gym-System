@@ -13,21 +13,26 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const daysAhead = Math.max(0, Math.min(60, parseInt(searchParams.get('daysAhead') || '14', 10)))
     const statusFilter = searchParams.get('status') // 'all' | 'expired' | 'expiring'
+    //  ptNumber filter — لجلب سجل متابعات PT واحد بصرف النظر عن حالته (expired/active)
+    const ptNumberParam = searchParams.get('ptNumber')
 
     const now = new Date()
     const horizon = new Date(now)
     horizon.setDate(horizon.getDate() + daysAhead)
 
-    const where: any = {
-      OR: [
-        // expired (had an expiry date that's already past)
-        { expiryDate: { lt: now } },
-        // expiring soon (between now and the horizon)
-        { AND: [{ expiryDate: { gte: now } }, { expiryDate: { lte: horizon } }] },
-        // no expiry date but sessions ran out
-        { AND: [{ expiryDate: null }, { sessionsRemaining: { lte: 0 } }] },
-      ],
-    }
+    //  لو طلب PT معيّن، نتجاهل فلتر الـ expiry ونرجّع لوحده فقط
+    const where: any = ptNumberParam
+      ? { ptNumber: parseInt(ptNumberParam, 10) }
+      : {
+          OR: [
+            // expired (had an expiry date that's already past)
+            { expiryDate: { lt: now } },
+            // expiring soon (between now and the horizon)
+            { AND: [{ expiryDate: { gte: now } }, { expiryDate: { lte: horizon } }] },
+            // no expiry date but sessions ran out
+            { AND: [{ expiryDate: null }, { sessionsRemaining: { lte: 0 } }] },
+          ],
+        }
 
     const pts = await prisma.pT.findMany({
       where,

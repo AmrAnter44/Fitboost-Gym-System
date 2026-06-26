@@ -17,7 +17,7 @@ const VALID_PERMISSION_FIELDS = [
   'canViewVisitors', 'canCreateVisitor', 'canEditVisitor', 'canDeleteVisitor',
   'canViewFollowUps', 'canCreateFollowUp', 'canEditFollowUp', 'canDeleteFollowUp', 'canManageSales',
   'canViewDayUse', 'canCreateDayUse', 'canEditDayUse', 'canDeleteDayUse',
-  'canViewReports', 'canViewFinancials', 'canViewAttendance', 'canAccessClosing', 'canCloseDayOnly', 'canAccessPTCommission', 'canAccessSettings', 'canAccessAdmin',
+  'canViewReports', 'canViewFinancials', 'canViewAttendance', 'canAccessClosing', 'canCloseDayOnly', 'canAccessPTCommission', 'canViewAllPT', 'canAccessSettings', 'canAccessAdmin',
   'canViewSpaBookings', 'canCreateSpaBooking', 'canEditSpaBooking', 'canCancelSpaBooking', 'canViewSpaReports',
   'canViewWhatsAppInbox', 'canSendWhatsApp', 'canManageWhatsApp',
   'canViewDeductions', 'canCreateDeduction', 'canEditDeduction', 'canDeleteDeduction',

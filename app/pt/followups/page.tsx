@@ -106,6 +106,8 @@ export default function PTFollowupsPage() {
   const [logModal, setLogModal] = useState<{ pt: PTRow; activityType: 'call' | 'whatsapp' | 'visit' | 'note' } | null>(null)
   const [logForm, setLogForm] = useState({ result: '', notes: '', nextContactAt: '' })
   const [submitting, setSubmitting] = useState(false)
+  //  فلتر حالة المتابعة: all / contacted / with / without
+  const [contactFilter, setContactFilter] = useState<'all' | 'contacted' | 'with' | 'without'>('all')
 
   const fetchData = async () => {
     setLoading(true)
@@ -129,15 +131,41 @@ export default function PTFollowupsPage() {
   }, [permissionsLoading, statusFilter])
 
   const filteredRows = useMemo(() => {
-    if (!search.trim()) return rows
+    const NO_CONTACT = ['no-answer', 'busy']
+    let list = rows
+    //  فلتر حالة المتابعة
+    if (contactFilter !== 'all') {
+      list = list.filter(r => {
+        const count = r.contactCount || 0
+        const latest = r.latestContact
+        if (contactFilter === 'contacted') {
+          return count > 0 && !!latest?.result && !NO_CONTACT.includes(latest.result)
+        }
+        if (contactFilter === 'with') return count > 0
+        //  without
+        return count === 0
+      })
+    }
+    if (!search.trim()) return list
     const q = search.trim().toLowerCase()
-    return rows.filter(r =>
+    return list.filter(r =>
       r.clientName.toLowerCase().includes(q) ||
       r.phone.includes(q) ||
       String(r.ptNumber).includes(q) ||
       r.coachName.toLowerCase().includes(q)
     )
-  }, [rows, search])
+  }, [rows, search, contactFilter])
+
+  //  counts للفلتر — بنحسبهم على كل rows (مش filtered) عشان الـ button counts تكون مطلقة
+  const followupCounts = useMemo(() => {
+    const NO_CONTACT = ['no-answer', 'busy']
+    return {
+      all: rows.length,
+      contacted: rows.filter(r => (r.contactCount || 0) > 0 && !!r.latestContact?.result && !NO_CONTACT.includes(r.latestContact.result)).length,
+      with: rows.filter(r => (r.contactCount || 0) > 0).length,
+      without: rows.filter(r => (r.contactCount || 0) === 0).length,
+    }
+  }, [rows])
 
   const openLog = (pt: PTRow, activityType: 'call' | 'whatsapp' | 'visit' | 'note') => {
     setLogModal({ pt, activityType })
@@ -230,6 +258,42 @@ export default function PTFollowupsPage() {
           <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'قريبة' : 'Expiring'}</p>
           <p className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{counts.expiring}</p>
         </button>
+      </div>
+
+      {/*  فلتر حالة المتابعة — الكل / تم التواصل / اتعملت محاولة / مفيش */}
+      <div className="mb-4">
+        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+          {locale === 'ar' ? 'حالة المتابعة' : 'Followup status'}
+        </label>
+        <div className="inline-flex flex-wrap gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-900/60 ring-1 ring-gray-200 dark:ring-gray-700">
+          {([
+            { key: 'all', label: locale === 'ar' ? '⚪ الكل' : '⚪ All', cls: 'text-gray-700 dark:text-gray-200 ring-gray-300 dark:ring-gray-600' },
+            { key: 'contacted', label: locale === 'ar' ? '☎️ تم التواصل' : '☎️ Contacted', cls: 'text-blue-700 dark:text-blue-300 ring-blue-300 dark:ring-blue-700' },
+            { key: 'with', label: locale === 'ar' ? '✅ اتعملت محاولة' : '✅ Attempted', cls: 'text-emerald-700 dark:text-emerald-300 ring-emerald-300 dark:ring-emerald-700' },
+            { key: 'without', label: locale === 'ar' ? '🔴 مفيش متابعة' : '🔴 No followup', cls: 'text-red-700 dark:text-red-300 ring-red-300 dark:ring-red-700' },
+          ] as const).map(opt => {
+            const active = contactFilter === opt.key
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setContactFilter(opt.key)}
+                className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all duration-150 ${
+                  active
+                    ? `bg-white dark:bg-gray-800 shadow ring-1 ${opt.cls}`
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-800/50'
+                }`}
+              >
+                <span>{opt.label}</span>
+                <span className={`inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full text-[11px] font-bold tabular-nums ${
+                  active ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                }`}>
+                  {followupCounts[opt.key]}
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Search */}

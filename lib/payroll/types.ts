@@ -32,6 +32,12 @@ export interface PayrollBreakdown {
       amount: number
       dates: string[] // ISO date strings of missed working days
     }
+    //  إجازة بدون راتب (الإجازة المعتمدة بـ isPaid=false) — منفصلة عن الغياب
+    unpaidLeave: {
+      days: number
+      amount: number
+      dates: string[]
+    }
     lateArrivals: {
       // Late is INFO only — manager decides whether to add as manual deduction
       totalMinutes: number
