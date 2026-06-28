@@ -1075,8 +1075,9 @@ export default function AdminUsersPage() {
                     aria-checked={editingUserIsSales}
                     aria-label="سيلز"
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      editingUserIsSales ? 'translate-x-6' : 'translate-x-1'
+                    {/*  start-N بدل translate-x-N — RTL/LTR safe */}
+                    <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all duration-200 ${
+                      editingUserIsSales ? 'start-6' : 'start-1'
                     }`} />
                   </button>
                 </div>

@@ -1241,12 +1241,15 @@ export default function CoachCommissionPage() {
               onClick={() => toggleSeparateCoachTarget(!useSeparateCoachTarget)}
               disabled={savingSeparateTarget}
               aria-pressed={useSeparateCoachTarget}
-              className={`relative inline-flex h-8 w-14 shrink-0 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+              role="switch"
+              aria-checked={useSeparateCoachTarget}
+              className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
                 useSeparateCoachTarget ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
               } ${savingSeparateTarget ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
             >
-              <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 mt-1 ${
-                useSeparateCoachTarget ? 'translate-x-7' : 'translate-x-1'
+              {/*  استخدام start-N بدل translate-x-N — RTL/LTR safe */}
+              <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-lg transition-all duration-300 ${
+                useSeparateCoachTarget ? 'start-7' : 'start-1'
               }`} />
             </button>
           </div>
@@ -2480,6 +2483,85 @@ export default function CoachCommissionPage() {
         </div>
       )}
 
+      {/* جدول عمولات تسجيل الأعضاء */}
+      <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <span></span>
+          <span>
+            {t('pt.commission.memberSignupCommissionsTitle', {
+              fromDate: new Date(dateFrom).toLocaleDateString(localeString),
+              toDate: new Date(dateTo).toLocaleDateString(localeString)
+            })}
+          </span>
+        </h2>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gradient-to-r from-green-100 to-emerald-200 dark:from-green-900/40 dark:to-emerald-900/40">
+              <tr>
+                <th className="px-4 py-3 text-right dark:text-gray-200">{t('pt.commission.coach')}</th>
+                <th className="px-4 py-3 text-center dark:text-gray-200">{t('pt.commission.staffNumber')}</th>
+                <th className="px-4 py-3 text-center dark:text-gray-200">{t('pt.commission.subscriptionCount')}</th>
+                <th className="px-4 py-3 text-center dark:text-gray-200">{t('pt.commission.commissionPerSubscription')}</th>
+                <th className="px-4 py-3 text-center dark:text-gray-200">{t('pt.commission.totalCommissions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {memberSignupCommissions.length > 0 ? (
+                memberSignupCommissions.map((commission) => (
+                  <tr key={commission.coachId} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-4 py-3 font-semibold dark:text-gray-200">{commission.coachName}</td>
+                    <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">#{commission.staffCode}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-block bg-primary-100 dark:bg-primary-900/40 text-primary-800 dark:text-primary-300 font-bold px-3 py-1 rounded-full">
+                        {commission.count}
+                      </span>
+                    </td>
+                    {/*  المتوسط الفعلي = الإجمالي ÷ عدد الاشتراكات (بدل 50 ثابتة) */}
+                    <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
+                      {commission.count > 0 ? Math.round(commission.totalAmount / commission.count).toLocaleString(localeString) : 0} {t('pt.commission.egp')}
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold text-green-600 dark:text-green-400 text-lg">
+                      {commission.totalAmount.toLocaleString(localeString)} {t('pt.commission.egp')}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
+
+                    <p className="text-xl">{t('pt.commission.noCommissionsInPeriod')}</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            {memberSignupCommissions.length > 0 && (
+              <tfoot className="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 font-bold">
+                <tr>
+                  <td className="px-4 py-3" colSpan={2}>{t('pt.commission.total')}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="inline-block bg-primary-500 dark:bg-primary-600 text-primary-contrast font-bold px-3 py-1 rounded-full">
+                      {memberSignupCommissions.reduce((sum, c) => sum + c.count, 0)}
+                    </span>
+                  </td>
+                  {/*  المتوسط الإجمالي = الإجمالي الكلي ÷ عدد الاشتراكات الكلي */}
+                  <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-200">
+                    {(() => {
+                      const totalCount = memberSignupCommissions.reduce((s, c) => s + c.count, 0)
+                      const totalAmount = memberSignupCommissions.reduce((s, c) => s + c.totalAmount, 0)
+                      return totalCount > 0 ? Math.round(totalAmount / totalCount).toLocaleString(localeString) : 0
+                    })()} {t('pt.commission.egp')}
+                  </td>
+                  <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 text-xl">
+                    {memberSignupCommissions.reduce((sum, c) => sum + c.totalAmount, 0).toLocaleString(localeString)} {t('pt.commission.egp')}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
+
       {/* جدول الجلسات المجانية */}
       {freeSessionsSettings.trackFreeSessionsCost && freeSessionsSettings.freePTSessionPrice > 0 && (
         <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
@@ -2954,22 +3036,62 @@ export default function CoachCommissionPage() {
                       <p className="text-sm text-gray-600 dark:text-gray-300">تفعيل إضافة عمولة تلقائية للكوتش عند تسجيل عضو جديد</p>
                     </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={freeSessionsSettings.ptCommissionEnabled !== false}
-                      onChange={(e) => setFreeSessionsSettings(prev => ({
-                        ...prev,
-                        ptCommissionEnabled: e.target.checked
-                      }))}
-                      className="sr-only peer"
-                    />
-                    <div className="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:start-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-colors duration-200 dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                  </label>
+                  {/*  Toggle Switch — controlled by React state، شغّال بـ RTL وLTR بدون مشاكل
+                       الـ ball بداخل الـ pill طول الوقت، بيتحرك بـ start position فقط */}
+                  {(() => {
+                    const isOn = freeSessionsSettings.ptCommissionEnabled !== false
+                    return (
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isOn}
+                        onClick={() => setFreeSessionsSettings(prev => ({
+                          ...prev,
+                          ptCommissionEnabled: !isOn
+                        }))}
+                        className={`relative inline-flex items-center w-14 h-8 rounded-full transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:focus:ring-indigo-800 ${
+                          isOn ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-200 ${
+                            isOn ? 'start-7' : 'start-1'
+                          }`}
+                        />
+                      </button>
+                    )
+                  })()}
                 </div>
+                {/*  حقل القيمة الافتراضية — يظهر بس لو الـ toggle مفتوح */}
+                {freeSessionsSettings.ptCommissionEnabled !== false && (
+                  <div className="mt-4 bg-white/60 dark:bg-gray-800/40 rounded-lg p-4 ring-1 ring-indigo-200 dark:ring-indigo-700">
+                    <label className="block text-sm font-bold text-gray-800 dark:text-gray-100 mb-2">
+                      💰 القيمة الافتراضية للعمولة (لو الباقة مش متظبطة)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        step="10"
+                        value={freeSessionsSettings.ptCommissionAmount ?? 50}
+                        onChange={(e) => setFreeSessionsSettings(prev => ({
+                          ...prev,
+                          ptCommissionAmount: parseFloat(e.target.value) || 0
+                        }))}
+                        className="flex-1 px-3 py-2 rounded-lg border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="50"
+                      />
+                      <span className="text-gray-600 dark:text-gray-300 font-bold">ج.م</span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-2">
+                      💡 ده اللي بيتطبق لما الباقة <strong>ما فيهاش قيمة عمولة محدّدة</strong>. لو كل باقة فيها قيمتها الخاصة، القيمة دي مش هتظهر.
+                    </p>
+                  </div>
+                )}
+
                 <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 border-l-4 border-amber-500 dark:border-amber-600 rounded">
                   <p className="text-sm text-amber-800 dark:text-amber-200">
-                     <strong>ملاحظة:</strong> يتم تحديد سعر العمولة في إعدادات الباقة/العرض نفسه
+                     <strong>ملاحظة:</strong> القيمة الخاصة بكل باقة (في صفحة العروض) لها الأولوية على القيمة الافتراضية فوق.
                   </p>
                 </div>
               </div>

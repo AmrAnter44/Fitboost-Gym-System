@@ -110,7 +110,7 @@ export default function Navbar() {
       { href: '/members', label: t('nav.members'), icon: Icon.users, permission: 'canViewMembers' as keyof Permissions, roleRequired: null },
       { href: '/pt', label: t('nav.pt'), icon: Icon.dumbbell, permission: 'canViewPT' as keyof Permissions, roleRequired: null },
       //  لينك متابعة الكباتن — للفتنس مانجر (يشوف كل كوتش معاه كام عميل + نوتس)
-      { href: '/manager/coach-conversions', label: locale === 'ar' ? '📊 متابعة الكباتن' : '📊 Coach Tracking', icon: Icon.users, permission: 'canAccessPTCommission' as keyof Permissions, roleRequired: null },
+      { href: '/manager/coach-conversions', label: locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking', icon: Icon.chart, permission: 'canAccessPTCommission' as keyof Permissions, roleRequired: null },
       { href: '/nutrition', label: t('nav.nutrition'), icon: Icon.nutrition, permission: 'canViewNutrition' as keyof Permissions, roleRequired: null, enabled: settings.nutritionEnabled },
       { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: Icon.hospital, permission: 'canViewPhysiotherapy' as keyof Permissions, roleRequired: null, enabled: settings.physiotherapyEnabled },
       { href: '/group-classes', label: t('nav.groupClasses'), icon: Icon.users, permission: 'canViewGroupClass' as keyof Permissions, roleRequired: null, enabled: settings.groupClassEnabled },
@@ -211,7 +211,7 @@ export default function Navbar() {
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
-                    <span className="flex-shrink-0">{link.icon}</span>
+                    {link.icon && <span className="flex-shrink-0">{link.icon}</span>}
                     <span>{link.label}</span>
                   </Link>
                 )
@@ -363,7 +363,7 @@ export default function Navbar() {
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60'
                     }`}
                   >
-                    <span className="flex-shrink-0">{link.icon}</span>
+                    {link.icon && <span className="flex-shrink-0">{link.icon}</span>}
                     <span>{link.label}</span>
                   </Link>
                 )

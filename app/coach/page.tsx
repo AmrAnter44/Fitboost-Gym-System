@@ -503,25 +503,41 @@ export default function CoachDashboard() {
         </div>
 
         {/*  Banner واضح وملفت — كلاينت جديد دخل (آخر 24 ساعة) */}
+        {/*  بنفس استايل النظام — primary gradient بيتغير تلقائياً مع لون البراند */}
         {coachNotifications && coachNotifications.newAssignments
           .filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1).length > 0 && (
-          <div className="mb-6 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 dark:from-purple-600 dark:via-pink-600 dark:to-rose-600 rounded-2xl shadow-xl p-5 relative overflow-hidden">
-            {/*  bg decorations */}
-            <div className="absolute -top-8 -end-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute -bottom-6 -start-6 w-24 h-24 bg-yellow-300/20 rounded-full blur-xl pointer-events-none" />
+          <div className="mb-6 bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800 rounded-2xl shadow-xl p-5 relative overflow-hidden">
+            {/*  bg decorations — متماشية مع primary color */}
+            <div className="absolute -top-8 -end-8 w-32 h-32 bg-primary-contrast/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-6 -start-6 w-24 h-24 bg-primary-contrast/15 rounded-full blur-xl pointer-events-none" />
+            {/*  ✨ Shine sweep — لمعة قطرية تعدّي كل 3.5 ثانية */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+              <div className="absolute inset-y-0 -inset-x-1/2 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-banner-shine" />
+            </div>
 
             <div className="relative flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 animate-pulse">
-                <span className="text-3xl">🎉</span>
+              {/*  أيقونة UserPlus بنفس استايل النظام (stroke outline) — معاها sparkle صغير في الكورنر */}
+              <div className="w-14 h-14 rounded-2xl bg-primary-contrast/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0 relative">
+                <svg className="w-8 h-8 text-primary-contrast" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                {/*  Sparkle decoration في الكورنر — يدور بـ animation */}
+                <span className="absolute -top-1 -end-1 w-4 h-4 text-primary-contrast animate-pulse">
+                  <svg fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0l2.39 7.36H22l-6.18 4.5 2.36 7.36L12 14.72l-6.18 4.5 2.36-7.36L2 7.36h7.61z"/>
+                  </svg>
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-xl font-black text-white mb-1 flex items-center gap-2 flex-wrap">
+                {/*  بنستخدم text-primary-contrast اللي بيتعدّل تلقائياً حسب لون الـ primary
+                     (للون فاتح زي الأصفر → نص داكن، للون داكن → نص أبيض) */}
+                <h3 className="text-xl font-black text-primary-contrast mb-1 flex items-center gap-2 flex-wrap">
                   {locale === 'ar' ? 'كلاينت جديد دخلك!' : 'New client just joined!'}
-                  <span className="bg-white text-rose-700 text-xs font-black px-2.5 py-0.5 rounded-full">
+                  <span className="bg-white/95 text-primary-700 text-xs font-black px-2.5 py-0.5 rounded-full">
                     {coachNotifications.newAssignments.filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1).length}
                   </span>
                 </h3>
-                <p className="text-white/90 text-sm mb-3">
+                <p className="text-primary-contrast/90 text-sm mb-3">
                   {locale === 'ar'
                     ? 'في كلاينت جديد اتأسند ليك آخر 24 ساعة — اتأكد تشوفه وتتواصل معاه'
                     : 'You have a new client assigned in the last 24 hours — check them out and reach out'}
@@ -531,8 +547,8 @@ export default function CoachDashboard() {
                     .filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1)
                     .slice(0, 4)
                     .map((n, i) => (
-                      <span key={`fresh-${i}`} className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                        <span className="w-1.5 h-1.5 bg-yellow-300 rounded-full animate-pulse" />
+                      <span key={`fresh-${i}`} className="inline-flex items-center gap-1.5 bg-black/15 dark:bg-white/15 backdrop-blur-sm text-primary-contrast text-xs font-bold px-2.5 py-1 rounded-full">
+                        <span className="w-1.5 h-1.5 bg-primary-contrast rounded-full animate-pulse" />
                         {n.memberName}
                         <span className="opacity-80">·</span>
                         <span className="opacity-90">
@@ -543,7 +559,7 @@ export default function CoachDashboard() {
                       </span>
                     ))}
                   {coachNotifications.newAssignments.filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1).length > 4 && (
-                    <span className="inline-flex items-center bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                    <span className="inline-flex items-center bg-black/15 dark:bg-white/15 backdrop-blur-sm text-primary-contrast text-xs font-bold px-2.5 py-1 rounded-full">
                       +{coachNotifications.newAssignments.filter(n => (n as any).daysAgo === 0 || (n as any).daysAgo === 1).length - 4}
                     </span>
                   )}
@@ -551,7 +567,7 @@ export default function CoachDashboard() {
               </div>
               <Link
                 href="/coach/my-members"
-                className="hidden sm:inline-flex items-center gap-1.5 bg-white text-rose-700 hover:bg-rose-50 font-bold text-sm px-4 py-2 rounded-lg transition-colors duration-200 flex-shrink-0"
+                className="hidden sm:inline-flex items-center gap-1.5 bg-white text-primary-700 hover:bg-primary-50 font-bold text-sm px-4 py-2 rounded-lg transition-colors duration-200 flex-shrink-0"
               >
                 {locale === 'ar' ? 'شوف' : 'View'}
                 <svg className={`w-4 h-4 ${locale === 'ar' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -1027,7 +1043,9 @@ export default function CoachDashboard() {
                       </div>
                     )}
 
-                    <div className="flex items-start justify-between mb-3">
+                    {/*  min-h: 96px عشان الـ header يمتد بعد نهاية الصورة (80px height + 12px top = 92px)
+                         بحيث الـ progress bar اللي بعده ما يتداخلش مع الصورة */}
+                    <div className="flex items-start justify-between mb-3 min-h-24">
                       <div className={`flex-1 min-w-0 ${locale === 'ar' ? 'ps-24' : 'ps-12'}`}>
                         <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 truncate">{pt.clientName}</h3>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">{t('coachDashboard.ptNumber')}: #{pt.ptNumber}</p>

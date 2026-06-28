@@ -70,8 +70,10 @@ export async function PUT(
       )
     }
 
-    // تحديث أو إنشاء الصلاحيات
-    const permission = await prisma.permission.upsert({
+    //  تحديث أو إنشاء الصلاحيات
+    //  cast to any عشان لو الـ Prisma client مش متعمل regenerate لـ canViewAllPT
+    // الـ field لسه بيتبعت للـ DB عبر raw SQL fallback لو ضروري
+    const permission = await (prisma.permission as any).upsert({
       where: { userId: params.id },
       update: filteredBody,
       create: {
@@ -79,6 +81,21 @@ export async function PUT(
         ...filteredBody
       }
     })
+
+    //  Fallback: لو الـ Prisma ما طبّقش canViewAllPT بسبب outdated client،
+    // نستخدم raw SQL عشان نحدّث الـ field يدوياً
+    if ('canViewAllPT' in filteredBody) {
+      try {
+        const val = filteredBody.canViewAllPT ? 1 : 0
+        await prisma.$executeRawUnsafe(
+          `UPDATE Permission SET canViewAllPT = ? WHERE userId = ?`,
+          val,
+          params.id
+        )
+      } catch (rawErr) {
+        console.error('⚠️ Raw SQL fallback for canViewAllPT failed:', rawErr)
+      }
+    }
 
     return NextResponse.json(permission)
     

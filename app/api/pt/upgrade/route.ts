@@ -109,14 +109,20 @@ export async function POST(request: Request) {
     let receipt: any
     let updatedPT: any
 
+    //  carry-over: الحصص المتبقية من الباقة القديمة بتنضاف للجديدة بدل ما تتلغي
+    const carriedOverSessions = remainingSessions
+    const newSessionsPurchased = newPackage.sessions + carriedOverSessions
+    const newSessionsRemaining = newPackage.sessions + carriedOverSessions
+
     try {
       const result = await prisma.$transaction(async (tx) => {
         // تحديث الـ PT
         const upd = await tx.pT.update({
           where: { ptNumber: ptNum },
           data: {
-            sessionsPurchased: newPackage.sessions,
-            sessionsRemaining: newPackage.sessions,
+            //  بنضيف الحصص المتبقية القديمة على حصص الباقة الجديدة
+            sessionsPurchased: newSessionsPurchased,
+            sessionsRemaining: newSessionsRemaining,
             pricePerSession: newPricePerSession,
             startDate: today,
             expiryDate: newExpiry,
@@ -156,6 +162,10 @@ export async function POST(request: Request) {
                 price: newPackage.price,
                 durationDays: newPackage.durationDays,
               },
+              //  معلومات الترحيل (carry-over)
+              carriedOverSessions,
+              finalSessionsPurchased: newSessionsPurchased,
+              finalSessionsRemaining: newSessionsRemaining,
               newPricePerSession,
               newStartDate: today,
               newExpiryDate: newExpiry,
