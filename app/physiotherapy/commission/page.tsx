@@ -1102,12 +1102,15 @@ export default function PhysiotherapyCommissionPage() {
               onClick={() => toggleSeparateCoachTarget(!useSeparateCoachTarget)}
               disabled={savingSeparateTarget}
               aria-pressed={useSeparateCoachTarget}
-              className={`relative inline-flex h-8 w-14 shrink-0 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+              role="switch"
+              aria-checked={useSeparateCoachTarget}
+              className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
                 useSeparateCoachTarget ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
               } ${savingSeparateTarget ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
             >
-              <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 mt-1 ${
-                useSeparateCoachTarget ? 'translate-x-7' : 'translate-x-1'
+              {/*  استخدام start-N بدل translate-x-N — شغّال صح في RTL وLTR */}
+              <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-lg transition-all duration-300 ${
+                useSeparateCoachTarget ? 'start-7' : 'start-1'
               }`} />
             </button>
           </div>

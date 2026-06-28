@@ -149,7 +149,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       links: [
         { href: '/pt', label: t('nav.pt'), icon: NavIcons.pt, permission: 'canViewPT' as keyof Permissions },
         //  لينك متابعة الكباتن للفتنس مانجر
-        { href: '/manager/coach-conversions', label: locale === 'ar' ? '📊 متابعة الكباتن' : '📊 Coach Tracking', icon: NavIcons.pt, permission: 'canAccessPTCommission' as keyof Permissions },
+        { href: '/manager/coach-conversions', label: locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking', icon: NavIcons.closing, permission: 'canAccessPTCommission' as keyof Permissions },
         { href: '/nutrition', label: t('nav.nutrition'), icon: NavIcons.nutrition, permission: 'canViewNutrition' as keyof Permissions, enabled: settings.nutritionEnabled },
         { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: NavIcons.physiotherapy, permission: 'canViewPhysiotherapy' as keyof Permissions, enabled: settings.physiotherapyEnabled },
         { href: '/group-classes', label: t('nav.groupClasses'), icon: NavIcons.groupClasses, permission: 'canViewGroupClass' as keyof Permissions, enabled: settings.groupClassEnabled },
@@ -323,9 +323,11 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                       `}
                       title={isCollapsed ? link.label : undefined}
                     >
-                      <span className={`${isActive ? 'text-primary-700 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'} transition-colors`}>
-                        {link.icon}
-                      </span>
+                      {link.icon && (
+                        <span className={`${isActive ? 'text-primary-700 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'} transition-colors`}>
+                          {link.icon}
+                        </span>
+                      )}
 
                       {!isCollapsed && (
                         <span className="text-sm font-medium truncate flex-1">

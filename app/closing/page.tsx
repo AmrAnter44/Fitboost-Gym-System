@@ -1697,7 +1697,8 @@ export default function ClosingPage() {
                             day: 'numeric'
                           })}</span>
                         </h2>
-                        <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-3 sm:mt-4">
+                        {/*  الـ grid بقى responsive: 2 columns على الموبايل، 4 على الديسك توب */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-3 sm:mt-4">
                           <div className="bg-white/30 dark:bg-white/10 p-2.5 sm:p-3 rounded-lg">
                             <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.floor')}</p>
                             <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{day.floor > 0 ? day.floor.toFixed(0) : '0'} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>
@@ -1706,6 +1707,13 @@ export default function ClosingPage() {
                             <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.pt')}</p>
                             <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{day.pt > 0 ? day.pt.toFixed(0) : '0'} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>
                           </div>
+                          {/*  خانة المزيد — تظهر بس لو الـ service مفعّل */}
+                          {moreEnabled && (
+                            <div className="bg-violet-500/20 dark:bg-violet-500/15 p-2.5 sm:p-3 rounded-lg ring-1 ring-violet-300/40 dark:ring-violet-400/30">
+                              <p className="text-[11px] sm:text-sm text-violet-900/80 dark:text-violet-200/90 font-bold">{direction === 'rtl' ? 'المزيد' : 'More'}</p>
+                              <p className="text-base sm:text-xl font-bold text-violet-900 dark:text-violet-100">{day.more > 0 ? day.more.toFixed(0) : '0'} <span className="text-xs sm:text-sm font-medium text-violet-900/70 dark:text-violet-200/70">{t('closing.currency')}</span></p>
+                            </div>
+                          )}
                           <div className="bg-white/30 dark:bg-white/10 p-2.5 sm:p-3 rounded-lg">
                             <p className="text-[11px] sm:text-sm text-gray-900/80 dark:text-white/80">{t('closing.table.expenses')}</p>
                             <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">{day.expenses > 0 ? day.expenses.toFixed(0) : '0'} <span className="text-xs sm:text-sm font-medium text-gray-900/70 dark:text-white/70">{t('closing.currency')}</span></p>

@@ -57,6 +57,14 @@ export default function CoachMyMembers() {
     message: string
     notes: string //  نوت التمرين بتاع الكوتش
   }>({ show: false, member: null, step: 'confirm', message: '', notes: '' })
+  //  مودال تسجيل عدم حضور العميل (بدون خصم حصة)
+  const [noShowPopup, setNoShowPopup] = useState<{
+    show: boolean
+    member: AssignedMember | null
+    notes: string
+    saving: boolean
+    error: string
+  }>({ show: false, member: null, notes: '', saving: false, error: '' })
   //  تكبير صورة العميل عند الضغط عليها
   const [enlargedImage, setEnlargedImage] = useState<{ url: string; name: string } | null>(null)
   //  مودال تسجيل سبب عدم اشتراك العضو في PT (بعد ما خلصت حصصه المجانية)
@@ -69,6 +77,8 @@ export default function CoachMyMembers() {
   }>({ show: false, member: null, note: '', saving: false, error: '' })
   //  مودال عرض سجل الجلسات
   const [historyPopup, setHistoryPopup] = useState<AssignedMember | null>(null)
+  //  مودال التأكيد الإضافي (لو فيه جلسة حديثة)
+  const [doubleConfirmOpen, setDoubleConfirmOpen] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -182,6 +192,32 @@ export default function CoachMyMembers() {
       setConversionPopup({ show: false, member: null, note: '', saving: false, error: '' })
     } catch {
       setConversionPopup(prev => ({ ...prev, saving: false, error: locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error' }))
+    }
+  }
+
+  //  تسجيل عدم حضور — بدون خصم حصة، بس بيتسجل ملاحظة + تاريخ
+  const saveNoShow = async () => {
+    if (!noShowPopup.member) return
+    setNoShowPopup(prev => ({ ...prev, saving: true, error: '' }))
+    try {
+      const res = await fetch('/api/coach/log-no-show', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          memberId: noShowPopup.member.id,
+          notes: noShowPopup.notes.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setNoShowPopup(prev => ({ ...prev, saving: false, error: data.error || (locale === 'ar' ? 'فشل التسجيل' : 'Failed to log') }))
+        return
+      }
+      //  refetch عشان نجيب الـ session الجديدة في الـ history
+      fetchMembers()
+      setNoShowPopup({ show: false, member: null, notes: '', saving: false, error: '' })
+    } catch {
+      setNoShowPopup(prev => ({ ...prev, saving: false, error: locale === 'ar' ? 'خطأ في الاتصال' : 'Connection error' }))
     }
   }
 
@@ -368,20 +404,38 @@ export default function CoachMyMembers() {
                           {member.freePTSessions}
                         </span>
                       </div>
-                      <button
-                        onClick={() => openDeductPopup(member)}
-                        disabled={member.freePTSessions <= 0 || !isActive}
-                        className={`w-full py-2 rounded-lg text-sm font-bold transition-colors duration-200 inline-flex items-center justify-center gap-1.5 ${
-                          member.freePTSessions > 0 && isActive
-                            ? 'bg-purple-500 hover:bg-purple-600 text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        <svg {...stroke} className="w-4 h-4">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
-                        </svg>
-                        {locale === 'ar' ? 'خصم حصة PT + كومنت' : 'Deduct PT + Add Note'}
-                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => openDeductPopup(member)}
+                          disabled={member.freePTSessions <= 0 || !isActive}
+                          className={`py-2 rounded-lg text-sm font-bold transition-colors duration-200 inline-flex items-center justify-center gap-1.5 ${
+                            member.freePTSessions > 0 && isActive
+                              ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          <svg {...stroke} className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                          </svg>
+                          {locale === 'ar' ? 'حضر' : 'Attended'}
+                        </button>
+                        {/*  زرار تسجيل عدم الحضور — بدون خصم حصة */}
+                        <button
+                          onClick={() => setNoShowPopup({ show: true, member, notes: '', saving: false, error: '' })}
+                          disabled={!isActive}
+                          className={`py-2 rounded-lg text-sm font-bold transition-colors duration-200 inline-flex items-center justify-center gap-1.5 ${
+                            isActive
+                              ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }`}
+                          title={locale === 'ar' ? 'العميل ما حضرش — بدون خصم حصة' : 'No-show — no deduction'}
+                        >
+                          <svg {...stroke} className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                          </svg>
+                          {locale === 'ar' ? 'مجاش' : 'No-show'}
+                        </button>
+                      </div>
 
                       {/*  زرار عرض سجل التمارين — يظهر لو فيه جلسات سابقة */}
                       {member.ptSessions.length > 0 && (
@@ -557,6 +611,51 @@ export default function CoachMyMembers() {
                   </p>
                 </div>
 
+                {/*  Warning Banner — لو فيه جلسة لنفس العضو في آخر 6 ساعات (منع الخصم المزدوج بالغلط) */}
+                {(() => {
+                  const recentSession = deductPopup.member.ptSessions.find(s => {
+                    if (!s.attended) return false //  بنشيك على الحضور فقط (ما نحسبش الـ no-shows)
+                    const hoursAgo = (Date.now() - new Date(s.sessionDate).getTime()) / (1000 * 60 * 60)
+                    return hoursAgo < 6 //  جلسة في آخر 6 ساعات
+                  })
+                  if (!recentSession) return null
+                  const minutesAgo = Math.floor((Date.now() - new Date(recentSession.sessionDate).getTime()) / (1000 * 60))
+                  const timeAgoText = minutesAgo < 60
+                    ? (locale === 'ar' ? `من ${minutesAgo} دقيقة` : `${minutesAgo} min ago`)
+                    : (locale === 'ar' ? `من ${Math.floor(minutesAgo / 60)} ساعة` : `${Math.floor(minutesAgo / 60)}h ago`)
+                  return (
+                    <div className="mb-5 bg-red-50 dark:bg-red-900/30 ring-2 ring-red-300 dark:ring-red-700 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 flex items-center justify-center flex-shrink-0">
+                          <svg {...stroke} className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-red-800 dark:text-red-200 mb-1">
+                            {locale === 'ar' ? '⚠️ تنبيه: تم خصم حصة بالفعل!' : '⚠️ Warning: Session already deducted!'}
+                          </p>
+                          <p className="text-xs text-red-700 dark:text-red-300 mb-2">
+                            {locale === 'ar'
+                              ? `آخر خصم لهذا العضو ${timeAgoText} — هل أنت متأكد إنك عايز تخصم تاني؟`
+                              : `Last deduction ${timeAgoText} — are you sure you want to deduct again?`}
+                          </p>
+                          {recentSession.notes && (
+                            <p className="text-xs bg-white/60 dark:bg-black/20 rounded p-2 text-gray-700 dark:text-gray-300 italic">
+                              📝 {recentSession.notes.length > 80 ? recentSession.notes.slice(0, 80) + '...' : recentSession.notes}
+                            </p>
+                          )}
+                          <p className="text-xs text-red-600 dark:text-red-400 font-bold mt-2">
+                            🕐 {new Date(recentSession.sessionDate).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+                              hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 {/*  textarea لكومنت التمرين — اختياري */}
                 <div className="mb-5">
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -574,21 +673,44 @@ export default function CoachMyMembers() {
                   </p>
                 </div>
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={closeDeductPopup}
-                    className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200"
-                  >
-                    {locale === 'ar' ? 'إلغاء' : 'Cancel'}
-                  </button>
-                  <button
-                    onClick={confirmDeduct}
-                    autoFocus
-                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2.5 rounded-lg font-bold transition-colors duration-200"
-                  >
-                    {locale === 'ar' ? 'تأكيد الخصم' : 'Confirm'}
-                  </button>
-                </div>
+                {/*  لو فيه جلسة حديثة، الزرار يطلب تأكيد مزدوج (لون أحمر) */}
+                {(() => {
+                  const hasRecentSession = deductPopup.member.ptSessions.some(s => {
+                    if (!s.attended) return false
+                    const hoursAgo = (Date.now() - new Date(s.sessionDate).getTime()) / (1000 * 60 * 60)
+                    return hoursAgo < 6
+                  })
+                  return (
+                    <div className="flex gap-3">
+                      <button
+                        onClick={closeDeductPopup}
+                        className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200"
+                      >
+                        {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          //  لو فيه جلسة حديثة، نفتح مودال تأكيد إضافي بدل window.confirm
+                          if (hasRecentSession) {
+                            setDoubleConfirmOpen(true)
+                            return
+                          }
+                          confirmDeduct()
+                        }}
+                        autoFocus={!hasRecentSession}
+                        className={`flex-1 text-white px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 ${
+                          hasRecentSession
+                            ? 'bg-red-600 hover:bg-red-700 ring-2 ring-red-300 dark:ring-red-700'
+                            : 'bg-purple-500 hover:bg-purple-600'
+                        }`}
+                      >
+                        {hasRecentSession
+                          ? (locale === 'ar' ? '⚠️ خصم رغم التحذير' : '⚠️ Deduct Anyway')
+                          : (locale === 'ar' ? 'تأكيد الخصم' : 'Confirm')}
+                      </button>
+                    </div>
+                  )
+                })()}
               </>
             )}
 
@@ -699,6 +821,151 @@ export default function CoachMyMembers() {
         </div>
       )}
 
+      {/*  مودال التأكيد الإضافي — لما الكوتش يحاول يخصم حصة لنفس العضو في خلال 6 ساعات */}
+      {doubleConfirmOpen && deductPopup.member && (() => {
+        //  استخراج آخر جلسة attended لنفس العضو
+        const recent = deductPopup.member.ptSessions.find(s => {
+          if (!s.attended) return false
+          const h = (Date.now() - new Date(s.sessionDate).getTime()) / (1000 * 60 * 60)
+          return h < 6
+        })
+        const minutesAgo = recent ? Math.floor((Date.now() - new Date(recent.sessionDate).getTime()) / (1000 * 60)) : 0
+        const timeAgo = minutesAgo < 60
+          ? (locale === 'ar' ? `${minutesAgo} دقيقة` : `${minutesAgo} min`)
+          : (locale === 'ar' ? `${Math.floor(minutesAgo / 60)} ساعة` : `${Math.floor(minutesAgo / 60)}h`)
+        return (
+          <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md" role="dialog" aria-modal="true">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden ring-2 ring-red-500 dark:ring-red-700 animate-modal-in">
+              {/* Header أحمر */}
+              <div className="bg-gradient-to-r from-red-500 via-rose-500 to-red-600 dark:from-red-600 dark:via-rose-600 dark:to-red-700 p-5 text-white text-center">
+                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-pulse">
+                  <svg className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black mb-1">
+                  {locale === 'ar' ? '⚠️ تأكيد إضافي مطلوب' : '⚠️ Additional Confirmation'}
+                </h3>
+                <p className="text-sm opacity-95 font-bold">
+                  {locale === 'ar' ? 'تم خصم حصة بالفعل!' : 'A session was already deducted!'}
+                </p>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-3">
+                <div className="bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-800 rounded-lg p-3">
+                  <p className="text-sm text-amber-900 dark:text-amber-100 leading-relaxed">
+                    {locale === 'ar'
+                      ? <>تم خصم حصة لـ <strong>{deductPopup.member.name}</strong> من <strong>{timeAgo}</strong> بس.</>
+                      : <>A session was deducted for <strong>{deductPopup.member.name}</strong> only <strong>{timeAgo}</strong> ago.</>}
+                  </p>
+                  {recent?.notes && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-2 italic bg-white/40 dark:bg-black/20 rounded p-2">
+                      📝 {recent.notes.length > 100 ? recent.notes.slice(0, 100) + '...' : recent.notes}
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-center">
+                  <p className="text-sm font-bold text-gray-800 dark:text-gray-100">
+                    {locale === 'ar' ? 'هل أنت متأكد 100% إنك عايز تخصم حصة تانية؟' : 'Are you 100% sure you want to deduct another session?'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    {locale === 'ar' ? '💡 لو ده غلط — اضغط "إلغاء"' : '💡 If this is a mistake — press "Cancel"'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer buttons */}
+              <div className="grid grid-cols-2 gap-2 p-4 bg-gray-50 dark:bg-gray-900/40 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setDoubleConfirmOpen(false)}
+                  autoFocus
+                  className="px-4 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-colors inline-flex items-center justify-center gap-1.5"
+                >
+                  <svg {...stroke} className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  {locale === 'ar' ? 'إلغاء (آمن)' : 'Cancel (safe)'}
+                </button>
+                <button
+                  onClick={() => {
+                    setDoubleConfirmOpen(false)
+                    confirmDeduct()
+                  }}
+                  className="px-4 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition-colors inline-flex items-center justify-center gap-1.5"
+                >
+                  <svg {...stroke} className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {locale === 'ar' ? 'خصم رغم التحذير' : 'Deduct Anyway'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/*  مودال تسجيل عدم الحضور (بدون خصم حصة) */}
+      {noShowPopup.show && noShowPopup.member && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700">
+            <div className="text-center mb-5">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 flex items-center justify-center">
+                <svg {...stroke} className="w-7 h-7">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
+                {locale === 'ar' ? 'تسجيل عدم حضور' : 'Log No-Show'}
+              </h3>
+              <p className="font-bold text-gray-700 dark:text-gray-300">{noShowPopup.member.name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {locale === 'ar' ? '⚠️ مش هتتخصم أي حصة من رصيده' : '⚠️ No sessions will be deducted'}
+              </p>
+            </div>
+
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              {locale === 'ar' ? 'ملاحظة (اختيارية)' : 'Note (optional)'}
+            </label>
+            <textarea
+              value={noShowPopup.notes}
+              onChange={(e) => setNoShowPopup(prev => ({ ...prev, notes: e.target.value }))}
+              rows={4}
+              placeholder={locale === 'ar' ? 'مثلاً: اعتذر بسبب ظرف · ما ردش على التليفون · غير معروف' : 'e.g., Apologized · Didn\'t answer · Unknown'}
+              autoFocus
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm resize-none"
+            />
+            {noShowPopup.error && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{noShowPopup.error}</p>
+            )}
+
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-2">
+              {locale === 'ar' ? '📅 التاريخ بيتسجل تلقائياً — سيظهر في سجل العضو' : '📅 Date auto-recorded — visible in member log'}
+            </p>
+
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setNoShowPopup({ show: false, member: null, notes: '', saving: false, error: '' })}
+                disabled={noShowPopup.saving}
+                className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-60"
+              >
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                onClick={saveNoShow}
+                disabled={noShowPopup.saving}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {noShowPopup.saving
+                  ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+                  : (locale === 'ar' ? 'تسجيل' : 'Log')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/*  مودال عرض سجل الجلسات */}
       {historyPopup && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true" onClick={() => setHistoryPopup(null)}>
@@ -734,24 +1001,33 @@ export default function CoachMyMembers() {
               </p>
             ) : (
               <div className="space-y-3">
-                {historyPopup.ptSessions.map((s) => (
+                {historyPopup.ptSessions.map((s) => {
+                  //  جلسة بـ attended=false = العميل ما حضرش
+                  const isNoShow = !s.attended
+                  return (
                   <div
                     key={s.id}
                     className={`rounded-lg p-3 ring-1 ${
-                      s.isFreeSession
-                        ? 'bg-purple-50 dark:bg-purple-900/20 ring-purple-200 dark:ring-purple-800'
-                        : 'bg-blue-50 dark:bg-blue-900/20 ring-blue-200 dark:ring-blue-800'
+                      isNoShow
+                        ? 'bg-orange-50 dark:bg-orange-900/20 ring-orange-200 dark:ring-orange-800'
+                        : s.isFreeSession
+                          ? 'bg-purple-50 dark:bg-purple-900/20 ring-purple-200 dark:ring-purple-800'
+                          : 'bg-blue-50 dark:bg-blue-900/20 ring-blue-200 dark:ring-blue-800'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                        s.isFreeSession
-                          ? 'bg-purple-200 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200'
-                          : 'bg-blue-200 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200'
+                        isNoShow
+                          ? 'bg-orange-200 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200'
+                          : s.isFreeSession
+                            ? 'bg-purple-200 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200'
+                            : 'bg-blue-200 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200'
                       }`}>
-                        {s.isFreeSession
-                          ? (locale === 'ar' ? '🆓 مجانية' : '🆓 Free')
-                          : (locale === 'ar' ? '💰 مدفوعة' : '💰 Paid')}
+                        {isNoShow
+                          ? (locale === 'ar' ? '⚠️ مجاش' : '⚠️ No-show')
+                          : s.isFreeSession
+                            ? (locale === 'ar' ? '🆓 مجانية' : '🆓 Free')
+                            : (locale === 'ar' ? '💰 مدفوعة' : '💰 Paid')}
                       </span>
                       <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
                         {new Date(s.sessionDate).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US', {
@@ -765,7 +1041,8 @@ export default function CoachMyMembers() {
                       <p className="text-xs text-gray-400 italic">{locale === 'ar' ? 'بدون ملاحظات' : 'No notes'}</p>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

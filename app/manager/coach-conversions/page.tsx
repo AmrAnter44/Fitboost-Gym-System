@@ -133,13 +133,14 @@ export default function ManagerCoachConversionsPage() {
             </button>
             <div className="flex items-start gap-3">
               <div className="w-11 h-11 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0">
+                {/*  أيقونة chart بنفس استايل السيستم — مطابقة لأيقونة الـ navbar */}
                 <svg {...stroke} className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 14l3-3 4 4 5-5" />
                 </svg>
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  📊 {locale === 'ar' ? 'متابعة الكباتن مع العملاء' : 'Coach Conversion Tracking'}
+                  {locale === 'ar' ? 'متابعة الكباتن مع العملاء' : 'Coach Conversion Tracking'}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   {locale === 'ar'
@@ -167,32 +168,36 @@ export default function ManagerCoachConversionsPage() {
             onClick={() => setStatusFilter('all')}
           />
           <StatCard
-            label={locale === 'ar' ? '✅ اشتركوا PT' : '✅ Subscribed'}
+            label={locale === 'ar' ? 'اشتركوا PT' : 'Subscribed'}
             value={totalsAll.subscribed}
             color="emerald"
             active={statusFilter === 'subscribed'}
             onClick={() => setStatusFilter('subscribed')}
+            iconType="check"
           />
           <StatCard
-            label={locale === 'ar' ? '🔴 ما اشتركوش' : '🔴 Did not subscribe'}
+            label={locale === 'ar' ? 'ما اشتركوش' : 'Did not subscribe'}
             value={totalsAll.didnt_subscribe}
             color="red"
             active={statusFilter === 'didnt_subscribe'}
             onClick={() => setStatusFilter('didnt_subscribe')}
+            iconType="x"
           />
           <StatCard
-            label={locale === 'ar' ? '⏳ لسه ما اتقررش' : '⏳ Pending'}
+            label={locale === 'ar' ? 'لسه ما اتقررش' : 'Pending'}
             value={totalsAll.pending_decision}
             color="amber"
             active={statusFilter === 'pending_decision'}
             onClick={() => setStatusFilter('pending_decision')}
+            iconType="clock"
           />
           <StatCard
-            label={locale === 'ar' ? '🆓 لسه عنده حصص' : '🆓 Has free sessions'}
+            label={locale === 'ar' ? 'لسه عنده حصص' : 'Has free sessions'}
             value={totalsAll.still_has_free}
             color="purple"
             active={statusFilter === 'still_has_free'}
             onClick={() => setStatusFilter('still_has_free')}
+            iconType="sparkles"
           />
         </div>
 
@@ -280,24 +285,37 @@ export default function ManagerCoachConversionsPage() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <div className="hidden sm:flex items-center gap-1.5 flex-wrap justify-end">
+                          {/*  Badges بـ SVG icons بنفس استايل النظام (stroke-based outline) */}
                           {group.stats.subscribed > 0 && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-                              ✅ {group.stats.subscribed}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                              <svg {...stroke} className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                              </svg>
+                              {group.stats.subscribed}
                             </span>
                           )}
                           {group.stats.didnt_subscribe > 0 && (
-                            <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-bold">
-                              🔴 {group.stats.didnt_subscribe}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-bold">
+                              <svg {...stroke} className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                              </svg>
+                              {group.stats.didnt_subscribe}
                             </span>
                           )}
                           {group.stats.pending_decision > 0 && (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-bold">
-                              ⏳ {group.stats.pending_decision}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-bold">
+                              <svg {...stroke} className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              {group.stats.pending_decision}
                             </span>
                           )}
                           {group.stats.still_has_free > 0 && (
-                            <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-bold">
-                              🆓 {group.stats.still_has_free}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-bold">
+                              <svg {...stroke} className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                              </svg>
+                              {group.stats.still_has_free}
                             </span>
                           )}
                         </div>
@@ -480,9 +498,26 @@ export default function ManagerCoachConversionsPage() {
 }
 
 //  Helper components
-function StatCard({ label, value, color, active, onClick }: {
+//  SVG icons بنفس استايل النظام (stroke outline)
+function StatIcon({ type }: { type?: 'check' | 'x' | 'clock' | 'sparkles' }) {
+  if (!type) return null
+  const paths: Record<string, string> = {
+    check: 'm4.5 12.75 6 6 9-13.5',
+    x: 'M6 18 18 6M6 6l12 12',
+    clock: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+    sparkles: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z',
+  }
+  return (
+    <svg {...stroke} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d={paths[type]} />
+    </svg>
+  )
+}
+
+function StatCard({ label, value, color, active, onClick, iconType }: {
   label: string; value: number; color: 'gray' | 'emerald' | 'red' | 'amber' | 'purple'
   active: boolean; onClick: () => void
+  iconType?: 'check' | 'x' | 'clock' | 'sparkles'
 }) {
   const colorClasses: Record<string, string> = {
     gray: active ? 'bg-gray-100 dark:bg-gray-700 ring-2 ring-gray-400 text-gray-900 dark:text-gray-100' : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/60 text-gray-700 dark:text-gray-200',
@@ -496,19 +531,30 @@ function StatCard({ label, value, color, active, onClick }: {
       onClick={onClick}
       className={`rounded-xl p-3 text-start ring-1 ring-gray-200 dark:ring-gray-700 transition-all ${colorClasses[color]}`}
     >
-      <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider opacity-80">{label}</p>
+      <div className="inline-flex items-center gap-1.5 opacity-80">
+        <StatIcon type={iconType} />
+        <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">{label}</p>
+      </div>
       <p className="text-xl sm:text-2xl font-black mt-0.5">{value}</p>
     </button>
   )
 }
 
 function MemberRowItem({ member, locale, onClick }: { member: MemberRow; locale: string; onClick: () => void }) {
+  //  Status info مع iconType بدل emoji (بنفس استايل النظام)
   const statusInfo = {
-    subscribed: { emoji: '✅', label: locale === 'ar' ? 'اشترك PT' : 'Subscribed', cls: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' },
-    didnt_subscribe: { emoji: '🔴', label: locale === 'ar' ? 'ما اشتركش' : 'Did not subscribe', cls: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' },
-    pending_decision: { emoji: '⏳', label: locale === 'ar' ? 'لسه ما اتقررش' : 'Pending', cls: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' },
-    still_has_free: { emoji: '🆓', label: locale === 'ar' ? `لسه ${member.freePTSessions} حصص` : `${member.freePTSessions} free left`, cls: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' },
+    subscribed: { iconType: 'check' as const, label: locale === 'ar' ? 'اشترك PT' : 'Subscribed', cls: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' },
+    didnt_subscribe: { iconType: 'x' as const, label: locale === 'ar' ? 'ما اشتركش' : 'Did not subscribe', cls: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' },
+    pending_decision: { iconType: 'clock' as const, label: locale === 'ar' ? 'لسه ما اتقررش' : 'Pending', cls: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' },
+    still_has_free: { iconType: 'sparkles' as const, label: locale === 'ar' ? `لسه ${member.freePTSessions} حصص` : `${member.freePTSessions} free left`, cls: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' },
   }[member.status]
+  //  paths للأيقونات (مطابقة لـ StatIcon)
+  const iconPaths: Record<string, string> = {
+    check: 'm4.5 12.75 6 6 9-13.5',
+    x: 'M6 18 18 6M6 6l12 12',
+    clock: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+    sparkles: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z',
+  }
 
   return (
     <button
@@ -528,8 +574,11 @@ function MemberRowItem({ member, locale, onClick }: { member: MemberRow; locale:
         <div className="min-w-0">
           <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{member.name}</p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${statusInfo.cls}`}>
-              {statusInfo.emoji} {statusInfo.label}
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 ${statusInfo.cls}`}>
+              <svg {...stroke} className="w-3 h-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d={iconPaths[statusInfo.iconType]} />
+              </svg>
+              {statusInfo.label}
             </span>
             {/*  تاريخ دخول الكلاينت مع الكوتش */}
             {member.joinedCoachAt && (
