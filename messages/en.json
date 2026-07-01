@@ -291,6 +291,7 @@
       "sourceSuggestion": "Suggestion",
       "sourceGoogleMaps": "Google Maps",
       "sourceFriendReferral": "Friend Referral",
+      "sourceRenewalNoFollowup": "Renewal (no follow-up)",
       "referrerIdOptional": "Referrer ID (optional)",
       "referrerIdHelp": "Member # of the person who referred them",
       "staffNameRequired": "Staff Name *",

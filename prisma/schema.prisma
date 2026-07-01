@@ -64,6 +64,7 @@ model Member {
   invitationRecords    Invitation[]
   receipts             Receipt[]
   checkIns             MemberCheckIn[]
+  dayUses              DayUseInBody[]  @relation("MemberDayUses")
   spaBookings          SpaBooking[]
   freezeRequests       FreezeRequest[]
   pointsHistory        PointsHistory[]
@@ -179,10 +180,13 @@ model DayUseInBody {
   price        Float
   staffName    String
   salesStaffId String?
+  memberId     String?   // 🔗 ربط يوم الاستخدام بعضو موجود (اختياري)
   createdAt    DateTime  @default(now())
   receipts     Receipt[]
+  member       Member?   @relation("MemberDayUses", fields: [memberId], references: [id], onDelete: SetNull)
 
   @@index([salesStaffId])
+  @@index([memberId])
 }
 
 model Visitor {
@@ -406,12 +410,20 @@ model Expense {
   paidAmount  Float    @default(0)  // إجمالي المبلغ المسدّد فعلياً (للسلف اللي بتتخصم على أقساط)
   installmentLimit Float?           // الحد الأقصى للخصم الشهري (لو فاضي = خصم كامل عند الإمكان)
   paymentMethod String  @default("cash") //  cash | instapay | wallet — البنك اللي اتخصم منه المصروف
+  category    String?           // تصنيف المصروف (اسم من ExpenseCategory) — يبقى نص عشان ميضيعش لو التصنيف اتمسح
   staff       Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([staffId])
   @@index([type])
   @@index([isPaid])
+}
+
+// تصنيفات المصاريف — يديرها المستخدم (إضافة/تعديل/حذف)
+model ExpenseCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
 }
 
 // ================================================================
@@ -1147,6 +1159,7 @@ model SystemSettings {
   gymName               String?  // اسم الجيم (يظهر في الإيصالات والسايدبار)
   gymLogo               String?  // مسار لوجو الجيم المرفوع من الأونر
   primaryColor          String?  // اللون الأساسي المخصص (hex مثل #fbe003)
+  primaryTextColor      String?  // لون النص على الـ primary (auto/white/black) — عام لكل السيستم
 
   // إعدادات الجلسات المجانية
   trackFreeSessionsCost       Boolean  @default(false)  // تفعيل/تعطيل احتساب تكلفة الجلسات المجانية

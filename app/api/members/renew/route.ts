@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       startDate,
       expiryDate,
       notes,
+      source,          // مصدر العضو — يتحدّث عند التجديد لو متبعّت
       paymentMethod,
       staffName,
       offerId,         // 📦 الباقة المطبَّقة عند التجديد (لو فيه)
@@ -138,6 +139,8 @@ export async function POST(request: Request) {
         expiryDate: expiryDate ? new Date(expiryDate) : null,
         isActive: renewIsActive,
         notes: notes || member.notes,
+        // مصدر العضو — يتحدّث لو اتبعت من التجديد
+        ...(source !== undefined ? { source: source || null } : {}),
         // 📦 تحديث الباقة لو اتبعت من التجديد (لو مش موجودة سيبها زي ما هي)
         ...(offerId ? { offerId } : {}),
       },

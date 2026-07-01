@@ -291,6 +291,7 @@
       "sourceSuggestion": "اقتراح / Suggestion",
       "sourceGoogleMaps": "خرائط جوجل / Google Maps",
       "sourceFriendReferral": "إحالة من صديق / Friend Referral",
+      "sourceRenewalNoFollowup": "تجديد بدون متابعة / Renewal (no follow-up)",
       "referrerIdOptional": "ID صاحب الإحالة (اختياري)",
       "referrerIdHelp": "رقم العضو اللي جاب الشخص ده",
       "staffNameRequired": "اسم الموظف *",

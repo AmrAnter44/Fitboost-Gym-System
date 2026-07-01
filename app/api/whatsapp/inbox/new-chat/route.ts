@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
+import { toWhatsAppNumber } from '../../../../../lib/phoneNormalize'
 
 export async function POST(req: Request) {
   try {
@@ -10,9 +11,7 @@ export async function POST(req: Request) {
     }
 
     // Normalize phone
-    let normalizedPhone = phone.replace(/\D/g, '')
-    if (normalizedPhone.startsWith('0')) normalizedPhone = '20' + normalizedPhone.slice(1)
-    else if (!normalizedPhone.startsWith('20')) normalizedPhone = '20' + normalizedPhone
+    const normalizedPhone = toWhatsAppNumber(phone)
 
     const idx = sessionIndex ?? 0
     const sessionId = `wa-session-${idx}`

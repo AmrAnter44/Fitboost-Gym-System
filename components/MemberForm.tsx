@@ -16,6 +16,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import type { PaymentMethod } from '../lib/paymentHelpers'
 import { serializePaymentMethods } from '../lib/paymentHelpers'
+import { COUNTRIES, DEFAULT_COUNTRY, composeStoredPhone } from '../lib/countryCodes'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -38,6 +39,9 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
+  // كود الدولة للرقم الأساسي والاحتياطي (الافتراضي مصر)
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY.code)
+  const [backupCountryCode, setBackupCountryCode] = useState(DEFAULT_COUNTRY.code)
   const [nextMemberNumber, setNextMemberNumber] = useState<string | null>(null)
   // ReceiptToPrint popup state
   const [receiptPopup, setReceiptPopup] = useState<null | {
@@ -437,6 +441,10 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
 
     const cleanedData = {
       ...formData,
+      // تركيب الرقم المخزّن حسب كود الدولة المختار
+      // مصر → يفضل زي ما هو (01...)، غير كده → +<code><رقم>
+      phone: composeStoredPhone(formData.phone, countryCode),
+      backupPhone: composeStoredPhone(formData.backupPhone, backupCountryCode),
       isOther: formData.isOther,
       memberNumber: formData.isOther
         ? null
@@ -708,15 +716,27 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
 
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.phoneRequired')}</label>
-            <input
-              type="tel"
-              required
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-              placeholder="01234567890"
-              dir="ltr"
-            />
+            <div className="flex gap-2" dir="ltr">
+              <select
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                className="shrink-0 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 cursor-pointer"
+                title={direction === 'rtl' ? 'كود الدولة' : 'Country code'}
+              >
+                {COUNTRIES.map(c => (
+                  <option key={c.code} value={c.code}>{c.flag} +{c.dial}</option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                placeholder={countryCode === 'EG' ? '01234567890' : '512345678'}
+                dir="ltr"
+              />
+            </div>
             {/* لو الرقم متطابق مع متابعة، نعرض رسالة مختلفة حسب الحالة */}
             {matchedFollowUp && (() => {
               const canOverride = user?.role === 'OWNER' || user?.role === 'ADMIN'
@@ -788,14 +808,26 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
 
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('members.form.backupPhoneOptional')}</label>
-            <input
-              type="tel"
-              value={formData.backupPhone}
-              onChange={(e) => setFormData({ ...formData, backupPhone: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-              placeholder="01234567890"
-              dir="ltr"
-            />
+            <div className="flex gap-2" dir="ltr">
+              <select
+                value={backupCountryCode}
+                onChange={(e) => setBackupCountryCode(e.target.value)}
+                className="shrink-0 px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 cursor-pointer"
+                title={direction === 'rtl' ? 'كود الدولة' : 'Country code'}
+              >
+                {COUNTRIES.map(c => (
+                  <option key={c.code} value={c.code}>{c.flag} +{c.dial}</option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={formData.backupPhone}
+                onChange={(e) => setFormData({ ...formData, backupPhone: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                placeholder={backupCountryCode === 'EG' ? '01234567890' : '512345678'}
+                dir="ltr"
+              />
+            </div>
           </div>
 
           <div>

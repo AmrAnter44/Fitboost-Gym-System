@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateExpense')
 
     const body = await request.json()
-    const { type, amount, description, notes, staffId, customCreatedAt, paymentMethod } = body
+    const { type, amount, description, notes, staffId, customCreatedAt, paymentMethod, category } = body
 
     if (!type || !amount || !description) {
       return NextResponse.json(
@@ -126,6 +126,7 @@ export async function POST(request: Request) {
       notes,
       staffId: staffId || null,
       paymentMethod: safePaymentMethod,
+      category: (typeof category === 'string' && category.trim()) ? category.trim() : null,
     }
 
     // ✅ إضافة التاريخ المخصص إذا كان موجوداً
@@ -176,7 +177,7 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canEditExpense')
 
     const body = await request.json()
-    const { id, amount, description, createdAt, isPaid, paymentMethod } = body
+    const { id, amount, description, createdAt, isPaid, paymentMethod, category } = body
 
     // تحضير البيانات للتحديث
     const updateData: any = {}
@@ -189,6 +190,10 @@ export async function PUT(request: Request) {
     if (paymentMethod !== undefined) {
       const validMethods = ['cash', 'instapay', 'wallet']
       if (validMethods.includes(paymentMethod)) updateData.paymentMethod = paymentMethod
+    }
+    //  دعم تحديث التصنيف
+    if (category !== undefined) {
+      updateData.category = (typeof category === 'string' && category.trim()) ? category.trim() : null
     }
 
     const expense = await prisma.expense.update({

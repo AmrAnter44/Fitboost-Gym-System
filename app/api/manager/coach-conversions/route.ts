@@ -62,6 +62,9 @@ export async function GET(request: Request) {
         expiryDate: true,
         startDate: true,
         freePTSessions: true,
+        freeNutritionSessions: true,
+        freePhysioSessions: true,
+        freeMoreSessions: true,
         subscriptionPrice: true,
         coachId: true,
         //  تاريخ تعيين الكوتش — متى دخل العميل مع الكابتن ده
@@ -84,14 +87,13 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     })
 
-    //  3. جلب اشتراكات PT النشطة لكل التليفونات (للتحقق من hasPaidPT)
+    //  3. جلب كل اشتراكات PT لكل التليفونات
+    //  - "اتحوّل" (subscribed) = اشترى PT أي وقت (حتى لو الاشتراك خلص) → everSubscribedPTPhones
+    //  - activePT (للعرض) = الاشتراك اللي لسه شغّال (expiryDate >= now)
     const memberPhones = members.map(m => m.phone).filter(Boolean) as string[]
-    const activePTs = memberPhones.length > 0
+    const allPTs = memberPhones.length > 0
       ? await prisma.pT.findMany({
-          where: {
-            phone: { in: memberPhones },
-            expiryDate: { gte: new Date() },
-          },
+          where: { phone: { in: memberPhones } },
           select: {
             ptNumber: true,
             phone: true,
@@ -102,10 +104,32 @@ export async function GET(request: Request) {
           },
         })
       : []
-    const ptByPhone = new Map<string, typeof activePTs[0]>()
-    for (const pt of activePTs) {
-      if (pt.phone) ptByPhone.set(pt.phone, pt)
+    const nowDate = new Date()
+    const ptByPhone = new Map<string, typeof allPTs[0]>()      // active PT (للعرض)
+    const everSubscribedPTPhones = new Set<string>()            // اشترى PT أي وقت (للتحويل)
+    for (const pt of allPTs) {
+      if (!pt.phone) continue
+      everSubscribedPTPhones.add(pt.phone)
+      if (pt.expiryDate && new Date(pt.expiryDate) >= nowDate) {
+        ptByPhone.set(pt.phone, pt) // الأحدث النشط
+      }
     }
+
+    //  3b. اشتراكات التغذية/العلاج الطبيعي/المزيد (أي اشتراك مدفوع = اتحوّل) — بالتليفون
+    const [nutritionSubs, physioSubs, moreSubs] = memberPhones.length > 0
+      ? await Promise.all([
+          prisma.nutrition.findMany({ where: { phone: { in: memberPhones } }, select: { phone: true } }),
+          prisma.physiotherapy.findMany({ where: { phone: { in: memberPhones } }, select: { phone: true } }),
+          prisma.more.findMany({ where: { phone: { in: memberPhones } }, select: { phone: true } }),
+        ])
+      : [[], [], []]
+    const nutritionPhones = new Set(nutritionSubs.map(n => n.phone).filter(Boolean))
+    const physioPhones = new Set(physioSubs.map(p => p.phone).filter(Boolean))
+    const morePhones = new Set(moreSubs.map(m => m.phone).filter(Boolean))
+
+    //  حالة خدمة لكل عضو: subscribed (اشترى) / free (لسه عنده مجاني) / none
+    const serviceStatus = (subscribed: boolean, freeCount: number): 'subscribed' | 'free' | 'none' =>
+      subscribed ? 'subscribed' : (freeCount > 0 ? 'free' : 'none')
 
     //  4. تجميع البيانات حسب الكوتش
     const result = trainers.map(coach => {
@@ -113,13 +137,14 @@ export async function GET(request: Request) {
         .filter(m => m.coachId === coach.id)
         .map(m => {
           const activePT = m.phone ? ptByPhone.get(m.phone) || null : null
+          const everSubscribedPT = m.phone ? everSubscribedPTPhones.has(m.phone) : false
           //  تصنيف الميمبر:
-          // 'subscribed' = اشترك PT بعد كده
-          // 'didnt_subscribe' = خلص الفري ومسجل سبب
+          // 'subscribed' = اشترى PT أي وقت (حتى لو خلص) — اتحوّل
+          // 'still_has_free' = لسه عنده حصص مجانية ولسه ما اشتراش
+          // 'didnt_subscribe' = خلص الفري ومسجل سبب عدم الاشتراك
           // 'pending_decision' = خلص الفري ولسه ما اشتركش ولا اتسجل سبب
-          // 'still_has_free' = لسه عنده حصص مجانية
           let status: 'subscribed' | 'didnt_subscribe' | 'pending_decision' | 'still_has_free'
-          if (activePT) {
+          if (everSubscribedPT) {
             status = 'subscribed'
           } else if (m.freePTSessions > 0) {
             status = 'still_has_free'
@@ -144,9 +169,15 @@ export async function GET(request: Request) {
             //  تاريخ دخول الكلاينت مع الكابتن — fallback لـ createdAt للأعضاء القدامى
             joinedCoachAt: (m as any).coachAssignedAt || m.createdAt,
             ptSessions: m.ptSessions,
-            hasPaidPT: !!activePT,
+            hasPaidPT: everSubscribedPT,
             activePT,
             status,
+            //  حالة العضو في باقي الخدمات (عرض مدمج)
+            services: {
+              nutrition: serviceStatus(m.phone ? nutritionPhones.has(m.phone) : false, m.freeNutritionSessions || 0),
+              physio: serviceStatus(m.phone ? physioPhones.has(m.phone) : false, m.freePhysioSessions || 0),
+              more: serviceStatus(m.phone ? morePhones.has(m.phone) : false, m.freeMoreSessions || 0),
+            },
           }
         })
 
@@ -157,11 +188,11 @@ export async function GET(request: Request) {
         didnt_subscribe: coachMembers.filter(m => m.status === 'didnt_subscribe').length,
         pending_decision: coachMembers.filter(m => m.status === 'pending_decision').length,
         still_has_free: coachMembers.filter(m => m.status === 'still_has_free').length,
-        //  conversion rate = (اشترك / (اشترك + ما اشترك)) — يستثني اللي لسه عنده فري ولسه ما اتقررش
+        //  conversion rate = اللي اتحوّلوا ÷ إجمالي عملاء الكابتن
         conversionRate: (() => {
-          const decided = coachMembers.filter(m => m.status === 'subscribed' || m.status === 'didnt_subscribe').length
-          if (decided === 0) return null
-          return Math.round((coachMembers.filter(m => m.status === 'subscribed').length / decided) * 100)
+          const total = coachMembers.length
+          if (total === 0) return null
+          return Math.round((coachMembers.filter(m => m.status === 'subscribed').length / total) * 100)
         })(),
       }
 

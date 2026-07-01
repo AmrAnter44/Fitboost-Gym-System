@@ -194,6 +194,13 @@ export async function POST(request: Request) {
       }
     }
 
+    // تاريخ البداية والانتهاء — لو الانتهاء فاضي، الافتراضي = البداية + 30 يوم
+    // (عشان ما يتعملش اشتراك منتهي في نفس اليوم لو حد نسي يكتب التاريخ)
+    const finalStartDate = startDate ? new Date(startDate) : new Date()
+    const finalExpiryDate = expiryDate
+      ? new Date(expiryDate)
+      : (() => { const b = new Date(finalStartDate); b.setDate(b.getDate() + 30); return b })()
+
     // إنشاء بيانات More
     const moreData: any = {
       clientName,
@@ -206,8 +213,8 @@ export async function POST(request: Request) {
       pricePerSession,
       totalAmount: totalPrice,
       remainingAmount: remainingAmount,
-      startDate: startDate ? new Date(startDate) : new Date(),
-      expiryDate: expiryDate ? new Date(expiryDate) : new Date(),
+      startDate: finalStartDate,
+      expiryDate: finalExpiryDate,
       notes: notes || null
     }
 
@@ -216,12 +223,7 @@ export async function POST(request: Request) {
       const totalAmount = sessionsPurchased * pricePerSession
       const paidAmount = totalAmount - remainingAmount
 
-      let subscriptionDays = null
-      if (startDate && expiryDate) {
-        const start = new Date(startDate)
-        const end = new Date(expiryDate)
-        subscriptionDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-      }
+      const subscriptionDays = Math.ceil((finalExpiryDate.getTime() - finalStartDate.getTime()) / (1000 * 60 * 60 * 24))
 
       // استخدام Transaction
       const more = await prisma.$transaction(async (tx) => {
@@ -264,8 +266,8 @@ export async function POST(request: Request) {
               paidAmount: Number(paidAmount),
               remainingAmount: Number(remainingAmount || 0),
               coachName,
-              startDate: startDate || null,
-              expiryDate: expiryDate || null,
+              startDate: finalStartDate.toISOString(),
+              expiryDate: finalExpiryDate.toISOString(),
               subscriptionDays: subscriptionDays
             }),
             moreNumber: more.moreNumber,

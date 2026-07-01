@@ -345,17 +345,27 @@ export default function OffersPage() {
 
         {/* Add/Edit Form */}
         {showForm && (
-          <div className="mb-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
-                {editingOffer ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a2.122 2.122 0 1 1 3 3L19.862 7.487m-3-3L8.078 13.27a2 2 0 0 0-.5.831l-1.111 4.222 4.222-1.111a2 2 0 0 0 .832-.5l8.781-8.781m-3-3 3 3" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                )}
-              </svg>
-              <span>{editingOffer ? t('offers.editOffer') : t('offers.newOffer')}</span>
-            </h2>
+          <div
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-3 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+            onClick={(e) => { if (e.target === e.currentTarget) resetForm() }}
+          >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-3xl w-full max-h-[92vh] overflow-y-auto animate-modal-in" dir={direction}>
+            <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
+                  {editingOffer ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a2.122 2.122 0 1 1 3 3L19.862 7.487m-3-3L8.078 13.27a2 2 0 0 0-.5.831l-1.111 4.222 4.222-1.111a2 2 0 0 0 .832-.5l8.781-8.781m-3-3 3 3" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  )}
+                </svg>
+                <span>{editingOffer ? t('offers.editOffer') : t('offers.newOffer')}</span>
+              </h2>
+              <button type="button" onClick={resetForm} aria-label="Close" className="w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center shrink-0">
+                <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="p-5">
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>{t('offers.offerName')} *</label>
@@ -548,6 +558,8 @@ export default function OffersPage() {
                 </button>
               </div>
             </form>
+            </div>
+          </div>
           </div>
         )}
 

@@ -196,6 +196,9 @@ function MembersPageContent() {
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [filterSalesId, setFilterSalesId] = useState<string>('all') // فلتر السيلز ('all' / '__none__' / staff.id)
   const [filterCoachId, setFilterCoachId] = useState<string>('all') // ‍ فلتر الكوتش ('all' / '__none__' / staff.id)
+  // فلتر تاريخ الاشتراك — مدى (من/إلى) يحدده المستخدم (YYYY-MM-DD)
+  const [filterSubFrom, setFilterSubFrom] = useState<string>('')
+  const [filterSubTo, setFilterSubTo] = useState<string>('')
   const [staffList, setStaffList] = useState<Array<{ id: string; name: string; position: string | null }>>([])
 
   // Mobile UI state
@@ -332,6 +335,19 @@ function MembersPageContent() {
       })
     }
 
+    //  فلتر تاريخ الاشتراك — مدى (من/إلى) حسب startDate
+    if (filterSubFrom || filterSubTo) {
+      filtered = filtered.filter((member) => {
+        if (!member.startDate) return false
+        const d = new Date(member.startDate)
+        if (isNaN(d.getTime())) return false
+        const dymd = formatDateYMD(d) // 'YYYY-MM-DD' — مقارنة باليوم بس
+        if (filterSubFrom && dymd < filterSubFrom) return false
+        if (filterSubTo && dymd > filterSubTo) return false
+        return true
+      })
+    }
+
     // ترتيب الأعضاء — الأحدث أولاً
     // الأساس: memberNumber desc (لأن العضو الجديد بياخد رقم أعلى من اللي قبله)
     // لو memberNumber null (Other) → في الآخر
@@ -360,7 +376,7 @@ function MembersPageContent() {
     })
 
     return sorted
-  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, membersData])
+  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterSubFrom, filterSubTo, membersData])
 
   // جلب المحظورين عند التحميل (لو عنده صلاحية)
   useEffect(() => {
@@ -509,7 +525,7 @@ function MembersPageContent() {
   // إعادة تعيين الصفحة عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId])
+  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterSubFrom, filterSubTo])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
@@ -538,6 +554,8 @@ function MembersPageContent() {
     setFilterPackage('all')
     setFilterSalesId('all')
     setFilterCoachId('all')
+    setFilterSubFrom('')
+    setFilterSubTo('')
   }
 
   // Active filters count (used by mobile filter button badge)
@@ -1076,6 +1094,34 @@ function MembersPageContent() {
 
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              {locale === 'ar' ? 'تاريخ الاشتراك (من / إلى)' : 'Subscription Date (From / To)'}
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={filterSubFrom}
+                max={filterSubTo || undefined}
+                onChange={(e) => setFilterSubFrom(e.target.value)}
+                className="w-full px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+              />
+              <span className="text-gray-400 text-xs">→</span>
+              <input
+                type="date"
+                value={filterSubTo}
+                min={filterSubFrom || undefined}
+                onChange={(e) => setFilterSubTo(e.target.value)}
+                className="w-full px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+              />
+              {(filterSubFrom || filterSubTo) && (
+                <button type="button" onClick={() => { setFilterSubFrom(''); setFilterSubTo('') }} aria-label={locale === 'ar' ? 'مسح' : 'Clear'} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
+                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
               {locale === 'ar' ? 'السيلز' : 'Sales'}
             </label>
             <select
@@ -1252,6 +1298,28 @@ function MembersPageContent() {
                   <option value="6-months">{locale === 'ar' ? '6 شهور' : '6 Months'} ({stats.package6Months})</option>
                   <option value="year">{locale === 'ar' ? 'سنة' : 'Year'} ({stats.packageYear})</option>
                 </select>
+              </section>
+
+              {/* Subscription Date */}
+              <section>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'تاريخ الاشتراك (من / إلى)' : 'Subscription Date (From / To)'}</label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={filterSubFrom}
+                    max={filterSubTo || undefined}
+                    onChange={(e) => setFilterSubFrom(e.target.value)}
+                    className="w-full min-h-[44px] px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                  />
+                  <span className="text-gray-400 text-xs">→</span>
+                  <input
+                    type="date"
+                    value={filterSubTo}
+                    min={filterSubFrom || undefined}
+                    onChange={(e) => setFilterSubTo(e.target.value)}
+                    className="w-full min-h-[44px] px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                  />
+                </div>
               </section>
 
               {/* Sales */}

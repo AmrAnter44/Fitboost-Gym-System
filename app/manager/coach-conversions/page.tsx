@@ -43,6 +43,12 @@ interface MemberRow {
   hasPaidPT: boolean
   activePT: ActivePTInfo | null
   status: 'subscribed' | 'didnt_subscribe' | 'pending_decision' | 'still_has_free'
+  //  حالة العضو في باقي الخدمات
+  services?: {
+    nutrition: 'subscribed' | 'free' | 'none'
+    physio: 'subscribed' | 'free' | 'none'
+    more: 'subscribed' | 'free' | 'none'
+  }
 }
 
 interface CoachGroup {
@@ -580,6 +586,25 @@ function MemberRowItem({ member, locale, onClick }: { member: MemberRow; locale:
               </svg>
               {statusInfo.label}
             </span>
+            {/*  حالة العضو في باقي الخدمات (عرض مدمج) */}
+            {member.services && (['nutrition', 'physio', 'more'] as const).map((svc) => {
+              const st = member.services![svc]
+              if (st === 'none') return null
+              const labels = {
+                nutrition: locale === 'ar' ? 'تغذية' : 'Nutrition',
+                physio: locale === 'ar' ? 'علاج طبيعي' : 'Physio',
+                more: locale === 'ar' ? 'مزيد' : 'More',
+              }
+              const cls = st === 'subscribed'
+                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+              const mark = st === 'subscribed' ? '✓' : (locale === 'ar' ? 'مجاني' : 'free')
+              return (
+                <span key={svc} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cls}`}>
+                  {labels[svc]} {mark}
+                </span>
+              )
+            })}
             {/*  تاريخ دخول الكلاينت مع الكوتش */}
             {member.joinedCoachAt && (
               <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold inline-flex items-center gap-0.5">

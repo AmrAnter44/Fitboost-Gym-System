@@ -30,6 +30,9 @@ export async function GET(request: Request) {
             receiptNumber: true,
             amount: true
           }
+        },
+        member: {
+          select: { id: true, name: true, memberNumber: true, isActive: true }
         }
       }
     });
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateDayUse')
 
     const body = await request.json();
-    const { name, phone, serviceType, price, staffName, paymentMethod, salesStaffId } = body;
+    const { name, phone, serviceType, price, staffName, paymentMethod, salesStaffId, memberId } = body;
 
     // ✅ التحقق من الحقول المطلوبة
     if (!name || name.trim() === '') {
@@ -149,6 +152,7 @@ export async function POST(request: Request) {
           price,
           staffName,
           salesStaffId: effectiveSalesStaffId,
+          memberId: memberId || null, // 🔗 ربط بالعضو لو متبعّت
         },
       });
 
@@ -214,6 +218,24 @@ export async function POST(request: Request) {
       return null
     }
 
+    // 🔗 لو مربوط بعضو نشط (اشتراكه ساري) → ما نعملش متابعة (هو عضو فعلاً).
+    //    لو عضو منتهي اشتراكه أو مش عضو (walk-in) → نعمل متابعة عادي.
+    let shouldCreateFollowUp = true
+    if (memberId) {
+      try {
+        const linkedMember = await prisma.member.findUnique({
+          where: { id: memberId },
+          select: { isActive: true, expiryDate: true },
+        })
+        if (linkedMember) {
+          const now = new Date()
+          const stillActive = linkedMember.isActive && (!linkedMember.expiryDate || linkedMember.expiryDate >= now)
+          if (stillActive) shouldCreateFollowUp = false
+        }
+      } catch {}
+    }
+
+    if (shouldCreateFollowUp) {
     try {
       const assignedTo = await getAutoAssignedStaff()
 
@@ -256,6 +278,7 @@ export async function POST(request: Request) {
       // والـ admin يقدر يستخدم زرار "توزيع غير المُسنَّدين" يصلح الموقف.
       console.error("⚠️ فشل إنشاء visitor+followup من DayUse:", visitorError);
     }
+    } // نهاية if (shouldCreateFollowUp)
 
 
     return NextResponse.json({

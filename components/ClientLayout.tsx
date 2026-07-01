@@ -10,6 +10,7 @@ import { UpdateProvider } from '../contexts/UpdateContext'
 import { ServiceSettingsProvider, useServiceSettings } from '../contexts/ServiceSettingsContext'
 import { DarkModeProvider } from '../contexts/DarkModeContext'
 import { LicenseProvider } from '../contexts/LicenseContext'
+import { BulkSenderProvider } from '../contexts/BulkSenderContext'
 import QueryProvider from './QueryProvider'
 import Sidebar from './Sidebar'
 import { PreventInputScroll } from '../app/PreventInputScroll'
@@ -23,6 +24,7 @@ import KeyboardShortcuts from './KeyboardShortcuts'
 import Breadcrumb from './Breadcrumb'
 import BackToTop from './BackToTop'
 import LicenseLockedScreen from './LicenseLockedScreen'
+import BulkSenderOverlay from './BulkSenderOverlay'
 import Link from 'next/link'
 
 function LayoutContent({ children }: { children: ReactNode }) {
@@ -39,6 +41,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
       <InstallPrompt />
       <LicenseLockedScreen />
       <ToastContainer />
+      <BulkSenderOverlay />
       <SearchModal />
       <KeyboardShortcuts />
 
@@ -117,13 +120,15 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             <DeviceSettingsProvider>
               <SearchProvider>
                 <ToastProvider>
-                  <UpdateProvider>
-                    <AdminDateProvider>
-                      <LicenseProvider>
-                        <LayoutContent>{children}</LayoutContent>
-                      </LicenseProvider>
-                    </AdminDateProvider>
-                  </UpdateProvider>
+                  <BulkSenderProvider>
+                    <UpdateProvider>
+                      <AdminDateProvider>
+                        <LicenseProvider>
+                          <LayoutContent>{children}</LayoutContent>
+                        </LicenseProvider>
+                      </AdminDateProvider>
+                    </UpdateProvider>
+                  </BulkSenderProvider>
                 </ToastProvider>
               </SearchProvider>
             </DeviceSettingsProvider>

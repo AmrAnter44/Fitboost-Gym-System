@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
 const egyptianPhoneRegex = /^(010|011|012|015)[0-9]{8}$/
+// أرقام دولية: تبدأ بـ + وكود دولة، إجمالي 7-15 رقم (E.164)
+const intlPhoneRegex = /^\+[1-9]\d{6,14}$/
+const isValidPhone = (v: string) => egyptianPhoneRegex.test(v) || intlPhoneRegex.test(v)
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const safeNameRegex = /^[\u0600-\u06FFa-zA-Z0-9\s\-_.'()]+$/
 
@@ -43,13 +46,13 @@ export const memberCreateSchema = z.object({
 
   phone: z.string()
     .trim()
-    .regex(egyptianPhoneRegex, 'رقم الهاتف غير صحيح (يجب أن يبدأ بـ 010/011/012/015 ويكون 11 رقم)'),
+    .refine(isValidPhone, 'رقم الهاتف غير صحيح (رقم مصري 010/011/012/015 أو رقم دولي يبدأ بـ +)'),
 
   backupPhone: z.union([
     z.literal(''),
     z.null(),
     z.undefined(),
-    z.string().regex(egyptianPhoneRegex, 'رقم الهاتف الاحتياطي غير صحيح')
+    z.string().trim().refine(isValidPhone, 'رقم الهاتف الاحتياطي غير صحيح')
   ]).optional().nullable(),
 
   email: z.union([

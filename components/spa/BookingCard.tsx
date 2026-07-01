@@ -10,9 +10,11 @@ interface BookingCardProps {
   booking: SpaBooking
   onEdit?: (booking: SpaBooking) => void
   onCancel?: (booking: SpaBooking) => void
+  onConfirm?: (booking: SpaBooking) => void
   onView?: (booking: SpaBooking) => void
   canEdit?: boolean
   canCancel?: boolean
+  canConfirm?: boolean
 }
 
 const renderServiceIcon = (type: SpaBooking['serviceType']) => {
@@ -42,9 +44,11 @@ export default function BookingCard({
   booking,
   onEdit,
   onCancel,
+  onConfirm,
   onView,
   canEdit = false,
   canCancel = false,
+  canConfirm = false,
 }: BookingCardProps) {
   const { t, direction, locale } = useLanguage()
 
@@ -123,8 +127,16 @@ export default function BookingCard({
         </div>
 
         {/* Actions */}
-        {(canEdit || canCancel || onView) && (
+        {(canEdit || canCancel || canConfirm || onView) && (
           <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+            {canConfirm && onConfirm && booking.status === 'pending' && (
+              <button
+                onClick={() => onConfirm(booking)}
+                className="flex-1 px-4 py-2 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/60 transition-colors duration-200 text-sm font-bold"
+              >
+                {direction === 'rtl' ? 'تأكيد' : 'Confirm'}
+              </button>
+            )}
             {onView && (
               <button
                 onClick={() => onView(booking)}

@@ -6,6 +6,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { toWhatsAppNumber } = require('./phoneFormat');
 
 const API_BASE = 'http://127.0.0.1:4001';
 
@@ -361,9 +362,7 @@ class WhatsAppSession {
   }
 
   _formatPhone(phone) {
-    let p = (phone || '').replace(/\D/g, '');
-    if (p.startsWith('0')) p = '20' + p.slice(1);
-    else if (!p.startsWith('20')) p = '20' + p;
+    const p = toWhatsAppNumber(phone);
     if (p.length < 10 || p.length > 15) {
       throw new Error('Invalid phone number length');
     }

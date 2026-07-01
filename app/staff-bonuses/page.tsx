@@ -53,9 +53,13 @@ export default function StaffBonusesPage() {
   const [filterYear, setFilterYear] = useState<number | 'all'>('all')
 
   const [showForm, setShowForm] = useState(false)
+  // عدد أيام العمل الشهرية (لحساب "بونص يوم" = المرتب ÷ أيام العمل) — من إعدادات الرواتب
+  const [workingDays, setWorkingDays] = useState(26)
   const [formData, setFormData] = useState({
     staffId: '',
+    kind: 'amount' as 'amount' | 'days',
     amount: '',
+    days: '',
     reason: '',
     month: currentMonth,
     year: currentYear,
@@ -114,6 +118,14 @@ export default function StaffBonusesPage() {
     } catch (e) {
       console.error('Failed to fetch staff', e)
     }
+    // أيام العمل الشهرية من إعدادات الرواتب (لحساب معاينة بونص اليوم)
+    try {
+      const sres = await fetch('/api/settings/services')
+      if (sres.ok) {
+        const s = await sres.json()
+        if (s?.payrollWorkingDaysPerMonth > 0) setWorkingDays(s.payrollWorkingDaysPerMonth)
+      }
+    } catch {}
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,7 +138,9 @@ export default function StaffBonusesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           staffId: formData.staffId,
-          amount: parseFloat(formData.amount),
+          ...(formData.kind === 'days'
+            ? { days: parseInt(formData.days, 10) }
+            : { amount: parseFloat(formData.amount) }),
           reason: formData.reason,
           month: formData.month,
           year: formData.year,
@@ -135,7 +149,7 @@ export default function StaffBonusesPage() {
       })
       if (res.ok) {
         setSuccessMsg(t('bonuses.addSuccess'))
-        setFormData({ staffId: '', amount: '', reason: '', month: currentMonth, year: currentYear, notes: '' })
+        setFormData({ staffId: '', kind: 'amount', amount: '', days: '', reason: '', month: currentMonth, year: currentYear, notes: '' })
         setShowForm(false)
         fetchBonuses()
         setTimeout(() => setSuccessMsg(''), 3000)
@@ -306,17 +320,55 @@ export default function StaffBonusesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('bonuses.amount')} *</label>
-                <input
-                  type="number"
-                  value={formData.amount}
-                  onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors duration-200"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  required
-                />
+                {/* اختيار النوع: مبلغ ثابت أو بعدد الأيام (بونص يوم) */}
+                <div className="flex items-center gap-1 mb-1.5">
+                  <button type="button" onClick={() => setFormData({ ...formData, kind: 'amount' })}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${formData.kind === 'amount' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                    {locale === 'ar' ? 'مبلغ' : 'Amount'}
+                  </button>
+                  <button type="button" onClick={() => setFormData({ ...formData, kind: 'days' })}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${formData.kind === 'days' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                    {locale === 'ar' ? 'بونص يوم' : 'By days'}
+                  </button>
+                </div>
+                {formData.kind === 'amount' ? (
+                  <input
+                    type="number"
+                    value={formData.amount}
+                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors duration-200"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                ) : (
+                  <>
+                    <input
+                      type="number"
+                      value={formData.days}
+                      onChange={e => setFormData({ ...formData, days: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors duration-200"
+                      placeholder={locale === 'ar' ? 'عدد الأيام' : 'Number of days'}
+                      min="0"
+                      step="1"
+                      required
+                    />
+                    {(() => {
+                      const sel = staffList.find(s => s.id === formData.staffId)
+                      const d = parseInt(formData.days, 10)
+                      if (!sel) return <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{locale === 'ar' ? 'اختر الموظف الأول' : 'Select staff first'}</p>
+                      if (!sel.salary) return <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{locale === 'ar' ? 'الموظف ملوش مرتب محدد' : 'Staff has no salary set'}</p>
+                      const daily = sel.salary / workingDays
+                      const total = d > 0 ? Math.round(d * daily) : 0
+                      return <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 font-bold">
+                        {locale === 'ar'
+                          ? `= ${total.toLocaleString('en')} ج.م (اليوم ≈ ${Math.round(daily).toLocaleString('en')} على ${workingDays} يوم)`
+                          : `= ${total.toLocaleString('en')} EGP (day ≈ ${Math.round(daily).toLocaleString('en')} on ${workingDays} days)`}
+                      </p>
+                    })()}
+                  </>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('bonuses.month')} *</label>

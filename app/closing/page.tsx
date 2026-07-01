@@ -525,6 +525,9 @@ export default function ClosingPage() {
         acc.more += day.more //  المزيد
         acc.other += day.other
         acc.expenses += day.expenses
+        acc.expensesCash += day.expensesCash
+        acc.expensesInstapay += day.expensesInstapay
+        acc.expensesWallet += day.expensesWallet
         acc.visa += day.visa
         acc.instapay += day.instapay
         acc.cash += day.cash
@@ -1725,13 +1728,13 @@ export default function ClosingPage() {
                       <div className="bg-gray-50 dark:bg-gray-900/40 p-3 sm:p-4 rounded-xl ring-1 ring-gray-200 dark:ring-gray-700">
                         <h3 className="font-bold text-base sm:text-lg mb-3 text-gray-900 dark:text-gray-100 inline-flex items-center gap-2">{IconCard}<span>{t('closing.paymentMethods.title')}</span></h3>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
-                          {/*  المصاريف كلها بتتخصم من الكاش (السلوك القديم) — paymentMethod للتسجيل فقط */}
+                          {/*  كل بنك بيتخصم منه مصاريفه هو بس (حسب paymentMethod) */}
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-green-200 dark:ring-green-900/50">
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconCash}<span>{t('closing.paymentMethods.cash')}</span></p>
                             <p className="text-lg font-bold text-green-700 dark:text-green-400 mt-1">{day.cash > 0 ? day.cash.toFixed(0) : '0'}</p>
                             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                               <p className="text-xs text-gray-500 dark:text-gray-400">{t('closing.paymentMethods.netCash')}</p>
-                              <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.cash - day.expenses).toFixed(0)} {t('closing.currency')}</p>
+                              <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.cash - day.expensesCash).toFixed(0)} {t('closing.currency')}</p>
                             </div>
                           </div>
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-primary-200 dark:ring-primary-900/50">
@@ -1741,6 +1744,10 @@ export default function ClosingPage() {
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-primary-200 dark:ring-primary-900/50">
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconPhone}<span>{t('closing.paymentMethods.instapay')}</span></p>
                             <p className="text-lg font-bold text-primary-700 dark:text-primary-400 mt-1">{day.instapay > 0 ? day.instapay.toFixed(0) : '0'}</p>
+                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{direction === 'rtl' ? 'صافي الانستا باي' : 'Net InstaPay'}</p>
+                              <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{(day.instapay - day.expensesInstapay).toFixed(0)} {t('closing.currency')}</p>
+                            </div>
                           </div>
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg ring-1 ring-orange-200 dark:ring-orange-900/50">
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">{IconWallet}<span>{t('closing.paymentMethods.wallet')}</span></p>
@@ -2302,6 +2309,19 @@ export default function ClosingPage() {
                   </td>
                   <td colSpan={(staffList?.length || 0) + 9} className="px-3 py-3 text-start text-2xl text-green-700 dark:text-green-400">
                     {totals.netProfit.toFixed(0)} {t('closing.currency')}
+                  </td>
+                </tr>
+
+                {/* صافي الانستا باي بعد مصاريف الانستا باي */}
+                <tr className="bg-amber-50 dark:bg-amber-900/30 font-bold border-t border-amber-200 dark:border-amber-900/50">
+                  <td colSpan={8} className="px-3 py-3 text-center text-base text-gray-900 dark:text-gray-100">
+                    {direction === 'rtl' ? 'صافي الانستا باي (بعد مصاريف الانستا باي) 📱' : 'Net InstaPay (after InstaPay expenses) 📱'}
+                  </td>
+                  <td colSpan={(staffList?.length || 0) + 9} className="px-3 py-3 text-start text-amber-700 dark:text-amber-400">
+                    <span className="text-xl">{(totals.instapay - totals.expensesInstapay).toFixed(0)} {t('closing.currency')}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">
+                      = {totals.instapay.toFixed(0)} − {totals.expensesInstapay.toFixed(0)}
+                    </span>
                   </td>
                 </tr>
               </tbody>

@@ -3,6 +3,8 @@
  * Handles opening WhatsApp links in both browser and Electron environments
  */
 
+import { toWhatsAppNumber } from './phoneNormalize'
+
 /**
  * Opens a WhatsApp link
  * - In Electron: Uses shell.openExternal for proper external app handling
@@ -40,17 +42,12 @@ export function createWhatsAppUrl(
   message: string = '',
   addCountryCode: boolean = true
 ): string {
-  // Clean phone number (remove non-digits)
-  let cleanPhone = phone.replace(/\D/g, '');
-
-  // Add country code if needed
-  if (addCountryCode && !cleanPhone.startsWith('2')) {
-    // Remove leading 0 if present
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = cleanPhone.substring(1);
-    }
-    cleanPhone = '20' + cleanPhone;
-  }
+  // Normalize via the shared helper (handles +, 00, Egyptian local, and
+  // already-prefixed international numbers). addCountryCode=false keeps the
+  // raw digits as-is.
+  const cleanPhone = addCountryCode
+    ? toWhatsAppNumber(phone)
+    : phone.replace(/\D/g, '');
 
   // Build URL
   const encodedMessage = encodeURIComponent(message);

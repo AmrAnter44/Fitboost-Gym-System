@@ -83,6 +83,10 @@ export default function ExpensesPage() {
   const [showLoansModal, setShowLoansModal] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  // تصنيفات المصاريف (يديرها المستخدم)
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+  const [showCategoryManager, setShowCategoryManager] = useState(false)
+  const [filterCategory, setFilterCategory] = useState<string>('all')
 
   const [formData, setFormData] = useState({
     type: 'gym_expense' as 'gym_expense' | 'staff_loan' | 'staff_salary',
@@ -92,7 +96,17 @@ export default function ExpensesPage() {
     staffId: '',
     createdAt: '',
     paymentMethod: 'cash' as 'cash' | 'instapay' | 'wallet', //  البنك اللي بنخصم منه
+    category: '', // تصنيف المصروف
   })
+
+  // جلب تصنيفات المصاريف
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/expense-categories')
+      if (res.ok) setCategories(await res.json())
+    } catch {}
+  }
+  useEffect(() => { fetchCategories() }, [])
 
   // Error handling for expenses query
   useEffect(() => {
@@ -119,6 +133,7 @@ export default function ExpensesPage() {
       staffId: expense.staff?.id || '',
       createdAt: new Date(expense.createdAt).toISOString().split('T')[0],
       paymentMethod: ((expense as any).paymentMethod || 'cash') as 'cash' | 'instapay' | 'wallet',
+      category: (expense as any).category || '',
     })
     setShowForm(true)
   }
@@ -167,6 +182,7 @@ export default function ExpensesPage() {
           staffId: '',
           createdAt: '',
           paymentMethod: 'cash',
+          category: '',
         })
 
         toast.success(t('expenses.messages.addSuccess'))
@@ -193,6 +209,7 @@ export default function ExpensesPage() {
         description: formData.description,
         createdAt: formData.createdAt,
         paymentMethod: formData.paymentMethod, //  البنك اللي اتخصم منه
+        category: formData.category, // التصنيف
       }
 
       const response = await fetch('/api/expenses', {
@@ -210,6 +227,7 @@ export default function ExpensesPage() {
           staffId: '',
           createdAt: '',
           paymentMethod: 'cash',
+          category: '',
         })
         setEditingExpense(null)
         toast.success(t('expenses.messages.updateSuccess'))
@@ -291,6 +309,11 @@ export default function ExpensesPage() {
 
   const filteredExpenses = (() => {
     let list = filterType === 'all' ? expenses : expenses.filter(e => e.type === filterType)
+
+    // فلتر التصنيف
+    if (filterCategory !== 'all') {
+      list = list.filter(e => ((e as any).category || '') === filterCategory)
+    }
 
     // search — يطابق الوصف (اسم/notes) أو المبلغ
     const q = searchQuery.trim()
@@ -442,6 +465,7 @@ export default function ExpensesPage() {
                 staffId: '',
                 createdAt: '',
                 paymentMethod: 'cash',
+                category: '',
               })
               setShowForm(true)
             }}
@@ -632,6 +656,51 @@ export default function ExpensesPage() {
                 />
               </div>
 
+              {/* طريقة الدفع — البنك اللي اتخصم منه المصروف (يدخل في صافي كل بنك في الإقفال) */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{direction === 'rtl' ? 'مدفوع من' : 'Paid from'}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { key: 'cash', label: direction === 'rtl' ? 'نقدي 💵' : 'Cash 💵' },
+                    { key: 'instapay', label: direction === 'rtl' ? 'انستا باي 📱' : 'InstaPay 📱' },
+                  ] as const).map(m => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, paymentMethod: m.key })}
+                      className={`px-2 py-2 rounded-lg text-sm font-bold ring-1 transition-colors duration-200 ${
+                        formData.paymentMethod === m.key
+                          ? 'bg-primary-500 text-primary-contrast ring-primary-500'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* التصنيف */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">{direction === 'rtl' ? 'التصنيف' : 'Category'}</label>
+                  <button type="button" onClick={() => setShowCategoryManager(true)} className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline">
+                    {direction === 'rtl' ? 'إدارة التصنيفات' : 'Manage'}
+                  </button>
+                </div>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 cursor-pointer"
+                >
+                  <option value="">{direction === 'rtl' ? '— بدون تصنيف —' : '— No category —'}</option>
+                  {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  {formData.category && !categories.some(c => c.name === formData.category) && (
+                    <option value={formData.category}>{formData.category}</option>
+                  )}
+                </select>
+              </div>
+
               {/* الوصف */}
               {formData.type === 'gym_expense' && (
                 <div>
@@ -706,7 +775,7 @@ export default function ExpensesPage() {
 
       {/* Filters card */}
       {(() => {
-        const hasActiveFilters = !!searchQuery || filterType !== 'all' || dateFilterMode !== 'all'
+        const hasActiveFilters = !!searchQuery || filterType !== 'all' || filterCategory !== 'all' || dateFilterMode !== 'all'
         const filteredTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount), 0)
         return (
           <div className="mb-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden" dir={direction}>
@@ -751,6 +820,19 @@ export default function ExpensesPage() {
                   <option value="gym_expense">{t('expenses.filter.gymExpenses')}</option>
                   <option value="staff_loan">{t('expenses.filter.staffLoans')}</option>
                   <option value="staff_salary">{t('expenses.filter.staffSalaries')}</option>
+                </select>
+              </div>
+
+              {/* category filter */}
+              <div className="lg:col-span-3">
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 cursor-pointer"
+                  dir={direction}
+                >
+                  <option value="all">{direction === 'rtl' ? 'كل التصنيفات' : 'All categories'}</option>
+                  {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
 
@@ -832,6 +914,7 @@ export default function ExpensesPage() {
                   onClick={() => {
                     setSearchQuery('')
                     setFilterType('all')
+                    setFilterCategory('all')
                     setDateFilterMode('all')
                     setDateFilterValue('')
                   }}
@@ -862,9 +945,28 @@ export default function ExpensesPage() {
             >
               {/* Header */}
               <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2.5 flex justify-between items-center border-b dark:border-gray-700">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(expense.type)}`}>
-                  {getTypeLabel(expense.type)}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(expense.type)}`}>
+                    {getTypeLabel(expense.type)}
+                  </span>
+                  {/* طريقة الدفع — انستا باي ولا كاش */}
+                  {(() => {
+                    const pm = (expense as any).paymentMethod || 'cash'
+                    if (pm === 'instapay') return (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">📱 {direction === 'rtl' ? 'انستا باي' : 'InstaPay'}</span>
+                    )
+                    if (pm === 'wallet') return (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">💰 {direction === 'rtl' ? 'محفظة' : 'Wallet'}</span>
+                    )
+                    return (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">💵 {direction === 'rtl' ? 'نقدي' : 'Cash'}</span>
+                    )
+                  })()}
+                  {/* التصنيف */}
+                  {(expense as any).category && (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">🏷️ {(expense as any).category}</span>
+                  )}
+                </div>
                 <div className="flex gap-3 text-sm">
                   {hasPermission('canEditExpense') && (
                     <button
@@ -934,6 +1036,17 @@ export default function ExpensesPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* مودال إدارة تصنيفات المصاريف */}
+      {showCategoryManager && (
+        <CategoryManagerModal
+          categories={categories}
+          onClose={() => setShowCategoryManager(false)}
+          onChanged={fetchCategories}
+          direction={direction}
+          toast={toast}
+        />
       )}
 
       {/* Delete Confirmation Popup */}
@@ -1111,6 +1224,94 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// مودال إدارة تصنيفات المصاريف — إضافة/حذف
+function CategoryManagerModal({
+  categories, onClose, onChanged, direction, toast,
+}: {
+  categories: { id: string; name: string }[]
+  onClose: () => void
+  onChanged: () => void
+  direction: 'rtl' | 'ltr'
+  toast: any
+}) {
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const ar = direction === 'rtl'
+
+  async function add() {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/expense-categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      })
+      if (res.ok) {
+        setName('')
+        onChanged()
+        toast.success(ar ? 'تم إضافة التصنيف' : 'Category added')
+      } else {
+        const e = await res.json().catch(() => ({}))
+        toast.error(e.error || (ar ? 'فشل الإضافة' : 'Failed'))
+      }
+    } finally { setBusy(false) }
+  }
+
+  async function remove(id: string) {
+    if (!confirm(ar ? 'حذف التصنيف؟ (المصاريف القديمة هتحتفظ باسمه)' : 'Delete category? (old expenses keep its name)')) return
+    const res = await fetch(`/api/expense-categories/${id}`, { method: 'DELETE' })
+    if (res.ok) onChanged()
+    else toast.error(ar ? 'فشل الحذف' : 'Delete failed')
+  }
+
+  return (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full max-h-[92vh] overflow-y-auto animate-modal-in" dir={direction}>
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">🏷️ {ar ? 'إدارة تصنيفات المصاريف' : 'Manage Expense Categories'}</h2>
+          <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center shrink-0">
+            <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div className="p-4 sm:p-6 space-y-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
+              placeholder={ar ? 'اسم تصنيف جديد (مثال: كهربا)' : 'New category name'}
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+            <button onClick={add} disabled={busy || !name.trim()} className="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold disabled:opacity-60">
+              {ar ? 'إضافة' : 'Add'}
+            </button>
+          </div>
+
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            {categories.length === 0 ? (
+              <p className="p-6 text-center text-gray-500 text-sm">{ar ? 'مفيش تصنيفات' : 'No categories'}</p>
+            ) : (
+              <div className="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/60">
+                {categories.map(c => (
+                  <div key={c.id} className="p-3 flex items-center justify-between gap-3">
+                    <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">🏷️ {c.name}</span>
+                    <button onClick={() => remove(c.id)} className="text-xs font-bold px-3 py-1.5 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg shrink-0">
+                      {ar ? 'حذف' : 'Delete'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

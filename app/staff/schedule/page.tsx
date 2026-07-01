@@ -8,6 +8,8 @@ import { useToast } from '../../../contexts/ToastContext'
 import { usePermissions } from '../../../hooks/usePermissions'
 import { LoadingScreen } from '../../../components/Spinner'
 import PermissionDenied from '../../../components/PermissionDenied'
+import ConfirmDialog from '../../../components/ConfirmDialog'
+import { useConfirm } from '../../../hooks/useConfirm'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -49,6 +51,7 @@ export default function StaffSchedulePage() {
 
   const [editing, setEditing] = useState<{ date: string; existing: CellEntry[] } | null>(null)
   const [showBulkLeave, setShowBulkLeave] = useState(false)
+  const [showHolidays, setShowHolidays] = useState(false)
 
   const isAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
 
@@ -202,6 +205,9 @@ export default function StaffSchedulePage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <button onClick={() => setShowHolidays(true)} className="min-h-[44px] px-3 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold">
+            {locale === 'ar' ? 'الأجازات الرسمية' : 'Public Holidays'}
+          </button>
           <button onClick={() => setShowBulkLeave(true)} className="min-h-[44px] px-3 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-bold">
             {locale === 'ar' ? 'إجازة جماعية' : 'Bulk Leave'}
           </button>
@@ -372,6 +378,17 @@ export default function StaffSchedulePage() {
           toast={toast}
         />
       )}
+
+      {showHolidays && (
+        <HolidaysModal
+          holidays={holidays}
+          setHolidays={setHolidays}
+          onClose={() => setShowHolidays(false)}
+          locale={locale}
+          direction={direction}
+          toast={toast}
+        />
+      )}
     </div>
   )
 }
@@ -381,6 +398,153 @@ function LegendItem({ color, label }: { color: string; label: string }) {
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${color}`}>
       <span className="font-bold">{label}</span>
     </span>
+  )
+}
+
+// إدارة الأجازات الرسمية — منقولة من صفحة الإعدادات للكاليندر
+function HolidaysModal({
+  holidays, setHolidays, onClose, locale, direction, toast,
+}: {
+  holidays: Holiday[]
+  setHolidays: React.Dispatch<React.SetStateAction<Holiday[]>>
+  onClose: () => void
+  locale: string
+  direction: 'rtl' | 'ltr'
+  toast: any
+}) {
+  const [form, setForm] = useState({ date: '', name: '', isPaid: true, recurring: false })
+  const [submitting, setSubmitting] = useState(false)
+  const { confirm, isOpen: confirmOpen, options: confirmOptions, handleConfirm, handleCancel } = useConfirm()
+
+  async function addHoliday() {
+    if (!form.date || !form.name) {
+      toast.error(locale === 'ar' ? 'التاريخ والاسم مطلوبين' : 'Date and name required')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/holidays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) {
+        const created = await res.json()
+        setHolidays(prev => [...prev, created].sort((a, b) => a.date.localeCompare(b.date)))
+        setForm({ date: '', name: '', isPaid: true, recurring: false })
+        toast.success(locale === 'ar' ? 'تم إضافة الإجازة' : 'Holiday added')
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error || 'Failed')
+      }
+    } finally { setSubmitting(false) }
+  }
+
+  async function deleteHoliday(h: Holiday) {
+    const ok = await confirm({
+      title: locale === 'ar' ? 'حذف الإجازة' : 'Delete Holiday',
+      message: locale === 'ar'
+        ? `هتحذف إجازة "${h.name}"؟`
+        : `Delete holiday "${h.name}"?`,
+      confirmText: locale === 'ar' ? 'حذف' : 'Delete',
+      cancelText: locale === 'ar' ? 'إلغاء' : 'Cancel',
+      type: 'danger',
+    })
+    if (!ok) return
+    const res = await fetch(`/api/holidays/${h.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setHolidays(prev => prev.filter(x => x.id !== h.id))
+      toast.success(locale === 'ar' ? 'تم الحذف' : 'Deleted')
+    } else {
+      toast.error(locale === 'ar' ? 'فشل الحذف' : 'Delete failed')
+    }
+  }
+
+  return (
+    <>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-lg w-full max-h-[92vh] overflow-y-auto animate-modal-in" dir={direction}>
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'الأجازات الرسمية' : 'Public Holidays'}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{locale === 'ar' ? 'بتُحسب لكل الموظفين النشطين تلقائياً في الـ payroll' : 'Applied to all active staff automatically in payroll'}</p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center shrink-0">
+            <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div className="p-4 sm:p-6 space-y-4">
+          {/* Add form */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">{locale === 'ar' ? 'التاريخ' : 'Date'}</label>
+              <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">{locale === 'ar' ? 'الاسم' : 'Name'}</label>
+              <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                placeholder={locale === 'ar' ? 'مثال: عيد الفطر' : 'e.g. Eid al-Fitr'}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" checked={form.isPaid} onChange={e => setForm({ ...form, isPaid: e.target.checked })} />
+              <span>{locale === 'ar' ? 'مدفوعة' : 'Paid'}</span>
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" checked={form.recurring} onChange={e => setForm({ ...form, recurring: e.target.checked })} />
+              <span>{locale === 'ar' ? 'متكرر سنوياً' : 'Recurring yearly'}</span>
+            </label>
+          </div>
+          <button onClick={addHoliday} disabled={submitting} className="w-full min-h-[44px] bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold rounded-lg disabled:opacity-60">
+            {submitting ? '...' : (locale === 'ar' ? 'إضافة إجازة' : 'Add Holiday')}
+          </button>
+
+          {/* List */}
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 p-3 border-b border-gray-200 dark:border-gray-700">
+              {locale === 'ar' ? `الأجازات (${holidays.length})` : `Holidays (${holidays.length})`}
+            </h3>
+            {holidays.length === 0 ? (
+              <p className="p-6 text-center text-gray-500 text-sm">{locale === 'ar' ? 'مفيش أجازات' : 'No holidays'}</p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/60">
+                {holidays.map(h => (
+                  <div key={h.id} className="p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">{h.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(h.date).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+                        {h.recurring && <span className="ms-2 px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">{locale === 'ar' ? 'متكرر' : 'Recurring'}</span>}
+                        {h.isPaid ? (
+                          <span className="ms-2 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">{locale === 'ar' ? 'مدفوعة' : 'Paid'}</span>
+                        ) : (
+                          <span className="ms-2 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">{locale === 'ar' ? 'بدون مرتب' : 'Unpaid'}</span>
+                        )}
+                      </p>
+                    </div>
+                    <button onClick={() => deleteHoliday(h)} className="text-xs font-bold px-3 py-1.5 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg shrink-0">
+                      {locale === 'ar' ? 'حذف' : 'Delete'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+    <ConfirmDialog
+      isOpen={confirmOpen}
+      title={confirmOptions.title}
+      message={confirmOptions.message}
+      confirmText={confirmOptions.confirmText}
+      cancelText={confirmOptions.cancelText}
+      type={confirmOptions.type}
+      onConfirm={handleConfirm}
+      onCancel={handleCancel}
+    />
+    </>
   )
 }
 
