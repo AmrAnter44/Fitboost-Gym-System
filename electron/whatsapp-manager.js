@@ -15,6 +15,7 @@ const {
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
+const { toWhatsAppNumber } = require('./phoneFormat');
 
 class WhatsAppManager {
   constructor(userDataPath) {
@@ -163,13 +164,7 @@ class WhatsAppManager {
         }
 
         // Format phone number
-        let formattedPhone = phone.replace(/\D/g, '');
-
-        if (formattedPhone.startsWith('0')) {
-          formattedPhone = '20' + formattedPhone.substring(1);
-        } else if (!formattedPhone.startsWith('20')) {
-          formattedPhone = '20' + formattedPhone;
-        }
+        const formattedPhone = toWhatsAppNumber(phone);
 
         const jid = `${formattedPhone}@s.whatsapp.net`;
 
@@ -218,13 +213,7 @@ class WhatsAppManager {
         }
 
         // Format phone number
-        let formattedPhone = phone.replace(/\D/g, '');
-
-        if (formattedPhone.startsWith('0')) {
-          formattedPhone = '20' + formattedPhone.substring(1);
-        } else if (!formattedPhone.startsWith('20')) {
-          formattedPhone = '20' + formattedPhone;
-        }
+        const formattedPhone = toWhatsAppNumber(phone);
 
         const jid = `${formattedPhone}@s.whatsapp.net`;
 

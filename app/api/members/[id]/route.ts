@@ -46,6 +46,10 @@ export async function GET(
             staffCode: true
           }
         },
+        dayUses: {
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, serviceType: true, price: true, createdAt: true, staffName: true }
+        },
         freezeRequests: {
           where: { status: 'approved' },
           orderBy: { endDate: 'desc' },

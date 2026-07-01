@@ -1909,6 +1909,40 @@ export default function MemberDetailPage() {
  </div>
  </details>
  )}
+
+ {/* 🎟️ أيام الاستخدام / InBody المرتبطة بالعضو */}
+ {((member as any).dayUses?.length > 0) && (
+ <details className="bg-white/10 rounded-lg p-3 group">
+ <summary className="cursor-pointer list-none flex items-center justify-between">
+ <div>
+ <p className="text-xs opacity-80 mb-1">🎟️ {locale === 'ar' ? 'أيام الاستخدام / InBody' : 'Day Use / InBody'}</p>
+ <p className="text-base font-bold">
+ {(member as any).dayUses.length}{' '}
+ <span className="text-xs font-normal opacity-75">{locale === 'ar' ? 'عملية' : 'records'}</span>
+ </p>
+ </div>
+ <svg className="w-4 h-4 opacity-60 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+ </svg>
+ </summary>
+ <div className="mt-3 space-y-1.5 max-h-64 overflow-y-auto">
+ {(member as any).dayUses.map((d: any) => {
+ const label = d.serviceType === 'DayUse' ? (locale === 'ar' ? 'يوم استخدام' : 'Day Use')
+ : d.serviceType === 'InBody' ? 'InBody'
+ : d.serviceType === 'LockerRental' ? (locale === 'ar' ? 'تأجير لوجر' : 'Locker') : d.serviceType
+ return (
+ <div key={d.id} className="flex items-center justify-between gap-2 bg-white/10 rounded px-2.5 py-1.5">
+ <span className="text-sm font-bold truncate">{label}</span>
+ <span className="text-xs opacity-80 flex-shrink-0">{d.price} {locale === 'ar' ? 'ج.م' : 'EGP'}</span>
+ <span className="text-[10px] opacity-60 font-mono flex-shrink-0">
+ {new Date(d.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: '2-digit', month: 'short', year: '2-digit' })}
+ </span>
+ </div>
+ )
+ })}
+ </div>
+ </details>
+ )}
  </div>
 
  <div className="mt-6 pt-6 border-t border-white dark:border-gray-400 border-opacity-20">

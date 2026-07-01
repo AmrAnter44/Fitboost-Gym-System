@@ -379,6 +379,11 @@ function migrateDatabase(dbPath) {
     // ✅ DayUseInBody.salesStaffId — ربط عملية الـ Day Use بموظف سيلز
     if (!columnExists(db, 'DayUseInBody', 'salesStaffId')) {
       db.prepare('ALTER TABLE DayUseInBody ADD COLUMN salesStaffId TEXT').run();
+    }
+
+    // ✅ DayUseInBody.memberId — ربط يوم الاستخدام بعضو موجود
+    if (tableExists(db, 'DayUseInBody') && !columnExists(db, 'DayUseInBody', 'memberId')) {
+      db.prepare('ALTER TABLE DayUseInBody ADD COLUMN memberId TEXT').run();
     } else {
     }
 
@@ -504,6 +509,7 @@ function migrateDatabase(dbPath) {
       { col: 'gymName',                    def: 'TEXT' },
       { col: 'gymLogo',                    def: 'TEXT' },
       { col: 'primaryColor',               def: 'TEXT' },
+      { col: 'primaryTextColor',           def: 'TEXT' },
       { col: 'iosAppUrl',                  def: 'TEXT' },
       { col: 'showAppLinksOnReceipts',     def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'websiteUrl',                 def: 'TEXT' },
@@ -1350,6 +1356,33 @@ function migrateDatabase(dbPath) {
     // ✅ Expense — عمود الـ isPaid
     if (tableExists(db, 'Expense') && !columnExists(db, 'Expense', 'isPaid')) {
       db.prepare('ALTER TABLE Expense ADD COLUMN isPaid INTEGER NOT NULL DEFAULT 0').run();
+    }
+
+    // ✅ Expense — طريقة الدفع (البنك) + التصنيف
+    if (tableExists(db, 'Expense') && !columnExists(db, 'Expense', 'paymentMethod')) {
+      db.prepare("ALTER TABLE Expense ADD COLUMN paymentMethod TEXT NOT NULL DEFAULT 'cash'").run();
+    }
+    if (tableExists(db, 'Expense') && !columnExists(db, 'Expense', 'category')) {
+      db.prepare('ALTER TABLE Expense ADD COLUMN category TEXT').run();
+    }
+
+    // ✅ Expense — أعمدة السلف بالأقساط (paidAmount / installmentLimit)
+    if (tableExists(db, 'Expense') && !columnExists(db, 'Expense', 'paidAmount')) {
+      db.prepare('ALTER TABLE Expense ADD COLUMN paidAmount REAL NOT NULL DEFAULT 0').run();
+    }
+    if (tableExists(db, 'Expense') && !columnExists(db, 'Expense', 'installmentLimit')) {
+      db.prepare('ALTER TABLE Expense ADD COLUMN installmentLimit REAL').run();
+    }
+
+    // ✅ ExpenseCategory — تصنيفات المصاريف (يديرها المستخدم)
+    if (!tableExists(db, 'ExpenseCategory')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS ExpenseCategory (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
     }
 
     // ✅ Offer — عمود freezeDays

@@ -51,8 +51,29 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const memberNumber = searchParams.get('memberNumber')
     const phone = searchParams.get('phone')
+    const search = searchParams.get('search')
     const pageParam = searchParams.get('page')
     const pageSizeParam = searchParams.get('pageSize')
+
+    // 🔎 بحث خفيف (للـ picker): بالاسم أو رقم العضوية أو التليفون — يرجّع حد أقصى 20
+    if (search) {
+      const q = search.trim()
+      if (!q) return NextResponse.json([], { status: 200 })
+      const members = await prisma.member.findMany({
+        where: {
+          ...salesOnlyFilter,
+          OR: [
+            { name: { contains: q } },
+            { memberNumber: { contains: q } },
+            { phone: { contains: q } },
+          ],
+        },
+        select: { id: true, name: true, memberNumber: true, phone: true, isActive: true, expiryDate: true },
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+      })
+      return NextResponse.json(members, { status: 200 })
+    }
 
     // ✅ البحث برقم العضوية (الأولوية الأولى)
     if (memberNumber) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
 import { requirePermission } from '../../../lib/auth'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
+import { getStaffDailyRate } from '../../../lib/payroll/dailyRate'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,18 +43,37 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateDeduction')
 
     const body = await request.json()
-    const { staffId, amount, reason, notes } = body
+    const { staffId, amount, reason, notes, days } = body
 
-    if (!staffId || !amount || !reason) {
+    if (!staffId || !reason) {
       return NextResponse.json({ error: 'البيانات المطلوبة ناقصة' }, { status: 400 })
+    }
+
+    // حساب المبلغ من عدد الأيام (خصم يوم) أو استخدام المبلغ المباشر
+    let finalAmount: number
+    let finalNotes: string | null = notes || null
+    const numDays = Number(days)
+    if (numDays && numDays > 0) {
+      const { dailyRate, monthlySalary } = await getStaffDailyRate(staffId)
+      if (monthlySalary <= 0) {
+        return NextResponse.json({ error: 'الموظف ملوش مرتب محدد، حدّد المرتب الأول' }, { status: 400 })
+      }
+      finalAmount = Math.round(numDays * dailyRate)
+      const dayLabel = `خصم ${numDays} يوم`
+      finalNotes = notes ? `${dayLabel} — ${notes}` : dayLabel
+    } else {
+      finalAmount = parseFloat(amount)
+    }
+    if (!finalAmount || finalAmount <= 0) {
+      return NextResponse.json({ error: 'المبلغ غير صحيح' }, { status: 400 })
     }
 
     const deduction = await prisma.staffDeduction.create({
       data: {
         staffId,
-        amount: parseFloat(amount),
+        amount: finalAmount,
         reason,
-        notes: notes || null,
+        notes: finalNotes,
         isApplied: false,
       },
       include: { staff: true }
@@ -62,7 +82,7 @@ export async function POST(request: Request) {
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'CREATE', resource: 'StaffDeduction', resourceId: deduction.id,
-      details: { staffId, amount, reason },
+      details: { staffId, amount: finalAmount, reason },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
@@ -84,17 +104,25 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canEditDeduction')
 
     const body = await request.json()
-    const { id, reason, notes, isApplied, appliedAt } = body
+    const { id, amount, reason, notes, isApplied, appliedAt } = body
 
     if (!id) {
       return NextResponse.json({ error: 'رقم الخصم مطلوب' }, { status: 400 })
     }
 
     const updateData: any = {}
+    if (amount !== undefined) {
+      const amt = parseFloat(amount)
+      if (isNaN(amt) || amt <= 0) {
+        return NextResponse.json({ error: 'المبلغ غير صحيح' }, { status: 400 })
+      }
+      updateData.amount = amt
+    }
     if (reason !== undefined) updateData.reason = reason
     if (notes !== undefined) updateData.notes = notes
     if (isApplied !== undefined) updateData.isApplied = isApplied
-    if (appliedAt !== undefined) updateData.appliedAt = new Date(appliedAt)
+    // appliedAt: قيمة = تاريخ، null = مسح (عند إلغاء التطبيق)
+    if (appliedAt !== undefined) updateData.appliedAt = appliedAt ? new Date(appliedAt) : null
 
     const deduction = await prisma.staffDeduction.update({
       where: { id },

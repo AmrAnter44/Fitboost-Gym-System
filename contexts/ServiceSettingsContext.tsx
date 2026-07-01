@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
-import { applyPaletteToDOM } from '../lib/theme/generatePalette'
+import { applyPaletteToDOM, applyPrimaryTextOverride } from '../lib/theme/generatePalette'
 
 interface ServiceSettings {
   nutritionEnabled: boolean
@@ -34,6 +34,7 @@ interface ServiceSettings {
   gymName?: string | null
   gymLogo?: string | null
   primaryColor?: string | null
+  primaryTextColor?: string | null
   remainingEnabled: boolean
   //  Anti buddy-punching: لو ON، الموظف لازم يتصور سيلفي مع كل سكان
   requireSelfieOnCheckIn?: boolean
@@ -82,6 +83,7 @@ function parseSettings(data: any): ServiceSettings {
     gymName: data.gymName || null,
     gymLogo: data.gymLogo || null,
     primaryColor: data.primaryColor || null,
+    primaryTextColor: data.primaryTextColor || null,
     remainingEnabled: data.remainingEnabled ?? false,
     requireSelfieOnCheckIn: data.requireSelfieOnCheckIn ?? false,
   }
@@ -171,6 +173,9 @@ function getDefaultSettings(): ServiceSettings {
       : null,
     primaryColor: typeof window !== 'undefined'
       ? localStorage.getItem('primaryColor') || null
+      : null,
+    primaryTextColor: typeof window !== 'undefined'
+      ? localStorage.getItem('primaryTextOverride') || null
       : null
   }
 }
@@ -272,6 +277,22 @@ export function ServiceSettingsProvider({ children }: { children: ReactNode }) {
       })
     }
   }, [settings.primaryColor])
+
+  // تطبيق لون النص على الـ primary (auto/white/black) — عام لكل المستخدمين
+  // يعتمد على primaryColor عشان حساب الـ "auto" contrast، فبيتطبّق بعده
+  useEffect(() => {
+    const override = (settings.primaryTextColor === 'white' || settings.primaryTextColor === 'black')
+      ? settings.primaryTextColor
+      : 'auto'
+    const baseHex = settings.primaryColor || '#fbe003'
+    applyPrimaryTextOverride(baseHex, override)
+    // مزامنة لـ localStorage عشان الـ blocking script يمنع الوميض في التحميل الجاي
+    if (override === 'auto') {
+      localStorage.removeItem('primaryTextOverride')
+    } else {
+      localStorage.setItem('primaryTextOverride', override)
+    }
+  }, [settings.primaryTextColor, settings.primaryColor])
 
   return (
     <ServiceSettingsContext.Provider value={{ settings, loading, refetch: fetchSettings }}>

@@ -49,6 +49,18 @@ function getPaymentMethodLabel(method: string): string {
   return methods[method] || 'كاش 💵'
 }
 
+//  دالة لتأمين النص من حروف الـ HTML الخاصة (& < > " ')
+// لو الشروط فيها أي رمز زي < أو & كان بيكسر الـ HTML قبل ما يطبع
+function escapeHtml(unsafe: string): string {
+  if (!unsafe) return ''
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 // دالة لإنشاء HTML الإيصال الموحد
 function generateReceiptHTML(data: ReceiptData): string {
   const { receiptNumber, type, amount, details, date, receiptTerms, gymLogo, gymName } = data
@@ -297,6 +309,9 @@ function generateReceiptHTML(data: ReceiptData): string {
       border-radius: 3px;
       padding: 5px 8px;
       margin: 5px 0;
+      /*  منع الـ section إنه يتقسّم بين صفحتين */
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .terms h4 {
@@ -304,6 +319,8 @@ function generateReceiptHTML(data: ReceiptData): string {
       font-weight: bold;
       margin-bottom: 2px;
       color: #1f2937;
+      page-break-after: avoid;
+      break-after: avoid;
     }
 
     .terms p {
@@ -311,6 +328,12 @@ function generateReceiptHTML(data: ReceiptData): string {
       line-height: 1.5;
       color: #374151;
       white-space: pre-line;
+      /*  word-break عشان النص العربي ينكسر سطر صح بدون قص حروف */
+      word-break: normal;
+      overflow-wrap: break-word;
+      /*  منع الفقرة من قطع نفسها بين صفحتين */
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .footer {
@@ -573,7 +596,7 @@ function generateReceiptHTML(data: ReceiptData): string {
   ${receiptTerms ? `
   <div class="terms">
     <h4>الشروط والأحكام:</h4>
-    <p>${receiptTerms}</p>
+    <p>${escapeHtml(receiptTerms)}</p>
   </div>
   ` : ''}
 </body>

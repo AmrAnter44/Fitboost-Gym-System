@@ -101,6 +101,7 @@ async function updateSettings(request: Request) {
       'gymName',
       'gymLogo',
       'primaryColor',
+      'primaryTextColor',
       'payrollLateGraceMinutes',
       'payrollWorkingDaysPerMonth',
       'payrollMonthEndDay',

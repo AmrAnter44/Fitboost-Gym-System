@@ -27,6 +27,7 @@ import LoadingSkeleton from '../../components/LoadingSkeleton'
 import { LoadingScreen } from '../../components/Spinner'
 import { useDebounce } from '../../hooks/useDebounce'
 import PaymentMethodSelector from '../../components/Paymentmethodselector'
+import SalesStaffSelector from '../../components/SalesStaffSelector'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -151,6 +152,8 @@ export default function ReceiptsPage() {
  subscriptionCoachName: string
  hasCoachField: boolean // الـ snapshot فيه coachName ولا لأ
  cascade: boolean // يحدّث العضو/PT المرتبط
+ salesStaffId: string | null // موظف السيلز على العضو
+ originalSalesStaffId: string | null // القيمة الأصلية عشان نعرف اتغيّرت ولا لأ
  }>({
  receiptNumber: 0,
  amount: 0,
@@ -165,6 +168,8 @@ export default function ReceiptsPage() {
  subscriptionCoachName: '',
  hasCoachField: false,
  cascade: true,
+ salesStaffId: null,
+ originalSalesStaffId: null,
  })
 
  // قائمة الكوتشز (تجاب لازم بس لما يفتح edit modal لإيصال فيه كوتش)
@@ -534,7 +539,22 @@ export default function ReceiptsPage() {
  subscriptionCoachName: subCoachName,
  hasCoachField: hasCoach,
  cascade: true,
+ salesStaffId: null,
+ originalSalesStaffId: null,
  })
+
+ // 🔗 لو إيصال عضوية، نجيب السيلز الحالي للعضو عشان نعبّي المحدّد
+ if (receipt.memberId) {
+ fetch(`/api/members/${receipt.memberId}`)
+ .then(r => r.ok ? r.json() : null)
+ .then((m: any) => {
+ if (m && typeof m === 'object') {
+ const sid = m.salesStaffId ?? null
+ setEditFormData(prev => ({ ...prev, salesStaffId: sid, originalSalesStaffId: sid }))
+ }
+ })
+ .catch(() => {})
+ }
 
  // lazy-load قائمة الكوتشز لو الإيصال فيه coachName
  if (hasCoach && coachOptions.length === 0) {
@@ -621,6 +641,8 @@ export default function ReceiptsPage() {
  staffName: editFormData.staffName,
  createdAt: updatedCreatedAt,
  ...(subscriptionPayload ? { subscription: subscriptionPayload } : {}),
+ // 🔗 السيلز — نبعته بس لو اتغيّر (يحدّث member.salesStaffId على طول)
+ ...(editFormData.salesStaffId !== editFormData.originalSalesStaffId ? { salesStaffId: editFormData.salesStaffId } : {}),
  cascade: editFormData.cascade,
  })
  })
@@ -628,8 +650,9 @@ export default function ReceiptsPage() {
  if (response.ok) {
  toast.success(t('receipts.edit.success'))
  queryClient.invalidateQueries({ queryKey: ['receipts'] })
- // لو cascade اتعمل، نـ invalidate الـ members/pt كمان
- if (subscriptionPayload && editFormData.cascade) {
+ const salesChanged = editFormData.salesStaffId !== editFormData.originalSalesStaffId
+ // لو cascade اتعمل أو السيلز اتغيّر، نـ invalidate الـ members/pt كمان
+ if ((subscriptionPayload && editFormData.cascade) || salesChanged) {
  queryClient.invalidateQueries({ queryKey: ['members'] })
  queryClient.invalidateQueries({ queryKey: ['member', editingReceipt.memberId] })
  queryClient.invalidateQueries({ queryKey: ['pt'] })
@@ -1829,6 +1852,20 @@ export default function ReceiptsPage() {
  )}
  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
  لو cascade مفعّل، الـ PT المرتبط هيتحدّث (coachName + coachUserId).
+ </p>
+ </div>
+ )}
+
+ {/* 🔗 موظف السيلز — لإيصالات العضوية بس، بيتحدّث على العضو على طول */}
+ {editingReceipt.memberId && (
+ <div>
+ <SalesStaffSelector
+ value={editFormData.salesStaffId}
+ onChange={(sid) => setEditFormData({ ...editFormData, salesStaffId: sid })}
+ locked={!hasPermission('canEditMembers') ? { reason: 'محتاج صلاحية canEditMembers' } : undefined}
+ />
+ <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+ تغيير موظف السيلز هيتحدّث على سجل العضو على طول.
  </p>
  </div>
  )}

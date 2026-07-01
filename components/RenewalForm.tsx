@@ -75,6 +75,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
   const [startDate, setStartDate] = useState(formatDateYMD(new Date()))
   const [expiryDate, setExpiryDate] = useState('')
   const [notes, setNotes] = useState(member.notes || '')
+  const [source, setSource] = useState((member as any).source || '') // مصدر العضو (يتحدّث عند التجديد)
   const [paymentMethod, setPaymentMethod] = useState<string | PaymentMethod[]>('cash')
   const [staffName, setStaffName] = useState(user?.name || '')
   const [remainingAmount, setRemainingAmount] = useState('0')
@@ -204,6 +205,7 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
           startDate,
           expiryDate,
           notes,
+          source: source || null,
           paymentMethod,
           staffName: user?.name || '',
           offerId: selectedOfferId,
@@ -612,6 +614,36 @@ export default function RenewalForm({ member, onSuccess, onClose }: RenewalFormP
               pointsValueInEGP={settings.pointsValueInEGP}
               pointsEnabled={settings.pointsEnabled}
             />
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+            <label htmlFor="renewal-source" className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
+              <svg className="w-4 h-4" {...stroke}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+              </svg>
+              <span>{t('members.form.sourceRequired') || 'المصدر'}</span>
+            </label>
+            <select
+              id="renewal-source"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+            >
+              <option value="">{t('members.form.selectSource')}</option>
+              <option value="walk-in">{t('members.form.sourceWalkIn')}</option>
+              <option value="call-in">{t('members.form.sourceCallIn')}</option>
+              <option value="suggestion">{t('members.form.sourceSuggestion')}</option>
+              <option value="facebook">{t('members.form.sourceFacebook')}</option>
+              <option value="instagram">{t('members.form.sourceInstagram')}</option>
+              <option value="tiktok">{t('members.form.sourceTiktok')}</option>
+              <option value="chatgpt">{t('members.form.sourceChatGPT')}</option>
+              <option value="website">{t('members.form.sourceWebsite')}</option>
+              <option value="friend_referral">{t('members.form.sourceFriendReferral')}</option>
+              <option value="renewal_no_followup">{t('members.form.sourceRenewalNoFollowup')}</option>
+              {source && !['walk-in','call-in','suggestion','facebook','instagram','tiktok','chatgpt','website','friend_referral','renewal_no_followup'].includes(source) && (
+                <option value={source}>{source}</option>
+              )}
+            </select>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">

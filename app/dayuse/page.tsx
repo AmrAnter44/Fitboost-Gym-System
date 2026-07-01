@@ -94,7 +94,12 @@ export default function DayUsePage() {
     staffName: user?.name || '',
     salesStaffId: '',
     paymentMethod: 'cash' as string | PaymentMethod[],
+    memberId: '' as string, // 🔗 العضو المربوط (فاضي = walk-in)
   })
+  // بحث/ربط عضو
+  const [memberSearch, setMemberSearch] = useState('')
+  const [memberResults, setMemberResults] = useState<{ id: string; name: string; memberNumber: string | null; phone: string; isActive: boolean }[]>([])
+  const [linkedMember, setLinkedMember] = useState<{ id: string; name: string; memberNumber: string | null; isActive: boolean } | null>(null)
   const [salesStaffList, setSalesStaffList] = useState<{ id: string; name: string; leadsCount: number }[]>([])
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptData, setReceiptData] = useState<any>(null)
@@ -154,6 +159,34 @@ export default function DayUsePage() {
 
     fetchMemberPoints()
   }, [formData.phone])
+
+  // 🔎 بحث عن عضو لربطه (debounced)
+  useEffect(() => {
+    const q = memberSearch.trim()
+    if (linkedMember || q.length < 2) { setMemberResults([]); return }
+    let cancelled = false
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/members?search=${encodeURIComponent(q)}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (!cancelled) setMemberResults(Array.isArray(data) ? data : [])
+      } catch {}
+    }, 350)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [memberSearch, linkedMember])
+
+  const selectMember = (m: { id: string; name: string; memberNumber: string | null; phone: string; isActive: boolean }) => {
+    setLinkedMember({ id: m.id, name: m.name, memberNumber: m.memberNumber, isActive: m.isActive })
+    setFormData(prev => ({ ...prev, memberId: m.id, name: m.name, phone: m.phone }))
+    setMemberSearch('')
+    setMemberResults([])
+  }
+
+  const clearLinkedMember = () => {
+    setLinkedMember(null)
+    setFormData(prev => ({ ...prev, memberId: '' }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -220,7 +253,10 @@ export default function DayUsePage() {
           staffName: user?.name || '',
           salesStaffId: '',
           paymentMethod: 'cash',
+          memberId: '',
         })
+        setLinkedMember(null)
+        setMemberSearch('')
 
         toast.success(t('dayUse.messages.success'))
         refetchEntries()
@@ -247,7 +283,10 @@ export default function DayUsePage() {
       staffName: user?.name || '',
       salesStaffId: '',
       paymentMethod: 'cash',
+      memberId: (entry as any).memberId || '',
     })
+    setLinkedMember(null)
+    setMemberSearch('')
     setIsRenewing(true)
     setRenewingEntryId(entry.id)
     setShowForm(true)
@@ -302,7 +341,10 @@ export default function DayUsePage() {
                 staffName: user?.name || '',
                 salesStaffId: '',
                 paymentMethod: 'cash',
+                memberId: '',
               })
+              setLinkedMember(null)
+              setMemberSearch('')
               setIsRenewing(false)
               setRenewingEntryId(null)
             }
@@ -320,6 +362,53 @@ export default function DayUsePage() {
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 🔗 ربط بعضو موجود (اختياري) */}
+            {!isRenewing && (
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-200 dark:ring-indigo-800 rounded-lg p-3">
+                <label className="block text-sm font-bold mb-1.5 text-gray-800 dark:text-gray-100">
+                  {direction === 'rtl' ? '🔗 ربط بعضو (اختياري)' : '🔗 Link to member (optional)'}
+                </label>
+                {linkedMember ? (
+                  <div className="flex items-center justify-between bg-white dark:bg-gray-700 rounded px-3 py-2 ring-1 ring-indigo-200 dark:ring-indigo-700">
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                      {linkedMember.name} {linkedMember.memberNumber ? `(#${linkedMember.memberNumber})` : ''}
+                      <span className={`ms-2 text-xs px-1.5 py-0.5 rounded ${linkedMember.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
+                        {linkedMember.isActive ? (direction === 'rtl' ? 'نشط' : 'Active') : (direction === 'rtl' ? 'منتهي' : 'Expired')}
+                      </span>
+                    </span>
+                    <button type="button" onClick={clearLinkedMember} className="text-xs font-bold text-red-600 hover:underline">
+                      {direction === 'rtl' ? 'إلغاء الربط' : 'Unlink'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={memberSearch}
+                      onChange={(e) => setMemberSearch(e.target.value)}
+                      placeholder={direction === 'rtl' ? 'ابحث بالاسم / رقم العضوية / التليفون...' : 'Search by name / number / phone...'}
+                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    />
+                    {memberResults.length > 0 && (
+                      <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-600 rounded-lg shadow-lg">
+                        {memberResults.map(m => (
+                          <button key={m.id} type="button" onClick={() => selectMember(m)} className="w-full text-start px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center justify-between gap-2">
+                            <span className="text-gray-900 dark:text-gray-100 truncate">{m.name} {m.memberNumber ? `(#${m.memberNumber})` : ''} — {m.phone}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${m.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
+                              {m.isActive ? (direction === 'rtl' ? 'نشط' : 'Active') : (direction === 'rtl' ? 'منتهي' : 'Expired')}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                      {direction === 'rtl' ? 'اختياري — لو الشخص مش عضو سيبه فاضي' : 'Optional — leave empty for walk-in'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">{t('dayUse.name')}</label>
@@ -541,9 +630,15 @@ export default function DayUsePage() {
 
                 {/* Entry Info */}
                 <div className="space-y-3">
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2 flex-wrap">
                     <span className="text-gray-500 dark:text-gray-400 text-sm min-w-[80px]"> {t('dayUse.nameLabel')}</span>
                     <span className="font-bold text-gray-900 dark:text-white">{entry.name}</span>
+                    {/* 🔗 badge العضو المربوط */}
+                    {(entry as any).member && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                        🔗 {direction === 'rtl' ? 'عضو' : 'Member'}{(entry as any).member.memberNumber ? ` #${(entry as any).member.memberNumber}` : ''}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-start gap-2">

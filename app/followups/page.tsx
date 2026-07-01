@@ -47,6 +47,14 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { normalizeArabic } from '@/lib/arabicNormalization'
 import { createWhatsAppUrl } from '@/lib/whatsappHelper'
 import AssignSalesButton, { type AssignEntityType } from '../../components/AssignSalesButton'
+import { useBulkSender } from '../../contexts/BulkSenderContext'
+import {
+  getDailyCount,
+  getLastSession,
+  getBulkPresets,
+  saveBulkPreset,
+  deleteBulkPreset,
+} from '../../lib/bulkSender/storage'
 
 interface Visitor {
   id: string
@@ -100,6 +108,7 @@ function FollowUpsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
+  const bulkSender = useBulkSender()
 
   const [showForm, setShowForm] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
@@ -139,15 +148,8 @@ function FollowUpsPageContent() {
   const [bulkScriptDelayMax, setBulkScriptDelayMax] = useState(30)
   const [bulkScriptSkipDays, setBulkScriptSkipDays] = useState(7)
   const [bulkScriptTestPhone, setBulkScriptTestPhone] = useState('')
-  const [bulkScriptRunning, setBulkScriptRunning] = useState(false)
-  const [bulkScriptPaused, setBulkScriptPaused] = useState(false)
-  //  Minimize — يخلي المودال كورة عائمة في الـ navbar/floating
-  // الـ script شغّال على refs فمش بيتأثر بإخفاء المودال (الأداء كما هو)
-  const [bulkScriptMinimized, setBulkScriptMinimized] = useState(false)
-  const bulkScriptPausedRef = useRef(false)
-  const bulkScriptAbortedRef = useRef(false)
-  const [bulkScriptProgress, setBulkScriptProgress] = useState({ current: 0, total: 0, currentName: '', currentMsgIndex: 0, successCount: 0, failCount: 0, countdown: 0 })
-  const [bulkScriptReport, setBulkScriptReport] = useState<{ success: {name: string, phone: string}[], failed: {name: string, phone: string, error: string}[] } | null>(null)
+  //  نظام التشغيل (running/paused/progress/report) اتنقل لـ BulkSenderContext على مستوى التطبيق
+  //  عشان الإرسال يفضل شغّال والكرة/المودالات تفضل ظاهرة حتى بعد الخروج من الصفحة.
   const [bulkScriptPresetName, setBulkScriptPresetName] = useState('')
   //  نقرأ القيم المحفوظة من localStorage عند initial mount
   const [bulkScriptDailyLimit, setBulkScriptDailyLimit] = useState(() => {
@@ -1492,70 +1494,7 @@ function FollowUpsPageContent() {
     }
   }, [filteredFollowUps, user, toast, queryClient, locale, t])
 
-  //  Smart Bulk Script - Daily counter & Last session
-  const getDailyCount = useCallback((): number => {
-    try {
-      const data = JSON.parse(localStorage.getItem('wa-bulk-daily') || '{}')
-      const today = new Date().toISOString().split('T')[0]
-      return data.date === today ? (data.count || 0) : 0
-    } catch { return 0 }
-  }, [])
-
-  const incrementDailyCount = useCallback((amount: number) => {
-    const today = new Date().toISOString().split('T')[0]
-    const current = getDailyCount()
-    localStorage.setItem('wa-bulk-daily', JSON.stringify({ date: today, count: current + amount }))
-  }, [getDailyCount])
-
-  const getLastSession = useCallback((): { date: string, sent: number, filter: string } | null => {
-    try {
-      return JSON.parse(localStorage.getItem('wa-bulk-last-session') || 'null')
-    } catch { return null }
-  }, [])
-
-  const saveLastSession = useCallback((sent: number, filter: string) => {
-    localStorage.setItem('wa-bulk-last-session', JSON.stringify({
-      //  احفظ ISO عشان نقدر نعرضه بالـ locale الحالي وقت العرض
-      date: new Date().toISOString(),
-      sent,
-      filter
-    }))
-  }, [])
-
-  //  Smart Bulk Script - Text variation (anti-ban)
-  const addTextVariation = useCallback((text: string): string => {
-    const variations = [
-      () => text + ' ',
-      () => text + '\u200B', // zero-width space
-      () => text + '\u200C', // zero-width non-joiner
-      () => text.replace(/\./g, (m, i) => Math.random() > 0.5 ? '.' : '..'),
-      () => text + (Math.random() > 0.5 ? ' .' : ''),
-      () => text.replace(/!/, () => Math.random() > 0.5 ? '!' : '!!'),
-      () => text + '\n',
-    ]
-    const variation = variations[Math.floor(Math.random() * variations.length)]
-    return variation()
-  }, [])
-
-  //  Smart Bulk Script - Presets
-  const getBulkPresets = useCallback((): { name: string, messages: string[] }[] => {
-    try {
-      return JSON.parse(localStorage.getItem('wa-bulk-presets') || '[]')
-    } catch { return [] }
-  }, [])
-
-  const saveBulkPreset = useCallback((name: string, messages: string[]) => {
-    const presets = getBulkPresets()
-    const existing = presets.findIndex(p => p.name === name)
-    if (existing >= 0) presets[existing].messages = messages
-    else presets.push({ name, messages })
-    localStorage.setItem('wa-bulk-presets', JSON.stringify(presets))
-  }, [getBulkPresets])
-
-  const deleteBulkPreset = useCallback((name: string) => {
-    const presets = getBulkPresets().filter(p => p.name !== name)
-    localStorage.setItem('wa-bulk-presets', JSON.stringify(presets))
-  }, [getBulkPresets])
+  //  Smart Bulk Script - helpers اتنقلوا لـ lib/bulkSender/storage.ts (getDailyCount / getLastSession / presets)
 
   //  Smart Bulk Script - Get filtered targets
   const getBulkScriptTargets = useCallback(() => {
@@ -1629,190 +1568,31 @@ function FollowUpsPageContent() {
     }
   }, [bulkScriptTestPhone, bulkScriptMessages, user, toast, bulkScriptSessionIndex, t])
 
-  //  Smart Bulk Script - Main send function
-  const handleBulkScriptStart = useCallback(async (retryTargets?: { visitor: any }[]) => {
+  //  Smart Bulk Script - Start — بيحسب المستهدفين والإعدادات وبيسلّمهم لـ BulkSenderContext
+  //  التشغيل نفسه (الحلقة + الكرة + المودالات) بقى عام على مستوى التطبيق فيفضل شغّال بعد الخروج من الصفحة
+  const startBulk = useCallback(async () => {
     const validMessages = bulkScriptMessages.filter(m => m.trim())
     if (validMessages.length === 0) {
       toast.error(t('followups.bulkScript.toast.writeMessage'))
       return
     }
-
-    // Daily limit check
-    const dailySent = getDailyCount()
-    const remaining = bulkScriptDailyLimit - dailySent
-    if (remaining <= 0) {
-      toast.error(t('followups.bulkScript.toast.dailyLimitReached').replace('{limit}', String(bulkScriptDailyLimit)))
-      return
-    }
-
-    let targets = retryTargets || getBulkScriptTargets().map(t => ({ visitor: t.visitor }))
-    if (targets.length === 0) {
-      toast.error(t('followups.bulkScript.toast.noTargets'))
-      return
-    }
-
-    // Limit targets to daily remaining
-    if (targets.length > remaining) {
-      targets = targets.slice(0, remaining)
-      toast.warning(t('followups.bulkScript.toast.limitedSend').replace('{count}', String(remaining)))
-    }
-
-    // Check WhatsApp & get connected sessions for round-robin
-    let connectedSessionIndices: number[] = []
-    try {
-      const sessionsRes = await fetch('/api/whatsapp/sessions')
-      if (sessionsRes.ok) {
-        const sessions = await sessionsRes.json() as { sessionIndex: number; isReady: boolean }[]
-        connectedSessionIndices = sessions.filter((s: any) => s.isReady).map((s: any) => s.sessionIndex)
-      }
-      if (connectedSessionIndices.length === 0) {
-        toast.error(t('followups.bulkScript.toast.whatsappNotConnected'))
-        return
-      }
-    } catch {
-      toast.error(t('followups.bulkScript.toast.whatsappNotConnected'))
-      return
-    }
-
-    // Fisher-Yates shuffle
-    const shuffled = [...targets]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-    }
-
-    setShowBulkScriptModal(false)
-    setBulkScriptRunning(true)
-    setBulkScriptPaused(false)
-    bulkScriptPausedRef.current = false
-    bulkScriptAbortedRef.current = false
-    setBulkScriptReport(null)
-    setBulkScriptProgress({ current: 0, total: shuffled.length, currentName: '', currentMsgIndex: 0, successCount: 0, failCount: 0, countdown: 0 })
-
-    const successList: { name: string, phone: string }[] = []
-    const failedList: { name: string, phone: string, error: string }[] = []
-
-    for (let i = 0; i < shuffled.length; i++) {
-      // Check abort
-      if (bulkScriptAbortedRef.current) break
-
-      // Check pause
-      while (bulkScriptPausedRef.current && !bulkScriptAbortedRef.current) {
-        await new Promise(r => setTimeout(r, 500))
-      }
-      if (bulkScriptAbortedRef.current) break
-
-      //  Batch break - every N messages, take a longer break
-      if (i > 0 && i % bulkScriptBatchSize === 0 && !bulkScriptAbortedRef.current) {
-        const batchBreak = Math.floor(Math.random() * (bulkScriptBatchBreakMax - bulkScriptBatchBreakMin + 1)) + bulkScriptBatchBreakMin
-        setBulkScriptProgress(prev => ({ ...prev, currentName: t('followups.bulkScript.batchBreakMsg').replace('{minutes}', String(Math.ceil(batchBreak / 60))), countdown: batchBreak }))
-        for (let s = batchBreak; s > 0; s--) {
-          if (bulkScriptAbortedRef.current) break
-          while (bulkScriptPausedRef.current && !bulkScriptAbortedRef.current) {
-            await new Promise(r => setTimeout(r, 500))
-          }
-          if (bulkScriptAbortedRef.current) break
-          setBulkScriptProgress(prev => ({ ...prev, countdown: s }))
-          await new Promise(r => setTimeout(r, 1000))
-        }
-      }
-
-      if (bulkScriptAbortedRef.current) break
-
-      const visitor = shuffled[i].visitor
-      const msgIndex = Math.floor(Math.random() * validMessages.length)
-
-      setBulkScriptProgress(prev => ({ ...prev, current: i + 1, currentName: visitor.name, currentMsgIndex: msgIndex + 1, successCount: successList.length, failCount: failedList.length, countdown: 0 }))
-
-      try {
-        //  Apply text variation for anti-ban
-        let message = validMessages[msgIndex]
-          .replace(/\{name\}/g, visitor.name)
-          .replace(/\{salesName\}/g, user?.name || t('followups.bulkScript.defaultSalesName'))
-          .replace(/\{phone\}/g, visitor.phone)
-          .replace(/\{date\}/g, new Date().toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US'))
-          .replace(/\{time\}/g, new Date().toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' }))
-        message = addTextVariation(message)
-
-        const sendBody: any = { phone: visitor.phone, message }
-        if (bulkScriptSessionIndex !== 'auto') {
-          sendBody.sessionIndex = bulkScriptSessionIndex
-        } else if (connectedSessionIndices.length > 0) {
-          // Round-robin: distribute messages across connected sessions
-          sendBody.sessionIndex = connectedSessionIndices[i % connectedSessionIndices.length]
-        }
-        const res = await fetch('/api/whatsapp/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(sendBody)
-        })
-        const result = await res.json()
-
-        if (result.success) {
-          successList.push({ name: visitor.name, phone: visitor.phone })
-          incrementDailyCount(1)
-          // Update followup —  ما نخفيش الأخطاء، السيلز محتاج يعرف لو متابعة ضاعت
-          try {
-            const fuRes = await fetch('/api/visitors/followups', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                visitorId: visitor.id,
-                notes: t('followups.bulkScript.scriptFollowupNote'),
-                contacted: true,
-                salesName: user?.name,
-                visitorData: { name: visitor.name, phone: visitor.phone, source: visitor.source }
-              }),
-            })
-            if (!fuRes.ok) {
-              const errData = await fuRes.json().catch(() => ({}))
-              console.error('Followup save failed for', visitor.name, errData)
-              failedList.push({
-                name: visitor.name,
-                phone: visitor.phone,
-                error: locale === 'ar' ? 'تم الإرسال بس المتابعة ما اتسجلتش' : 'Sent but follow-up not saved'
-              })
-            }
-          } catch (fuErr: any) {
-            console.error('Followup save error for', visitor.name, fuErr)
-            failedList.push({
-              name: visitor.name,
-              phone: visitor.phone,
-              error: locale === 'ar' ? 'تم الإرسال بس المتابعة ما اتسجلتش' : 'Sent but follow-up not saved'
-            })
-          }
-        } else {
-          failedList.push({ name: visitor.name, phone: visitor.phone, error: result.error || t('followups.bulkScript.unknownError') })
-        }
-      } catch (error: any) {
-        failedList.push({ name: visitor.name, phone: visitor.phone, error: error.message || t('followups.bulkScript.connectionError') })
-      }
-
-      // Random delay (except last)
-      if (i < shuffled.length - 1 && !bulkScriptAbortedRef.current) {
-        const delay = Math.floor(Math.random() * (bulkScriptDelayMax - bulkScriptDelayMin + 1)) + bulkScriptDelayMin
-        for (let s = delay; s > 0; s--) {
-          if (bulkScriptAbortedRef.current) break
-          while (bulkScriptPausedRef.current && !bulkScriptAbortedRef.current) {
-            await new Promise(r => setTimeout(r, 500))
-          }
-          if (bulkScriptAbortedRef.current) break
-          setBulkScriptProgress(prev => ({ ...prev, countdown: s, successCount: successList.length, failCount: failedList.length }))
-          await new Promise(r => setTimeout(r, 1000))
-        }
-      }
-    }
-
-    // Done - Save session info
-    saveLastSession(successList.length, sourceFilter)
-    setBulkScriptRunning(false)
-    //  لما الإرسال يخلص، نلغي الـ minimize عشان report يظهر كامل
-    setBulkScriptMinimized(false)
-    setBulkScriptProgress(prev => ({ ...prev, countdown: 0, successCount: successList.length, failCount: failedList.length }))
-    setBulkScriptReport({ success: successList, failed: failedList })
-    await queryClient.invalidateQueries({ queryKey: ['followups'] })
-    await queryClient.invalidateQueries({ queryKey: ['visitors-followups'] })
-  }, [bulkScriptMessages, getBulkScriptTargets, bulkScriptDelayMin, bulkScriptDelayMax, bulkScriptDailyLimit, bulkScriptBatchSize, bulkScriptBatchBreakMin, bulkScriptBatchBreakMax, user, toast, queryClient, getDailyCount, incrementDailyCount, addTextVariation, saveLastSession, sourceFilter, t, bulkScriptSessionIndex])
+    const targets = getBulkScriptTargets().map(tg => ({ visitor: tg.visitor }))
+    const ok = await bulkSender.start({
+      targets,
+      messages: validMessages,
+      config: {
+        delayMin: bulkScriptDelayMin,
+        delayMax: bulkScriptDelayMax,
+        batchSize: bulkScriptBatchSize,
+        batchBreakMin: bulkScriptBatchBreakMin,
+        batchBreakMax: bulkScriptBatchBreakMax,
+        dailyLimit: bulkScriptDailyLimit,
+        sessionIndex: bulkScriptSessionIndex,
+      },
+      meta: { userName: user?.name, sourceFilter },
+    })
+    if (ok) setShowBulkScriptModal(false)
+  }, [bulkScriptMessages, getBulkScriptTargets, bulkScriptDelayMin, bulkScriptDelayMax, bulkScriptBatchSize, bulkScriptBatchBreakMin, bulkScriptBatchBreakMax, bulkScriptDailyLimit, bulkScriptSessionIndex, user, sourceFilter, bulkSender, toast, t])
 
   const getResultBadge = useCallback((result?: string) => {
     const badges = {
@@ -2804,8 +2584,8 @@ function FollowUpsPageContent() {
               {/* I. Actions */}
               <div className="flex gap-3">
                 <button
-                  onClick={() => handleBulkScriptStart()}
-                  disabled={bulkScriptMessages.every(m => !m.trim()) || getBulkScriptTargets().length === 0}
+                  onClick={() => startBulk()}
+                  disabled={bulkSender.running || bulkScriptMessages.every(m => !m.trim()) || getBulkScriptTargets().length === 0}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 inline-flex items-center justify-center gap-2"
                   autoFocus
                 >
@@ -2824,299 +2604,6 @@ function FollowUpsPageContent() {
         </div>
       )}
 
-      {/*  Floating ball — يظهر لما الإرسال شغّال و minimized
-           - responsive: موبايل (bottom-end) + ديسك توب (نفس المكان لكن أكبر)
-           - الإرسال شغّال على refs ومستمر بدون أي تأثير على الأداء
-           - الـ progress بيتحدّث live حتى وهو minimized */}
-      {bulkScriptRunning && bulkScriptMinimized && (
-        <button
-          type="button"
-          onClick={() => setBulkScriptMinimized(false)}
-          className="fixed bottom-4 end-4 sm:bottom-6 sm:end-6 z-[9999] group"
-          aria-label={direction === 'rtl' ? 'فتح الإرسال الذكي' : 'Open smart sending'}
-          title={direction === 'rtl'
-            ? `${bulkScriptProgress.current} / ${bulkScriptProgress.total} — ${bulkScriptPaused ? 'متوقف' : 'شغّال'}`
-            : `${bulkScriptProgress.current} / ${bulkScriptProgress.total} — ${bulkScriptPaused ? 'paused' : 'running'}`}
-        >
-          {/*  Glow ring متحرك (animate-pulse) لو الإرسال شغّال */}
-          {!bulkScriptPaused && (
-            <span className="absolute inset-0 rounded-full bg-purple-400 dark:bg-purple-500 opacity-40 blur-md animate-pulse pointer-events-none" />
-          )}
-          <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-2xl ring-4 ring-white dark:ring-gray-800 flex flex-col items-center justify-center text-white transition-transform hover:scale-110 active:scale-95 ${
-            bulkScriptPaused
-              ? 'bg-gradient-to-br from-amber-500 to-orange-600'
-              : 'bg-gradient-to-br from-purple-500 via-fuchsia-500 to-indigo-600'
-          }`}>
-            {/*  Progress ring حوالين الكورة */}
-            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="4" />
-              <circle
-                cx="50" cy="50" r="46"
-                fill="none"
-                stroke="white"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 46}`}
-                strokeDashoffset={`${2 * Math.PI * 46 * (1 - bulkScriptProgress.current / Math.max(bulkScriptProgress.total, 1))}`}
-                style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-              />
-            </svg>
-            {/*  Center content — الأيقونة أو إيموجي + العدد */}
-            <span className="relative text-[10px] sm:text-xs font-black leading-none mb-0.5">
-              {bulkScriptPaused ? '⏸' : '📨'}
-            </span>
-            <span className="relative text-[10px] sm:text-xs font-black leading-none tabular-nums">
-              {bulkScriptProgress.current}/{bulkScriptProgress.total}
-            </span>
-          </div>
-          {/*  Success/fail badge — يظهر فوق الكورة */}
-          {(bulkScriptProgress.successCount > 0 || bulkScriptProgress.failCount > 0) && (
-            <div className="absolute -top-2 -start-2 flex gap-1 pointer-events-none">
-              {bulkScriptProgress.successCount > 0 && (
-                <span className="bg-green-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md">
-                  ✓{bulkScriptProgress.successCount}
-                </span>
-              )}
-              {bulkScriptProgress.failCount > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md">
-                  ✕{bulkScriptProgress.failCount}
-                </span>
-              )}
-            </div>
-          )}
-        </button>
-      )}
-
-      {/* Smart Bulk Script - Progress Modal — مخفي لما يكون minimized */}
-      {bulkScriptRunning && !bulkScriptMinimized && (
-        <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="bulk-script-progress-title"
-          aria-busy="true"
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in relative">
-            {/*  زرار minimize في الـ top-end */}
-            <button
-              type="button"
-              onClick={() => setBulkScriptMinimized(true)}
-              className="absolute top-3 end-3 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 flex items-center justify-center transition-colors"
-              aria-label={direction === 'rtl' ? 'تصغير' : 'Minimize'}
-              title={direction === 'rtl' ? 'تصغير (الإرسال هيكمل)' : 'Minimize (sending continues)'}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5" />
-              </svg>
-            </button>
-            <div className="text-center mb-5">
-              <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 mx-auto mb-3 flex items-center justify-center">
-                {bulkScriptPaused ? (
-                  <svg className="w-7 h-7" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                ) : (
-                  <svg className="w-7 h-7" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                )}
-              </div>
-              <h2 id="bulk-script-progress-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {bulkScriptPaused ? t('followups.bulkScript.paused') : t('followups.bulkScript.smartSending')}
-              </h2>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
-                {bulkScriptProgress.current} / {bulkScriptProgress.total}
-              </p>
-            </div>
-
-            {/* Main Progress Bar */}
-            <div className="mb-4">
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                <span>{t('followups.bulkScript.overallProgress')}</span>
-                <span>{Math.round((bulkScriptProgress.current / Math.max(bulkScriptProgress.total, 1)) * 100)}%</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-[width] duration-500 ease-out"
-                  style={{ width: `${(bulkScriptProgress.current / Math.max(bulkScriptProgress.total, 1)) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Countdown Bar */}
-            {bulkScriptProgress.countdown > 0 && !bulkScriptPaused && (
-              <div className="mb-4">
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1 items-center">
-                  <span className="inline-flex items-center gap-1">
-                    {bulkScriptProgress.countdown > bulkScriptDelayMax ? (
-                      <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h14a4 4 0 010 8h-1M3 10v8a2 2 0 002 2h11a2 2 0 002-2"/></svg>
-                    ) : (
-                      <svg className="w-3.5 h-3.5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    )}
-                    {bulkScriptProgress.countdown > bulkScriptDelayMax ? t('followups.bulkScript.batchBreakLabel') : t('followups.bulkScript.nextMessageIn')}
-                  </span>
-                  <span>{bulkScriptProgress.countdown > 60 ? `${Math.ceil(bulkScriptProgress.countdown / 60)} ${t('followups.bulkScript.minutes')}` : `${bulkScriptProgress.countdown} ${t('followups.bulkScript.seconds')}`}</span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-full transition-[width] duration-1000 ease-linear ${bulkScriptProgress.countdown > bulkScriptDelayMax ? 'bg-gradient-to-r from-blue-400 to-purple-400' : 'bg-gradient-to-r from-amber-400 to-orange-400'}`}
-                    style={{ width: `${(bulkScriptProgress.countdown / (bulkScriptProgress.countdown > bulkScriptDelayMax ? bulkScriptBatchBreakMax : bulkScriptDelayMax)) * 100}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Current Info */}
-            {bulkScriptProgress.currentName && (
-              <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3 mb-4 space-y-1 text-sm">
-                <p className="text-primary-600 dark:text-primary-400 inline-flex items-center gap-1.5 flex-wrap">
-                  <svg className="w-4 h-4 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                  <span>{t('followups.bulkScript.sendingTo')} <span className="font-bold">{bulkScriptProgress.currentName}</span></span>
-                </p>
-                <p className="text-purple-600 dark:text-purple-400 inline-flex items-center gap-1.5 flex-wrap">
-                  <svg className="w-4 h-4 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                  <span>{t('followups.bulkScript.messageTextOf').replace('{current}', String(bulkScriptProgress.currentMsgIndex)).replace('{total}', String(bulkScriptMessages.filter(m => m.trim()).length))}</span>
-                </p>
-              </div>
-            )}
-
-            {/* Success/Fail Counters */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400 inline-flex items-center gap-1">
-                  <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-                  {bulkScriptProgress.successCount}
-                </p>
-                <p className="text-xs text-green-700 dark:text-green-300">{t('followups.bulkScript.success')}</p>
-              </div>
-              <div className="bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400 inline-flex items-center gap-1">
-                  <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                  {bulkScriptProgress.failCount}
-                </p>
-                <p className="text-xs text-red-700 dark:text-red-300">{t('followups.bulkScript.fail')}</p>
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  bulkScriptPausedRef.current = !bulkScriptPausedRef.current
-                  setBulkScriptPaused(bulkScriptPausedRef.current)
-                }}
-                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-colors duration-200 inline-flex items-center justify-center gap-2 ${
-                  bulkScriptPaused
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-amber-500 hover:bg-amber-600 text-white'
-                }`}
-              >
-                {bulkScriptPaused ? (
-                  <>
-                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
-                    {t('followups.bulkScript.resume')}
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6"/></svg>
-                    {t('followups.bulkScript.pause')}
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  bulkScriptAbortedRef.current = true
-                  bulkScriptPausedRef.current = false
-                  setBulkScriptPaused(false)
-                }}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-bold transition-colors duration-200 inline-flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                {t('followups.bulkScript.stopPermanent')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Smart Bulk Script - Report Modal */}
-      {bulkScriptReport && !bulkScriptRunning && (
-        <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
-          onClick={() => setBulkScriptReport(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="bulk-script-report-title"
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className={`p-5 rounded-t-2xl ${bulkScriptReport.failed.length === 0 ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-purple-600 to-indigo-600'} text-white`}>
-              <h2 id="bulk-script-report-title" className="text-xl font-bold inline-flex items-center gap-2">
-                <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6m0 13l-3-3m3 3l3-3m6 3V10m0 9l3-3m-3 3l-3-3"/></svg>
-                {t('followups.bulkScript.reportTitle')}
-              </h2>
-              <p className="text-sm opacity-90 mt-1">{t('followups.bulkScript.reportSubtitle')}</p>
-            </div>
-
-            <div className="p-5 space-y-4">
-              {/* Summary */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-green-50 dark:bg-green-900/20 ring-1 ring-green-200 dark:ring-green-900/50 rounded-lg p-4 text-center">
-                  <p className="text-3xl font-bold text-green-600 dark:text-green-400 inline-flex items-center gap-1.5">
-                    <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    {bulkScriptReport.success.length}
-                  </p>
-                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">{t('followups.bulkScript.sentSuccessfully')}</p>
-                </div>
-                <div className="bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-900/50 rounded-lg p-4 text-center">
-                  <p className="text-3xl font-bold text-red-600 dark:text-red-400 inline-flex items-center gap-1.5">
-                    <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    {bulkScriptReport.failed.length}
-                  </p>
-                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">{t('followups.bulkScript.sendFailed')}</p>
-                </div>
-              </div>
-
-              {/* Failed List */}
-              {bulkScriptReport.failed.length > 0 && (
-                <div>
-                  <h3 className="font-bold text-red-600 dark:text-red-400 mb-2 text-sm">{t('followups.bulkScript.failedNumbers')}</h3>
-                  <div className="bg-red-50 dark:bg-red-900/10 rounded-lg divide-y divide-red-100 dark:divide-red-900/40 max-h-48 overflow-y-auto">
-                    {bulkScriptReport.failed.map((item, idx) => (
-                      <div key={idx} className="px-3 py-2 text-sm flex justify-between items-center">
-                        <div>
-                          <span className="font-bold text-gray-800 dark:text-gray-200">{item.name}</span>
-                          <span className="text-gray-500 dark:text-gray-400 ms-2">{item.phone}</span>
-                        </div>
-                        <span className="text-xs text-red-500 dark:text-red-400">{item.error}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Retry Button */}
-                  <button
-                    onClick={() => {
-                      const retryTargets = bulkScriptReport!.failed.map(f => ({
-                        visitor: { id: `retry-${f.phone}`, name: f.name, phone: f.phone, source: 'retry', status: 'pending' }
-                      }))
-                      setBulkScriptReport(null)
-                      handleBulkScriptStart(retryTargets)
-                    }}
-                    className="w-full mt-3 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg font-bold transition-colors duration-200 inline-flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    {t('followups.bulkScript.retryFailed')} ({bulkScriptReport.failed.length})
-                  </button>
-                </div>
-              )}
-
-              {/* Close */}
-              <button
-                onClick={() => setBulkScriptReport(null)}
-                className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-bold transition-colors duration-200"
-              >
-                {t('followups.bulkScript.close')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* History Modal - سجل المتابعات (Lightweight) */}
       {showHistoryModal && selectedVisitorForHistory && (

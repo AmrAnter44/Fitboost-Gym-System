@@ -61,6 +61,22 @@ export default function SpaBookingsPage() {
     }
   })
 
+  // Confirm mutation — يأكّد الحجز (pending → confirmed) ويرسل إشعار للعضو
+  const confirmMutation = useMutation({
+    mutationFn: (id: string) => updateSpaBooking(id, { status: 'confirmed' }),
+    onSuccess: () => {
+      toast.success(direction === 'rtl' ? 'تم تأكيد الحجز وإشعار العضو' : 'Booking confirmed & member notified')
+      refetch()
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || (direction === 'rtl' ? 'فشل تأكيد الحجز' : 'Failed to confirm'))
+    }
+  })
+
+  const handleConfirmBooking = (booking: SpaBooking) => {
+    confirmMutation.mutate(booking.id)
+  }
+
   // Generate next 10 days
   const next10Days = Array.from({ length: 10 }, (_, i) => {
     const date = new Date()
@@ -315,6 +331,15 @@ export default function SpaBookingsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-2">
+                          {hasPermission('canEditSpaBooking') && booking.status === 'pending' && (
+                            <button
+                              onClick={() => handleConfirmBooking(booking)}
+                              disabled={confirmMutation.isPending}
+                              className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/30 px-3 py-1 rounded transition-colors dark:bg-green-900/20 font-bold disabled:opacity-50"
+                            >
+                              {direction === 'rtl' ? 'تأكيد' : 'Confirm'}
+                            </button>
+                          )}
                           {hasPermission('canCancelSpaBooking') &&
                             booking.status !== 'cancelled' &&
                             booking.status !== 'completed' && (
@@ -344,6 +369,8 @@ export default function SpaBookingsPage() {
                 booking={booking}
                 canCancel={hasPermission('canCancelSpaBooking')}
                 onCancel={handleCancelBooking}
+                canConfirm={hasPermission('canEditSpaBooking')}
+                onConfirm={handleConfirmBooking}
               />
             ))}
           </div>

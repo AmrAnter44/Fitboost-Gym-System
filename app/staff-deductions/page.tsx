@@ -44,14 +44,22 @@ export default function StaffDeductionsPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'applied'>('all')
 
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null) // id الخصم اللي بيتعدّل (null = إضافة)
+  // عدد أيام العمل الشهرية (لحساب "خصم يوم" = المرتب ÷ أيام العمل) — من إعدادات الرواتب
+  const [workingDays, setWorkingDays] = useState(26)
   const [formData, setFormData] = useState({
     staffId: '',
+    kind: 'amount' as 'amount' | 'days',
     amount: '',
+    days: '',
     reason: '',
     notes: '',
   })
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id: string | null; name: string }>({
+    show: false, id: null, name: ''
+  })
+  const [unapplyConfirm, setUnapplyConfirm] = useState<{ show: boolean; id: string | null; name: string }>({
     show: false, id: null, name: ''
   })
 
@@ -99,6 +107,35 @@ export default function StaffDeductionsPage() {
     } catch (e) {
       console.error('Failed to fetch staff', e)
     }
+    // أيام العمل الشهرية من إعدادات الرواتب (لحساب معاينة خصم اليوم)
+    try {
+      const sres = await fetch('/api/settings/services')
+      if (sres.ok) {
+        const s = await sres.json()
+        if (s?.payrollWorkingDaysPerMonth > 0) setWorkingDays(s.payrollWorkingDaysPerMonth)
+      }
+    } catch {}
+  }
+
+  // فتح الفورم في وضع التعديل (يشتغل للمطبّقة والمعلّقة)
+  const handleEditClick = (d: StaffDeduction) => {
+    setEditingId(d.id)
+    setFormData({
+      staffId: d.staffId,
+      kind: 'amount',
+      amount: String(d.amount),
+      days: '',
+      reason: d.reason,
+      notes: d.notes || '',
+    })
+    setShowForm(true)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const resetForm = () => {
+    setEditingId(null)
+    setFormData({ staffId: '', kind: 'amount', amount: '', days: '', reason: '', notes: '' })
+    setShowForm(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,20 +143,31 @@ export default function StaffDeductionsPage() {
     setSubmitting(true)
     setErrorMsg('')
     try {
+      const isEdit = !!editingId
       const res = await fetch('/api/staff-deductions', {
-        method: 'POST',
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          staffId: formData.staffId,
-          amount: parseFloat(formData.amount),
-          reason: formData.reason,
-          notes: formData.notes || undefined,
-        })
+        body: JSON.stringify(
+          isEdit
+            ? {
+                id: editingId,
+                amount: parseFloat(formData.amount),
+                reason: formData.reason,
+                notes: formData.notes || null,
+              }
+            : {
+                staffId: formData.staffId,
+                ...(formData.kind === 'days'
+                  ? { days: parseInt(formData.days, 10) }
+                  : { amount: parseFloat(formData.amount) }),
+                reason: formData.reason,
+                notes: formData.notes || undefined,
+              }
+        )
       })
       if (res.ok) {
-        setSuccessMsg(t('deductions.addSuccess'))
-        setFormData({ staffId: '', amount: '', reason: '', notes: '' })
-        setShowForm(false)
+        setSuccessMsg(editingId ? (localeString === 'ar-EG' ? 'تم تعديل الخصم' : 'Deduction updated') : t('deductions.addSuccess'))
+        resetForm()
         fetchDeductions()
         setTimeout(() => setSuccessMsg(''), 3000)
       } else {
@@ -151,6 +199,30 @@ export default function StaffDeductionsPage() {
       } else {
         const data = await res.json()
         setErrorMsg(data.error || 'فشل تطبيق الخصم')
+      }
+    } catch {
+      setErrorMsg(t('deductions.connectionError'))
+    }
+  }
+
+  // إلغاء التطبيق — يرجّع الخصم لـ"معلّق" (الفلوس ترجع، مش متخصومة)
+  const confirmUnapply = async () => {
+    if (!unapplyConfirm.id) return
+    const id = unapplyConfirm.id
+    setUnapplyConfirm({ show: false, id: null, name: '' })
+    try {
+      const res = await fetch('/api/staff-deductions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isApplied: false, appliedAt: null })
+      })
+      if (res.ok) {
+        setSuccessMsg(locale === 'ar' ? 'تم إلغاء التطبيق ورجع المبلغ' : 'Un-applied — amount returned')
+        fetchDeductions()
+        setTimeout(() => setSuccessMsg(''), 3000)
+      } else {
+        const data = await res.json()
+        setErrorMsg(data.error || (locale === 'ar' ? 'فشل إلغاء التطبيق' : 'Failed to un-apply'))
       }
     } catch {
       setErrorMsg(t('deductions.connectionError'))
@@ -211,7 +283,7 @@ export default function StaffDeductionsPage() {
         </div>
         {hasPermission('canCreateDeduction') && (
           <button
-            onClick={() => { setShowForm(!showForm); setErrorMsg('') }}
+            onClick={() => { if (showForm) { resetForm() } else { setEditingId(null); setShowForm(true) }; setErrorMsg('') }}
             className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 text-sm"
           >
             <svg {...stroke} className="w-4 h-4" aria-hidden="true">
@@ -290,7 +362,7 @@ export default function StaffDeductionsPage() {
             <svg {...stroke} className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            <span>{t('deductions.addNew')}</span>
+            <span>{editingId ? (locale === 'ar' ? 'تعديل الخصم' : 'Edit Deduction') : t('deductions.addNew')}</span>
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -299,7 +371,8 @@ export default function StaffDeductionsPage() {
                 <select
                   value={formData.staffId}
                   onChange={e => setFormData({ ...formData, staffId: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                  disabled={!!editingId}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                   required
                 >
                   <option value="">{t('deductions.selectStaff')}</option>
@@ -309,17 +382,57 @@ export default function StaffDeductionsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('deductions.amount')} *</label>
-                <input
-                  type="number"
-                  value={formData.amount}
-                  onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  required
-                />
+                {/* اختيار النوع: مبلغ ثابت أو بعدد الأيام (خصم يوم) — يظهر في الإضافة بس */}
+                {!editingId && (
+                <div className="flex items-center gap-1 mb-1.5">
+                  <button type="button" onClick={() => setFormData({ ...formData, kind: 'amount' })}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${formData.kind === 'amount' ? 'bg-primary-500 text-primary-contrast' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                    {locale === 'ar' ? 'مبلغ' : 'Amount'}
+                  </button>
+                  <button type="button" onClick={() => setFormData({ ...formData, kind: 'days' })}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${formData.kind === 'days' ? 'bg-primary-500 text-primary-contrast' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                    {locale === 'ar' ? 'خصم يوم' : 'By days'}
+                  </button>
+                </div>
+                )}
+                {formData.kind === 'amount' ? (
+                  <input
+                    type="number"
+                    value={formData.amount}
+                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                ) : (
+                  <>
+                    <input
+                      type="number"
+                      value={formData.days}
+                      onChange={e => setFormData({ ...formData, days: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                      placeholder={locale === 'ar' ? 'عدد الأيام' : 'Number of days'}
+                      min="0"
+                      step="1"
+                      required
+                    />
+                    {(() => {
+                      const sel = staffList.find(s => s.id === formData.staffId)
+                      const d = parseInt(formData.days, 10)
+                      if (!sel) return <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{locale === 'ar' ? 'اختر الموظف الأول' : 'Select staff first'}</p>
+                      if (!sel.salary) return <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{locale === 'ar' ? 'الموظف ملوش مرتب محدد' : 'Staff has no salary set'}</p>
+                      const daily = sel.salary / workingDays
+                      const total = d > 0 ? Math.round(d * daily) : 0
+                      return <p className="text-xs text-red-700 dark:text-red-400 mt-1 font-bold">
+                        {locale === 'ar'
+                          ? `= ${total.toLocaleString('en')} ج.م (اليوم ≈ ${Math.round(daily).toLocaleString('en')} على ${workingDays} يوم)`
+                          : `= ${total.toLocaleString('en')} EGP (day ≈ ${Math.round(daily).toLocaleString('en')} on ${workingDays} days)`}
+                      </p>
+                    })()}
+                  </>
+                )}
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('deductions.reason')} *</label>
@@ -358,11 +471,11 @@ export default function StaffDeductionsPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                   </svg>
                 )}
-                <span>{submitting ? t('deductions.saving') : t('deductions.submit')}</span>
+                <span>{submitting ? t('deductions.saving') : editingId ? (locale === 'ar' ? 'حفظ التعديل' : 'Save Changes') : t('deductions.submit')}</span>
               </button>
               <button
                 type="button"
-                onClick={() => { setShowForm(false); setErrorMsg('') }}
+                onClick={() => { resetForm(); setErrorMsg('') }}
                 className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors duration-200 text-sm"
               >
                 {t('common.cancel')}
@@ -430,34 +543,56 @@ export default function StaffDeductionsPage() {
                     </svg>
                     {d.isApplied ? t('deductions.applied') : t('deductions.pending')}
                   </span>
-                  {!d.isApplied && (
-                    <div className="flex gap-1.5">
-                      {hasPermission('canEditDeduction') && (
-                        <button
-                          onClick={() => handleApply(d.id)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors duration-200"
-                          aria-label="تطبيق"
-                          title="تطبيق"
-                        >
-                          <svg {...stroke} className="w-4 h-4" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                          </svg>
-                        </button>
-                      )}
-                      {hasPermission('canDeleteDeduction') && (
-                        <button
-                          onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
-                          aria-label="حذف"
-                          title="حذف"
-                        >
-                          <svg {...stroke} className="w-4 h-4" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex gap-1.5">
+                    {hasPermission('canEditDeduction') && (
+                      <button
+                        onClick={() => handleEditClick(d)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200"
+                        aria-label="تعديل"
+                        title="تعديل"
+                      >
+                        <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a2.122 2.122 0 1 1 3 3L19.862 7.487m-3-3L8.078 13.27a2 2 0 0 0-.5.831l-1.111 4.222 4.222-1.111a2 2 0 0 0 .832-.5l8.781-8.781m-3-3 3 3" />
+                        </svg>
+                      </button>
+                    )}
+                    {d.isApplied && hasPermission('canEditDeduction') && (
+                      <button
+                        onClick={() => setUnapplyConfirm({ show: true, id: d.id, name: d.reason })}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors duration-200"
+                        aria-label="إلغاء التطبيق"
+                        title={locale === 'ar' ? 'إلغاء التطبيق ورجوع المبلغ' : 'Un-apply (return amount)'}
+                      >
+                        <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                        </svg>
+                      </button>
+                    )}
+                    {!d.isApplied && hasPermission('canEditDeduction') && (
+                      <button
+                        onClick={() => handleApply(d.id)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors duration-200"
+                        aria-label="تطبيق"
+                        title="تطبيق"
+                      >
+                        <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
+                      </button>
+                    )}
+                    {!d.isApplied && hasPermission('canDeleteDeduction') && (
+                      <button
+                        onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
+                        aria-label="حذف"
+                        title="حذف"
+                      >
+                        <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="p-4 space-y-2">
                   <div className="flex justify-between items-start">
@@ -524,36 +659,56 @@ export default function StaffDeductionsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {!d.isApplied ? (
-                        <div className="flex gap-1.5 justify-center">
-                          {hasPermission('canEditDeduction') && (
-                            <button
-                              onClick={() => handleApply(d.id)}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors duration-200"
-                              aria-label="تطبيق"
-                              title="تطبيق"
-                            >
-                              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                              </svg>
-                            </button>
-                          )}
-                          {hasPermission('canDeleteDeduction') && (
-                            <button
-                              onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
-                              aria-label="حذف"
-                              title="حذف"
-                            >
-                              <svg {...stroke} className="w-4 h-4" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>
-                      )}
+                      <div className="flex gap-1.5 justify-center">
+                        {hasPermission('canEditDeduction') && (
+                          <button
+                            onClick={() => handleEditClick(d)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200"
+                            aria-label="تعديل"
+                            title="تعديل"
+                          >
+                            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 18.549 2.799a2.122 2.122 0 1 1 3 3L19.862 7.487m-3-3L8.078 13.27a2 2 0 0 0-.5.831l-1.111 4.222 4.222-1.111a2 2 0 0 0 .832-.5l8.781-8.781m-3-3 3 3" />
+                            </svg>
+                          </button>
+                        )}
+                        {d.isApplied && hasPermission('canEditDeduction') && (
+                          <button
+                            onClick={() => setUnapplyConfirm({ show: true, id: d.id, name: d.reason })}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors duration-200"
+                            aria-label="إلغاء التطبيق"
+                            title={locale === 'ar' ? 'إلغاء التطبيق ورجوع المبلغ' : 'Un-apply (return amount)'}
+                          >
+                            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                            </svg>
+                          </button>
+                        )}
+                        {!d.isApplied && hasPermission('canEditDeduction') && (
+                          <button
+                            onClick={() => handleApply(d.id)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors duration-200"
+                            aria-label="تطبيق"
+                            title="تطبيق"
+                          >
+                            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                          </button>
+                        )}
+                        {!d.isApplied && hasPermission('canDeleteDeduction') && (
+                          <button
+                            onClick={() => setDeleteConfirm({ show: true, id: d.id, name: d.reason })}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-200"
+                            aria-label="حذف"
+                            title="حذف"
+                          >
+                            <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -588,6 +743,42 @@ export default function StaffDeductionsPage() {
               </button>
               <button
                 onClick={() => setDeleteConfirm({ show: false, id: null, name: '' })}
+                className="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-lg transition-colors duration-200"
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Un-apply Confirm Modal */}
+      {unapplyConfirm.show && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="unapply-confirm-title">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-amber-200 dark:ring-amber-900/50 max-w-sm w-full p-6 animate-modal-in">
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 mx-auto mb-3 flex items-center justify-center">
+                <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                </svg>
+              </div>
+              <h3 id="unapply-confirm-title" className="text-lg font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'إلغاء تطبيق الخصم؟' : 'Un-apply deduction?'}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                {locale === 'ar'
+                  ? <>المبلغ هيرجع والخصم يبقى معلّق — <strong>&quot;{unapplyConfirm.name}&quot;</strong></>
+                  : <>The amount returns (back to pending) — <strong>&quot;{unapplyConfirm.name}&quot;</strong></>}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={confirmUnapply}
+                autoFocus
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+              >
+                {locale === 'ar' ? 'إلغاء التطبيق' : 'Un-apply'}
+              </button>
+              <button
+                onClick={() => setUnapplyConfirm({ show: false, id: null, name: '' })}
                 className="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-lg transition-colors duration-200"
               >
                 {t('common.cancel')}

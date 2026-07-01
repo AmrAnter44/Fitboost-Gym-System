@@ -95,6 +95,11 @@ export default function MorePage() {
   const [moreSubscriptions, setMoreSubscriptions] = useState<More[]>([])
   const [filteredSubscriptions, setFilteredSubscriptions] = useState<More[]>([])
   const [loading, setLoading] = useState(true)
+  // سجل جلسات/إمضاءات المزيد
+  const [sessionsModal, setSessionsModal] = useState<{ moreNumber: number; clientName: string } | null>(null)
+  const [sessionsList, setSessionsList] = useState<any[]>([])
+  const [sessionsLoading, setSessionsLoading] = useState(false)
+  const [viewingSignature, setViewingSignature] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [filterCoach, setFilterCoach] = useState('')
@@ -452,6 +457,31 @@ export default function MorePage() {
     } catch (error) {
       console.error('Error deleting subscription:', error)
       toast.error(t('more.deleteError'))
+    }
+  }
+
+  // استخراج الإمضاء من حقل notes (بيتخزّن كـ "signature:data:image...")
+  const extractSignature = (notes?: string | null): { signature: string | null; cleanNotes: string } => {
+    if (!notes) return { signature: null, cleanNotes: '' }
+    const lines = String(notes).split('\n')
+    const sigLine = lines.find(l => l.startsWith('signature:'))
+    const signature = sigLine ? sigLine.slice('signature:'.length) : null
+    const cleanNotes = lines.filter(l => !l.startsWith('signature:')).join('\n').trim()
+    return { signature, cleanNotes }
+  }
+
+  // فتح سجل جلسات/إمضاءات اشتراك معيّن
+  const handleOpenSessions = async (sub: More) => {
+    setSessionsModal({ moreNumber: sub.moreNumber, clientName: sub.clientName })
+    setSessionsLoading(true)
+    setSessionsList([])
+    try {
+      const res = await fetch(`/api/more/sessions?moreNumber=${sub.moreNumber}`)
+      if (res.ok) setSessionsList(await res.json())
+    } catch (e) {
+      console.error('Failed to fetch More sessions', e)
+    } finally {
+      setSessionsLoading(false)
     }
   }
 
@@ -939,28 +969,38 @@ export default function MorePage() {
                         : 'bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-700 dark:to-primary-800'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className={`w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0 ${expired || isExpiringSoon ? 'text-white' : 'text-gray-900'}`}>
                         {IconUser}
                       </div>
-                      <div>
-                        <div className={`font-bold text-base ${expired || isExpiringSoon ? 'text-white' : 'text-gray-900'}`}>{sub.clientName}</div>
-                        <div className={`text-xs ${expired || isExpiringSoon ? 'text-white/80' : 'text-gray-900/70'}`}>
+                      <div className="min-w-0">
+                        <div className={`font-bold text-base truncate ${expired || isExpiringSoon ? 'text-white' : 'text-gray-900'}`}>{sub.clientName}</div>
+                        <div className={`text-xs truncate ${expired || isExpiringSoon ? 'text-white/80' : 'text-gray-900/70'}`}>
                           #{sub.moreNumber} • {sub.phone}
                         </div>
                       </div>
                     </div>
-                    <div
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold text-white ${
-                        sub.sessionsRemaining === 0
-                          ? 'bg-red-500 dark:bg-red-600'
-                          : sub.sessionsRemaining <= 3
-                            ? 'bg-orange-500 dark:bg-orange-600'
-                            : 'bg-green-500 dark:bg-green-600'
-                      }`}
-                    >
-                      {sub.sessionsRemaining} / {sub.sessionsPurchased}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleOpenSessions(sub)}
+                        title={locale === 'ar' ? 'سجل الجلسات والإمضاءات' : 'Sessions & Signatures'}
+                        aria-label={locale === 'ar' ? 'سجل الجلسات والإمضاءات' : 'Sessions & Signatures'}
+                        className="w-8 h-8 rounded-full bg-white/25 hover:bg-white/40 text-white flex items-center justify-center transition-colors flex-shrink-0"
+                      >
+                        <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                      </button>
+                      <div
+                        className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-bold text-white flex-shrink-0 ${
+                          sub.sessionsRemaining === 0
+                            ? 'bg-red-500 dark:bg-red-600'
+                            : sub.sessionsRemaining <= 3
+                              ? 'bg-orange-500 dark:bg-orange-600'
+                              : 'bg-green-500 dark:bg-green-600'
+                        }`}
+                      >
+                        {sub.sessionsRemaining} / {sub.sessionsPurchased}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1114,6 +1154,84 @@ export default function MorePage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Sessions & Signatures Modal */}
+      {sessionsModal && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          dir={direction}
+          onClick={(e) => { if (e.target === e.currentTarget) setSessionsModal(null) }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in">
+            <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                {locale === 'ar' ? `سجل الجلسات #${sessionsModal.moreNumber} — ${sessionsModal.clientName}` : `Sessions #${sessionsModal.moreNumber} — ${sessionsModal.clientName}`}
+              </h3>
+              <button onClick={() => setSessionsModal(null)} aria-label={locale === 'ar' ? 'إغلاق' : 'Close'} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="p-5">
+              {sessionsLoading ? (
+                <p className="text-center text-gray-500 py-8">{locale === 'ar' ? 'جارٍ التحميل...' : 'Loading...'}</p>
+              ) : sessionsList.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">{locale === 'ar' ? 'مفيش جلسات مسجّلة' : 'No sessions yet'}</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                        <th className="px-3 py-2 text-start">#</th>
+                        <th className="px-3 py-2 text-start">{locale === 'ar' ? 'التاريخ' : 'Date'}</th>
+                        <th className="px-3 py-2 text-start">{locale === 'ar' ? 'الكوتش' : 'Coach'}</th>
+                        <th className="px-3 py-2 text-start">{locale === 'ar' ? 'ملاحظات' : 'Notes'}</th>
+                        <th className="px-3 py-2 text-center">{locale === 'ar' ? 'الإمضاء' : 'Signature'}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sessionsList.map((s, i) => {
+                        const { signature, cleanNotes } = extractSignature(s.notes)
+                        return (
+                          <tr key={s.id} className="border-b border-gray-100 dark:border-gray-700/60">
+                            <td className="px-3 py-2 font-bold text-gray-700 dark:text-gray-200">{sessionsList.length - i}</td>
+                            <td className="px-3 py-2 text-gray-700 dark:text-gray-200">{new Date(s.sessionDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                            <td className="px-3 py-2 text-gray-700 dark:text-gray-200">{s.coachName}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{cleanNotes || '—'}</td>
+                            <td className="px-3 py-2 text-center">
+                              {signature ? (
+                                <button onClick={() => setViewingSignature(signature)} aria-label={locale === 'ar' ? 'عرض الإمضاء' : 'View signature'}>
+                                  <img src={signature} alt="signature" className="h-10 mx-auto border border-gray-200 dark:border-gray-600 rounded bg-white" />
+                                </button>
+                              ) : (
+                                <span className="text-gray-400 text-xs">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Signature viewer */}
+      {viewingSignature && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm" onClick={() => setViewingSignature(null)}>
+          <div className="bg-white rounded-2xl p-4 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold text-gray-900">{locale === 'ar' ? 'إمضاء العميل' : 'Client Signature'}</h3>
+              <button onClick={() => setViewingSignature(null)} aria-label={locale === 'ar' ? 'إغلاق' : 'Close'} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <img src={viewingSignature} alt="signature" className="w-full border border-gray-200 rounded bg-white" />
+          </div>
         </div>
       )}
 

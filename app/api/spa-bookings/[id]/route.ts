@@ -3,6 +3,24 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { requirePermission } from '../../../../lib/auth'
 import { logError } from '../../../../lib/errorLogger'
+import { sendPushNotification } from '../../../../lib/pushNotifications'
+
+// 🔔 إشعار العضو في الأبليكيشن بتغيّر حالة حجز السبا
+async function notifyMemberSpaStatus(memberId: string | null | undefined, booking: { serviceType: string; bookingDate: Date; bookingTime: string; id: string }, status: 'confirmed' | 'cancelled') {
+  if (!memberId) return
+  try {
+    const m = await prisma.member.findUnique({ where: { id: memberId }, select: { pushToken: true } })
+    if (!m?.pushToken) return
+    const serviceAr = booking.serviceType === 'massage' ? 'مساج' : booking.serviceType === 'sauna' ? 'ساونا' : booking.serviceType === 'jacuzzi' ? 'جاكوزي' : booking.serviceType
+    const dateStr = new Date(booking.bookingDate).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' })
+    const notif = status === 'confirmed'
+      ? { title: '✅ تم تأكيد حجز السبا', body: `اتأكد حجزك (${serviceAr}) يوم ${dateStr} الساعة ${booking.bookingTime}`, data: { type: 'spa_confirmed', bookingId: booking.id, screen: 'Spa' }, sound: 'default' as const, badge: 1 }
+      : { title: '❌ تم إلغاء حجز السبا', body: `اتلغى حجزك (${serviceAr}) يوم ${dateStr}`, data: { type: 'spa_cancelled', bookingId: booking.id, screen: 'Spa' }, sound: 'default' as const, badge: 1 }
+    await sendPushNotification(m.pushToken, notif)
+  } catch (e) {
+    console.error('SPA push notify failed:', e)
+  }
+}
 
 // GET - جلب حجز واحد
 
@@ -172,6 +190,10 @@ export async function PUT(
       }
     })
 
+    // 🔔 لو الحالة اتأكدت أو اتلغت → إشعار العضو في الأبليكيشن
+    if (status === 'confirmed' || status === 'cancelled') {
+      await notifyMemberSpaStatus(booking.memberId, booking, status)
+    }
 
     return NextResponse.json(booking, { status: 200 })
   } catch (error: any) {
@@ -239,6 +261,8 @@ export async function DELETE(
       data: { status: 'cancelled' }
     })
 
+    // 🔔 إشعار العضو في الأبليكيشن بالإلغاء
+    await notifyMemberSpaStatus(existingBooking.memberId, existingBooking, 'cancelled')
 
     return NextResponse.json(
       { success: true, message: 'تم إلغاء الحجز بنجاح' },

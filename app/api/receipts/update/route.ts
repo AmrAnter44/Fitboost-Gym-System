@@ -112,6 +112,7 @@ export async function PUT(request: Request) {
       createdAt,
       subscription,        // 🆕 { name?, phone?, startDate?, expiryDate? }
       cascade,             // 🆕 default true — يعدّل Member/PT المرتبط
+      salesStaffId,        // 🆕 موظف السيلز — يتحدّث على العضو المرتبط مباشرة
     } = await request.json() as {
       receiptId: string
       receiptNumber?: number | string
@@ -122,6 +123,7 @@ export async function PUT(request: Request) {
       createdAt?: string
       subscription?: SubscriptionPatch
       cascade?: boolean
+      salesStaffId?: string | null
     }
 
     if (!receiptId) {
@@ -266,6 +268,31 @@ export async function PUT(request: Request) {
       }
     }
 
+    // 🔗 تحديث موظف السيلز على العضو المرتبط (مستقل عن باقي الـ cascade)
+    let salesUpdated = false
+    if (salesStaffId !== undefined && existingReceipt.memberId) {
+      // تعديل بيانات العضو محتاج صلاحية canEditMembers (زي الـ subscription cascade)
+      if (user.role !== 'OWNER' && user.role !== 'ADMIN' && !user.permissions?.canEditMembers) {
+        return NextResponse.json(
+          { error: 'تعديل موظف السيلز على العضو محتاج صلاحية canEditMembers' },
+          { status: 403 }
+        )
+      }
+      try {
+        await prisma.member.update({
+          where: { id: existingReceipt.memberId },
+          data: { salesStaffId: salesStaffId || null },
+        })
+        salesUpdated = true
+      } catch (salesErr: any) {
+        console.error('Receipt update — sales staff update failed:', salesErr)
+        return NextResponse.json(
+          { error: 'فشل تحديث موظف السيلز على العضو: ' + (salesErr?.message || 'خطأ غير معروف') },
+          { status: 500 }
+        )
+      }
+    }
+
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'UPDATE', resource: 'Receipt', resourceId: updatedReceipt.id,
@@ -278,6 +305,7 @@ export async function PUT(request: Request) {
           newValues: subNewValues,
         }),
         ...(cascadedTo && { cascadedTo }),
+        ...(salesUpdated && { salesStaffUpdated: true, newSalesStaffId: salesStaffId || null }),
       },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
