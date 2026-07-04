@@ -15,32 +15,33 @@ const nextConfig = {
   // React strict mode
   reactStrictMode: true,
 
-  // Allowed domains for external access + Security Headers
+  // Rewrite uploads to serve-image API (for Electron production)
+  // بدون ده صور الأعضاء/الشعار بتطلّع 404 في نسخة Electron
+  async rewrites() {
+    return process.env.UPLOADS_PATH ? [
+      {
+        source: '/uploads/:path*',
+        destination: '/api/serve-image?path=/uploads/:path*',
+      },
+    ] : [];
+  },
+
+  // Security Headers
+  // ملاحظة: اتشال Access-Control-Allow-Origin: * (كان بيفتح كل الـ API لأي origin).
+  // التطبيق same-origin، والموبايل native app مش بيتأثر بـ CORS. لو فيه واجهة ويب
+  // على دومين مختلف بتنادي الـ API، ضيف ACAO مقيّد للدومين ده هنا.
   async headers() {
     return [
       {
         source: '/:path*',
         headers: [
           {
-            key: 'Access-Control-Allow-Origin',
-            value: '*'
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS'
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization'
-          },
-          // 🔒 Security Headers
-          {
             key: 'X-Content-Type-Options',
             value: 'nosniff' // منع MIME type sniffing
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY' // منع Clickjacking
+            value: 'SAMEORIGIN' // منع Clickjacking (SAMEORIGIN عشان الـ Electron webview)
           },
           {
             key: 'X-XSS-Protection',
@@ -49,6 +50,10 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin' // حماية الـ privacy
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains'
           },
           {
             key: 'Permissions-Policy',
@@ -98,7 +103,9 @@ const nextConfig = {
 
   // Experimental features
   experimental: {
-    isrFlushToDisk: true
+    isrFlushToDisk: true,
+    instrumentationHook: true, // تفعيل instrumentation.ts لتتبع أخطاء السيرفر
+    optimizePackageImports: ['recharts', '@tanstack/react-query'] // تقليل حجم الـ bundle
   }
 };
 

@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
 import { toWhatsAppNumber } from '../../../../../lib/phoneNormalize'
+import { verifyAuth } from '../../../../../lib/auth'
 
 export async function POST(req: Request) {
+  // 🔒 Auth
+  const user = await verifyAuth(req)
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
+  }
+
   try {
     const { sessionIndex, phone, message, remoteName } = await req.json()
 

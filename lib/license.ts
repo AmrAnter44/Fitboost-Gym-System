@@ -110,6 +110,21 @@ export async function getCachedLicenseStatus(): Promise<{ valid: boolean; messag
     const isValid = license.systemLicense === 'true' ||
                     license.systemLicense === 'active'
 
+    // 🔒 fail-closed بعد فترة سماح: العمل offline مسموح، لكن لو عدّى 14 يوم من غير
+    //    تحقق ناجح من Supabase، نعتبر الترخيص محتاج إعادة تحقق (نمنع العمل بترخيص
+    //    محفوظ قديم للأبد). لسه بيسمح بأسبوعين offline كاملين قبل ما يقفل.
+    const GRACE_MS = 14 * 24 * 60 * 60 * 1000
+    if (isValid && license.lastChecked) {
+      const age = Date.now() - new Date(license.lastChecked).getTime()
+      if (age > GRACE_MS) {
+        return {
+          valid: false,
+          message: 'انتهت فترة العمل دون اتصال. يرجى الاتصال بالإنترنت للتحقق من الترخيص.',
+          lastChecked: license.lastChecked
+        }
+      }
+    }
+
     return {
       valid: isValid,
       message: isValid

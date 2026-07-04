@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { printReceiptFromData } from '../lib/printSystem'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useLanguage } from '../contexts/LanguageContext'
 import { normalizePaymentMethod, getPaymentMethodLabel } from '../lib/paymentHelpers'
 import { getReceiptTypeTranslationKey } from '../lib/translateReceiptType'
@@ -22,7 +23,10 @@ const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox
 
 export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps) {
   const { direction, t, language } = useLanguage()
+  const panelRef = useRef<HTMLDivElement>(null)
   const details = JSON.parse(receipt.itemDetails)
+
+  useFocusTrap(panelRef, true)
 
   const paymentData = normalizePaymentMethod(receipt.paymentMethod, receipt.amount)
   const isMultiPayment = paymentData.methods.length > 1
@@ -76,6 +80,7 @@ export function ReceiptDetailModal({ receipt, onClose }: ReceiptDetailModalProps
       dir={direction}
     >
       <div
+        ref={panelRef}
         className="bg-white dark:bg-gray-800 rounded-2xl max-w-5xl w-full shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-h-[90vh] overflow-hidden flex flex-col animate-modal-in"
         onClick={(e) => e.stopPropagation()}
       >

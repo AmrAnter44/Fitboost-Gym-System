@@ -2,10 +2,10 @@
   "name": "Fitboost - نظام إدارة الجيم",
   "short_name": "Fitboost",
   "description": "نظام متكامل لإدارة صالة الألعاب الرياضية - الأعضاء، الزوار، المتابعات، والإيصالات",
-  "theme_color": "#ff9915",
-  "background_color": "#000000",
+  "theme_color": "#fbe003",
+  "background_color": "#f9fafb",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "scope": "/",
   "start_url": "/?source=pwa",
   "lang": "ar",
@@ -67,19 +67,5 @@
       "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
-  "categories": ["business", "productivity", "sports"],
-  "screenshots": [
-    {
-      "src": "/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshot-mobile.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ]
+  "categories": ["business", "productivity", "sports"]
 }

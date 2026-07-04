@@ -22,6 +22,7 @@ const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox
 
 interface MemberFormProps {
   onSuccess: () => void
+  onCancel?: () => void // إغلاق/إلغاء الفورم (يُستدعى عند الضغط على Escape)
   customCreatedAt?: Date | null
   prefillData?: { // بيانات مسبقة للتعبئة (مثل: من الزوار)
     name?: string
@@ -30,7 +31,7 @@ interface MemberFormProps {
   }
 }
 
-export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: MemberFormProps) {
+export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefillData }: MemberFormProps) {
   const { user } = usePermissions()
   // كل المستخدمين يقدروا يعدلوا التواريخ في فورم إضافة العضو
   const canEditDates = true
@@ -123,6 +124,15 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
   // الخصم اللي حطه الـ user (للأكونتات اللي مش OWNER/ADMIN)
   const [discount, setDiscount] = useState<number>(0)
   const isPrivilegedUser = user?.role === 'OWNER' || user?.role === 'ADMIN'
+
+  // إغلاق الفورم عند الضغط على Escape (نفس نمط ReceiptDetailModal)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel?.()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
 
   useEffect(() => {
     const fetchNextNumber = async () => {
@@ -707,6 +717,7 @@ export default function MemberForm({ onSuccess, customCreatedAt, prefillData }: 
             <input
               type="text"
               required
+              autoFocus
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyMemberPhone } from '@/lib/memberVerify';
 
 export async function GET(
   request: NextRequest,
@@ -10,6 +11,11 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
+
+    // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR — قراءة سجل مالي لأي عضو)
+    if (!(await verifyMemberPhone(memberId, searchParams.get('phone')))) {
+      return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لعرض هذه البيانات' }, { status: 401 });
+    }
 
     // Get member to access memberNumber and phone for service receipt lookup
     const member = await prisma.member.findUnique({

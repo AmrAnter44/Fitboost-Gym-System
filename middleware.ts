@@ -6,6 +6,7 @@ const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 // مسارات معفاة من فحص CSRF (مثل webhooks خارجية إن وُجدت)
 const CSRF_EXEMPT_PATHS: string[] = [
   '/api/public/', // Public endpoints used by mobile app (no browser origin)
+  '/api/whatsapp/internal/', // Server-to-server sidecar calls (protected by requireInternalToken)
 ]
 
 function isAllowedOrigin(origin: string | null, host: string | null): boolean {
@@ -44,13 +45,6 @@ export function middleware(request: NextRequest) {
     pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|css|js|ttf|woff|woff2|eot)$/)
   ) {
     response.headers.set('Cache-Control', 'public, max-age=31536000, immutable')
-    return response
-  }
-
-  // ⚠️ WhatsApp internal endpoints: الحماية بالتوكين مُعطّلة مؤقتاً
-  //    (INTERNAL_API_TOKEN check اتشال لحد ما نرجّع تفعيله)
-  //    نعفيها من فحص CSRF لأنها server-to-server calls
-  if (pathname.startsWith('/api/whatsapp/internal/')) {
     return response
   }
 

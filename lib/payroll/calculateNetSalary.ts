@@ -1,4 +1,5 @@
 import { prisma } from '../prisma'
+import { round2 } from '../money'
 import { calcLateMinutes } from '../shiftTime'
 import type {
   PayrollBreakdown,
@@ -15,7 +16,14 @@ function daysInMonth(year: number, month: number): number {
 }
 
 function dateOnlyISO(date: Date): string {
-  return date.toISOString().slice(0, 10) // YYYY-MM-DD
+  // ⚠️ لازم نستخدم مكوّنات التاريخ المحلية (مش toISOString/UTC) عشان تتطابق مع
+  // تكرار الأيام اللي بيتبني بـ new Date(year, month-1, day) — ده بيبني midnight
+  // محلي. لو استخدمنا UTC، على سيرفر مصري (UTC+2/3) مفاتيح الحضور بتـ shift يوم
+  // وتتحسب أيام حاضرة كـ غياب.
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}` // YYYY-MM-DD (local)
 }
 
 /**
@@ -202,10 +210,10 @@ export async function calculateNetSalary(
     absenceDates.push(iso)
   }
   const absenceDays = absenceDates.length
-  const absenceAmount = absenceDays * dailyRate
+  const absenceAmount = round2(absenceDays * dailyRate)
   //  حساب خصم الإجازة بدون راتب (لو موجودة)
   const unpaidLeaveDays = unpaidLeaveDatesInMonth.length
-  const unpaidLeaveAmount = unpaidLeaveDays * dailyRate
+  const unpaidLeaveAmount = round2(unpaidLeaveDays * dailyRate)
 
   // ────────── Pro-rate base salary if employment is partial within this month
   const isPartialMonth = employedDaysInMonth < workingDays
@@ -258,7 +266,7 @@ export async function calculateNetSalary(
     if (outstanding <= 0) continue
 
     const installmentLimit = loan.installmentLimit ?? Number.POSITIVE_INFINITY
-    const maxDeductible = Math.max(0, Math.min(outstanding, installmentLimit, netSoFar))
+    const maxDeductible = round2(Math.max(0, Math.min(outstanding, installmentLimit, netSoFar)))
 
     loanItems.push({
       id: loan.id,
@@ -278,9 +286,9 @@ export async function calculateNetSalary(
     }
   }
 
-  const totalLoansDeducted = loanItems.reduce((s, l) => s + l.willDeductThisMonth, 0)
+  const totalLoansDeducted = round2(loanItems.reduce((s, l) => s + l.willDeductThisMonth, 0))
 
-  const totalDeductions = absenceAmount + unpaidLeaveAmount + totalManual + totalLoansDeducted
+  const totalDeductions = round2(absenceAmount + unpaidLeaveAmount + totalManual + totalLoansDeducted)
 
   return {
     staffId,
@@ -337,8 +345,8 @@ export async function calculateNetSalary(
         items: loanItems,
       },
     },
-    net: Math.max(0, netSoFar),
-    totalEarnings: earningsTotal,
+    net: round2(Math.max(0, netSoFar)),
+    totalEarnings: round2(earningsTotal),
     totalDeductions,
   }
 }

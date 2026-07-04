@@ -34,8 +34,8 @@
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:4001 --timeout 180000 --interval 1000 --httpTimeout 10000 && electron . --enable-features=WebRTC --enable-usermedia-screen-capturing\"",
     "electron:dev:alt": "concurrently \"npm run dev\" \"node start-electron.js\"",
     "prebuild:electron": "npm run build",
-    "build:electron": "npm run prebuild:electron && node preelectron-build.js && electron-builder --publish never",
-    "build:electron:win": "npm run prebuild:electron && node preelectron-build.js && electron-builder --win --x64 --publish never",
+    "build:electron": "npm run prebuild:electron && node preelectron-build.js && node scripts/build-empty-seed.js && electron-builder --publish never",
+    "build:electron:win": "npm run prebuild:electron && node preelectron-build.js && node scripts/build-empty-seed.js && electron-builder --win --x64 --publish never",
     "build:assistant": "electron-builder --config electron-builder.client.json --publish never",
     "build:assistant:win": "electron-builder --config electron-builder.client.json --win --x64 --publish never",
     "build:production": "node scripts/build-production.js",
@@ -133,10 +133,7 @@
       "node_modules/.prisma/**/*",
       "node_modules/@prisma/**/*",
       "node_modules/prisma/**/*",
-      "node_modules/whatsapp-web.js/**/*",
-      "node_modules/puppeteer/**/*",
       "node_modules/qrcode/**/*",
-      "node_modules/qrcode-terminal/**/*",
       "package.json"
     ],
     "asarUnpack": [
@@ -147,13 +144,11 @@
       "node_modules/.prisma/**/*",
       "node_modules/@prisma/**/*",
       "node_modules/prisma/**/*",
-      "node_modules/puppeteer/**/*",
-      "node_modules/whatsapp-web.js/**/*",
       "prisma/migrations/**/*"
     ],
     "extraResources": [
       {
-        "from": "prisma/gym.db",
+        "from": "prisma/seed-empty.db",
         "to": "seed-database/gym.db"
       },
       {

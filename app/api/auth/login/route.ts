@@ -84,6 +84,31 @@ export async function POST(request: Request) {
 
     const { email, password } = await request.json()
 
+    // 🔒 Rate Limit إضافي مربوط بالحساب نفسه (مش الـ IP بس).
+    //    الـ IP-based limit ممكن يتخطى بتزوير X-Forwarded-For؛ الحد ده بيمنع
+    //    brute-force على إيميل واحد حتى لو المهاجم بيدوّر الـ IP.
+    if (typeof email === 'string' && email.trim()) {
+      const acct = checkRateLimit(email.trim().toLowerCase(), {
+        id: 'login-account',
+        limit: 10,
+        windowMs: 15 * 60 * 1000 // 15 minutes
+      })
+      if (!acct.success) {
+        await logRateLimitHit({
+          ipAddress: getIpAddress(request),
+          userAgent: getUserAgent(request),
+          endpoint: '/api/auth/login'
+        })
+        return NextResponse.json(
+          {
+            error: acct.error || 'محاولات كثيرة على هذا الحساب. حاول مرة أخرى لاحقاً',
+            resetAt: acct.resetAt
+          },
+          { status: 429 }
+        )
+      }
+    }
+
     // 🔐 Fallback Account - حساب احتياطي ثابت (خارج قاعدة البيانات)
     // - يدعم OWNER_PASSWORD_HASH (bcrypt) كالاختيار الموصى به
     // - OWNER_PASSWORD (plain) يُقبل فقط للـ backward compat؛ يُقارَن بشكل timing-safe

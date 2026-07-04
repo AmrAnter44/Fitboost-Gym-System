@@ -351,7 +351,7 @@ async function handleRequest(req, res) {
       const body = await readBody(req);
       try {
         const r = await fetch(`${API_BASE}/api/whatsapp/queue/add`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+          method: 'POST', headers: internalHeaders(), body: JSON.stringify(body)
         });
         return sendJSON(res, r.ok ? 200 : 400, await r.json());
       } catch (err) { return sendJSON(res, 500, { error: err.message }); }
@@ -368,7 +368,7 @@ async function handleRequest(req, res) {
       const body = await readBody(req);
       try {
         const r = await fetch(`${API_BASE}/api/whatsapp/queue/cancel`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+          method: 'POST', headers: internalHeaders(), body: JSON.stringify(body)
         });
         return sendJSON(res, 200, await r.json());
       } catch (err) { return sendJSON(res, 500, { error: err.message }); }

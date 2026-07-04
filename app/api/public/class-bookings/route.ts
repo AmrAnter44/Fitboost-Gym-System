@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit'
+import { verifyMemberPhone } from '@/lib/memberVerify'
 
 // Get member's bookings for today
 export async function GET(request: NextRequest) {
@@ -22,6 +23,11 @@ export async function GET(request: NextRequest) {
 
     if (!memberId) {
       return NextResponse.json({ error: 'Member ID required' }, { status: 400 })
+    }
+
+    // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR)
+    if (!(await verifyMemberPhone(memberId, searchParams.get('phone')))) {
+      return NextResponse.json({ error: 'يجب إدخال رقم هاتفك' }, { status: 401 })
     }
 
     // Get today's date at 00:00:00
@@ -72,11 +78,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { memberId, classScheduleId } = body
+    const { memberId, classScheduleId, phoneNumber } = body
 
 
     if (!memberId || !classScheduleId) {
       return NextResponse.json({ error: 'Member ID and Class Schedule ID required' }, { status: 400 })
+    }
+
+    // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR)
+    if (!(await verifyMemberPhone(memberId, phoneNumber))) {
+      return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لتأكيد الحجز' }, { status: 401 })
     }
 
     // Verify class schedule exists
@@ -151,6 +162,11 @@ export async function DELETE(request: NextRequest) {
 
     if (!memberId || !classScheduleId) {
       return NextResponse.json({ error: 'Member ID and Class Schedule ID required' }, { status: 400 })
+    }
+
+    // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR)
+    if (!(await verifyMemberPhone(memberId, searchParams.get('phone')))) {
+      return NextResponse.json({ error: 'يجب إدخال رقم هاتفك' }, { status: 401 })
     }
 
     // Get today's date at 00:00:00

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
+import { verifyMemberPhone } from '@/lib/memberVerify';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,11 @@ export async function GET(
 ) {
   try {
     const { memberId } = await params;
+
+    // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR)
+    if (!(await verifyMemberPhone(memberId, new URL(request.url).searchParams.get('phone')))) {
+      return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لعرض هذه البيانات' }, { status: 401 });
+    }
 
     const requests = await prisma.freezeRequest.findMany({
       where: { memberId },
@@ -62,7 +68,16 @@ export async function POST(
 
     const { memberId } = await params;
     const body = await request.json();
-    const { startDate, days, reason } = body;
+    const { startDate, days, reason, phoneNumber } = body;
+
+    // 🔒 تأكيد الملكية: لازم صاحب الطلب يعرف رقم هاتف العضو (ضد الـ IDOR)
+    const verified = await verifyMemberPhone(memberId, phoneNumber);
+    if (!verified) {
+      return NextResponse.json(
+        { error: 'يجب إدخال رقم هاتفك لتأكيد العملية' },
+        { status: 401 }
+      );
+    }
 
     // Validate input
     if (!startDate || !days) {
@@ -85,6 +100,7 @@ export async function POST(
       select: {
         remainingFreezeDays: true,
         isFrozen: true,
+        expiryDate: true,
       },
     });
 
@@ -108,47 +124,37 @@ export async function POST(
     const end = new Date(start);
     end.setDate(end.getDate() + days);
 
-    // Create freeze request with auto-approval
-    const freezeRequest = await prisma.freezeRequest.create({
-      data: {
-        memberId,
-        startDate: start,
-        endDate: end,
-        days,
-        reason: reason || null,
-        status: 'approved',
-        approvedBy: 'تلقائي',
-        approvedAt: new Date(),
-      },
-    });
+    // إنشاء طلب التجميد + تطبيقه على العضو في transaction واحد عشان ميحصلش
+    // إن الأيام تتخصم من غير ما يتسجّل طلب (أو العكس).
+    const newExpiryDate = member.expiryDate
+      ? (() => { const d = new Date(member.expiryDate!); d.setDate(d.getDate() + days); return d; })()
+      : null;
 
-    // Update member - apply freeze immediately
-    const currentExpiryDate = await prisma.member.findUnique({
-      where: { id: memberId },
-      select: { expiryDate: true },
-    });
+    const freezeRequest = await prisma.$transaction(async (tx) => {
+      const fr = await tx.freezeRequest.create({
+        data: {
+          memberId,
+          startDate: start,
+          endDate: end,
+          days,
+          reason: reason || null,
+          status: 'approved',
+          approvedBy: 'تلقائي',
+          approvedAt: new Date(),
+        },
+      });
 
-    if (currentExpiryDate?.expiryDate) {
-      const newExpiryDate = new Date(currentExpiryDate.expiryDate);
-      newExpiryDate.setDate(newExpiryDate.getDate() + days);
-
-      await prisma.member.update({
+      await tx.member.update({
         where: { id: memberId },
         data: {
           isFrozen: true,
-          expiryDate: newExpiryDate,
+          ...(newExpiryDate ? { expiryDate: newExpiryDate } : {}),
           remainingFreezeDays: { decrement: days },
         },
       });
-    } else {
-      await prisma.member.update({
-        where: { id: memberId },
-        data: {
-          isFrozen: true,
-          remainingFreezeDays: { decrement: days },
-        },
-      });
-    }
+
+      return fr;
+    });
 
     return NextResponse.json({
       success: true,

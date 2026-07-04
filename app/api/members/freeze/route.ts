@@ -61,6 +61,14 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
+    // 5.1 منع التجميد المزدوج — لو العضو متجمّد بالفعل، التجميد تاني هيخصم
+    //     الأيام مرتين بينما الـ unfreeze بيعكس آخر طلب بس.
+    if (member.isFrozen) {
+      return NextResponse.json({
+        error: 'العضو مجمّد بالفعل. يجب إلغاء التجميد الحالي أولاً.'
+      }, { status: 400 })
+    }
+
     // 6. حساب تاريخ الانتهاء الجديد
     const currentExpiryDate = new Date(member.expiryDate)
     const newExpiryDate = new Date(currentExpiryDate)
@@ -75,8 +83,10 @@ export async function POST(request: Request) {
     const freezeEndDate = new Date(freezeStartDate)
     freezeEndDate.setDate(freezeEndDate.getDate() + daysToFreeze)
 
-    const [updatedMember] = await Promise.all([
-      prisma.member.update({
+    // تحديث العضو + إنشاء طلب التجميد في transaction واحد عشان ميحصلش
+    // إن الأيام تتخصم من غير ما يتسجّل طلب (اللي بيكسر الـ unfreeze).
+    const updatedMember = await prisma.$transaction(async (tx) => {
+      const um = await tx.member.update({
         where: { id: memberId },
         data: {
           expiryDate: newExpiryDate,
@@ -84,8 +94,8 @@ export async function POST(request: Request) {
           isFrozen: true,
           isActive: true
         }
-      }),
-      prisma.freezeRequest.create({
+      })
+      await tx.freezeRequest.create({
         data: {
           memberId,
           startDate: freezeStartDate,
@@ -95,7 +105,8 @@ export async function POST(request: Request) {
           reason: 'تجميد مباشر'
         }
       })
-    ])
+      return um
+    })
 
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,

@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server';
-import { copyFile } from 'fs/promises';
-import { existsSync, statSync } from 'fs';
+import { existsSync, statSync, mkdirSync } from 'fs';
 import path from 'path';
 import { requireAdmin } from '../../../../../lib/auth';
+import { prisma } from '../../../../../lib/prisma';
+import { resolveDbPath } from '../../../../../lib/dbPath';
 
 /**
  * 💾 API لإنشاء نسخة احتياطية من الداتابيز
+ *
+ * بيستخدم resolveDbPath عشان يلاقي الـ DB الحقيقي (userData في نسخة Electron،
+ * مش process.cwd)، وبيعمل نسخة متسقة عبر `VACUUM INTO` (snapshot آمن حتى والـ
+ * DB بيتكتب فيه — بدل نسخ ملف WAL على نص كتابة).
  */
 export async function POST(request: Request) {
   try {
     await requireAdmin(request);
-    const projectRoot = process.cwd();
-    const prismaDir = path.join(projectRoot, 'prisma');
-    const dbPath = path.join(prismaDir, 'gym.db');
+
+    const dbPath = resolveDbPath();
 
     // فحص وجود الداتابيز
     if (!existsSync(dbPath)) {
@@ -22,13 +26,19 @@ export async function POST(request: Request) {
       }, { status: 404 });
     }
 
-    // إنشاء اسم للنسخة الاحتياطية
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
-    const backupFilename = `gym.db.backup.manual-${timestamp}`;
-    const backupPath = path.join(prismaDir, backupFilename);
+    // مجلد النسخ جنب الـ DB
+    const backupDir = path.join(path.dirname(dbPath), 'backups');
+    if (!existsSync(backupDir)) {
+      mkdirSync(backupDir, { recursive: true });
+    }
 
-    // نسخ الملف
-    await copyFile(dbPath, backupPath);
+    // اسم النسخة الاحتياطية
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
+    const backupFilename = `gym.db.backup.manual-${timestamp}.bak`;
+    const backupPath = path.join(backupDir, backupFilename);
+
+    // نسخة متسقة عبر VACUUM INTO (يستخدم اتصال Prisma الحالي — مفيش موديول إضافي)
+    await prisma.$executeRawUnsafe(`VACUUM INTO '${backupPath.replace(/'/g, "''")}'`);
 
     // معلومات الملف
     const stats = statSync(backupPath);
@@ -46,11 +56,10 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Backup creation error:', error);
+    console.error('Backup creation error:', error instanceof Error ? error.message : 'unknown');
     return NextResponse.json({
       success: false,
-      error: 'حدث خطأ أثناء إنشاء النسخة الاحتياطية',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'حدث خطأ أثناء إنشاء النسخة الاحتياطية'
     }, { status: 500 });
   }
 }

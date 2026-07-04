@@ -1,7 +1,7 @@
 // app/api/admin/users/[id]/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
-import { requireAdmin } from '../../../../../lib/auth'
+import { requireAdmin, invalidateUserState } from '../../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,6 +87,9 @@ export async function PUT(
       include: { permissions: true }
     })
 
+    // امسح كاش حالة المستخدم عشان التعطيل/تغيير الدور يسري فوراً (بدل انتظار الـ TTL)
+    invalidateUserState(params.id)
+
     const { password, ...userWithoutPassword } = user
 
     // 📝 Audit log للعمليات الحساسة
@@ -149,6 +152,7 @@ export async function DELETE(
 
     await prisma.permission.deleteMany({ where: { userId: params.id } })
     await prisma.user.delete({ where: { id: params.id } })
+    invalidateUserState(params.id)
 
     try {
       await prisma.activityLog.create({

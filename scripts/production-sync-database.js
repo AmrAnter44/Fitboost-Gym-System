@@ -12,6 +12,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { safeDbPush } = require('./lib/safe-db');
 
 const colors = {
   reset: '\x1b[0m',
@@ -194,17 +195,21 @@ async function createBaseline() {
  *
  * النتيجة: حتى لو migration system مكسر، الـ schema هيبقى متطابق دايماً
  */
-async function fallbackToDbPush() {
-  try {
-    log('\n🔄 جاري تشغيل prisma db push...', 'blue');
-    execSync('npx prisma db push --accept-data-loss --skip-generate', {
-      cwd: PROJECT_ROOT,
-      stdio: 'inherit'
-    });
+function fallbackToDbPush() {
+  log('\n🔄 جاري تشغيل prisma db push (آمن)...', 'blue');
+  // safeDbPush: ياخد نسخة احتياطية أولاً، وميستخدمش --accept-data-loss
+  // إلا لو ALLOW_DESTRUCTIVE_DB_PUSH=true. كده migration مكسورة مش هتحذف
+  // بيانات إنتاج بصمت.
+  const ok = safeDbPush({
+    dbPath: DB_PATH,
+    cwd: PROJECT_ROOT,
+    skipGenerate: true,
+    logger: (m) => log(m, 'blue'),
+  });
+  if (ok) {
     log('\n✅ تم sync الـ schema بنجاح عبر db push', 'green');
-  } catch (pushError) {
-    log('\n❌ فشل حتى db push — السيرفر هيبدأ بس قد تواجه مشاكل', 'red');
-    log(`   التفاصيل: ${pushError.message?.split('\n')[0] || 'unknown'}`, 'red');
+  } else {
+    log('\n❌ فشل db push بأمان — لم يتم حذف أي بيانات. السيرفر هيبدأ بس قد تواجه مشاكل schema', 'red');
     // مش بنرمي error عشان السيرفر يبدأ بأي حال — الـ runtime errors هتظهر للمستخدم
   }
 }

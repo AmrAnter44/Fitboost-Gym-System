@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useToast } from '../../contexts/ToastContext'
 import { LoadingScreen } from '../../components/Spinner'
+import ConfirmDialog from '../../components/ConfirmDialog'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -103,10 +105,12 @@ export default function MessageTemplateManager({
   visitorPhone
 }: MessageTemplateManagerProps) {
   const { direction, t } = useLanguage()
+  const toast = useToast()
   const [templates, setTemplates] = useState<MessageTemplate[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null)
   const [loading, setLoading] = useState(true)
+  const [confirmState, setConfirmState] = useState<{ open: boolean; message: string; title?: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} })
   const [formData, setFormData] = useState({
     title: '',
     icon: '',
@@ -164,29 +168,34 @@ export default function MessageTemplateManager({
   }
 
   const handleDelete = async (template: MessageTemplate) => {
-    if (confirm(t('followups.templates.deleteConfirm'))) {
-      try {
-        const response = await fetch(`/api/whatsapp/templates?id=${template.id}`, {
-          method: 'DELETE'
-        })
+    setConfirmState({
+      open: true,
+      message: t('followups.templates.deleteConfirm'),
+      title: t('common.delete'),
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/whatsapp/templates?id=${template.id}`, {
+            method: 'DELETE'
+          })
 
-        if (response.ok) {
-          // تحديث القائمة محلياً
-          setTemplates(templates.filter(t => t.id !== template.id))
-        } else {
-          console.error('Failed to delete template')
-          alert('فشل حذف القالب')
+          if (response.ok) {
+            // تحديث القائمة محلياً
+            setTemplates(templates.filter(t => t.id !== template.id))
+          } else {
+            console.error('Failed to delete template')
+            toast.error('فشل حذف القالب')
+          }
+        } catch (error) {
+          console.error('Error deleting template:', error)
+          toast.error('حدث خطأ أثناء حذف القالب')
         }
-      } catch (error) {
-        console.error('Error deleting template:', error)
-        alert('حدث خطأ أثناء حذف القالب')
-      }
-    }
+      },
+    })
   }
 
   const handleSave = async () => {
     if (!formData.title.trim() || !formData.message.trim()) {
-      alert(t('followups.templates.form.fillAllFields') || 'املأ جميع الحقول')
+      toast.error(t('followups.templates.form.fillAllFields') || 'املأ جميع الحقول')
       return
     }
 
@@ -211,7 +220,7 @@ export default function MessageTemplateManager({
             t.id === editingTemplate.id ? data.template : t
           ))
         } else {
-          alert('فشل تحديث القالب')
+          toast.error('فشل تحديث القالب')
           return
         }
       } else {
@@ -231,7 +240,7 @@ export default function MessageTemplateManager({
           // إضافة القالب للقائمة محلياً
           setTemplates([...templates, data.template])
         } else {
-          alert('فشل إضافة القالب')
+          toast.error('فشل إضافة القالب')
           return
         }
       }
@@ -241,33 +250,39 @@ export default function MessageTemplateManager({
       setEditingTemplate(null)
     } catch (error) {
       console.error('Error saving template:', error)
-      alert('حدث خطأ أثناء حفظ القالب')
+      toast.error('حدث خطأ أثناء حفظ القالب')
     }
   }
 
   const handleResetToDefault = async () => {
-    if (confirm(t('followups.templates.resetConfirm'))) {
-      try {
-        // حذف جميع القوالب الحالية
-        const deletePromises = templates.map(template =>
-          fetch(`/api/whatsapp/templates?id=${template.id}`, {
-            method: 'DELETE'
-          })
-        )
-        await Promise.all(deletePromises)
+    setConfirmState({
+      open: true,
+      message: t('followups.templates.resetConfirm'),
+      title: t('followups.templates.resetToDefault'),
+      onConfirm: async () => {
+        try {
+          // حذف جميع القوالب الحالية
+          const deletePromises = templates.map(template =>
+            fetch(`/api/whatsapp/templates?id=${template.id}`, {
+              method: 'DELETE'
+            })
+          )
+          await Promise.all(deletePromises)
 
-        // إعادة تحميل القوالب (سيتم إنشاء القوالب الافتراضية تلقائياً)
-        await fetchTemplates()
-      } catch (error) {
-        console.error('Error resetting templates:', error)
-        alert('حدث خطأ أثناء إعادة التعيين')
-      }
-    }
+          // إعادة تحميل القوالب (سيتم إنشاء القوالب الافتراضية تلقائياً)
+          await fetchTemplates()
+        } catch (error) {
+          console.error('Error resetting templates:', error)
+          toast.error('حدث خطأ أثناء إعادة التعيين')
+        }
+      },
+    })
   }
 
   const emojiList = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
 
   return (
+    <>
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
       onClick={onClose}
@@ -509,5 +524,18 @@ export default function MessageTemplateManager({
         )}
       </div>
     </div>
+
+    <ConfirmDialog
+      isOpen={confirmState.open}
+      title={confirmState.title || ''}
+      message={confirmState.message}
+      type="danger"
+      onConfirm={() => {
+        confirmState.onConfirm()
+        setConfirmState((s) => ({ ...s, open: false }))
+      }}
+      onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
+    />
+    </>
   )
 }

@@ -12,6 +12,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { safeDbPush } = require('./lib/safe-db');
 
 const colors = {
   reset: '\x1b[0m',
@@ -82,13 +83,15 @@ async function checkAndSyncDatabase() {
 
       log('\n⚙️  جاري تطبيق التحديثات التلقائية...', 'blue');
 
-      // تطبيق التحديثات
-      try {
-        execSync('npx prisma db push --accept-data-loss --skip-generate', {
-          cwd: PROJECT_ROOT,
-          stdio: 'inherit'
-        });
+      // تطبيق التحديثات (بأمان: نسخة احتياطية أولاً، بدون حذف بيانات افتراضياً)
+      const pushed = safeDbPush({
+        dbPath: DB_PATH,
+        cwd: PROJECT_ROOT,
+        skipGenerate: true,
+        logger: (m) => log(m, 'blue'),
+      });
 
+      if (pushed) {
         log('\n✅ تم تحديث الداتابيز بنجاح!', 'green');
         log(`✅ تمت إضافة ${missingTables.length} جدول جديد`, 'green');
 
@@ -96,8 +99,7 @@ async function checkAndSyncDatabase() {
         log('\n⚙️  جاري توليد Prisma Client...', 'blue');
         execSync('npx prisma generate', { cwd: PROJECT_ROOT, stdio: 'pipe' });
         log('✅ تم توليد Prisma Client', 'green');
-
-      } catch (error) {
+      } else {
         log('\n❌ فشل تطبيق التحديثات', 'yellow');
         log('💡 يمكنك تطبيقها يدوياً باستخدام: npm run db:push', 'yellow');
       }

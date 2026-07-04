@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
+import { requireInternalToken, InternalAuthError } from '../../../../../lib/internalAuth'
 
 interface BulkMessage {
   sessionIndex: number
@@ -15,6 +16,14 @@ interface BulkMessage {
 
 // Bulk save messages - used by history sync to save many messages at once
 export async function POST(req: Request) {
+  // 🔒 Internal-only: تحقق من x-internal-token
+  try {
+    requireInternalToken(req)
+  } catch (err) {
+    const status = err instanceof InternalAuthError ? err.status : 401
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status })
+  }
+
   try {
     const { messages } = (await req.json()) as { messages: BulkMessage[] }
 

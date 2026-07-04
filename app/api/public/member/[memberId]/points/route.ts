@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit'
+import { verifyMemberPhone } from '@/lib/memberVerify'
 
 // Helper function to get reason text with translations
 function getReasonText(action: string): { ar: string; en: string } {
@@ -41,6 +42,11 @@ export async function GET(
         { error: 'Member ID required' },
         { status: 400 }
       )
+    }
+
+    // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR)
+    if (!(await verifyMemberPhone(memberId, new URL(request.url).searchParams.get('phone')))) {
+      return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لعرض هذه البيانات' }, { status: 401 })
     }
 
     // Get member to verify they exist

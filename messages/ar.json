@@ -2280,7 +2280,10 @@
       "completed": "تم",
       "notCompleted": "لم يتم",
       "total": "المجموع",
-      "nextFollowUp": "المتابعة القادمة"
+      "nextFollowUp": "المتابعة القادمة",
+      "noHistory": "لا توجد متابعات لهذا الزائر",
+      "contacted": "تم",
+      "notContacted": "لم يتم"
     },
     "results": {
       "interested": "مهتم",
@@ -2343,6 +2346,7 @@
     "close": "إغلاق",
     "permissionDenied": "ليس لديك صلاحية عرض المتابعات",
     "days": "يوم",
+    "noResults": "لا توجد متابعات تطابق البحث",
     "filters": {
       "search": "بحث",
       "searchPlaceholder": "ابحث باسم الزائر، رقم الهاتف، أو البائع...",
@@ -2355,6 +2359,7 @@
       "contacted": "التواصل",
       "contactedYes": "تم التواصل",
       "contactedNo": "لم يتم التواصل",
+      "contact": "التواصل",
       "all": "الكل"
     },
     "sources": {
@@ -2404,7 +2409,8 @@
       "visitors": "زوار",
       "contactedToday": "اتصال",
       "membersCount": "عدد الأعضاء",
-      "subscribedAndHidden": "تم الاشتراك"
+      "subscribedAndHidden": "تم الاشتراك",
+      "contacted": "تم التواصل"
     },
     "table": {
       "priority": "الأولوية",
@@ -2431,7 +2437,11 @@
       "notesLabel": "ملاحظات:",
       "lastCommentLabel": "آخر تعليق:",
       "whatsappButton": "واتساب",
-      "readyMessages": "رسائل جاهزة"
+      "readyMessages": "رسائل جاهزة",
+      "seller": "البائع",
+      "nextFollowup": "المتابعة القادمة",
+      "contact": "التواصل:",
+      "next": "القادمة:"
     },
     "viewModes": {
       "list": "قائمة",
@@ -2450,7 +2460,11 @@
       "archive": "أرشفة",
       "assignTo": "إسناد إلى",
       "delete": "حذف",
-      "deleteFollowup": "حذف المتابعة"
+      "deleteFollowup": "حذف المتابعة",
+      "unarchive": "إلغاء الأرشفة",
+      "changePriority": "تغيير الأولوية",
+      "changeStage": "تغيير المرحلة",
+      "addFollowupForRenewal": "إضافة متابعة للتجديد"
     },
     "buttons": {
       "followup": "متابعة",
@@ -2463,7 +2477,16 @@
       "member": "عضو",
       "subscribed": "تم الاشتراك",
       "contactedYes": "تم التواصل",
-      "contactedNo": "لم يتم التواصل"
+      "contactedNo": "لم يتم التواصل",
+      "contacted": "تم التواصل",
+      "notContacted": "لم يتم التواصل"
+    },
+    "status": {
+      "contacted": "تم التواصل",
+      "notContacted": "لم يتم التواصل",
+      "renewed": "تم التجديد",
+      "member": "عضو",
+      "subscribed": "تم الاشتراك"
     },
     "form": {
       "title": "متابعة جديدة",
@@ -2536,7 +2559,10 @@
       "addFirst": "إضافة أول متابعة",
       "contacted": "تم",
       "notContacted": "لم يتم",
-      "nextFollowUp": "القادمة"
+      "nextFollowUp": "القادمة",
+      "completed": "تم",
+      "pending": "لم يتم",
+      "next": "القادمة:"
     },
     "notes": {
       "expiredMember": "عضو منتهي - يحتاج تجديد اشتراك",
@@ -3225,6 +3251,32 @@
     "renewing": "جاري التجديد...",
     "cancel": "إلغاء",
     "required": "*",
+    "memberName": "الاسم:",
+    "membershipNumber": "رقم العضوية:",
+    "currentPTSessions": "حصص PT الحالية:",
+    "previousExpiryDate": "تاريخ الانتهاء السابق:",
+    "additionalPTSessions": "حصص PT إضافية",
+    "additionalInBodyScans": "فحوصات InBody إضافية",
+    "notesOptional": "ملاحظات (اختياري)",
+    "renewalSummary": "ملخص التجديد",
+    "sessions": "جلسة",
+    "renewalSuccess": "تم التجديد بنجاح:",
+    "renewalSuccessMessage": "تم تجديد الاشتراك بنجاح!",
+    "membershipRenewal": "تجديد العضوية",
+    "renewalFailed": "فشل التجديد",
+    "unexpectedError": "حدث خطأ غير متوقع",
+    "enterValidPrice": "يرجى إدخال سعر اشتراك صحيح",
+    "enterDates": "يرجى تحديد تاريخ البداية والانتهاء",
+    "expiryMustBeAfterStart": "تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية",
+    "egp": "جنيه",
+    "availableOffers": "العروض المتاحة",
+    "selectOfferToAutoFill": "اختر عرضًا لملء البيانات تلقائيًا",
+    "noOffersAvailable": "لا توجد عروض متاحة",
+    "adminCanAddOffers": "يمكن للمسؤول إضافة العروض من صفحة العروض",
+    "note": "ملاحظة",
+    "noteCanEditAfterOffer": "يمكنك تعديل البيانات بعد اختيار العرض",
+    "offerApplied": "تم تطبيق العرض: {offerName}",
+    "invitations": "الدعوات",
     "errors": {
       "invalidPrice": "يرجى إدخال سعر اشتراك صحيح",
       "missingDates": "يرجى تحديد تاريخ البداية والانتهاء",

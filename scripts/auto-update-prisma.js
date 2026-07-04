@@ -9,9 +9,12 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { safeDbPush } = require('./lib/safe-db');
+
+const PROJECT_ROOT = path.join(__dirname, '..');
 
 // التأكد من وجود ملف schema.prisma
-const schemaPath = path.join(__dirname, '..', 'prisma', 'schema.prisma');
+const schemaPath = path.join(PROJECT_ROOT, 'prisma', 'schema.prisma');
 if (!fs.existsSync(schemaPath)) {
   console.log('⚠️ ملف schema.prisma غير موجود');
   process.exit(0);
@@ -20,18 +23,19 @@ if (!fs.existsSync(schemaPath)) {
 console.log('\n🔄 جاري تحديث Prisma...\n');
 
 try {
-  // تطبيق التغييرات على قاعدة البيانات
+  // تطبيق التغييرات على قاعدة البيانات (بأمان: نسخة احتياطية أولاً، بدون حذف بيانات
+  // إلا لو ALLOW_DESTRUCTIVE_DB_PUSH=true)
   console.log('📦 تطبيق التغييرات على قاعدة البيانات...');
-  execSync('npx prisma db push --accept-data-loss', {
-    stdio: 'inherit',
-    cwd: path.join(__dirname, '..')
+  safeDbPush({
+    dbPath: path.join(PROJECT_ROOT, 'prisma', 'gym.db'),
+    cwd: PROJECT_ROOT,
   });
 
   // توليد Prisma Client
   console.log('\n⚙️ توليد Prisma Client...');
   execSync('npx prisma generate', {
     stdio: 'inherit',
-    cwd: path.join(__dirname, '..')
+    cwd: PROJECT_ROOT
   });
 
   console.log('\n✅ تم تحديث Prisma بنجاح!\n');

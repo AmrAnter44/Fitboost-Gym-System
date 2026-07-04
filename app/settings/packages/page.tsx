@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useServiceSettings } from '@/contexts/ServiceSettingsContext'
 import { useRouter } from 'next/navigation'
 import { LoadingScreen } from '@/components/Spinner'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -48,6 +49,7 @@ export default function PackagesManagementPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingPackage, setEditingPackage] = useState<ServicePackage | null>(null)
+  const [confirmState, setConfirmState] = useState<{ open: boolean; message: string; title?: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} })
 
   const [formData, setFormData] = useState({
     name: '',
@@ -127,23 +129,28 @@ export default function PackagesManagementPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('هل تريد حذف هذه الباقة؟')) return
+    setConfirmState({
+      open: true,
+      message: 'هل تريد حذف هذه الباقة؟',
+      title: t('common.delete'),
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/packages?id=${id}`, {
+            method: 'DELETE'
+          })
 
-    try {
-      const response = await fetch(`/api/packages?id=${id}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        toast.success('تم حذف الباقة')
-        fetchPackages()
-      } else {
-        toast.error(t('common.error'))
-      }
-    } catch (error) {
-      console.error('Error deleting package:', error)
-      toast.error(t('common.error'))
-    }
+          if (response.ok) {
+            toast.success('تم حذف الباقة')
+            fetchPackages()
+          } else {
+            toast.error(t('common.error'))
+          }
+        } catch (error) {
+          console.error('Error deleting package:', error)
+          toast.error(t('common.error'))
+        }
+      },
+    })
   }
 
   const resetForm = () => {
@@ -412,6 +419,18 @@ export default function PackagesManagementPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmState.open}
+        title={confirmState.title || ''}
+        message={confirmState.message}
+        type="danger"
+        onConfirm={() => {
+          confirmState.onConfirm()
+          setConfirmState((s) => ({ ...s, open: false }))
+        }}
+        onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
+      />
     </div>
   )
 }

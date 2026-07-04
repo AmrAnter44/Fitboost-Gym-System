@@ -1196,6 +1196,10 @@ export default function VisitorsPage() {
             </div>
             <div className="p-6">
               <MemberForm
+                onCancel={() => {
+                  setShowQuickSubscribeModal(false)
+                  setSelectedVisitorForSubscribe(null)
+                }}
                 onSuccess={async () => {
                   setShowQuickSubscribeModal(false)
                   setSelectedVisitorForSubscribe(null)

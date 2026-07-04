@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -45,6 +46,9 @@ export default function ConfirmDialog({
   type = 'warning'
 }: ConfirmDialogProps) {
   const { direction } = useLanguage()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useFocusTrap(panelRef, isOpen)
 
   useEffect(() => {
     if (isOpen) {
@@ -94,6 +98,7 @@ export default function ConfirmDialog({
       aria-labelledby="confirm-dialog-title"
     >
       <div
+        ref={panelRef}
         className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full ring-1 ${colors.ring} animate-modal-in overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
         dir={direction}
@@ -116,7 +121,7 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            autoFocus
+            autoFocus={type !== 'danger'}
             className={`flex-1 ${colors.confirmBtn} text-white py-2.5 px-5 rounded-lg font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800`}
           >
             {confirmText}
@@ -124,6 +129,7 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
+            autoFocus={type === 'danger'}
             className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 px-5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
           >
             {cancelText}

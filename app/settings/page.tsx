@@ -6,7 +6,9 @@ import Link from 'next/link'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useDarkMode } from '../../contexts/DarkModeContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
+import { useToast } from '../../contexts/ToastContext'
 import { LoadingScreen } from '../../components/Spinner'
+import ConfirmDialog from '../../components/ConfirmDialog'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -295,6 +297,8 @@ export default function SettingsPage() {
   const { locale, setLanguage, t, direction } = useLanguage()
   const { isDarkMode, toggleDarkMode } = useDarkMode()
   const { refetch: refetchServiceSettings } = useServiceSettings()
+  const toast = useToast()
+  const [confirmState, setConfirmState] = useState<{ open: boolean; message: string; title?: string; type?: 'danger' | 'warning' | 'info'; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} })
   const [user, setUser] = useState<any>(null)
   //  بنقرأ الـ section من الـ URL hash (مثل /settings#quick-links)
   // عشان لما اليوزر يرجع من /admin/users يلاقي نفس الـ section مفتوحة
@@ -621,43 +625,47 @@ export default function SettingsPage() {
   }
 
   const awardBirthdayPoints = async () => {
-    if (!confirm(t('settingsPage.points.confirmAward'))) {
-      return
-    }
+    setConfirmState({
+      open: true,
+      message: t('settingsPage.points.confirmAward'),
+      title: t('common.confirm'),
+      type: 'warning',
+      onConfirm: async () => {
+        setIsAwardingBirthday(true)
+        setBirthdayResult(null)
+        try {
+          const response = await fetch('/api/birthday-points', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer birthday-points-secret-2024'
+            }
+          })
+          const data = await response.json()
 
-    setIsAwardingBirthday(true)
-    setBirthdayResult(null)
-    try {
-      const response = await fetch('/api/birthday-points', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer birthday-points-secret-2024'
+          if (response.ok && data.success) {
+            setBirthdayResult({
+              type: 'success',
+              message: data.message,
+              count: data.count,
+              members: data.members
+            })
+            setTimeout(() => setBirthdayResult(null), 10000)
+          } else {
+            setBirthdayResult({
+              type: 'error',
+              message: data.message || t('settingsPage.points.failedToAward')
+            })
+          }
+        } catch (error) {
+          setBirthdayResult({
+            type: 'error',
+            message: t('settingsPage.networkError')
+          })
+        } finally {
+          setIsAwardingBirthday(false)
         }
-      })
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        setBirthdayResult({
-          type: 'success',
-          message: data.message,
-          count: data.count,
-          members: data.members
-        })
-        setTimeout(() => setBirthdayResult(null), 10000)
-      } else {
-        setBirthdayResult({
-          type: 'error',
-          message: data.message || t('settingsPage.points.failedToAward')
-        })
-      }
-    } catch (error) {
-      setBirthdayResult({
-        type: 'error',
-        message: t('settingsPage.networkError')
-      })
-    } finally {
-      setIsAwardingBirthday(false)
-    }
+      },
+    })
   }
 
   const toggleService = (serviceName: string) => {
@@ -690,10 +698,10 @@ export default function SettingsPage() {
         localStorage.removeItem('serviceSettingsCache')
         refetchServiceSettings()
       } else {
-        alert(data.error || t('settingsPage.display.logoUploadFailed'))
+        toast.error(data.error || t('settingsPage.display.logoUploadFailed'))
       }
     } catch {
-      alert(t('settingsPage.display.logoUploadFailed'))
+      toast.error(t('settingsPage.display.logoUploadFailed'))
     } finally {
       setIsUploadingLogo(false)
       e.target.value = ''
@@ -701,21 +709,28 @@ export default function SettingsPage() {
   }
 
   const handleLogoRemove = async () => {
-    if (!confirm(t('settingsPage.display.confirmRemoveLogo'))) return
-    setIsUploadingLogo(true)
-    try {
-      const res = await fetch('/api/settings/gym-logo', { method: 'DELETE' })
-      if (res.ok) {
-        setGymLogo(null)
-        localStorage.removeItem('gymLogo')
-        localStorage.removeItem('serviceSettingsCache')
-        refetchServiceSettings()
-      }
-    } catch {
-      alert(t('settingsPage.display.logoRemoveFailed'))
-    } finally {
-      setIsUploadingLogo(false)
-    }
+    setConfirmState({
+      open: true,
+      message: t('settingsPage.display.confirmRemoveLogo'),
+      title: t('settingsPage.display.removeLogo'),
+      type: 'danger',
+      onConfirm: async () => {
+        setIsUploadingLogo(true)
+        try {
+          const res = await fetch('/api/settings/gym-logo', { method: 'DELETE' })
+          if (res.ok) {
+            setGymLogo(null)
+            localStorage.removeItem('gymLogo')
+            localStorage.removeItem('serviceSettingsCache')
+            refetchServiceSettings()
+          }
+        } catch {
+          toast.error(t('settingsPage.display.logoRemoveFailed'))
+        } finally {
+          setIsUploadingLogo(false)
+        }
+      },
+    })
   }
 
   const handleColorChange = async (color: string | null) => {
@@ -751,7 +766,7 @@ export default function SettingsPage() {
         refetchServiceSettings()
       }
     } catch {
-      alert(t('settingsPage.display.colorSaveFailed'))
+      toast.error(t('settingsPage.display.colorSaveFailed'))
     } finally {
       setIsSavingColor(false)
     }
@@ -785,7 +800,7 @@ export default function SettingsPage() {
       } else {
         setPrimaryTextOverrideState(prev)
         applyPrimaryTextOverride(baseHex, prev)
-        alert(t('settingsPage.display.colorSaveFailed'))
+        toast.error(t('settingsPage.display.colorSaveFailed'))
       }
     } catch (err) {
       console.error('Failed to apply primary text override:', err)
@@ -820,50 +835,54 @@ export default function SettingsPage() {
   }
 
   const handleSyncDatabase = async () => {
-    if (!confirm('هل تريد تحديث قاعدة البيانات؟\n\nسيتم:\n• إصلاح الصلاحيات\n• مزامنة Schema\n• تطبيق Migrations\n• تحديث Prisma Client')) {
-      return
-    }
+    setConfirmState({
+      open: true,
+      message: 'هل تريد تحديث قاعدة البيانات؟\n\nسيتم:\n• إصلاح الصلاحيات\n• مزامنة Schema\n• تطبيق Migrations\n• تحديث Prisma Client',
+      title: 'تحديث قاعدة البيانات',
+      type: 'warning',
+      onConfirm: async () => {
+        setSyncingDatabase(true)
+        setSyncMessage(null)
 
-    setSyncingDatabase(true)
-    setSyncMessage(null)
+        try {
+          const response = await fetch('/api/database/sync', {
+            method: 'POST',
+          })
 
-    try {
-      const response = await fetch('/api/database/sync', {
-        method: 'POST',
-      })
+          const data = await response.json()
 
-      const data = await response.json()
+          if (data.success) {
+            const stepsText = data.steps
+              ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '[OK]' : s.status === 'error' ? '[X]' : '[-]'} ${s.message}`).join('\n')
+              : ''
 
-      if (data.success) {
-        const stepsText = data.steps
-          ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '[OK]' : s.status === 'error' ? '[X]' : '[-]'} ${s.message}`).join('\n')
-          : ''
+            setSyncMessage({
+              type: 'success',
+              text: `${data.message}${stepsText}`,
+              steps: data.steps
+            })
+            setTimeout(() => setSyncMessage(null), 20000)
+          } else {
+            const stepsText = data.steps
+              ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '[OK]' : s.status === 'error' ? '[X]' : '[-]'} ${s.message}`).join('\n')
+              : ''
 
-        setSyncMessage({
-          type: 'success',
-          text: `${data.message}${stepsText}`,
-          steps: data.steps
-        })
-        setTimeout(() => setSyncMessage(null), 20000)
-      } else {
-        const stepsText = data.steps
-          ? '\n\n' + data.steps.map((s: any) => `${s.status === 'success' ? '[OK]' : s.status === 'error' ? '[X]' : '[-]'} ${s.message}`).join('\n')
-          : ''
-
-        setSyncMessage({
-          type: 'error',
-          text: `${data.error || 'فشل التحديث'}${stepsText}`,
-          steps: data.steps
-        })
-      }
-    } catch (error) {
-      setSyncMessage({
-        type: 'error',
-        text: 'حدث خطأ أثناء تحديث قاعدة البيانات'
-      })
-    } finally {
-      setSyncingDatabase(false)
-    }
+            setSyncMessage({
+              type: 'error',
+              text: `${data.error || 'فشل التحديث'}${stepsText}`,
+              steps: data.steps
+            })
+          }
+        } catch (error) {
+          setSyncMessage({
+            type: 'error',
+            text: 'حدث خطأ أثناء تحديث قاعدة البيانات'
+          })
+        } finally {
+          setSyncingDatabase(false)
+        }
+      },
+    })
   }
 
   // 📦 تطبيق مميزات الباقة على الأعضاء (الحصص + الفريز + الدعوات)
@@ -921,46 +940,52 @@ export default function SettingsPage() {
         ? 'هل تريد تنظيف ملف قاعدة البيانات الأساسي (gym.db)؟\n\nالعملية آمنة وبتصغّر الحجم من غير ما تغيّر في البيانات.\nيُفضَّل عمل نسخة احتياطية قبلها من زر "النسخ الاحتياطي".'
         : `هل تريد تنظيف الملف "${target}"؟`
 
-    if (!confirm(confirmMsg)) return
+    setConfirmState({
+      open: true,
+      message: confirmMsg,
+      title: 'تنظيف قاعدة البيانات',
+      type: 'warning',
+      onConfirm: async () => {
+        setOptimizingDb(true)
+        setOptimizeMessage(null)
+        try {
+          const res = await fetch('/api/settings/database/optimize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(all ? { all: true } : { target: target || 'gym.db' }),
+          })
+          const data = await res.json()
 
-    setOptimizingDb(true)
-    setOptimizeMessage(null)
-    try {
-      const res = await fetch('/api/settings/database/optimize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(all ? { all: true } : { target: target || 'gym.db' }),
-      })
-      const data = await res.json()
+          if (!res.ok || data.success === false) {
+            setOptimizeMessage({ type: 'error', text: data.error || 'فشل تنظيف الملف' })
+            return
+          }
 
-      if (!res.ok || data.success === false) {
-        setOptimizeMessage({ type: 'error', text: data.error || 'فشل تنظيف الملف' })
-        return
-      }
+          if (all) {
+            const lines = (data.results || []).map((r: any) =>
+              r.success
+                ? `[OK] ${r.name}: ${r.before?.mb} MB → ${r.after?.mb} MB (وفّر ${r.saved?.mb} MB)`
+                : `[X] ${r.name}: ${r.error || 'فشل'}`
+            )
+            setOptimizeMessage({
+              type: 'success',
+              text: `تم تنظيف ${data.results?.length || 0} ملف\nالإجمالي المُوفَّر: ${data.totalSavedMB} MB\n\n${lines.join('\n')}`,
+            })
+          } else {
+            const msg = data.success
+              ? `${data.target}: ${data.before?.mb} MB → ${data.after?.mb} MB\nوفّر ${data.saved?.mb} MB (${data.saved?.percent}%)`
+              : data.error || 'فشل التنظيف'
+            setOptimizeMessage({ type: data.success ? 'success' : 'error', text: msg })
+          }
 
-      if (all) {
-        const lines = (data.results || []).map((r: any) =>
-          r.success
-            ? `[OK] ${r.name}: ${r.before?.mb} MB → ${r.after?.mb} MB (وفّر ${r.saved?.mb} MB)`
-            : `[X] ${r.name}: ${r.error || 'فشل'}`
-        )
-        setOptimizeMessage({
-          type: 'success',
-          text: `تم تنظيف ${data.results?.length || 0} ملف\nالإجمالي المُوفَّر: ${data.totalSavedMB} MB\n\n${lines.join('\n')}`,
-        })
-      } else {
-        const msg = data.success
-          ? `${data.target}: ${data.before?.mb} MB → ${data.after?.mb} MB\nوفّر ${data.saved?.mb} MB (${data.saved?.percent}%)`
-          : data.error || 'فشل التنظيف'
-        setOptimizeMessage({ type: data.success ? 'success' : 'error', text: msg })
-      }
-
-      fetchDbFiles()
-    } catch (err: any) {
-      setOptimizeMessage({ type: 'error', text: err.message || 'حدث خطأ أثناء التنظيف' })
-    } finally {
-      setOptimizingDb(false)
-    }
+          fetchDbFiles()
+        } catch (err: any) {
+          setOptimizeMessage({ type: 'error', text: err.message || 'حدث خطأ أثناء التنظيف' })
+        } finally {
+          setOptimizingDb(false)
+        }
+      },
+    })
   }
 
   // 🗜️ Base64 image cleanup — preflight + run
@@ -987,31 +1012,36 @@ export default function SettingsPage() {
 
   const handleRunCleanup = async () => {
     if (!cleanupInfo || cleanupInfo.candidates === 0) return
-    if (!confirm(
-      `هذه العملية ستقوم بالتالي:\n\n` +
-      `1️⃣ حفظ نسخة احتياطية من قاعدة البيانات\n` +
-      `2️⃣ نقل ${cleanupInfo.candidates} صورة من قاعدة البيانات لملفات\n` +
-      `3️⃣ ضغط قاعدة البيانات (VACUUM)\n\n` +
-      `الوقت المتوقع: ١-٢ دقيقة. تأكد إن مفيش حد بيستخدم النظام.\n\n` +
-      `هل تريد المتابعة؟`
-    )) return
-
-    setCleanupRunning(true)
-    setCleanupResult(null)
-    try {
-      const res = await fetch('/api/settings/database/migrate-base64-images', { method: 'POST' })
-      const data = await res.json()
-      if (data.success) {
-        setCleanupResult(data)
-        await fetchCleanupInfo()
-      } else {
-        alert(`فشل التنظيف: ${data.error || 'خطأ غير معروف'}`)
-      }
-    } catch (err: any) {
-      alert(`حدث خطأ أثناء التنظيف: ${err.message}`)
-    } finally {
-      setCleanupRunning(false)
-    }
+    setConfirmState({
+      open: true,
+      message:
+        `هذه العملية ستقوم بالتالي:\n\n` +
+        `1️⃣ حفظ نسخة احتياطية من قاعدة البيانات\n` +
+        `2️⃣ نقل ${cleanupInfo.candidates} صورة من قاعدة البيانات لملفات\n` +
+        `3️⃣ ضغط قاعدة البيانات (VACUUM)\n\n` +
+        `الوقت المتوقع: ١-٢ دقيقة. تأكد إن مفيش حد بيستخدم النظام.\n\n` +
+        `هل تريد المتابعة؟`,
+      title: 'تنظيف الصور',
+      type: 'warning',
+      onConfirm: async () => {
+        setCleanupRunning(true)
+        setCleanupResult(null)
+        try {
+          const res = await fetch('/api/settings/database/migrate-base64-images', { method: 'POST' })
+          const data = await res.json()
+          if (data.success) {
+            setCleanupResult(data)
+            await fetchCleanupInfo()
+          } else {
+            toast.error(`فشل التنظيف: ${data.error || 'خطأ غير معروف'}`)
+          }
+        } catch (err: any) {
+          toast.error(`حدث خطأ أثناء التنظيف: ${err.message}`)
+        } finally {
+          setCleanupRunning(false)
+        }
+      },
+    })
   }
 
   const fetchLocalIP = async () => {
@@ -1073,14 +1103,14 @@ export default function SettingsPage() {
       const res = await fetch('/api/offline-mode/flush', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
-        alert(data.error || 'فشل الإرسال')
+        toast.error(data.error || 'فشل الإرسال')
       } else {
         await fetchOfflineStatus()
-        alert(`تم: ${data.sent} ناجح، ${data.failed} فشل`)
+        toast.success(`تم: ${data.sent} ناجح، ${data.failed} فشل`)
       }
     } catch (error) {
       console.error('Flush sync error:', error)
-      alert('خطأ في الاتصال')
+      toast.error('خطأ في الاتصال')
     } finally {
       setFlushingSync(false)
     }
@@ -1092,27 +1122,33 @@ export default function SettingsPage() {
     const confirmMsg = next
       ? 'تفعيل وضع الأوفلاين؟ كل إيصال ومصروف هيتبعت لـ Fitboost dashboard تلقائياً.'
       : 'إيقاف وضع الأوفلاين؟ مش هيتبعت أي إيصال جديد بعد كده.'
-    if (!confirm(confirmMsg)) return
-
-    setOfflineToggling(true)
-    try {
-      const res = await fetch('/api/offline-mode/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: next })
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        alert(data.error || 'فشل التبديل')
-      } else {
-        await fetchOfflineStatus()
-      }
-    } catch (error) {
-      console.error('Toggle offline mode error:', error)
-      alert('خطأ في الاتصال')
-    } finally {
-      setOfflineToggling(false)
-    }
+    setConfirmState({
+      open: true,
+      message: confirmMsg,
+      title: 'وضع الأوفلاين',
+      type: 'warning',
+      onConfirm: async () => {
+        setOfflineToggling(true)
+        try {
+          const res = await fetch('/api/offline-mode/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: next })
+          })
+          const data = await res.json()
+          if (!res.ok) {
+            toast.error(data.error || 'فشل التبديل')
+          } else {
+            await fetchOfflineStatus()
+          }
+        } catch (error) {
+          console.error('Toggle offline mode error:', error)
+          toast.error('خطأ في الاتصال')
+        } finally {
+          setOfflineToggling(false)
+        }
+      },
+    })
   }
 
   const fetchGyms = async () => {
@@ -2590,10 +2626,10 @@ export default function SettingsPage() {
                         try {
                           const res = await fetch('/api/license/test')
                           const data = await res.json()
-                          alert(`Test Result:\nGyms: ${data.gyms?.count || 0}\nBranches: ${data.branches?.count || 0}\nCheck console for details`)
+                          toast.info(`Test Result:\nGyms: ${data.gyms?.count || 0}\nBranches: ${data.branches?.count || 0}\nCheck console for details`)
                         } catch (err) {
                           console.error('Test failed:', err)
-                          alert('Test failed - check console')
+                          toast.error('Test failed - check console')
                         }
                       }}
                       className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors duration-200"
@@ -3818,6 +3854,18 @@ export default function SettingsPage() {
           )}
         </main>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmState.open}
+        title={confirmState.title || ''}
+        message={confirmState.message}
+        type={confirmState.type || 'warning'}
+        onConfirm={() => {
+          confirmState.onConfirm()
+          setConfirmState((s) => ({ ...s, open: false }))
+        }}
+        onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
+      />
     </div>
   )
 }

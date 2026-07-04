@@ -11,6 +11,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { fetchExpenses } from '../../lib/api/expenses'
 import { fetchStaff } from '../../lib/api/staff'
 import { LoadingScreen } from '../../components/Spinner'
+import ConfirmDialog from '../../components/ConfirmDialog'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -1240,6 +1241,7 @@ function CategoryManagerModal({
 }) {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [confirmState, setConfirmState] = useState<{ open: boolean; message: string; title?: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} })
   const ar = direction === 'rtl'
 
   async function add() {
@@ -1264,13 +1266,20 @@ function CategoryManagerModal({
   }
 
   async function remove(id: string) {
-    if (!confirm(ar ? 'حذف التصنيف؟ (المصاريف القديمة هتحتفظ باسمه)' : 'Delete category? (old expenses keep its name)')) return
-    const res = await fetch(`/api/expense-categories/${id}`, { method: 'DELETE' })
-    if (res.ok) onChanged()
-    else toast.error(ar ? 'فشل الحذف' : 'Delete failed')
+    setConfirmState({
+      open: true,
+      message: ar ? 'حذف التصنيف؟ (المصاريف القديمة هتحتفظ باسمه)' : 'Delete category? (old expenses keep its name)',
+      title: ar ? 'حذف' : 'Delete',
+      onConfirm: async () => {
+        const res = await fetch(`/api/expense-categories/${id}`, { method: 'DELETE' })
+        if (res.ok) onChanged()
+        else toast.error(ar ? 'فشل الحذف' : 'Delete failed')
+      },
+    })
   }
 
   return (
+    <>
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-md w-full max-h-[92vh] overflow-y-auto animate-modal-in" dir={direction}>
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -1313,5 +1322,17 @@ function CategoryManagerModal({
         </div>
       </div>
     </div>
+    <ConfirmDialog
+      isOpen={confirmState.open}
+      title={confirmState.title || ''}
+      message={confirmState.message}
+      type="danger"
+      onConfirm={() => {
+        confirmState.onConfirm()
+        setConfirmState((s) => ({ ...s, open: false }))
+      }}
+      onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
+    />
+    </>
   )
 }

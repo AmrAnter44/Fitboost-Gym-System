@@ -504,9 +504,39 @@ export async function POST(request: Request) {
       memberData.createdAt = new Date(customCreatedAt)
     }
 
-    const member = await prisma.member.create({
-      data: memberData,
-    })
+    // إنشاء العضو مع معالجة سباق رقم العضوية:
+    // لو رقمين اتسجّلوا بنفس الرقم في نفس اللحظة، الـ unique constraint بيرفض
+    // الثاني (P2002). بدل ما نرجّع 500 محيّر، بنجيب أول رقم متاح ونعيد المحاولة.
+    let member
+    let createAttempts = 0
+    while (true) {
+      try {
+        member = await prisma.member.create({ data: memberData })
+        break
+      } catch (createErr: any) {
+        const target = createErr?.meta?.target
+        const isNumberClash = createErr?.code === 'P2002' &&
+          cleanMemberNumber !== null &&
+          (Array.isArray(target) ? target.includes('memberNumber') : String(target || '').includes('memberNumber'))
+
+        if (isNumberClash && createAttempts < 25) {
+          createAttempts++
+          let n = parseInt(String(cleanMemberNumber)) + 1
+          for (let i = 0; i < 1000; i++) {
+            const taken = await prisma.member.findUnique({
+              where: { memberNumber: String(n) },
+              select: { id: true },
+            })
+            if (!taken) break
+            n++
+          }
+          cleanMemberNumber = String(n)
+          memberData.memberNumber = cleanMemberNumber
+          continue
+        }
+        throw createErr
+      }
+    }
 
     // 📝 Audit log
     createAuditLog({

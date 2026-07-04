@@ -22,10 +22,27 @@ release/
 prisma/*.db
 prisma/*.db-journal
 prisma/*.db.backup*
+prisma/*.autobackup.*
+prisma/*.pre-migrate-*
 prisma/*.integrity_backup
 prisma/**/*.db
 prisma/**/*.db-journal
 *.db-journal
+
+# Member photos (بيانات شخصية حساسة - لا ترفع على Git)
+prisma/photos/
+
+# WhatsApp session credentials (سرية - تعطي تحكم كامل في حساب الواتساب)
+.baileys_auth/
+.wwebjs_cache/
+.wwebjs_auth/
+
+# Client / assistant electron builds
+dist-client/
+
+# Test artifacts
+test-results/
+playwright-report/
 
 # Electron builds
 *.exe

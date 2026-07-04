@@ -9,6 +9,7 @@ import { formatDateYMD, calculateRemainingDays } from '../lib/dateFormatter'
 import ImageUpload from '../components/ImageUpload'
 import BarcodeWhatsApp from '../components/BarcodeWhatsApp'
 import { LoadingScreen } from '../components/Spinner'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 import type { PaymentMethod } from '../lib/paymentHelpers'
@@ -49,6 +50,7 @@ export default function MemberDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptData, setReceiptData] = useState<any>(null)
+  const [confirmState, setConfirmState] = useState<{ open: boolean; message: string; title?: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} })
 
   const [paymentData, setPaymentData] = useState<{
     amount: number
@@ -165,28 +167,33 @@ export default function MemberDetailPage() {
       return
     }
 
-    if (!confirm(t('memberDetails.confirmUseInBody'))) return
+    setConfirmState({
+      open: true,
+      message: t('memberDetails.confirmUseInBody'),
+      title: t('memberDetails.useInBody'),
+      onConfirm: async () => {
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: member.id,
+              inBodyScans: member.inBodyScans - 1
+            })
+          })
 
-    setLoading(true)
-    try {
-      const response = await fetch('/api/members', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: member.id,
-          inBodyScans: member.inBodyScans - 1
-        })
-      })
-
-      if (response.ok) {
-        toast.success(t('memberDetails.inBodyUsed'))
-        fetchMember()
-      }
-    } catch (error) {
-      toast.error(t('common.error'))
-    } finally {
-      setLoading(false)
-    }
+          if (response.ok) {
+            toast.success(t('memberDetails.inBodyUsed'))
+            fetchMember()
+          }
+        } catch (error) {
+          toast.error(t('common.error'))
+        } finally {
+          setLoading(false)
+        }
+      },
+    })
   }
 
   const handleUseInvitation = async () => {
@@ -195,28 +202,33 @@ export default function MemberDetailPage() {
       return
     }
 
-    if (!confirm(t('memberDetails.confirmUseInvitation'))) return
+    setConfirmState({
+      open: true,
+      message: t('memberDetails.confirmUseInvitation'),
+      title: t('memberDetails.useInvitation'),
+      onConfirm: async () => {
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: member.id,
+              invitations: member.invitations - 1
+            })
+          })
 
-    setLoading(true)
-    try {
-      const response = await fetch('/api/members', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: member.id,
-          invitations: member.invitations - 1
-        })
-      })
-
-      if (response.ok) {
-        toast.success(t('memberDetails.invitationUsed'))
-        fetchMember()
-      }
-    } catch (error) {
-      toast.error(t('common.error'))
-    } finally {
-      setLoading(false)
-    }
+          if (response.ok) {
+            toast.success(t('memberDetails.invitationUsed'))
+            fetchMember()
+          }
+        } catch (error) {
+          toast.error(t('common.error'))
+        } finally {
+          setLoading(false)
+        }
+      },
+    })
   }
 
   const handleUseFreePT = async () => {
@@ -225,28 +237,33 @@ export default function MemberDetailPage() {
       return
     }
 
-    if (!confirm(t('memberDetails.confirmUseFreePT'))) return
+    setConfirmState({
+      open: true,
+      message: t('memberDetails.confirmUseFreePT'),
+      title: t('memberDetails.useFreePT'),
+      onConfirm: async () => {
+        setLoading(true)
+        try {
+          const response = await fetch('/api/members', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: member.id,
+              freePTSessions: member.freePTSessions - 1
+            })
+          })
 
-    setLoading(true)
-    try {
-      const response = await fetch('/api/members', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: member.id,
-          freePTSessions: member.freePTSessions - 1
-        })
-      })
-
-      if (response.ok) {
-        toast.success(t('memberDetails.freePTUsed'))
-        fetchMember()
-      }
-    } catch (error) {
-      toast.error(t('common.error'))
-    } finally {
-      setLoading(false)
-    }
+          if (response.ok) {
+            toast.success(t('memberDetails.freePTUsed'))
+            fetchMember()
+          }
+        } catch (error) {
+          toast.error(t('common.error'))
+        } finally {
+          setLoading(false)
+        }
+      },
+    })
   }
 
   const handleFreeze = async () => {
@@ -1094,6 +1111,18 @@ export default function MemberDetailPage() {
           onClose={() => setShowReceipt(false)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={confirmState.open}
+        title={confirmState.title || ''}
+        message={confirmState.message}
+        type="warning"
+        onConfirm={() => {
+          confirmState.onConfirm()
+          setConfirmState((s) => ({ ...s, open: false }))
+        }}
+        onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
+      />
     </div>
   )
 }

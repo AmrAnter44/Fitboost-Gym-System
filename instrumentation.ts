@@ -44,5 +44,16 @@ export async function register() {
         console.error('[OfflineSync] worker error:', err?.message || err)
       )
     }, 60_000)
+
+    // نسخة احتياطية يومية تلقائية للـ DB — بتتأكد كل 6 ساعات وبتاخد نسخة لو عدّى
+    // يوم على آخر واحدة (رخيصة لو مش مستحقة). أول تشغيل بعد دقيقة من الإقلاع.
+    const { runDailyBackupIfDue } = await import('./lib/autoBackup')
+    const backupTick = () => {
+      runDailyBackupIfDue()
+        .then((r) => { if (r.backed) console.log('[autoBackup] daily backup created') })
+        .catch((err) => console.error('[autoBackup] worker error:', err?.message || err))
+    }
+    setTimeout(backupTick, 60_000)
+    setInterval(backupTick, 6 * 60 * 60 * 1000)
   }
 }

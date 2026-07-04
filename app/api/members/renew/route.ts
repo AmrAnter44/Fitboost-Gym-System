@@ -10,7 +10,9 @@ import {
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { addPointsForPayment } from '../../../../lib/points'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
-import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
+import { round2 } from '../../../../lib/money'
+import { RenewInputSchema, firstIssue } from '../../../../lib/schemas/financialSchemas'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 import { logError } from '../../../../lib/errorLogger'
 
@@ -29,6 +31,13 @@ export async function POST(request: Request) {
     }
     
     const body = await request.json()
+
+    // ✅ تحقّق من صحة المدخلات المالية (سعر موجب، رقم عضو موجود)
+    const renewErr = firstIssue(RenewInputSchema.safeParse(body))
+    if (renewErr) {
+      return NextResponse.json({ error: renewErr }, { status: 400 })
+    }
+
     const {
       memberId,
       subscriptionPrice,
@@ -121,34 +130,11 @@ export async function POST(request: Request) {
     if (renewExpiry) renewExpiry.setHours(0, 0, 0, 0)
     const renewIsActive = !renewExpiry || renewExpiry >= renewToday
 
-    // تحديث بيانات العضو
-    const updatedMember = await prisma.member.update({
-      where: { id: memberId },
-      data: {
-        subscriptionPrice,
-        remainingAmount: remainingAmount || 0,
-        remainingDueDate: remainingDueDate ? new Date(remainingDueDate) : null,
-        freePTSessions: totalFreePT,
-        freeNutritionSessions: totalNutritionSessions,
-        freePhysioSessions: totalPhysioSessions,
-        freeGroupClassSessions: totalGroupClassSessions,
-        inBodyScans: totalInBody,
-        invitations: totalInvitations,
-        remainingFreezeDays: totalFreezeDays,
-        startDate: startDate ? new Date(startDate) : null,
-        expiryDate: expiryDate ? new Date(expiryDate) : null,
-        isActive: renewIsActive,
-        notes: notes || member.notes,
-        // مصدر العضو — يتحدّث لو اتبعت من التجديد
-        ...(source !== undefined ? { source: source || null } : {}),
-        // 📦 تحديث الباقة لو اتبعت من التجديد (لو مش موجودة سيبها زي ما هي)
-        ...(offerId ? { offerId } : {}),
-      },
-    })
-
+    // ملاحظة: تحديث بيانات العضو اتنقل جوّه الـ $transaction تحت عشان لو
+    // إنشاء الإيصال فشل يترجع التجديد بالكامل (مفيش عضو متجدّد بدون إيصال).
 
     // إنشاء إيصال التجديد
-    const paidAmount = subscriptionPrice - (remainingAmount || 0)
+    const paidAmount = round2(subscriptionPrice - (remainingAmount || 0))
 
     // حساب مدة الاشتراك
     let subscriptionDays = null
@@ -177,11 +163,36 @@ export async function POST(request: Request) {
     const safeStaffName = (staffName || '').trim()
 
     let receipt: any
+    let updatedMember: any
     try {
-      const receiptNumber = await getNextReceiptNumberDirect(prisma)
-
-      // ✅ BUG 3: Receipt + points في transaction واحد
+      // ✅ العضو + رقم الإيصال + الإيصال + النقاط كلهم في transaction واحد.
+      //    لو أي خطوة فشلت، التجديد بالكامل بيترجع (atomic).
       const txResult = await prisma.$transaction(async (tx) => {
+        const um = await tx.member.update({
+          where: { id: memberId },
+          data: {
+            subscriptionPrice,
+            remainingAmount: round2(remainingAmount || 0),
+            remainingDueDate: remainingDueDate ? new Date(remainingDueDate) : null,
+            freePTSessions: totalFreePT,
+            freeNutritionSessions: totalNutritionSessions,
+            freePhysioSessions: totalPhysioSessions,
+            freeGroupClassSessions: totalGroupClassSessions,
+            inBodyScans: totalInBody,
+            invitations: totalInvitations,
+            remainingFreezeDays: totalFreezeDays,
+            startDate: startDate ? new Date(startDate) : null,
+            expiryDate: expiryDate ? new Date(expiryDate) : null,
+            isActive: renewIsActive,
+            notes: notes || member.notes,
+            ...(source !== undefined ? { source: source || null } : {}),
+            ...(offerId ? { offerId } : {}),
+          },
+        })
+
+        // رقم الإيصال جوّه الـ transaction عشان نتجنّب تكرار الأرقام (race)
+        const receiptNumber = await getNextReceiptNumber(tx)
+
         const r = await tx.receipt.create({
           data: {
             receiptNumber: receiptNumber,
@@ -245,9 +256,10 @@ export async function POST(request: Request) {
           throw e
         }
 
-        return { receipt: r }
+        return { receipt: r, member: um }
       })
       receipt = txResult.receipt
+      updatedMember = txResult.member
     } catch (txErr: any) {
       if (txErr?.code === 'POINTS_FAILED') {
         return NextResponse.json(
@@ -255,15 +267,13 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       }
-      // ✅ BUG 6: لو الـ receipt creation فشل فعلاً (مش بعد ما اتسجّل)
-      // الـ transaction بيـ rollback، فمفيش orphan في الـ DB.
-      console.error('❌ خطأ في إنشاء إيصال التجديد:', txErr)
-      logError({ error: txErr, endpoint: '/api/members/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed', memberId } })
+      // الـ transaction بيـ rollback تحديث العضو والإيصال معاً — مفيش عضو
+      // متجدّد بدون إيصال. بنرجّع خطأ واضح عشان الموظف يعيد المحاولة.
+      console.error('❌ خطأ في تجديد الاشتراك (rolled back):', txErr)
+      logError({ error: txErr, endpoint: '/api/members/renew', method: 'POST', statusCode: 500, additionalContext: { type: 'renew_transaction_failed', memberId } })
       return NextResponse.json({
-        member: updatedMember,
-        receipt: null,
-        warning: 'تم التجديد لكن فشل إنشاء الإيصال'
-      }, { status: 200 })
+        error: 'فشل تسجيل التجديد ولم يتم أي تغيير. من فضلك حاول مرة أخرى.'
+      }, { status: 500 })
     }
 
     // إضافة نقاط مكافأة على الدفع — خارج الـ transaction لأن فشلها ما يهمناش

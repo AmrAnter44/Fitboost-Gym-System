@@ -99,6 +99,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     if (typeof value !== 'string') {
       // فقط اظهر التحذير اذا كانت الرسائل محملة بالفعل (ليس كائن فارغ)
       if (Object.keys(messages).length > 0) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[i18n] missing key:', key)
+        }
       }
       return key
     }

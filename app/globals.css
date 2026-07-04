@@ -151,6 +151,7 @@
 
 
 
+
 /* Dark Mode Colors */
 .dark {
   /* Dark Mode Primary Colors */
@@ -188,6 +189,23 @@
   padding: 0;
   margin: 0;
   user-select: none;
+}
+
+/* Re-enable text selection on data surfaces so member data stays copyable
+   while chrome (buttons/nav) remains non-selectable via the rule above */
+input,
+textarea,
+select,
+td,
+th,
+p,
+span,
+a,
+code,
+[data-selectable],
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 html,

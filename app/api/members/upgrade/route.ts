@@ -9,7 +9,9 @@ import {
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
 import { addPointsForPayment, addPoints } from '../../../../lib/points'
-import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
+import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
+import { round2 } from '../../../../lib/money'
+import { UpgradeInputSchema, firstIssue } from '../../../../lib/schemas/financialSchemas'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 import { logError } from '../../../../lib/errorLogger'
 
@@ -31,6 +33,13 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canCreateMembers')
 
     const body = await request.json()
+
+    // ✅ تحقّق من صحة المدخلات المالية
+    const upgradeErr = firstIssue(UpgradeInputSchema.safeParse(body))
+    if (upgradeErr) {
+      return NextResponse.json({ error: upgradeErr }, { status: 400 })
+    }
+
     const {
       memberId,
       newOfferId,
@@ -143,31 +152,24 @@ export async function POST(request: Request) {
       oldExpiryDate: formatDateYMD(member.expiryDate)
     }
 
-    // 11. تحديث بيانات العضو (REPLACE الخدمات، ليس ADD)
-    const updatedMember = await prisma.member.update({
-      where: { id: memberId },
-      data: {
-        subscriptionPrice: newOffer.price,
-        freePTSessions: newOffer.freePTSessions,           // REPLACE
-        freeNutritionSessions: newOffer.freeNutritionSessions, // REPLACE
-        freePhysioSessions: newOffer.freePhysioSessions,   // REPLACE
-        freeGroupClassSessions: newOffer.freeGroupClassSessions, // REPLACE
-        inBodyScans: newOffer.inBodyScans,                 // REPLACE
-        invitations: newOffer.invitations,                 // REPLACE
-        remainingFreezeDays: newOffer.freezeDays,          // REPLACE
-        expiryDate: newExpiryDate,
-        // startDate يبقى كما هو - لا يتغير
-        remainingAmount: remainingAmount || 0,
-        remainingDueDate: remainingDueDate ? new Date(remainingDueDate) : null,
-        isActive: !newExpiryDate || new Date(newExpiryDate) >= new Date(new Date().setHours(0,0,0,0))
+    // 11. معالجة وسائل الدفع + التحقق قبل أي تعديل
+    //     (لو التوزيع غلط نرجّع 400 من غير ما نترّقي العضو)
+    const amountToPay = round2(upgradeAmount - (remainingAmount || 0))
+    let finalPaymentMethod: string
+    if (Array.isArray(paymentMethod)) {
+      const validation = validatePaymentDistribution(paymentMethod, amountToPay)
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.message || 'توزيع المبالغ غير صحيح' },
+          { status: 400 }
+        )
       }
-    })
+      finalPaymentMethod = serializePaymentMethods(paymentMethod)
+    } else {
+      finalPaymentMethod = paymentMethod || 'cash'
+    }
 
-
-    // 12. الحصول على رقم الإيصال التالي (atomic operation)
-    const receiptNumber = await getNextReceiptNumberDirect(prisma)
-
-    // 13. إنشاء تفاصيل الإيصال
+    // 12. تفاصيل الإيصال
     const itemDetails = {
       memberNumber: member.memberNumber,
       memberName: member.name,
@@ -197,36 +199,46 @@ export async function POST(request: Request) {
       salesPersonName: member.salesStaff?.name || null,
       paymentMethod,
       balanceDeducted: remainingAmount || 0,
-      paidAmount: upgradeAmount - (remainingAmount || 0),
+      paidAmount: amountToPay,
     }
 
-    // 14. معالجة وسائل الدفع المتعددة
-    let finalPaymentMethod: string
-    if (Array.isArray(paymentMethod)) {
-      const amountToPay = upgradeAmount - (remainingAmount || 0)
-      const validation = validatePaymentDistribution(paymentMethod, amountToPay)
-      if (!validation.valid) {
-        return NextResponse.json(
-          { error: validation.message || 'توزيع المبالغ غير صحيح' },
-          { status: 400 }
-        )
-      }
-      finalPaymentMethod = serializePaymentMethods(paymentMethod)
-    } else {
-      finalPaymentMethod = paymentMethod || 'cash'
-    }
+    // 13. تحديث العضو + رقم الإيصال + إنشاء الإيصال في transaction واحد (atomic)
+    //     لو الإيصال فشل، ترقية العضو بترجع بالكامل — مفيش عضو مترقّى بدون إيصال.
+    const { updatedMember, receipt, receiptNumber } = await prisma.$transaction(async (tx) => {
+      const um = await tx.member.update({
+        where: { id: memberId },
+        data: {
+          subscriptionPrice: newOffer.price,
+          freePTSessions: newOffer.freePTSessions,           // REPLACE
+          freeNutritionSessions: newOffer.freeNutritionSessions, // REPLACE
+          freePhysioSessions: newOffer.freePhysioSessions,   // REPLACE
+          freeGroupClassSessions: newOffer.freeGroupClassSessions, // REPLACE
+          inBodyScans: newOffer.inBodyScans,                 // REPLACE
+          invitations: newOffer.invitations,                 // REPLACE
+          remainingFreezeDays: newOffer.freezeDays,          // REPLACE
+          expiryDate: newExpiryDate,
+          // startDate يبقى كما هو - لا يتغير
+          remainingAmount: round2(remainingAmount || 0),
+          remainingDueDate: remainingDueDate ? new Date(remainingDueDate) : null,
+          isActive: !newExpiryDate || new Date(newExpiryDate) >= new Date(new Date().setHours(0,0,0,0))
+        }
+      })
 
-    // 15. إنشاء الإيصال
-    const receipt = await prisma.receipt.create({
-      data: {
-        receiptNumber,
-        type: 'ترقية باكدج',
-        amount: upgradeAmount - (remainingAmount || 0),
-        itemDetails: JSON.stringify(itemDetails),
-        paymentMethod: finalPaymentMethod,
-        memberId: member.id,
-        staffName: staffName || 'غير محدد'
-      }
+      const rn = await getNextReceiptNumber(tx)
+
+      const r = await tx.receipt.create({
+        data: {
+          receiptNumber: rn,
+          type: 'ترقية باكدج',
+          amount: amountToPay,
+          itemDetails: JSON.stringify(itemDetails),
+          paymentMethod: finalPaymentMethod,
+          memberId: member.id,
+          staffName: staffName || 'غير محدد'
+        }
+      })
+
+      return { updatedMember: um, receipt: r, receiptNumber: rn }
     })
 
     // إضافة نقاط الترقية إذا كانت محددة في العرض

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apiCache, CACHE_TTL } from '@/lib/cache';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rateLimit';
+import { verifyMemberPhone } from '@/lib/memberVerify';
 
 export async function GET(
   request: NextRequest,
@@ -22,6 +23,11 @@ export async function GET(
 
   try {
     const { memberId } = await params;
+
+    // 🔒 تأكيد الملكية برقم الهاتف (ضد الـ IDOR)
+    if (!(await verifyMemberPhone(memberId, new URL(request.url).searchParams.get('phone')))) {
+      return NextResponse.json({ error: 'يجب إدخال رقم هاتفك لعرض هذه البيانات' }, { status: 401 });
+    }
 
     const cacheKey = `services:${memberId}`
     const cached = apiCache.get<object>(cacheKey)

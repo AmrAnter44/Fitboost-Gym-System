@@ -3891,6 +3891,11 @@ function FollowUpsPageContent() {
             </div>
             <div className="p-6">
               <MemberForm
+                onCancel={() => {
+                  setShowQuickSubscribeModal(false)
+                  setSelectedVisitorForSubscribe(null)
+                  setSelectedFollowUpSalesStaffId(null)
+                }}
                 onSuccess={() => {
                   setShowQuickSubscribeModal(false)
                   setSelectedVisitorForSubscribe(null)

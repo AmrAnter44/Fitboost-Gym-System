@@ -18,6 +18,7 @@ import { MembersSkeleton } from '../../components/LoadingSkeleton'
 import { LoadingScreen } from '../../components/Spinner'
 import { useDebounce } from '../../hooks/useDebounce'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
+import ConfirmDialog from '../../components/ConfirmDialog'
 
 // Dynamic imports - تحميل المكونات الثقيلة عند الحاجة فقط
 const MemberForm = nextDynamic(() => import('../../components/MemberForm'), {
@@ -226,6 +227,7 @@ function MembersPageContent() {
   const [banForm, setBanForm] = useState({ name: '', phone: '', nationalId: '', reason: '', notes: '' })
   const [banSubmitting, setBanSubmitting] = useState(false)
   const [banError, setBanError] = useState('')
+  const [confirmState, setConfirmState] = useState<{ open: boolean; onConfirm: () => void; message: string; title?: string }>({ open: false, onConfirm: () => {}, message: '' })
   const [bulkWAMessage, setBulkWAMessage] = useState('السلام عليكم {name}، اشتراكك في الجيم انتهى أو قارب على الانتهاء. تواصل معنا لتجديد اشتراكك. ')
   const [bulkWASent, setBulkWASent] = useState(0)
 
@@ -687,12 +689,18 @@ function MembersPageContent() {
     }
   }
 
-  const handleRemoveBan = async (id: string) => {
-    if (!confirm('هل تريد إزالة هذا الشخص من قائمة المحظورين؟')) return
-    try {
-      await fetch(`/api/banned-members?id=${id}`, { method: 'DELETE' })
-      fetchBannedMembers()
-    } catch {}
+  const handleRemoveBan = (id: string) => {
+    setConfirmState({
+      open: true,
+      title: t('common.confirm'),
+      message: 'هل تريد إزالة هذا الشخص من قائمة المحظورين؟',
+      onConfirm: async () => {
+        try {
+          await fetch(`/api/banned-members?id=${id}`, { method: 'DELETE' })
+          fetchBannedMembers()
+        } catch {}
+      }
+    })
   }
 
   // WhatsApp جماعي
@@ -954,6 +962,10 @@ function MembersPageContent() {
           <MemberForm
             onSuccess={() => {
               refetchMembers()
+              setShowForm(false)
+              setPrefillData(null)
+            }}
+            onCancel={() => {
               setShowForm(false)
               setPrefillData(null)
             }}
@@ -2454,6 +2466,14 @@ function MembersPageContent() {
         </div>
       )}
 
+      <ConfirmDialog
+        isOpen={confirmState.open}
+        title={confirmState.title || t('common.confirm')}
+        message={confirmState.message}
+        type="danger"
+        onCancel={() => setConfirmState(s => ({ ...s, open: false }))}
+        onConfirm={() => { confirmState.onConfirm(); setConfirmState(s => ({ ...s, open: false })) }}
+      />
     </div>
   )
 }

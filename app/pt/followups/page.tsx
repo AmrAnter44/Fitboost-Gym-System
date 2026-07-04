@@ -10,6 +10,7 @@ import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
 import { LoadingScreen } from '../../../components/Spinner'
 import { createWhatsAppUrl } from '../../../lib/whatsappHelper'
+import ConfirmDialog from '../../../components/ConfirmDialog'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -108,6 +109,7 @@ export default function PTFollowupsPage() {
   const [submitting, setSubmitting] = useState(false)
   //  فلتر حالة المتابعة: all / contacted / with / without
   const [contactFilter, setContactFilter] = useState<'all' | 'contacted' | 'with' | 'without'>('all')
+  const [confirmState, setConfirmState] = useState<{ open: boolean; message: string; title?: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} })
 
   const fetchData = async () => {
     setLoading(true)
@@ -199,14 +201,20 @@ export default function PTFollowupsPage() {
   }
 
   const deleteLog = async (logId: string) => {
-    if (!confirm(locale === 'ar' ? 'حذف هذا السجل؟' : 'Delete this entry?')) return
-    const res = await fetch(`/api/pt/followups/${logId}`, { method: 'DELETE' })
-    if (res.ok) {
-      toast.success(locale === 'ar' ? 'تم الحذف' : 'Deleted')
-      fetchData()
-    } else {
-      toast.error(locale === 'ar' ? 'فشل الحذف' : 'Delete failed')
-    }
+    setConfirmState({
+      open: true,
+      message: locale === 'ar' ? 'حذف هذا السجل؟' : 'Delete this entry?',
+      title: locale === 'ar' ? 'حذف' : 'Delete',
+      onConfirm: async () => {
+        const res = await fetch(`/api/pt/followups/${logId}`, { method: 'DELETE' })
+        if (res.ok) {
+          toast.success(locale === 'ar' ? 'تم الحذف' : 'Deleted')
+          fetchData()
+        } else {
+          toast.error(locale === 'ar' ? 'فشل الحذف' : 'Delete failed')
+        }
+      },
+    })
   }
 
   const openWhatsApp = (pt: PTRow) => {
@@ -520,6 +528,18 @@ export default function PTFollowupsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmState.open}
+        title={confirmState.title || ''}
+        message={confirmState.message}
+        type="danger"
+        onConfirm={() => {
+          confirmState.onConfirm()
+          setConfirmState((s) => ({ ...s, open: false }))
+        }}
+        onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
+      />
     </div>
   )
 }

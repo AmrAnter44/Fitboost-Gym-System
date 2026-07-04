@@ -355,7 +355,11 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false, // Disabled for localhost development
+      // ⚠️ أمان: webSecurity مقفول عشان توليد صور الإيصالات/الباركود (html2canvas)
+      //    على صور قد تكون cross-origin. تفعيله (true) بيحسّن الأمان لكن لازم
+      //    يتجرّب إن الإيصالات والباركود لسه بيتولّدوا صح قبل الشحن.
+      //    ملاحظة: تعطيل X-Frame-Options/CSP محصور على partitions الواتساب بس (تحت).
+      webSecurity: false,
       partition: 'persist:gym', // ✅ session دائم - بيتحفظ بعد إغلاق الأبلكيشن
       enableRemoteModule: false,
       preload: path.join(__dirname, 'preload.js'),

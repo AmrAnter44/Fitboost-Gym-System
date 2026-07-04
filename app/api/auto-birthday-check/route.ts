@@ -24,9 +24,13 @@ export async function GET(request: Request) {
       })
     }
 
-    // التحقق من التاريخ الحالي
+    // التاريخ الحالي — بتوقيت محلي عشان يتطابق مع مقارنة الشهر/اليوم تحت
+    // (لو استخدمنا UTC عند منتصف الليل بتوقيت مصر، الـ guard والمقارنة يختلفوا
+    //  فتتمنح نقط في اليوم الغلط أو تتكرّر/تتسكب قرب منتصف الليل)
     const today = new Date()
-    const todayString = today.toISOString().split('T')[0] // YYYY-MM-DD
+    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const startOfTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
 
     // التحقق إذا كان تم الفحص اليوم
     if (settings.lastBirthdayPointsCheck === todayString) {
@@ -67,13 +71,12 @@ export async function GET(request: Request) {
     })
 
 
-    // تحديث تاريخ آخر فحص (حتى لو لم يكن هناك أعضاء)
-    await prisma.systemSettings.update({
-      where: { id: settings.id },
-      data: { lastBirthdayPointsCheck: todayString }
-    })
-
     if (birthdayMembers.length === 0) {
+      // مفيش أعياد النهاردة — نوسم الفحص ونرجع
+      await prisma.systemSettings.update({
+        where: { id: settings.id },
+        data: { lastBirthdayPointsCheck: todayString }
+      })
       return NextResponse.json({
         success: true,
         message: 'لا توجد أعياد ميلاد اليوم',
@@ -82,40 +85,55 @@ export async function GET(request: Request) {
       })
     }
 
-    // منح النقاط لكل عضو
+    // منح النقاط لكل عضو — كل عضو في transaction، ومع idempotency check عشان
+    // لو الـ process وقع في نص اللوب، إعادة التشغيل ما تمنحش نفس العضو مرتين.
     const results = []
     for (const member of birthdayMembers) {
       try {
-        // تحديث نقاط العضو
-        await prisma.member.update({
-          where: { id: member.id },
-          data: {
-            points: {
-              increment: settings.pointsPerBirthday
-            }
-          }
+        const awarded = await prisma.$transaction(async (tx) => {
+          const already = await tx.pointsHistory.findFirst({
+            where: {
+              memberId: member.id,
+              action: 'birthday',
+              createdAt: { gte: startOfToday, lt: startOfTomorrow },
+            },
+          })
+          if (already) return false
+
+          await tx.member.update({
+            where: { id: member.id },
+            data: { points: { increment: settings.pointsPerBirthday } },
+          })
+          await tx.pointsHistory.create({
+            data: {
+              memberId: member.id,
+              points: settings.pointsPerBirthday,
+              action: 'birthday',
+              description: `🎂 عيد ميلاد سعيد! تم منح ${settings.pointsPerBirthday} نقطة تلقائياً`,
+            },
+          })
+          return true
         })
 
-        // تسجيل في تاريخ النقاط
-        await prisma.pointsHistory.create({
-          data: {
-            memberId: member.id,
-            points: settings.pointsPerBirthday,
-            action: 'birthday',
-            description: `🎂 عيد ميلاد سعيد! تم منح ${settings.pointsPerBirthday} نقطة تلقائياً`
-          }
-        })
-
-        results.push({
-          memberNumber: member.memberNumber,
-          name: member.name,
-          pointsAwarded: settings.pointsPerBirthday
-        })
+        if (awarded) {
+          results.push({
+            memberNumber: member.memberNumber,
+            name: member.name,
+            pointsAwarded: settings.pointsPerBirthday
+          })
+        }
 
       } catch (error) {
         console.error(`❌ [AUTO] خطأ في منح نقاط لـ ${member.name}:`, error)
       }
     }
+
+    // وسم الفحص بعد ما نخلّص المنح (مش قبله) عشان لو حصل crash في النص،
+    // الأعضاء الباقيين ما يتسكبوش — إعادة التشغيل بتكمّل الباقي.
+    await prisma.systemSettings.update({
+      where: { id: settings.id },
+      data: { lastBirthdayPointsCheck: todayString }
+    })
 
     return NextResponse.json({
       success: true,

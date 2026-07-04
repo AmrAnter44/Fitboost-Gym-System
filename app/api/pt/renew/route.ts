@@ -9,6 +9,8 @@ import {
 import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
 import { RECEIPT_TYPES } from '../../../../lib/receiptTypes'
 import { getNextReceiptNumber } from '../../../../lib/receiptHelpers'
+import { round2 } from '../../../../lib/money'
+import { PtRenewInputSchema, firstIssue } from '../../../../lib/schemas/financialSchemas'
 import { logError } from '../../../../lib/errorLogger'
 
 export const dynamic = 'force-dynamic'
@@ -25,6 +27,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+
+    // ✅ تحقّق من صحة المدخلات المالية
+    const ptRenewErr = firstIssue(PtRenewInputSchema.safeParse(body))
+    if (ptRenewErr) {
+      return NextResponse.json({ error: ptRenewErr }, { status: 400 })
+    }
+
     const {
       ptNumber,
       phone,
@@ -72,33 +81,16 @@ export async function POST(request: Request) {
     // حفظ المبلغ المتبقي القديم قبل التحديث
     const oldRemainingAmount = existingPT.remainingAmount || 0
 
-    // تحديث جلسة PT (استبدال البيانات بالبيانات الجديدة وإرجاع المبلغ المتبقي)
-    const updatedPT = await prisma.pT.update({
-      where: { ptNumber: parseInt(ptNumber) },
-      data: {
-        phone,
-        sessionsPurchased: sessionsPurchased,
-        sessionsRemaining: sessionsPurchased,
-        coachName,
-        pricePerSession,
-        startDate: startDate ? new Date(startDate) : existingPT.startDate,
-        expiryDate: expiryDate ? new Date(expiryDate) : existingPT.expiryDate,
-        //  المبلغ المتبقي في التجديد = اللي اليوزر دخّله (افتراضياً 0 لو ما حدّدش حاجة)
-        remainingAmount: parsedRemaining,
-      },
-    })
-
-    if (oldRemainingAmount > 0) {
-    }
-
     // إنشاء إيصال للتجديد باستخدام Transaction
+    // ملاحظة: تحديث الـ PT اتنقل جوّه الـ transaction عشان لو الإيصال فشل يترجع
+    // التجديد بالكامل (مفيش PT متجدّد بدون إيصال).
     try {
       // التأكد من وجود totalPrice، وإلا احسبها
       const totalAmount = totalPrice !== undefined && totalPrice !== null && totalPrice > 0
         ? Number(totalPrice)
         : Number(sessionsPurchased * pricePerSession)
       //  المبلغ المدفوع فعلاً = الإجمالي - المتبقي
-      const paidAmount = Math.max(0, totalAmount - parsedRemaining)
+      const paidAmount = round2(Math.max(0, totalAmount - parsedRemaining))
 
       let subscriptionDays = null
       if (startDate && expiryDate) {
@@ -109,6 +101,21 @@ export async function POST(request: Request) {
 
       // استخدام Transaction مع البحث عن أول رقم متاح
       const result = await prisma.$transaction(async (tx) => {
+        // تحديث جلسة PT جوّه الـ transaction
+        const updatedPT = await tx.pT.update({
+          where: { ptNumber: parseInt(ptNumber) },
+          data: {
+            phone,
+            sessionsPurchased: sessionsPurchased,
+            sessionsRemaining: sessionsPurchased,
+            coachName,
+            pricePerSession,
+            startDate: startDate ? new Date(startDate) : existingPT.startDate,
+            expiryDate: expiryDate ? new Date(expiryDate) : existingPT.expiryDate,
+            remainingAmount: parsedRemaining,
+          },
+        })
+
         const receiptNumber = await getNextReceiptNumber(tx)
 
         // ✅ معالجة وسائل الدفع المتعددة
@@ -117,7 +124,9 @@ export async function POST(request: Request) {
           //  نتحقق من توزيع المبالغ بناءً على المدفوع فعلاً (مش الإجمالي)
           const validation = validatePaymentDistribution(paymentMethod, paidAmount)
           if (!validation.valid) {
-            throw new Error(validation.message || 'توزيع المبالغ غير صحيح')
+            const e: any = new Error(validation.message || 'توزيع المبالغ غير صحيح')
+            e.code = 'VALIDATION'
+            throw e
           }
           finalPaymentMethod = serializePaymentMethods(paymentMethod)
         } else {
@@ -198,37 +207,33 @@ export async function POST(request: Request) {
           }
         }
 
-        return receipt
+        return { pt: updatedPT, receipt }
       })
 
 
       return NextResponse.json({
-        pt: updatedPT,
+        pt: result.pt,
         receipt: {
-          receiptNumber: result.receiptNumber,
-          amount: result.amount,
-          itemDetails: result.itemDetails,
-          createdAt: result.createdAt
+          receiptNumber: result.receipt.receiptNumber,
+          amount: result.receipt.amount,
+          itemDetails: result.receipt.itemDetails,
+          createdAt: result.receipt.createdAt
         }
       }, { status: 200 })
 
     } catch (receiptError: any) {
-      console.error('❌ خطأ في إنشاء الإيصال:', receiptError)
-      console.error('❌ تفاصيل الخطأ:', {
-        message: receiptError.message,
-        code: receiptError.code,
-        meta: receiptError.meta,
-        name: receiptError.name,
-        stack: receiptError.stack
-      })
+      // خطأ توزيع المبالغ → 400 للموظف
+      if (receiptError?.code === 'VALIDATION') {
+        return NextResponse.json({ error: receiptError.message }, { status: 400 })
+      }
+      console.error('❌ خطأ في تجديد PT (rolled back):', receiptError?.message)
 
-      // إرجاع البيانات المحدثة حتى لو فشل الإيصال
-      logError({ error: receiptError, endpoint: '/api/pt/renew', method: 'POST', statusCode: 200, additionalContext: { type: 'receipt_creation_failed' } })
+      // الـ transaction بيـ rollback تحديث الـ PT والإيصال معاً — مفيش PT
+      // متجدّد بدون إيصال. بنرجّع خطأ واضح عشان الموظف يعيد المحاولة.
+      logError({ error: receiptError, endpoint: '/api/pt/renew', method: 'POST', statusCode: 500, additionalContext: { type: 'pt_renew_transaction_failed' } })
       return NextResponse.json({
-        pt: updatedPT,
-        error: 'تم التجديد بنجاح ولكن فشل إنشاء الإيصال. يرجى إنشاء الإيصال يدوياً.',
-        errorDetails: receiptError.message
-      }, { status: 200 })
+        error: 'فشل تسجيل التجديد ولم يتم أي تغيير. من فضلك حاول مرة أخرى.'
+      }, { status: 500 })
     }
 
   } catch (error) {

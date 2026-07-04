@@ -6,6 +6,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useDarkMode } from '../contexts/DarkModeContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -18,6 +19,12 @@ interface DashboardChartsProps {
 
 export default function DashboardCharts({ revenueChartData, attendanceChartData }: DashboardChartsProps) {
   const { t } = useLanguage()
+  const { isDarkMode } = useDarkMode()
+
+  // ألوان المحاور والشبكة تتجاوب مع الوضع الليلي لتحسين التباين
+  const axisColor = isDarkMode ? '#475569' : '#64748b'
+  const tickColor = isDarkMode ? '#94a3b8' : '#475569'
+  const gridColor = isDarkMode ? '#334155' : '#cbd5e1'
 
   const iconRevenue = (
     <svg {...stroke} className="w-6 h-6" strokeLinecap="round" strokeLinejoin="round">
@@ -42,7 +49,7 @@ export default function DashboardCharts({ revenueChartData, attendanceChartData 
         <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-xl ring-1 ring-primary-200 dark:ring-primary-900/50">
           <p className="font-bold text-gray-900 dark:text-gray-100 mb-2">{payload[0].payload.fullDate}</p>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-primary-500 dark:bg-primary-400 rounded-full"></div>
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: REVENUE_COLOR }}></div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {t('dashboard.revenue')}: <span className="font-bold text-primary-600 dark:text-primary-400">{payload[0].value.toLocaleString()}</span> {t('members.egp')}
             </p>
@@ -95,17 +102,17 @@ export default function DashboardCharts({ revenueChartData, attendanceChartData 
                   <stop offset="95%" stopColor={REVENUE_COLOR} stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.5} />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.5} />
               <XAxis
                 dataKey="date"
-                stroke="#64748b"
+                stroke={axisColor}
                 style={{ fontSize: '12px', fontWeight: 600 }}
-                tick={{ fill: '#475569' }}
+                tick={{ fill: tickColor }}
               />
               <YAxis
-                stroke="#64748b"
+                stroke={axisColor}
                 style={{ fontSize: '12px', fontWeight: 600 }}
-                tick={{ fill: '#475569' }}
+                tick={{ fill: tickColor }}
               />
               <Tooltip content={<CustomRevenueTooltip />} />
               <Line
@@ -147,17 +154,17 @@ export default function DashboardCharts({ revenueChartData, attendanceChartData 
                   <stop offset="95%" stopColor="#10b981" stopOpacity={0.3}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.5} />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.5} />
               <XAxis
                 dataKey="date"
-                stroke="#64748b"
+                stroke={axisColor}
                 style={{ fontSize: '12px', fontWeight: 600 }}
-                tick={{ fill: '#475569' }}
+                tick={{ fill: tickColor }}
               />
               <YAxis
-                stroke="#64748b"
+                stroke={axisColor}
                 style={{ fontSize: '12px', fontWeight: 600 }}
-                tick={{ fill: '#475569' }}
+                tick={{ fill: tickColor }}
               />
               <Tooltip content={<CustomAttendanceTooltip />} />
               <Bar

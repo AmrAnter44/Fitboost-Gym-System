@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../lib/prisma'
+import { requireInternalToken, InternalAuthError } from '../../../../../lib/internalAuth'
 
 // Called by the WhatsApp sidecar when a message arrives (incoming or outgoing)
 export async function POST(req: Request) {
+  // 🔒 Internal-only: تحقق من x-internal-token
+  try {
+    requireInternalToken(req)
+  } catch (err) {
+    const status = err instanceof InternalAuthError ? err.status : 401
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status })
+  }
+
   try {
     const { sessionIndex, phone, contactName, text, messageType, whatsappMsgId, mediaUrl, direction, timestamp } = await req.json()
 

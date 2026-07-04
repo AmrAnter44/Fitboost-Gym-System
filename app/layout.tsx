@@ -8,7 +8,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
-  themeColor: '#ff9915',
+  themeColor: '#fbe003',
 }
 
 export const metadata: Metadata = {
@@ -209,17 +209,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Gym System" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#ff9915" />
+        <meta name="msapplication-TileColor" content="#fbe003" />
         <meta name="msapplication-tap-highlight" content="no" />
-
-        {/* PWA Display Mode */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
-
-        {/* Disable iOS auto-zoom on input focus */}
-        <meta name="maximum-scale" content="5" />
-
-        {/* Chrome Android */}
-        <meta name="mobile-web-app-capable" content="yes" />
 
         {/* Local Cairo Font */}
         <link rel="stylesheet" href="/fonts/cairo.css" />

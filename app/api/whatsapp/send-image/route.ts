@@ -3,6 +3,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { verifyAuth } from '../../../../lib/auth';
 
 const SIDECAR = 'http://127.0.0.1:4002';
 
@@ -17,6 +18,12 @@ async function getConnectedSessions(): Promise<number[]> {
 }
 
 export async function POST(request: Request) {
+  // 🔒 Auth
+  const user = await verifyAuth(request);
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'يجب تسجيل الدخول أولاً' }, { status: 401 });
+  }
+
   try {
     const { phone, imageBase64, caption } = await request.json();
 

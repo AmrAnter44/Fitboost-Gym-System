@@ -3,8 +3,15 @@
  */
 
 import { NextResponse } from 'next/server';
+import { verifyAuth } from '../../../../lib/auth';
 
-export async function POST() {
+export async function POST(request: Request) {
+  // 🔒 Auth
+  const user = await verifyAuth(request);
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'يجب تسجيل الدخول أولاً' }, { status: 401 });
+  }
+
   try {
     const res = await fetch('http://127.0.0.1:4002/reconnect', { method: 'POST', cache: 'no-store' });
     const data = await res.json();

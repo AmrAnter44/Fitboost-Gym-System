@@ -11,6 +11,7 @@
 const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { safeDbPush } = require('./lib/safe-db');
 
 const DB_PATH = path.join(__dirname, '..', 'prisma', 'gym.db');
 const BACKUP_PATH = DB_PATH + '.integrity_backup';
@@ -164,14 +165,17 @@ function syncSchemaIfNeeded(dbPath) {
   warn(`الـ DB ناقصة ${missing.length} عمود: ${missing.join(', ')}`);
   action('جاري تطبيق التحديثات على الـ DB (prisma db push)...');
 
-  try {
-    execSync('npx prisma db push --skip-generate --accept-data-loss', {
-      cwd: PROJECT_ROOT,
-      stdio: 'pipe',
-    });
+  // إضافة أعمدة ناقصة لا تحتاج حذف بيانات؛ safeDbPush ياخد نسخة احتياطية أولاً
+  // وميحذفش أي بيانات إلا لو ALLOW_DESTRUCTIVE_DB_PUSH=true.
+  const ok = safeDbPush({
+    dbPath: DB_PATH,
+    cwd: PROJECT_ROOT,
+    skipGenerate: true,
+    logger: (m) => log(`  ${m}`, CYAN),
+  });
+  if (ok) {
     success('تم تحديث الـ DB — الأعمدة الجديدة اتضافت بدون فقد بيانات');
-  } catch (e) {
-    error('فشل prisma db push: ' + (e?.message || e).slice(0, 200));
+  } else {
     warn('حاول يدوياً: npx prisma db push --skip-generate');
   }
 }

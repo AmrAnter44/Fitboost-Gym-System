@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean
@@ -25,6 +26,9 @@ export default function ConfirmDeleteModal({
   loading = false,
 }: ConfirmDeleteModalProps) {
   const { direction } = useLanguage()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useFocusTrap(panelRef, isOpen)
 
   useEffect(() => {
     if (isOpen) {
@@ -54,6 +58,7 @@ export default function ConfirmDeleteModal({
       aria-labelledby="delete-dialog-title"
     >
       <div
+        ref={panelRef}
         className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden ring-1 ring-red-200 dark:ring-red-900/50 animate-modal-in"
         dir={direction}
         onClick={(e) => e.stopPropagation()}

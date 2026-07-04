@@ -2,6 +2,58 @@
 import jwt from 'jsonwebtoken'
 import { Permissions } from '../types/permissions'
 import { logError } from './errorLogger'
+import { prisma } from './prisma'
+
+// الحساب الاحتياطي (OWNER) بيتحقق من الـ env مش من الـ DB — نتخطى فحص الـ DB له
+const FALLBACK_OWNER_ID = 'fallback-fitboost-account'
+
+// كاش قصير لحالة المستخدم (isActive/role) عشان منعملش DB read مع كل ريكوست.
+// TTL 60 ثانية = تعطيل المستخدم أو تغيير دوره بيسري خلال دقيقة على الأكثر.
+const USER_STATE_TTL_MS = 60_000
+const userStateCache = new Map<string, { active: boolean; role: string; ts: number }>()
+
+/**
+ * يمسح كاش حالة مستخدم عشان أي تغيير (تعطيل/تغيير دور) يسري فوراً بدل ما
+ * يستنى انتهاء الـ TTL. نادِها من مسارات تعديل/تعطيل المستخدمين.
+ */
+export function invalidateUserState(userId: string): void {
+  userStateCache.delete(userId)
+}
+
+/**
+ * يتحقق إن المستخدم لسه نشط (isActive) ودوره الحالي من الـ DB — عشان تعطيل
+ * موظف أو تخفيض دوره يسري فوراً بدل ما يفضل التوكن صالح 7 أيام.
+ * بيرجّع null لو المستخدم متعطّل/محذوف. لو الـ DB وقع، بيرجّع التوكن كما هو
+ * (fail-open للـ availability — نفس فلسفة باقي النظام).
+ */
+async function applyLiveUserState(decoded: UserPayload): Promise<UserPayload | null> {
+  if (!decoded?.userId || decoded.userId === FALLBACK_OWNER_ID) return decoded
+
+  const cached = userStateCache.get(decoded.userId)
+  const now = Date.now()
+  if (cached && now - cached.ts < USER_STATE_TTL_MS) {
+    if (!cached.active) return null
+    return { ...decoded, role: cached.role as UserPayload['role'] }
+  }
+
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { isActive: true, role: true },
+    })
+    if (!dbUser) {
+      userStateCache.set(decoded.userId, { active: false, role: decoded.role, ts: now })
+      return null
+    }
+    userStateCache.set(decoded.userId, { active: dbUser.isActive, role: dbUser.role, ts: now })
+    if (!dbUser.isActive) return null
+    // نحدّث الدور من الـ DB عشان تخفيض الصلاحية (admin→staff) يسري فوراً
+    return { ...decoded, role: dbUser.role as UserPayload['role'] }
+  } catch {
+    // DB unavailable — منمنعش الدخول عشان الـ availability
+    return decoded
+  }
+}
 
 // JWT secret is validated lazily at first use, not at module load.
 // This lets `next build` succeed in CI environments that don't set the env var
@@ -50,7 +102,8 @@ export async function verifyAuth(request: Request): Promise<UserPayload | null> 
     }
 
     const decoded = jwt.verify(token, getJWTSecret()) as UserPayload
-    return decoded
+    // فحص حي: المستخدم لسه نشط ودوره الحالي (مع كاش 60 ثانية)
+    return await applyLiveUserState(decoded)
   } catch (error) {
     // لا تطبع محتوى التوكن أو الـ payload — فقط نوع الخطأ
     const errName = error instanceof Error ? error.name : 'UnknownError'

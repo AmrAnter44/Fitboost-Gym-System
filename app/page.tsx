@@ -10,6 +10,7 @@ import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 import TrendIndicator from '@/components/TrendIndicator'
 import { DashboardSkeleton } from '@/components/LoadingSkeleton'
 import DashboardSmartSearch from '@/components/DashboardSmartSearch'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -139,6 +140,7 @@ export default function HomePage() {
     gym: 0,
     configured: false
   })
+  const [confirmState, setConfirmState] = useState<{ open: boolean; message: string; title?: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} })
 
   useEffect(() => {
     checkAuth()
@@ -366,10 +368,15 @@ export default function HomePage() {
   }
 
   const handleLogout = async () => {
-    if (!confirm(t('dashboard.confirmLogout'))) return
-
-    await fetch('/api/auth/logout', { method: 'POST' })
-    window.location.href = '/login'
+    setConfirmState({
+      open: true,
+      message: t('dashboard.confirmLogout'),
+      title: t('auth.logout'),
+      onConfirm: async () => {
+        await fetch('/api/auth/logout', { method: 'POST' })
+        window.location.href = '/login'
+      },
+    })
   }
 
   if (loading) {
@@ -671,6 +678,18 @@ export default function HomePage() {
           attendanceChartData={attendanceChartData}
         />
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmState.open}
+        title={confirmState.title || ''}
+        message={confirmState.message}
+        type="warning"
+        onConfirm={() => {
+          confirmState.onConfirm()
+          setConfirmState((s) => ({ ...s, open: false }))
+        }}
+        onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
+      />
     </div>
   )
 }
