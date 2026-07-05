@@ -160,7 +160,17 @@ export default function ExpensesPage() {
           dataToSend.description = selectedStaff ? `مرتب: ${selectedStaff.name}` : 'مرتب'
         } else if (formData.type === 'staff_loan' && selectedStaff) {
           dataToSend.description = selectedStaff.name
+        } else if (formData.type === 'gym_expense' && formData.category) {
+          //  الوصف يتاخد من التصنيف لو الـ user ساب حقل الوصف فاضي
+          dataToSend.description = formData.category
         }
+      }
+
+      // مصروف الجيم لازم يكون ليه وصف أو تصنيف على الأقل
+      if (formData.type === 'gym_expense' && (!dataToSend.description || !dataToSend.description.trim())) {
+        toast.warning(direction === 'rtl' ? 'اختر تصنيف أو اكتب وصف للمصروف' : 'Select a category or enter a description')
+        setSubmitting(false)
+        return
       }
 
       // إضافة التاريخ المخصص إذا كان مفعّل
@@ -691,7 +701,15 @@ export default function ExpensesPage() {
                 </div>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => {
+                    const newCat = e.target.value
+                    setFormData(prev => ({
+                      ...prev,
+                      category: newCat,
+                      //  الوصف يتاخد من التصنيف تلقائياً — إلا لو الـ user كاتب وصف مخصص
+                      description: (!prev.description.trim() || prev.description === prev.category) ? newCat : prev.description
+                    }))
+                  }}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 cursor-pointer"
                 >
                   <option value="">{direction === 'rtl' ? '— بدون تصنيف —' : '— No category —'}</option>
@@ -702,17 +720,21 @@ export default function ExpensesPage() {
                 </select>
               </div>
 
-              {/* الوصف */}
+              {/* الوصف — اختياري، بيتاخد من التصنيف تلقائياً لو فاضي */}
               {formData.type === 'gym_expense' && (
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('expenses.form.description')}</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    {t('expenses.form.description')}
+                    <span className="text-xs font-normal text-gray-400 dark:text-gray-500 ms-2">
+                      {direction === 'rtl' ? '(اختياري — بيتاخد من التصنيف)' : '(optional — taken from category)'}
+                    </span>
+                  </label>
                   <input
                     type="text"
-                    required
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                    placeholder={t('expenses.form.descriptionPlaceholder')}
+                    placeholder={formData.category || t('expenses.form.descriptionPlaceholder')}
                   />
                 </div>
               )}

@@ -55,7 +55,7 @@ interface Member {
  isActive: boolean
  isFrozen: boolean
  isBanned: boolean
- freezeRequests?: { endDate: string }[]
+ freezeRequests?: { startDate: string; endDate: string }[]
  profileImage?: string
  idCardFront?: string
  idCardBack?: string
@@ -183,7 +183,6 @@ export default function MemberDetailPage() {
  const [followUpHistory, setFollowUpHistory] = useState<any[]>([])
  const [followUpHistoryLoading, setFollowUpHistoryLoading] = useState(false)
  //  مفتوحة افتراضياً عشان اليوزر يشوف سجل المتابعات على طول
- const [showFollowUpHistory, setShowFollowUpHistory] = useState(true)
  const [showUpgradeForm, setShowUpgradeForm] = useState(false)
  const [showTransferForm, setShowTransferForm] = useState(false)
  const [lastReceiptNumber, setLastReceiptNumber] = useState<number | null>(null)
@@ -211,6 +210,18 @@ export default function MemberDetailPage() {
  const [memberReceipts, setMemberReceipts] = useState<any[]>([])
  const [receiptsLoading, setReceiptsLoading] = useState(false)
  const [lastReceipt, setLastReceipt] = useState<any>(null)
+
+ // سجل التجميد (الفريز)
+ const [freezeHistory, setFreezeHistory] = useState<any[]>([])
+ const [freezeHistoryLoading, setFreezeHistoryLoading] = useState(false)
+
+ // سجل التجديدات
+ const [renewalHistory, setRenewalHistory] = useState<any[]>([])
+ const [renewalHistoryLoading, setRenewalHistoryLoading] = useState(false)
+
+ // بوب أب السجلات (تبات: تجديدات / تجميد / متابعات)
+ const [showHistoryModal, setShowHistoryModal] = useState(false)
+ const [historyTab, setHistoryTab] = useState<'renewals' | 'freeze' | 'followups'>('renewals')
 
  // النقاط
  const [showPointsHistory, setShowPointsHistory] = useState(false)
@@ -396,6 +407,10 @@ export default function MemberDetailPage() {
  fetchLastReceipt(memberId)
  //  جلب سجل المتابعات على طول عشان يظهر في القسم
  fetchFollowUpHistory()
+ //  جلب سجل التجميد على طول عشان يظهر في القسم
+ fetchFreezeHistory()
+ //  جلب سجل التجديدات على طول عشان يظهر في القسم
+ fetchRenewalHistory()
  } else {
  toast.error(t('memberDetails.memberNotFound'))
  }
@@ -555,6 +570,38 @@ export default function MemberDetailPage() {
  const handleShowPointsHistory = () => {
  fetchPointsHistory()
  setShowPointsHistory(true)
+ }
+
+ const fetchFreezeHistory = async () => {
+ setFreezeHistoryLoading(true)
+ try {
+ const response = await fetch(`/api/members/${memberId}/freeze-history`)
+ if (response.ok) {
+ const data = await response.json()
+ setFreezeHistory(data)
+ }
+ } catch (error) {
+ console.error('Error fetching freeze history:', error)
+ setFreezeHistory([])
+ } finally {
+ setFreezeHistoryLoading(false)
+ }
+ }
+
+ const fetchRenewalHistory = async () => {
+ setRenewalHistoryLoading(true)
+ try {
+ const response = await fetch(`/api/members/${memberId}/renewal-history`)
+ if (response.ok) {
+ const data = await response.json()
+ setRenewalHistory(data)
+ }
+ } catch (error) {
+ console.error('Error fetching renewal history:', error)
+ setRenewalHistory([])
+ } finally {
+ setRenewalHistoryLoading(false)
+ }
  }
 
  const handleAddPoints = async () => {
@@ -1962,17 +2009,6 @@ export default function MemberDetailPage() {
  }
  </p>
  </div>
- {member.isFrozen && (
- <div className="bg-cyan-500/30 dark:bg-cyan-900/40 border border-cyan-300/50 dark:border-cyan-700 rounded-lg p-4">
- <p className="text-sm opacity-90">{locale === 'ar' ? 'التجميد ينتهي' : 'Freeze ends'}</p>
- <p className="text-lg font-bold text-white font-mono">
- {member.freezeRequests?.[0]?.endDate
- ? new Date(member.freezeRequests[0].endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })
- : locale === 'ar' ? 'يدوي' : 'Manual'
- }
- </p>
- </div>
- )}
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
  <p className="text-sm opacity-90">{t('common.startDate')}</p>
  <p className="text-lg font-mono">
@@ -3402,6 +3438,14 @@ export default function MemberDetailPage() {
 
  {member.freezeRequests?.[0]?.endDate && (
  <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 mb-5 text-sm">
+ {member.freezeRequests?.[0]?.startDate && (
+ <p className="text-gray-600 dark:text-white mb-1">
+ {locale === 'ar' ? 'التجميد يبدأ' : 'Freeze starts'}:{' '}
+ <strong className="text-gray-800 dark:text-white">
+ {new Date(member.freezeRequests[0].startDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+ </strong>
+ </p>
+ )}
  <p className="text-gray-600 dark:text-white">
  {locale === 'ar' ? 'التجميد ينتهي' : 'Freeze ends'}:{' '}
  <strong className="text-gray-800 dark:text-white">
@@ -3947,34 +3991,190 @@ export default function MemberDetailPage() {
  )}
  </div>
 
- {/* سجل المتابعات */}
+ {/* زرار السجلات — يفتح بوب أب بتبات */}
  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-6">
- <div className="flex items-center justify-between mb-4">
- <div className="flex items-center gap-3">
- 
- <h3 className="text-lg font-bold text-gray-900 dark:text-white inline-flex items-center gap-2">
- 📞 {locale === 'ar' ? 'سجل المتابعات' : 'Follow-up History'}
- {followUpHistory.length > 0 && (
- <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
- {followUpHistory.length}
- </span>
- )}
- </h3>
- </div>
  <button
- onClick={() => {
- if (!showFollowUpHistory) {
- fetchFollowUpHistory()
- }
- setShowFollowUpHistory(v => !v)
- }}
- className="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-white"
+ onClick={() => { setHistoryTab('renewals'); setShowHistoryModal(true) }}
+ className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
  >
- {showFollowUpHistory ? (locale === 'ar' ? 'إخفاء' : 'Hide') : (locale === 'ar' ? 'عرض' : 'Show')}
+ <span className="text-lg font-bold text-gray-900 dark:text-white">
+ {locale === 'ar' ? 'السجلات' : 'History'}
+ </span>
+ <span className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+ <span className="hidden sm:inline">{locale === 'ar' ? 'تجديدات · تجميد · متابعات' : 'Renewals · Freeze · Follow-ups'}</span>
+ <span className="px-3 py-1 rounded-lg bg-primary-600 text-white text-sm font-semibold">{locale === 'ar' ? 'عرض' : 'View'}</span>
+ </span>
  </button>
  </div>
 
- {showFollowUpHistory && (
+ {/* بوب أب السجلات (تبات) */}
+ {showHistoryModal && (
+ <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4" dir={direction}>
+ <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+ {/* Header */}
+ <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
+ <div>
+ <h2 className="text-xl font-bold text-gray-900 dark:text-white">{locale === 'ar' ? 'السجلات' : 'History'}</h2>
+ <p className="text-sm text-gray-500 dark:text-gray-400">{member?.name} - {member?.memberNumber != null ? `#${member.memberNumber}` : (locale === 'ar' ? 'بدون عضوية' : 'Non-Member')}</p>
+ </div>
+ <button
+ onClick={() => setShowHistoryModal(false)}
+ className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+ >
+ <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+ </button>
+ </div>
+
+ {/* Tabs */}
+ <div className="flex gap-1 px-4 pt-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+ {([
+ { key: 'renewals', label: locale === 'ar' ? 'التجديدات' : 'Renewals', count: renewalHistory.length },
+ { key: 'freeze', label: locale === 'ar' ? 'التجميد' : 'Freeze', count: freezeHistory.length },
+ { key: 'followups', label: locale === 'ar' ? 'المتابعات' : 'Follow-ups', count: followUpHistory.length },
+ ] as const).map((tab) => (
+ <button
+ key={tab.key}
+ onClick={() => setHistoryTab(tab.key)}
+ className={`px-4 py-2 text-sm font-bold rounded-t-lg border-b-2 transition inline-flex items-center gap-2 ${
+ historyTab === tab.key
+ ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+ : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+ }`}
+ >
+ {tab.label}
+ {tab.count > 0 && (
+ <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${historyTab === tab.key ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+ {tab.count}
+ </span>
+ )}
+ </button>
+ ))}
+ </div>
+
+ {/* Content */}
+ <div className="flex-1 overflow-y-auto p-6">
+ {historyTab === 'renewals' && (
+ renewalHistoryLoading ? (
+ <div className="text-center py-8 text-gray-500">
+ <div className="w-8 h-8 ring-1 ring-emerald-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-2" />
+ {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+ </div>
+ ) : renewalHistory.length === 0 ? (
+ <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+ <p>{locale === 'ar' ? 'لا يوجد سجل تجديدات لهذا العضو' : 'No renewal history for this member'}</p>
+ </div>
+ ) : (
+ <div className="space-y-3">
+ {renewalHistory.map((entry: any) => (
+ <div
+ key={entry.id}
+ className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 ring-1 ring-emerald-200 dark:ring-emerald-700/60 rounded-lg p-4"
+ >
+ <div className="flex items-start justify-between gap-3">
+ <div className="flex-1">
+ <div className="flex items-center gap-2 mb-2 flex-wrap">
+ <span className="font-bold text-gray-800 dark:text-white font-mono" dir="ltr">
+ {new Date(entry.startDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+ {' → '}
+ {new Date(entry.expiryDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+ </span>
+ <span className={`${entry.isRenewal ? 'bg-emerald-500 dark:bg-emerald-600' : 'bg-blue-500 dark:bg-blue-600'} text-white text-[11px] px-2 py-0.5 rounded-full font-bold`}>
+ {entry.isRenewal ? (locale === 'ar' ? 'تجديد' : 'Renewal') : (locale === 'ar' ? 'اشتراك جديد' : 'New')}
+ </span>
+ </div>
+ <div className="flex items-center gap-3 flex-wrap text-xs text-gray-500 dark:text-gray-400">
+ {entry.subscriptionPrice != null && (
+ <span>{locale === 'ar' ? 'السعر' : 'Price'}: <strong className="text-gray-700 dark:text-gray-200">{entry.subscriptionPrice}</strong></span>
+ )}
+ {entry.receiptNumber != null && (
+ <span>{locale === 'ar' ? 'إيصال' : 'Receipt'} #{entry.receiptNumber}</span>
+ )}
+ {entry.staffName && (
+ <span>{locale === 'ar' ? 'بواسطة' : 'By'}: {entry.staffName}</span>
+ )}
+ </div>
+ <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+ {new Date(entry.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+ </p>
+ </div>
+ {entry.subscriptionDays != null && (
+ <div className="text-center shrink-0">
+ <div className="bg-emerald-600 dark:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-md">
+ <p className="text-2xl font-bold">{entry.subscriptionDays}</p>
+ <p className="text-xs opacity-90">{t('common.day')}</p>
+ </div>
+ </div>
+ )}
+ </div>
+ </div>
+ ))}
+ </div>
+ )
+ )}
+ {historyTab === 'freeze' && (
+ freezeHistoryLoading ? (
+ <div className="text-center py-8 text-gray-500">
+ <div className="w-8 h-8 ring-1 ring-cyan-200 border-t-cyan-500 rounded-full animate-spin mx-auto mb-2" />
+ {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+ </div>
+ ) : freezeHistory.length === 0 ? (
+ <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+ <p>{locale === 'ar' ? 'لا يوجد سجل تجميد لهذا العضو' : 'No freeze history for this member'}</p>
+ </div>
+ ) : (
+ <div className="space-y-3">
+ {freezeHistory.map((entry: any) => {
+ const statusColor = entry.status === 'approved'
+ ? 'bg-green-500 dark:bg-green-600'
+ : entry.status === 'rejected'
+ ? 'bg-red-500 dark:bg-red-600'
+ : 'bg-amber-500 dark:bg-amber-600'
+ const statusLabel = entry.status === 'approved'
+ ? (locale === 'ar' ? 'مقبول' : 'Approved')
+ : entry.status === 'rejected'
+ ? (locale === 'ar' ? 'مرفوض' : 'Rejected')
+ : (locale === 'ar' ? 'قيد الانتظار' : 'Pending')
+ return (
+ <div
+ key={entry.id}
+ className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 ring-1 ring-cyan-200 dark:ring-cyan-700/60 rounded-lg p-4"
+ >
+ <div className="flex items-start justify-between gap-3">
+ <div className="flex-1">
+ <div className="flex items-center gap-2 mb-2 flex-wrap">
+ <span className="font-bold text-gray-800 dark:text-white font-mono" dir="ltr">
+ {new Date(entry.startDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+ {' → '}
+ {new Date(entry.endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+ </span>
+ <span className={`${statusColor} text-white text-[11px] px-2 py-0.5 rounded-full font-bold`}>{statusLabel}</span>
+ </div>
+ {entry.reason && (
+ <p className="text-sm text-gray-600 dark:text-white mb-1">{entry.reason}</p>
+ )}
+ {entry.approvedBy && (
+ <p className="text-xs text-gray-500 dark:text-gray-400">
+ {locale === 'ar' ? 'بواسطة' : 'By'}: {entry.approvedBy}
+ </p>
+ )}
+ <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+ {new Date(entry.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+ </p>
+ </div>
+ <div className="text-center shrink-0">
+ <div className="bg-cyan-600 dark:bg-cyan-700 text-white px-4 py-2 rounded-lg shadow-md">
+ <p className="text-2xl font-bold">{entry.days}</p>
+ <p className="text-xs opacity-90">{t('common.day')}</p>
+ </div>
+ </div>
+ </div>
+ </div>
+ )
+ })}
+ </div>
+ )
+ )}
+ {historyTab === 'followups' && (
  followUpHistoryLoading ? (
  <div className="text-center py-8 text-gray-500">
  <div className="w-8 h-8 ring-1 ring-primary-200 border-t-primary-500 rounded-full animate-spin mx-auto mb-2" />
@@ -4036,6 +4236,18 @@ export default function MemberDetailPage() {
  )
  )}
  </div>
+ {/* Footer */}
+ <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 shrink-0">
+ <button
+ onClick={() => setShowHistoryModal(false)}
+ className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 font-bold"
+ >
+ {t('common.close')}
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
 
  {/* نموذج التجديد */}
  {/*  Quick Follow-up Modal */}

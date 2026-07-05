@@ -155,6 +155,7 @@
 
 
 
+
 /* Dark Mode Colors */
 .dark {
   /* Dark Mode Primary Colors */
@@ -407,6 +408,24 @@ input[type="number"]::-webkit-outer-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/*  إدخالات التاريخ/الوقت — تتبع ثيم السيستم (لون النص وأيقونة التقويم)
+   عشان الويدجت الأصلي (mm/dd/yyyy + أيقونة التقويم) يبقى متناسق مع الداكن مود */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"],
+input[type="week"] {
+  color-scheme: light;
+}
+
+.dark input[type="date"],
+.dark input[type="datetime-local"],
+.dark input[type="time"],
+.dark input[type="month"],
+.dark input[type="week"] {
+  color-scheme: dark;
 }
 
 /* منع التكبير على iOS */

@@ -54,7 +54,7 @@ export async function GET(
           where: { status: 'approved' },
           orderBy: { endDate: 'desc' },
           take: 1,
-          select: { endDate: true }
+          select: { startDate: true, endDate: true }
         }
       }
     })

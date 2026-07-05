@@ -200,6 +200,27 @@ function MembersPageContent() {
   // فلتر تاريخ الاشتراك — مدى (من/إلى) يحدده المستخدم (YYYY-MM-DD)
   const [filterSubFrom, setFilterSubFrom] = useState<string>('')
   const [filterSubTo, setFilterSubTo] = useState<string>('')
+  // بوب أب اختيار مدى تاريخ الاشتراك — بنختار من/إلى وندوس حفظ
+  const [showDateRangeModal, setShowDateRangeModal] = useState(false)
+  const [tempSubFrom, setTempSubFrom] = useState<string>('')
+  const [tempSubTo, setTempSubTo] = useState<string>('')
+  const openDateRangeModal = () => {
+    setTempSubFrom(filterSubFrom)
+    setTempSubTo(filterSubTo)
+    setShowDateRangeModal(true)
+  }
+  const saveDateRange = () => {
+    setFilterSubFrom(tempSubFrom)
+    setFilterSubTo(tempSubTo)
+    setShowDateRangeModal(false)
+  }
+  const clearDateRange = () => {
+    setTempSubFrom('')
+    setTempSubTo('')
+    setFilterSubFrom('')
+    setFilterSubTo('')
+    setShowDateRangeModal(false)
+  }
   const [staffList, setStaffList] = useState<Array<{ id: string; name: string; position: string | null }>>([])
 
   // Mobile UI state
@@ -1085,9 +1106,9 @@ function MembersPageContent() {
           })}
         </div>
 
-        {/* Package + Sales + Coach filters */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div>
+        {/* Package + Sales + Coach + Date filters */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 flex flex-col md:flex-row md:items-end gap-3">
+          <div className="flex-1 min-w-0">
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
               {locale === 'ar' ? 'الباقة' : 'Package'}
             </label>
@@ -1104,35 +1125,7 @@ function MembersPageContent() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-              {locale === 'ar' ? 'تاريخ الاشتراك (من / إلى)' : 'Subscription Date (From / To)'}
-            </label>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="date"
-                value={filterSubFrom}
-                max={filterSubTo || undefined}
-                onChange={(e) => setFilterSubFrom(e.target.value)}
-                className="w-full px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-              />
-              <span className="text-gray-400 text-xs">→</span>
-              <input
-                type="date"
-                value={filterSubTo}
-                min={filterSubFrom || undefined}
-                onChange={(e) => setFilterSubTo(e.target.value)}
-                className="w-full px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-              />
-              {(filterSubFrom || filterSubTo) && (
-                <button type="button" onClick={() => { setFilterSubFrom(''); setFilterSubTo('') }} aria-label={locale === 'ar' ? 'مسح' : 'Clear'} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
-                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div>
+          <div className="flex-1 min-w-0">
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
               {locale === 'ar' ? 'السيلز' : 'Sales'}
             </label>
@@ -1151,7 +1144,7 @@ function MembersPageContent() {
             </select>
           </div>
 
-          <div>
+          <div className="flex-1 min-w-0">
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
               {locale === 'ar' ? 'الكوتش' : 'Coach'}
             </label>
@@ -1171,6 +1164,32 @@ function MembersPageContent() {
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
             </select>
+          </div>
+
+          {/* تاريخ الاشتراك — زرار جنب الفلاتر */}
+          <div className="shrink-0">
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              {locale === 'ar' ? 'تاريخ الاشتراك (من / إلى)' : 'Subscription Date (From / To)'}
+            </label>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={openDateRangeModal}
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-600"
+              >
+                <span className={`truncate ${filterSubFrom || filterSubTo ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
+                  {filterSubFrom || filterSubTo
+                    ? `${filterSubFrom || '…'} → ${filterSubTo || '…'}`
+                    : (locale === 'ar' ? 'اختر التاريخ' : 'Select date')}
+                </span>
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-3.5 h-3.5 text-gray-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </button>
+              {(filterSubFrom || filterSubTo) && (
+                <button type="button" onClick={() => { setFilterSubFrom(''); setFilterSubTo('') }} aria-label={locale === 'ar' ? 'مسح' : 'Clear'} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
+                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1316,21 +1335,23 @@ function MembersPageContent() {
               <section>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'تاريخ الاشتراك (من / إلى)' : 'Subscription Date (From / To)'}</label>
                 <div className="flex items-center gap-1.5">
-                  <input
-                    type="date"
-                    value={filterSubFrom}
-                    max={filterSubTo || undefined}
-                    onChange={(e) => setFilterSubFrom(e.target.value)}
-                    className="w-full min-h-[44px] px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                  />
-                  <span className="text-gray-400 text-xs">→</span>
-                  <input
-                    type="date"
-                    value={filterSubTo}
-                    min={filterSubFrom || undefined}
-                    onChange={(e) => setFilterSubTo(e.target.value)}
-                    className="w-full min-h-[44px] px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
-                  />
+                  <button
+                    type="button"
+                    onClick={openDateRangeModal}
+                    className="flex-1 min-h-[44px] flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <span className={`truncate ${filterSubFrom || filterSubTo ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
+                      {filterSubFrom || filterSubTo
+                        ? `${filterSubFrom || '…'} → ${filterSubTo || '…'}`
+                        : (locale === 'ar' ? 'اختر التاريخ' : 'Select date')}
+                    </span>
+                    <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 text-gray-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  </button>
+                  {(filterSubFrom || filterSubTo) && (
+                    <button type="button" onClick={() => { setFilterSubFrom(''); setFilterSubTo('') }} aria-label={locale === 'ar' ? 'مسح' : 'Clear'} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
+                      <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                    </button>
+                  )}
                 </div>
               </section>
 
@@ -1449,6 +1470,84 @@ function MembersPageContent() {
               </svg>
               <span className="truncate">{t('members.clearAllFilters')}</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Subscription Date Range Modal */}
+      {showDateRangeModal && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          dir={direction}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="daterange-title"
+          onClick={() => setShowDateRangeModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm ring-1 ring-gray-200 dark:ring-gray-700 animate-modal-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 rounded-t-2xl flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+              <h3 id="daterange-title" className="font-bold text-lg text-gray-900 dark:text-gray-100">
+                {locale === 'ar' ? 'تاريخ الاشتراك' : 'Subscription Date'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowDateRangeModal(false)}
+                aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {locale === 'ar' ? 'من' : 'From'}
+                </label>
+                <input
+                  type="date"
+                  value={tempSubFrom}
+                  max={tempSubTo || undefined}
+                  onChange={(e) => setTempSubFrom(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {locale === 'ar' ? 'إلى' : 'To'}
+                </label>
+                <input
+                  type="date"
+                  value={tempSubTo}
+                  min={tempSubFrom || undefined}
+                  onChange={(e) => setTempSubTo(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-2 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={clearDateRange}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+              >
+                {locale === 'ar' ? 'مسح' : 'Clear'}
+              </button>
+              <button
+                type="button"
+                onClick={saveDateRange}
+                className="flex-1 px-4 py-2 rounded-lg bg-primary-600 text-white font-bold hover:bg-primary-700 transition-colors duration-200"
+              >
+                {locale === 'ar' ? 'حفظ' : 'Save'}
+              </button>
+            </div>
           </div>
         </div>
       )}

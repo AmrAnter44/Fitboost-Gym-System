@@ -1617,12 +1617,20 @@ export default function GroupClassPage() {
                                       duration: s.duration,
                                     })
                                   }}
+                                  aria-label={t('settingsPage.groupClassSchedules.edit')}
+                                  title={t('settingsPage.groupClassSchedules.edit')}
                                   className="text-blue-500 hover:text-blue-700 text-sm px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
-                                ></button>
+                                >
+                                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </button>
                                 <button
                                   onClick={() => handleDeleteSchedule(s.id)}
+                                  aria-label={t('settingsPage.groupClassSchedules.delete')}
+                                  title={t('settingsPage.groupClassSchedules.delete')}
                                   className="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 transition"
-                                ></button>
+                                >
+                                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-14V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
                               </div>
                             </div>
                           ))}
