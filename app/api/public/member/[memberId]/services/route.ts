@@ -38,16 +38,19 @@ export async function GET(
     // Get member's memberNumber (needed to link Nutrition/Physio/GroupClass)
     const member = await prisma.member.findUnique({
       where: { id: memberId },
-      select: { memberNumber: true },
+      select: { memberNumber: true, phone: true },
     })
 
     if (!member) {
       return NextResponse.json({ services: null })
     }
 
+    // آخر 10 أرقام من هاتف العضو — لمطابقة سجلّ الـ PT المرتبط بالهاتف
+    const phoneTail = member.phone?.replace(/\D/g, '').slice(-10)
+
     // Run all service queries in parallel
-    const [ptReceipt, nutritionRecord, physioRecord, groupClassRecord] = await Promise.all([
-      // PT: linked via Receipt (memberId → ptNumber)
+    const [ptReceipt, ptByPhone, nutritionRecord, physioRecord, groupClassRecord] = await Promise.all([
+      // PT (المصدر 1): مرتبط عبر Receipt فيه memberId + ptNumber
       prisma.receipt.findFirst({
         where: {
           memberId,
@@ -65,6 +68,24 @@ export async function GET(
         },
         orderBy: { id: 'desc' },
       }),
+
+      // PT (المصدر 2 / fallback): مرتبط مباشرةً بهاتف العضو (PT.phone).
+      // كثير من باكدجات الـ PT بتتسجّل بالهاتف من غير إيصال فيه memberId،
+      // فالمصدر الأول لوحده بيرجّع null بالغلط. ده بيغطّي الحالة دي.
+      phoneTail && phoneTail.length >= 7
+        ? prisma.pT.findFirst({
+            where: {
+              phone: { contains: phoneTail },
+              sessionsRemaining: { gt: 0 },
+            },
+            select: {
+              sessionsRemaining: true,
+              sessionsPurchased: true,
+              coachName: true,
+            },
+            orderBy: { ptNumber: 'desc' },
+          })
+        : null,
 
       // Nutrition: linked via memberNumber
       member.memberNumber
@@ -103,12 +124,15 @@ export async function GET(
         : null,
     ])
 
+    // اختَر الـ PT من الإيصال أو من هاتف العضو (أيّهما وُجد)
+    const pt = ptReceipt?.pt ?? ptByPhone
+
     // Check coach online status
     let coachOnline = false
-    if (ptReceipt?.pt?.coachName) {
+    if (pt?.coachName) {
       const staffRecord = await prisma.staff.findFirst({
         where: {
-          name: { contains: ptReceipt.pt.coachName },
+          name: { contains: pt.coachName },
           isActive: true,
         },
         select: { id: true },
@@ -128,11 +152,11 @@ export async function GET(
     }
 
     const services = {
-      pt: ptReceipt?.pt
+      pt: pt
         ? {
-            sessionsRemaining: ptReceipt.pt.sessionsRemaining,
-            sessionsPurchased: ptReceipt.pt.sessionsPurchased,
-            coachName: ptReceipt.pt.coachName,
+            sessionsRemaining: pt.sessionsRemaining,
+            sessionsPurchased: pt.sessionsPurchased,
+            coachName: pt.coachName,
             coachOnline,
           }
         : null,
