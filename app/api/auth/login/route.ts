@@ -113,7 +113,13 @@ export async function POST(request: Request) {
     // - يدعم OWNER_PASSWORD_HASH (bcrypt) كالاختيار الموصى به
     // - OWNER_PASSWORD (plain) يُقبل فقط للـ backward compat؛ يُقارَن بشكل timing-safe
     const OWNER_EMAIL = process.env.OWNER_EMAIL?.trim()
-    const OWNER_PASSWORD_HASH = process.env.OWNER_PASSWORD_HASH?.trim()
+    // ⚠️ bcrypt hashes بتحتوي على '$' والـ Next (dotenv-expand) بيعمل variable
+    //    expansion فبيفسد الهاش وقت التحميل. الحل: نخزّنه base64 (بدون '$')
+    //    في OWNER_PASSWORD_HASH_B64 ونفكّه هنا. مع fallback للصيغة القديمة.
+    const OWNER_PASSWORD_HASH_B64 = process.env.OWNER_PASSWORD_HASH_B64?.trim()
+    const OWNER_PASSWORD_HASH = OWNER_PASSWORD_HASH_B64
+      ? Buffer.from(OWNER_PASSWORD_HASH_B64, 'base64').toString('utf8')
+      : process.env.OWNER_PASSWORD_HASH?.trim()
     const OWNER_PASSWORD = process.env.OWNER_PASSWORD?.trim()
 
     let ownerMatch = false
