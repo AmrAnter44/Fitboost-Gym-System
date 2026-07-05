@@ -2459,7 +2459,7 @@ export default function MemberDetailPage() {
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-purple-500`}>
  <div className="flex items-center justify-between mb-2">
  <p className="text-xs text-gray-600 dark:text-white font-semibold truncate">
- 📞 {locale === 'ar' ? 'متابعة سريعة' : 'Quick Follow-up'}
+ {locale === 'ar' ? 'متابعة سريعة' : 'Quick Follow-up'}
  </p>
  </div>
  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 min-h-[2rem]">
