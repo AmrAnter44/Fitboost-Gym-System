@@ -86,6 +86,9 @@ data/archived/
 *.db.backup*
 *.integrity_backup
 prisma/gym.db.pre-vacuum-*
+*.bak
+prisma/backups/
+prisma/prisma/
 
 # Claude Code settings
 .claude/settings.local.json
