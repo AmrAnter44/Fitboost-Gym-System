@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
         className: true,
         coachName: true,
         duration: true,
+        gender: true,
       },
       orderBy: [
         { dayOfWeek: 'asc' },

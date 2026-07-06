@@ -5039,7 +5039,11 @@
       "sessionType": "Session Type",
       "remainingSessions": "Remaining Sessions",
       "sessionPrice": "Session Price",
-      "simpleRegistration": "Simple registration - name, number, and session price only"
+      "simpleRegistration": "Simple registration - name, number, and session price only",
+      "gender": "Class Type",
+      "genderMale": "Men",
+      "genderFemale": "Women",
+      "genderMixed": "Mixed"
     }
   },
   "receipt": {

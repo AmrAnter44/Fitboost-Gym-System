@@ -5042,7 +5042,11 @@
       "sessionType": "نوع الجلسة",
       "remainingSessions": "الجلسات المتبقية",
       "sessionPrice": "سعر الجلسة",
-      "simpleRegistration": "تسجيل مبسط - اسم ورقم وسعر الجلسة فقط"
+      "simpleRegistration": "تسجيل مبسط - اسم ورقم وسعر الجلسة فقط",
+      "gender": "نوع الكلاس",
+      "genderMale": "رجالي",
+      "genderFemale": "نسائي",
+      "genderMixed": "مختلط"
     }
   },
   "homepageClassBookings": {

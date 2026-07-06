@@ -35,10 +35,15 @@ export async function POST(request: Request) {
     await requirePermission(request, 'canCreateGroupClass')
 
     const body = await request.json()
-    const { dayOfWeek, startTime, className, coachName, duration } = body
+    const { dayOfWeek, startTime, className, coachName, duration, gender } = body
 
     if (dayOfWeek === undefined || !startTime || !className || !coachName) {
       return NextResponse.json({ error: 'جميع الحقول مطلوبة' }, { status: 400 })
+    }
+
+    const ALLOWED_GENDERS = ['male', 'female', 'mixed']
+    if (gender !== undefined && !ALLOWED_GENDERS.includes(gender)) {
+      return NextResponse.json({ error: 'نوع الكلاس غير صحيح' }, { status: 400 })
     }
 
     const schedule = await prisma.classSchedule.create({
@@ -48,6 +53,7 @@ export async function POST(request: Request) {
         className: className.trim(),
         coachName: coachName.trim(),
         duration: duration ? Number(duration) : 60,
+        gender: gender || 'mixed',
         isActive: true,
       },
     })

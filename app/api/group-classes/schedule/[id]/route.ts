@@ -12,7 +12,11 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { dayOfWeek, startTime, className, coachName, duration, isActive } = body
+    const { dayOfWeek, startTime, className, coachName, duration, isActive, gender } = body
+
+    if (gender !== undefined && !['male', 'female', 'mixed'].includes(gender)) {
+      return NextResponse.json({ error: 'نوع الكلاس غير صحيح' }, { status: 400 })
+    }
 
     const schedule = await prisma.classSchedule.update({
       where: { id },
@@ -23,6 +27,7 @@ export async function PUT(
         ...(coachName && { coachName: coachName.trim() }),
         ...(duration !== undefined && { duration: Number(duration) }),
         ...(isActive !== undefined && { isActive }),
+        ...(gender !== undefined && { gender }),
       },
     })
 

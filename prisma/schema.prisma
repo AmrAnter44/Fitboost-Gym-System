@@ -1262,6 +1262,7 @@ model ClassSchedule {
   className   String   // نوع الكلاس e.g. "زومبا", "يوجا", "كروسفيت"
   coachName   String   // اسم الكوتش
   duration    Int      @default(60) // المدة بالدقائق
+  gender      String   @default("mixed") // "male" رجالي | "female" نسائي | "mixed" مختلط
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

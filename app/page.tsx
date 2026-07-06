@@ -550,7 +550,22 @@ export default function HomePage() {
                       <IconUsers className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{cls.className}</p>
+                      <p className="font-bold text-gray-900 dark:text-gray-100 truncate flex items-center gap-2">
+                        <span className="truncate">{cls.className}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                          cls.gender === 'male'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                            : cls.gender === 'female'
+                            ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300'
+                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                        }`}>
+                          {cls.gender === 'male'
+                            ? t('settingsPage.groupClassSchedules.genderMale')
+                            : cls.gender === 'female'
+                            ? t('settingsPage.groupClassSchedules.genderFemale')
+                            : t('settingsPage.groupClassSchedules.genderMixed')}
+                        </span>
+                      </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         <IconUser className="w-3.5 h-3.5" />
                         <span className="truncate">{cls.coachName}</span>

@@ -96,6 +96,7 @@ export default function GroupClassPage() {
   const [loadingSchedules, setLoadingSchedules] = useState(false)
   const [scheduleForm, setScheduleForm] = useState({
     dayOfWeek: 0,
+    gender: 'mixed',
     startTime: '09:00',
     className: '',
     coachName: '',
@@ -654,7 +655,7 @@ export default function GroupClassPage() {
   }
 
   const resetScheduleForm = () => {
-    setScheduleForm({ dayOfWeek: 0, startTime: '09:00', className: '', coachName: '', duration: 60 })
+    setScheduleForm({ dayOfWeek: 0, gender: 'mixed', startTime: '09:00', className: '', coachName: '', duration: 60 })
     setEditingSchedule(null)
   }
 
@@ -1560,6 +1561,18 @@ export default function GroupClassPage() {
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">{t('settingsPage.groupClassSchedules.gender')}</label>
+                    <select
+                      value={scheduleForm.gender}
+                      onChange={e => setScheduleForm(p => ({ ...p, gender: e.target.value }))}
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="mixed">{t('settingsPage.groupClassSchedules.genderMixed')}</option>
+                      <option value="male">{t('settingsPage.groupClassSchedules.genderMale')}</option>
+                      <option value="female">{t('settingsPage.groupClassSchedules.genderFemale')}</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="flex gap-2 mt-4">
                   <button
@@ -1601,7 +1614,22 @@ export default function GroupClassPage() {
                               <div className="flex items-center gap-3">
                                 <span className="text-purple-600 dark:text-purple-400 font-mono font-bold text-sm">{s.startTime}</span>
                                 <div>
-                                  <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{s.className}</p>
+                                  <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm flex items-center gap-2">
+                                    {s.className}
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                      s.gender === 'male'
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                        : s.gender === 'female'
+                                        ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300'
+                                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                    }`}>
+                                      {s.gender === 'male'
+                                        ? t('settingsPage.groupClassSchedules.genderMale')
+                                        : s.gender === 'female'
+                                        ? t('settingsPage.groupClassSchedules.genderFemale')
+                                        : t('settingsPage.groupClassSchedules.genderMixed')}
+                                    </span>
+                                  </p>
                                   <p className="text-xs text-gray-500 dark:text-gray-400"> {s.coachName} · {s.duration} {t('homepageClassBookings.minutes')}</p>
                                 </div>
                               </div>
@@ -1611,6 +1639,7 @@ export default function GroupClassPage() {
                                     setEditingSchedule(s)
                                     setScheduleForm({
                                       dayOfWeek: s.dayOfWeek,
+                                      gender: s.gender || 'mixed',
                                       startTime: s.startTime,
                                       className: s.className,
                                       coachName: s.coachName,
