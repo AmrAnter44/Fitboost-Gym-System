@@ -148,8 +148,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       title: t('nav.services'),
       links: [
         { href: '/pt', label: t('nav.pt'), icon: NavIcons.pt, permission: 'canViewPT' as keyof Permissions },
-        //  لينك متابعة الكباتن للفتنس مانجر
-        { href: '/manager/coach-conversions', label: locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking', icon: NavIcons.closing, permission: 'canAccessPTCommission' as keyof Permissions },
+        //  متابعة الكباتن بقت تاب جوّه صفحة الحصص المخصصة (/pt) — مش لينك مستقل
         { href: '/nutrition', label: t('nav.nutrition'), icon: NavIcons.nutrition, permission: 'canViewNutrition' as keyof Permissions, enabled: settings.nutritionEnabled },
         { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: NavIcons.physiotherapy, permission: 'canViewPhysiotherapy' as keyof Permissions, enabled: settings.physiotherapyEnabled },
         { href: '/group-classes', label: t('nav.groupClasses'), icon: NavIcons.groupClasses, permission: 'canViewGroupClass' as keyof Permissions, enabled: settings.groupClassEnabled },

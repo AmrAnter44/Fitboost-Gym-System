@@ -23,6 +23,7 @@ import PTUpgradeForm from '../../components/PTUpgradeForm'
 import { LoadingScreen } from '../../components/Spinner'
 import { createWhatsAppUrl } from '@/lib/whatsappHelper'
 import type { MessageTemplate } from '../followups/MessageTemplateManager'
+import CoachConversionsPanel from '../../components/CoachConversionsPanel'
 
 const SignaturePad = dynamic(() => import('../../components/SignaturePad'), { ssr: false })
 //  مودال اختيار قالب الواتساب — reuse من صفحة المتابعات
@@ -65,6 +66,10 @@ export default function PTPage() {
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
   const isCoach = user?.role === 'COACH'
+
+  //  تابات صفحة الحصص المخصصة: الحصص | متابعة الكباتن
+  const [activeTab, setActiveTab] = useState<'sessions' | 'captains'>('sessions')
+  const canSeeCaptains = hasPermission('canAccessPTCommission')
 
   // استخدام useQuery لجلب جلسات PT
   const {
@@ -703,6 +708,7 @@ export default function PTPage() {
             </p>
           </div>
         </div>
+        {activeTab === 'sessions' && (
         <div className="flex flex-wrap gap-2 sm:gap-3">
           {/*  زرار حاسبة الـ commission — OWNER/ADMIN/MANAGER (الفتنس مانجر) أو COACH أو اللي عنده الصلاحية */}
           {(user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'MANAGER' || isCoach || hasPermission('canAccessPTCommission')) && (
@@ -749,7 +755,31 @@ export default function PTPage() {
             </button>
           )}
         </div>
+        )}
+        {canSeeCaptains && (
+          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mt-4">
+            <button
+              type="button"
+              onClick={() => setActiveTab('sessions')}
+              className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'sessions' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+            >
+              {t('pt.title')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('captains')}
+              className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'captains' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+            >
+              {locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking'}
+            </button>
+          </div>
+        )}
       </div>
+
+      {activeTab === 'captains' ? (
+        <CoachConversionsPanel />
+      ) : (
+      <>
 
       {!isCoach && showForm && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in" role="dialog" aria-modal="true" aria-labelledby="pt-form-title" onClick={(e) => { if (e.target === e.currentTarget) { resetForm() } }}>
@@ -1730,6 +1760,9 @@ export default function PTPage() {
           visitorPhone={selectedSessionForTemplate.phone}
           salesName={user?.name}
         />
+      )}
+
+      </>
       )}
 
     </div>
