@@ -177,13 +177,15 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canEditExpense')
 
     const body = await request.json()
-    const { id, amount, description, createdAt, isPaid, paymentMethod, category } = body
+    const { id, amount, description, notes, createdAt, isPaid, paymentMethod, category } = body
 
     // تحضير البيانات للتحديث
     const updateData: any = {}
 
     if (amount !== undefined && amount !== null && amount !== '') updateData.amount = parseFloat(amount)
     if (description !== undefined) updateData.description = description
+    //  دعم تحديث الملاحظات
+    if (notes !== undefined) updateData.notes = (typeof notes === 'string' && notes.trim()) ? notes : null
     if (createdAt !== undefined) updateData.createdAt = new Date(createdAt)
     if (isPaid !== undefined) updateData.isPaid = isPaid
     //  دعم تحديث طريقة الدفع

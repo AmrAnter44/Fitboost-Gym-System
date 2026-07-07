@@ -218,6 +218,7 @@ export default function ExpensesPage() {
         id: editingExpense.id,
         amount: formData.amount,
         description: formData.description,
+        notes: formData.notes, //  الملاحظات
         createdAt: formData.createdAt,
         paymentMethod: formData.paymentMethod, //  البنك اللي اتخصم منه
         category: formData.category, // التصنيف
@@ -600,7 +601,10 @@ export default function ExpensesPage() {
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t('expenses.form.expenseType')}</label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any, staffId: '' })}
+                  onChange={(e) => {
+                    const newType = e.target.value as 'gym_expense' | 'staff_loan' | 'staff_salary'
+                    setFormData({ ...formData, type: newType, staffId: '', ...(newType !== 'gym_expense' ? { category: '' } : {}) })
+                  }}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                   required
                   disabled={!!editingExpense}
@@ -691,7 +695,8 @@ export default function ExpensesPage() {
                 </div>
               </div>
 
-              {/* التصنيف */}
+              {/* التصنيف — يظهر بس مع مصاريف الجيم (يختفي مع السلفة والمرتبات) */}
+              {formData.type === 'gym_expense' && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">{direction === 'rtl' ? 'التصنيف' : 'Category'}</label>
@@ -719,6 +724,7 @@ export default function ExpensesPage() {
                   )}
                 </select>
               </div>
+              )}
 
               {/* الوصف — اختياري، بيتاخد من التصنيف تلقائياً لو فاضي */}
               {formData.type === 'gym_expense' && (
@@ -766,7 +772,6 @@ export default function ExpensesPage() {
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
                 rows={3}
                 placeholder={t('expenses.form.notesPlaceholder')}
-                disabled={!!editingExpense}
               />
             </div>
 

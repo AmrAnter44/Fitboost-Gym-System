@@ -757,18 +757,18 @@ export default function PTPage() {
         </div>
         )}
         {canSeeCaptains && (
-          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mt-4">
+          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mt-4 overflow-x-auto hide-scrollbar">
             <button
               type="button"
               onClick={() => setActiveTab('sessions')}
-              className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'sessions' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'sessions' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
             >
               {t('pt.title')}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('captains')}
-              className={`px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'captains' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'captains' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
             >
               {locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking'}
             </button>
