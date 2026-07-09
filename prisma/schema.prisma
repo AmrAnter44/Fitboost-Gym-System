@@ -263,6 +263,7 @@ model Receipt {
   cancelledAt   DateTime?
   cancelledBy   String?
   cancelReason  String?
+  refundMethod  String?       // طريقة استرجاع الفلوس عند الإلغاء: 'cash' | 'instapay'
   dayUse        DayUseInBody? @relation(fields: [dayUseId], references: [id], onDelete: SetNull)
   pt            PT?           @relation(fields: [ptNumber], references: [ptNumber], onDelete: SetNull)
   member        Member?       @relation(fields: [memberId], references: [id], onDelete: SetNull)

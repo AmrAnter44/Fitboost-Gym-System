@@ -47,6 +47,7 @@ interface Receipt {
  cancelledAt?: string
  cancelledBy?: string
  cancelReason?: string
+ refundMethod?: string
 }
 
 // أنواع الإيصالات المدعومة (جميع الأنواع الحالية والقديمة) - خارج الـ component لتجنب re-creation
@@ -93,6 +94,11 @@ export default function ReceiptsPage() {
  const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
  const toast = useToast()
  const queryClient = useQueryClient()
+
+ //  مودال إلغاء الإيصال — بيسأل طريقة استرجاع الفلوس (كاش/إنستاباي) + السبب
+ const [cancelModal, setCancelModal] = useState<{ receiptId: string; receiptNumber: number; amount: number } | null>(null)
+ const [cancelForm, setCancelForm] = useState<{ refundMethod: 'cash' | 'instapay'; reason: string }>({ refundMethod: 'cash', reason: '' })
+ const [cancelling, setCancelling] = useState(false)
 
  // Pagination + Streaming — تحميل الإيصالات على دفعات
  // - أول 300 إيصال بيظهروا فوراً → الـ skeleton يختفي بسرعة
@@ -394,37 +400,46 @@ export default function ReceiptsPage() {
  return labels[method] || method
  }
 
- const handleCancelReceipt = async (receiptId: string) => {
+ //  فتح مودال الإلغاء — نجمع فيه طريقة استرجاع الفلوس والسبب
+ const handleCancelReceipt = (receiptId: string) => {
  if (!canCancel) {
  toast.error('ليس لديك صلاحية إلغاء الإيصالات')
  return
  }
-
- const confirmed = await confirm({
- title: `إلغاء الإيصال`,
- message: 'هل أنت متأكد من إلغاء هذا الإيصال؟ سيتم إنشاء مصروف بنفس المبلغ.',
- confirmText: 'إلغاء الإيصال',
- cancelText: 'رجوع',
- type: 'danger'
+ const receipt = receipts.find(r => r.id === receiptId)
+ setCancelForm({ refundMethod: 'cash', reason: '' })
+ setCancelModal({
+ receiptId,
+ receiptNumber: receipt?.receiptNumber ?? 0,
+ amount: receipt?.amount ?? 0,
  })
+ }
 
- if (!confirmed) return
+ //  تنفيذ الإلغاء فعلياً بعد اختيار طريقة الاسترجاع
+ const confirmCancelReceipt = async () => {
+ if (!cancelModal) return
+ const receiptId = cancelModal.receiptId
+ setCancelling(true)
 
  // Optimistic Update - علّم الإيصال كملغي فوراً
  const previousData = queryClient.getQueryData<any[]>(['receipts'])
  queryClient.setQueryData<any[]>(['receipts'], (old) =>
- old ? old.map(r => r.id === receiptId ? { ...r, isCancelled: true } : r) : old
+ old ? old.map(r => r.id === receiptId ? { ...r, isCancelled: true, refundMethod: cancelForm.refundMethod } : r) : old
  )
 
  try {
  const response = await fetch(`/api/receipts/${receiptId}/cancel`, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ reason: 'إلغاء يدوي' })
+ body: JSON.stringify({
+ reason: cancelForm.reason.trim() || 'إلغاء يدوي',
+ refundMethod: cancelForm.refundMethod,
+ })
  })
 
  if (response.ok) {
  toast.success('تم إلغاء الإيصال بنجاح')
+ setCancelModal(null)
  queryClient.invalidateQueries({ queryKey: ['receipts'] })
  } else {
  queryClient.setQueryData(['receipts'], previousData)
@@ -435,6 +450,8 @@ export default function ReceiptsPage() {
  queryClient.setQueryData(['receipts'], previousData)
  console.error('Error:', error)
  toast.error('حدث خطأ أثناء إلغاء الإيصال')
+ } finally {
+ setCancelling(false)
  }
  }
 
@@ -1943,6 +1960,86 @@ export default function ReceiptsPage() {
  onCancel={handleCancel}
  type={options.type}
  />
+
+ {/* مودال إلغاء الإيصال — طريقة استرجاع الفلوس + السبب */}
+ {cancelModal && (
+ <div
+ className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+ dir={direction}
+ role="dialog"
+ aria-modal="true"
+ onClick={(e) => { if (e.target === e.currentTarget && !cancelling) setCancelModal(null) }}
+ >
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 w-full max-w-md animate-modal-in">
+ {/* Header */}
+ <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+ <h3 className="text-lg font-bold text-red-600 dark:text-red-400">إلغاء الإيصال #{cancelModal.receiptNumber}</h3>
+ <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+ المبلغ المسترجع: <strong className="text-gray-800 dark:text-gray-100">{cancelModal.amount}</strong> ج
+ </p>
+ </div>
+
+ {/* Body */}
+ <div className="p-6 space-y-4">
+ <div>
+ <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+ الفلوس المسترجعة طلعت إزاي؟ <span className="text-red-600">*</span>
+ </label>
+ <div className="grid grid-cols-2 gap-2">
+ {([
+ { key: 'cash', label: 'كاش' },
+ { key: 'instapay', label: 'إنستاباي' },
+ ] as const).map(opt => (
+ <button
+ key={opt.key}
+ type="button"
+ onClick={() => setCancelForm(f => ({ ...f, refundMethod: opt.key }))}
+ className={`px-4 py-2.5 rounded-lg font-bold text-sm border-2 transition-colors duration-200 ${
+ cancelForm.refundMethod === opt.key
+ ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+ : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+ }`}
+ >
+ {opt.label}
+ </button>
+ ))}
+ </div>
+ </div>
+
+ <div>
+ <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">سبب الإلغاء</label>
+ <textarea
+ value={cancelForm.reason}
+ onChange={(e) => setCancelForm(f => ({ ...f, reason: e.target.value }))}
+ rows={2}
+ placeholder="اختياري"
+ className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
+ />
+ </div>
+ </div>
+
+ {/* Footer */}
+ <div className="flex gap-2 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+ <button
+ type="button"
+ onClick={() => setCancelModal(null)}
+ disabled={cancelling}
+ className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-60 transition-colors duration-200"
+ >
+ رجوع
+ </button>
+ <button
+ type="button"
+ onClick={confirmCancelReceipt}
+ disabled={cancelling}
+ className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200"
+ >
+ {cancelling ? 'جاري الإلغاء...' : 'تأكيد الإلغاء'}
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
  </div>
  )
 }

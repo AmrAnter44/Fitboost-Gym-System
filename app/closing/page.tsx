@@ -241,7 +241,10 @@ export default function ClosingPage() {
         return false
       }
 
-      const filteredReceipts = receipts.filter((r: any) => !r.isCancelled && filterDate(r.createdAt))
+      //  الإيصال الملغي اللي ليه مرتجع (refundMethod) بيفضل دخله متحسب على يوم إنشائه،
+      //  والفلوس المسترجعة بتظهر كمصروف (مرتجعات) على يوم الإلغاء — فالصافي صح من غير خصم مزدوج.
+      //  الإيصالات الملغية القديمة (من غير مرتجع) بتفضل مستبعدة زي ما كانت.
+      const filteredReceipts = receipts.filter((r: any) => filterDate(r.createdAt) && !(r.isCancelled && !r.refundMethod))
       const filteredExpenses = expenses.filter((e: any) => filterDate(e.createdAt))
 
       // بناء map للمدفوعات اللاحقة (Payment receipts) عشان نحسب الباقي الفعلي الحالي
@@ -324,6 +327,17 @@ export default function ClosingPage() {
 
       const dailyMap: { [key: string]: DailyData } = {}
 
+      //  يوم فاضي بكل الحقول — يتجنب تكرار الـ init في أكتر من مكان
+      const emptyDay = (date: string): DailyData => ({
+        date,
+        floor: 0, pt: 0, nutrition: 0, physiotherapy: 0, more: 0, other: 0,
+        expenses: 0, expensesCash: 0, expensesInstapay: 0, expensesWallet: 0,
+        expenseDetails: '',
+        visa: 0, instapay: 0, cash: 0, wallet: 0, points: 0,
+        remainingAmount: 0, remainingInstapay: 0, remainingWallet: 0,
+        staffLoans: {}, receipts: [], expensesList: []
+      })
+
       filteredReceipts.forEach((receipt: any) => {
         // استخدام التاريخ المحلي بدلاً من UTC
         const receiptDate = new Date(receipt.createdAt)
@@ -333,31 +347,7 @@ export default function ClosingPage() {
         const date = `${year}-${month}-${day}`
 
         if (!dailyMap[date]) {
-          dailyMap[date] = {
-            date,
-            floor: 0,
-            pt: 0,
-            nutrition: 0,
-            physiotherapy: 0,
-    more: 0,
-            other: 0,
-            expenses: 0,
-    expensesCash: 0,
-    expensesInstapay: 0,
-    expensesWallet: 0,
-            expenseDetails: '',
-            visa: 0,
-            instapay: 0,
-            cash: 0,
-            wallet: 0,
-            points: 0,               // النقاط المستخدمة
-            remainingAmount: 0,      // الفلوس الباقية
-            remainingInstapay: 0,    // الفلوس الباقية - إنستاباي
-            remainingWallet: 0,      // الفلوس الباقية - محفظة
-            staffLoans: {},
-            receipts: [],
-            expensesList: []
-          }
+          dailyMap[date] = emptyDay(date)
         }
 
         dailyMap[date].receipts.push(receipt)
@@ -461,31 +451,7 @@ export default function ClosingPage() {
         const date = `${year}-${month}-${day}`
 
         if (!dailyMap[date]) {
-          dailyMap[date] = {
-            date,
-            floor: 0,
-            pt: 0,
-            nutrition: 0,
-            physiotherapy: 0,
-    more: 0,
-            other: 0,
-            expenses: 0,
-    expensesCash: 0,
-    expensesInstapay: 0,
-    expensesWallet: 0,
-            expenseDetails: '',
-            visa: 0,
-            instapay: 0,
-            cash: 0,
-            wallet: 0,
-            points: 0,               // النقاط المستخدمة
-            remainingAmount: 0,      // الفلوس الباقية
-            remainingInstapay: 0,    // الفلوس الباقية - إنستاباي
-            remainingWallet: 0,      // الفلوس الباقية - محفظة
-            staffLoans: {},
-            receipts: [],
-            expensesList: []
-          }
+          dailyMap[date] = emptyDay(date)
         }
 
         dailyMap[date].expensesList.push(expense)
@@ -563,6 +529,7 @@ export default function ClosingPage() {
 
       newTotals.totalPayments = newTotals.cash + newTotals.visa + newTotals.instapay + newTotals.wallet + newTotals.points
       newTotals.totalRevenue = newTotals.floor + newTotals.pt + newTotals.nutrition + newTotals.physiotherapy + newTotals.more
+      //  الصافي = الدخل − المصاريف (المرتجعات بتتسجّل كمصروف فبتتخصم تلقائياً هنا)
       newTotals.netProfit = newTotals.totalRevenue - newTotals.expenses
 
       setTotals(newTotals)
@@ -1795,10 +1762,15 @@ export default function ClosingPage() {
                                   <div className="flex items-start justify-between gap-2 mb-2">
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-bold text-green-700 dark:text-green-400 text-sm">#{receipt.receiptNumber}</span>
+                                        <span className={`font-bold text-sm ${receipt.isCancelled ? 'text-red-600 dark:text-red-400 line-through' : 'text-green-700 dark:text-green-400'}`}>#{receipt.receiptNumber}</span>
                                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
                                           {getTypeLabel(receipt.type)}
                                         </span>
+                                        {receipt.isCancelled && (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">
+                                            {direction === 'rtl' ? 'ملغي' : 'Cancelled'}
+                                          </span>
+                                        )}
                                       </div>
                                       <p className="text-xs text-gray-700 dark:text-gray-300 mt-1.5 truncate">
                                         {details.memberName ? `${details.memberName}${details.memberNumber ? ` (#${details.memberNumber})` : ''}` : details.clientName || details.name || '-'}
@@ -1837,12 +1809,17 @@ export default function ClosingPage() {
                                 {day.receipts.map((receipt: any) => {
                                   const details = JSON.parse(receipt.itemDetails)
                                   return (
-                                    <tr key={receipt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors duration-200">
+                                    <tr key={receipt.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors duration-200 ${receipt.isCancelled ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
                                       <td className="px-3 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
                                         {new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                       </td>
-                                      <td className="px-3 py-3 font-bold text-green-700 dark:text-green-400">
+                                      <td className={`px-3 py-3 font-bold ${receipt.isCancelled ? 'text-red-600 dark:text-red-400 line-through' : 'text-green-700 dark:text-green-400'}`}>
                                         #{receipt.receiptNumber}
+                                        {receipt.isCancelled && (
+                                          <span className="ms-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 no-underline">
+                                            {direction === 'rtl' ? 'ملغي' : 'Cancelled'}
+                                          </span>
+                                        )}
                                       </td>
                                       <td className="px-3 py-3">
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
@@ -2135,12 +2112,17 @@ export default function ClosingPage() {
                                       {day.receipts.map((receipt: any) => {
                                         const details = JSON.parse(receipt.itemDetails)
                                         return (
-                                          <tr key={receipt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors duration-200">
+                                          <tr key={receipt.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors duration-200 ${receipt.isCancelled ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
                                             <td className="px-3 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
                                               {new Date(receipt.createdAt).toLocaleTimeString(direction === 'rtl' ? 'ar-EG' : 'en-US')}
                                             </td>
-                                            <td className="px-3 py-3 font-bold text-green-700 dark:text-green-400">
+                                            <td className={`px-3 py-3 font-bold ${receipt.isCancelled ? 'text-red-600 dark:text-red-400 line-through' : 'text-green-700 dark:text-green-400'}`}>
                                               #{receipt.receiptNumber}
+                                              {receipt.isCancelled && (
+                                                <span className="ms-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 no-underline">
+                                                  {direction === 'rtl' ? 'ملغي' : 'Cancelled'}
+                                                </span>
+                                              )}
                                             </td>
                                             <td className="px-3 py-3">
                                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
