@@ -96,6 +96,7 @@ interface Member {
   name: string
   expiryDate?: string
   isActive: boolean
+  isBanned?: boolean
   birthDate?: string
 }
 
@@ -477,6 +478,8 @@ function FollowUpsPageContent() {
     return allMembersData
       .filter(m => {
         if (!m.expiryDate) return false
+        //  الأعضاء المحظورين مبيظهروش في المتابعات
+        if (m.isBanned) return false
         const expiryDate = new Date(m.expiryDate)
         expiryDate.setHours(0, 0, 0, 0)
         //  منتهي = تاريخ الانتهاء فات (سواء اتعطل يدوي أو لا)
@@ -509,6 +512,8 @@ function FollowUpsPageContent() {
     return allMembersData
       .filter(m => {
         if (!m.expiryDate || !m.isActive) return false
+        //  الأعضاء المحظورين مبيظهروش في المتابعات
+        if (m.isBanned) return false
         const expiryDate = new Date(m.expiryDate)
         expiryDate.setHours(0, 0, 0, 0)
         // الأعضاء النشطين اللي اشتراكهم هينتهي في خلال الأيام المحددة

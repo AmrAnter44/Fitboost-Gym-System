@@ -216,84 +216,26 @@ export default function LoginPage() {
       </div>
 
       <style jsx>{`
+        /*  crossfade هادي بين اللوجوهين — من غير أي دوران/تشقلب */
         @keyframes logoSwitch {
-          0%, 43% {
-            opacity: 1;
-            transform: scale(1) rotate(0deg);
-            filter: blur(0px) brightness(1);
-          }
-          47% {
-            opacity: 0.5;
-            transform: scale(1.15) rotate(5deg);
-            filter: blur(4px) brightness(1.2);
-          }
-          50%, 93% {
-            opacity: 0;
-            transform: scale(0.8) rotate(10deg);
-            filter: blur(8px) brightness(0.8);
-          }
-          97% {
-            opacity: 0.5;
-            transform: scale(1.15) rotate(-5deg);
-            filter: blur(4px) brightness(1.2);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1) rotate(0deg);
-            filter: blur(0px) brightness(1);
-          }
+          0%, 45% { opacity: 1; }
+          50%, 95% { opacity: 0; }
+          100% { opacity: 1; }
         }
 
         @keyframes logoSwitchAlt {
-          0% {
-            opacity: 0;
-            transform: scale(0.8) rotate(0deg);
-            filter: blur(0px) brightness(1);
-          }
-          3% {
-            opacity: 0.5;
-            transform: scale(1.15) rotate(5deg);
-            filter: blur(4px) brightness(1.2);
-          }
-          7%, 47% {
-            opacity: 0;
-            transform: scale(0.8) rotate(0deg);
-            filter: blur(0px) brightness(1);
-          }
-          50% {
-            opacity: 0;
-            transform: scale(0.8) rotate(-10deg);
-            filter: blur(8px) brightness(0.8);
-          }
-          53% {
-            opacity: 0.5;
-            transform: scale(1.15) rotate(-5deg);
-            filter: blur(4px) brightness(1.2);
-          }
-          57%, 93% {
-            opacity: 1;
-            transform: scale(1) rotate(0deg);
-            filter: blur(0px) brightness(1);
-          }
-          97% {
-            opacity: 0.5;
-            transform: scale(1.15) rotate(5deg);
-            filter: blur(4px) brightness(1.2);
-          }
-          100% {
-            opacity: 0;
-            transform: scale(0.8) rotate(-10deg);
-            filter: blur(8px) brightness(0.8);
-          }
+          0%, 45% { opacity: 0; }
+          50%, 95% { opacity: 1; }
+          100% { opacity: 0; }
         }
 
         .logo-switch {
-          animation: logoSwitch 8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+          animation: logoSwitch 8s ease-in-out infinite;
           opacity: 1;
         }
 
         .logo-switch-alt {
-          animation: logoSwitchAlt 8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+          animation: logoSwitchAlt 8s ease-in-out infinite;
           opacity: 0;
         }
 
