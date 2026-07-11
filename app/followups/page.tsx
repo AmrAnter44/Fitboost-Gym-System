@@ -1930,7 +1930,7 @@ function FollowUpsPageContent() {
       {/* Streaming progress — يظهر بس وقت تحميل دفعات الـ background للمتابعات */}
       {(followUpsFetchingNext || followUpsHasNext) && totalFollowUpsCount > followUps.length && (
         <div className="bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 p-3 rounded-xl mb-4 flex items-center gap-3" dir={direction} aria-busy="true" aria-live="polite">
-          <svg className="animate-spin h-4 w-4 text-blue-500 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <svg className="animate-spin h-4 w-4 text-blue-500 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06"/></svg>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-blue-800 dark:text-blue-300">
               {locale === 'ar'
@@ -3651,7 +3651,7 @@ function FollowUpsPageContent() {
               >
                 {deleteMutation.isPending ? (
                   <>
-                    <svg className="animate-spin w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <svg className="w-4 h-4 animate-spin" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06"/></svg>
                     <span>{t('followups.deleteConfirm.deleting')}</span>
                   </>
                 ) : (
@@ -3719,7 +3719,7 @@ function FollowUpsPageContent() {
               >
                 {deleteVisitorMutation.isPending ? (
                   <>
-                    <svg className="animate-spin w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <svg className="w-4 h-4 animate-spin" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06"/></svg>
                     <span>{t('followups.deleteConfirm.deleting')}</span>
                   </>
                 ) : (

@@ -690,22 +690,13 @@ export default function MemberDetailPage() {
  if (!member) return
 
  try {
- const response = await fetch('/api/pt')
+ //  endpoint خفيف مستقل عن صلاحية canViewPT — بيرجّع اشتراك PT النشط للعضو مباشرة
+ const response = await fetch(`/api/members/${memberId}/pt-status`)
  if (response.ok) {
- const allPTs = await response.json()
- const today = new Date()
- today.setHours(0, 0, 0, 0)
-
- // البحث عن PT نشط للعضو (بدأ ولم ينتهي)
- const activePT = allPTs.find((pt: any) => {
- const hasStarted = !pt.startDate || new Date(pt.startDate) <= today
- const notExpired = !pt.expiryDate || new Date(pt.expiryDate) >= today
- return pt.phone === member.phone &&
- pt.sessionsRemaining > 0 &&
- hasStarted &&
- notExpired
- })
+ const activePT = await response.json()
  setPtSubscription(activePT || null)
+ } else {
+ setPtSubscription(null)
  }
  } catch (error) {
  console.error('Error fetching PT subscription:', error)
@@ -1345,6 +1336,8 @@ export default function MemberDetailPage() {
  })
  setActiveModal(null)
  fetchMember()
+ //  حدّث كاش الـ PT عشان صفحة الـ PT تعرض بيانات الميمبر الجديدة (رقم/اسم/تليفون) فوراً
+ queryClient.invalidateQueries({ queryKey: ['pt-sessions'] })
  } else {
  const result = await response.json()
  toast.error(result.error || t('memberDetails.editModal.updateFailed'))

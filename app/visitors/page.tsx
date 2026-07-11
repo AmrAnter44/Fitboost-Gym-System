@@ -801,7 +801,7 @@ export default function VisitorsPage() {
       {/* Quick Add (Hidden List) */}
       {false && loading ? (
         <div className="flex flex-col items-center justify-center py-12 text-center" aria-busy="true" aria-live="polite">
-          <svg className="animate-spin w-10 h-10 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <svg className="animate-spin w-10 h-10 text-gray-400" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06"/></svg>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">{t('visitors.loading')}</p>
         </div>
       ) : (

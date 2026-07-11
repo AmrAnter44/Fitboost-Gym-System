@@ -1112,8 +1112,8 @@ export default function SearchModal() {
                           className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 min-h-[44px] bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base font-bold rounded-lg disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
                         >
                           {loading ? (
-                            <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" {...stroke}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06" />
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                              <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
                             </svg>
                           ) : (
                             <svg className="w-4 h-4 sm:w-5 sm:h-5" {...stroke}>
@@ -1208,8 +1208,8 @@ export default function SearchModal() {
                           className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 min-h-[44px] bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base font-bold rounded-lg disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
                         >
                           {loading ? (
-                            <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" {...stroke}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06" />
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                              <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
                             </svg>
                           ) : (
                             <svg className="w-4 h-4 sm:w-5 sm:h-5" {...stroke}>

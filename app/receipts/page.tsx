@@ -97,7 +97,7 @@ export default function ReceiptsPage() {
 
  //  مودال إلغاء الإيصال — بيسأل طريقة استرجاع الفلوس (كاش/إنستاباي) + السبب
  const [cancelModal, setCancelModal] = useState<{ receiptId: string; receiptNumber: number; amount: number } | null>(null)
- const [cancelForm, setCancelForm] = useState<{ refundMethod: 'cash' | 'instapay'; reason: string }>({ refundMethod: 'cash', reason: '' })
+ const [cancelForm, setCancelForm] = useState<{ refundMethod: 'cash' | 'instapay'; reason: string; amount: number }>({ refundMethod: 'cash', reason: '', amount: 0 })
  const [cancelling, setCancelling] = useState(false)
 
  // Pagination + Streaming — تحميل الإيصالات على دفعات
@@ -407,7 +407,8 @@ export default function ReceiptsPage() {
  return
  }
  const receipt = receipts.find(r => r.id === receiptId)
- setCancelForm({ refundMethod: 'cash', reason: '' })
+ //  المبلغ الافتراضي = كامل مبلغ الإيصال، وتقدر تعدّله (استرجاع جزئي)
+ setCancelForm({ refundMethod: 'cash', reason: '', amount: receipt?.amount ?? 0 })
  setCancelModal({
  receiptId,
  receiptNumber: receipt?.receiptNumber ?? 0,
@@ -418,6 +419,10 @@ export default function ReceiptsPage() {
  //  تنفيذ الإلغاء فعلياً بعد اختيار طريقة الاسترجاع
  const confirmCancelReceipt = async () => {
  if (!cancelModal) return
+ if (!cancelForm.amount || cancelForm.amount <= 0) {
+ toast.warning('اكتب مبلغ المرتجع')
+ return
+ }
  const receiptId = cancelModal.receiptId
  setCancelling(true)
 
@@ -434,6 +439,7 @@ export default function ReceiptsPage() {
  body: JSON.stringify({
  reason: cancelForm.reason.trim() || 'إلغاء يدوي',
  refundMethod: cancelForm.refundMethod,
+ refundAmount: cancelForm.amount,
  })
  })
 
@@ -441,6 +447,10 @@ export default function ReceiptsPage() {
  toast.success('تم إلغاء الإيصال بنجاح')
  setCancelModal(null)
  queryClient.invalidateQueries({ queryKey: ['receipts'] })
+ //  حدّث بيانات الأعضاء عشان حالة الاشتراك (منتهي) تظهر بعد الإلغاء
+ queryClient.invalidateQueries({ queryKey: ['members'] })
+ queryClient.invalidateQueries({ queryKey: ['members-followups'] })
+ queryClient.invalidateQueries({ queryKey: ['expenses'] })
  } else {
  queryClient.setQueryData(['receipts'], previousData)
  const error = await response.json()
@@ -859,7 +869,7 @@ export default function ReceiptsPage() {
  {/* Streaming progress — يظهر بس وقت تحميل دفعات الـ background */}
  {(receiptsFetchingNext || receiptsHasNext) && totalReceiptsCount > receipts.length && (
  <div className="bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 p-3 rounded-xl mb-4 flex items-center gap-3" dir={direction} aria-busy="true" aria-live="polite">
- <svg className="animate-spin h-4 w-4 text-blue-500 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+ <svg className="animate-spin h-4 w-4 text-blue-500 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06"/></svg>
  <div className="flex-1 min-w-0">
  <div className="text-sm font-bold text-blue-800 dark:text-blue-300">
  {direction === 'rtl'
@@ -1975,12 +1985,29 @@ export default function ReceiptsPage() {
  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
  <h3 className="text-lg font-bold text-red-600 dark:text-red-400">إلغاء الإيصال #{cancelModal.receiptNumber}</h3>
  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
- المبلغ المسترجع: <strong className="text-gray-800 dark:text-gray-100">{cancelModal.amount}</strong> ج
+ مبلغ الإيصال: <strong className="text-gray-800 dark:text-gray-100">{cancelModal.amount}</strong> ج
  </p>
  </div>
 
  {/* Body */}
  <div className="p-6 space-y-4">
+ <div>
+ <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+ المبلغ اللي هيطلع (المرتجع) <span className="text-red-600">*</span>
+ </label>
+ <input
+ type="number"
+ min={0}
+ value={cancelForm.amount || ''}
+ onChange={(e) => setCancelForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
+ className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-200"
+ placeholder="المبلغ المسترجع"
+ />
+ {cancelForm.amount > cancelModal.amount && (
+ <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">المبلغ أكبر من مبلغ الإيصال ({cancelModal.amount} ج)</p>
+ )}
+ </div>
+
  <div>
  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
  الفلوس المسترجعة طلعت إزاي؟ <span className="text-red-600">*</span>

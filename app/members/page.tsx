@@ -1956,7 +1956,10 @@ function MembersPageContent() {
                         <div className="flex items-center gap-2">
                           <h3 className="font-bold text-gray-900 dark:text-white truncate">{member.name}</h3>
                           {isBanned && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{locale === 'ar' ? 'محظور' : 'Banned'}</span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-red-600 text-white shadow-sm ring-1 ring-red-700 shrink-0">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                              {locale === 'ar' ? 'محظور' : 'Banned'}
+                            </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
@@ -1984,9 +1987,7 @@ function MembersPageContent() {
                       {/* Status Badge */}
                       <div className="flex items-center justify-between">
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-sm ${
-                          isBanned
-                            ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white border border-gray-700'
-                            : member.isFrozen
+                          member.isFrozen
                               ? 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
                               : isNotStartedYet
                                 ? 'bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/40 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
@@ -1996,9 +1997,7 @@ function MembersPageContent() {
                                     ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300'
                                     : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300'
                         }`}>
-                          {isBanned
-                            ? <><span></span> {locale === 'ar' ? 'محظور' : 'Banned'}</>
-                            : member.isFrozen
+                          {member.isFrozen
                               ? <><span></span> {locale === 'ar' ? 'مجمد' : 'Frozen'}{member.freezeUntil ? <span className="text-[10px] font-normal ms-1">{locale === 'ar' ? 'لحد' : 'until'} {new Date(member.freezeUntil).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })}</span> : null}</>
                               : isNotStartedYet
                                 ? <><span></span> {locale === 'ar' ? `يبدأ بعد ${daysUntilStart} يوم` : `Starts in ${daysUntilStart}d`}</>

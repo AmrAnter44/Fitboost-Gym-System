@@ -91,20 +91,25 @@ export async function GET(request: Request) {
       }
     })
 
-    // جلب صور العملاء من جدول Member بناءً على رقم الهاتف
+    // جلب صور العملاء + رقم العضوية الحالي من جدول Member بناءً على رقم الهاتف
+    //  رقم العضوية بيتجاب live عشان يفضل متطابق مع الميمبر حتى لو اتعدّل بعد إنشاء الـ PT
     const phones = ptSessions.map(s => s.phone).filter(Boolean)
-    const membersWithImages = phones.length > 0
+    const membersByPhone = phones.length > 0
       ? await prisma.member.findMany({
           where: { phone: { in: phones } },
-          select: { phone: true, profileImage: true }
+          select: { phone: true, profileImage: true, memberNumber: true }
         })
       : []
-    const phoneToImage = new Map(membersWithImages.map(m => [m.phone, m.profileImage]))
+    const phoneToMember = new Map(membersByPhone.map(m => [m.phone, m]))
 
-    const sessionsWithImages = ptSessions.map(s => ({
-      ...s,
-      profileImage: phoneToImage.get(s.phone) || null
-    }))
+    const sessionsWithImages = ptSessions.map(s => {
+      const mem = phoneToMember.get(s.phone)
+      return {
+        ...s,
+        profileImage: mem?.profileImage || null,
+        memberNumber: mem?.memberNumber ?? null
+      }
+    })
 
     return NextResponse.json(sessionsWithImages)
   } catch (error: any) {

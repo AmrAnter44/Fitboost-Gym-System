@@ -1026,9 +1026,34 @@ export async function PUT(request: Request) {
       }
     }
 
-    const member = await prisma.member.update({
-      where: { id },
-      data: updateData,
+    // 🔗 مزامنة بيانات الـ PT — الـ PT مربوط بالعضو عن طريق الهاتف وبيخزّن الاسم (clientName)
+    //    فلو الهاتف أو الاسم اتغيّر، بنحدّث سجلات الـ PT المرتبطة عشان تفضل متطابقة
+    const needsPTSync = !!data.phone || !!data.name
+    let oldPhoneForPT: string | null = null
+    if (needsPTSync) {
+      const cur = await prisma.member.findUnique({ where: { id }, select: { phone: true } })
+      oldPhoneForPT = cur?.phone ?? null
+    }
+
+    const member = await prisma.$transaction(async (tx) => {
+      const updated = await tx.member.update({
+        where: { id },
+        data: updateData,
+      })
+
+      if (needsPTSync && oldPhoneForPT) {
+        const ptUpdate: any = {}
+        if (data.phone) ptUpdate.phone = data.phone
+        if (data.name) ptUpdate.clientName = data.name
+        if (Object.keys(ptUpdate).length > 0) {
+          await tx.pT.updateMany({
+            where: { phone: oldPhoneForPT },
+            data: ptUpdate,
+          })
+        }
+      }
+
+      return updated
     })
 
     // 📝 Audit log

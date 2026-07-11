@@ -28,6 +28,9 @@ import CoachConversionsPanel from '../../components/CoachConversionsPanel'
 const SignaturePad = dynamic(() => import('../../components/SignaturePad'), { ssr: false })
 //  مودال اختيار قالب الواتساب — reuse من صفحة المتابعات
 const MessageTemplateManager = dynamic(() => import('../followups/MessageTemplateManager'), { ssr: false })
+//  التغذية والعلاج الطبيعي — بيتحمّلوا بس لما التاب يتفتح (lazy)
+const NutritionPanel = dynamic(() => import('../nutrition/page'), { ssr: false })
+const PhysiotherapyPanel = dynamic(() => import('../physiotherapy/page'), { ssr: false })
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -53,6 +56,7 @@ interface PTSession {
   expiryDate: string | null
   createdAt: string
   profileImage?: string | null
+  memberNumber?: string | null
   isFrozen?: boolean
   freezeUntil?: string | null
 }
@@ -67,9 +71,20 @@ export default function PTPage() {
   const queryClient = useQueryClient()
   const isCoach = user?.role === 'COACH'
 
-  //  تابات صفحة الحصص المخصصة: الحصص | متابعة الكباتن
-  const [activeTab, setActiveTab] = useState<'sessions' | 'captains'>('sessions')
+  //  تابات صفحة الحصص المخصصة: الحصص | متابعة الكباتن | التغذية | العلاج الطبيعي
+  const [activeTab, setActiveTab] = useState<'sessions' | 'captains' | 'nutrition' | 'physio'>('sessions')
   const canSeeCaptains = hasPermission('canAccessPTCommission')
+  //  التغذية والعلاج الطبيعي بيظهروا كتابات بس لو مفعّلين من الإعدادات
+  const canSeeNutrition = settings.nutritionEnabled
+  const canSeePhysio = settings.physiotherapyEnabled
+  const showTabs = canSeeCaptains || canSeeNutrition || canSeePhysio
+
+  //  لو التاب المفتوح اتقفل من الإعدادات، ارجع لتاب الحصص
+  useEffect(() => {
+    if (activeTab === 'nutrition' && !canSeeNutrition) setActiveTab('sessions')
+    else if (activeTab === 'physio' && !canSeePhysio) setActiveTab('sessions')
+    else if (activeTab === 'captains' && !canSeeCaptains) setActiveTab('sessions')
+  }, [activeTab, canSeeNutrition, canSeePhysio, canSeeCaptains])
 
   // استخدام useQuery لجلب جلسات PT
   const {
@@ -756,7 +771,7 @@ export default function PTPage() {
           )}
         </div>
         )}
-        {canSeeCaptains && (
+        {showTabs && (
           <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mt-4 overflow-x-auto hide-scrollbar">
             <button
               type="button"
@@ -765,19 +780,43 @@ export default function PTPage() {
             >
               {t('pt.title')}
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('captains')}
-              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'captains' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-            >
-              {locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking'}
-            </button>
+            {canSeeCaptains && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('captains')}
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'captains' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              >
+                {locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking'}
+              </button>
+            )}
+            {canSeeNutrition && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('nutrition')}
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'nutrition' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              >
+                {locale === 'ar' ? 'التغذية' : 'Nutrition'}
+              </button>
+            )}
+            {canSeePhysio && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('physio')}
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'physio' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              >
+                {locale === 'ar' ? 'العلاج الطبيعي' : 'Physiotherapy'}
+              </button>
+            )}
           </div>
         )}
       </div>
 
       {activeTab === 'captains' ? (
         <CoachConversionsPanel />
+      ) : activeTab === 'nutrition' ? (
+        <NutritionPanel />
+      ) : activeTab === 'physio' ? (
+        <PhysiotherapyPanel />
       ) : (
       <>
 
@@ -1359,9 +1398,14 @@ export default function PTPage() {
                           )}
                         </div>
                         <div>
-                          <div className="font-bold text-white text-base">{session.clientName}</div>
+                          <div className="font-bold text-white text-base">
+                            {session.clientName}
+                            {session.memberNumber != null && (
+                              <span className="ms-2 text-xs font-bold text-white/90">#{session.memberNumber}</span>
+                            )}
+                          </div>
                           <div className="text-white/80 text-xs">
-                            {session.ptNumber < 0 ? 'Day Use' : `#${session.ptNumber}`} • {session.phone}
+                            {session.ptNumber < 0 ? 'Day Use' : `#${session.memberNumber ?? session.ptNumber}`} • {session.phone}
                           </div>
                         </div>
                       </div>

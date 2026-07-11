@@ -108,9 +108,7 @@ export default function MemberAttendancePage() {
             >
               {loading ? (
                 <>
-                  <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <svg {...stroke} className="w-4 h-4 animate-spin" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06"/></svg>
                   <span>{t('memberAttendance.loading')}</span>
                 </>
               ) : (
