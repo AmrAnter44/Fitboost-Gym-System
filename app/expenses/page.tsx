@@ -158,8 +158,9 @@ export default function ExpensesPage() {
           : null
         if (formData.type === 'staff_salary') {
           dataToSend.description = selectedStaff ? `مرتب: ${selectedStaff.name}` : 'مرتب'
-        } else if (formData.type === 'staff_loan' && selectedStaff) {
-          dataToSend.description = selectedStaff.name
+        } else if (formData.type === 'staff_loan') {
+          //  وصف السلفة يبقى "سلفة" (مش اسم الموظف) — الموظف مربوط أصلاً بالمصروف عن طريق staffId
+          dataToSend.description = 'سلفة'
         } else if (formData.type === 'gym_expense' && formData.category) {
           //  الوصف يتاخد من التصنيف لو الـ user ساب حقل الوصف فاضي
           dataToSend.description = formData.category
