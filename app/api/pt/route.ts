@@ -31,11 +31,19 @@ export async function GET(request: Request) {
 
     //  لو الـ user عنده canViewAllPT (الفتنس مانجر)، يبص على كل PT حتى لو كوتش
     //  cast to any عشان الـ Prisma client مش متعمل regenerate لسه (dev server شغّال)
-    const permission = await (prisma.permission as any).findUnique({
-      where: { userId: user.userId },
-      select: { canViewAllPT: true }
-    })
-    const canViewAll = !!permission?.canViewAllPT
+    //  ⚠️ متغطّى بـ try/catch: عمود canViewAllPT ممكن يكون لسه مش موجود في DB الإنتاج
+    //  بعد رفع ابديت جديد قبل ما الـ schema يتحدّث — في الحالة دي نتعامل معاه كـ false
+    //  بدل ما الـ endpoint كله يرجّع 500 ومايظهرش أي اشتراك.
+    let canViewAll = false
+    try {
+      const permission = await (prisma.permission as any).findUnique({
+        where: { userId: user.userId },
+        select: { canViewAllPT: true }
+      })
+      canViewAll = !!permission?.canViewAllPT
+    } catch (e) {
+      canViewAll = false
+    }
 
     if (user.role === 'COACH' && !canViewAll) {
       // الكوتش يرى عملائه فقط (إلا لو عنده canViewAllPT)
@@ -93,14 +101,21 @@ export async function GET(request: Request) {
 
     // جلب صور العملاء + رقم العضوية الحالي من جدول Member بناءً على رقم الهاتف
     //  رقم العضوية بيتجاب live عشان يفضل متطابق مع الميمبر حتى لو اتعدّل بعد إنشاء الـ PT
-    const phones = ptSessions.map(s => s.phone).filter(Boolean)
-    const membersByPhone = phones.length > 0
-      ? await prisma.member.findMany({
-          where: { phone: { in: phones } },
-          select: { phone: true, profileImage: true, memberNumber: true }
-        })
-      : []
-    const phoneToMember = new Map(membersByPhone.map(m => [m.phone, m]))
+    //  ⚠️ متغطّى بـ try/catch لنفس السبب: لو DB الإنتاج لسه ماعندهاش عمود memberNumber/profileImage
+    //  بعد رفع الابديت، نرجّع الاشتراكات من غير الصور/الأرقام بدل ما نكسر الصفحة كلها.
+    const phoneToMember = new Map<string, any>()
+    try {
+      const phones = ptSessions.map(s => s.phone).filter(Boolean)
+      const membersByPhone = phones.length > 0
+        ? await prisma.member.findMany({
+            where: { phone: { in: phones } },
+            select: { phone: true, profileImage: true, memberNumber: true }
+          })
+        : []
+      for (const m of membersByPhone) phoneToMember.set(m.phone, m)
+    } catch (e) {
+      // نكمّل من غير بيانات الميمبر
+    }
 
     const sessionsWithImages = ptSessions.map(s => {
       const mem = phoneToMember.get(s.phone)
