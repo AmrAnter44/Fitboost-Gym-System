@@ -22,6 +22,7 @@ interface Staff {
 
 interface PTSession {
   ptNumber: number
+  memberNumber?: string | null
   clientName: string
   phone: string
   sessionsPurchased: number
@@ -345,7 +346,7 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <p className="text-xs text-gray-600 dark:text-gray-400">{t('pt.renewal.ptNumber')}</p>
-                <p className="text-xl font-bold text-green-600 dark:text-green-400">#{session.ptNumber}</p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">#{session.memberNumber ?? session.ptNumber}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-600 dark:text-gray-400">{t('pt.renewal.clientName')}</p>
