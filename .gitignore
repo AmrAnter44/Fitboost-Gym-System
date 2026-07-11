@@ -95,3 +95,7 @@ prisma/prisma/
 
 # Chromium resources (too large for GitHub)
 resources/
+
+# Rendered video output (must never be committed)
+FFOutput/
+*.mp4
