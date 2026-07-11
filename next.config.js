@@ -1,11 +1,27 @@
 /** @type {import('next').NextConfig} */
 
+//  استراتيجيات الكاش الافتراضية من next-pwa (أصول ثابتة، صور، فونتس… إلخ)
+const defaultRuntimeCaching = require('next-pwa/cache');
+
+//  ⚠️ مهم: البيانات الحيّة (API) لازم تيجي من السيرفر مباشرة من غير أي كاش.
+//  الافتراضي كان بيكاش كل /api لمدة 24 ساعة (NetworkFirst) — ده كان بيرجّع بيانات
+//  قديمة (مثلاً الأعضاء المشتركين مبيتحدّثوش) وأحيانًا بيرمي "Failed to fetch".
+const runtimeCaching = [
+  {
+    urlPattern: ({ url }) => self.origin === url.origin && url.pathname.startsWith('/api/'),
+    handler: 'NetworkOnly',
+  },
+  //  نسيب باقي الاستراتيجيات زي ما هي ماعدا كاش الـ API
+  ...defaultRuntimeCaching.filter((entry) => !(entry.options && entry.options.cacheName === 'apis')),
+];
+
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
   publicExcludes: ['!uploads/**/*'],
+  runtimeCaching,
 });
 
 const nextConfig = {
