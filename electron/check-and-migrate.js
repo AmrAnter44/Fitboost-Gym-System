@@ -431,6 +431,17 @@ function migrateDatabase(dbPath) {
       }
     }
 
+    // ✅ PT permissions في جدول Permission (canViewAllPT للفتنس مانجر)
+    const ptPermissions = [
+      'canViewAllPT',
+      'canAccessPTCommission'
+    ];
+    for (const permission of ptPermissions) {
+      if (!columnExists(db, 'Permission', permission)) {
+        db.prepare(`ALTER TABLE Permission ADD COLUMN ${permission} INTEGER NOT NULL DEFAULT 0`).run();
+      }
+    }
+
     // ✅ FollowUp enhanced fields — حقول المتابعات المطورة
     const followUpCols = [
       { col: 'salesName',       def: 'TEXT' },
@@ -551,6 +562,7 @@ function migrateDatabase(dbPath) {
       { col: 'cancelledAt',     def: 'DATETIME' },
       { col: 'cancelledBy',     def: 'TEXT' },
       { col: 'cancelReason',    def: 'TEXT' },
+      { col: 'refundMethod',    def: 'TEXT' },
     ];
     for (const { col, def } of receiptCols) {
       if (!columnExists(db, 'Receipt', col)) {
@@ -1313,13 +1325,15 @@ function migrateDatabase(dbPath) {
       }
     }
 
-    // ✅ PT — أعمدة كوتش/باركود/ريمايننج
+    // ✅ PT — أعمدة كوتش/باركود/ريمايننج/تجميد
     const ptCols = [
       { col: 'coachUserId',   def: 'TEXT' },
       { col: 'qrCode',        def: 'TEXT' },
       { col: 'qrCodeImage',   def: 'TEXT' },
       { col: 'startDate',     def: 'DATETIME' },
       { col: 'expiryDate',    def: 'DATETIME' },
+      { col: 'isFrozen',      def: 'INTEGER NOT NULL DEFAULT 0' },
+      { col: 'freezeUntil',   def: 'DATETIME' },
     ];
     for (const { col, def } of ptCols) {
       if (!columnExists(db, 'PT', col)) {
