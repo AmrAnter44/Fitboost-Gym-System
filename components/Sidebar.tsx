@@ -148,9 +148,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       title: t('nav.services'),
       links: [
         { href: '/pt', label: t('nav.pt'), icon: NavIcons.pt, permission: 'canViewPT' as keyof Permissions },
-        //  متابعة الكباتن بقت تاب جوّه صفحة الحصص المخصصة (/pt) — مش لينك مستقل
-        { href: '/nutrition', label: t('nav.nutrition'), icon: NavIcons.nutrition, permission: 'canViewNutrition' as keyof Permissions, enabled: settings.nutritionEnabled },
-        { href: '/physiotherapy', label: t('nav.physiotherapy'), icon: NavIcons.physiotherapy, permission: 'canViewPhysiotherapy' as keyof Permissions, enabled: settings.physiotherapyEnabled },
+        //  متابعة الكباتن + التغذية + العلاج الطبيعي بقوا تابات جوّه صفحة الحصص المخصصة (/pt)
+        //  — مش لينكات مستقلة في السايدبار
         { href: '/group-classes', label: t('nav.groupClasses'), icon: NavIcons.groupClasses, permission: 'canViewGroupClass' as keyof Permissions, enabled: settings.groupClassEnabled },
         { href: '/more', label: t('nav.more'), icon: NavIcons.more, permission: 'canViewMore' as keyof Permissions, enabled: settings.moreEnabled },
         { href: '/spa-bookings', label: t('nav.spaBookings'), icon: NavIcons.spa, permission: 'canViewSpaBookings' as keyof Permissions, enabled: settings.spaEnabled },
