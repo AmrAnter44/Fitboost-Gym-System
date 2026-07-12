@@ -95,7 +95,8 @@ export function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin')
 
   // 🔒 Security Headers
-  response.headers.set('X-Frame-Options', 'DENY')
+  // SAMEORIGIN: نظام التابات الداخلي يعرض التطبيق داخل iframes بنفس الـ origin
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN')
   response.headers.set('X-XSS-Protection', '1; mode=block')
 
   if (process.env.NODE_ENV === 'production') {
@@ -110,7 +111,7 @@ export function middleware(request: NextRequest) {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "connect-src 'self' https://api.github.com https://raw.githubusercontent.com https://cloudflareinsights.com https://*.cloudflareinsights.com",
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'"
   ].join('; ')

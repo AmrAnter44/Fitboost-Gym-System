@@ -718,56 +718,56 @@ export default function PTPage() {
         </span>
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {activeTab === 'nutrition' ? t('nutrition.title') : activeTab === 'physio' ? t('physiotherapy.title') : t('pt.title')}
+            {t('pt.hubTitle')}
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             {activeTab === 'nutrition'
               ? t('nutrition.manageSessions')
               : activeTab === 'physio'
                 ? t('physiotherapy.manageSessions')
-                : (isCoach ? t('pt.viewSessions') : t('pt.manageSessions'))}
+                : activeTab === 'captains'
+                  ? (locale === 'ar' ? 'متابعة أداء وتحويلات الكباتن' : 'Track coach performance and conversions')
+                  : (isCoach ? t('pt.viewSessions') : t('pt.manageSessions'))}
           </p>
         </div>
       </div>
 
-      {/* شريط التابات — نزل تحت فوق خانة البحث (بره الهيدر) عشان أعلى الصفحة يفضل نضيف زي التغذية */}
+      {/* شريط الأقسام — segmented control متماثل: أيقونة + اسم لكل خدمة، النشط بلون البرايمري */}
       {showTabs && (
-        <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-4 overflow-x-auto hide-scrollbar">
-          <button
-            type="button"
-            onClick={() => setActiveTab('sessions')}
-            className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'sessions' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-          >
-            {t('pt.title')}
-          </button>
-          {canSeeNutrition && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('nutrition')}
-              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'nutrition' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-            >
-              {locale === 'ar' ? 'التغذية' : 'Nutrition'}
-            </button>
-          )}
-          {canSeePhysio && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('physio')}
-              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'physio' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-            >
-              {locale === 'ar' ? 'العلاج الطبيعي' : 'Physiotherapy'}
-            </button>
-          )}
-          {/* متابعة الكباتن — آخر تاب */}
-          {canSeeCaptains && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('captains')}
-              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'captains' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-            >
-              {locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking'}
-            </button>
-          )}
+        <div
+          role="tablist"
+          aria-label={t('pt.hubTitle')}
+          className="grid grid-cols-2 md:flex gap-1.5 bg-gray-100 dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 rounded-2xl p-1.5 mb-6"
+        >
+          {([
+            { key: 'sessions' as const, show: true, label: t('pt.title'), icon: 'M6 6l2-2m12 12l-2 2M4 8l4 4m8 4l4-4M8 16l4-4 4 4M4 16l4-4M16 8l4 4' },
+            { key: 'nutrition' as const, show: canSeeNutrition, label: locale === 'ar' ? 'التغذية' : 'Nutrition', icon: 'M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7zm0 4a3 3 0 100 6 3 3 0 000-6z' },
+            { key: 'physio' as const, show: canSeePhysio, label: locale === 'ar' ? 'العلاج الطبيعي' : 'Physiotherapy', icon: 'M12 11V3m0 0L8 7m4-4l4 4M5 21h14a2 2 0 002-2v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7a2 2 0 002 2zm4-6h6' },
+            { key: 'captains' as const, show: canSeeCaptains, label: locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+          ]
+            .filter(tab => tab.show))
+            .map(tab => {
+              const isActive = activeTab === tab.key
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`md:flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 ${
+                    isActive
+                      ? 'bg-primary-500 text-primary-contrast shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-gray-700/60'
+                  }`}
+                >
+                  <svg {...stroke} className="w-5 h-5 flex-shrink-0">
+                    <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
+                  </svg>
+                  <span className="truncate">{tab.label}</span>
+                </button>
+              )
+            })}
         </div>
       )}
 

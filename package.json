@@ -90,6 +90,7 @@
     "react-window": "^2.2.7",
     "recharts": "^3.5.1",
     "styled-jsx": "^5.1.7",
+    "systeminformation": "^5.31.16",
     "uiohook-napi": "^1.5.4",
     "utf-8-validate": "^6.0.6",
     "zod": "^4.3.6"

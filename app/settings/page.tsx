@@ -2011,6 +2011,22 @@ export default function SettingsPage() {
                     </svg>
                   </div>
                 </Link>
+                <Link href="/settings/system" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 hover:ring-primary-300 dark:hover:ring-primary-700 transition-colors duration-200 group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-6 h-6" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 7h10v10H7zM10 10h4v4h-4z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('settingsPage.quickLinks.system.title')}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('settingsPage.quickLinks.system.desc')}</p>
+                    </div>
+                    <svg {...stroke} className={`w-5 h-5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </div>
+                </Link>
               </div>
             </div>
           )}

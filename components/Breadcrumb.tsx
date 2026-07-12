@@ -24,8 +24,10 @@ const SEGMENT_KEYS: Record<string, string> = {
   'spa-bookings':   'nav.spaBookings',
   'closing':        'nav.closing',
   'settings':       'nav.settings',
+  'system':         'system.systemHealth',
   'admin':          'auth.manageUsers',
   'users':          'auth.manageUsers',
+  'audit':          'settingsPage.quickLinks.audit.title',
 }
 
 function homeIcon() {

@@ -220,7 +220,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
           top-0
           start-0
           z-50 lg:z-30
-          h-screen
+          h-full
           ${isCollapsed ? 'w-20' : 'w-72'}
           bg-white dark:bg-gray-900
           border-e border-gray-200 dark:border-gray-800

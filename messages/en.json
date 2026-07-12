@@ -47,7 +47,7 @@
   "nav": {
     "home": "Home",
     "members": "Members",
-    "pt": "Personal Training",
+    "pt": "Sessions & Tracking",
     "coach": "Coach",
     "rotations": "Rotations",
     "dayUse": "Day Use",
@@ -98,6 +98,45 @@
       "notFound": "Number \"{number}\" not found",
       "searchError": "An error occurred during search"
     }
+  },
+  "tabs": {
+    "newTab": "New tab",
+    "closeTab": "Close tab",
+    "maxTabs": "Maximum of 3 tabs"
+  },
+  "system": {
+    "systemHealth": "Device Health",
+    "pageDescription": "Full device information and automatically recorded performance log",
+    "deviceInfo": "Device Information",
+    "performanceLog": "Performance Log",
+    "latestReadings": "Latest readings",
+    "ramCpuChart": "RAM & CPU (%)",
+    "tempChart": "Temperature (°C)",
+    "ram": "RAM",
+    "cpu": "CPU",
+    "temp": "Temperature",
+    "disk": "Disk",
+    "disks": "Disks",
+    "os": "Operating system",
+    "hostname": "Hostname",
+    "device": "Device",
+    "processor": "Processor",
+    "totalRam": "Total RAM",
+    "gpu": "Graphics",
+    "network": "Network",
+    "appVersion": "App version",
+    "uptime": "Device uptime",
+    "appMemory": "App memory",
+    "cores": "cores",
+    "notAvailable": "N/A",
+    "time": "Time",
+    "range6h": "Last 6 hours",
+    "range24h": "Last 24 hours",
+    "range7d": "Last week",
+    "noLogYet": "The log is collected automatically in the background — first reading appears within minutes",
+    "day": "d",
+    "hour": "h",
+    "minute": "m"
   },
   "roles": {
     "admin": "Admin",
@@ -1279,6 +1318,7 @@
   },
   "pt": {
     "title": "Personal Training",
+    "hubTitle": "Sessions & Tracking",
     "viewSessions": "View your PT sessions",
     "manageSessions": "Manage PT sessions",
     "commissionCalculator": "Commission Calculator",
@@ -4897,6 +4937,10 @@
       "audit": {
         "title": "Event Log",
         "desc": "Monitor all operations"
+      },
+      "system": {
+        "title": "Device Health & Log",
+        "desc": "Full device info and performance log"
       }
     },
     "display": {
