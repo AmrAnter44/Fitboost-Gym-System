@@ -711,21 +711,69 @@ export default function PTPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6" dir={direction}>
-      <div className="mb-6">
-        <div className="mb-4 flex items-center gap-3">
-          <span className="inline-flex w-10 h-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
-            <svg {...stroke} className="w-6 h-6" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.115 5.19l.319 1.913A6 6 0 008.11 10.36L9.75 12l-.387.775c-.217.435-.132.956.21 1.298l1.348 1.348c.21.21.329.497.329.795v1.089c0 .426.24.815.622 1.006l.153.076c.433.217.956.132 1.298-.21l.723-.723a8.7 8.7 0 002.288-4.042 1.087 1.087 0 00-.358-1.099l-1.33-1.108c-.251-.21-.582-.299-.905-.245l-1.17.195a1.125 1.125 0 01-.98-.314l-.295-.295a1.125 1.125 0 010-1.591l.13-.132a1.125 1.125 0 011.3-.21l.603.302a.809.809 0 001.086-1.086L14.25 7.5l1.256-.837a4.5 4.5 0 001.528-1.732l.146-.292M6.115 5.19A9 9 0 1017.18 4.64M6.115 5.19A8.965 8.965 0 0112 3c1.929 0 3.716.607 5.18 1.64"/></svg>
-          </span>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('pt.title')}</h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-              {isCoach ? t('pt.viewSessions') : t('pt.manageSessions')}
-            </p>
-          </div>
+      {/* العنوان — فوق التابات، بيتغيّر حسب التاب (حصص مخصصة / التغذية / العلاج الطبيعي) — عنوان واحد بس */}
+      <div className="mb-4 flex items-center gap-3">
+        <span className="inline-flex w-10 h-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
+          <svg {...stroke} className="w-6 h-6" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.115 5.19l.319 1.913A6 6 0 008.11 10.36L9.75 12l-.387.775c-.217.435-.132.956.21 1.298l1.348 1.348c.21.21.329.497.329.795v1.089c0 .426.24.815.622 1.006l.153.076c.433.217.956.132 1.298-.21l.723-.723a8.7 8.7 0 002.288-4.042 1.087 1.087 0 00-.358-1.099l-1.33-1.108c-.251-.21-.582-.299-.905-.245l-1.17.195a1.125 1.125 0 01-.98-.314l-.295-.295a1.125 1.125 0 010-1.591l.13-.132a1.125 1.125 0 011.3-.21l.603.302a.809.809 0 001.086-1.086L14.25 7.5l1.256-.837a4.5 4.5 0 001.528-1.732l.146-.292M6.115 5.19A9 9 0 1017.18 4.64M6.115 5.19A8.965 8.965 0 0112 3c1.929 0 3.716.607 5.18 1.64"/></svg>
+        </span>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {activeTab === 'nutrition' ? t('nutrition.title') : activeTab === 'physio' ? t('physiotherapy.title') : t('pt.title')}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+            {activeTab === 'nutrition'
+              ? t('nutrition.manageSessions')
+              : activeTab === 'physio'
+                ? t('physiotherapy.manageSessions')
+                : (isCoach ? t('pt.viewSessions') : t('pt.manageSessions'))}
+          </p>
         </div>
-        {activeTab === 'sessions' && (
-        <div className="flex flex-wrap gap-2 sm:gap-3">
-          {/*  زرار حاسبة الـ commission — OWNER/ADMIN/MANAGER (الفتنس مانجر) أو COACH أو اللي عنده الصلاحية */}
+      </div>
+
+      {/* شريط التابات — نزل تحت فوق خانة البحث (بره الهيدر) عشان أعلى الصفحة يفضل نضيف زي التغذية */}
+      {showTabs && (
+        <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-4 overflow-x-auto hide-scrollbar">
+          <button
+            type="button"
+            onClick={() => setActiveTab('sessions')}
+            className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'sessions' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+          >
+            {t('pt.title')}
+          </button>
+          {canSeeNutrition && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('nutrition')}
+              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'nutrition' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+            >
+              {locale === 'ar' ? 'التغذية' : 'Nutrition'}
+            </button>
+          )}
+          {canSeePhysio && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('physio')}
+              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'physio' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+            >
+              {locale === 'ar' ? 'العلاج الطبيعي' : 'Physiotherapy'}
+            </button>
+          )}
+          {/* متابعة الكباتن — آخر تاب */}
+          {canSeeCaptains && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('captains')}
+              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'captains' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+            >
+              {locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* أزرار الإجراءات — على تاب الحصص بس، تحت التابات */}
+      {activeTab === 'sessions' && (
+        <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
           {(user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'MANAGER' || isCoach || hasPermission('canAccessPTCommission')) && (
             <button
               onClick={() => router.push('/pt/commission')}
@@ -770,53 +818,14 @@ export default function PTPage() {
             </button>
           )}
         </div>
-        )}
-        {showTabs && (
-          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mt-4 overflow-x-auto hide-scrollbar">
-            <button
-              type="button"
-              onClick={() => setActiveTab('sessions')}
-              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'sessions' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-            >
-              {t('pt.title')}
-            </button>
-            {canSeeCaptains && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('captains')}
-                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'captains' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-              >
-                {locale === 'ar' ? 'متابعة الكباتن' : 'Coach Tracking'}
-              </button>
-            )}
-            {canSeeNutrition && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('nutrition')}
-                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'nutrition' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-              >
-                {locale === 'ar' ? 'التغذية' : 'Nutrition'}
-              </button>
-            )}
-            {canSeePhysio && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('physio')}
-                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-bold border-b-2 -mb-px transition ${activeTab === 'physio' ? 'border-primary-600 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-              >
-                {locale === 'ar' ? 'العلاج الطبيعي' : 'Physiotherapy'}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       {activeTab === 'captains' ? (
         <CoachConversionsPanel />
       ) : activeTab === 'nutrition' ? (
-        <NutritionPanel />
+        <NutritionPanel embedded />
       ) : activeTab === 'physio' ? (
-        <PhysiotherapyPanel />
+        <PhysiotherapyPanel embedded />
       ) : (
       <>
 

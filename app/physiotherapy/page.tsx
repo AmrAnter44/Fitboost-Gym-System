@@ -45,7 +45,7 @@ interface PhysiotherapySession {
   qrCodeImage?: string
 }
 
-export default function PhysiotherapyPage() {
+export default function PhysiotherapyPage({ embedded }: { embedded?: boolean } = {}) {
   const router = useRouter()
   const { hasPermission, loading: permissionsLoading, user } = usePermissions()
   const { t, direction } = useLanguage()
@@ -540,12 +540,15 @@ export default function PhysiotherapyPage() {
   return (
     <div className="container mx-auto p-4 sm:p-6" dir={direction}>
       <div className="mb-6">
+        {/*  العنوان بيتخفي لما الصفحة مدمجة كتاب جوّه الحصص المخصصة (العنوان بيظهر فوق التابات هناك) */}
+        {!embedded && (
         <div className="mb-4">
           <h1 className="text-2xl sm:text-3xl font-bold mb-2"> {t('physiotherapy.title')}</h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
             {isCoach ? t('physiotherapy.viewSessions') : t('physiotherapy.manageSessions')}
           </p>
         </div>
+        )}
         <div className="flex flex-wrap gap-2 sm:gap-3">
           <button
             onClick={() => router.push('/physiotherapy/commission')}
