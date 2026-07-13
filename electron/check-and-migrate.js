@@ -571,6 +571,19 @@ function migrateDatabase(dbPath) {
       }
     }
 
+    // ✅ ClassSchedule — أعمدة مواعيد الكلاسات (gender كان بيكسر عرض/إضافة المواعيد)
+    if (tableExists(db, 'ClassSchedule')) {
+      const classScheduleCols = [
+        { col: 'gender',   def: "TEXT NOT NULL DEFAULT 'mixed'" },
+        { col: 'duration', def: 'INTEGER NOT NULL DEFAULT 60' },
+      ];
+      for (const { col, def } of classScheduleCols) {
+        if (!columnExists(db, 'ClassSchedule', col)) {
+          db.prepare(`ALTER TABLE ClassSchedule ADD COLUMN ${col} ${def}`).run();
+        }
+      }
+    }
+
     // ✅ Offer new fields — حقول الباقات الجديدة
     const offerCols = [
       { col: 'freePoolSessions',        def: 'INTEGER NOT NULL DEFAULT 0' },
