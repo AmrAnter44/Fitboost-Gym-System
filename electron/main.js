@@ -250,7 +250,8 @@ async function startProductionServer() {
     }
 
     // استخدام المسار الدائم لقاعدة البيانات
-    const DATABASE_URL = `file:${dbPath}`;
+    // connection_limit=5: WAL بيسمح بقراءات متوازية — pool محدود وصريح بدل الافتراضي غير المضبوط
+    const DATABASE_URL = `file:${dbPath}?connection_limit=5&pool_timeout=30`;
 
     // إنشاء مسار دائم للصور المرفوعة
     const userDataPath = app.getPath('userData');

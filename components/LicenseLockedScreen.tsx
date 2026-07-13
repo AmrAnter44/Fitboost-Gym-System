@@ -48,9 +48,15 @@ export default function LicenseLockedScreen() {
     }
 
     fetchUser()
-    const interval = setInterval(fetchUser, 30_000)
-    return () => { cancelled = true; clearInterval(interval) }
-  }, [pathname, ctxValid])
+    // الـ polling الدوري في النافذة العلوية فقط — تابات الـ iframes بتكتفي بفحص الـ mount
+    // (كل iframe كان بيضيف طلب /api/auth/me كل 30 ثانية زيادة)
+    const isTopWindow = typeof window !== 'undefined' && window.self === window.top
+    const interval = isTopWindow ? setInterval(fetchUser, 30_000) : null
+    return () => {
+      cancelled = true
+      if (interval) clearInterval(interval)
+    }
+  }, [ctxValid])
 
   const isValid = serverLicenseValid !== null ? serverLicenseValid : ctxValid
   const message = serverLicenseMessage || ctxMessage

@@ -86,6 +86,7 @@ model Member {
   @@index([isActive])
   @@index([phone])
   @@index([expiryDate])
+  @@index([createdAt])
 }
 
 model MemberCheckIn {

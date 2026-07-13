@@ -61,15 +61,33 @@ export async function GET(request: Request) {
     // ✅ إذا كان لديه صلاحية canViewReceipts، نطبق المنطق العادي
     const { searchParams } = new URL(request.url)
     const memberId = searchParams.get('memberId')
+    const memberNumber = searchParams.get('memberNumber')
     const ptNumber = searchParams.get('ptNumber')
     const dayUseId = searchParams.get('dayUseId')
+    const startDateParam = searchParams.get('startDate')
+    const endDateParam = searchParams.get('endDate')
     const limit = searchParams.get('limit')
     const pageParam = searchParams.get('page')
     const pageSizeParam = searchParams.get('pageSize')
 
-    if (memberId) {
+    if (memberId || memberNumber) {
+      // إيصالات عضو معيّن: بالـ FK المباشر + الداتا القديمة اللي رقم العضوية فيها جوه itemDetails
+      // (الكلاينت بيعمل الفلترة الدقيقة النهائية — إحنا بنضيّق النطاق بدل تحميل كل الإيصالات)
+      const or: Array<Record<string, unknown>> = []
+      if (memberId) or.push({ memberId })
+      if (memberNumber) {
+        or.push({ itemDetails: { contains: `"memberNumber":"${memberNumber}"` } })
+        or.push({ itemDetails: { contains: `"memberNumber":${memberNumber}` } })
+        if (!memberId) {
+          const memberRow = await prisma.member.findUnique({
+            where: { memberNumber },
+            select: { id: true }
+          })
+          if (memberRow) or.push({ memberId: memberRow.id })
+        }
+      }
       const receipts = await prisma.receipt.findMany({
-        where: { memberId },
+        where: { OR: or },
         orderBy: { receiptNumber: 'desc' }
       })
       return NextResponse.json(receipts)
@@ -84,6 +102,22 @@ export async function GET(request: Request) {
     if (dayUseId) {
       const receipts = await prisma.receipt.findMany({
         where: { dayUseId },
+        orderBy: { receiptNumber: 'desc' }
+      })
+      return NextResponse.json(receipts)
+    }
+
+    // 🗓️ فلتر بالتاريخ — للتقفيل والعمولات: بدل تحميل كل الإيصالات وفلترتها عند الكلاينت
+    if (startDateParam || endDateParam) {
+      const createdAt: Record<string, Date> = {}
+      if (startDateParam) createdAt.gte = new Date(startDateParam)
+      if (endDateParam) {
+        // تاريخ من غير وقت → لغاية آخر اليوم
+        const endRaw = endDateParam.length === 10 ? `${endDateParam}T23:59:59.999` : endDateParam
+        createdAt.lte = new Date(endRaw)
+      }
+      const receipts = await prisma.receipt.findMany({
+        where: { createdAt },
         orderBy: { receiptNumber: 'desc' }
       })
       return NextResponse.json(receipts)

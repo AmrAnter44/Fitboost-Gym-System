@@ -108,8 +108,10 @@ class WhatsAppSession {
         logger,
         browser: [`FitBoost-${idx}`, 'Chrome', '120'],
         markOnlineOnConnect: true,
-        syncFullHistory: true,
-        shouldSyncHistoryMessage: () => true,
+        // بدون مزامنة التاريخ الكامل: كانت بتنزّل كل رسايل الواتساب القديمة مع كل اتصال
+        // وتكتبها في قاعدة البيانات فتخنق السيستم كله. الرسايل الجديدة بتوصل عادي.
+        syncFullHistory: false,
+        shouldSyncHistoryMessage: () => false,
         fireInitQueries: true,
         defaultQueryTimeoutMs: 60000,
         getMessage: async (key) => {

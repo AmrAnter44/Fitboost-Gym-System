@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { fetchUserSettingsOnce } from '../lib/fetchUserSettings'
 
 interface DarkModeContextType {
   isDarkMode: boolean
@@ -19,31 +20,22 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
   })
   const [mounted, setMounted] = useState(false)
 
-  // تحميل الإعداد من قاعدة البيانات عند البداية
+  // تحميل الإعداد من قاعدة البيانات عند البداية (طلب مشترك مع LanguageContext)
   useEffect(() => {
     setMounted(true)
+    let cancelled = false
 
-    const controller = new AbortController()
-
-    // جلب الإعدادات من API (للمستخدمين المسجلين)
-    fetch('/api/user/settings', { signal: controller.signal })
-      .then(res => {
-        if (res.ok) return res.json()
-        throw new Error('Not authenticated')
-      })
-      .then(data => {
-        if (data.darkMode !== undefined) {
-          setIsDarkMode(data.darkMode)
-          localStorage.setItem('darkMode', String(data.darkMode))
-          applyDarkMode(data.darkMode)
-        }
-      })
-      .catch(() => {
-        // استخدام localStorage كـ fallback للمستخدمين غير المسجلين
-      })
+    fetchUserSettingsOnce().then(data => {
+      if (cancelled || !data) return
+      if (data.darkMode !== undefined) {
+        setIsDarkMode(data.darkMode)
+        localStorage.setItem('darkMode', String(data.darkMode))
+        applyDarkMode(data.darkMode)
+      }
+    })
 
     return () => {
-      controller.abort()
+      cancelled = true
     }
   }, [])
 

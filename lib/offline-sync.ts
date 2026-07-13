@@ -135,6 +135,11 @@ export async function processSyncQueue(limit = 50): Promise<{ sent: number; fail
   let failed = 0
 
   try {
+    // لو المزامنة السحابية مقفولة مفيش داعي نسأل الـ DB كل دقيقة
+    // (getCachedState متكيّشة في الذاكرة فالفحص شبه مجاني)
+    const state = await getCachedState()
+    if (!state.enabled) return { sent: 0, failed: 0 }
+
     const items = await prisma.syncQueueItem.findMany({
       where: { status: 'pending' },
       orderBy: { createdAt: 'asc' },

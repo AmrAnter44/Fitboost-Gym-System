@@ -1460,6 +1460,9 @@ function migrateDatabase(dbPath) {
     } else {
     }
 
+    // فهرس ترتيب قائمة الأعضاء (createdAt DESC) — بدونه كل تحميل للقائمة يعمل فرز كامل
+    db.exec('CREATE INDEX IF NOT EXISTS Member_createdAt_idx ON Member(createdAt)');
+
     db.close();
   } catch (error) {
     console.error('❌ Migration error:', error);

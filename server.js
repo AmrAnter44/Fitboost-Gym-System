@@ -1,5 +1,13 @@
 const { spawn } = require('child_process');
 
+// UDP responder: أجهزة Fitboost Assistant بتلاقي السيرفر فورًا بدل مسح الشبكة
+try {
+  const { startUdpAnnouncer } = require('./electron/udp-announce');
+  startUdpAnnouncer(4001);
+} catch (e) {
+  console.error('UDP announcer failed (non-fatal):', e.message);
+}
+
 // Performance banner
 
 // Start Next.js with optimizations

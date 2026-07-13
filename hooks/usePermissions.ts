@@ -1,7 +1,7 @@
 // hooks/usePermissions.ts
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { Permissions as PermissionsType } from '../types/permissions'
 
 export interface User {
@@ -24,66 +24,61 @@ export interface AuthState {
   isAdmin: boolean
 }
 
+// كان كل كومبوننت (Sidebar/Breadcrumb/TabBar/...) بيعمل fetch مستقل لـ /api/auth/me —
+// 6-8 طلبات متطابقة متزامنة لكل صفحة. React Query بمفتاح واحد بيوحّدهم في طلب واحد مشترك.
+async function fetchAuthState(): Promise<Omit<AuthState, 'loading'>> {
+  try {
+    const response = await fetch('/api/auth/me')
+
+    if (response.ok) {
+      const data = await response.json()
+
+      // ✅ لو سيلز → نضيف صلاحيات المتابعات تلقائياً
+      let perms = data.user.permissions || null
+      if (data.user.isSales) {
+        perms = {
+          ...perms,
+          canViewFollowUps: true,
+          canCreateFollowUp: true,
+          canEditFollowUp: true,
+          canDeleteFollowUp: true,
+          canViewMembers: true,
+          canViewVisitors: true,
+          canCreateVisitor: true,
+          canEditVisitor: true,
+          canViewDayUse: true,
+          canViewStaff: true,
+        }
+      }
+
+      return {
+        user: data.user,
+        permissions: perms,
+        isAdmin: data.user.role === 'OWNER' || data.user.role === 'ADMIN'
+      }
+    }
+
+    return { user: null, permissions: null, isAdmin: false }
+  } catch (error) {
+    console.error('Error fetching permissions:', error)
+    return { user: null, permissions: null, isAdmin: false }
+  }
+}
+
 export function usePermissions() {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    permissions: null,
-    loading: true,
-    isAdmin: false
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['auth-me'],
+    queryFn: fetchAuthState,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 
-  useEffect(() => {
-    fetchUserPermissions()
-  }, [])
-
-  const fetchUserPermissions = async () => {
-    try {
-      const response = await fetch('/api/auth/me')
-
-      if (response.ok) {
-        const data = await response.json()
-
-        // ✅ لو سيلز → نضيف صلاحيات المتابعات تلقائياً
-        let perms = data.user.permissions || null
-        if (data.user.isSales) {
-          perms = {
-            ...perms,
-            canViewFollowUps: true,
-            canCreateFollowUp: true,
-            canEditFollowUp: true,
-            canDeleteFollowUp: true,
-            canViewMembers: true,
-            canViewVisitors: true,
-            canCreateVisitor: true,
-            canEditVisitor: true,
-            canViewDayUse: true,
-            canViewStaff: true,
-          }
-        }
-
-        setAuthState({
-          user: data.user,
-          permissions: perms,
-          loading: false,
-          isAdmin: data.user.role === 'OWNER' || data.user.role === 'ADMIN'
-        })
-      } else {
-        setAuthState({
-          user: null,
-          permissions: null,
-          loading: false,
-          isAdmin: false
-        })
-      }
-    } catch (error) {
-      console.error('Error fetching permissions:', error)
-      setAuthState({
-        user: null,
-        permissions: null,
-        loading: false,
-        isAdmin: false
-      })
-    }
+  const authState: AuthState = {
+    user: data?.user ?? null,
+    permissions: data?.permissions ?? null,
+    isAdmin: data?.isAdmin ?? false,
+    loading: isLoading,
   }
 
   // ✅ التحقق من صلاحية واحدة
@@ -109,6 +104,6 @@ export function usePermissions() {
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
-    refreshPermissions: fetchUserPermissions
+    refreshPermissions: refetch
   }
 }

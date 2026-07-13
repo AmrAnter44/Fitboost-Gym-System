@@ -466,38 +466,19 @@ function MembersPageContent() {
 
   const fetchLastReceipts = async () => {
     try {
-      const response = await fetch('/api/receipts')
+      // endpoint تجميعي خفيف (~120KB) بدل تحميل كل الإيصالات (~2MB) وفلترتها هنا.
+      // كمان بيصلّح البادج: الكود القديم كان بيدور على memberId جوه itemDetails وهو مش موجود
+      const response = await fetch('/api/receipts/last-per-member')
 
-      // تحقق من نجاح الطلب
       if (!response.ok) {
-        console.error('Failed to fetch receipts:', response.status)
+        console.error('Failed to fetch last receipts:', response.status)
         return
       }
 
-      const receipts = await response.json()
-
-      // تحقق من أن receipts هو array
-      if (!Array.isArray(receipts)) {
-        console.error('Receipts is not an array:', receipts)
-        return
+      const map = await response.json()
+      if (map && typeof map === 'object' && !Array.isArray(map)) {
+        setLastReceipts(map)
       }
-
-      const lastReceiptsMap: { [memberId: string]: any } = {}
-
-      receipts.forEach((receipt: any) => {
-        if (receipt.type === 'Member' || receipt.type === 'تجديد عضويه') {
-          const itemDetails = JSON.parse(receipt.itemDetails)
-          const memberId = itemDetails.memberId
-
-          if (memberId) {
-            if (!lastReceiptsMap[memberId] || new Date(receipt.createdAt) > new Date(lastReceiptsMap[memberId].createdAt)) {
-              lastReceiptsMap[memberId] = receipt
-            }
-          }
-        }
-      })
-
-      setLastReceipts(lastReceiptsMap)
     } catch (error) {
       console.error('Error fetching last receipts:', error)
     }
@@ -506,7 +487,8 @@ function MembersPageContent() {
   const fetchMemberReceipts = async (memberNumber: string) => {
     setReceiptsLoading(true)
     try {
-      const response = await fetch('/api/receipts')
+      // السيرفر بيضيّق النطاق لإيصالات العضو ده بس — والفلترة الدقيقة تحت بتفضل زي ما هي
+      const response = await fetch(`/api/receipts?memberNumber=${encodeURIComponent(memberNumber)}`)
       const allReceipts = await response.json()
 
       const filtered = allReceipts.filter((receipt: any) => {
@@ -624,7 +606,9 @@ function MembersPageContent() {
     return true
   }
 
-  const stats = {
+  // useMemo: كانت بتتحسب من جديد (~12 مرور كامل على كل الأعضاء + آلاف الـ Date)
+  // مع كل render — بما فيها كل حرف في خانة البحث
+  const stats = useMemo(() => ({
     total: membersData.length,
     active: membersData.filter(m => isMemberActiveNow(m)).length,
     expired: membersData.filter(m => {
@@ -666,7 +650,8 @@ function MembersPageContent() {
       const diffDays = Math.round((new Date(m.expiryDate).getTime() - new Date(m.startDate).getTime()) / (1000 * 60 * 60 * 24))
       return diffDays >= 330 && diffDays <= 395
     }).length
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [membersData, filterStatus])
 
   // جلب المحظورين
   const fetchBannedMembers = async () => {

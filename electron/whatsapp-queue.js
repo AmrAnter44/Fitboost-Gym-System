@@ -14,7 +14,8 @@
 
 const MIN_DELAY_MS = 10000;  // 10 seconds
 const MAX_DELAY_MS = 40000;  // 40 seconds
-const POLL_INTERVAL = 5000;  // Check queue every 5s
+const POLL_INTERVAL = 5000;      // فحص سريع طالما فيه رسايل في الطابور
+const POLL_INTERVAL_MAX = 60000; // تباطؤ تدريجي لما الطابور فاضي (بدل ما نخبط الـ DB كل 5 ثواني على الفاضي)
 const API_BASE = 'http://127.0.0.1:4001';
 
 function internalHeaders() {
@@ -27,8 +28,9 @@ function internalHeaders() {
 class WhatsAppQueue {
   constructor(sessions) {
     this.sessions = sessions;  // Map<number, WhatsAppSession>
-    this.workers = new Map();  // sessionIndex -> intervalId
+    this.workers = new Map();  // sessionIndex -> timeoutId
     this.processing = new Map(); // sessionIndex -> boolean
+    this.delays = new Map();   // sessionIndex -> current poll delay (adaptive)
   }
 
   async _api(endpoint, data) {
@@ -61,32 +63,46 @@ class WhatsAppQueue {
   startWorker(sessionIndex) {
     if (this.workers.has(sessionIndex)) return;
     this.processing.set(sessionIndex, false);
+    this.delays.set(sessionIndex, POLL_INTERVAL);
 
-    const intervalId = setInterval(() => {
-      this._tick(sessionIndex);
-    }, POLL_INTERVAL);
+    // polling تكيفي: لقى رسالة → يرجع للسرعة القصوى، مفيش → يبطّئ تدريجيًا (5s → 60s)
+    const loop = async () => {
+      if (!this.workers.has(sessionIndex)) return;
+      let hadItem = false;
+      try {
+        hadItem = await this._tick(sessionIndex);
+      } catch (err) {
+        console.error(`[Queue:${sessionIndex}] Tick error:`, err.message);
+      }
+      if (!this.workers.has(sessionIndex)) return;
+      const prev = this.delays.get(sessionIndex) || POLL_INTERVAL;
+      const next = hadItem ? POLL_INTERVAL : Math.min(prev * 2, POLL_INTERVAL_MAX);
+      this.delays.set(sessionIndex, next);
+      this.workers.set(sessionIndex, setTimeout(loop, next));
+    };
 
-    this.workers.set(sessionIndex, intervalId);
+    this.workers.set(sessionIndex, setTimeout(loop, POLL_INTERVAL));
   }
 
   stopWorker(sessionIndex) {
     const id = this.workers.get(sessionIndex);
     if (id) {
-      clearInterval(id);
+      clearTimeout(id);
       this.workers.delete(sessionIndex);
       this.processing.delete(sessionIndex);
+      this.delays.delete(sessionIndex);
     }
   }
 
   async _tick(sessionIndex) {
-    if (this.processing.get(sessionIndex)) return;
+    if (this.processing.get(sessionIndex)) return false;
 
     const session = this.sessions.get(sessionIndex);
-    if (!session || !session.isReady) return;
+    if (!session || !session.isReady) return false;
 
     // Poll for next item + daily info
     const poll = await this._api('queue-poll', { sessionIndex });
-    if (!poll.item) return;
+    if (!poll.item) return false;
 
     this.processing.set(sessionIndex, true);
 
@@ -97,6 +113,7 @@ class WhatsAppQueue {
     } finally {
       this.processing.set(sessionIndex, false);
     }
+    return true;
   }
 
   async _processItem(session, item, sessionIndex) {

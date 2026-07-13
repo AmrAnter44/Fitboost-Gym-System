@@ -16,6 +16,10 @@ import { memberCreateSchema, formatZodError } from '../../../lib/schemas/memberS
 
 export const dynamic = 'force-dynamic'
 
+// throttle لكتابات الـ housekeeping على مسار الـ GET (مرة كل 5 دقايق كحد أقصى)
+let lastHousekeepingAt = 0
+const HOUSEKEEPING_INTERVAL_MS = 5 * 60 * 1000
+
 // 🔧 دالة للبحث عن رقم إيصال متاح (integers فقط)
 async function getNextAvailableReceiptNumber(startingNumber: number): Promise<number> {
   let currentNumber = parseInt(startingNumber.toString())
@@ -110,7 +114,12 @@ export async function GET(request: Request) {
 
     // ✅ الـ housekeeping queries (unfreeze + sync isActive) تكاليفهم عالية،
     //   فبنشغلهم بس على أول صفحة (أو لما الطلب مش paginated — backward compat)
-    if (!isPaginated || page === 1) {
+    //   + throttle: كتابات على مسار قراءة بتاخد write lock وتعطّل باقي الطلبات —
+    //   التحولات دي مبنية على تواريخ فمرة كل 5 دقايق كافية جدًا
+    const needsHousekeeping =
+      (!isPaginated || page === 1) && Date.now() - lastHousekeepingAt > HOUSEKEEPING_INTERVAL_MS
+    if (needsHousekeeping) {
+      lastHousekeepingAt = Date.now()
       const now = new Date()
       // لو اشتراكهم لسه ساري → isActive: true
       await prisma.member.updateMany({

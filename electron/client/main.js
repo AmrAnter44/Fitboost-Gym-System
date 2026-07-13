@@ -14,7 +14,7 @@
 const { app, BrowserWindow, ipcMain, Menu, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
-const { discoverServer, probeHost, PORT } = require('./discover')
+const { discoverServer, fastDiscover, probeHost, PORT } = require('./discover')
 
 const SERVER_PORT = PORT
 const LAST_SERVER_FILE_NAME = 'last-server.json'
@@ -148,8 +148,17 @@ function createMainWindow(serverIp) {
     }
   })
 
-  mainWindow.webContents.on('did-fail-load', (_, errorCode, errorDescription) => {
+  //  السيرفر وقع أو الـ IP اتغير أثناء الشغل → بدل شاشة بيضا ميتة،
+  //  نرجع لشاشة البحث ونعيد الاكتشاف تلقائيًا
+  mainWindow.webContents.on('did-fail-load', (_, errorCode, errorDescription, validatedURL, isMainFrame) => {
     console.error('Main window failed to load:', errorCode, errorDescription)
+    if (!isMainFrame) return
+    if (errorCode === -3) return // ERR_ABORTED: تنقّل طبيعي اتلغى — مش عطل
+    const failedWindow = mainWindow
+    mainWindow = null
+    try { if (failedWindow && !failedWindow.isDestroyed()) failedWindow.close() } catch { /* ignore */ }
+    if (!splashWindow) createSplashWindow()
+    setTimeout(() => startDiscovery(), 500)
   })
 
   mainWindow.on('closed', () => { mainWindow = null })
@@ -239,11 +248,24 @@ function setupAutoStart() {
 // ─────────────────────────────────────────────────────────────────────────────
 // App lifecycle
 // ─────────────────────────────────────────────────────────────────────────────
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   setupAutoStart()
+
+  // ⚡ المسار اللحظي: نجرب الـ IP المحفوظ + نداء UDP لمدة 350ms قبل عرض أي شاشة.
+  // في التشغيل اليومي ده بينجح في ~15-100ms → البرنامج يفتح على التطبيق مباشرة
+  // من غير شاشة بحث خالص. لو فشل (سيرفر واقع/شبكة جديدة) → شاشة البحث كالمعتاد.
+  try {
+    const lastIp = readLastServer()
+    const instant = await fastDiscover(lastIp, 350)
+    if (instant) {
+      saveLastServer(instant)
+      createMainWindow(instant)
+      return
+    }
+  } catch { /* نكمل بالمسار العادي */ }
+
   createSplashWindow()
-  // Kick off discovery automatically a short moment after the splash shows
-  setTimeout(() => startDiscovery(), 400)
+  startDiscovery()
 })
 
 app.on('window-all-closed', () => {

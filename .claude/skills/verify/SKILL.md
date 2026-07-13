@@ -48,6 +48,10 @@ Read the DB read-only only: `sqlite3 "file:<repo>/prisma/gym.db?mode=ro" ...`
   inside a frame, `await frame.waitForURL('**/target')` before asserting anything about the
   destination page, or you'll type into / read from the previous page.
 - UI is Arabic RTL by default; primary color is dynamic (yellow in current DB settings).
+- The dev DB (prisma/gym.db) contains FUTURE-dated receipts (up to months ahead) — any
+  "today/recent" assertion must use bounded date ranges (gte AND lt) or it counts them.
+- Dashboard stats come from /api/dashboard/summary (SQL aggregates); the dashboard no longer
+  fetches /api/members //api/receipts — request-count assertions should expect that.
 
 ## Tab system (Chrome-like tabs, added 2026-07)
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useToast } from '../../../contexts/ToastContext'
 import { useServiceSettings } from '../../../contexts/ServiceSettingsContext'
@@ -246,6 +246,26 @@ export default function CoachCommissionPage() {
     } catch { /* ignore */ }
   }
 
+  // جلب إيصالات الفترة المختارة فقط — بيعاد جلبها عند تغيير الفترة
+  const fetchReceiptsForRange = async () => {
+    try {
+      const receiptsResponse = await fetch(`/api/receipts?startDate=${dateFrom}&endDate=${dateTo}`)
+      const receiptsData: Receipt[] = await receiptsResponse.json()
+      if (Array.isArray(receiptsData)) setReceipts(receiptsData)
+    } catch { /* نحتفظ بآخر بيانات */ }
+  }
+
+  const receiptsRangeInitialized = useRef(false)
+  useEffect(() => {
+    // أول تحميل بيتم جوه fetchData — هنا بس إعادة الجلب عند تغيير الفترة
+    if (!receiptsRangeInitialized.current) {
+      receiptsRangeInitialized.current = true
+      return
+    }
+    fetchReceiptsForRange()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFrom, dateTo])
+
   useEffect(() => {
     fetchMemberSignupCommissions()
   }, [dateFrom, dateTo])
@@ -342,10 +362,8 @@ export default function CoachCommissionPage() {
         setPtAttendanceRecords(paidAttendedSessions)
       }
 
-      // جلب الإيصالات
-      const receiptsResponse = await fetch('/api/receipts')
-      const receiptsData: Receipt[] = await receiptsResponse.json()
-      setReceipts(receiptsData)
+      // جلب إيصالات الفترة المختارة فقط (بدل كل الإيصالات) — الحسابات تحت بتفلتر بدقة
+      await fetchReceiptsForRange()
     } catch (error) {
       console.error('Error:', error)
     } finally {

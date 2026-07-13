@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { safeStorage, isDocumentAvailable } from '../lib/safeStorage'
+import { fetchUserSettingsOnce } from '../lib/fetchUserSettings'
 
 type Language = 'ar' | 'en'
 type Direction = 'rtl' | 'ltr'
@@ -27,27 +28,20 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   })
   const [messages, setMessages] = useState<any>({})
 
-  // جلب الإعدادات من قاعدة البيانات عند البداية
+  // جلب الإعدادات من قاعدة البيانات عند البداية (طلب مشترك مع DarkModeContext)
   useEffect(() => {
-    const controller = new AbortController()
+    let cancelled = false
 
-    fetch('/api/user/settings', { signal: controller.signal })
-      .then(res => {
-        if (res.ok) return res.json()
-        throw new Error('Not authenticated')
-      })
-      .then(data => {
-        if (data.locale && (data.locale === 'ar' || data.locale === 'en')) {
-          setLocale(data.locale)
-          safeStorage.setItem('locale', data.locale)
-        }
-      })
-      .catch(() => {
-        // استخدام localStorage كـ fallback للمستخدمين غير المسجلين
-      })
+    fetchUserSettingsOnce().then(data => {
+      if (cancelled || !data) return
+      if (data.locale && (data.locale === 'ar' || data.locale === 'en')) {
+        setLocale(data.locale)
+        safeStorage.setItem('locale', data.locale)
+      }
+    })
 
     return () => {
-      controller.abort()
+      cancelled = true
     }
   }, [])
 

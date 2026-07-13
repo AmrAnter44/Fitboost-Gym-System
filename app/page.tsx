@@ -131,7 +131,6 @@ export default function HomePage() {
 
   const [revenueChartData, setRevenueChartData] = useState<any[]>([])
   const [attendanceChartData, setAttendanceChartData] = useState<any[]>([])
-  const [receiptsData, setReceiptsData] = useState<any[]>([])
   const [todayClasses, setTodayClasses] = useState<any[]>([])
   const [classBookings, setClassBookings] = useState<any[]>([])
 
@@ -210,86 +209,57 @@ export default function HomePage() {
 
   const fetchStats = async () => {
     try {
-      const membersRes = await fetch('/api/members')
-      const members = await membersRes.json()
-
-      const ptRes = await fetch('/api/pt')
-      const ptSessions = await ptRes.json()
-
-      const receiptsRes = await fetch('/api/receipts')
-      const receipts = await receiptsRes.json()
-
-      const statsRes = await fetch('/api/member-checkin/stats')
-      const statsData = await statsRes.json()
-
-      const today = new Date().toDateString()
-      const todayReceipts = receipts.filter((r: any) => {
-        return new Date(r.createdAt).toDateString() === today
-      })
-      const todayRevenue = todayReceipts.reduce((sum: number, r: any) => sum + r.amount, 0)
-
+      // كل الأرقام من endpoint تجميعي واحد بدل تحميل جداول كاملة،
+      // وباقي الطلبات بالتوازي بدل التتابع
       const yesterday = new Date()
       yesterday.setDate(yesterday.getDate() - 1)
-      const yesterdayStr = yesterday.toDateString()
-      const yesterdayReceipts = receipts.filter((r: any) => {
-        return new Date(r.createdAt).toDateString() === yesterdayStr
-      })
-      const yesterdayRevenue = yesterdayReceipts.reduce((sum: number, r: any) => sum + r.amount, 0)
-
       const yesterdayDateFormatted = yesterday.toISOString().split('T')[0]
-      const yesterdayCheckInsRes = await fetch(`/api/member-checkin/history?startDate=${yesterdayDateFormatted}&endDate=${yesterdayDateFormatted}`)
-      const yesterdayCheckInsData = await yesterdayCheckInsRes.json()
+      const weekStart = new Date()
+      weekStart.setDate(weekStart.getDate() - 6)
+      const todayFormatted = new Date().toISOString().split('T')[0]
+
+      const [summaryRes, statsRes, yesterdayCheckInsRes, historyRes] = await Promise.all([
+        fetch('/api/dashboard/summary'),
+        fetch('/api/member-checkin/stats'),
+        fetch(`/api/member-checkin/history?startDate=${yesterdayDateFormatted}&endDate=${yesterdayDateFormatted}`),
+        fetch(`/api/member-checkin/history?startDate=${weekStart.toISOString().split('T')[0]}&endDate=${todayFormatted}`),
+      ])
+
+      const summary = summaryRes.ok ? await summaryRes.json() : null
+      const statsData = statsRes.ok ? await statsRes.json() : {}
+      const yesterdayCheckInsData = yesterdayCheckInsRes.ok ? await yesterdayCheckInsRes.json() : {}
+      const historyData = historyRes.ok ? await historyRes.json() : {}
+
+      if (!summary) return
+
       const yesterdayCheckIns = yesterdayCheckInsData.stats?.dailyStats?.[0]?.count || 0
 
-      const activePT = ptSessions.filter((pt: any) => pt.sessionsRemaining > 0).length
-
-      const todayDate = new Date()
-      const in3DaysDate = new Date()
-      in3DaysDate.setDate(in3DaysDate.getDate() + 3)
-
-      const expiringToday = Array.isArray(members) ? members.filter((m: any) => {
-        if (!m.expiryDate) return false
-        const expiry = new Date(m.expiryDate)
-        return expiry.toDateString() === todayDate.toDateString()
-      }).length : 0
-
-      const expiringIn3Days = Array.isArray(members) ? members.filter((m: any) => {
-        if (!m.expiryDate) return false
-        const expiry = new Date(m.expiryDate)
-        return expiry > todayDate && expiry <= in3DaysDate
-      }).length : 0
-
-      let pendingFollowups = 0
-      try {
-        const followupsRes = await fetch('/api/visitors/followups')
-        const followups = await followupsRes.json()
-        pendingFollowups = Array.isArray(followups) ? followups.filter((f: any) => !f.contacted).length : 0
-      } catch (error) {
-        console.error('Error fetching followups:', error)
-      }
-
       setStats({
-        members: Array.isArray(members) ? members.length : 0,
-        activePT,
-        todayRevenue,
-        totalReceipts: receipts.length,
+        members: summary.members,
+        activePT: summary.activePT,
+        todayRevenue: summary.todayRevenue,
+        totalReceipts: summary.totalReceipts,
         todayCheckIns: statsData.stats?.totalCheckIns || 0,
       })
 
       setPreviousStats({
-        members: Array.isArray(members) ? members.length : 0,
-        activePT,
-        todayRevenue: yesterdayRevenue,
-        totalReceipts: yesterdayReceipts.length,
+        members: summary.members,
+        activePT: summary.activePT,
+        todayRevenue: summary.yesterdayRevenue,
+        totalReceipts: summary.yesterdayReceiptsCount,
         todayCheckIns: yesterdayCheckIns,
       })
 
       setAlerts({
-        expiringToday,
-        expiringIn3Days,
-        pendingFollowups,
+        expiringToday: summary.expiringToday,
+        expiringIn3Days: summary.expiringIn3Days,
+        pendingFollowups: summary.pendingFollowups,
       })
 
+      // رسم الإيرادات: السيرفر بيرجع الأيام اللي فيها إيصالات — بنكمّل الأيام الفاضية بصفر
+      const revenueByDay = new Map<string, { revenue: number; count: number }>(
+        (summary.revenueLast14Days || []).map((row: any) => [row.day, { revenue: row.revenue, count: row.count }])
+      )
       const last14Days = []
       for (let i = 13; i >= 0; i--) {
         const date = new Date()
@@ -299,30 +269,17 @@ export default function HomePage() {
           month: 'short',
           day: 'numeric'
         })
-        const dateKey = date.toDateString()
-
-        const dayReceipts = receipts.filter((r: any) => {
-          return new Date(r.createdAt).toDateString() === dateKey
-        })
-        const dayRevenue = dayReceipts.reduce((sum: number, r: any) => sum + r.amount, 0)
-        const dayCount = dayReceipts.length
+        const dayKey = date.toLocaleDateString('en-CA') // YYYY-MM-DD بتوقيت محلي — نفس مفتاح السيرفر
+        const dayData = revenueByDay.get(dayKey) || { revenue: 0, count: 0 }
 
         last14Days.push({
           date: dateStr,
           fullDate: date.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US'),
-          revenue: dayRevenue,
-          count: dayCount
+          revenue: dayData.revenue,
+          count: dayData.count
         })
       }
       setRevenueChartData(last14Days)
-      setReceiptsData(receipts)
-
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() - 6)
-      const endDate = new Date()
-
-      const historyRes = await fetch(`/api/member-checkin/history?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`)
-      const historyData = await historyRes.json()
 
       if (historyData.stats?.dailyStats) {
         const formattedData = historyData.stats.dailyStats.map((item: any) => ({

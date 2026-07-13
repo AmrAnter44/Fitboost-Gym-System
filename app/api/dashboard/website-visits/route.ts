@@ -5,6 +5,11 @@ import { supabaseAdmin } from '../../../../lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
+// كاش ساعة: البيانات دي بتتجاب من Supabase على الإنترنت — إحصائية "آخر 30 يوم"
+// مش محتاجة تحديث لحظي، ومن غير الكاش كل فتحة داشبورد كانت بتعمل رحلة إنترنت كاملة
+let visitsCache: { data: unknown; at: number } | null = null
+const VISITS_CACHE_TTL_MS = 60 * 60 * 1000
+
 // Reads website visit counts (last ~30 days) for the gym/branch tied to the
 // current Fitboost-System license. Reuses the existing Supabase RPCs that
 // the web-fitboost admin dashboard already uses:
@@ -16,6 +21,10 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   try {
     await verifyAuth(request)
+
+    if (visitsCache && Date.now() - visitsCache.at < VISITS_CACHE_TTL_MS) {
+      return NextResponse.json(visitsCache.data)
+    }
 
     const license = await prisma.supabaseLicense.findFirst({
       orderBy: { lastChecked: 'desc' }
@@ -50,14 +59,16 @@ export async function GET(request: Request) {
         : Promise.resolve({ data: 0, error: null })
     ])
 
-    return NextResponse.json({
+    const payload = {
       configured: true,
       gymSlug,
       gymName: license.gymName,
       branchName: license.branchName,
       branchVisits: Number(branchRes.data) || 0,
       gymVisits: Number(gymRes.data) || 0
-    })
+    }
+    visitsCache = { data: payload, at: Date.now() }
+    return NextResponse.json(payload)
   } catch (error: any) {
     if (error?.message === 'Unauthorized') {
       return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 })

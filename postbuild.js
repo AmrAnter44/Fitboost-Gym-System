@@ -26,6 +26,13 @@ if (fs.existsSync(wrapperSrc) && fs.existsSync('.next/standalone')) {
   console.error('❌ ERROR: server-wrapper.js not found!');
 }
 
+// Copy udp-announce.js next to the wrapper (اكتشاف الـ Assistant الفوري)
+const udpSrc = path.join('electron', 'udp-announce.js');
+const udpDest = path.join('.next', 'standalone', 'udp-announce.js');
+if (fs.existsSync(udpSrc) && fs.existsSync('.next/standalone')) {
+  fs.copyFileSync(udpSrc, udpDest);
+}
+
 // Verify standalone build
 if (fs.existsSync('.next/standalone/server.js')) {
 } else {

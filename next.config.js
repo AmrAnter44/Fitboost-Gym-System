@@ -21,6 +21,10 @@ const withPWA = require('next-pwa')({
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
   publicExcludes: ['!uploads/**/*'],
+  //  ⚡ من غير الاستثناء ده الـ service worker كان بينزّل ~138 ملف JS (~7 ميجا)
+  //  لكل صفحات السيستم عند أول فتح لأي جهاز — الصفحات بتتكاش تلقائيًا وقت زيارتها
+  //  (StaleWhileRevalidate) فمفيش داعي للتنزيل المسبق الشامل.
+  buildExcludes: [/static\/chunks\/.+\.js$/],
   runtimeCaching,
 });
 

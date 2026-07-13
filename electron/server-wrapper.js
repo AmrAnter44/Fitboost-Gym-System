@@ -70,6 +70,15 @@ process.chdir(standaloneDir);
 // Require module from the new NODE_PATH
 require('module').Module._initPaths();
 
+// UDP responder: أجهزة Fitboost Assistant بتلاقي السيرفر فورًا بدل مسح الشبكة
+// (الملف بيتنسخ جنب الـ wrapper في postbuild — فشله غير مصيري)
+try {
+  const { startUdpAnnouncer } = require(path.join(__dirname, 'udp-announce.js'));
+  startUdpAnnouncer(parseInt(process.env.PORT || '4001', 10));
+} catch (e) {
+  console.error('UDP announcer failed (non-fatal):', e.message);
+}
+
 // Now require and run the server
 try {
   require(serverPath);

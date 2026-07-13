@@ -492,15 +492,18 @@ export default function MemberDetailPage() {
  const fetchMemberReceipts = async (memberOverride?: any) => {
  setReceiptsLoading(true)
  try {
- const response = await fetch('/api/receipts')
- const allReceipts = await response.json()
-
  const m = memberOverride || member
  if (!m) {
  setMemberReceipts([])
  setReceiptsLoading(false)
  return
  }
+
+ // السيرفر بيرجّع إيصالات العضو ده بس (FK + الداتا القديمة) بدل كل الإيصالات
+ const params = new URLSearchParams({ memberId: m.id })
+ if (m.memberNumber) params.set('memberNumber', String(m.memberNumber))
+ const response = await fetch(`/api/receipts?${params}`)
+ const allReceipts = await response.json()
 
  // شامل: كل إيصال متعلق بالعضو ده — سواء memberId/memberNumber في الـ FK
  // أو في تفاصيل الـ itemDetails (للداتا القديمة)

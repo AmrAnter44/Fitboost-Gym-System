@@ -94,9 +94,13 @@ export default function DashboardSmartSearch() {
   const [visitors, setVisitors] = useState<VisitorHit[]>([])
   const [dayUses, setDayUses] = useState<DayUseHit[]>([])
   const [loading, setLoading] = useState(false)
+  // تحميل كسول: البيانات (3 جداول كاملة) تتجاب أول ما المستخدم يقف على البحث فعلاً،
+  // مش مع كل فتحة للداشبورد (كانت بتتحمل ببلاش في كل نافذة/تاب)
+  const [activated, setActivated] = useState(false)
 
   //  جلب كل المصادر مرة واحدة (cached client-side)
   useEffect(() => {
+    if (!activated) return
     let cancelled = false
     async function load() {
       setLoading(true)
@@ -155,7 +159,7 @@ export default function DashboardSmartSearch() {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [activated])
 
   //  الفلتر الذكي — Member أولاً، Visitor تاني، DayUse تالت
   const results = useMemo<Hit[]>(() => {
@@ -266,8 +270,8 @@ export default function DashboardSmartSearch() {
         <input
           type="search"
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
-          onFocus={() => setOpen(true)}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); setActivated(true) }}
+          onFocus={() => { setOpen(true); setActivated(true) }}
           onKeyDown={handleKey}
           className={`w-full ${ar ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3.5 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 shadow-sm text-base font-medium transition-all`}
           placeholder={ar ? '🔍 بحث ذكي — رقم، اسم، أو تليفون...' : '🔍 Smart search — number, name, or phone...'}

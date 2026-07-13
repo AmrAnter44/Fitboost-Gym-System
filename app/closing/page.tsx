@@ -200,7 +200,26 @@ export default function ClosingPage() {
       const staff = await staffRes.json()
       setStaffList(staff)
 
-      const receiptsRes = await fetch('/api/receipts')
+      // نطاق التاريخ حسب العرض الحالي (بهامش يوم أمان للفروق الزمنية) —
+      // الفلترة الدقيقة بالساعة/الوردية بتفضل عند الكلاينت زي ما هي
+      let rangeStart: Date
+      let rangeEnd: Date
+      if (viewMode === 'daily') {
+        rangeStart = new Date(selectedDay)
+        rangeStart.setDate(rangeStart.getDate() - 1)
+        rangeEnd = new Date(selectedDay)
+        rangeEnd.setDate(rangeEnd.getDate() + 2)
+      } else if (viewMode === 'monthly') {
+        const [year, month] = selectedMonth.split('-').map(Number)
+        rangeStart = new Date(year, month - 1, 0)
+        rangeEnd = new Date(year, month, 2)
+      } else {
+        const year = parseInt(selectedYear)
+        rangeStart = new Date(year - 1, 11, 30)
+        rangeEnd = new Date(year + 1, 0, 2)
+      }
+
+      const receiptsRes = await fetch(`/api/receipts?startDate=${rangeStart.toISOString()}&endDate=${rangeEnd.toISOString()}`)
       const receipts = await receiptsRes.json()
 
       const expensesRes = await fetch('/api/expenses')
@@ -563,15 +582,20 @@ export default function ClosingPage() {
     try {
       setLoading(true)
 
-      const receiptsRes = await fetch('/api/receipts')
+      // تحديد الأشهر المطلوبة
+      const startDate = new Date(comparisonStartMonth + '-01')
+      const endDate = new Date(comparisonEndMonth + '-01')
+
+      // جلب نطاق المقارنة فقط بدل كل الإيصالات (بهامش يوم أمان)
+      const rangeStart = new Date(startDate)
+      rangeStart.setDate(rangeStart.getDate() - 1)
+      const rangeEnd = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 2)
+
+      const receiptsRes = await fetch(`/api/receipts?startDate=${rangeStart.toISOString()}&endDate=${rangeEnd.toISOString()}`)
       const receipts = await receiptsRes.json()
 
       const expensesRes = await fetch('/api/expenses')
       const expenses = await expensesRes.json()
-
-      // تحديد الأشهر المطلوبة
-      const startDate = new Date(comparisonStartMonth + '-01')
-      const endDate = new Date(comparisonEndMonth + '-01')
 
       const monthsData: any[] = []
       const currentDate = new Date(startDate)
