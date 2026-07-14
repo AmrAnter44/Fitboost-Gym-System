@@ -23,6 +23,7 @@ interface Offer {
   inBodyScans: number
   invitations: number
   freezeDays: number
+  maxCheckIns?: number
   ptCommission?: number
   icon: string
   isActive: boolean
@@ -119,6 +120,7 @@ export default function OffersPage() {
     inBodyScans: '',
     invitations: '',
     freezeDays: '',
+    maxCheckIns: '',
     ptCommission: '0',
     icon: 'calendar',
     upgradeEligibilityDays: '7',
@@ -183,6 +185,7 @@ export default function OffersPage() {
       inBodyScans: offer.inBodyScans.toString(),
       invitations: offer.invitations.toString(),
       freezeDays: offer.freezeDays.toString(),
+      maxCheckIns: ((offer as any).maxCheckIns ?? 0).toString(),
       ptCommission: offer.ptCommission?.toString() || '0',
       icon: ICON_PATHS[offer.icon] ? offer.icon : 'calendar',
       upgradeEligibilityDays: offer.upgradeEligibilityDays?.toString() || '7',
@@ -270,6 +273,7 @@ export default function OffersPage() {
       inBodyScans: '',
       invitations: '',
       freezeDays: '',
+      maxCheckIns: '',
       ptCommission: '0',
       icon: 'calendar',
       upgradeEligibilityDays: '7',
@@ -373,8 +377,9 @@ export default function OffersPage() {
               </div>
 
               <div>
-                <label className={labelCls}>{t('offers.duration')} *</label>
-                <input type="number" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className={inputCls} placeholder={t('offers.durationPlaceholder')} required />
+                <label className={labelCls}>{t('offers.duration')}</label>
+                <input type="number" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className={inputCls} placeholder={t('offers.durationPlaceholder')} min="0" />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">اتركها 0 أو فاضية للباقات بعدد دخلات بس (من غير مدة)</p>
               </div>
 
               <div>
@@ -453,6 +458,12 @@ export default function OffersPage() {
                 <label className={labelCls}>أيام الفريز</label>
                 <input type="number" value={formData.freezeDays} onChange={(e) => setFormData({ ...formData, freezeDays: e.target.value })} className={inputCls} placeholder="0" min="0" />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">عدد أيام الفريز المسموح بها لهذا العرض</p>
+              </div>
+
+              <div>
+                <label className={labelCls}>عدد حصص الدخول</label>
+                <input type="number" value={formData.maxCheckIns} onChange={(e) => setFormData({ ...formData, maxCheckIns: e.target.value })} className={inputCls} placeholder="0" min="0" />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">عدد مرات الدخول المسموح بها (0 = دخول غير محدود بالمدة)</p>
               </div>
 
               <div>

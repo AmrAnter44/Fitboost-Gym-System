@@ -469,6 +469,20 @@ export async function POST(request: Request) {
     }
 
     // إنشاء العضو
+    //  عدد حصص الدخول من الباقة (باقة محدودة الدخلات) — null = دخول غير محدود
+    //  entriesOnly = باقة بعدد دخلات بس (من غير مدة) → مفيش انتهاء بالوقت، الدخول يتمنع بالدخلات بس
+    let remainingCheckIns: number | null = null
+    let entriesOnly = false
+    if (offerId) {
+      try {
+        const selectedOffer = await prisma.offer.findUnique({ where: { id: offerId }, select: { maxCheckIns: true, duration: true } as any })
+        const mc = Number((selectedOffer as any)?.maxCheckIns) || 0
+        const dur = Number((selectedOffer as any)?.duration) || 0
+        remainingCheckIns = mc > 0 ? mc : null
+        entriesOnly = mc > 0 && dur <= 0
+      } catch { remainingCheckIns = null }
+    }
+
     const memberData: any = {
       memberNumber: cleanMemberNumber,
       name,
@@ -496,12 +510,14 @@ export async function POST(request: Request) {
       remainingDueDate: remainingDueDate ? new Date(remainingDueDate) : null,
       notes,
       startDate: startDate ? new Date(startDate) : null,
-      expiryDate: expiryDate ? new Date(expiryDate) : null,
+      //  باقة الدخلات-بس مالهاش انتهاء بالوقت → expiryDate = null (مش بتتم إلغاء تنشيطها تلقائيًا)
+      expiryDate: entriesOnly ? null : (expiryDate ? new Date(expiryDate) : null),
       coachId: coachId || null,
       //  لو فيه كوتش متعيّن، نحفظ تاريخ التعيين عشان الإشعار يطلع للكوتش
       coachAssignedAt: coachId ? new Date() : null,
       salesStaffId: effectiveSalesStaffId,
       offerId: offerId || null,
+      remainingCheckIns,
       // 👥 سجّل اللي جابه (لو في) عشان نقدر نرجع نعرف من جابه بعدين
       referrerMemberNumber: referralStr || null,
       allowedCheckInStart: allowedCheckInStart || null,
@@ -1065,6 +1081,93 @@ export async function PUT(request: Request) {
       return updated
     })
 
+    // 🔗 مزامنة عكسية (Member → Receipt): تعديل بيانات العضو يحدّث سناب-شوت الإيصالات المرتبطة
+    //    عشان تفضل متطابقة مع الاتجاه العكسي (Receipt → Member) الموجود في /api/receipts/update
+    //    - الاسم/الهاتف/رقم العضوية (بيانات هوية) → تتحدّث على كل إيصالات العضو
+    //    - startDate/expiryDate (بيانات الاشتراك الحالي) → على أحدث إيصال اشتراك بس
+    let receiptsSynced = 0
+    try {
+      const MEMBERSHIP_RECEIPT_TYPES = ['member_signup', 'Member', 'member', 'membershipRenewal', 'membershipTransfer']
+      const nameChanged = data.name !== undefined
+      const phoneChanged = data.phone !== undefined
+      const numberChanged = data.memberNumber !== undefined
+      const startChanged = data.startDate !== undefined
+      const expiryChanged = data.expiryDate !== undefined
+
+      if (nameChanged || phoneChanged || numberChanged || startChanged || expiryChanged) {
+        const memberReceipts = await prisma.receipt.findMany({
+          where: { memberId: id, isCancelled: false, type: { in: MEMBERSHIP_RECEIPT_TYPES } },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, itemDetails: true },
+        })
+
+        if (memberReceipts.length > 0) {
+          const latestId = memberReceipts[0].id
+          const nameKeyOf = (d: Record<string, any>) =>
+            'memberName' in d ? 'memberName'
+              : 'clientName' in d ? 'clientName'
+                : 'name' in d ? 'name'
+                  : 'memberName'
+          const newStartISO = member.startDate ? new Date(member.startDate).toISOString() : null
+          const newExpiryISO = member.expiryDate ? new Date(member.expiryDate).toISOString() : null
+
+          for (const r of memberReceipts) {
+            let details: Record<string, any> = {}
+            try { details = r.itemDetails ? JSON.parse(r.itemDetails) : {} } catch { details = {} }
+            let touched = false
+
+            // بيانات الهوية → على كل الإيصالات
+            if (nameChanged) {
+              const key = nameKeyOf(details)
+              if (details[key] !== member.name) { details[key] = member.name; touched = true }
+            }
+            if (phoneChanged) {
+              if (details.phone !== member.phone) { details.phone = member.phone; touched = true }
+            }
+            if (numberChanged) {
+              // الـ snapshot بيخزّن memberNumber كرقم — نحافظ على نفس النوع لو أمكن عشان يفضل متسق
+              const newNum = member.memberNumber
+              const coerced = (typeof details.memberNumber === 'number' && newNum != null && /^\d+$/.test(String(newNum)))
+                ? Number(newNum)
+                : (newNum ?? null)
+              if (details.memberNumber !== coerced) { details.memberNumber = coerced; touched = true }
+            }
+
+            // بيانات الاشتراك → على أحدث إيصال بس
+            if (r.id === latestId) {
+              if (startChanged) {
+                const cur = details.startDate ? new Date(details.startDate).toISOString() : null
+                if (cur !== newStartISO) {
+                  details.startDate = newStartISO
+                  if ('newStartDate' in details) details.newStartDate = newStartISO
+                  touched = true
+                }
+              }
+              if (expiryChanged) {
+                const cur = details.expiryDate ? new Date(details.expiryDate).toISOString() : null
+                if (cur !== newExpiryISO) {
+                  details.expiryDate = newExpiryISO
+                  if ('newExpiryDate' in details) details.newExpiryDate = newExpiryISO
+                  touched = true
+                }
+              }
+            }
+
+            if (touched) {
+              await prisma.receipt.update({
+                where: { id: r.id },
+                data: { itemDetails: JSON.stringify(details) },
+              })
+              receiptsSynced++
+            }
+          }
+        }
+      }
+    } catch (syncErr) {
+      // فشل المزامنة مايكسرش تعديل العضو
+      console.error('Member→Receipt sync failed:', syncErr)
+    }
+
     // 📝 Audit log
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
@@ -1073,7 +1176,8 @@ export async function PUT(request: Request) {
         memberNumber: member.memberNumber,
         name: member.name,
         changes: Object.keys(updateData),
-        ...(salesStaffChange ? { salesStaffChange } : {})
+        ...(salesStaffChange ? { salesStaffChange } : {}),
+        ...(receiptsSynced > 0 ? { receiptsSynced } : {})
       },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })

@@ -495,6 +495,7 @@ function migrateDatabase(dbPath) {
       { col: 'inBodyScans',             def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'invitations',             def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'points',                  def: 'INTEGER NOT NULL DEFAULT 0' },
+      { col: 'remainingCheckIns',       def: 'INTEGER' },  //  nullable = دخول غير محدود
     ];
     for (const { col, def } of memberCols) {
       if (!columnExists(db, 'Member', col)) {
@@ -599,6 +600,7 @@ function migrateDatabase(dbPath) {
       { col: 'upgradeEligibilityDays',  def: 'INTEGER DEFAULT 7' },
       { col: 'upgradePoints',           def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'minPrice',                def: 'REAL' },  // 💰 الحد الأدنى لسعر الاشتراك بعد الخصم
+      { col: 'maxCheckIns',             def: 'INTEGER NOT NULL DEFAULT 0' },  //  عدد حصص الدخول (0 = غير محدود)
     ];
     for (const { col, def } of offerCols) {
       if (!columnExists(db, 'Offer', col)) {

@@ -20,6 +20,7 @@ interface Member {
   isActive: boolean
   isFrozen: boolean
   isBanned: boolean
+  remainingCheckIns?: number | null
   freezeUntil?: string
   startDate?: string
   expiryDate?: string
@@ -223,6 +224,7 @@ const MemberCardRow = ({
         <div className="px-3 pb-3 space-y-2">
           {/* Status + Package */}
           <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 flex-wrap">
             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${statusBadge}`}>
               <StatusIcon />
               {statusLabel}
@@ -232,6 +234,13 @@ const MemberCardRow = ({
                 </span>
               )}
             </span>
+            {/* بادج باقة الدخلات — علامة مميزة للأعضاء اللي عندهم باقة بعدد دخلات */}
+            {member.remainingCheckIns !== null && member.remainingCheckIns !== undefined && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 ring-1 ring-purple-300 dark:ring-purple-700">
+                🎟️ {member.remainingCheckIns} {locale === 'ar' ? 'دخلة' : 'entries'}
+              </span>
+            )}
+            </div>
             <span className="text-primary-700 dark:text-primary-400 font-bold text-xs">
               {getPackageName(member.startDate, member.expiryDate, locale)}
             </span>

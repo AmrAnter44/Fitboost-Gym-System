@@ -13,6 +13,7 @@ interface SubscriptionPatch {
   startDate?: string | null
   expiryDate?: string | null
   coachName?: string
+  subscriptionPrice?: number | string
 }
 
 /**
@@ -182,6 +183,51 @@ export async function PUT(request: Request) {
       finalItemDetails = itemDetails
     }
 
+    // 💰 مزامنة الأرقام المالية داخل الـ snapshot
+    //    amount في الإيصال = المبلغ المدفوع (paidAmount)، فتعديله بيتظبط في الـ snapshot
+    //    subscriptionPrice بييجي من الـ patch، والمتبقي (remainingAmount) بيتحسب = السعر − المدفوع
+    let moneyRemaining: number | null = null
+    let moneyPriceChanged = false
+    {
+      const baseForMoney: Record<string, any> =
+        finalItemDetails ?? (existingReceipt.itemDetails ? JSON.parse(existingReceipt.itemDetails) : {})
+      const hasMoney =
+        'subscriptionPrice' in baseForMoney || 'paidAmount' in baseForMoney || 'remainingAmount' in baseForMoney
+
+      if (hasMoney) {
+        let moneyTouched = false
+
+        // المدفوع يتبع مبلغ الإيصال (بس لو المبلغ متبعّت فعلاً واتغيّر)
+        if (amount !== undefined && amount !== null && amount !== '') {
+          const newPaid = parseFloat(String(amount))
+          if ('paidAmount' in baseForMoney && Number(baseForMoney.paidAmount) !== newPaid) {
+            baseForMoney.paidAmount = newPaid
+            moneyTouched = true
+          }
+        }
+
+        // سعر الاشتراك من الـ patch
+        if (subscription && subscription.subscriptionPrice !== undefined) {
+          const sp = Math.round(parseFloat(String(subscription.subscriptionPrice))) || 0
+          if (Number(baseForMoney.subscriptionPrice) !== sp) {
+            baseForMoney.subscriptionPrice = sp
+            moneyTouched = true
+            moneyPriceChanged = true
+          }
+        }
+
+        // إعادة حساب المتبقي (بس لو المدفوع أو السعر اتغيّر)
+        if (moneyTouched) {
+          const spFinal = Number(baseForMoney.subscriptionPrice) || 0
+          const paidFinal = Number(baseForMoney.paidAmount) || 0
+          const remaining = Math.max(0, spFinal - paidFinal)
+          baseForMoney.remainingAmount = remaining
+          moneyRemaining = remaining
+          finalItemDetails = baseForMoney
+        }
+      }
+    }
+
     // تحديث الإيصال
     const updatedReceipt = await prisma.receipt.update({
       where: { id: receiptId },
@@ -215,6 +261,14 @@ export async function PUT(request: Request) {
             const newExpiry = subscription.expiryDate ? new Date(subscription.expiryDate) : null
             if (newExpiry) newExpiry.setHours(0, 0, 0, 0)
             memberData.isActive = !newExpiry || newExpiry >= today
+          }
+          // 💰 سعر الاشتراك والمتبقي على العضو
+          if (moneyPriceChanged && subscription.subscriptionPrice !== undefined) {
+            memberData.subscriptionPrice = Math.round(parseFloat(String(subscription.subscriptionPrice))) || 0
+          }
+          if (moneyRemaining !== null) {
+            memberData.remainingAmount = moneyRemaining
+            if (moneyRemaining === 0) memberData.remainingDueDate = null
           }
 
           if (Object.keys(memberData).length > 0) {

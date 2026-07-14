@@ -122,13 +122,31 @@ export async function POST(request: Request) {
     const additionalGroupClassSessions = freeGroupClassSessions || 0
     const totalGroupClassSessions = accumulate(currentGroupClassSessions, additionalGroupClassSessions)
 
+    //  عدد حصص الدخول من الباقة الجديدة (باقة محدودة الدخلات)
+    let renewOfferMaxCheckIns = 0
+    let renewEntriesOnly = false
+    if (offerId) {
+      try {
+        const renewOffer = await prisma.offer.findUnique({ where: { id: offerId }, select: { maxCheckIns: true, duration: true } as any })
+        renewOfferMaxCheckIns = Number((renewOffer as any)?.maxCheckIns) || 0
+        const renewDur = Number((renewOffer as any)?.duration) || 0
+        renewEntriesOnly = renewOfferMaxCheckIns > 0 && renewDur <= 0
+      } catch { renewOfferMaxCheckIns = 0 }
+    }
+    //  الباقة محدودة الدخلات → جمّع/ريست حسب السياسة. غير محدودة → دخول غير محدود (null)
+    const currentCheckIns = typeof (member as any).remainingCheckIns === 'number' ? (member as any).remainingCheckIns : 0
+    const totalCheckIns: number | null = renewOfferMaxCheckIns > 0
+      ? accumulate(currentCheckIns, renewOfferMaxCheckIns)
+      : null
+
 
     // ✅ حساب isActive: العضو نشط طالما اشتراكه ما انتهاش (حتى لو ما بدأش بعد)
+    //  باقة الدخلات-بس: مفيش انتهاء بالوقت → expiryDate = null و isActive = true
     const renewToday = new Date()
     renewToday.setHours(0, 0, 0, 0)
-    const renewExpiry = expiryDate ? new Date(expiryDate) : null
+    const renewExpiry = renewEntriesOnly ? null : (expiryDate ? new Date(expiryDate) : null)
     if (renewExpiry) renewExpiry.setHours(0, 0, 0, 0)
-    const renewIsActive = !renewExpiry || renewExpiry >= renewToday
+    const renewIsActive = renewEntriesOnly ? true : (!renewExpiry || renewExpiry >= renewToday)
 
     // ملاحظة: تحديث بيانات العضو اتنقل جوّه الـ $transaction تحت عشان لو
     // إنشاء الإيصال فشل يترجع التجديد بالكامل (مفيش عضو متجدّد بدون إيصال).
@@ -182,12 +200,13 @@ export async function POST(request: Request) {
             invitations: totalInvitations,
             remainingFreezeDays: totalFreezeDays,
             startDate: startDate ? new Date(startDate) : null,
-            expiryDate: expiryDate ? new Date(expiryDate) : null,
+            expiryDate: renewExpiry,
             isActive: renewIsActive,
             notes: notes || member.notes,
+            remainingCheckIns: totalCheckIns,
             ...(source !== undefined ? { source: source || null } : {}),
             ...(offerId ? { offerId } : {}),
-          },
+          } as any,
         })
 
         // رقم الإيصال جوّه الـ transaction عشان نتجنّب تكرار الأرقام (race)

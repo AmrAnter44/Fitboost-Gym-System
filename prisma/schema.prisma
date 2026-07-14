@@ -36,6 +36,7 @@ model Member {
   freeAssessmentSessions  Int    @default(0)
   freeMoreSessions        Int    @default(0)
   remainingFreezeDays Int        @default(0)
+  remainingCheckIns Int?         //  عدد الدخلات المتبقية — null = دخول غير محدود (اشتراك زمني عادي)
   subscriptionPrice Float
   remainingAmount   Float        @default(0)
   remainingDueDate  DateTime?
@@ -315,6 +316,7 @@ model Offer {
   inBodyScans             Int      @default(0)
   invitations             Int      @default(0)
   freezeDays              Int      @default(0)
+  maxCheckIns             Int      @default(0)    //  عدد حصص الدخول للباقة (0 = دخول غير محدود بالمدة)
   ptCommission            Float?   @default(0)   // عمولة الكوتش لهذه الباقة
   // 🕐 ساعات الدخول المسموح بها (اختياري) - مثل "07:00" إلى "15:00"
   allowedCheckInStart     String?  // HH:MM format
