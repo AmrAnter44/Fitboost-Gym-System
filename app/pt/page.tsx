@@ -57,6 +57,7 @@ interface PTSession {
   createdAt: string
   profileImage?: string | null
   memberNumber?: string | null
+  memberId?: string | null
   isFrozen?: boolean
   freezeUntil?: string | null
 }
@@ -131,6 +132,9 @@ export default function PTPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [filterSessions, setFilterSessions] = useState<'all' | 'low' | 'zero'>('all')
   const [filterType, setFilterType] = useState<'all' | 'regular' | 'dayuse'>('all')
+  //  فلتر فترة الاشتراك (createdAt) — فترة يكتبها المستخدم
+  const [subFrom, setSubFrom] = useState('')
+  const [subTo, setSubTo] = useState('')
 
   // حالة الإمضاء للكوتش
   const [showSignatureModal, setShowSignatureModal] = useState(false)
@@ -647,6 +651,23 @@ export default function PTPage() {
     }
   }
 
+  //  فلتر فترة الاشتراك (createdAt) — فترة يكتبها المستخدم
+  const parseDay = (s: string, end = false) => {
+    const d = new Date(s)
+    d.setHours(end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0)
+    return d
+  }
+  const inSubRange = (d?: string | null) => {
+    if (!subFrom && !subTo) return true
+    if (!d) return false
+    const c = new Date(d)
+    if (isNaN(c.getTime())) return false
+    if (subFrom && c < parseDay(subFrom)) return false
+    if (subTo && c > parseDay(subTo, true)) return false
+    return true
+  }
+  const subDateCount = sessions.filter(s => inSubRange(s.createdAt)).length
+
   const filteredSessions = sessions.filter((session) => {
     // البحث النصي
     const matchesSearch =
@@ -682,7 +703,10 @@ export default function PTPage() {
     if (filterType === 'regular') matchesType = session.ptNumber >= 0
     else if (filterType === 'dayuse') matchesType = session.ptNumber < 0
 
-    return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType
+    // فلتر فترة الاشتراك
+    const matchesSubDate = inSubRange(session.createdAt)
+
+    return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType && matchesSubDate
   })
 
   // التحقق من الصلاحيات
@@ -1370,6 +1394,45 @@ export default function PTPage() {
             </select>
           </div>
         </div>
+
+        {/* فلتر فترة الاشتراك — اكتب الفترة اللي عايزها */}
+        <div className="mt-3 rounded-xl bg-gray-50 dark:bg-gray-900/30 ring-1 ring-gray-200 dark:ring-gray-700 px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="inline-flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-200">
+              <svg {...stroke} className="w-4 h-4 text-primary-600 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+              {locale === 'ar' ? 'اشترك في الفترة' : 'Subscribed between'}
+            </span>
+            <div className="inline-flex items-center gap-1 rounded-xl ring-1 ring-gray-200 dark:ring-gray-600 bg-white dark:bg-gray-700/40 p-1">
+              <input
+                type="date"
+                value={subFrom}
+                onChange={(e) => setSubFrom(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              />
+              <svg {...stroke} className={`w-4 h-4 text-gray-400 dark:text-gray-500 mx-0.5 flex-shrink-0 ${direction === 'rtl' ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+              <input
+                type="date"
+                value={subTo}
+                onChange={(e) => setSubTo(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              />
+            </div>
+            {(subFrom || subTo) && (
+              <>
+                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tabular-nums">
+                  {locale === 'ar' ? `${subDateCount} اشتراك` : `${subDateCount} subs`}
+                </span>
+                <button
+                  onClick={() => { setSubFrom(''); setSubTo('') }}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                >
+                  <svg {...stroke} className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  {locale === 'ar' ? 'مسح' : 'Clear'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -1397,7 +1460,12 @@ export default function PTPage() {
                   {/* Header */}
                   <div className={`p-3 ${isExpired ? 'bg-red-600 dark:bg-red-700' : isExpiringSoon ? 'bg-orange-600 dark:bg-orange-700' : 'bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800'}`}>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                      <div
+                        className={`flex items-center gap-3 min-w-0 ${session.memberId ? 'cursor-pointer group' : ''}`}
+                        onClick={session.memberId ? () => router.push(`/members/${session.memberId}`) : undefined}
+                        role={session.memberId ? 'button' : undefined}
+                        title={session.memberId ? (locale === 'ar' ? 'فتح صفحة العضو' : 'Open member profile') : undefined}
+                      >
                         {/* Profile Image */}
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
                           {session.profileImage ? (
@@ -1406,11 +1474,11 @@ export default function PTPage() {
                             <svg {...stroke} className="w-5 h-5 text-white/80" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
                           )}
                         </div>
-                        <div>
-                          <div className="font-bold text-white text-base">
-                            {session.clientName}
+                        <div className="min-w-0">
+                          <div className="font-bold text-white text-base inline-flex items-center gap-1.5">
+                            <span className={`truncate ${session.memberId ? 'group-hover:underline' : ''}`}>{session.clientName}</span>
                             {session.memberNumber != null && (
-                              <span className="ms-2 text-xs font-bold text-white/90">#{session.memberNumber}</span>
+                              <span className="text-xs font-bold text-white/90">#{session.memberNumber}</span>
                             )}
                           </div>
                           <div className="text-white/80 text-xs">

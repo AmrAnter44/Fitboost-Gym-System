@@ -7,6 +7,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { normalizePaymentMethod, isMultiPayment } from '../../lib/paymentHelpers'
 import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
 import { getReceiptTypeTranslationKey, isFloorReceipt, isPTReceipt, isNutritionReceipt, isPhysiotherapyReceipt, isMoreReceipt } from '../../lib/translateReceiptType'
+import { countsAsRevenue } from '../../lib/revenueFilters'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
 import { LoadingScreen } from '../../components/Spinner'
@@ -263,7 +264,7 @@ export default function ClosingPage() {
       //  الإيصال الملغي اللي ليه مرتجع (refundMethod) بيفضل دخله متحسب على يوم إنشائه،
       //  والفلوس المسترجعة بتظهر كمصروف (مرتجعات) على يوم الإلغاء — فالصافي صح من غير خصم مزدوج.
       //  الإيصالات الملغية القديمة (من غير مرتجع) بتفضل مستبعدة زي ما كانت.
-      const filteredReceipts = receipts.filter((r: any) => filterDate(r.createdAt) && !(r.isCancelled && !r.refundMethod))
+      const filteredReceipts = receipts.filter((r: any) => filterDate(r.createdAt) && countsAsRevenue(r))
       const filteredExpenses = expenses.filter((e: any) => filterDate(e.createdAt))
 
       // بناء map للمدفوعات اللاحقة (Payment receipts) عشان نحسب الباقي الفعلي الحالي

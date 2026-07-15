@@ -34,10 +34,16 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { name, duration, price, minPrice, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, maxCheckIns, ptCommission, icon, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
 
-    // التحقق من البيانات المطلوبة
+    // التحقق من البيانات المطلوبة — المدة بالأيام بقت إجبارية
     if (!name || price === undefined) {
       return NextResponse.json(
         { error: 'الاسم والسعر مطلوبان' },
+        { status: 400 }
+      )
+    }
+    if (duration === undefined || duration === null || duration === '' || parseInt(duration) <= 0) {
+      return NextResponse.json(
+        { error: 'المدة بالأيام مطلوبة ولازم تكون أكبر من صفر' },
         { status: 400 }
       )
     }
@@ -116,6 +122,12 @@ export async function PUT(request: Request) {
     if (!id) {
       return NextResponse.json(
         { error: 'معرف العرض مطلوب' },
+        { status: 400 }
+      )
+    }
+    if (duration === undefined || duration === null || duration === '' || parseInt(duration) <= 0) {
+      return NextResponse.json(
+        { error: 'المدة بالأيام مطلوبة ولازم تكون أكبر من صفر' },
         { status: 400 }
       )
     }

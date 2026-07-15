@@ -7,6 +7,10 @@ import { LoadingScreen } from './Spinner'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
+//  تنسيق تاريخ محلي YYYY-MM-DD (بدون timezone shift)
+const toLocalISO = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 interface PTSessionLite {
   id: string
   sessionDate: string
@@ -61,6 +65,7 @@ interface CoachGroup {
     pending_decision: number
     still_has_free: number
     conversionRate: number | null
+    revenue: number
   }
   members: MemberRow[]
 }
@@ -75,14 +80,25 @@ export default function CoachConversionsPanel() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'subscribed' | 'didnt_subscribe' | 'pending_decision' | 'still_has_free'>('all')
   const [search, setSearch] = useState('')
   const [selectedMember, setSelectedMember] = useState<MemberRow | null>(null)
+  //  فلتر الفترة الزمنية للمبلغ — الافتراضي: الشهر الحالي
+  const [dateFrom, setDateFrom] = useState(() => {
+    const n = new Date(); return toLocalISO(new Date(n.getFullYear(), n.getMonth(), 1))
+  })
+  const [dateTo, setDateTo] = useState(() => {
+    const n = new Date(); return toLocalISO(new Date(n.getFullYear(), n.getMonth() + 1, 0))
+  })
 
   useEffect(() => {
     fetchData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFrom, dateTo])
 
   const fetchData = async () => {
     try {
-      const res = await fetch('/api/manager/coach-conversions')
+      const params = new URLSearchParams()
+      if (dateFrom) params.set('startDate', dateFrom)
+      if (dateTo) params.set('endDate', dateTo)
+      const res = await fetch(`/api/manager/coach-conversions?${params.toString()}`)
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
         setError(d?.error || (locale === 'ar' ? 'فشل تحميل البيانات' : 'Failed to load data'))
@@ -107,23 +123,46 @@ export default function CoachConversionsPanel() {
       didnt_subscribe: acc.didnt_subscribe + c.stats.didnt_subscribe,
       pending_decision: acc.pending_decision + c.stats.pending_decision,
       still_has_free: acc.still_has_free + c.stats.still_has_free,
+      revenue: acc.revenue + (c.stats.revenue || 0),
     }),
-    { total: 0, subscribed: 0, didnt_subscribe: 0, pending_decision: 0, still_has_free: 0 }
+    { total: 0, subscribed: 0, didnt_subscribe: 0, pending_decision: 0, still_has_free: 0, revenue: 0 }
   )
-  const globalConversionRate = (() => {
-    const decided = totalsAll.subscribed + totalsAll.didnt_subscribe
-    if (decided === 0) return null
-    return Math.round((totalsAll.subscribed / decided) * 100)
-  })()
+  //  تنسيق المبلغ
+  const fmtMoney = (n: number) =>
+    `${Math.round(n).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')} ${locale === 'ar' ? 'ج.م' : 'EGP'}`
+  //  وصف الفترة المختارة
+  const periodLabel = (!dateFrom && !dateTo)
+    ? (locale === 'ar' ? 'كل الفترات' : 'All time')
+    : `${dateFrom || '…'} → ${dateTo || '…'}`
 
   return (
     <div dir={direction}>
       {/* Summary line */}
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
         {locale === 'ar'
-          ? `${data.length} كوتش · ${totalsAll.total} عميل · معدل تحويل: ${globalConversionRate ?? '—'}${globalConversionRate !== null ? '%' : ''}`
-          : `${data.length} coaches · ${totalsAll.total} clients · Conversion rate: ${globalConversionRate ?? '—'}${globalConversionRate !== null ? '%' : ''}`}
+          ? `${data.length} كوتش · ${totalsAll.total} عميل`
+          : `${data.length} coaches · ${totalsAll.total} clients`}
       </p>
+
+      {/* إجمالي المبلغ اللي دخله الكباتن */}
+      <div className="mb-6 rounded-xl p-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 ring-1 ring-emerald-200 dark:ring-emerald-800 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="inline-flex w-10 h-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex-shrink-0">
+            <svg {...stroke} className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+              {locale === 'ar' ? 'إجمالي المبلغ اللي دخله الكباتن (PT)' : 'Total PT revenue by coaches'}
+            </p>
+            <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80">
+              {locale === 'ar' ? 'من إيصالات البي تي الفعلية · ' : 'From actual PT receipts · '}{periodLabel}
+            </p>
+          </div>
+        </div>
+        <p className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300 whitespace-nowrap">
+          {fmtMoney(totalsAll.revenue)}
+        </p>
+      </div>
 
       {error && (
         <div className="mb-4 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 ring-1 ring-red-300 dark:ring-red-800 text-red-700 dark:text-red-300 font-bold">
@@ -172,6 +211,38 @@ export default function CoachConversionsPanel() {
           onClick={() => setStatusFilter('still_has_free')}
           iconType="sparkles"
         />
+      </div>
+
+      {/* فلتر الفترة الزمنية للمبلغ */}
+      <div className="mb-4 rounded-xl bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="inline-flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-200">
+            <svg {...stroke} className="w-4 h-4 text-primary-600 dark:text-primary-400">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+            {locale === 'ar' ? 'فترة حساب المبلغ' : 'Revenue period'}
+          </div>
+          <div className="inline-flex items-center gap-1 rounded-xl ring-1 ring-gray-200 dark:ring-gray-600 bg-gray-50 dark:bg-gray-700/40 p-1">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+            />
+            <svg {...stroke} className={`w-4 h-4 text-gray-400 dark:text-gray-500 mx-0.5 flex-shrink-0 ${direction === 'rtl' ? 'rotate-180' : ''}`}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+            />
+          </div>
+          <span className="text-xs text-gray-400 dark:text-gray-500 ms-auto">
+            {locale === 'ar' ? 'بيأثّر على المبلغ بس' : 'Affects revenue only'}
+          </span>
+        </div>
       </div>
 
       {/* Search */}
@@ -239,43 +310,49 @@ export default function CoachConversionsPanel() {
                                 ? `${filteredMembers.length} من ${group.stats.total} عميل مطابق`
                                 : `${filteredMembers.length} of ${group.stats.total} matching`)
                             : (locale === 'ar' ? `${group.stats.total} عميل` : `${group.stats.total} clients`)}
-                          {group.stats.conversionRate !== null && (
-                            <span className="ms-2 font-bold text-emerald-600 dark:text-emerald-400">
-                              · {locale === 'ar' ? 'معدل التحويل:' : 'Conv:'} {group.stats.conversionRate}%
-                            </span>
-                          )}
+                          <span className="ms-2 font-bold text-emerald-600 dark:text-emerald-400">
+                            · {locale === 'ar' ? 'دفع' : 'Paid'} {group.stats.subscribed}
+                          </span>
+                          <span className="ms-2 font-bold text-purple-600 dark:text-purple-400">
+                            · {locale === 'ar' ? 'فري' : 'Free'} {group.stats.still_has_free}
+                          </span>
+                          <span className="ms-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold align-middle tabular-nums">
+                            <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            {fmtMoney(group.stats.revenue)}
+                          </span>
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="hidden sm:flex items-center gap-1.5 flex-wrap justify-end">
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {/* عدّادات الحالة — أيقونات خفيفة بدون خلفية عشان متبقاش زحمة */}
+                      <div className="hidden sm:flex items-center gap-3">
                         {group.stats.subscribed > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-                            <svg {...stroke} className="w-3.5 h-3.5">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                            <svg {...stroke} className="w-4 h-4">
                               <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                             </svg>
                             {group.stats.subscribed}
                           </span>
                         )}
                         {group.stats.didnt_subscribe > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-bold">
-                            <svg {...stroke} className="w-3.5 h-3.5">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-red-500 dark:text-red-400 tabular-nums">
+                            <svg {...stroke} className="w-4 h-4">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                             </svg>
                             {group.stats.didnt_subscribe}
                           </span>
                         )}
                         {group.stats.pending_decision > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-bold">
-                            <svg {...stroke} className="w-3.5 h-3.5">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-500 dark:text-amber-400 tabular-nums">
+                            <svg {...stroke} className="w-4 h-4">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             {group.stats.pending_decision}
                           </span>
                         )}
                         {group.stats.still_has_free > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-bold">
-                            <svg {...stroke} className="w-3.5 h-3.5">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-500 dark:text-purple-400 tabular-nums">
+                            <svg {...stroke} className="w-4 h-4">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                             </svg>
                             {group.stats.still_has_free}
@@ -527,6 +604,18 @@ function MemberRowItem({ member, locale, onClick }: { member: MemberRow; locale:
         <div className="min-w-0">
           <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{member.name}</p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {/* حالة الـ PT: دفع / فري — عشان نميّز بسرعة مين دفع ومين لسه فري */}
+            {member.hasPaidPT ? (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {locale === 'ar' ? 'دفع' : 'Paid'}
+              </span>
+            ) : member.freePTSessions > 0 ? (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+                {locale === 'ar' ? `فري (${member.freePTSessions})` : `Free (${member.freePTSessions})`}
+              </span>
+            ) : null}
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 ${statusInfo.cls}`}>
               <svg {...stroke} className="w-3 h-3">
                 <path strokeLinecap="round" strokeLinejoin="round" d={iconPaths[statusInfo.iconType]} />
@@ -552,8 +641,9 @@ function MemberRowItem({ member, locale, onClick }: { member: MemberRow; locale:
               )
             })}
             {member.joinedCoachAt && (
-              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold inline-flex items-center gap-0.5">
-                📅 {(() => {
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold inline-flex items-center gap-1">
+                <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                {(() => {
                   const days = Math.floor((Date.now() - new Date(member.joinedCoachAt).getTime()) / (1000 * 60 * 60 * 24))
                   if (days === 0) return locale === 'ar' ? 'النهارده' : 'today'
                   if (days === 1) return locale === 'ar' ? 'إمبارح' : 'yesterday'
@@ -569,8 +659,9 @@ function MemberRowItem({ member, locale, onClick }: { member: MemberRow; locale:
               </span>
             )}
             {member.coachConversionNote && (
-              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
-                · 📝 {locale === 'ar' ? 'فيه ملاحظة' : 'has note'}
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold inline-flex items-center gap-1">
+                <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
+                {locale === 'ar' ? 'فيه ملاحظة' : 'has note'}
               </span>
             )}
           </div>

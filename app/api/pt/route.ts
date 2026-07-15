@@ -109,7 +109,7 @@ export async function GET(request: Request) {
       const membersByPhone = phones.length > 0
         ? await prisma.member.findMany({
             where: { phone: { in: phones } },
-            select: { phone: true, profileImage: true, memberNumber: true }
+            select: { id: true, phone: true, profileImage: true, memberNumber: true }
           })
         : []
       for (const m of membersByPhone) phoneToMember.set(m.phone, m)
@@ -122,7 +122,8 @@ export async function GET(request: Request) {
       return {
         ...s,
         profileImage: mem?.profileImage || null,
-        memberNumber: mem?.memberNumber ?? null
+        memberNumber: mem?.memberNumber ?? null,
+        memberId: mem?.id ?? null
       }
     })
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
 import { verifyAuth } from '../../../../lib/auth'
+import { isPTReceipt } from '../../../../lib/translateReceiptType'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,11 @@ export async function GET(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    //  فلتر الفترة الزمنية لحساب المبلغ (اختياري) — لو مفيش، بيحسب كل الفترات
+    const { searchParams } = new URL(request.url)
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
 
     //  Permission check
     const role = user.role
@@ -127,6 +133,31 @@ export async function GET(request: Request) {
     const physioPhones = new Set(physioSubs.map(p => p.phone).filter(Boolean))
     const morePhones = new Set(moreSubs.map(m => m.phone).filter(Boolean))
 
+    //  3c. إجمالي المبلغ اللي دخله كل كابتن — من إيصالات PT الفعلية (غير الملغية)
+    //  بنجمع amount الإيصال حسب اسم الكوتش المخزّن في itemDetails (نفس منطق التقارير/التقفيل)
+    //  مع فلترة الفترة الزمنية لو متبعتة
+    const receiptWhere: any = { isCancelled: false }
+    if (startDate || endDate) {
+      receiptWhere.createdAt = {}
+      if (startDate) { const s = new Date(startDate); s.setHours(0, 0, 0, 0); receiptWhere.createdAt.gte = s }
+      if (endDate) { const e = new Date(endDate); e.setHours(23, 59, 59, 999); receiptWhere.createdAt.lte = e }
+    }
+    const ptReceipts = await prisma.receipt.findMany({
+      where: receiptWhere,
+      select: { type: true, amount: true, itemDetails: true },
+    })
+    const revenueByCoach = new Map<string, number>()
+    for (const r of ptReceipts) {
+      if (!isPTReceipt(r.type)) continue
+      let coachName = ''
+      try {
+        const details = r.itemDetails ? JSON.parse(r.itemDetails) : {}
+        coachName = (details.coachName || '').trim()
+      } catch { coachName = '' }
+      if (!coachName) continue
+      revenueByCoach.set(coachName, (revenueByCoach.get(coachName) || 0) + (r.amount || 0))
+    }
+
     //  حالة خدمة لكل عضو: subscribed (اشترى) / free (لسه عنده مجاني) / none
     const serviceStatus = (subscribed: boolean, freeCount: number): 'subscribed' | 'free' | 'none' =>
       subscribed ? 'subscribed' : (freeCount > 0 ? 'free' : 'none')
@@ -194,6 +225,8 @@ export async function GET(request: Request) {
           if (total === 0) return null
           return Math.round((coachMembers.filter(m => m.status === 'subscribed').length / total) * 100)
         })(),
+        //  إجمالي المبلغ اللي دخله الكابتن من إيصالات PT
+        revenue: revenueByCoach.get((coach.name || '').trim()) || 0,
       }
 
       return {

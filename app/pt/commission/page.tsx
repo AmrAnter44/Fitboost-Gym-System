@@ -7,6 +7,7 @@ import { useServiceSettings } from '../../../contexts/ServiceSettingsContext'
 import { LoadingScreen } from '../../../components/Spinner'
 import { usePermissions } from '../../../hooks/usePermissions'
 import PermissionDenied from '../../../components/PermissionDenied'
+import { countsAsRevenue } from '../../../lib/revenueFilters'
 
 interface Staff {
   id: string
@@ -2448,15 +2449,14 @@ export default function CoachCommissionPage() {
             const start = new Date(dateFrom)
             const end = new Date(dateTo)
             end.setHours(23, 59, 59, 999)
-            //  مجموع كل إيصالات PT في الفترة (نفس فلتر التقفيل بالظبط)
-            const allPTReceiptsInRange = receipts.filter((r: any) => {
-              if (r.isCancelled) return false
-              if (!PT_RECEIPT_TYPES.includes(r.type)) return false
-              const d = new Date(r.createdAt)
-              return d >= start && d <= end
-            })
+            const inRange = (r: any) => { const d = new Date(r.createdAt); return d >= start && d <= end }
+            //  مجموع كل إيصالات PT في الفترة — نفس قاعدة التقفيل بالظبط (countsAsRevenue)
+            //  عشان الرقم ده يطابق التقفيل الشهري والتقارير من غير لخبطة
+            const allPTReceiptsInRange = receipts.filter((r: any) => countsAsRevenue(r) && PT_RECEIPT_TYPES.includes(r.type) && inRange(r))
             const closingMatchTotal = allPTReceiptsInRange.reduce((sum, r) => sum + r.amount, 0)
             const coachesSumTotal = allCoachesStats.reduce((sum, s) => sum + s.earnings.serviceRevenue, 0)
+            //  المرتجعات (PT ملغي باسترجاع): بتتعد في إجمالي التقفيل بس مش بتتحسب عمولة للكوتش
+            const refundedPTTotal = receipts.filter((r: any) => r.isCancelled && r.refundMethod && PT_RECEIPT_TYPES.includes(r.type) && inRange(r)).reduce((sum: number, r: any) => sum + r.amount, 0)
             const orphan = closingMatchTotal - coachesSumTotal
             const fmt = (n: number) => Math.round(n).toLocaleString(localeString)
 
@@ -2475,17 +2475,22 @@ export default function CoachCommissionPage() {
                     <p className="text-lg font-black text-primary-700 dark:text-primary-400">{fmt(coachesSumTotal)} {locale === 'ar' ? 'ج.م' : 'EGP'}</p>
                   </div>
                   <div className={`rounded-lg p-3 ring-1 ${Math.abs(orphan) < 1 ? 'bg-green-50 dark:bg-green-900/20 ring-green-200 dark:ring-green-800' : 'bg-amber-50 dark:bg-amber-900/20 ring-amber-200 dark:ring-amber-800'}`}>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'إيصالات بدون كوتش' : 'Receipts without coach'}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{locale === 'ar' ? 'الفرق (بدون كوتش / مرتجع)' : 'Gap (no coach / refunded)'}</p>
                     <p className={`text-lg font-black ${Math.abs(orphan) < 1 ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
                       {fmt(orphan)} {locale === 'ar' ? 'ج.م' : 'EGP'}
                     </p>
+                    {refundedPTTotal > 0 && (
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                        {locale === 'ar' ? `منهم مرتجعات: ${fmt(refundedPTTotal)} ج.م` : `incl. refunds: ${fmt(refundedPTTotal)} EGP`}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {Math.abs(orphan) >= 1 && (
                   <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
                     ⚠️ {locale === 'ar'
-                      ? 'الفرق ده من إيصالات PT اتعملت بدون تحديد كوتش في itemDetails. التحصيل بيتعد في التقفيل بس مش بينسب لأي كوتش هنا.'
-                      : 'This gap is from PT receipts created without a coach name in itemDetails. They count in closing but cannot be attributed to a specific coach here.'}
+                      ? 'الفرق ده من: إيصالات PT بدون تحديد كوتش، + إيصالات مرتجعة (بتتعد في إجمالي التقفيل بس مش بتتحسب عمولة للكوتش). عمولة الكوتش بتتحسب على تحصيله الفعلي بدون الملغي.'
+                      : 'This gap is from PT receipts without a coach + refunded receipts (counted in closing total but not paid as coach commission). Coach commission is on actual collection excluding cancelled receipts.'}
                   </p>
                 )}
               </div>

@@ -133,6 +133,13 @@ export default function OffersPage() {
     e.preventDefault()
     setError('')
     setSuccess('')
+
+    //  المدة بالأيام إجبارية قبل إنشاء/تعديل الباقة
+    if (!formData.duration || parseInt(formData.duration.toString()) <= 0) {
+      setError('المدة بالأيام مطلوبة ولازم تكون أكبر من صفر')
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -377,9 +384,9 @@ export default function OffersPage() {
               </div>
 
               <div>
-                <label className={labelCls}>{t('offers.duration')}</label>
-                <input type="number" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className={inputCls} placeholder={t('offers.durationPlaceholder')} min="0" />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">اتركها 0 أو فاضية للباقات بعدد دخلات بس (من غير مدة)</p>
+                <label className={labelCls}>{t('offers.duration')} <span className="text-red-600">*</span></label>
+                <input type="number" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} className={inputCls} placeholder={t('offers.durationPlaceholder')} min="1" required />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">المدة بالأيام مطلوبة. للباقات بعدد دخلات: حط المدة + عدد الدخلات، والاشتراك بينتهي بأول اللي يخلص.</p>
               </div>
 
               <div>
