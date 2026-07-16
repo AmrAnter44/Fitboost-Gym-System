@@ -652,18 +652,22 @@ export default function PTPage() {
   }
 
   //  فلتر فترة الاشتراك (createdAt) — فترة يكتبها المستخدم
-  const parseDay = (s: string, end = false) => {
-    const d = new Date(s)
-    d.setHours(end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0)
-    return d
+  //  بنقارن على تاريخ اليوم المحلي (YYYY-MM-DD) كـ string عشان نتجنّب أي لخبطة توقيت (timezone)
+  //  فالمدى بيجيب بالظبط الأيام اللي بين اللي كتبتهم شامل الطرفين — من غير ما يزحف على شهر تاني
+  const localYMD = (dt: Date) => {
+    const y = dt.getFullYear()
+    const m = String(dt.getMonth() + 1).padStart(2, '0')
+    const day = String(dt.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
   }
   const inSubRange = (d?: string | null) => {
     if (!subFrom && !subTo) return true
     if (!d) return false
     const c = new Date(d)
     if (isNaN(c.getTime())) return false
-    if (subFrom && c < parseDay(subFrom)) return false
-    if (subTo && c > parseDay(subTo, true)) return false
+    const ymd = localYMD(c)
+    if (subFrom && ymd < subFrom) return false
+    if (subTo && ymd > subTo) return false
     return true
   }
   const subDateCount = sessions.filter(s => inSubRange(s.createdAt)).length
