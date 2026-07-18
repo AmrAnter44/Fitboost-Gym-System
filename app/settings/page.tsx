@@ -3838,6 +3838,42 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Fitboost Assistant — متوفر لدينا */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden ring-1 ring-primary-100 dark:ring-primary-800">
+                      <img src="/fb.png" alt="Fitboost Assistant" className="w-8 h-8 object-contain" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-gray-900 dark:text-gray-100">Fitboost Assistant</h3>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
+                          {locale === 'ar' ? 'متوفر لدينا' : 'Available'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {locale === 'ar'
+                          ? 'تطبيق المساعد للأجهزة لتسريع تسجيل الدخول والعمل اليومي.'
+                          : 'A companion desktop app to speed up check-in and daily operations.'}
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href="https://drive.google.com/file/d/1m_NTZZf9nB13ViySPdIj4aplsZ_8p9jh/view?usp=sharing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-sm hover:shadow-md active:scale-[0.98] transition duration-200 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+                  >
+                    <svg {...stroke} className="w-5 h-5 transition-transform duration-200 group-hover:translate-y-0.5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-6L12 15m0 0 4.5-4.5M12 15V3" />
+                    </svg>
+                    {locale === 'ar' ? 'تحميل' : 'Download'}
+                  </a>
+                </div>
+              </div>
+
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
                 <div className="text-center space-y-4">
                   <div className="inline-flex items-center justify-center w-20 h-20 bg-green-50 dark:bg-green-900/20 rounded-full text-green-700 dark:text-green-300">
@@ -3853,17 +3889,60 @@ export default function SettingsPage() {
                     </svg>
                     <span dir="ltr">01028518754</span>
                   </div>
-                  <a
-                    href="https://wa.me/201028518754"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
-                  >
-                    <svg {...stroke} className="w-5 h-5" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z" />
-                    </svg>
-                    {t('settingsPage.support.whatsappButton')}
-                  </a>
+                  {/* تواصل وتابعنا — أيقونات دائرية */}
+                  <div className="pt-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
+                      {locale === 'ar' ? 'تواصل معنا' : 'Get in touch'}
+                    </p>
+                    <div className="flex items-center justify-center gap-3">
+                      <a
+                        href="https://wa.me/201028518754"
+                        target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"
+                        className="inline-flex items-center justify-center w-11 h-11 rounded-full text-white bg-green-600 hover:bg-green-700 hover:scale-105 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+                      >
+                        <svg {...stroke} className="w-5 h-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 20l1.5-4.5A8 8 0 1112 20H7l-4 0z" />
+                        </svg>
+                      </a>
+                      <a
+                        href="https://www.instagram.com/fitbo.ost?igsh=MWtwYXRlMjBmNHFnbQ"
+                        target="_blank" rel="noopener noreferrer" aria-label="Instagram"
+                        className="inline-flex items-center justify-center w-11 h-11 rounded-full text-white bg-gradient-to-tr from-amber-500 via-pink-600 to-purple-600 hover:opacity-90 hover:scale-105 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                          <rect x="3" y="3" width="18" height="18" rx="5" />
+                          <circle cx="12" cy="12" r="4" />
+                          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+                        </svg>
+                      </a>
+                      <a
+                        href="https://www.facebook.com/share/1Bm6LvrPMb/"
+                        target="_blank" rel="noopener noreferrer" aria-label="Facebook"
+                        className="inline-flex items-center justify-center w-11 h-11 rounded-full text-white bg-[#1877F2] hover:bg-[#0f6ae0] hover:scale-105 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94Z" />
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Powered by */}
+                  <div className="pt-5 mt-1 border-t border-gray-100 dark:border-gray-700/70">
+                    <div className="inline-flex items-center gap-2 text-sm font-bold text-gray-400 dark:text-gray-500 tracking-wide">
+                      <span>Powered by</span>
+                      <a
+                        href="https://www.fitboost.website/en"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Fitboost website"
+                        title="fitboost.website"
+                        className="inline-flex items-center rounded-md hover:opacity-80 hover:scale-105 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+                      >
+                        <img src="/fb.png" alt="Fitboost" className="h-7 w-auto object-contain" />
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
