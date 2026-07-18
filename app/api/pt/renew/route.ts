@@ -47,9 +47,14 @@ export async function POST(request: Request) {
       staffName
     } = body
     //  المبلغ المتبقي في التجديد الجديد — لازم يكون رقم بين 0 و totalPrice
-    const parsedRemaining = Math.max(0, Math.min(Number(remainingAmount) || 0, Number(totalPrice) || 0))
+    //  ⚠️ Math.round مهم: عمود remainingAmount في الـ schema نوعه Int،
+    //     ولو اتكتب فيه كسر عشري Prisma بترفض والترانزاكشن كلها بترجع (التجديد مايتسجلش)
+    const parsedRemaining = Math.round(
+      Math.max(0, Math.min(Number(remainingAmount) || 0, Number(totalPrice) || 0))
+    )
 
-    // حساب سعر الحصة الواحدة من السعر الإجمالي
+    //  سعر الحصة بيتحسب من الحصص المشتراة الجديدة بس (قبل إضافة المرحّل)
+    //  عشان السعر مايتخفّفش على حصص مدفوعة قبل كده ويقلّل قيمة العمولة
     const pricePerSession = sessionsPurchased > 0 ? totalPrice / sessionsPurchased : 0
 
 
@@ -81,6 +86,12 @@ export async function POST(request: Request) {
     // حفظ المبلغ المتبقي القديم قبل التحديث
     const oldRemainingAmount = existingPT.remainingAmount || 0
 
+    //  ترحيل الحصص المتبقية من الباقة القديمة بدل ما تتلغي (نفس سلوك /api/pt/upgrade)
+    //  بنضيفها للـ purchased والـ remaining مع بعض عشان remaining ما يبقاش أكبر من purchased
+    //  (اللي كان هيخلي completedSessions = purchased - remaining رقم سالب)
+    const carriedOverSessions = Math.max(0, existingPT.sessionsRemaining || 0)
+    const totalSessionsAfterRenew = Number(sessionsPurchased) + carriedOverSessions
+
     // إنشاء إيصال للتجديد باستخدام Transaction
     // ملاحظة: تحديث الـ PT اتنقل جوّه الـ transaction عشان لو الإيصال فشل يترجع
     // التجديد بالكامل (مفيش PT متجدّد بدون إيصال).
@@ -106,8 +117,8 @@ export async function POST(request: Request) {
           where: { ptNumber: parseInt(ptNumber) },
           data: {
             phone,
-            sessionsPurchased: sessionsPurchased,
-            sessionsRemaining: sessionsPurchased,
+            sessionsPurchased: totalSessionsAfterRenew,
+            sessionsRemaining: totalSessionsAfterRenew,
             coachName,
             pricePerSession,
             startDate: startDate ? new Date(startDate) : existingPT.startDate,
@@ -157,6 +168,7 @@ export async function POST(request: Request) {
               expiryDate: expiryDate || null,
               subscriptionDays: subscriptionDays,
               oldSessionsRemaining: existingPT.sessionsRemaining,
+              carriedOverSessions: carriedOverSessions, //  الحصص المرحّلة من الباقة القديمة
               newSessionsRemaining: updatedPT.sessionsRemaining,
               oldRemainingAmount: oldRemainingAmount, // ✅ المبلغ المتبقي القديم المرتجع
               newRemainingAmount: parsedRemaining, //  المبلغ المتبقي الجديد
@@ -214,8 +226,13 @@ export async function POST(request: Request) {
       return NextResponse.json({
         pt: result.pt,
         receipt: {
+          //  بنرجّع الإيصال كامل عشان الفورم يفتح مودال التأكيد على طول
+          //  (مفيش endpoint اسمه GET /api/receipts/[id] فمينفعش يعيد جلبه)
+          id: result.receipt.id,
           receiptNumber: result.receipt.receiptNumber,
+          type: result.receipt.type,
           amount: result.receipt.amount,
+          paymentMethod: result.receipt.paymentMethod,
           itemDetails: result.receipt.itemDetails,
           createdAt: result.receipt.createdAt
         }

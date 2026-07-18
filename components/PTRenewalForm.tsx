@@ -221,25 +221,11 @@ export default function PTRenewalForm({ session, onSuccess, onClose }: PTRenewal
         toast.success(t('pt.renewal.successMessage'))
 
         if (result.receipt) {
-          try {
-            const receiptResponse = await fetch(`/api/receipts/${result.receipt.id}`)
-            if (receiptResponse.ok) {
-              const receiptData = await receiptResponse.json()
-              setCreatedReceipt(receiptData)
-              setShowSuccessModal(true)
-            } else {
-              setTimeout(() => {
-                onSuccess()
-                onClose()
-              }, 1500)
-            }
-          } catch (err) {
-            console.error('Error fetching receipt:', err)
-            setTimeout(() => {
-              onSuccess()
-              onClose()
-            }, 1500)
-          }
+          //  الإيصال بيرجع كامل من /api/pt/renew فبنستخدمه على طول
+          //  (قبل كده كان بيحاول يجيبه من /api/receipts/[id] اللي مش موجود أصلاً،
+          //   فالمودال مكانش بيفتح والموظف بيحس إن التجديد ماتسجلش)
+          setCreatedReceipt(result.receipt)
+          setShowSuccessModal(true)
         } else {
           setTimeout(() => {
             onSuccess()

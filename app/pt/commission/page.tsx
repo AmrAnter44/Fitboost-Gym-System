@@ -719,24 +719,17 @@ export default function CoachCommissionPage() {
     const end = new Date(dateTo)
     end.setHours(23, 59, 59, 999)
 
-    // 1. جلب جميع PT مع تطبيق الفلتر
+    // 1. جلب جميع PT مع تطبيق فلتر الكوتش بس
+    //  ⚠️ مهم: مبنفلترش بنافذة الاشتراك (startDate/expiryDate) عن قصد.
+    //     التجديد بيدوس على تواريخ الاشتراك على نفس الـ ptNumber، فاشتراك اتجدد
+    //     في يوليو كان بيسقط من تقرير يونيو رغم إن حصص الحضور موجودة في يونيو
+    //     → حصص ناقصة → عمولة أقل من المفروض.
+    //     الفلترة الصح بتحصل تحت على تاريخ الحضور نفسه (attendedAt).
     let filteredPts = ptSessions.filter((pt) => {
       // فلتر حسب الكوتش إذا تم تحديده
       if (coachNameFilter && pt.coachName !== coachNameFilter) {
         return false
       }
-
-      // فلتر حسب التاريخ (اختياري - يمكن إزالته للحساب الكلي)
-      if (pt.startDate) {
-        const ptStart = new Date(pt.startDate)
-        if (ptStart > end) return false
-      }
-
-      if (pt.expiryDate) {
-        const ptExpiry = new Date(pt.expiryDate)
-        if (ptExpiry < start) return false
-      }
-
       return true
     })
 
@@ -925,7 +918,16 @@ export default function CoachCommissionPage() {
 
     const totalSessions = relatedSessions.reduce((sum, s) => sum + s.sessionsPurchased, 0)
     const remainingSessions = relatedSessions.reduce((sum, s) => sum + s.sessionsRemaining, 0)
-    const completedSessions = totalSessions - remainingSessions
+    //  الحصص المكتملة بتتحسب من سجلات الحضور الفعلية في الفترة، مش من (المشتراة − المتبقية).
+    //  السبب: التجديد بيعيد ضبط الصف الحيّ (12/12) فالطرح كان بيطلع صفر وبيمسح شغل
+    //  الكوتش المنجَز حتى لفترة قديمة مقفولة. الحضور بيتفلتر بتاريخه فبيفضل ثابت.
+    const relatedPtNumbers = new Set(relatedSessions.map((s) => s.ptNumber))
+    const completedSessions = ptAttendanceRecords.filter((record) => {
+      if (!relatedPtNumbers.has(record.ptNumber)) return false
+      if (!record.attendedAt) return false
+      const attendedAt = new Date(record.attendedAt)
+      return attendedAt >= start && attendedAt <= end
+    }).length
     const clients = new Set(relatedSessions.map((s) => s.clientName)).size
 
     return {
