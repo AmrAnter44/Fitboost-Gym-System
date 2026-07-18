@@ -17,8 +17,13 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods,
 } from '../../../../lib/paymentHelpers'
-import { processPaymentWithPoints } from '../../../../lib/paymentProcessor'
-import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
+import { getRequestedPoints } from '../../../../lib/paymentProcessor'
+import { deductPoints } from '../../../../lib/points'
+import {
+  getNextReceiptNumber,
+  runReceiptTransaction,
+  PaymentValidationError,
+} from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
@@ -62,15 +67,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'العضو غير موجود' }, { status: 404 })
     }
 
-    const currentRemaining = member.remainingAmount || 0
-    if (amount > currentRemaining) {
-      return NextResponse.json(
-        { error: `المبلغ المدفوع (${amount}) أكبر من المتبقي (${currentRemaining})` },
-        { status: 400 }
-      )
-    }
-
-    // ✅ معالجة وسائل الدفع المتعددة
+    // ✅ كل التحققات بتحصل قبل أي كتابة في قاعدة البيانات
     let finalPaymentMethod: string
     if (Array.isArray(paymentMethod)) {
       const validation = validatePaymentDistribution(paymentMethod, amount)
@@ -85,66 +82,81 @@ export async function POST(request: Request) {
       finalPaymentMethod = paymentMethod || 'cash'
     }
 
-    const newRemaining = currentRemaining - amount
-    const receiptNumber = await getNextReceiptNumberDirect(prisma)
-
-    const itemDetails = {
-      memberNumber: member.memberNumber,
-      memberName: member.name,
-      phone: member.phone,
-      startDate: member.startDate,
-      expiryDate: member.expiryDate,
-      subscriptionPrice: member.subscriptionPrice,
-      previousRemaining: currentRemaining,
-      paidAmount: amount,
-      remainingAmount: newRemaining,
-      paymentMethod: finalPaymentMethod,
-      staffName: user.name,
-      salesPersonName: member.salesStaff?.name || null,
-      notes: notes || '',
+    // النقاط المطلوب خصمها (لو الدفع كله أو جزء منه بالنقاط)
+    const pointsRequest = await getRequestedPoints(paymentMethod ?? 'cash', amount, prisma)
+    if (pointsRequest.message) {
+      return NextResponse.json({ error: pointsRequest.message }, { status: 400 })
     }
 
-    // ⚙️ تحديث الـ remainingAmount + إنشاء الإيصال — عمليتين متتاليتين
-    // (مش transaction كاملة لأن Prisma في SQLite ممكن يبط، بس الترتيب آمن:
-    //  لو فشل الإيصال بعد التحديث، الباقي اتعدّل بس مفيش إيصال — نقدر نتعقّب من audit log)
-    const [updatedMember, receipt] = await prisma.$transaction([
-      prisma.member.update({
+    // ⚙️ عملية ذرّية واحدة: قراءة الباقي الحالي + حجز رقم الإيصال + تحديث
+    // الباقي + إنشاء الإيصال + خصم النقاط. لو أي خطوة فشلت بترولّبك كلها —
+    // مستحيل يتخصم باقي من غير إيصال أو العكس.
+    const result = await runReceiptTransaction(prisma, async (tx) => {
+      const freshMember = await tx.member.findUnique({
+        where: { id: memberId },
+        select: { remainingAmount: true },
+      })
+      if (!freshMember) {
+        throw new PaymentValidationError('العضو غير موجود')
+      }
+
+      const currentRemaining = freshMember.remainingAmount || 0
+      if (amount > currentRemaining) {
+        throw new PaymentValidationError(
+          `المبلغ المدفوع (${amount}) أكبر من المتبقي (${currentRemaining})`
+        )
+      }
+      const newRemaining = currentRemaining - amount
+
+      const updatedMember = await tx.member.update({
         where: { id: memberId },
         data: { remainingAmount: newRemaining },
-      }),
-      prisma.receipt.create({
+      })
+
+      const receiptNumber = await getNextReceiptNumber(tx)
+
+      const itemDetails = {
+        memberNumber: member.memberNumber,
+        memberName: member.name,
+        phone: member.phone,
+        startDate: member.startDate,
+        expiryDate: member.expiryDate,
+        subscriptionPrice: member.subscriptionPrice,
+        previousRemaining: currentRemaining,
+        paidAmount: amount,
+        remainingAmount: newRemaining,
+        paymentMethod: finalPaymentMethod,
+        staffName: user.name,
+        salesPersonName: member.salesStaff?.name || null,
+        notes: notes || '',
+      }
+
+      const receipt = await tx.receipt.create({
         data: {
           receiptNumber,
           type: 'Payment',
           amount,
           itemDetails: JSON.stringify(itemDetails),
           paymentMethod: finalPaymentMethod,
+          staffName: user.name || '',
           memberId,
         },
-      }),
-    ])
+      })
 
-    // خصم النقاط لو اتم استخدامها (خارج الـ transaction علشان الـ helper بيعمل عمليات تانية)
-    const pointsResult = await processPaymentWithPoints(
-      member.id,
-      member.phone,
-      member.memberNumber,
-      finalPaymentMethod,
-      `دفع متبقي - ${member.name}`,
-      prisma
-    )
+      if (pointsRequest.pointsUsed > 0) {
+        const deduction = await deductPoints(
+          memberId,
+          pointsRequest.pointsUsed,
+          `دفع متبقي - ${member.name}`,
+          tx
+        )
+        if (!deduction.success) {
+          throw new PaymentValidationError(deduction.message || 'فشل خصم النقاط')
+        }
+      }
 
-    if (!pointsResult.success) {
-      // الـ DB updated بالفعل، فبنرجّع warning بس مش error كامل
-      return NextResponse.json(
-        {
-          warning: pointsResult.message || 'تم الدفع بس فشل خصم النقاط',
-          member: updatedMember,
-          receipt,
-        },
-        { status: 200 }
-      )
-    }
+      return { updatedMember, receipt, currentRemaining, newRemaining }
+    })
 
     createAuditLog({
       userId: user.userId,
@@ -159,9 +171,10 @@ export async function POST(request: Request) {
         memberNumber: member.memberNumber,
         memberName: member.name,
         amount,
-        previousRemaining: currentRemaining,
-        newRemaining,
-        receiptNumber: receipt.receiptNumber,
+        previousRemaining: result.currentRemaining,
+        newRemaining: result.newRemaining,
+        pointsDeducted: pointsRequest.pointsUsed || 0,
+        receiptNumber: result.receipt.receiptNumber,
       },
       ipAddress: getIpAddress(request),
       userAgent: getUserAgent(request),
@@ -170,14 +183,18 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      member: updatedMember,
-      receipt,
+      member: result.updatedMember,
+      receipt: result.receipt,
       message: 'تم دفع المبلغ المتبقي بنجاح',
     })
   } catch (error: any) {
+    if (error instanceof PaymentValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
     console.error('❌ pay-remaining error:', error)
     return NextResponse.json(
-      { error: error.message || 'فشل دفع المبلغ المتبقي' },
+      { error: 'فشل دفع المبلغ المتبقي — لم يتم خصم أي مبلغ ولم يُنشأ إيصال، حاول مرة أخرى' },
       { status: 500 }
     )
   }

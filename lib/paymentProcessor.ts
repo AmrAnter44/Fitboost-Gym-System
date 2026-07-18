@@ -2,7 +2,88 @@
 // معالج الدفع - يتعامل مع خصم النقاط والتحقق من الدفع
 
 import { deductPoints } from './points'
-import { deserializePaymentMethods, getPointsUsedFromPayment, type PaymentMethod } from './paymentHelpers'
+import {
+  deserializePaymentMethods,
+  getPointsUsedFromPayment,
+  calculatePointsRequired,
+  type PaymentMethod,
+} from './paymentHelpers'
+
+/**
+ * حساب عدد النقاط المطلوب خصمها من وسيلة/وسائل الدفع.
+ * بيغطي الحالتين:
+ * - array فيها method='points' مع pointsUsed محسوبة من الواجهة
+ * - string واحدة = 'points' (الوضع المفرد في PaymentMethodSelector) —
+ *   هنا بنحسب النقاط من الإعدادات لأن الواجهة مش بتبعت pointsUsed
+ *
+ * بترجع message لو الدفع بالنقاط مطلوب بس مش ممكن (النظام متعطل مثلاً) —
+ * ساعتها لازم العملية تترفض قبل أي خصم.
+ */
+export async function getRequestedPoints(
+  paymentMethod: string | PaymentMethod[],
+  amount: number,
+  db: any
+): Promise<{ pointsUsed: number; message?: string }> {
+  let pointsAmount = 0
+  let declaredPoints = 0
+
+  if (Array.isArray(paymentMethod)) {
+    const pointsEntry = paymentMethod.find(m => m.method === 'points')
+    if (!pointsEntry || pointsEntry.amount <= 0) return { pointsUsed: 0 }
+    pointsAmount = pointsEntry.amount
+    declaredPoints = getPointsUsedFromPayment(paymentMethod)
+  } else if (paymentMethod === 'points') {
+    pointsAmount = amount
+  } else {
+    return { pointsUsed: 0 }
+  }
+
+  if (declaredPoints > 0) return { pointsUsed: declaredPoints }
+
+  const settings = await db.systemSettings.findUnique({
+    where: { id: 'singleton' },
+    select: { pointsEnabled: true, pointsValueInEGP: true },
+  })
+
+  if (!settings?.pointsEnabled || !settings.pointsValueInEGP || settings.pointsValueInEGP <= 0) {
+    return {
+      pointsUsed: 0,
+      message: 'نظام النقاط غير مفعل — اختر وسيلة دفع أخرى',
+    }
+  }
+
+  return { pointsUsed: calculatePointsRequired(pointsAmount, settings.pointsValueInEGP) }
+}
+
+/**
+ * إيجاد العضو اللي هيتخصم منه النقاط عن طريق رقم الهاتف.
+ * جلسات PT/التغذية/العلاج الطبيعي/الجروب كلاسيس مش مربوطة بـ memberId،
+ * فبنطابق بالهاتف — وبنرفض لو مفيش عضو أو فيه أكتر من عضو بنفس الرقم
+ * (عشان منخصمش من عضو غلط).
+ */
+export async function resolveMemberIdByPhone(
+  db: any,
+  phone: string | null | undefined
+): Promise<{ memberId?: string; message?: string }> {
+  if (!phone || !String(phone).trim()) {
+    return { message: 'لا يمكن الدفع بالنقاط: لا يوجد رقم هاتف مسجل على الاشتراك' }
+  }
+
+  const members = await db.member.findMany({
+    where: { phone: String(phone).trim() },
+    select: { id: true },
+    take: 2,
+  })
+
+  if (members.length === 0) {
+    return { message: 'لا يمكن الدفع بالنقاط: لا يوجد عضو مسجل بهذا الرقم' }
+  }
+  if (members.length > 1) {
+    return { message: 'لا يمكن الدفع بالنقاط: يوجد أكثر من عضو بنفس رقم الهاتف' }
+  }
+
+  return { memberId: members[0].id }
+}
 
 interface ProcessPaymentResult {
   success: boolean

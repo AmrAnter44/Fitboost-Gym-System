@@ -130,6 +130,7 @@ export default function MorePage() {
 
   const [paymentMore, setPaymentMore] = useState<More | null>(null)
   const [paymentAmount, setPaymentAmount] = useState(0)
+  const [paymentMethodInput, setPaymentMethodInput] = useState<string | PaymentMethodType[]>('cash')
   const [paymentSubmitting, setPaymentSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -533,6 +534,7 @@ export default function MorePage() {
   const handleOpenPayment = (sub: More) => {
     setPaymentMore(sub)
     setPaymentAmount(sub.remainingAmount || 0)
+    setPaymentMethodInput('cash')
   }
 
   const handleConfirmPayment = async () => {
@@ -548,20 +550,28 @@ export default function MorePage() {
 
     setPaymentSubmitting(true)
     try {
-      const newRemaining = Math.max(0, (paymentMore.remainingAmount || 0) - paymentAmount)
-      const response = await fetch('/api/more', {
-        method: 'PUT',
+      // endpoint موحّد: تحديث الباقي + إنشاء الإيصال في transaction واحدة
+      const response = await fetch('/api/more/pay-remaining', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           moreNumber: paymentMore.moreNumber,
-          remainingAmount: newRemaining
+          paymentAmount,
+          paymentMethod: paymentMethodInput,
+          staffName: user?.name || ''
         })
       })
       const data = await response.json()
-      if (response.ok) {
-        toast.success(locale === 'ar' ? `تم تسجيل دفع ${paymentAmount} جنيه` : `Recorded payment of ${paymentAmount} EGP`)
+      if (response.ok && data.success) {
+        const receiptNumber = data.receipt?.receiptNumber
+        toast.success(
+          locale === 'ar'
+            ? `تم تسجيل دفع ${paymentAmount} جنيه${receiptNumber ? ` — إيصال رقم ${receiptNumber}` : ''}`
+            : `Recorded payment of ${paymentAmount} EGP${receiptNumber ? ` — receipt #${receiptNumber}` : ''}`
+        )
         setPaymentMore(null)
         setPaymentAmount(0)
+        setPaymentMethodInput('cash')
         fetchMoreSubscriptions()
       } else {
         toast.error(data.error || (locale === 'ar' ? 'فشل تسجيل الدفع' : 'Payment failed'))
@@ -1460,6 +1470,18 @@ export default function MorePage() {
                     {locale === 'ar' ? 'دفع كل المتبقي' : 'Pay All'}
                   </button>
                 </div>
+              </div>
+
+              <div>
+                <PaymentMethodSelector
+                  value={paymentMethodInput}
+                  onChange={(method) => setPaymentMethodInput(method)}
+                  allowMultiple={true}
+                  totalAmount={paymentAmount}
+                  required={true}
+                  pointsEnabled={settings.pointsEnabled}
+                  pointsValueInEGP={settings.pointsValueInEGP}
+                />
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3 text-sm ring-1 ring-gray-200 dark:ring-gray-700">

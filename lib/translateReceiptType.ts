@@ -93,7 +93,8 @@ export function isNutritionReceipt(type: string): boolean {
     'nutritionRenewal',
     'اشتراك تغذية جديد',
     'Nutrition Day Use',
-    'تجديد تغذية'
+    'تجديد تغذية',
+    'دفع باقي تغذية'
   ]
   return nutritionTypes.includes(type)
 }
@@ -108,7 +109,8 @@ export function isPhysiotherapyReceipt(type: string): boolean {
     'physiotherapyRenewal',
     'اشتراك علاج طبيعي جديد',
     'Physiotherapy Day Use',
-    'تجديد علاج طبيعي'
+    'تجديد علاج طبيعي',
+    'دفع باقي علاج طبيعي'
   ]
   return physioTypes.includes(type)
 }
@@ -122,6 +124,7 @@ export function isMoreReceipt(type: string): boolean {
     'moreRenewal',
     'اشتراك المزيد',
     'تجديد المزيد',
+    'دفع باقي مزيد',
   ]
   return moreTypes.includes(type)
 }
@@ -136,7 +139,8 @@ export function isGroupClassReceipt(type: string): boolean {
     'groupClassRenewal',
     'اشتراك جروب كلاسيس جديد',
     'GroupClass Day Use',
-    'تجديد جروب كلاسيس'
+    'تجديد جروب كلاسيس',
+    'دفع باقي جروب كلاسيس'
   ]
   return groupClassTypes.includes(type)
 }

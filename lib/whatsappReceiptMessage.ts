@@ -51,17 +51,21 @@ function getReceiptTypeName(type: string): string {
     'newNutrition': 'تغذية',
     'nutritionRenewal': 'تجديد تغذية',
     'nutritionDayUse': 'تغذية يومي',
+    'دفع باقي تغذية': 'دفع متبقي تغذية',
     // Physiotherapy
     'newPhysiotherapy': 'علاج طبيعي',
     'physiotherapyRenewal': 'تجديد علاج طبيعي',
     'physiotherapyDayUse': 'علاج طبيعي يومي',
+    'دفع باقي علاج طبيعي': 'دفع متبقي علاج طبيعي',
     // Group Class
     'newGroupClass': 'حصص جماعية',
     'groupClassRenewal': 'تجديد حصص جماعية',
     'groupClassDayUse': 'حصص جماعية يومي',
+    'دفع باقي جروب كلاسيس': 'دفع متبقي حصص جماعية',
     // More
     'moreSubscription': 'اشتراك مزيد',
     'moreRenewal': 'تجديد مزيد',
+    'دفع باقي مزيد': 'دفع متبقي مزيد',
     // Other
     'DayUse': 'استخدام يومي',
     'يوم استخدام': 'استخدام يومي',

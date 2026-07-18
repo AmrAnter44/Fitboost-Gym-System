@@ -6,7 +6,13 @@ import {
   validatePaymentDistribution,
   serializePaymentMethods
 } from '../../../../lib/paymentHelpers'
-import { getNextReceiptNumberDirect } from '../../../../lib/receiptHelpers'
+import { getRequestedPoints, resolveMemberIdByPhone } from '../../../../lib/paymentProcessor'
+import { deductPoints } from '../../../../lib/points'
+import {
+  getNextReceiptNumber,
+  runReceiptTransaction,
+  PaymentValidationError,
+} from '../../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/auditLog'
 
 export const dynamic = 'force-dynamic'
@@ -57,49 +63,68 @@ export async function POST(request: Request) {
       )
     }
 
-    // التحقق من أن المبلغ المدفوع لا يتجاوز المتبقي
-    const currentRemaining = nutrition.remainingAmount || 0
-    if (paymentAmount > currentRemaining) {
-      return NextResponse.json(
-        { error: `المبلغ المدفوع (${paymentAmount}) أكبر من المتبقي (${currentRemaining})` },
-        { status: 400 }
-      )
+    // ✅ كل التحققات قبل أي كتابة
+    let finalPaymentMethod: string
+    if (Array.isArray(paymentMethod)) {
+      const validation = validatePaymentDistribution(paymentMethod, paymentAmount)
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.message || 'توزيع المبالغ غير صحيح' },
+          { status: 400 }
+        )
+      }
+      finalPaymentMethod = serializePaymentMethods(paymentMethod)
+    } else {
+      finalPaymentMethod = paymentMethod || 'cash'
     }
 
-    // تحديث المبلغ المتبقي
-    const newRemainingAmount = currentRemaining - paymentAmount
-    const updatedNutrition = await prisma.nutrition.update({
-      where: { nutritionNumber: parseInt(nutritionNumber) },
-      data: { remainingAmount: newRemainingAmount }
-    })
+    const pointsRequest = await getRequestedPoints(paymentMethod ?? 'cash', paymentAmount, prisma)
+    if (pointsRequest.message) {
+      return NextResponse.json({ error: pointsRequest.message }, { status: 400 })
+    }
 
+    let pointsMemberId: string | null = null
+    if (pointsRequest.pointsUsed > 0) {
+      const resolved = await resolveMemberIdByPhone(prisma, nutrition.phone)
+      if (!resolved.memberId) {
+        return NextResponse.json({ error: resolved.message }, { status: 400 })
+      }
+      pointsMemberId = resolved.memberId
+    }
 
-    // إنشاء إيصال للدفعة
-    try {
-      // ✅ معالجة وسائل الدفع المتعددة
-      let finalPaymentMethod: string
-      if (Array.isArray(paymentMethod)) {
-        const validation = validatePaymentDistribution(paymentMethod, paymentAmount)
-        if (!validation.valid) {
-          return NextResponse.json(
-            { error: validation.message || 'توزيع المبالغ غير صحيح' },
-            { status: 400 }
-          )
-        }
-        finalPaymentMethod = serializePaymentMethods(paymentMethod)
-      } else {
-        finalPaymentMethod = paymentMethod || 'cash'
+    // ⚙️ عملية ذرّية: تحديث الباقي + الإيصال + النقاط مع بعض
+    const result = await runReceiptTransaction(prisma, async (tx) => {
+      const fresh = await tx.nutrition.findUnique({
+        where: { nutritionNumber: nutrition.nutritionNumber },
+        select: { remainingAmount: true }
+      })
+      if (!fresh) {
+        throw new PaymentValidationError('جلسة Nutrition غير موجودة')
       }
 
-      const receiptNumber = await getNextReceiptNumberDirect(prisma)
+      const currentRemaining = fresh.remainingAmount || 0
+      if (paymentAmount > currentRemaining) {
+        throw new PaymentValidationError(
+          `المبلغ المدفوع (${paymentAmount}) أكبر من المتبقي (${currentRemaining})`
+        )
+      }
+      const newRemainingAmount = currentRemaining - paymentAmount
 
-      const receipt = await prisma.receipt.create({
+      const updatedNutrition = await tx.nutrition.update({
+        where: { nutritionNumber: nutrition.nutritionNumber },
+        data: { remainingAmount: newRemainingAmount }
+      })
+
+      const receiptNumber = await getNextReceiptNumber(tx)
+
+      const receipt = await tx.receipt.create({
         data: {
           receiptNumber,
           type: 'دفع باقي تغذية',
           amount: paymentAmount,
           paymentMethod: finalPaymentMethod,
           staffName: staffName || '',
+          nutritionNumber: nutrition.nutritionNumber,
           itemDetails: JSON.stringify({
             nutritionNumber: nutrition.nutritionNumber,
             clientName: nutrition.clientName,
@@ -113,53 +138,60 @@ export async function POST(request: Request) {
         },
       })
 
-
-      // ✅ إنشاء سجل عمولة لأخصائي التغذية
-      try {
-        // البحث عن coachUserId من اسم أخصائي التغذية
-        const nutritionistStaff = await prisma.staff.findFirst({
-          where: { name: nutrition.nutritionistName },
-          include: { user: true }
-        })
-
-        if (nutritionistStaff?.user) {
-          const { createPTCommission } = await import('../../../../lib/commissionHelpers')
-          await createPTCommission(
-            prisma,
-            nutritionistStaff.user.id,
-            paymentAmount,
-            `عمولة دفع باقي تغذية - ${nutrition.clientName} (#${nutrition.nutritionNumber})`,
-            nutrition.nutritionNumber
-          )
+      if (pointsMemberId && pointsRequest.pointsUsed > 0) {
+        const deduction = await deductPoints(
+          pointsMemberId,
+          pointsRequest.pointsUsed,
+          `دفع باقي تغذية - ${nutrition.clientName} (#${nutrition.nutritionNumber})`,
+          tx
+        )
+        if (!deduction.success) {
+          throw new PaymentValidationError(deduction.message || 'فشل خصم النقاط')
         }
-      } catch (commissionError) {
-        console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
       }
 
-      createAuditLog({
-        userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
-        action: 'UPDATE', resource: 'Nutrition', resourceId: nutrition.nutritionNumber.toString(),
-        details: { operation: 'PayRemaining', nutritionNumber, clientName: nutrition.clientName, paymentAmount, previousRemaining: currentRemaining, newRemaining: newRemainingAmount, receiptNumber: receipt.receiptNumber },
-        ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+      return { updatedNutrition, receipt, currentRemaining, newRemainingAmount }
+    })
+
+    // ✅ إنشاء سجل عمولة لأخصائي التغذية (غير حرج)
+    try {
+      const nutritionistStaff = await prisma.staff.findFirst({
+        where: { name: nutrition.nutritionistName },
+        include: { user: true }
       })
 
-      return NextResponse.json({
-        success: true,
-        nutrition: updatedNutrition,
-        receipt,
-        message: 'تم دفع المبلغ المتبقي بنجاح'
-      })
-    } catch (receiptError) {
-      console.error('❌ خطأ في إنشاء الإيصال:', receiptError)
-
-      // إرجاع Nutrition المحدث حتى لو فشل الإيصال
-      return NextResponse.json({
-        success: true,
-        nutrition: updatedNutrition,
-        message: 'تم تحديث المبلغ ولكن فشل إنشاء الإيصال'
-      })
+      if (nutritionistStaff?.user) {
+        const { createPTCommission } = await import('../../../../lib/commissionHelpers')
+        await createPTCommission(
+          prisma,
+          nutritionistStaff.user.id,
+          paymentAmount,
+          `عمولة دفع باقي تغذية - ${nutrition.clientName} (#${nutrition.nutritionNumber})`,
+          nutrition.nutritionNumber
+        )
+      }
+    } catch (commissionError) {
+      console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
     }
+
+    createAuditLog({
+      userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
+      action: 'UPDATE', resource: 'Nutrition', resourceId: nutrition.nutritionNumber.toString(),
+      details: { operation: 'PayRemaining', nutritionNumber, clientName: nutrition.clientName, paymentAmount, previousRemaining: result.currentRemaining, newRemaining: result.newRemainingAmount, pointsDeducted: pointsRequest.pointsUsed || 0, receiptNumber: result.receipt.receiptNumber },
+      ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
+    })
+
+    return NextResponse.json({
+      success: true,
+      nutrition: result.updatedNutrition,
+      receipt: result.receipt,
+      message: 'تم دفع المبلغ المتبقي بنجاح'
+    })
   } catch (error: any) {
+    if (error instanceof PaymentValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
     console.error('❌ خطأ في دفع المبلغ المتبقي:', error)
 
     if (error.message === 'Unauthorized') {
@@ -177,7 +209,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: 'فشل دفع المبلغ المتبقي' },
+      { error: 'فشل دفع المبلغ المتبقي — لم يتم خصم أي مبلغ ولم يُنشأ إيصال، حاول مرة أخرى' },
       { status: 500 }
     )
   }

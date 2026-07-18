@@ -17,10 +17,12 @@ import { createAuditLog, getIpAddress, getUserAgent } from '../../../../lib/audi
 
 export const dynamic = 'force-dynamic'
 
-// POST - دفع المبلغ المتبقي
+// POST - دفع المبلغ المتبقي لاشتراك "المزيد"
+// قبل الـ endpoint ده، صفحة المزيد كانت بتعدّل remainingAmount عبر PUT /api/more
+// من غير ما يتسجّل أي إيصال — الفلوس كانت بتختفي من الباقي بدون أثر مالي.
 export async function POST(request: Request) {
   try {
-    // ✅ قبول دفعة باقي يحتاج فقط تسجيل دخول (مش canCreateGroupClass)
+    // ✅ قبول دفعة باقي يحتاج فقط تسجيل دخول — ده task front-desk عادي
     const user = await verifyAuth(request)
     if (!user) {
       return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })
@@ -31,15 +33,15 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const {
-      groupClassNumber,
+      moreNumber,
       paymentAmount,
       paymentMethod,
       staffName
     } = body
 
-    if (!groupClassNumber) {
+    if (!moreNumber) {
       return NextResponse.json(
-        { error: 'رقم الجروب كلاس مطلوب' },
+        { error: 'رقم الاشتراك مطلوب' },
         { status: 400 }
       )
     }
@@ -51,14 +53,14 @@ export async function POST(request: Request) {
       )
     }
 
-    // البحث عن اشتراك الجروب كلاس
-    const groupClass = await prisma.groupClass.findUnique({
-      where: { classNumber: parseInt(groupClassNumber) }
+    // البحث عن الاشتراك
+    const more = await prisma.more.findUnique({
+      where: { moreNumber: parseInt(moreNumber) }
     })
 
-    if (!groupClass) {
+    if (!more) {
       return NextResponse.json(
-        { error: 'اشتراك الجروب كلاس غير موجود' },
+        { error: 'الاشتراك غير موجود' },
         { status: 404 }
       )
     }
@@ -83,35 +85,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: pointsRequest.message }, { status: 400 })
     }
 
+    // اشتراك المزيد ممكن يكون مربوط بعضو مباشرة — لو لأ بنحدد بالهاتف
     let pointsMemberId: string | null = null
     if (pointsRequest.pointsUsed > 0) {
-      const resolved = await resolveMemberIdByPhone(prisma, groupClass.phone)
-      if (!resolved.memberId) {
-        return NextResponse.json({ error: resolved.message }, { status: 400 })
+      if (more.memberId) {
+        pointsMemberId = more.memberId
+      } else {
+        const resolved = await resolveMemberIdByPhone(prisma, more.phone)
+        if (!resolved.memberId) {
+          return NextResponse.json({ error: resolved.message }, { status: 400 })
+        }
+        pointsMemberId = resolved.memberId
       }
-      pointsMemberId = resolved.memberId
     }
 
     // ⚙️ عملية ذرّية: تحديث الباقي + الإيصال + النقاط مع بعض
     const result = await runReceiptTransaction(prisma, async (tx) => {
-      const fresh = await tx.groupClass.findUnique({
-        where: { classNumber: groupClass.classNumber },
+      const fresh = await tx.more.findUnique({
+        where: { moreNumber: more.moreNumber },
         select: { remainingAmount: true }
       })
       if (!fresh) {
-        throw new PaymentValidationError('اشتراك الجروب كلاس غير موجود')
+        throw new PaymentValidationError('الاشتراك غير موجود')
       }
 
       const currentRemaining = fresh.remainingAmount || 0
-      if (paymentAmount > currentRemaining) {
+      if (paymentAmount > currentRemaining + 0.01) {
         throw new PaymentValidationError(
           `المبلغ المدفوع (${paymentAmount}) أكبر من المتبقي (${currentRemaining})`
         )
       }
-      const newRemainingAmount = currentRemaining - paymentAmount
+      const newRemainingAmount = Math.max(0, currentRemaining - paymentAmount)
 
-      const updatedGroupClass = await tx.groupClass.update({
-        where: { classNumber: groupClass.classNumber },
+      const updatedMore = await tx.more.update({
+        where: { moreNumber: more.moreNumber },
         data: { remainingAmount: newRemainingAmount }
       })
 
@@ -120,16 +127,17 @@ export async function POST(request: Request) {
       const receipt = await tx.receipt.create({
         data: {
           receiptNumber,
-          type: 'دفع باقي جروب كلاسيس',
+          type: 'دفع باقي مزيد',
           amount: paymentAmount,
           paymentMethod: finalPaymentMethod,
           staffName: staffName || '',
-          classNumber: groupClass.classNumber,
+          moreNumber: more.moreNumber,
+          memberId: more.memberId || null,
           itemDetails: JSON.stringify({
-            groupClassNumber: groupClass.classNumber,
-            clientName: groupClass.clientName,
-            phone: groupClass.phone,
-            instructorName: groupClass.instructorName,
+            moreNumber: more.moreNumber,
+            clientName: more.clientName,
+            phone: more.phone,
+            coachName: more.coachName,
             paymentAmount,
             previousRemaining: currentRemaining,
             newRemaining: newRemainingAmount,
@@ -142,7 +150,7 @@ export async function POST(request: Request) {
         const deduction = await deductPoints(
           pointsMemberId,
           pointsRequest.pointsUsed,
-          `دفع باقي جروب كلاسيس - ${groupClass.clientName} (#${groupClass.classNumber})`,
+          `دفع باقي مزيد - ${more.clientName} (#${more.moreNumber})`,
           tx
         )
         if (!deduction.success) {
@@ -150,40 +158,19 @@ export async function POST(request: Request) {
         }
       }
 
-      return { updatedGroupClass, receipt, currentRemaining, newRemainingAmount }
+      return { updatedMore, receipt, currentRemaining, newRemainingAmount }
     })
-
-    // ✅ إنشاء سجل عمولة للمدرب (غير حرج)
-    try {
-      const instructorStaff = await prisma.staff.findFirst({
-        where: { name: groupClass.instructorName },
-        include: { user: true }
-      })
-
-      if (instructorStaff?.user) {
-        const { createPTCommission } = await import('../../../../lib/commissionHelpers')
-        await createPTCommission(
-          prisma,
-          instructorStaff.user.id,
-          paymentAmount,
-          `عمولة دفع باقي جروب كلاسيس - ${groupClass.clientName} (#${groupClass.classNumber})`,
-          groupClass.classNumber
-        )
-      }
-    } catch (commissionError) {
-      console.error('⚠️ فشل إنشاء سجل العمولة (غير حرج):', commissionError)
-    }
 
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
-      action: 'UPDATE', resource: 'GroupClass', resourceId: groupClass.classNumber.toString(),
-      details: { operation: 'PayRemaining', groupClassNumber, clientName: groupClass.clientName, paymentAmount, previousRemaining: result.currentRemaining, newRemaining: result.newRemainingAmount, pointsDeducted: pointsRequest.pointsUsed || 0, receiptNumber: result.receipt.receiptNumber },
+      action: 'UPDATE', resource: 'More', resourceId: more.moreNumber.toString(),
+      details: { operation: 'PayRemaining', moreNumber, clientName: more.clientName, paymentAmount, previousRemaining: result.currentRemaining, newRemaining: result.newRemainingAmount, pointsDeducted: pointsRequest.pointsUsed || 0, receiptNumber: result.receipt.receiptNumber },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
     return NextResponse.json({
       success: true,
-      groupClass: result.updatedGroupClass,
+      more: result.updatedMore,
       receipt: result.receipt,
       message: 'تم دفع المبلغ المتبقي بنجاح'
     })
@@ -192,21 +179,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    console.error('❌ خطأ في دفع المبلغ المتبقي:', error)
-
-    if (error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'يجب تسجيل الدخول أولاً' },
-        { status: 401 }
-      )
-    }
-
-    if (error.message.includes('Forbidden')) {
-      return NextResponse.json(
-        { error: 'ليس لديك صلاحية تعديل اشتراكات الجروب كلاس' },
-        { status: 403 }
-      )
-    }
+    console.error('❌ خطأ في دفع باقي المزيد:', error)
 
     return NextResponse.json(
       { error: 'فشل دفع المبلغ المتبقي — لم يتم خصم أي مبلغ ولم يُنشأ إيصال، حاول مرة أخرى' },
