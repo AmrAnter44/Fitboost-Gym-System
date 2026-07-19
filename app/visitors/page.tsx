@@ -782,7 +782,7 @@ export default function VisitorsPage() {
         </p>
         <div className="flex gap-3 justify-center flex-wrap">
           <button
-            onClick={() => router.push('/followups')}
+            onClick={() => router.push('/followups?view=list')}
             className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast font-bold px-6 py-2.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
             <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>

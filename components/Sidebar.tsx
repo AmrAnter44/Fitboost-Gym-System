@@ -140,7 +140,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       title: t('nav.clientManagement'),
       links: [
         { href: '/members', label: t('nav.members'), icon: NavIcons.members, permission: 'canViewMembers' as keyof Permissions },
-        { href: '/visitors', label: t('nav.visitors'), icon: NavIcons.visitors, permission: 'canViewVisitors' as keyof Permissions },
         { href: '/followups', label: t('nav.followups'), icon: NavIcons.followups, permission: 'canViewFollowUps' as keyof Permissions },
       ]
     },

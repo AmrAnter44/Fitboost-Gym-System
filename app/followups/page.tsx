@@ -31,6 +31,11 @@ const FollowUpCalendar = nextDynamic(() => import('../../components/FollowUpCale
   ssr: false,
   loading: () => <div className="skeleton-shimmer h-96 rounded-xl" />
 })
+//  صفحة الزوار — بتتعرض كتاب جوا المتابعات (اتشالت من السايد بار)
+const VisitorsPanel = nextDynamic(() => import('../visitors/page'), {
+  ssr: false,
+  loading: () => <div className="skeleton-shimmer h-96 rounded-xl" />
+})
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -134,7 +139,7 @@ function FollowUpsPageContent() {
   const [selectedFollowUpSalesStaffId, setSelectedFollowUpSalesStaffId] = useState<string | null>(null)
 
   // View mode state
-  const [viewMode, setViewMode] = useState<'list' | 'analytics' | 'collection' | 'sales-mgmt' | 'calendar'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'analytics' | 'collection' | 'sales-mgmt' | 'calendar' | 'visitors'>('list')
 
   //  Bulk sending states
   const [bulkSending, setBulkSending] = useState(false)
@@ -1091,6 +1096,15 @@ function FollowUpsPageContent() {
     setShowEditModal(true)
   }, [])
 
+  //  لو جينا من زرار "اذهب للمتابعات" (?view=list) نرجّع لقائمة المتابعات
+  //  (لأن الزوار بقت تاب جوا نفس الصفحة، فالتنقل لوحده مبيبدّلش التاب)
+  useEffect(() => {
+    if (searchParams.get('view') === 'list') {
+      setViewMode('list')
+      router.replace('/followups', { scroll: false })
+    }
+  }, [searchParams, router])
+
   //  Deep-link من الـ Dashboard smart search — يفتح modal الزائر فور التحميل
   const [hasOpenedFromUrl, setHasOpenedFromUrl] = useState(false)
   useEffect(() => {
@@ -2033,6 +2047,20 @@ function FollowUpsPageContent() {
             <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
             {t('followups.viewModes.list')}
           </button>
+          {hasPermission('canViewVisitors') && (
+          <button
+            onClick={() => setViewMode('visitors')}
+            aria-current={viewMode === 'visitors' ? 'page' : undefined}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold transition-colors duration-200 ${
+              viewMode === 'visitors'
+                ? 'bg-primary-500 text-primary-contrast'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            <svg className="w-4 h-4" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-2.83-4"/></svg>
+            {t('nav.visitors')}
+          </button>
+          )}
           {!user?.isSales && (
           <button
             onClick={() => setViewMode('analytics')}
@@ -3015,6 +3043,9 @@ function FollowUpsPageContent() {
 
       {/* Sales Management View — admin/owner only */}
       {viewMode === 'sales-mgmt' && canManageSales && <SalesMgmtPanel />}
+
+      {/* Visitors View — صفحة الزوار جوا المتابعات */}
+      {viewMode === 'visitors' && hasPermission('canViewVisitors') && <VisitorsPanel />}
 
       {/* Follow-Ups Table/List View */}
       {viewMode === 'list' && (loading ? (

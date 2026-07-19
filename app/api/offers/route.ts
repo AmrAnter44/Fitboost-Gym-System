@@ -32,12 +32,18 @@ export async function POST(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { name, duration, price, minPrice, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
+    const { name, duration, price, minPrice, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, maxCheckIns, ptCommission, icon, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
 
-    // التحقق من البيانات المطلوبة
-    if (!name || !duration || price === undefined) {
+    // التحقق من البيانات المطلوبة — المدة بالأيام بقت إجبارية
+    if (!name || price === undefined) {
       return NextResponse.json(
-        { error: 'الاسم والمدة والسعر مطلوبة' },
+        { error: 'الاسم والسعر مطلوبان' },
+        { status: 400 }
+      )
+    }
+    if (duration === undefined || duration === null || duration === '' || parseInt(duration) <= 0) {
+      return NextResponse.json(
+        { error: 'المدة بالأيام مطلوبة ولازم تكون أكبر من صفر' },
         { status: 400 }
       )
     }
@@ -49,7 +55,7 @@ export async function POST(request: Request) {
     const offer = await prisma.offer.create({
       data: {
         name,
-        duration: parseInt(duration),
+        duration: parseInt(duration) || 0,
         price: parseFloat(price),
         minPrice: minPrice !== undefined && minPrice !== null && minPrice !== '' ? parseFloat(minPrice) : null,
         freePTSessions: parseInt(freePTSessions) || 0,
@@ -65,13 +71,14 @@ export async function POST(request: Request) {
         inBodyScans: parseInt(inBodyScans) || 0,
         invitations: parseInt(invitations) || 0,
         freezeDays: parseInt(freezeDays) || 0,
+        maxCheckIns: parseInt(maxCheckIns) || 0,
         ptCommission: parseFloat(ptCommission) || 0,
         icon: icon || '📅',
         upgradeEligibilityDays: upgradeEligibilityDays ? parseInt(upgradeEligibilityDays) : null,
         upgradePoints: parseInt(upgradePoints) || 0,
         allowedCheckInStart: validStart,
         allowedCheckInEnd: validEnd
-      }
+      } as any
     })
 
     createAuditLog({
@@ -110,11 +117,17 @@ export async function PUT(request: Request) {
     const user = await requirePermission(request, 'canAccessSettings')
 
     const body = await request.json()
-    const { id, name, duration, price, minPrice, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, ptCommission, icon, isActive, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
+    const { id, name, duration, price, minPrice, freePTSessions, freeNutritionSessions, freePhysioSessions, freeGroupClassSessions, freePoolSessions, freePadelSessions, freeAssessmentSessions, nutritionPrice, physioPrice, groupClassPrice, inBodyScans, invitations, freezeDays, maxCheckIns, ptCommission, icon, isActive, upgradeEligibilityDays, upgradePoints, allowedCheckInStart, allowedCheckInEnd } = body
 
     if (!id) {
       return NextResponse.json(
         { error: 'معرف العرض مطلوب' },
+        { status: 400 }
+      )
+    }
+    if (duration === undefined || duration === null || duration === '' || parseInt(duration) <= 0) {
+      return NextResponse.json(
+        { error: 'المدة بالأيام مطلوبة ولازم تكون أكبر من صفر' },
         { status: 400 }
       )
     }
@@ -127,7 +140,7 @@ export async function PUT(request: Request) {
       where: { id },
       data: {
         name,
-        duration: parseInt(duration),
+        duration: parseInt(duration) || 0,
         price: parseFloat(price),
         minPrice: minPrice !== undefined && minPrice !== null && minPrice !== '' ? parseFloat(minPrice) : null,
         freePTSessions: parseInt(freePTSessions) || 0,
@@ -143,6 +156,7 @@ export async function PUT(request: Request) {
         inBodyScans: parseInt(inBodyScans) || 0,
         invitations: parseInt(invitations) || 0,
         freezeDays: parseInt(freezeDays) || 0,
+        maxCheckIns: parseInt(maxCheckIns) || 0,
         ptCommission: parseFloat(ptCommission) || 0,
         icon: icon || '📅',
         isActive: isActive !== undefined ? isActive : true,
@@ -150,7 +164,7 @@ export async function PUT(request: Request) {
         upgradePoints: upgradePoints !== undefined ? parseInt(upgradePoints) || 0 : 0,
         allowedCheckInStart: validStart,
         allowedCheckInEnd: validEnd
-      }
+      } as any
     })
 
     createAuditLog({

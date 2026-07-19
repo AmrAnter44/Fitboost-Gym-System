@@ -57,6 +57,7 @@ interface PTSession {
   createdAt: string
   profileImage?: string | null
   memberNumber?: string | null
+  memberId?: string | null
   isFrozen?: boolean
   freezeUntil?: string | null
 }
@@ -131,11 +132,20 @@ export default function PTPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [filterSessions, setFilterSessions] = useState<'all' | 'low' | 'zero'>('all')
   const [filterType, setFilterType] = useState<'all' | 'regular' | 'dayuse'>('all')
+  //  فلتر فترة الاشتراك (createdAt) — فترة يكتبها المستخدم
+  const [subFrom, setSubFrom] = useState('')
+  const [subTo, setSubTo] = useState('')
 
   // حالة الإمضاء للكوتش
   const [showSignatureModal, setShowSignatureModal] = useState(false)
   const [signatureSession, setSignatureSession] = useState<PTSession | null>(null)
   const [renewalSession, setRenewalSession] = useState<PTSession | null>(null)
+  //  قائمة باقي الإجراءات (الزرار التالت) — action sheet عشان كارت الاشتراك عليه overflow-hidden
+  const [menuSession, setMenuSession] = useState<PTSession | null>(null)
+  //  سجل تجديدات الـ PT (بيتبني من الإيصالات — مفيش جدول history)
+  const [historySession, setHistorySession] = useState<PTSession | null>(null)
+  const [ptHistory, setPtHistory] = useState<any[]>([])
+  const [ptHistoryLoading, setPtHistoryLoading] = useState(false)
   const [freezeSession, setFreezeSession] = useState<PTSession | null>(null)
   const [upgradeSession, setUpgradeSession] = useState<PTSession | null>(null)
   //  مودال متابعة الواتساب للاشتراكات المنتهية
@@ -452,6 +462,24 @@ export default function PTPage() {
     setRenewalSession(session)
   }
 
+  //  فتح سجل تجديدات الاشتراك — بيتجمّع من إيصالات الـ PT
+  const openPTHistory = async (session: PTSession) => {
+    setHistorySession(session)
+    setPtHistory([])
+    setPtHistoryLoading(true)
+    try {
+      const res = await fetch(`/api/pt/renewal-history?ptNumber=${session.ptNumber}`)
+      if (res.ok) {
+        const data = await res.json()
+        setPtHistory(Array.isArray(data) ? data : [])
+      }
+    } catch (error) {
+      console.error('Error fetching PT history:', error)
+    } finally {
+      setPtHistoryLoading(false)
+    }
+  }
+
   //  فتح مودال التيمبليتس للعميل المنتهي اشتراكه
   const openWhatsAppTemplate = (session: PTSession) => {
     setSelectedSessionForTemplate(session)
@@ -647,6 +675,27 @@ export default function PTPage() {
     }
   }
 
+  //  فلتر فترة الاشتراك (createdAt) — فترة يكتبها المستخدم
+  //  بنقارن على تاريخ اليوم المحلي (YYYY-MM-DD) كـ string عشان نتجنّب أي لخبطة توقيت (timezone)
+  //  فالمدى بيجيب بالظبط الأيام اللي بين اللي كتبتهم شامل الطرفين — من غير ما يزحف على شهر تاني
+  const localYMD = (dt: Date) => {
+    const y = dt.getFullYear()
+    const m = String(dt.getMonth() + 1).padStart(2, '0')
+    const day = String(dt.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+  const inSubRange = (d?: string | null) => {
+    if (!subFrom && !subTo) return true
+    if (!d) return false
+    const c = new Date(d)
+    if (isNaN(c.getTime())) return false
+    const ymd = localYMD(c)
+    if (subFrom && ymd < subFrom) return false
+    if (subTo && ymd > subTo) return false
+    return true
+  }
+  const subDateCount = sessions.filter(s => inSubRange(s.createdAt)).length
+
   const filteredSessions = sessions.filter((session) => {
     // البحث النصي
     const matchesSearch =
@@ -682,7 +731,10 @@ export default function PTPage() {
     if (filterType === 'regular') matchesType = session.ptNumber >= 0
     else if (filterType === 'dayuse') matchesType = session.ptNumber < 0
 
-    return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType
+    // فلتر فترة الاشتراك
+    const matchesSubDate = inSubRange(session.createdAt)
+
+    return matchesSearch && matchesCoach && matchesStatus && matchesSessions && matchesType && matchesSubDate
   })
 
   // التحقق من الصلاحيات
@@ -1370,6 +1422,45 @@ export default function PTPage() {
             </select>
           </div>
         </div>
+
+        {/* فلتر فترة الاشتراك — اكتب الفترة اللي عايزها */}
+        <div className="mt-3 rounded-xl bg-gray-50 dark:bg-gray-900/30 ring-1 ring-gray-200 dark:ring-gray-700 px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="inline-flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-200">
+              <svg {...stroke} className="w-4 h-4 text-primary-600 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+              {locale === 'ar' ? 'اشترك في الفترة' : 'Subscribed between'}
+            </span>
+            <div className="inline-flex items-center gap-1 rounded-xl ring-1 ring-gray-200 dark:ring-gray-600 bg-white dark:bg-gray-700/40 p-1">
+              <input
+                type="date"
+                value={subFrom}
+                onChange={(e) => setSubFrom(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              />
+              <svg {...stroke} className={`w-4 h-4 text-gray-400 dark:text-gray-500 mx-0.5 flex-shrink-0 ${direction === 'rtl' ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+              <input
+                type="date"
+                value={subTo}
+                onChange={(e) => setSubTo(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              />
+            </div>
+            {(subFrom || subTo) && (
+              <>
+                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tabular-nums">
+                  {locale === 'ar' ? `${subDateCount} اشتراك` : `${subDateCount} subs`}
+                </span>
+                <button
+                  onClick={() => { setSubFrom(''); setSubTo('') }}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                >
+                  <svg {...stroke} className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  {locale === 'ar' ? 'مسح' : 'Clear'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -1397,7 +1488,12 @@ export default function PTPage() {
                   {/* Header */}
                   <div className={`p-3 ${isExpired ? 'bg-red-600 dark:bg-red-700' : isExpiringSoon ? 'bg-orange-600 dark:bg-orange-700' : 'bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800'}`}>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                      <div
+                        className={`flex items-center gap-3 min-w-0 ${session.memberId ? 'cursor-pointer group' : ''}`}
+                        onClick={session.memberId ? () => router.push(`/members/${session.memberId}`) : undefined}
+                        role={session.memberId ? 'button' : undefined}
+                        title={session.memberId ? (locale === 'ar' ? 'فتح صفحة العضو' : 'Open member profile') : undefined}
+                      >
                         {/* Profile Image */}
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
                           {session.profileImage ? (
@@ -1406,11 +1502,11 @@ export default function PTPage() {
                             <svg {...stroke} className="w-5 h-5 text-white/80" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
                           )}
                         </div>
-                        <div>
-                          <div className="font-bold text-white text-base">
-                            {session.clientName}
+                        <div className="min-w-0">
+                          <div className="font-bold text-white text-base inline-flex items-center gap-1.5">
+                            <span className={`truncate ${session.memberId ? 'group-hover:underline' : ''}`}>{session.clientName}</span>
                             {session.memberNumber != null && (
-                              <span className="ms-2 text-xs font-bold text-white/90">#{session.memberNumber}</span>
+                              <span className="text-xs font-bold text-white/90">#{session.memberNumber}</span>
                             )}
                           </div>
                           <div className="text-white/80 text-xs">
@@ -1486,13 +1582,13 @@ export default function PTPage() {
                       </div>
                     )}
 
-                    {/* Action Buttons */}
-                    <div className="grid grid-cols-2 gap-2 pt-1">
+                    {/* Action Buttons — حضور 40% · تجديد 40% · باقي الإجراءات 20% */}
+                    <div className="grid grid-cols-5 gap-2 pt-1">
                       {session.ptNumber >= 0 && !isExpired && (
                         <button
                           onClick={() => handleRegisterSession(session)}
                           disabled={session.sessionsRemaining === 0}
-                          className={`${isCoach ? 'col-span-2' : ''} bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
+                          className={`${isCoach ? 'col-span-5' : 'col-span-2'} bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
                         >
                           <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                           <span>{t('pt.attendance')}</span>
@@ -1502,7 +1598,7 @@ export default function PTPage() {
                       {session.ptNumber >= 0 && isExpired && (
                         <button
                           onClick={() => openWhatsAppTemplate(session)}
-                          className={`${isCoach ? 'col-span-2' : ''} bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
+                          className={`${isCoach ? 'col-span-5' : 'col-span-2'} bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
                           title={locale === 'ar' ? 'إرسال رسالة متابعة عبر واتساب' : 'Send WhatsApp follow-up'}
                         >
                           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -1516,59 +1612,24 @@ export default function PTPage() {
                           {session.ptNumber >= 0 && (
                             <button
                               onClick={() => handleRenew(session)}
-                              className="bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+                              className="col-span-2 bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                             >
                               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
                               <span>{t('pt.renew')}</span>
                             </button>
                           )}
-                          {/* Freeze - gated by ptFreezeEnabled */}
-                          {settings.ptFreezeEnabled && session.ptNumber >= 0 && (
-                            <button
-                              onClick={() => setFreezeSession(session)}
-                              className={`py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors duration-200 ${
-                                session.isFrozen
-                                  ? 'bg-cyan-600 text-white hover:bg-cyan-700'
-                                  : 'bg-blue-600 text-white hover:bg-blue-700'
-                              }`}
-                            >
-                              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18M5.636 5.636l12.728 12.728M18.364 5.636L5.636 18.364"/></svg>
-                              <span>{session.isFrozen ? (locale === 'ar' ? 'مجمّد' : 'Frozen') : (locale === 'ar' ? 'فريز' : 'Freeze')}</span>
-                            </button>
-                          )}
-                          {/* Upgrade - gated by ptUpgradeEnabled */}
-                          {settings.ptUpgradeEnabled && session.ptNumber >= 0 && (
-                            <button
-                              onClick={() => setUpgradeSession(session)}
-                              className="bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1 transition-colors duration-200"
-                            >
-                              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"/></svg>
-                              <span>{locale === 'ar' ? 'ترقية' : 'Upgrade'}</span>
-                            </button>
-                          )}
-                          {(session.remainingAmount || 0) > 0 && (
-                            <button
-                              onClick={() => handleOpenPaymentModal(session)}
-                              className="col-span-2 bg-orange-600 text-white py-2 rounded-lg text-sm hover:bg-orange-700 dark:hover:bg-orange-800 font-bold flex items-center justify-center gap-1 transition-colors duration-200"
-                            >
-                              <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
-                              <span>{t('pt.payRemaining')} ({(session.remainingAmount || 0).toFixed(0)} {t('pt.egp')})</span>
-                            </button>
-                          )}
+                          {/*  باقي الإجراءات (السجل / فريز / ترقية / دفع الباقي / تعديل / حذف) */}
                           <button
-                            onClick={() => handleEdit(session)}
-                            className="bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors duration-200"
+                            onClick={() => setMenuSession(session)}
+                            aria-label={locale === 'ar' ? 'باقي الإجراءات' : 'More actions'}
+                            title={locale === 'ar' ? 'باقي الإجراءات' : 'More actions'}
+                            className={`${session.ptNumber >= 0 ? 'col-span-1' : 'col-span-5'} relative bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
                           >
-                            <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
-                            <span>{t('pt.edit')}</span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(session.ptNumber)}
-                            aria-label={t('pt.deleteSubscription')}
-                            className="bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
-                          >
-                            <svg {...stroke} className="w-4 h-4" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
-                            <span>{t('pt.deleteSubscription')}</span>
+                            <svg {...stroke} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12h.008v.008H6.75V12zm5.25 0h.008v.008H12V12zm5.25 0h.008v.008h-.008V12z"/></svg>
+                            {session.ptNumber < 0 && <span>{locale === 'ar' ? 'إجراءات' : 'Actions'}</span>}
+                            {(session.remainingAmount || 0) > 0 && (
+                              <span className="absolute top-1 end-1 w-2 h-2 rounded-full bg-orange-500" aria-hidden="true" />
+                            )}
                           </button>
                         </>
                       )}
@@ -1771,6 +1832,231 @@ export default function PTPage() {
           }}
           onClose={() => setRenewalSession(null)}
         />
+      )}
+
+      {/* باقي الإجراءات — action sheet */}
+      {menuSession && (
+        <div
+          className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          onClick={(e) => { if (e.target === e.currentTarget) setMenuSession(null) }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" dir={direction}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="min-w-0">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 truncate">{menuSession.clientName}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {menuSession.ptNumber < 0 ? 'Day Use' : `PT #${menuSession.ptNumber}`}
+                </p>
+              </div>
+              <button
+                onClick={() => setMenuSession(null)}
+                aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="p-3 flex flex-col gap-2">
+              {/* دفع الباقي — أول حاجة لو عليه فلوس */}
+              {(menuSession.remainingAmount || 0) > 0 && (
+                <button
+                  onClick={() => { const s = menuSession; setMenuSession(null); handleOpenPaymentModal(s) }}
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 px-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors duration-200"
+                >
+                  <svg {...stroke} className="w-5 h-5 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4"/></svg>
+                  <span>{t('pt.payRemaining')} ({(menuSession.remainingAmount || 0).toFixed(0)} {t('pt.egp')})</span>
+                </button>
+              )}
+
+              {/* السجل */}
+              {menuSession.ptNumber >= 0 && (
+                <button
+                  onClick={() => { const s = menuSession; setMenuSession(null); openPTHistory(s) }}
+                  className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 py-2.5 px-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors duration-200"
+                >
+                  <svg {...stroke} className="w-5 h-5 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span>{locale === 'ar' ? 'السجل' : 'History'}</span>
+                </button>
+              )}
+
+              {/* فريز */}
+              {settings.ptFreezeEnabled && menuSession.ptNumber >= 0 && (
+                <button
+                  onClick={() => { const s = menuSession; setMenuSession(null); setFreezeSession(s) }}
+                  className={`w-full py-2.5 px-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors duration-200 text-white ${
+                    menuSession.isFrozen ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  <svg {...stroke} className="w-5 h-5 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18M5.636 5.636l12.728 12.728M18.364 5.636L5.636 18.364"/></svg>
+                  <span>{menuSession.isFrozen ? (locale === 'ar' ? 'مجمّد' : 'Frozen') : (locale === 'ar' ? 'فريز' : 'Freeze')}</span>
+                </button>
+              )}
+
+              {/* ترقية */}
+              {settings.ptUpgradeEnabled && menuSession.ptNumber >= 0 && (
+                <button
+                  onClick={() => { const s = menuSession; setMenuSession(null); setUpgradeSession(s) }}
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 px-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors duration-200"
+                >
+                  <svg {...stroke} className="w-5 h-5 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"/></svg>
+                  <span>{locale === 'ar' ? 'ترقية' : 'Upgrade'}</span>
+                </button>
+              )}
+
+              {/* تعديل */}
+              <button
+                onClick={() => { const s = menuSession; setMenuSession(null); handleEdit(s) }}
+                className="w-full bg-primary-500 hover:bg-primary-600 text-primary-contrast py-2.5 px-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors duration-200"
+              >
+                <svg {...stroke} className="w-5 h-5 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+                <span>{t('pt.edit')}</span>
+              </button>
+
+              {/* حذف */}
+              <button
+                onClick={() => { const n = menuSession.ptNumber; setMenuSession(null); handleDelete(n) }}
+                className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 px-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors duration-200"
+              >
+                <svg {...stroke} className="w-5 h-5 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                <span>{t('pt.deleteSubscription')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* سجل تجديدات الـ PT */}
+      {historySession && (
+        <div
+          className="fixed inset-0 z-[10001] flex items-center justify-center p-3 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          onClick={(e) => { if (e.target === e.currentTarget) setHistorySession(null) }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col" dir={direction}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {locale === 'ar' ? 'سجل الاشتراك والتجديدات' : 'Subscription & Renewal History'}
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {historySession.clientName} · PT #{historySession.ptNumber}
+                </p>
+              </div>
+              <button
+                onClick={() => setHistorySession(null)}
+                aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-5">
+              {ptHistoryLoading ? (
+                <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+                  <div className="w-8 h-8 ring-1 ring-primary-200 border-t-primary-500 rounded-full animate-spin mx-auto mb-2" />
+                  {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+                </div>
+              ) : ptHistory.length === 0 ? (
+                <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+                  <p>{locale === 'ar' ? 'مفيش سجل للاشتراك ده' : 'No history for this subscription'}</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {ptHistory.map((h: any) => (
+                    <div
+                      key={h.id}
+                      className={`rounded-xl p-4 ring-1 ${
+                        h.isCancelled
+                          ? 'bg-red-50/60 dark:bg-red-900/10 ring-red-200 dark:ring-red-800'
+                          : h.isRenewal
+                            ? 'bg-primary-50/50 dark:bg-primary-900/15 ring-primary-200 dark:ring-primary-800'
+                            : 'bg-emerald-50/50 dark:bg-emerald-900/15 ring-emerald-200 dark:ring-emerald-800'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 flex-wrap mb-2">
+                        <div className="inline-flex items-center gap-2 flex-wrap">
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                            h.isRenewal
+                              ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300'
+                              : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                          }`}>
+                            {h.isRenewal ? (locale === 'ar' ? 'تجديد' : 'Renewal') : (locale === 'ar' ? 'اشتراك جديد' : 'New')}
+                          </span>
+                          {h.isCancelled && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                              {h.isRefunded ? (locale === 'ar' ? 'مرتجع' : 'Refunded') : (locale === 'ar' ? 'ملغي' : 'Cancelled')}
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                            {locale === 'ar' ? 'إيصال' : 'Receipt'} #{h.receiptNumber}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                          {new Date(h.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                        {h.sessionsPurchased != null && (
+                          <div>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'حصص مشتراة' : 'Sessions'}</p>
+                            <p className="font-bold text-gray-900 dark:text-gray-100 tabular-nums">{h.sessionsPurchased}</p>
+                          </div>
+                        )}
+                        {h.carriedOverSessions != null && h.carriedOverSessions > 0 && (
+                          <div>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'مرحّل من القديم' : 'Carried over'}</p>
+                            <p className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">+{h.carriedOverSessions}</p>
+                          </div>
+                        )}
+                        {h.newSessionsRemaining != null && (
+                          <div>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الرصيد بعدها' : 'Balance after'}</p>
+                            <p className="font-bold text-gray-900 dark:text-gray-100 tabular-nums">{h.newSessionsRemaining}</p>
+                          </div>
+                        )}
+                        {h.pricePerSession != null && (
+                          <div>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'سعر الحصة' : 'Per session'}</p>
+                            <p className="font-bold text-gray-900 dark:text-gray-100 tabular-nums">{Math.round(h.pricePerSession)}</p>
+                          </div>
+                        )}
+                        {h.paidAmount != null && (
+                          <div>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'المدفوع' : 'Paid'}</p>
+                            <p className={`font-bold tabular-nums ${h.isCancelled ? 'text-red-500 line-through' : 'text-green-600 dark:text-green-400'}`}>
+                              {Math.round(h.paidAmount)}
+                            </p>
+                          </div>
+                        )}
+                        {h.remainingAmount != null && h.remainingAmount > 0 && (
+                          <div>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'باقي عليه' : 'Remaining'}</p>
+                            <p className="font-bold text-orange-600 dark:text-orange-400 tabular-nums">{Math.round(h.remainingAmount)}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 flex-wrap mt-2 pt-2 border-t border-gray-200/70 dark:border-gray-700/70 text-xs text-gray-500 dark:text-gray-400">
+                        {h.coachName && <span>{locale === 'ar' ? 'الكوتش' : 'Coach'}: <strong className="text-gray-700 dark:text-gray-200">{h.coachName}</strong></span>}
+                        {h.startDate && h.expiryDate && (
+                          <span className="font-mono" dir="ltr">
+                            {new Date(h.startDate).toLocaleDateString('en-GB')} → {new Date(h.expiryDate).toLocaleDateString('en-GB')}
+                          </span>
+                        )}
+                        {h.staffName && <span>{locale === 'ar' ? 'بواسطة' : 'By'}: {h.staffName}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Freeze Modal */}

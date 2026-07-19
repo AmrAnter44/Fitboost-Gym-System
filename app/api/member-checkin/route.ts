@@ -52,6 +52,32 @@ export async function POST(request: Request) {
       )
     }
 
+    // ⏳ انتهاء الاشتراك بالمدة — لو التاريخ عدّى يبقى الاشتراك خلص حتى لو فيه دخلات متبقية
+    //    ده بيغطّي الباقات اللي فيها مدة + عدد دخلات: بينتهي بأول اللي يخلص (المدة أو الدخلات)
+    if (member.expiryDate) {
+      const exp = new Date(member.expiryDate)
+      if (!isNaN(exp.getTime()) && exp < new Date()) {
+        try {
+          if (member.isActive) {
+            await prisma.member.update({ where: { id: memberId }, data: { isActive: false } })
+          }
+        } catch (e) { /* تحديث الحالة مايكسرش الرد */ }
+        return NextResponse.json(
+          { error: 'انتهت مدة الاشتراك 🚫', expired: true },
+          { status: 403 }
+        )
+      }
+    }
+
+    //  التحقق من عدد حصص الدخول المتبقية (باقات محدودة الدخلات) — null = دخول غير محدود
+    const remainingCheckIns = (member as any).remainingCheckIns as number | null | undefined
+    if (remainingCheckIns !== null && remainingCheckIns !== undefined && remainingCheckIns <= 0) {
+      return NextResponse.json(
+        { error: 'انتهى عدد حصص الدخول في الباقة 🚫', noCheckInsLeft: true },
+        { status: 403 }
+      )
+    }
+
     // 🕐 التحقق من ساعات الدخول المسموح بها (لو مفعّلة)
     const allowedStart = (member as any).allowedCheckInStart as string | null
     const allowedEnd = (member as any).allowedCheckInEnd as string | null
@@ -124,6 +150,22 @@ export async function POST(request: Request) {
         checkInMethod: method,
       },
     })
+
+    //  إنقاص عدد حصص الدخول المتبقية للباقات المحدودة (الاشتراكات غير المحدودة remainingCheckIns=null مش بتتأثر)
+    if (remainingCheckIns !== null && remainingCheckIns !== undefined) {
+      try {
+        const newRemaining = remainingCheckIns - 1
+        await prisma.member.update({
+          where: { id: memberId },
+          //  لو خلصت الدخلات → العضو يبقى منتهي (isActive=false + expiryDate=now) عشان يظهر في المتابعات
+          data: newRemaining <= 0
+            ? { remainingCheckIns: 0, isActive: false, expiryDate: now }
+            : { remainingCheckIns: newRemaining } as any,
+        })
+      } catch (e) {
+        //  فشل الإنقاص مايكسرش تسجيل الدخول
+      }
+    }
 
     // إضافة نقاط عند الحضور (إذا كان نظام النقاط مفعل)
     try {

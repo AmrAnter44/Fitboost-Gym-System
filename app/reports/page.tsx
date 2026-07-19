@@ -12,6 +12,7 @@ import { fetchStaff } from '../../lib/api/staff'
 import { useToast } from '../../contexts/ToastContext'
 import { LoadingScreen } from '../../components/Spinner'
 import { isPTReceipt } from '../../lib/translateReceiptType'
+import { countsAsRevenue } from '../../lib/revenueFilters'
 
 export const dynamic = 'force-dynamic'
 
@@ -192,14 +193,19 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
     return receipts.filter((r: any) => {
       const d = new Date(r.createdAt)
       if (d < from || d > to) return false
-      if (r.isCancelled) return false
+      //  بنعرض كل الإيصالات بما فيها الملغية — الملغي بيتعلّم عليه X أحمر
       if (paymentFilter !== 'all' && (r.paymentMethod || '').toLowerCase() !== paymentFilter) return false
       if (typeFilter !== 'all' && r.type !== typeFilter) return false
       return true
     })
   }, [receipts, dateFrom, dateTo, paymentFilter, typeFilter])
 
-  const total = useMemo(() => filtered.reduce((s: number, r: any) => s + (r.amount || 0), 0), [filtered])
+  //  المرتجع = ملغي اتحدّدله طريقة استرجاع · الملغي = ملغي من غير استرجاع
+  const isRefunded = (r: any) => !!r.isCancelled && !!r.refundMethod
+  const isVoided = (r: any) => !!r.isCancelled && !r.refundMethod
+  const total = useMemo(() => filtered.filter((r: any) => countsAsRevenue(r)).reduce((s: number, r: any) => s + (r.amount || 0), 0), [filtered]) // إجمالي (زي التقفيل)
+  const refundsTotal = useMemo(() => filtered.filter((r: any) => isRefunded(r)).reduce((s: number, r: any) => s + (r.amount || 0), 0), [filtered])
+  const netTotal = total - refundsTotal // الصافي بعد المرتجعات
 
   const receiptTypes = useMemo(() => [...new Set(receipts.map((r: any) => r.type).filter(Boolean))], [receipts])
   const paymentMethods = useMemo(() => [...new Set(receipts.map((r: any) => (r.paymentMethod || '').toLowerCase()).filter(Boolean))], [receipts])
@@ -217,7 +223,8 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
       wb.creator = 'Fitboost'
       const ws = wb.addWorksheet(t('reports.tabs.revenue' as any), { views: [{ rightToLeft: direction === 'rtl' }] })
 
-      const hdr = ws.addRow([t('reports.receiptNumber' as any), t('reports.date' as any), t('reports.type' as any), t('reports.amount' as any), t('reports.paymentMethod' as any), t('reports.client' as any), t('reports.staff' as any)])
+      const statusLabel = locale === 'ar' ? 'الحالة' : 'Status'
+      const hdr = ws.addRow([t('reports.receiptNumber' as any), t('reports.date' as any), t('reports.type' as any), t('reports.amount' as any), t('reports.paymentMethod' as any), t('reports.client' as any), t('reports.staff' as any), statusLabel])
       hdr.font = { bold: true, size: 12, name: 'Arial' }
       hdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } }
       hdr.font = { bold: true, size: 12, name: 'Arial', color: { argb: 'FFFFFFFF' } }
@@ -225,16 +232,27 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
       hdr.height = 28
 
       filtered.forEach((r: any, i: number) => {
-        const row = ws.addRow([r.receiptNumber || '-', formatDate(r.createdAt), r.type || '-', r.amount || 0, r.paymentMethod || '-', getClientName(r), r.staffName || '-'])
-        if (i % 2 === 0) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }
+        const refunded = isRefunded(r)
+        const voided = isVoided(r)
+        const cancelled = refunded || voided
+        const status = refunded ? (locale === 'ar' ? 'مرتجع ✗' : 'Refunded ✗') : voided ? (locale === 'ar' ? 'ملغي ✗' : 'Cancelled ✗') : ''
+        const row = ws.addRow([r.receiptNumber || '-', formatDate(r.createdAt), r.type || '-', r.amount || 0, r.paymentMethod || '-', getClientName(r), r.staffName || '-', status])
+        if (cancelled) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDE7E7' } }
+        else if (i % 2 === 0) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }
         row.alignment = { horizontal: 'center', vertical: 'middle' }
       })
 
-      const totRow = ws.addRow(['', '', t('reports.total' as any), total, '', `${filtered.length} ${t('reports.count' as any)}`, ''])
+      const totRow = ws.addRow(['', '', locale === 'ar' ? 'الإجمالي' : 'Total', total, '', `${filtered.length} ${t('reports.count' as any)}`, '', ''])
       totRow.font = { bold: true, size: 13, name: 'Arial' }
       totRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD700' } }
+      if (refundsTotal > 0) {
+        ws.addRow(['', '', locale === 'ar' ? 'المرتجعات' : 'Refunds', -refundsTotal, '', '', '', '']).font = { bold: true, name: 'Arial', color: { argb: 'FFC00000' } }
+        const netRow = ws.addRow(['', '', locale === 'ar' ? 'الصافي' : 'Net', netTotal, '', '', '', ''])
+        netRow.font = { bold: true, size: 13, name: 'Arial' }
+        netRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } }
+      }
 
-      ws.columns = [{ width: 14 }, { width: 16 }, { width: 18 }, { width: 14 }, { width: 14 }, { width: 22 }, { width: 18 }]
+      ws.columns = [{ width: 14 }, { width: 16 }, { width: 18 }, { width: 14 }, { width: 14 }, { width: 22 }, { width: 18 }, { width: 14 }]
 
       const buf = await wb.xlsx.writeBuffer()
       downloadBuffer(buf, `Revenue_${dateFrom}_${dateTo}.xlsx`)
@@ -269,7 +287,9 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <SummaryCard Icon={IconReceipt} label={t('reports.count' as any)} value={filtered.length} />
-        <SummaryCard Icon={IconMoney} label={t('reports.total' as any)} value={formatCurrency(total)} />
+        <SummaryCard Icon={IconMoney} label={locale === 'ar' ? 'الإجمالي' : 'Total'} value={formatCurrency(total)} />
+        <SummaryCard Icon={IconMoney} label={locale === 'ar' ? 'المرتجعات' : 'Refunds'} value={formatCurrency(refundsTotal)} />
+        <SummaryCard Icon={IconMoney} label={locale === 'ar' ? 'الصافي' : 'Net'} value={formatCurrency(netTotal)} />
       </div>
 
       {filtered.length === 0 ? <NoData t={t} /> : (
@@ -283,24 +303,53 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-              {filtered.map((r: any, i: number) => (
-                <tr key={r.id || i} className={tableTrCls}>
-                  <td className={`${tableTdCls} font-mono`}>{r.receiptNumber || '-'}</td>
+              {filtered.map((r: any, i: number) => {
+                const refunded = isRefunded(r)
+                const voided = isVoided(r)
+                const cancelled = refunded || voided
+                return (
+                <tr key={r.id || i} className={`${tableTrCls} ${cancelled ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
+                  <td className={`${tableTdCls} font-mono ${cancelled ? 'text-red-500 dark:text-red-400' : ''}`}>{r.receiptNumber || '-'}</td>
                   <td className={tableTdCls}>{formatDate(r.createdAt)}</td>
-                  <td className={tableTdCls}>{r.type || '-'}</td>
-                  <td className={`${tableTdCls} font-bold text-green-600 dark:text-green-400`}>{formatCurrency(r.amount || 0)}</td>
+                  <td className={tableTdCls}>
+                    <div className="inline-flex items-center gap-2">
+                      <span className={cancelled ? 'line-through text-red-500 dark:text-red-400' : ''}>{r.type || '-'}</span>
+                      {cancelled && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                          {refunded ? (locale === 'ar' ? 'مرتجع' : 'Refunded') : (locale === 'ar' ? 'ملغي' : 'Cancelled')}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-green-600 dark:text-green-400'}`}>{formatCurrency(r.amount || 0)}</td>
                   <td className={tableTdCls}>{r.paymentMethod || '-'}</td>
                   <td className={tableTdCls}>{getClientName(r)}</td>
                   <td className={tableTdCls}>{r.staffName || '-'}</td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
             <tfoot>
               <tr className="bg-primary-50 dark:bg-primary-900/20 font-bold border-t-2 border-primary-200 dark:border-primary-900/50">
-                <td className="px-4 py-3 text-gray-900 dark:text-gray-100" colSpan={3}>{t('reports.total' as any)}</td>
+                <td className="px-4 py-3 text-gray-900 dark:text-gray-100" colSpan={3}>{locale === 'ar' ? 'الإجمالي' : 'Total'}</td>
                 <td className="px-4 py-3 text-green-600 dark:text-green-400">{formatCurrency(total)}</td>
                 <td className="px-4 py-3 text-gray-700 dark:text-gray-300" colSpan={3}>{filtered.length} {t('reports.count' as any)}</td>
               </tr>
+              {refundsTotal > 0 && (
+                <>
+                  <tr className="font-bold text-red-600 dark:text-red-400">
+                    <td className="px-4 py-2" colSpan={3}>{locale === 'ar' ? 'المرتجعات' : 'Refunds'}</td>
+                    <td className="px-4 py-2">- {formatCurrency(refundsTotal)}</td>
+                    <td className="px-4 py-2" colSpan={3}></td>
+                  </tr>
+                  <tr className="bg-emerald-50 dark:bg-emerald-900/20 font-black border-t border-emerald-200 dark:border-emerald-900/50">
+                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100" colSpan={3}>{locale === 'ar' ? 'الصافي' : 'Net'}</td>
+                    <td className="px-4 py-3 text-emerald-700 dark:text-emerald-300">{formatCurrency(netTotal)}</td>
+                    <td className="px-4 py-3" colSpan={3}></td>
+                  </tr>
+                </>
+              )}
             </tfoot>
           </table>
         </div>
@@ -409,29 +458,62 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
   //  جلب الإيصالات كمان عشان نحسب الـ revenue الفعلي (مطابق للتقفيل الشهري)
   const { data: receipts = [], isLoading: receiptsLoading } = useQuery({ queryKey: ['pt-report-receipts'], queryFn: fetchReceipts })
 
+  //  فلتر الكوتش — عشان نعرف كل كوتش عمل إيه
+  const [coachFilter, setCoachFilter] = useState('')
+
+  //  قائمة الكباتن من بيانات الـ PT نفسها (مرتبة أبجدياً)
+  const coachOptions = useMemo(() => (
+    Array.from(new Set((ptList || []).map((p: any) => (p.coachName || '').trim()).filter(Boolean))).sort((a: any, b: any) => a.localeCompare(b, 'ar'))
+  ), [ptList])
+
   const filtered = useMemo(() => {
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
     return ptList.filter((p: any) => {
       const d = new Date(p.createdAt || p.startDate)
-      return d >= from && d <= to
+      if (!(d >= from && d <= to)) return false
+      if (coachFilter && (p.coachName || '').trim() !== coachFilter) return false
+      return true
     })
-  }, [ptList, dateFrom, dateTo])
+  }, [ptList, dateFrom, dateTo, coachFilter])
 
-  //  totalRevenue من إيصالات PT الفعلية في النطاق — مطابق للتقفيل الشهري
-  // (قبل كده كان sessionsPurchased × pricePerSession اللي بيرجّع السعر الكامل مش الفلوس المحصّلة)
-  const totalRevenue = useMemo(() => {
+  //  إيصالات PT في النطاق (نفس قاعدة التقفيل الشهري) — منها نحسب الإجمالي والمرتجعات والصافي
+  const ptReceiptsInRange = useMemo(() => {
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
     const to = new Date(dateTo); to.setHours(23, 59, 59, 999)
     return (receipts || [])
-      .filter((r: any) => !r.isCancelled) //  استبعاد الملغية — مطابق للتقفيل
+      .filter((r: any) => countsAsRevenue(r)) //  نفس قاعدة التقفيل الشهري بالظبط
       .filter((r: any) => isPTReceipt(r.type))
       .filter((r: any) => {
         const d = new Date(r.createdAt)
         return d >= from && d <= to
       })
-      .reduce((s: number, r: any) => s + (r.amount || 0), 0)
-  }, [receipts, dateFrom, dateTo])
+      .filter((r: any) => {
+        //  لو في فلتر كوتش، نحسب بس إيصالات الكوتش ده (اسمه مخزّن في itemDetails)
+        if (!coachFilter) return true
+        try {
+          const details = typeof r.itemDetails === 'string' ? JSON.parse(r.itemDetails) : (r.itemDetails || {})
+          return (details.coachName || '').trim() === coachFilter
+        } catch { return false }
+      })
+  }, [receipts, dateFrom, dateTo, coachFilter])
+
+  const isRefunded = (r: any) => !!r.isCancelled && !!r.refundMethod
+  const totalRevenue = useMemo(() => ptReceiptsInRange.reduce((s: number, r: any) => s + (r.amount || 0), 0), [ptReceiptsInRange]) // إجمالي
+  const ptRefunds = useMemo(() => ptReceiptsInRange.filter((r: any) => isRefunded(r)).reduce((s: number, r: any) => s + (r.amount || 0), 0), [ptReceiptsInRange])
+  const ptNet = totalRevenue - ptRefunds // الصافي بعد المرتجعات
+
+  //  حالة إلغاء كل PT (حسب رقم الـ PT) — عشان نعلّم الصف بـ X أحمر لو إيصاله اتلغى/اترجع
+  const ptCancelStatus = useMemo(() => {
+    const m = new Map<number, { refunded: boolean; voided: boolean }>()
+    for (const r of (receipts || [])) {
+      if (!r.isCancelled || !isPTReceipt(r.type) || r.ptNumber == null) continue
+      const cur = m.get(r.ptNumber) || { refunded: false, voided: false }
+      if (r.refundMethod) cur.refunded = true; else cur.voided = true
+      m.set(r.ptNumber, cur)
+    }
+    return m
+  }, [receipts])
 
   const totalRemaining = useMemo(() => filtered.reduce((s: number, p: any) => s + (p.remainingAmount || 0), 0), [filtered])
 
@@ -468,7 +550,26 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex flex-wrap justify-between items-end gap-3 mb-4">
+        {/*  فلتر الكوتش */}
+        <div className="min-w-[200px]">
+          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+            {locale === 'ar' ? 'الكوتش' : 'Coach'}
+          </label>
+          <select
+            value={coachFilter}
+            onChange={(e) => setCoachFilter(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+          >
+            <option value="">{locale === 'ar' ? 'كل الكباتن' : 'All coaches'}</option>
+            {coachFilter && !coachOptions.includes(coachFilter) && (
+              <option value={coachFilter}>{coachFilter}</option>
+            )}
+            {coachOptions.map((c: any) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
         <button onClick={exportExcel} type="button" className={exportBtnCls}>
           <IconDownload className="w-4 h-4" />
           <span>{t('reports.exportExcel' as any)}</span>
@@ -482,9 +583,11 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
           : 'Total Revenue is calculated from actual receipts in the date range (matches monthly closing)'}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
         <SummaryCard Icon={IconDumbbell} label={t('reports.count' as any)} value={filtered.length} />
-        <SummaryCard Icon={IconMoney} label={t('reports.totalRevenue' as any)} value={formatCurrency(totalRevenue)} />
+        <SummaryCard Icon={IconMoney} label={locale === 'ar' ? 'الإجمالي' : 'Total'} value={formatCurrency(totalRevenue)} />
+        <SummaryCard Icon={IconMoney} label={locale === 'ar' ? 'المرتجعات' : 'Refunds'} value={formatCurrency(ptRefunds)} />
+        <SummaryCard Icon={IconMoney} label={locale === 'ar' ? 'الصافي' : 'Net'} value={formatCurrency(ptNet)} />
         <SummaryCard Icon={IconClock} label={t('reports.remainingAmount' as any)} value={formatCurrency(totalRemaining)} />
       </div>
 
@@ -499,19 +602,35 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-              {filtered.map((p: any, i: number) => (
-                <tr key={p.id || i} className={tableTrCls}>
-                  <td className={`${tableTdCls} font-mono`}>{p.ptNumber || '-'}</td>
-                  <td className={`${tableTdCls} font-bold text-gray-900 dark:text-gray-100`}>{p.clientName || '-'}</td>
+              {filtered.map((p: any, i: number) => {
+                const st = p.ptNumber != null ? ptCancelStatus.get(p.ptNumber) : undefined
+                const refunded = !!st?.refunded
+                const voided = !!st?.voided && !refunded
+                const cancelled = refunded || voided
+                return (
+                <tr key={p.id || i} className={`${tableTrCls} ${cancelled ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
+                  <td className={`${tableTdCls} font-mono ${cancelled ? 'text-red-500 dark:text-red-400' : ''}`}>
+                    <div className="inline-flex items-center gap-1.5">
+                      <span className={cancelled ? 'line-through' : ''}>{p.ptNumber || '-'}</span>
+                      {cancelled && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                          {refunded ? (locale === 'ar' ? 'مرتجع' : 'Refunded') : (locale === 'ar' ? 'ملغي' : 'Cancelled')}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-gray-900 dark:text-gray-100'}`}>{p.clientName || '-'}</td>
                   <td className={`${tableTdCls} font-mono`}>{p.phone || '-'}</td>
                   <td className={tableTdCls}>{p.coachName || '-'}</td>
                   <td className={`${tableTdCls} text-center`}>{p.sessionsPurchased || 0}</td>
                   <td className={`${tableTdCls} text-center`}>{p.sessionsRemaining || 0}</td>
                   <td className={tableTdCls}>{formatCurrency(p.pricePerSession || 0)}</td>
-                  <td className={`${tableTdCls} font-bold text-green-600 dark:text-green-400`}>{formatCurrency((p.sessionsPurchased || 0) * (p.pricePerSession || 0))}</td>
+                  <td className={`${tableTdCls} font-bold ${cancelled ? 'text-red-500 dark:text-red-400 line-through' : 'text-green-600 dark:text-green-400'}`}>{formatCurrency((p.sessionsPurchased || 0) * (p.pricePerSession || 0))}</td>
                   <td className={`${tableTdCls} text-orange-600 dark:text-orange-400`}>{formatCurrency(p.remainingAmount || 0)}</td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
             <tfoot>
               <tr className="bg-primary-50 dark:bg-primary-900/20 font-bold border-t-2 border-primary-200 dark:border-primary-900/50">

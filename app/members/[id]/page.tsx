@@ -219,9 +219,13 @@ export default function MemberDetailPage() {
  const [renewalHistory, setRenewalHistory] = useState<any[]>([])
  const [renewalHistoryLoading, setRenewalHistoryLoading] = useState(false)
 
- // بوب أب السجلات (تبات: تجديدات / تجميد / متابعات)
+ // سجل الدعوات (مين دخل بالدعوة وكام مرة)
+ const [invitationHistory, setInvitationHistory] = useState<any[]>([])
+ const [invitationHistoryLoading, setInvitationHistoryLoading] = useState(false)
+
+ // بوب أب السجلات (تبات: تجديدات / تجميد / متابعات / دعوات)
  const [showHistoryModal, setShowHistoryModal] = useState(false)
- const [historyTab, setHistoryTab] = useState<'renewals' | 'freeze' | 'followups'>('renewals')
+ const [historyTab, setHistoryTab] = useState<'renewals' | 'freeze' | 'followups' | 'invitations'>('renewals')
 
  // النقاط
  const [showPointsHistory, setShowPointsHistory] = useState(false)
@@ -411,6 +415,8 @@ export default function MemberDetailPage() {
  fetchFreezeHistory()
  //  جلب سجل التجديدات على طول عشان يظهر في القسم
  fetchRenewalHistory()
+ //  جلب سجل الدعوات
+ fetchInvitationHistory()
  } else {
  toast.error(t('memberDetails.memberNotFound'))
  }
@@ -588,6 +594,22 @@ export default function MemberDetailPage() {
  setFreezeHistory([])
  } finally {
  setFreezeHistoryLoading(false)
+ }
+ }
+
+ const fetchInvitationHistory = async () => {
+ setInvitationHistoryLoading(true)
+ try {
+ const response = await fetch(`/api/invitations?memberId=${memberId}`)
+ if (response.ok) {
+ const data = await response.json()
+ setInvitationHistory(Array.isArray(data) ? data : (data.invitations || []))
+ }
+ } catch (error) {
+ console.error('Error fetching invitation history:', error)
+ setInvitationHistory([])
+ } finally {
+ setInvitationHistoryLoading(false)
  }
  }
 
@@ -1024,6 +1046,7 @@ export default function MemberDetailPage() {
  setActiveModal(null)
 
  fetchMember()
+ fetchInvitationHistory()
  } else {
  toast.error(result.error || t('memberDetails.invitationModal.invitationFailed'))
  }
@@ -2120,6 +2143,17 @@ export default function MemberDetailPage() {
  {t('memberDetails.useInvitation')}
  </button>
  </div>
+
+ {/* حصص الدخول المتبقية — تظهر بس لو الباقة محدودة الدخلات (remainingCheckIns != null) */}
+ {(member as any).remainingCheckIns !== null && (member as any).remainingCheckIns !== undefined && (
+ <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-orange-500`}>
+ <div className="flex items-center justify-between mb-2">
+ <p className="text-xs text-gray-600 dark:text-white font-semibold">{locale === 'ar' ? 'حصص الدخول المتبقية' : 'Remaining Check-ins'}</p>
+ </div>
+ <p className={`text-3xl font-bold mb-3 ${((member as any).remainingCheckIns ?? 0) <= 0 ? 'text-red-600' : 'text-orange-600'}`}>{(member as any).remainingCheckIns ?? 0}</p>
+ <p className="text-[11px] text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'دخلة متبقية في الباقة' : 'entries left in package'}</p>
+ </div>
+ )}
  </div>
  </div>
 
@@ -3988,17 +4022,40 @@ export default function MemberDetailPage() {
  </div>
 
  {/* زرار السجلات — يفتح بوب أب بتبات */}
- <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-6">
+ <div className="mb-6">
  <button
  onClick={() => { setHistoryTab('renewals'); setShowHistoryModal(true) }}
- className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+ className="group w-full flex items-center gap-3 sm:gap-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-5 text-start hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md transition"
  >
- <span className="text-lg font-bold text-gray-900 dark:text-white">
- {locale === 'ar' ? 'السجلات' : 'History'}
+ {/* أيقونة */}
+ <span className="shrink-0 w-11 h-11 rounded-xl bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 flex items-center justify-center ring-1 ring-primary-100 dark:ring-primary-800">
+ <svg className="w-6 h-6" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
  </span>
- <span className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
- <span className="hidden sm:inline">{locale === 'ar' ? 'تجديدات · تجميد · متابعات' : 'Renewals · Freeze · Follow-ups'}</span>
- <span className="px-3 py-1 rounded-lg bg-primary-600 text-white text-sm font-semibold">{locale === 'ar' ? 'عرض' : 'View'}</span>
+
+ {/* العنوان + شرائح العدادات */}
+ <div className="flex-1 min-w-0">
+ <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+ {locale === 'ar' ? 'السجلات' : 'History'}
+ </div>
+ <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+ {([
+ { label: locale === 'ar' ? 'تجديدات' : 'Renewals', count: renewalHistory.length, cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+ { label: locale === 'ar' ? 'تجميد' : 'Freeze', count: freezeHistory.length, cls: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
+ { label: locale === 'ar' ? 'متابعات' : 'Follow-ups', count: followUpHistory.length, cls: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
+ { label: locale === 'ar' ? 'دعوات' : 'Invitations', count: invitationHistory.length, cls: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+ ]).map((c) => (
+ <span key={c.label} className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${c.cls}`}>
+ <span>{c.label}</span>
+ <span className="opacity-70">{c.count}</span>
+ </span>
+ ))}
+ </div>
+ </div>
+
+ {/* عرض */}
+ <span className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-600 group-hover:bg-primary-700 text-white text-sm font-semibold transition">
+ <span className="hidden sm:inline">{locale === 'ar' ? 'عرض' : 'View'}</span>
+ <svg className="w-4 h-4 rtl:rotate-180" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
  </span>
  </button>
  </div>
@@ -4021,30 +4078,33 @@ export default function MemberDetailPage() {
  </button>
  </div>
 
- {/* Tabs */}
- <div className="flex gap-1 px-4 pt-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+ {/* Tabs — شريط مقسّم متناسق */}
+ <div className="px-4 pt-3 pb-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+ <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-900/50 rounded-xl">
  {([
  { key: 'renewals', label: locale === 'ar' ? 'التجديدات' : 'Renewals', count: renewalHistory.length },
  { key: 'freeze', label: locale === 'ar' ? 'التجميد' : 'Freeze', count: freezeHistory.length },
  { key: 'followups', label: locale === 'ar' ? 'المتابعات' : 'Follow-ups', count: followUpHistory.length },
+ { key: 'invitations', label: locale === 'ar' ? 'الدعوات' : 'Invitations', count: invitationHistory.length },
  ] as const).map((tab) => (
  <button
  key={tab.key}
  onClick={() => setHistoryTab(tab.key)}
- className={`px-4 py-2 text-sm font-bold rounded-t-lg border-b-2 transition inline-flex items-center gap-2 ${
+ className={`flex-1 min-w-0 px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold rounded-lg transition inline-flex items-center justify-center gap-1.5 ${
  historyTab === tab.key
- ? 'border-primary-600 text-primary-600 dark:text-primary-400'
- : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+ ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-300 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+ : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
  }`}
  >
- {tab.label}
+ <span className="truncate">{tab.label}</span>
  {tab.count > 0 && (
- <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${historyTab === tab.key ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+ <span className={`shrink-0 text-[10px] leading-none font-bold px-1.5 py-1 rounded-full ${historyTab === tab.key ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300' : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'}`}>
  {tab.count}
  </span>
  )}
  </button>
  ))}
+ </div>
  </div>
 
  {/* Content */}
@@ -4228,6 +4288,52 @@ export default function MemberDetailPage() {
  </div>
  )
  })}
+ </div>
+ )
+ )}
+
+ {historyTab === 'invitations' && (
+ invitationHistoryLoading ? (
+ <div className="text-center py-8 text-gray-500">
+ <div className="w-8 h-8 ring-1 ring-primary-200 border-t-primary-500 rounded-full animate-spin mx-auto mb-2" />
+ {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+ </div>
+ ) : invitationHistory.length === 0 ? (
+ <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+ <p className="text-3xl mb-2">🎟️</p>
+ <p>{locale === 'ar' ? 'لا يوجد سجل دعوات لهذا العضو' : 'No invitation history for this member'}</p>
+ </div>
+ ) : (
+ <div className="space-y-3">
+ <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+ {locale === 'ar'
+ ? `إجمالي الدعوات: ${invitationHistory.length} مرة`
+ : `Total invitations: ${invitationHistory.length}`}
+ </div>
+ {invitationHistory.map((inv: any) => (
+ <div key={inv.id} className="rounded-lg p-4 border border-purple-200 dark:border-purple-700 bg-purple-50/40 dark:bg-purple-900/10">
+ <div className="flex items-start justify-between gap-2 flex-wrap">
+ <div className="flex-1">
+ <div className="flex items-center gap-2 flex-wrap mb-1">
+ <span className="text-sm font-bold text-gray-800 dark:text-white">
+ {inv.guestName || (locale === 'ar' ? 'ضيف' : 'Guest')}
+ </span>
+ {inv.guestPhone && (
+ <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-0.5 rounded-full" dir="ltr">
+ {inv.guestPhone}
+ </span>
+ )}
+ </div>
+ {inv.notes && <p className="text-sm text-gray-700 dark:text-white">{inv.notes}</p>}
+ </div>
+ <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+ {new Date(inv.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US')}
+ {' · '}
+ {new Date(inv.createdAt).toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+ </span>
+ </div>
+ </div>
+ ))}
  </div>
  )
  )}

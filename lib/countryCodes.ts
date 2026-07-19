@@ -18,6 +18,7 @@ export const COUNTRIES: Country[] = [
   { code: 'QA', nameAr: 'قطر', nameEn: 'Qatar', dial: '974', flag: '🇶🇦' },
   { code: 'BH', nameAr: 'البحرين', nameEn: 'Bahrain', dial: '973', flag: '🇧🇭' },
   { code: 'OM', nameAr: 'عُمان', nameEn: 'Oman', dial: '968', flag: '🇴🇲' },
+  { code: 'YE', nameAr: 'اليمن', nameEn: 'Yemen', dial: '967', flag: '🇾🇪' },
   { code: 'JO', nameAr: 'الأردن', nameEn: 'Jordan', dial: '962', flag: '🇯🇴' },
   { code: 'LB', nameAr: 'لبنان', nameEn: 'Lebanon', dial: '961', flag: '🇱🇧' },
   { code: 'IQ', nameAr: 'العراق', nameEn: 'Iraq', dial: '964', flag: '🇮🇶' },

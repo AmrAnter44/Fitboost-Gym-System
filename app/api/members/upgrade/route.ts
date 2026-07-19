@@ -135,8 +135,13 @@ export async function POST(request: Request) {
 
 
     // 9. حساب تاريخ النهاية الجديد (من تاريخ البداية الأصلي)
-    const newExpiryDate = new Date(member.startDate)
-    newExpiryDate.setDate(newExpiryDate.getDate() + newOffer.duration)
+    //  باقة الدخلات-بس (maxCheckIns>0 و duration<=0) → مفيش انتهاء بالوقت
+    const upgradeEntriesOnly = (Number((newOffer as any).maxCheckIns) || 0) > 0 && (Number(newOffer.duration) || 0) <= 0
+    const newExpiryDate: Date | null = upgradeEntriesOnly ? null : (() => {
+      const d = new Date(member.startDate)
+      d.setDate(d.getDate() + newOffer.duration)
+      return d
+    })()
 
 
     // 10. حفظ بيانات الباكدج القديم للإيصال
@@ -188,7 +193,7 @@ export async function POST(request: Request) {
       newInBodyScans: newOffer.inBodyScans,
       newInvitations: newOffer.invitations,
       newFreezeDays: newOffer.freezeDays,
-      newExpiryDate: formatDateYMD(newExpiryDate),
+      newExpiryDate: newExpiryDate ? formatDateYMD(newExpiryDate) : null,
 
       // تفاصيل الترقية
       upgradeAmount,
@@ -216,12 +221,14 @@ export async function POST(request: Request) {
           inBodyScans: newOffer.inBodyScans,                 // REPLACE
           invitations: newOffer.invitations,                 // REPLACE
           remainingFreezeDays: newOffer.freezeDays,          // REPLACE
+          //  عدد حصص الدخول من الباقة الجديدة (REPLACE) — 0 = دخول غير محدود (null)
+          remainingCheckIns: (Number((newOffer as any).maxCheckIns) || 0) > 0 ? Number((newOffer as any).maxCheckIns) : null,
           expiryDate: newExpiryDate,
           // startDate يبقى كما هو - لا يتغير
           remainingAmount: round2(remainingAmount || 0),
           remainingDueDate: remainingDueDate ? new Date(remainingDueDate) : null,
           isActive: !newExpiryDate || new Date(newExpiryDate) >= new Date(new Date().setHours(0,0,0,0))
-        }
+        } as any
       })
 
       const rn = await getNextReceiptNumber(tx)
