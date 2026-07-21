@@ -1,0 +1,7 @@
+node_modules/
+release/
+resources/cloudflared
+resources/cloudflared.exe
+resources/*.tgz
+# keep your real token out of git:
+# (config.json ships with empty token; the token lives next to the exe)

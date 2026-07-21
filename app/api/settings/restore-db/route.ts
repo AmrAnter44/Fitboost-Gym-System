@@ -4,6 +4,7 @@ import { prisma } from '../../../../lib/prisma'
 import fs from 'fs'
 import path from 'path'
 import { execSync } from 'child_process'
+import { gunzipSync } from 'zlib'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,13 +30,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'لم يتم رفع أي ملف' }, { status: 400 })
     }
 
-    if (!file.name.endsWith('.db')) {
-      return NextResponse.json({ error: 'يجب أن يكون الملف بامتداد .db' }, { status: 400 })
+    const name = file.name.toLowerCase()
+    if (!name.endsWith('.db') && !name.endsWith('.bak') && !name.endsWith('.gz')) {
+      return NextResponse.json({ error: 'الملف لازم يكون .db أو .bak أو .gz (نسخة سحابية مضغوطة)' }, { status: 400 })
     }
 
     // قراءة بايتات الملف
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const rawBuffer = Buffer.from(bytes)
+
+    // لو الملف مضغوط gzip (النسخ السحابية بتترفع .gz) نفكّه الأول
+    let dbBuffer = rawBuffer
+    const isGzip = rawBuffer.length > 2 && rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b
+    if (isGzip || name.endsWith('.gz')) {
+      try {
+        dbBuffer = gunzipSync(rawBuffer)
+      } catch {
+        return NextResponse.json({ error: 'فشل فك ضغط الملف — تأكد إنه نسخة gzip سليمة' }, { status: 400 })
+      }
+    }
 
     // التحقق من الـ SQLite magic bytes: "SQLite format 3\x00"
     const sqliteMagic = Buffer.from([
@@ -43,7 +56,7 @@ export async function POST(request: Request) {
       0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00
     ])
 
-    if (buffer.length < 16 || !buffer.subarray(0, 16).equals(sqliteMagic)) {
+    if (dbBuffer.length < 16 || !dbBuffer.subarray(0, 16).equals(sqliteMagic)) {
       return NextResponse.json(
         { error: 'الملف ليس قاعدة بيانات SQLite صالحة' },
         { status: 400 }
@@ -63,7 +76,7 @@ export async function POST(request: Request) {
 
     // كتابة الـ database الجديدة مع ضمان إعادة اتصال Prisma
     try {
-      fs.writeFileSync(dbPath, buffer)
+      fs.writeFileSync(dbPath, dbBuffer)
 
       // حذف ملفات WAL و SHM القديمة إن وجدت
       const walPath = `${dbPath}-wal`
@@ -104,7 +117,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'تم رفع قاعدة البيانات وتحديث الـ schema بنجاح',
-      fileSize: `${(buffer.length / 1024 / 1024).toFixed(2)} MB`,
+      fileSize: `${(dbBuffer.length / 1024 / 1024).toFixed(2)} MB`,
       backupName: path.basename(backupPath),
       migrate: migrateOutput ? 'تم تطبيق الـ migrations' : 'لا توجد migrations جديدة'
     })

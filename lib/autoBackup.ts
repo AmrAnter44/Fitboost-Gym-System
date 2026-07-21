@@ -13,7 +13,7 @@ const PREFIX = 'gym.db.auto-'
  *
  * النسخة بتتعمل عبر VACUUM INTO = snapshot متسق حتى والـ DB بيتكتب فيه.
  */
-export async function runDailyBackupIfDue(): Promise<{ backed: boolean; reason?: string }> {
+export async function runDailyBackupIfDue(): Promise<{ backed: boolean; reason?: string; path?: string }> {
   try {
     const dbPath = resolveDbPath()
     if (!existsSync(dbPath)) return { backed: false, reason: 'no-db' }
@@ -47,7 +47,7 @@ export async function runDailyBackupIfDue(): Promise<{ backed: boolean; reason?:
       }
     }
 
-    return { backed: true }
+    return { backed: true, path: dest }
   } catch (e: any) {
     console.error('[autoBackup] error:', e?.message || String(e))
     return { backed: false, reason: 'error' }
