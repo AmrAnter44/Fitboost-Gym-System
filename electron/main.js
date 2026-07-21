@@ -8,6 +8,7 @@ let HID;
 try { HID = require('node-hid'); } catch { HID = null; }
 const { startReverseProxy, stopReverseProxy } = require('./reverse-proxy');
 const { startWhatsAppService, stopWhatsAppService } = require('./whatsapp-service');
+const tunnelManager = require('./tunnel-manager');
 
 // 🔑 Load .env so GH_TOKEN / INTERNAL_API_TOKEN / etc. are available to main process
 try {
@@ -1067,12 +1068,35 @@ ipcMain.handle('save-pdf-to-documents', async (event, { fileName, pdfData }) => 
 // No IPC handlers needed – the settings page uses fetch('/api/whatsapp/*') directly.
 // This works in both the Electron webview and any network browser via port forwarding.
 
+// ==================== Cloudflare Tunnel (Settings → تانل) ====================
+// يشغّل الـ tunnel 24/7 في الـ main process؛ صفحة الإعدادات (للأونر بس) بتتحكم فيه
+// عبر الـ handlers دي، والأحداث بتترسل للنافذة الرئيسية.
+tunnelManager.setSender((channel, payload) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try { mainWindow.webContents.send(channel, payload); } catch { /* ignore */ }
+  }
+});
+ipcMain.handle('tunnel:getState', () => tunnelManager.getState());
+ipcMain.handle('tunnel:setupStatus', () => tunnelManager.setupStatus());
+ipcMain.handle('tunnel:login', () => tunnelManager.login());
+ipcMain.handle('tunnel:create', (_e, data) => tunnelManager.createTunnel(data));
+ipcMain.handle('tunnel:setKeepAwake', (_e, on) => tunnelManager.setKeepAwake(!!on));
+ipcMain.handle('tunnel:setAutoLaunch', (_e, on) => tunnelManager.setAutoLaunch(!!on));
+ipcMain.on('tunnel:start', () => tunnelManager.start());
+ipcMain.on('tunnel:stop', () => tunnelManager.stop());
+ipcMain.on('tunnel:restart', () => tunnelManager.restart());
+ipcMain.on('tunnel:reloadConfig', () => tunnelManager.reloadConfig());
+ipcMain.on('tunnel:openConfig', () => tunnelManager.openConfig());
+
 // ------------------ أحداث التطبيق ------------------
 
 app.whenReady().then(async () => {
   // ✅ إنشاء النافذة فوراً (بتظهر splash/loading) بالتوازي مع تشغيل السيرفر
   createWindow();
   setupBarcodeScanner();
+
+  // ✅ Cloudflare tunnel — يبدأ تلقائي لو متظبط (24/7) ويرسل الحالة للواجهة
+  try { tunnelManager.init(); } catch (e) { console.error('Tunnel init failed:', e?.message || e); }
 
   if (!isDev) {
     // Production mode — تشغيل السيرفر بالتوازي
@@ -1135,6 +1159,9 @@ app.on('before-quit', async (event) => {
   try {
     // 1. Stop WhatsApp sidecar
     await stopWhatsAppService();
+
+    // Stop Cloudflare tunnel (kills cloudflared + releases keep-awake)
+    try { tunnelManager.dispose(); } catch { /* ignore */ }
 
     // 2. Stop reverse proxy
     await stopReverseProxy();

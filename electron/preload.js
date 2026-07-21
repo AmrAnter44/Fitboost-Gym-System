@@ -209,5 +209,28 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.removeAllListeners('whatsapp:auth_failure');
       ipcRenderer.removeAllListeners('whatsapp:loading_screen');
     }
+  },
+
+  // ==================== Cloudflare Tunnel (Settings → تانل) ====================
+  tunnel: {
+    getState: () => ipcRenderer.invoke('tunnel:getState'),
+    setupStatus: () => ipcRenderer.invoke('tunnel:setupStatus'),
+    login: () => ipcRenderer.invoke('tunnel:login'),
+    createTunnel: (data) => ipcRenderer.invoke('tunnel:create', data),
+    setKeepAwake: (v) => ipcRenderer.invoke('tunnel:setKeepAwake', v),
+    setAutoLaunch: (v) => ipcRenderer.invoke('tunnel:setAutoLaunch', v),
+    start: () => ipcRenderer.send('tunnel:start'),
+    stop: () => ipcRenderer.send('tunnel:stop'),
+    restart: () => ipcRenderer.send('tunnel:restart'),
+    reloadConfig: () => ipcRenderer.send('tunnel:reloadConfig'),
+    openConfig: () => ipcRenderer.send('tunnel:openConfig'),
+    onStatus: (cb) => ipcRenderer.on('tunnel:status', (_e, s) => cb(s)),
+    onLog: (cb) => ipcRenderer.on('tunnel:log', (_e, l) => cb(l)),
+    onSetupProgress: (cb) => ipcRenderer.on('tunnel:setup-progress', (_e, l) => cb(l)),
+    offListeners: () => {
+      ipcRenderer.removeAllListeners('tunnel:status');
+      ipcRenderer.removeAllListeners('tunnel:log');
+      ipcRenderer.removeAllListeners('tunnel:setup-progress');
+    }
   }
 });

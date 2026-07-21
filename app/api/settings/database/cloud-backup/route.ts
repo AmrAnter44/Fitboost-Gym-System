@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requirePermission } from '../../../../../lib/auth'
+import { verifyAuth } from '../../../../../lib/auth'
 import { prisma } from '../../../../../lib/prisma'
 import {
   isCloudBackupConfigured,
@@ -16,6 +16,14 @@ export const dynamic = 'force-dynamic'
  *   POST  { action: 'toggle', enabled }  → تفعيل/إقفال
  *   POST  { action: 'upload-now' }        → رفع نسخة فورية (اختبار)
  */
+
+// النسخ الاحتياطي السحابي للأونر فقط — مش مجرد إخفاء في الواجهة
+async function requireOwner(request: Request) {
+  const user = await verifyAuth(request)
+  if (!user) throw new Error('Unauthorized')
+  if (user.role !== 'OWNER') throw new Error('Forbidden')
+  return user
+}
 
 // رسائل عربية واضحة لكل نتيجة رفع
 function messageFor(result: CloudBackupResult): string {
@@ -34,7 +42,7 @@ function messageFor(result: CloudBackupResult): string {
 
 export async function GET(request: Request) {
   try {
-    await requirePermission(request, 'canAccessSettings')
+    await requireOwner(request)
 
     const settings = await prisma.systemSettings.findUnique({ where: { id: 'singleton' } })
     const license = await prisma.supabaseLicense.findFirst({ orderBy: { lastChecked: 'desc' } })
@@ -65,7 +73,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = await requirePermission(request, 'canAccessSettings')
+    const user = await requireOwner(request)
     const body = await request.json().catch(() => ({}))
     const action = body?.action
 
