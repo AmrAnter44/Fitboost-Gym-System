@@ -1205,6 +1205,12 @@ model SystemSettings {
   //  Anti buddy-punching: لما ON، الموظف لازم يتصور سيلفي مع كل سكان
   requireSelfieOnCheckIn  Boolean   @default(false)
 
+  // ☁️ النسخ الاحتياطي السحابي (Backblaze B2) — بيرفع نسخة يومية مضغوطة لحساب الأونر
+  cloudBackupEnabled    Boolean   @default(false)  // تفعيل/إقفال الرفع السحابي من السيستم
+  lastCloudBackupAt     DateTime?                   // آخر رفعة ناجحة
+  lastCloudBackupError  String?                     // آخر خطأ حصل أثناء الرفع (null = مفيش)
+  lastCloudBackupSize   Int?                        // حجم آخر نسخة اترفعت (bytes)
+
   updatedAt             DateTime @updatedAt
   updatedBy             String?
 }

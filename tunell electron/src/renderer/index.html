@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+    />
+    <title>Fit Boost Server Management</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- reusable svg symbols -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <linearGradient id="boltGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#4ade80" />
+          <stop offset="1" stop-color="#16a34a" />
+        </linearGradient>
+        <symbol id="i-bolt" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M13 2L4.5 13.2a.6.6 0 0 0 .5 1H10l-1 7.8 8.9-11.9a.6.6 0 0 0-.5-1H12l1-7.1z" />
+        </symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></symbol>
+        <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18" /></symbol>
+        <symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" /><path d="M7 7.5h.01M7 16.5h.01" /></symbol>
+        <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.5 19a4.5 4.5 0 0 0 .3-9 6 6 0 0 0-11.5 1.5A3.75 3.75 0 0 0 6.5 19z" /></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5z" /></symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24"><rect fill="currentColor" x="6" y="6" width="12" height="12" rx="2.5" /></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v4h-4" /></symbol>
+        <symbol id="i-minimize" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 18h12" /></symbol>
+        <symbol id="i-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v8M7 6.5a7 7 0 1 0 10 0" /></symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6" /></symbol>
+        <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-8 8M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" /></symbol>
+      </defs>
+    </svg>
+
+    <header>
+      <div class="brand">
+        <span class="logo">
+          <img id="logoImg" alt="Fit Boost" />
+          <svg id="logoSvg" class="logo-svg" viewBox="0 0 24 24"><path d="M13 2L4.5 13.2a.6.6 0 0 0 .5 1H10l-1 7.8 8.9-11.9a.6.6 0 0 0-.5-1H12l1-7.1z" fill="url(#boltGrad)" /></svg>
+        </span>
+        <span class="brand-text">
+          <b>Fit Boost</b>
+          <small>Server Management</small>
+        </span>
+      </div>
+      <span class="pill idle" id="statusPill"><span class="pill-dot"></span><span id="pillText">في الانتظار</span></span>
+    </header>
+
+    <main>
+      <!-- create-tunnel panel -->
+      <section class="card setup" id="setup">
+        <button class="setup-head" id="setupToggle">
+          <span class="sh-title"><svg class="ic"><use href="#i-plus" /></svg> إنشاء تونل جديد</span>
+          <svg class="ic chev"><use href="#i-chevron" /></svg>
+        </button>
+        <div class="setup-body">
+          <div class="login-row">
+            <svg class="ic mut"><use href="#i-cloud" /></svg>
+            <span class="statedot down" id="loginDot"></span>
+            <span id="loginState">بيتأكد من تسجيل الدخول…</span>
+            <button class="btn ghost sm" id="loginBtn">تسجيل دخول Cloudflare</button>
+          </div>
+          <div class="fields">
+            <label class="field"><span>Subdomain</span><input id="subInput" placeholder="branch1" autocomplete="off" /></label>
+            <label class="field"><span>Domain</span><input id="domInput" placeholder="eaglegym.website" autocomplete="off" /></label>
+            <label class="field"><span>Port</span><input id="portInput" type="number" placeholder="4001" value="4001" /></label>
+          </div>
+          <button class="btn primary" id="createBtn"><svg class="ic"><use href="#i-bolt" /></svg> إنشاء وتشغيل</button>
+          <div class="setup-log" id="setupLog"></div>
+        </div>
+      </section>
+
+      <!-- hero status -->
+      <section class="card hero" id="hero">
+        <div class="hero-top">
+          <span class="status-text" id="statusText">في الانتظار</span>
+          <span class="pct" id="pct">0<i>%</i></span>
+        </div>
+        <div class="track"><div class="bar idle" id="bar" style="width: 0%"></div></div>
+        <div class="conns">
+          <span class="conn-label">اتصالات Cloudflare</span>
+          <div class="dots">
+            <span class="dot" id="dot1"></span><span class="dot" id="dot2"></span>
+            <span class="dot" id="dot3"></span><span class="dot" id="dot4"></span>
+          </div>
+          <span class="conn-count" id="connCount">0/4</span>
+        </div>
+        <div class="msg" id="message"></div>
+      </section>
+
+      <a href="#" class="card url-card" id="urlCard" style="display: none">
+        <svg class="ic accent"><use href="#i-globe" /></svg>
+        <span class="url-link" id="urlLink" data-url=""></span>
+        <svg class="ic mut"><use href="#i-external" /></svg>
+      </a>
+
+      <div class="row">
+        <svg class="ic mut"><use href="#i-server" /></svg>
+        <span class="statedot down" id="serverDot"></span>
+        <span id="serverText">جاري فحص السيرفر المحلي…</span>
+      </div>
+
+      <div class="controls">
+        <button class="btn primary" id="startBtn"><svg class="ic"><use href="#i-play" /></svg> تشغيل</button>
+        <button class="btn danger" id="stopBtn" disabled><svg class="ic"><use href="#i-stop" /></svg> إيقاف</button>
+        <button class="btn" id="restartBtn"><svg class="ic"><use href="#i-refresh" /></svg></button>
+      </div>
+
+      <div class="toggles">
+        <label class="switch">
+          <input type="checkbox" id="keepAwake" />
+          <span class="sw"><span class="knob"></span></span>
+          <span class="sw-label">منع الجهاز من الـ Sleep</span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="autoLaunch" />
+          <span class="sw"><span class="knob"></span></span>
+          <span class="sw-label">تشغيل تلقائي مع بدء Windows</span>
+        </label>
+      </div>
+
+      <div class="meta">
+        <span>إعادة التشغيل: <b id="restarts">0</b></span>
+        <button class="link" id="configBtn">فتح config.json</button>
+        <button class="link" id="reloadBtn">إعادة تحميل</button>
+      </div>
+
+      <section class="logs open">
+        <button class="log-toggle" id="logToggle"><svg class="ic chev"><use href="#i-chevron" /></svg> سجل cloudflared</button>
+        <div class="log-wrap" id="logWrap"><div class="log" id="log"></div></div>
+      </section>
+    </main>
+
+    <footer>
+      <button class="btn ghost" id="minBtn"><svg class="ic"><use href="#i-minimize" /></svg> تصغير للخلفية</button>
+      <button class="btn ghost danger" id="quitBtn"><svg class="ic"><use href="#i-power" /></svg> خروج</button>
+    </footer>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

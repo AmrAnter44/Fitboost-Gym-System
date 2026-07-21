@@ -1,0 +1,54 @@
+{
+  "name": "fit-boost-server-management",
+  "version": "1.0.0",
+  "description": "Fit Boost Server Management — portable Electron app that runs a Cloudflare tunnel 24/7 with auto-restart, keep-awake, in-app tunnel creation and a live progress bar.",
+  "main": "src/main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "fetch:cloudflared": "node scripts/fetch-cloudflared.js",
+    "fetch:win": "node scripts/fetch-cloudflared.js win",
+    "dist:dir": "node scripts/fetch-cloudflared.js win && electron-builder --win dir --x64",
+    "dist:portable": "node scripts/fetch-cloudflared.js win && electron-builder --win portable --x64"
+  },
+  "build": {
+    "appId": "com.fitboost.servermanagement",
+    "productName": "Fit Boost Server Management",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "config.json",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/cloudflared.exe",
+        "to": "cloudflared.exe"
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "config.json",
+        "to": "config.json"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "FitBoostServerManagement-portable.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  }
+}

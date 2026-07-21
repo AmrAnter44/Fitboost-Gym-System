@@ -47,11 +47,20 @@ export async function register() {
 
     // نسخة احتياطية يومية تلقائية للـ DB — بتتأكد كل 6 ساعات وبتاخد نسخة لو عدّى
     // يوم على آخر واحدة (رخيصة لو مش مستحقة). أول تشغيل بعد دقيقة من الإقلاع.
+    // وبعد النسخة المحلية بنرفع نسخة سحابية لـ B2 (لو مفعّل ومتظبط ومستحق) —
+    // بنعيد استخدام نفس الـ snapshot اللي اتعمل بدل VACUUM جديد.
     const { runDailyBackupIfDue } = await import('./lib/autoBackup')
-    const backupTick = () => {
-      runDailyBackupIfDue()
-        .then((r) => { if (r.backed) console.log('[autoBackup] daily backup created') })
-        .catch((err) => console.error('[autoBackup] worker error:', err?.message || err))
+    const { runCloudBackupIfDue } = await import('./lib/cloudBackup')
+    const backupTick = async () => {
+      try {
+        const r = await runDailyBackupIfDue()
+        if (r.backed) console.log('[autoBackup] daily backup created')
+        const cloud = await runCloudBackupIfDue(r.backed ? r.path : undefined)
+        if (cloud.ok) console.log('[cloudBackup] uploaded to B2:', cloud.remoteName)
+        else if (cloud.reason === 'error') console.error('[cloudBackup] upload failed:', cloud.error)
+      } catch (err: any) {
+        console.error('[autoBackup] worker error:', err?.message || err)
+      }
     }
     setTimeout(backupTick, 60_000)
     setInterval(backupTick, 6 * 60 * 60 * 1000)
