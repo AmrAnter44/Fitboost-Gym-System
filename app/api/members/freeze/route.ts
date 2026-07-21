@@ -15,7 +15,10 @@ export async function POST(request: Request) {
     const user = await requireAnyPermission(request, ['canEditMembers', 'canCreateMembers'])
 
     const body = await request.json()
-    const { memberId, freezeDays } = body
+    //  isBack = باك فريز (تجميد بأثر رجعي لفترة غياب الميمبر من غير ما عمل فريز)
+    //  backStartDate = تاريخ آخر حضور (بداية الغياب) — اختياري، للتسجيل بس
+    const { memberId, freezeDays, isBack, backStartDate } = body
+    const isBackFreeze = isBack === true
 
 
     // 1. التحقق من البيانات المطلوبة
@@ -79,21 +82,42 @@ export async function POST(request: Request) {
 
 
     // 8. تحديث بيانات العضو وتسجيل طلب التجميد
-    const freezeStartDate = new Date()
-    const freezeEndDate = new Date(freezeStartDate)
-    freezeEndDate.setDate(freezeEndDate.getDate() + daysToFreeze)
+    //  الباك فريز: الفترة كانت في الماضي (الغياب) — من آخر حضور لغاية النهاردة.
+    //  التجميد العادي: يبدأ من دلوقتي.
+    let freezeStartDate: Date
+    let freezeEndDate: Date
+    if (isBackFreeze) {
+      freezeEndDate = new Date() // النهاردة
+      freezeStartDate = backStartDate ? new Date(backStartDate) : new Date(freezeEndDate)
+      if (!backStartDate) freezeStartDate.setDate(freezeStartDate.getDate() - daysToFreeze)
+    } else {
+      freezeStartDate = new Date()
+      freezeEndDate = new Date(freezeStartDate)
+      freezeEndDate.setDate(freezeEndDate.getDate() + daysToFreeze)
+    }
 
     // تحديث العضو + إنشاء طلب التجميد في transaction واحد عشان ميحصلش
     // إن الأيام تتخصم من غير ما يتسجّل طلب (اللي بيكسر الـ unfreeze).
     const updatedMember = await prisma.$transaction(async (tx) => {
+      //  الباك فريز مبيخليش العضو مجمّد (هو راجع/حاضر) — بس بيمد الاشتراك بأيام الغياب.
+      //  التجميد العادي بيخلي العضو مجمّد لحد ما يتعمل unfreeze.
+      const memberData: any = {
+        expiryDate: newExpiryDate,
+        remainingFreezeDays: newRemainingFreezeDays,
+      }
+      if (isBackFreeze) {
+        //  نعيد حساب النشاط حسب تاريخ الانتهاء الجديد (العضو راجع مش مجمّد)
+        const today = new Date(); today.setHours(0, 0, 0, 0)
+        const exp = new Date(newExpiryDate); exp.setHours(0, 0, 0, 0)
+        memberData.isActive = exp >= today
+      } else {
+        memberData.isFrozen = true
+        memberData.isActive = true
+      }
+
       const um = await tx.member.update({
         where: { id: memberId },
-        data: {
-          expiryDate: newExpiryDate,
-          remainingFreezeDays: newRemainingFreezeDays,
-          isFrozen: true,
-          isActive: true
-        }
+        data: memberData,
       })
       await tx.freezeRequest.create({
         data: {
@@ -102,8 +126,9 @@ export async function POST(request: Request) {
           endDate: freezeEndDate,
           days: daysToFreeze,
           status: 'approved',
-          reason: 'تجميد مباشر'
-        }
+          reason: isBackFreeze ? 'باك فريز — غياب بدون تجميد' : 'تجميد مباشر',
+          isBack: isBackFreeze,
+        } as any,
       })
       return um
     })
@@ -111,14 +136,16 @@ export async function POST(request: Request) {
     createAuditLog({
       userId: user.userId, userEmail: user.email, userName: user.name, userRole: user.role,
       action: 'UPDATE', resource: 'Member', resourceId: member.id,
-      details: { operation: 'Freeze', memberNumber: member.memberNumber, memberName: member.name, freezeDays: daysToFreeze, oldExpiryDate: currentExpiryDate.toISOString().split('T')[0], newExpiryDate: newExpiryDate.toISOString().split('T')[0] },
+      details: { operation: isBackFreeze ? 'BackFreeze' : 'Freeze', memberNumber: member.memberNumber, memberName: member.name, freezeDays: daysToFreeze, oldExpiryDate: currentExpiryDate.toISOString().split('T')[0], newExpiryDate: newExpiryDate.toISOString().split('T')[0] },
       ipAddress: getIpAddress(request), userAgent: getUserAgent(request), status: 'success'
     })
 
     // 9. إرجاع النتيجة
     return NextResponse.json({
       success: true,
-      message: `تم تجميد الاشتراك لمدة ${daysToFreeze} يوم بنجاح`,
+      message: isBackFreeze
+        ? `تم عمل باك فريز ومد الاشتراك ${daysToFreeze} يوم (فترة الغياب) بنجاح`
+        : `تم تجميد الاشتراك لمدة ${daysToFreeze} يوم بنجاح`,
       member: {
         id: updatedMember.id,
         name: updatedMember.name,
@@ -191,8 +218,9 @@ export async function PUT(request: Request) {
     }
 
     // 4. حساب الأيام الفعلية المستخدمة وإرجاع الزيادة
+    //  نتجاهل الباك فريز — هو تجميد ماضي مالوش أيام مستقبلية ترجّع
     const latestFreeze = await prisma.freezeRequest.findFirst({
-      where: { memberId, status: 'approved' },
+      where: { memberId, status: 'approved', isBack: false } as any,
       orderBy: { startDate: 'desc' }
     })
 

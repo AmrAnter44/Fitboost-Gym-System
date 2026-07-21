@@ -31,10 +31,11 @@ export async function GET(
         days: true,
         reason: true,
         status: true,
+        isBack: true,
         approvedBy: true,
         approvedAt: true,
         createdAt: true
-      }
+      } as any
     })
 
     return NextResponse.json(history)

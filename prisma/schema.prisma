@@ -880,6 +880,9 @@ model FreezeRequest {
   // الحالة
   status      String    @default("pending")  // pending, approved, rejected
 
+  //  باك فريز: تجميد بأثر رجعي لفترة غياب الميمبر (من غير ما يعمل فريز وقتها)
+  isBack      Boolean   @default(false)
+
   // من وافق/رفض
   approvedBy  String?   // اسم الموظف/المدير
   approvedAt  DateTime?

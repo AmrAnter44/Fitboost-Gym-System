@@ -261,6 +261,13 @@ export default function MemberDetailPage() {
  reason: ''
  })
 
+ //  باك فريز — تجميد بأثر رجعي لفترة غياب الميمبر (من آخر حضور لغاية النهاردة)
+ const [backFreezeData, setBackFreezeData] = useState<{ days: number; lastCheckIn: string | null; loading: boolean }>({
+ days: 0,
+ lastCheckIn: null,
+ loading: false,
+ })
+
  const [invitationData, setInvitationData] = useState({
  guestName: '',
  guestPhone: '',
@@ -1456,6 +1463,68 @@ export default function MemberDetailPage() {
  }
  }
 
+ //  فتح مودال الباك فريز — بيجيب آخر حضور ويحسب أيام الغياب تلقائي
+ const openBackFreeze = async () => {
+ if (!member) return
+ setBackFreezeData({ days: 0, lastCheckIn: null, loading: true })
+ setActiveModal('backFreeze')
+ try {
+ const res = await fetch(`/api/member-checkin?memberId=${member.id}`)
+ if (res.ok) {
+ const data = await res.json()
+ const last = data?.checkIn?.checkInTime || null
+ let days = 0
+ if (last) {
+ const lastDate = new Date(last); lastDate.setHours(0, 0, 0, 0)
+ const today = new Date(); today.setHours(0, 0, 0, 0)
+ days = Math.max(0, Math.round((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)))
+ }
+ setBackFreezeData({ days, lastCheckIn: last, loading: false })
+ } else {
+ setBackFreezeData({ days: 0, lastCheckIn: null, loading: false })
+ }
+ } catch {
+ setBackFreezeData({ days: 0, lastCheckIn: null, loading: false })
+ }
+ }
+
+ const handleBackFreeze = async () => {
+ if (!member || !member.expiryDate || backFreezeData.days <= 0) {
+ toast.warning(locale === 'ar' ? 'عدد أيام الغياب لازم يكون أكبر من صفر' : 'Absence days must be greater than zero')
+ return
+ }
+ if (backFreezeData.days > member.remainingFreezeDays) {
+ toast.error(`رصيد الفريز غير كافٍ. المتاح: ${member.remainingFreezeDays} يوم`)
+ return
+ }
+ setLoading(true)
+ try {
+ const response = await fetch('/api/members/freeze', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ memberId: member.id,
+ freezeDays: backFreezeData.days,
+ isBack: true,
+ backStartDate: backFreezeData.lastCheckIn || undefined,
+ })
+ })
+ const result = await response.json()
+ if (response.ok) {
+ toast.success(result.message || (locale === 'ar' ? 'تم عمل باك فريز بنجاح' : 'Back freeze done'))
+ setActiveModal(null)
+ fetchMember()
+ fetchFreezeHistory()
+ } else {
+ toast.error(result.error || (locale === 'ar' ? 'فشل الباك فريز' : 'Back freeze failed'))
+ }
+ } catch {
+ toast.error(t('memberDetails.error'))
+ } finally {
+ setLoading(false)
+ }
+ }
+
  const handleUnfreeze = () => {
  if (!member) return
  setActiveModal('unfreeze')
@@ -2377,13 +2446,23 @@ export default function MemberDetailPage() {
  {loading ? (locale === 'ar' ? '...' : '...') : (locale === 'ar' ? 'فك التجميد' : 'Unfreeze')}
  </button>
  ) : (
+ <div className="grid grid-cols-2 gap-1.5">
  <button
  onClick={() => setActiveModal('freeze')}
  disabled={!member.expiryDate || loading || (member.remainingFreezeDays ?? 0) <= 0}
- className="w-full bg-cyan-600 text-white text-xs py-1.5 rounded hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+ className="bg-cyan-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
  >
- {t('memberDetails.freezeSubscription')}
+ {locale === 'ar' ? 'تجميد' : 'Freeze'}
  </button>
+ <button
+ onClick={openBackFreeze}
+ disabled={!member.expiryDate || loading || (member.remainingFreezeDays ?? 0) <= 0}
+ title={locale === 'ar' ? 'تجميد بأثر رجعي لفترة غياب الميمبر' : 'Retroactive freeze for absence'}
+ className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-200 dark:ring-indigo-700 text-xs font-bold py-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+ >
+ {locale === 'ar' ? 'باك فريز' : 'Back Freeze'}
+ </button>
+ </div>
  )}
  </div>
  </div>
@@ -3437,6 +3516,90 @@ export default function MemberDetailPage() {
  </div>
  )}
 
+ {/* Back Freeze Modal — تجميد بأثر رجعي لفترة الغياب */}
+ {activeModal === 'backFreeze' && member && (
+ <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null) }}>
+ <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6" dir={direction}>
+ <div className="flex justify-between items-center mb-5">
+ <div>
+ <h3 className="text-2xl font-bold dark:text-white">{locale === 'ar' ? 'باك فريز' : 'Back Freeze'}</h3>
+ <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{locale === 'ar' ? 'تجميد بأثر رجعي لفترة غياب الميمبر' : 'Retroactive freeze for the absence period'}</p>
+ </div>
+ <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-3xl">×</button>
+ </div>
+
+ {backFreezeData.loading ? (
+ <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+ <div className="w-8 h-8 ring-1 ring-indigo-200 border-t-indigo-500 rounded-full animate-spin mx-auto mb-2" />
+ {locale === 'ar' ? 'بنحسب فترة الغياب...' : 'Computing absence...'}
+ </div>
+ ) : (
+ <div className="space-y-4">
+ {/* آخر حضور */}
+ <div className="bg-indigo-50 dark:bg-indigo-900/20 border-s-4 border-indigo-500 dark:border-indigo-700 p-4 rounded-lg">
+ <p className="text-sm text-indigo-800 dark:text-indigo-300">
+ {locale === 'ar' ? 'آخر حضور مسجّل' : 'Last check-in'}: <strong>{backFreezeData.lastCheckIn ? formatDateYMD(backFreezeData.lastCheckIn) : (locale === 'ar' ? 'مفيش حضور مسجّل' : 'No check-in recorded')}</strong>
+ </p>
+ <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+ {locale === 'ar' ? 'أيام الغياب اتحسبت من آخر حضور لغاية النهاردة — الفترة دي مفيهاش أي حضور.' : 'Absence computed from last check-in to today.'}
+ </p>
+ </div>
+
+ {/* رصيد الفريز */}
+ <div className="bg-cyan-50 dark:bg-cyan-900/20 border-s-4 border-cyan-500 dark:border-cyan-700 p-3 rounded-lg">
+ <p className="text-sm text-cyan-800 dark:text-cyan-300">
+ {locale === 'ar' ? 'رصيد الفريز المتاح' : 'Available freeze days'}: <strong className="text-lg">{member.remainingFreezeDays ?? 0}</strong>
+ </p>
+ </div>
+
+ <div>
+ <label className="block text-sm font-medium mb-2 dark:text-white">
+ {locale === 'ar' ? 'عدد أيام الغياب' : 'Absence days'} <span className="text-red-600">*</span>
+ </label>
+ <input
+ type="number"
+ value={backFreezeData.days}
+ onChange={(e) => setBackFreezeData({ ...backFreezeData, days: parseInt(e.target.value) || 0 })}
+ min="1"
+ max={member.remainingFreezeDays ?? 0}
+ className="w-full px-4 py-3 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white text-xl"
+ placeholder="0"
+ />
+ <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+ {locale === 'ar' ? `الحد الأقصى ${member.remainingFreezeDays ?? 0} يوم (رصيد الفريز)` : `Max ${member.remainingFreezeDays ?? 0} days`}
+ </p>
+ </div>
+
+ {backFreezeData.days > 0 && member.expiryDate && (
+ <div className="bg-green-50 dark:bg-green-900/30 ring-1 ring-green-300 dark:ring-green-700/60 rounded-lg p-4">
+ <p className="text-sm text-green-800 dark:text-green-300 mb-1">{locale === 'ar' ? 'تاريخ الانتهاء بعد الباك فريز' : 'New expiry after back freeze'}:</p>
+ <p className="text-xl font-bold text-green-600 dark:text-green-400">
+ {formatDateYMD(new Date(new Date(member.expiryDate).getTime() + backFreezeData.days * 24 * 60 * 60 * 1000))}
+ </p>
+ <p className="text-xs text-green-700 dark:text-green-400 mt-2">
+ {locale === 'ar' ? `هيتمد ${backFreezeData.days} يوم · الرصيد بعدها: ${(member.remainingFreezeDays ?? 0) - backFreezeData.days} يوم` : `+${backFreezeData.days} days · balance after: ${(member.remainingFreezeDays ?? 0) - backFreezeData.days}`}
+ </p>
+ </div>
+ )}
+
+ <div className="flex gap-3 pt-1">
+ <button
+ onClick={handleBackFreeze}
+ disabled={loading || backFreezeData.days <= 0 || backFreezeData.days > (member.remainingFreezeDays ?? 0)}
+ className="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 font-bold"
+ >
+ {loading ? t('common.processing') : (locale === 'ar' ? 'تأكيد الباك فريز' : 'Confirm Back Freeze')}
+ </button>
+ <button onClick={() => setActiveModal(null)} className="px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+ {t('common.cancel')}
+ </button>
+ </div>
+ </div>
+ )}
+ </div>
+ </div>
+ )}
+
  {/* Unfreeze Modal */}
  {activeModal === 'unfreeze' && member && (
  <div
@@ -4193,7 +4356,11 @@ export default function MemberDetailPage() {
  return (
  <div
  key={entry.id}
- className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 ring-1 ring-cyan-200 dark:ring-cyan-700/60 rounded-lg p-4"
+ className={`bg-gradient-to-r rounded-lg p-4 ring-1 ${
+ entry.isBack
+ ? 'from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 ring-indigo-200 dark:ring-indigo-700/60'
+ : 'from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 ring-cyan-200 dark:ring-cyan-700/60'
+ }`}
  >
  <div className="flex items-start justify-between gap-3">
  <div className="flex-1">
@@ -4203,6 +4370,11 @@ export default function MemberDetailPage() {
  {' → '}
  {new Date(entry.endDate).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
  </span>
+ {entry.isBack && (
+ <span className="bg-indigo-600 text-white text-[11px] px-2 py-0.5 rounded-full font-bold">
+ {locale === 'ar' ? 'باك فريز' : 'Back'}
+ </span>
+ )}
  <span className={`${statusColor} text-white text-[11px] px-2 py-0.5 rounded-full font-bold`}>{statusLabel}</span>
  </div>
  {entry.reason && (
@@ -4218,7 +4390,7 @@ export default function MemberDetailPage() {
  </p>
  </div>
  <div className="text-center shrink-0">
- <div className="bg-cyan-600 dark:bg-cyan-700 text-white px-4 py-2 rounded-lg shadow-md">
+ <div className={`${entry.isBack ? 'bg-indigo-600 dark:bg-indigo-700' : 'bg-cyan-600 dark:bg-cyan-700'} text-white px-4 py-2 rounded-lg shadow-md`}>
  <p className="text-2xl font-bold">{entry.days}</p>
  <p className="text-xs opacity-90">{t('common.day')}</p>
  </div>

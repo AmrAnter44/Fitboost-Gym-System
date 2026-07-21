@@ -621,6 +621,7 @@ function migrateDatabase(dbPath) {
           days INTEGER NOT NULL,
           reason TEXT,
           status TEXT NOT NULL DEFAULT 'pending',
+          isBack INTEGER NOT NULL DEFAULT 0,
           approvedBy TEXT,
           approvedAt DATETIME,
           createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
@@ -631,6 +632,10 @@ function migrateDatabase(dbPath) {
         CREATE INDEX IF NOT EXISTS FreezeRequest_startDate_idx ON FreezeRequest(startDate);
       `);
     } else {
+      //  عمود الباك فريز للقواعد الموجودة
+      if (!columnExists(db, 'FreezeRequest', 'isBack')) {
+        db.prepare("ALTER TABLE FreezeRequest ADD COLUMN isBack INTEGER NOT NULL DEFAULT 0").run();
+      }
     }
 
     // PointsHistory — نظام النقاط

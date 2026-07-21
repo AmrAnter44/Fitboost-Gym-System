@@ -7,6 +7,7 @@ import { usePermissions } from '../hooks/usePermissions'
 import type { Permissions } from '../types/permissions'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useSearch } from '../contexts/SearchContext'
+import { useToast } from '../contexts/ToastContext'
 import NotificationsCenter from './NotificationsCenter'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 
@@ -64,6 +65,9 @@ const Icon = {
   logout: (
     <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6a2 2 0 012 2v1" /></svg>
   ),
+  key: (
+    <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
+  ),
   search: (
     <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
   ),
@@ -90,9 +94,57 @@ export default function Navbar() {
   const { hasPermission, user, loading } = usePermissions()
   const { t, locale } = useLanguage()
   const { settings } = useServiceSettings()
+  const toast = useToast()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
   const [drawerClosing, setDrawerClosing] = useState(false)
+
+  //  تغيير كلمة السر (self-service)
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [pwForm, setPwForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
+  const [pwLoading, setPwLoading] = useState(false)
+
+  const openChangePassword = () => {
+    setPwForm({ oldPassword: '', newPassword: '', confirmPassword: '' })
+    setShowUserMenu(false)
+    setShowDrawer(false)
+    setShowChangePassword(true)
+  }
+
+  const handleChangePassword = async () => {
+    if (!pwForm.oldPassword || !pwForm.newPassword) {
+      toast.warning(locale === 'ar' ? 'اكتب كلمة السر القديمة والجديدة' : 'Enter old and new password')
+      return
+    }
+    if (pwForm.newPassword.length < 8) {
+      toast.error(locale === 'ar' ? 'كلمة السر الجديدة لازم 8 أحرف على الأقل' : 'New password must be at least 8 characters')
+      return
+    }
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      toast.error(locale === 'ar' ? 'تأكيد كلمة السر مش مطابق' : 'Password confirmation does not match')
+      return
+    }
+    setPwLoading(true)
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword: pwForm.oldPassword, newPassword: pwForm.newPassword }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message || (locale === 'ar' ? 'تم تغيير كلمة السر' : 'Password changed'))
+        setShowChangePassword(false)
+        setPwForm({ oldPassword: '', newPassword: '', confirmPassword: '' })
+      } else {
+        toast.error(data.error || (locale === 'ar' ? 'فشل تغيير كلمة السر' : 'Failed to change password'))
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error')
+    } finally {
+      setPwLoading(false)
+    }
+  }
 
   const closeDrawer = () => {
     setDrawerClosing(true)
@@ -282,6 +334,14 @@ export default function Navbar() {
                             </>
                           )}
 
+                          <button
+                            onClick={openChangePassword}
+                            className="w-full px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors duration-200 flex items-center gap-2 text-start text-sm"
+                          >
+                            {Icon.key}
+                            <span>{locale === 'ar' ? 'تغيير كلمة السر' : 'Change Password'}</span>
+                          </button>
+
                           <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
 
                           <button
@@ -394,6 +454,14 @@ export default function Navbar() {
                   )}
 
                   <button
+                    onClick={openChangePassword}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200 mb-2 text-sm font-bold"
+                  >
+                    {Icon.key}
+                    <span>{locale === 'ar' ? 'تغيير كلمة السر' : 'Change Password'}</span>
+                  </button>
+
+                  <button
                     onClick={handleLogout}
                     className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
                   >
@@ -405,6 +473,96 @@ export default function Navbar() {
             )}
           </div>
         </>
+      )}
+
+      {/* مودال تغيير كلمة السر */}
+      {showChangePassword && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          onClick={(e) => { if (e.target === e.currentTarget && !pwLoading) setShowChangePassword(false) }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex w-9 h-9 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
+                  {Icon.key}
+                </span>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {locale === 'ar' ? 'تغيير كلمة السر' : 'Change Password'}
+                </h3>
+              </div>
+              <button
+                onClick={() => !pwLoading && setShowChangePassword(false)}
+                aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleChangePassword() }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {locale === 'ar' ? 'كلمة السر الحالية' : 'Current password'}
+                </label>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={pwForm.oldPassword}
+                  onChange={(e) => setPwForm({ ...pwForm, oldPassword: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="••••••••"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {locale === 'ar' ? 'كلمة السر الجديدة' : 'New password'}
+                </label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={pwForm.newPassword}
+                  onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="••••••••"
+                />
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                  {locale === 'ar' ? '8 أحرف على الأقل، وتحتوي على حروف وأرقام' : 'At least 8 chars, with letters and numbers'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  {locale === 'ar' ? 'تأكيد كلمة السر الجديدة' : 'Confirm new password'}
+                </label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={pwForm.confirmPassword}
+                  onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={pwLoading}
+                  className="flex-1 bg-primary-600 text-primary-contrast py-2.5 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 font-bold"
+                >
+                  {pwLoading ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (locale === 'ar' ? 'حفظ' : 'Save')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => !pwLoading && setShowChangePassword(false)}
+                  className="px-5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+                >
+                  {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <style jsx global>{`
