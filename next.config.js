@@ -118,7 +118,16 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:4001',
     NEXT_PUBLIC_DOMAIN: process.env.NEXT_PUBLIC_DOMAIN || 'system.xgym.website',
-    NEXT_PUBLIC_APP_VERSION: require('./package.json').version
+    NEXT_PUBLIC_APP_VERSION: require('./package.json').version,
+
+    // ☁️ مفاتيح Backblaze B2 — بتتـinline وقت الـ build من .env بتاع جهاز الـ build.
+    // كده بتتحفر جوه النسخة وتوصل لكل الـ 15 جهاز (وأي تنصيب جديد) أوتوماتيك بالتحديث،
+    // من غير ما تلمس أي جهاز. المفتاح "رفع فقط" فتحفيره جوه التطبيق مخاطرته قليلة.
+    // ملاحظة: لأنها server-side وبيرجّع لها cloudBackup.ts بس، مش بتظهر في bundle المتصفح.
+    B2_KEY_ID: process.env.B2_KEY_ID || '',
+    B2_APPLICATION_KEY: process.env.B2_APPLICATION_KEY || '',
+    B2_BUCKET_ID: process.env.B2_BUCKET_ID || '',
+    B2_BUCKET_NAME: process.env.B2_BUCKET_NAME || 'fitboost-backups'
   },
 
   // Experimental features

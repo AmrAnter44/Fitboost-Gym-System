@@ -108,6 +108,8 @@ export default function DatabaseSettings() {
   const [cloudToggling, setCloudToggling] = useState(false);
   const [cloudUploading, setCloudUploading] = useState(false);
   const [cloudMsg, setCloudMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // قسم النسخ السحابي للأونر بس — نتحقق من دور المستخدم الحالي
+  const [isOwner, setIsOwner] = useState(false);
 
   const fetchCloud = async () => {
     setCloudLoading(true);
@@ -192,7 +194,16 @@ export default function DatabaseSettings() {
 
   useEffect(() => {
     fetchCleanupInfo();
-    fetchCloud();
+    // نجيب دور المستخدم الأول؛ قسم النسخ السحابي وبياناته للأونر بس
+    fetch('/api/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.user?.role === 'OWNER') {
+          setIsOwner(true);
+          fetchCloud();
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleRunCleanup = async () => {
@@ -411,7 +422,8 @@ export default function DatabaseSettings() {
 
   return (
     <div className="space-y-6">
-      {/* ☁️ النسخ الاحتياطي السحابي */}
+      {/* ☁️ النسخ الاحتياطي السحابي — للأونر فقط */}
+      {isOwner && (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-6 py-5 bg-gradient-to-l from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
@@ -587,6 +599,7 @@ export default function DatabaseSettings() {
           )}
         </div>
       </div>
+      )}
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
