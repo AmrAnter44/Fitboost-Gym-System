@@ -85,7 +85,7 @@ async function updateSettings(request: Request) {
     const updateData: any = {}
     const validFields = [
       'nutritionEnabled', 'physiotherapyEnabled', 'groupClassEnabled',
-      'spaEnabled', 'inBodyEnabled', 'poolEnabled', 'padelEnabled', 'assessmentEnabled', 'pointsEnabled',
+      'spaEnabled', 'inBodyEnabled', 'poolEnabled', 'padelEnabled', 'assessmentEnabled', 'lostFoundEnabled', 'pointsEnabled',
       'pointsPerCheckIn', 'pointsPerInvitation', 'pointsPerReferral',
       'pointsValueInEGP', 'pointsPerEGPSpent',
       'websiteUrl', 'showWebsiteOnReceipts', 'receiptTerms',

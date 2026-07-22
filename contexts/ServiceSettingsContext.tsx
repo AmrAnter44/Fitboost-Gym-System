@@ -13,6 +13,7 @@ interface ServiceSettings {
   poolEnabled: boolean
   padelEnabled: boolean
   assessmentEnabled: boolean
+  lostFoundEnabled: boolean
   pointsEnabled: boolean
   pointsPerCheckIn: number
   pointsPerInvitation: number
@@ -62,6 +63,7 @@ function parseSettings(data: any): ServiceSettings {
     poolEnabled: data.poolEnabled ?? true,
     padelEnabled: data.padelEnabled ?? true,
     assessmentEnabled: data.assessmentEnabled ?? true,
+    lostFoundEnabled: data.lostFoundEnabled ?? true,
     pointsEnabled: data.pointsEnabled,
     pointsPerCheckIn: data.pointsPerCheckIn,
     pointsPerInvitation: data.pointsPerInvitation,
@@ -146,6 +148,7 @@ function getDefaultSettings(): ServiceSettings {
     poolEnabled: true,
     padelEnabled: true,
     assessmentEnabled: true,
+    lostFoundEnabled: true,
     pointsEnabled: true,
     pointsPerCheckIn: 1,
     pointsPerInvitation: 2,

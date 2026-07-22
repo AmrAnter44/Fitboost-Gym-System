@@ -64,6 +64,11 @@ const IconPhone = (p: { className?: string }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
   </svg>
 )
+const IconPencil = (p: { className?: string }) => (
+  <svg {...stroke} className={p.className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+  </svg>
+)
 const IconCalendar = (p: { className?: string }) => (
   <svg {...stroke} className={p.className} aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -128,6 +133,34 @@ export default function HomePage() {
     expiringIn3Days: 0,
     pendingFollowups: 0,
   })
+
+  //  مكالمات السيلز النهاردة (للسيلز والأدمن)
+  const [calls, setCalls] = useState({
+    today: 0,
+    notInterested: 0,
+    noAnswer: 0,
+  })
+
+  //  تارجت المكالمات اليومي + تقدّم الفريق
+  const [salesCalls, setSalesCalls] = useState<any>(null)
+  const [editingTarget, setEditingTarget] = useState(false)
+  const [targetInput, setTargetInput] = useState('')
+
+  const saveCallTarget = async () => {
+    const t = Math.max(0, parseInt(targetInput) || 0)
+    try {
+      const res = await fetch('/api/dashboard/sales-calls', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target: t }),
+      })
+      if (res.ok) {
+        const d = await res.json()
+        setSalesCalls((prev: any) => (prev ? { ...prev, target: d.target } : prev))
+        setEditingTarget(false)
+      }
+    } catch { /* ignore */ }
+  }
 
   const [revenueChartData, setRevenueChartData] = useState<any[]>([])
   const [attendanceChartData, setAttendanceChartData] = useState<any[]>([])
@@ -218,12 +251,19 @@ export default function HomePage() {
       weekStart.setDate(weekStart.getDate() - 6)
       const todayFormatted = new Date().toISOString().split('T')[0]
 
-      const [summaryRes, statsRes, yesterdayCheckInsRes, historyRes] = await Promise.all([
+      const [summaryRes, statsRes, yesterdayCheckInsRes, historyRes, salesCallsRes] = await Promise.all([
         fetch('/api/dashboard/summary'),
         fetch('/api/member-checkin/stats'),
         fetch(`/api/member-checkin/history?startDate=${yesterdayDateFormatted}&endDate=${yesterdayDateFormatted}`),
         fetch(`/api/member-checkin/history?startDate=${weekStart.toISOString().split('T')[0]}&endDate=${todayFormatted}`),
+        fetch('/api/dashboard/sales-calls'),
       ])
+
+      //  تارجت المكالمات — بيظهر بس لو enabled (سيلز/أدمن)
+      try {
+        const sc = salesCallsRes.ok ? await salesCallsRes.json() : null
+        setSalesCalls(sc?.enabled ? sc : null)
+      } catch { setSalesCalls(null) }
 
       const summary = summaryRes.ok ? await summaryRes.json() : null
       const statsData = statsRes.ok ? await statsRes.json() : {}
@@ -254,6 +294,12 @@ export default function HomePage() {
         expiringToday: summary.expiringToday,
         expiringIn3Days: summary.expiringIn3Days,
         pendingFollowups: summary.pendingFollowups,
+      })
+
+      setCalls({
+        today: summary.callsToday ?? 0,
+        notInterested: summary.callsNotInterestedToday ?? 0,
+        noAnswer: summary.callsNoAnswerToday ?? 0,
       })
 
       // رسم الإيرادات: السيرفر بيرجع الأيام اللي فيها إيصالات — بنكمّل الأيام الفاضية بصفر
@@ -348,7 +394,7 @@ export default function HomePage() {
     trend?: React.ReactNode
   }
   const StatCard = ({ label, value, sub, icon, trend }: StatCardProps) => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+    <div className="h-full bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</div>
@@ -602,7 +648,7 @@ export default function HomePage() {
         )}
 
         {/* Stat cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8 items-stretch">
           <StatCard
             label={t('dashboard.totalMembers')}
             value={stats.members}
@@ -644,6 +690,154 @@ export default function HomePage() {
             />
           )}
         </div>
+
+        {/*  مكالمات السيلز النهاردة — كارت واحد مدمج (للسيلز والأدمن/الأونر) */}
+        {(user?.isSales || user?.role === 'OWNER' || user?.role === 'ADMIN') && (
+          <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400">
+                  <IconPhone className="w-4 h-4" />
+                </span>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {locale === 'ar' ? 'مكالمات السيلز اليوم' : "Today's Sales Calls"}
+                </h2>
+              </div>
+              {/* الأدمن يعدّل التارجت */}
+              {salesCalls?.isAdmin && (
+                editingTarget ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      value={targetInput}
+                      onChange={(e) => setTargetInput(e.target.value)}
+                      className="w-20 px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                      autoFocus
+                    />
+                    <button onClick={saveCallTarget} className="px-3 py-1.5 rounded-lg bg-primary-600 text-primary-contrast text-sm font-bold hover:bg-primary-700">
+                      {locale === 'ar' ? 'حفظ' : 'Save'}
+                    </button>
+                    <button onClick={() => setEditingTarget(false)} className="px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm font-bold">
+                      {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setTargetInput(String(salesCalls.target || 0)); setEditingTarget(true) }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-bold hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    <IconPencil className="w-4 h-4" />
+                    {locale === 'ar' ? `التارجت: ${salesCalls.target}/يوم` : `Target: ${salesCalls.target}/day`}
+                  </button>
+                )
+              )}
+            </div>
+
+            {/* 3 أرقام مصغّرة */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-700/40 ring-1 ring-gray-100 dark:ring-gray-700 p-3 text-center">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{calls.today}</div>
+                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-0.5">{locale === 'ar' ? 'إجمالي المكالمات' : 'Total calls'}</div>
+              </div>
+              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 ring-1 ring-red-100 dark:ring-red-900/40 p-3 text-center">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums">{calls.notInterested}</div>
+                <div className="text-[11px] font-semibold text-red-500/90 dark:text-red-400/80 mt-0.5">{locale === 'ar' ? 'مش مهتم' : 'Not interested'}</div>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-700/40 ring-1 ring-gray-100 dark:ring-gray-700 p-3 text-center">
+                <div className="text-2xl font-bold text-gray-600 dark:text-gray-300 tabular-nums">{calls.noAnswer}</div>
+                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-0.5">{locale === 'ar' ? 'لم يرد' : 'No answer'}</div>
+              </div>
+            </div>
+
+            {/* التقدّم مقابل التارجت */}
+            {salesCalls && (
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                {/* موظف السيلز — تقدّمه هو */}
+                {salesCalls.isSales && (() => {
+                  const done = salesCalls.myCallsToday || 0
+                  const target = salesCalls.target || 0
+                  const remaining = Math.max(0, target - done)
+                  const pct = target > 0 ? Math.min(100, Math.round((done / target) * 100)) : 0
+                  const reached = target > 0 && done >= target
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1.5">
+                        <span className="font-bold text-gray-700 dark:text-gray-200">
+                          {reached
+                            ? (locale === 'ar' ? '🎉 خلّصت تارجت النهاردة!' : '🎉 Target reached!')
+                            : (locale === 'ar' ? `المطلوب اليومي · باقي ${remaining} مكالمة` : `Daily target · ${remaining} left`)}
+                        </span>
+                        <span className="font-bold text-gray-900 dark:text-gray-100 tabular-nums">{done} / {target}</span>
+                      </div>
+                      <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className={`h-3 rounded-full transition-all ${reached ? 'bg-emerald-500' : 'bg-primary-500'}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* الأدمن — تقدّم كل الفريق */}
+                {salesCalls.isAdmin && (
+                  <>
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2.5">
+                      {locale === 'ar' ? 'تقدّم الفريق مقابل التارجت' : 'Team vs target'}
+                    </p>
+                    {salesCalls.perRep && salesCalls.perRep.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 items-stretch">
+                        {salesCalls.perRep.map((rep: any) => {
+                          const target = salesCalls.target || 0
+                          const pctRaw = target > 0 ? (rep.calls / target) * 100 : 0
+                          const pct = Math.min(100, pctRaw)
+                          const pctLabel = Math.round(pctRaw)
+                          const reached = target > 0 && rep.calls >= target
+                          const remaining = Math.max(0, target - rep.calls)
+                          //  r=15.9155 → المحيط = 100 فالـ dasharray بيبقى نسبة مباشرة
+                          const ringColor = reached ? 'text-emerald-500' : 'text-indigo-500 dark:text-indigo-400'
+                          return (
+                            <div
+                              key={rep.staffId}
+                              className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gray-50/70 dark:bg-gray-700/30 ring-1 ring-gray-100 dark:ring-gray-700 hover:ring-indigo-200 dark:hover:ring-indigo-800 hover:shadow-sm transition"
+                            >
+                              <div className="relative w-16 h-16">
+                                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                                  <circle cx="18" cy="18" r="15.9155" fill="none" strokeWidth="3"
+                                    className="stroke-gray-200/80 dark:stroke-gray-600/60" />
+                                  <circle cx="18" cy="18" r="15.9155" fill="none" strokeWidth="3" strokeLinecap="round"
+                                    className={`${ringColor} transition-all duration-700 ease-out`}
+                                    stroke="currentColor"
+                                    strokeDasharray={`${pct} 100`} />
+                                </svg>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                  <span className="text-xl font-black text-gray-900 dark:text-gray-100 tabular-nums leading-none">{rep.calls}</span>
+                                  <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tabular-nums mt-0.5">/ {target}</span>
+                                </div>
+                                {reached && (
+                                  <span className="absolute -top-0.5 -end-0.5 w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] flex items-center justify-center shadow ring-2 ring-white dark:ring-gray-800">✓</span>
+                                )}
+                              </div>
+                              <div className="text-center min-w-0 w-full">
+                                <p className="text-xs font-bold text-gray-800 dark:text-gray-100 truncate">{rep.name}</p>
+                                <p className={`text-[11px] font-semibold mt-0.5 ${reached ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                  {reached
+                                    ? (locale === 'ar' ? 'اكتمل 🎉' : 'Done 🎉')
+                                    : (locale === 'ar' ? `باقي ${remaining} · ${pctLabel}%` : `${remaining} left · ${pctLabel}%`)}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'مفيش موظفين سيلز مسجّلين' : 'No sales reps configured'}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <DashboardCharts
           revenueChartData={revenueChartData}

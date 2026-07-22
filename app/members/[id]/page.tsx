@@ -4419,6 +4419,7 @@ export default function MemberDetailPage() {
  const RESULT_COLORS: Record<string, string> = {
  interested: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
  'not-interested': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+ 'no-answer': 'bg-gray-100 text-gray-700 dark:bg-gray-700/40 dark:text-gray-300',
  postponed: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
  subscribed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
  }
@@ -4451,6 +4452,7 @@ export default function MemberDetailPage() {
  <span className={`text-xs px-2 py-1 rounded-full font-medium ${resultColor}`}>
  {fu.result === 'interested' ? (locale === 'ar' ? 'مهتم' : 'Interested')
  : fu.result === 'not-interested' ? (locale === 'ar' ? 'غير مهتم' : 'Not Interested')
+ : fu.result === 'no-answer' ? (locale === 'ar' ? 'لم يرد' : 'No Answer')
  : fu.result === 'postponed' ? (locale === 'ar' ? 'مؤجل' : 'Postponed')
  : fu.result === 'subscribed' ? (locale === 'ar' ? 'اشترك' : 'Subscribed')
  : fu.result}

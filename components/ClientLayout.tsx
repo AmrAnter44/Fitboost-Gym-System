@@ -28,6 +28,7 @@ import Breadcrumb from './Breadcrumb'
 import BackToTop from './BackToTop'
 import LicenseLockedScreen from './LicenseLockedScreen'
 import BulkSenderOverlay from './BulkSenderOverlay'
+import InternalMailNotifier from './InternalMailNotifier'
 import Link from 'next/link'
 
 function LayoutContent({ children }: { children: ReactNode }) {
@@ -45,6 +46,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
       {!isEmbedded && <InstallPrompt />}
       <LicenseLockedScreen />
       <ToastContainer />
+      <InternalMailNotifier />
       <BulkSenderOverlay />
       <SearchModal />
       <KeyboardShortcuts />

@@ -1617,12 +1617,14 @@ function FollowUpsPageContent() {
     const badges = {
       interested: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       'not-interested': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      'no-answer': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
       postponed: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
       subscribed: 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200',
     }
     const labels: Record<string, string> = {
       interested: t('followups.results.interested'),
       'not-interested': t('followups.results.notInterested'),
+      'no-answer': locale === 'ar' ? 'لم يرد' : 'No answer',
       postponed: t('followups.results.postponed'),
       subscribed: t('followups.results.subscribed'),
     }
@@ -2945,6 +2947,7 @@ function FollowUpsPageContent() {
               <option value="all">{t('followups.filters.all')}</option>
               <option value="interested">{t('followups.results.interested')}</option>
               <option value="not-interested">{t('followups.results.notInterested')}</option>
+              <option value="no-answer">{locale === 'ar' ? 'لم يرد' : 'No answer'}</option>
               <option value="postponed">{t('followups.results.postponed')}</option>
               <option value="subscribed">{t('followups.results.subscribed')}</option>
             </select>

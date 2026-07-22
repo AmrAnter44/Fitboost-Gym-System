@@ -44,9 +44,10 @@ export async function GET(request: Request) {
     // جلب isSales مباشرة من جدول User
     const dbUser = await prisma.user.findUnique({
       where: { id: user.userId },
-      select: { isSales: true }
-    })
+      select: { isSales: true, profileImage: true } as any
+    }) as any
     const isSales = dbUser?.isSales ?? false
+    const profileImage = dbUser?.profileImage ?? null
 
     if (user.staffId) {
       try {
@@ -83,6 +84,7 @@ export async function GET(request: Request) {
         name: displayName,
         staffCode,
         isSales,
+        profileImage,
         permissions
       },
       license: {

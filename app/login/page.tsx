@@ -45,7 +45,10 @@ export default function LoginPage() {
 
       if (response.ok) {
         // Redirect user based on role
-        const redirectUrl = data.user?.role === 'COACH' ? '/coach' : '/members'
+        //  السيلز يروح على الداشبورد عشان يشوف تارجت المكالمات وتقدّمه
+        const redirectUrl = data.user?.role === 'COACH'
+          ? '/coach'
+          : (data.user?.isSales ? '/' : '/members')
 
         // Use window.location instead of router.push for full reload
         // This ensures permissions are reloaded in the Navbar

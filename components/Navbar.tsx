@@ -9,6 +9,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { useSearch } from '../contexts/SearchContext'
 import { useToast } from '../contexts/ToastContext'
 import NotificationsCenter from './NotificationsCenter'
+import ImageUpload from './ImageUpload'
 import { useServiceSettings } from '../contexts/ServiceSettingsContext'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
@@ -68,6 +69,9 @@ const Icon = {
   key: (
     <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
   ),
+  camera: (
+    <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+  ),
   search: (
     <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
   ),
@@ -91,13 +95,46 @@ type NavLink = {
 export default function Navbar() {
   const pathname = usePathname()
   const { openSearch } = useSearch()
-  const { hasPermission, user, loading } = usePermissions()
+  const { hasPermission, user, loading, refreshPermissions } = usePermissions()
   const { t, locale } = useLanguage()
   const { settings } = useServiceSettings()
   const toast = useToast()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
   const [drawerClosing, setDrawerClosing] = useState(false)
+
+  //  صورة البروفايل (self-service)
+  const [showProfilePhoto, setShowProfilePhoto] = useState(false)
+  const [savingPhoto, setSavingPhoto] = useState(false)
+
+  const openProfilePhoto = () => {
+    setShowUserMenu(false)
+    setShowDrawer(false)
+    setShowProfilePhoto(true)
+  }
+
+  const handleProfileImageChange = async (imageUrl: string | null) => {
+    setSavingPhoto(true)
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileImage: imageUrl }),
+      })
+      if (res.ok) {
+        toast.success(imageUrl
+          ? (locale === 'ar' ? 'تم تحديث صورة البروفايل' : 'Profile photo updated')
+          : (locale === 'ar' ? 'تم حذف صورة البروفايل' : 'Profile photo removed'))
+        await refreshPermissions()
+      } else {
+        toast.error(locale === 'ar' ? 'فشل حفظ الصورة' : 'Failed to save photo')
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error')
+    } finally {
+      setSavingPhoto(false)
+    }
+  }
 
   //  تغيير كلمة السر (self-service)
   const [showChangePassword, setShowChangePassword] = useState(false)
@@ -281,8 +318,12 @@ export default function Navbar() {
                     aria-expanded={showUserMenu}
                     aria-label={user.name}
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 rounded-full flex items-center justify-center font-bold text-sm text-primary-contrast shadow-sm">
-                      {user.name.charAt(0).toUpperCase()}
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm text-primary-contrast shadow-sm bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700">
+                      {user.profileImage ? (
+                        <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        user.name.charAt(0).toUpperCase()
+                      )}
                     </div>
                   </button>
 
@@ -301,9 +342,20 @@ export default function Navbar() {
                       >
                         <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-primary-contrast p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center font-bold text-lg">
-                              {user.name.charAt(0).toUpperCase()}
-                            </div>
+                            <button
+                              onClick={openProfilePhoto}
+                              title={locale === 'ar' ? 'تغيير صورة البروفايل' : 'Change profile photo'}
+                              className="relative w-10 h-10 bg-white/30 rounded-full overflow-hidden flex items-center justify-center font-bold text-lg flex-shrink-0 hover:ring-2 hover:ring-white/70 transition"
+                            >
+                              {user.profileImage ? (
+                                <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
+                              ) : (
+                                user.name.charAt(0).toUpperCase()
+                              )}
+                              <span className="absolute bottom-0 inset-x-0 bg-black/40 text-[8px] leading-tight py-0.5 text-center">
+                                {locale === 'ar' ? 'تغيير' : 'Edit'}
+                              </span>
+                            </button>
                             <div className="min-w-0">
                               <p className="font-bold truncate">{user.name}</p>
                               <p className="text-xs opacity-80 truncate">{user.email}</p>
@@ -333,6 +385,14 @@ export default function Navbar() {
                               </Link>
                             </>
                           )}
+
+                          <button
+                            onClick={openProfilePhoto}
+                            className="w-full px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors duration-200 flex items-center gap-2 text-start text-sm"
+                          >
+                            {Icon.camera}
+                            <span>{locale === 'ar' ? 'صورة البروفايل' : 'Profile Photo'}</span>
+                          </button>
 
                           <button
                             onClick={openChangePassword}
@@ -454,6 +514,14 @@ export default function Navbar() {
                   )}
 
                   <button
+                    onClick={openProfilePhoto}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200 mb-2 text-sm font-bold"
+                  >
+                    {Icon.camera}
+                    <span>{locale === 'ar' ? 'صورة البروفايل' : 'Profile Photo'}</span>
+                  </button>
+
+                  <button
                     onClick={openChangePassword}
                     className="w-full flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200 mb-2 text-sm font-bold"
                   >
@@ -473,6 +541,49 @@ export default function Navbar() {
             )}
           </div>
         </>
+      )}
+
+      {/* مودال صورة البروفايل */}
+      {showProfilePhoto && user && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-backdrop-in"
+          onClick={(e) => { if (e.target === e.currentTarget && !savingPhoto) setShowProfilePhoto(false) }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex w-9 h-9 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
+                  {Icon.camera}
+                </span>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {locale === 'ar' ? 'صورة البروفايل' : 'Profile Photo'}
+                </h3>
+              </div>
+              <button
+                onClick={() => !savingPhoto && setShowProfilePhoto(false)}
+                aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <ImageUpload
+              variant="profile"
+              currentImage={user.profileImage || null}
+              onImageChange={handleProfileImageChange}
+              disabled={savingPhoto}
+              label={locale === 'ar' ? 'صورتك الشخصية' : 'Your photo'}
+            />
+
+            <button
+              onClick={() => !savingPhoto && setShowProfilePhoto(false)}
+              className="mt-4 w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-bold"
+            >
+              {locale === 'ar' ? 'تم' : 'Done'}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* مودال تغيير كلمة السر */}

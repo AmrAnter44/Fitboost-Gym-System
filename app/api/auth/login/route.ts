@@ -322,7 +322,8 @@ export async function POST(request: Request) {
         name: displayName,  // ✅ استخدام الاسم من Staff
         email: user.email,
         role: user.role,
-        staffId: user.staffId
+        staffId: user.staffId,
+        isSales: user.isSales ?? false,  //  عشان صفحة اللوجين توجّه السيلز للداشبورد
       }
     })
     

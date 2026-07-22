@@ -16,6 +16,7 @@ import { fetchCoaches } from '../../lib/api/pt'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import GroupClassRenewalForm from '../../components/GroupClassRenewalForm'
+import ClassBookingsModal from '../../components/ClassBookingsModal'
 import { LoadingScreen } from '../../components/Spinner'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
@@ -52,6 +53,7 @@ export default function GroupClassPage() {
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const { settings } = useServiceSettings()
   const queryClient = useQueryClient()
+  const [showBookings, setShowBookings] = useState(false)
 
   // استخدام useQuery لجلب جلسات GroupClass
   const {
@@ -740,6 +742,13 @@ export default function GroupClassPage() {
           >
             <span></span>
             <span>{t('groupClass.attendanceLog')}</span>
+          </button>
+          <button
+            onClick={() => setShowBookings(true)}
+            className="flex-1 min-w-[140px] sm:flex-none bg-blue-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+          >
+            <svg {...stroke} className="w-4 h-4" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+            <span>{locale === 'ar' ? 'حجوزات الكلاسات' : 'Class Bookings'}</span>
           </button>
           {!isCoach && (
             <>
@@ -1753,6 +1762,12 @@ export default function GroupClassPage() {
         onConfirm={handleConfirm}
         onCancel={handleCancel}
         type={options.type}
+      />
+
+      <ClassBookingsModal
+        open={showBookings}
+        onClose={() => setShowBookings(false)}
+        canRegister={hasPermission('canRegisterClassAttendance')}
       />
 
       {/* Renewal Modal */}

@@ -578,6 +578,7 @@ model User {
   darkMode     Boolean       @default(false)  // 🌙 إعدادات Dark Mode
   locale       String        @default("ar")   // 🌐 إعدادات اللغة (ar/en)
   isSales      Boolean       @default(false)  // 🏷️ حساب سيلز - يشوف متابعاته بس
+  profileImage String?       //  صورة بروفايل الموظف (يضيفها بنفسه)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   staffId      String?       @unique
@@ -1148,6 +1149,7 @@ model SystemSettings {
   poolEnabled           Boolean  @default(true)
   padelEnabled          Boolean  @default(true)
   assessmentEnabled     Boolean  @default(true)
+  lostFoundEnabled      Boolean  @default(true)
   pointsEnabled         Boolean  @default(true)
   pointsPerCheckIn      Int      @default(1)
   pointsPerInvitation   Int      @default(2)
@@ -1155,6 +1157,7 @@ model SystemSettings {
   pointsPerEGPSpent     Float    @default(0.1)  // نقاط لكل جنيه يتم دفعه
   pointsPerBirthday     Int      @default(10)   // نقاط عيد الميلاد للأعضاء النشطين
   pointsValueInEGP      Float    @default(0.1)
+  salesDailyCallTarget  Int      @default(30)   //  تارجت المكالمات اليومي لكل موظف سيلز
   websiteUrl            String?  @default("https://www.xgym.website")  // رابط الموقع الإلكتروني
   showWebsiteOnReceipts Boolean  @default(false)  // عرض رابط الموقع في الإيصالات
   androidAppUrl         String?  // رابط تطبيق الأندرويد
@@ -1467,4 +1470,75 @@ model WhatsAppQueueItem {
   @@index([status])
   @@index([scheduledAt])
   @@index([priority])
+}
+
+//  المتعلقات المفقودة — Lost & Found
+model LostAndFound {
+  id          String   @id @default(cuid())
+  itemName    String                        // وصف الحاجة المفقودة
+  category    String   @default("A")         // الفئة: A / B / C
+  location    String?                        // مكان اللقيا (مثال: فلور على تريدميل)
+  foundByType String   @default("staff")     // مين لاقاها: staff | member
+  foundByName String?                        // اسم اللي لاقاها
+  status      String   @default("stored")    // stored (محفوظة) | returned (اتسلمت)
+  claimedBy   String?                        // اتسلمت لمين
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([status])
+  @@index([createdAt])
+}
+
+//  الإيميل الداخلي — الأدمن يبعت رسالة لقسم (كباتن / ريسبشن / الاتنين)
+model InternalMessage {
+  id          String   @id @default(cuid())
+  senderId    String                         // User.id بتاع الأدمن
+  senderName  String                         // snapshot لاسم المُرسِل
+  subject     String
+  body        String
+  targetDepts String                         // الأقسام المستهدفة "coaches,reception"
+  createdAt   DateTime @default(now())
+
+  recipients  InternalMessageRecipient[]
+
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+//  نسخة الرسالة لكل مستقبِل (عشان حالة القراءة تبقى لكل شخص لوحده)
+model InternalMessageRecipient {
+  id         String    @id @default(cuid())
+  messageId  String
+  userId     String                          // User.id بتاع الكوتش/الموظف
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  message    InternalMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([messageId])
+}
+
+//  قسم الشكاوى — شكوى مربوطة بعضو معيّن
+model Complaint {
+  id           String   @id @default(cuid())
+  memberId     String                         // العضو اللي الشكوى تبعه
+  memberName   String                         // snapshot
+  memberNumber String?
+  memberPhone  String?
+  subject      String?                        // عنوان مختصر (اختياري)
+  body         String                         // نص الشكوى
+  status       String   @default("open")      // open (مفتوحة) | resolved (اتحلّت)
+  priority     String   @default("normal")    // low | normal | high
+  resolution   String?                        // رد/حل الشكوى
+  createdBy    String?                         // اسم الموظف اللي سجّلها
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([memberId])
+  @@index([status])
+  @@index([createdAt])
 }

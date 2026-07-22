@@ -60,7 +60,7 @@ export default function FollowUpForm({
   onSubmit,
   onClose
 }: FollowUpFormProps) {
-  const { t, direction } = useLanguage()
+  const { t, direction, locale } = useLanguage()
   const { user } = usePermissions()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -251,6 +251,7 @@ export default function FollowUpForm({
                 <option value="">{t('followups.form.selectResult')}</option>
                 <option value="interested">{t('followups.form.interested')}</option>
                 <option value="not-interested">{t('followups.form.notInterested')}</option>
+                <option value="no-answer">{locale === 'ar' ? 'لم يرد' : 'No answer'}</option>
                 <option value="postponed">{t('followups.form.postponed')}</option>
                 <option value="subscribed">{t('followups.form.subscribed')}</option>
               </select>
