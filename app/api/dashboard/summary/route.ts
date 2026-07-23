@@ -67,10 +67,10 @@ export async function GET(request: Request) {
         GROUP BY day
         ORDER BY day
       `,
-      //  مكالمات السيلز النهاردة — كل متابعة اتسجلت النهاردة = مكالمة (إجمالي عام)
-      prisma.followUp.count({ where: { createdAt: { gte: startOfToday, lt: endOfToday } } }),
-      prisma.followUp.count({ where: { createdAt: { gte: startOfToday, lt: endOfToday }, result: 'not-interested' } }),
-      prisma.followUp.count({ where: { createdAt: { gte: startOfToday, lt: endOfToday }, result: 'no-answer' } }),
+      //  مكالمات السيلز النهاردة — المتواصَلة فقط (contacted=true) عشان صفوف الإسناد الأولية ما تتحسبش
+      prisma.followUp.count({ where: { createdAt: { gte: startOfToday, lt: endOfToday }, contacted: true } }),
+      prisma.followUp.count({ where: { createdAt: { gte: startOfToday, lt: endOfToday }, contacted: true, result: 'not-interested' } }),
+      prisma.followUp.count({ where: { createdAt: { gte: startOfToday, lt: endOfToday }, contacted: true, result: 'no-answer' } }),
     ])
 
     return NextResponse.json({

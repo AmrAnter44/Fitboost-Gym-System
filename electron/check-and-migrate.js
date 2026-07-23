@@ -667,6 +667,61 @@ function migrateDatabase(dbPath) {
     } else {
     }
 
+    // Task + TaskAssignment — المهام (To-Do)
+    if (!tableExists(db, 'Task')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Task (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          dueDate DATETIME,
+          priority TEXT NOT NULL DEFAULT 'normal',
+          createdBy TEXT NOT NULL,
+          createdByName TEXT NOT NULL,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS Task_createdBy_idx ON Task(createdBy);
+        CREATE INDEX IF NOT EXISTS Task_dueDate_idx ON Task(dueDate);
+        CREATE INDEX IF NOT EXISTS Task_createdAt_idx ON Task(createdAt);
+      `);
+    }
+    if (!tableExists(db, 'TaskAssignment')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS TaskAssignment (
+          id TEXT PRIMARY KEY,
+          taskId TEXT NOT NULL,
+          userId TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          completedAt DATETIME,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS TaskAssignment_userId_status_idx ON TaskAssignment(userId, status);
+        CREATE INDEX IF NOT EXISTS TaskAssignment_taskId_idx ON TaskAssignment(taskId);
+      `);
+    }
+
+    // MaintenanceRecord — صيانة الأجهزة
+    if (!tableExists(db, 'MaintenanceRecord')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS MaintenanceRecord (
+          id TEXT PRIMARY KEY,
+          deviceName TEXT NOT NULL,
+          issue TEXT NOT NULL,
+          cost REAL NOT NULL DEFAULT 0,
+          status TEXT NOT NULL DEFAULT 'fixed',
+          fixedAt DATETIME,
+          notes TEXT,
+          createdBy TEXT,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS MaintenanceRecord_deviceName_idx ON MaintenanceRecord(deviceName);
+        CREATE INDEX IF NOT EXISTS MaintenanceRecord_status_idx ON MaintenanceRecord(status);
+        CREATE INDEX IF NOT EXISTS MaintenanceRecord_createdAt_idx ON MaintenanceRecord(createdAt);
+      `);
+    }
+
     // Complaint — قسم الشكاوى
     if (!tableExists(db, 'Complaint')) {
       db.exec(`
@@ -719,6 +774,19 @@ function migrateDatabase(dbPath) {
         );
         CREATE INDEX IF NOT EXISTS InternalMessageRecipient_userId_isRead_idx ON InternalMessageRecipient(userId, isRead);
         CREATE INDEX IF NOT EXISTS InternalMessageRecipient_messageId_idx ON InternalMessageRecipient(messageId);
+      `);
+    }
+    if (!tableExists(db, 'InternalMessageReply')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS InternalMessageReply (
+          id TEXT PRIMARY KEY,
+          messageId TEXT NOT NULL,
+          userId TEXT NOT NULL,
+          userName TEXT NOT NULL,
+          body TEXT NOT NULL,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS InternalMessageReply_messageId_idx ON InternalMessageReply(messageId);
       `);
     }
 

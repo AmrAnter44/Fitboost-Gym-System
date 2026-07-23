@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
+interface Reply { id: string; userName: string; body: string; createdAt: string; mine: boolean }
 interface InboxMessage {
   recipientId: string
   isRead: boolean
@@ -19,6 +20,7 @@ interface InboxMessage {
   body: string
   senderName: string
   createdAt: string
+  replies?: Reply[]
 }
 
 export default function InboxPage() {
@@ -30,6 +32,8 @@ export default function InboxPage() {
   const [messages, setMessages] = useState<InboxMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [sendingReply, setSendingReply] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -50,6 +54,7 @@ export default function InboxPage() {
   const openMessage = async (m: InboxMessage) => {
     const next = openId === m.recipientId ? null : m.recipientId
     setOpenId(next)
+    setReplyText('')
     if (next && !m.isRead) {
       setMessages((prev) => prev.map((x) => (x.recipientId === m.recipientId ? { ...x, isRead: true } : x)))
       try {
@@ -65,6 +70,21 @@ export default function InboxPage() {
       setMessages((prev) => prev.map((x) => ({ ...x, isRead: true })))
       toast.success(ar ? 'اتقرأت كلها' : 'All marked read')
     } catch { /* ignore */ }
+  }
+
+  const sendReply = async (m: InboxMessage) => {
+    const text = replyText.trim()
+    if (!text) return
+    setSendingReply(true)
+    try {
+      const res = await fetch('/api/inbox/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messageId: m.id, body: text }) })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error || 'Failed'); return }
+      const rp = data.reply
+      setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, replies: [...(x.replies || []), { id: rp.id, userName: rp.userName, body: rp.body, createdAt: rp.createdAt, mine: true }] } : x)))
+      setReplyText('')
+      toast.success(ar ? 'اتبعت الرد' : 'Reply sent')
+    } catch { toast.error(ar ? 'فشل الإرسال' : 'Failed') } finally { setSendingReply(false) }
   }
 
   const unread = messages.filter((m) => !m.isRead).length
@@ -115,6 +135,40 @@ export default function InboxPage() {
                   {open && (
                     <div className="px-4 pb-4 -mt-1">
                       <div className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap border-t border-gray-100 dark:border-gray-700 pt-3">{m.body}</div>
+
+                      {/* الردود */}
+                      {m.replies && m.replies.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          {m.replies.map((rp) => (
+                            <div key={rp.id} className={`rounded-lg p-2.5 text-sm ${rp.mine ? 'bg-primary-50 dark:bg-primary-900/25 ms-6' : 'bg-gray-50 dark:bg-gray-700/40 me-6'}`}>
+                              <div className="flex items-center justify-between gap-2 mb-0.5">
+                                <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{rp.mine ? (ar ? 'أنت' : 'You') : rp.userName}</span>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(rp.createdAt)}</span>
+                              </div>
+                              <div className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{rp.body}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* صندوق الرد */}
+                      <div className="mt-3 flex items-end gap-2">
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          rows={1}
+                          placeholder={ar ? 'اكتب ردك...' : 'Write a reply...'}
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                        />
+                        <button
+                          onClick={() => sendReply(m)}
+                          disabled={sendingReply || !replyText.trim()}
+                          className="inline-flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-primary-contrast font-bold px-4 py-2 rounded-lg text-sm transition-colors flex-shrink-0"
+                        >
+                          <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>
+                          {ar ? 'رد' : 'Reply'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

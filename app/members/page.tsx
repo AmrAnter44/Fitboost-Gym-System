@@ -801,6 +801,30 @@ function MembersPageContent() {
                       </svg>
                       <span>{t('nav.memberAttendance')}</span>
                     </Link>
+                    <Link
+                      href="/complaints"
+                      onClick={() => setShowMoreMenu(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                      role="menuitem"
+                    >
+                      <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.019Z" />
+                      </svg>
+                      <span>{locale === 'ar' ? 'الشكاوى' : 'Complaints'}</span>
+                    </Link>
+                    {settings.lostFoundEnabled && (
+                      <Link
+                        href="/lost-and-found"
+                        onClick={() => setShowMoreMenu(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                        role="menuitem"
+                      >
+                        <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                        </svg>
+                        <span>{locale === 'ar' ? 'المتعلقات المفقودة' : 'Lost & Found'}</span>
+                      </Link>
+                    )}
                     <button
                       onClick={() => { setFilterStatus(filterStatus === 'analytics' ? 'all' : 'analytics'); setShowMoreMenu(false) }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
@@ -911,6 +935,26 @@ function MembersPageContent() {
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1">{locale === 'ar' ? 'إدارة الأعضاء والاشتراكات' : 'Manage members and subscriptions'}</p>
         </div>
         <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+          <Link
+            href="/complaints"
+            className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50 px-3 sm:px-6 py-2.5 min-h-[44px] rounded-lg transition-colors duration-200 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
+          >
+            <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.019Z" />
+            </svg>
+            <span className="truncate">{locale === 'ar' ? 'الشكاوى' : 'Complaints'}</span>
+          </Link>
+          {settings.lostFoundEnabled && (
+            <Link
+              href="/lost-and-found"
+              className="bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50 px-3 sm:px-6 py-2.5 min-h-[44px] rounded-lg transition-colors duration-200 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
+            >
+              <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+              </svg>
+              <span className="truncate">{locale === 'ar' ? 'المتعلقات المفقودة' : 'Lost & Found'}</span>
+            </Link>
+          )}
           <Link
             href="/member-attendance"
             className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 sm:px-6 py-2.5 min-h-[44px] rounded-lg transition-colors duration-200 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"

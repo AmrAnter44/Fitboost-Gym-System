@@ -1502,9 +1502,24 @@ model InternalMessage {
   createdAt   DateTime @default(now())
 
   recipients  InternalMessageRecipient[]
+  replies     InternalMessageReply[]
 
   @@index([senderId])
   @@index([createdAt])
+}
+
+//  رد الموظف على الرسالة الداخلية
+model InternalMessageReply {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String                          // User.id بتاع الراد
+  userName  String                          // snapshot لاسم الراد
+  body      String
+  createdAt DateTime @default(now())
+
+  message   InternalMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
 }
 
 //  نسخة الرسالة لكل مستقبِل (عشان حالة القراءة تبقى لكل شخص لوحده)
@@ -1541,4 +1556,56 @@ model Complaint {
   @@index([memberId])
   @@index([status])
   @@index([createdAt])
+}
+
+//  صيانة الأجهزة — متابعة أعطال وإصلاحات الأجهزة وتكلفتها
+model MaintenanceRecord {
+  id          String    @id @default(cuid())
+  deviceName  String                         // اسم الجهاز (تريدميل، دراجة، ...)
+  issue       String                         // العطل / وصف المشكلة
+  cost        Float     @default(0)          // تكلفة الإصلاح
+  status      String    @default("fixed")    // reported (بلاغ مفتوح) | fixed (اتصلح)
+  fixedAt     DateTime?                        // تاريخ الإصلاح
+  notes       String?
+  createdBy   String?                          // اسم الموظف
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([deviceName])
+  @@index([status])
+  @@index([createdAt])
+}
+
+//  المهام (To-Do) — الأدمن يدّي الموظفين تاسك بـ deadline ويتابع الإنجاز
+model Task {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  dueDate       DateTime?
+  priority      String    @default("normal")   // low | normal | high
+  createdBy     String                          // User.id بتاع الأدمن
+  createdByName String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  assignments   TaskAssignment[]
+
+  @@index([createdBy])
+  @@index([dueDate])
+  @@index([createdAt])
+}
+
+//  إسناد المهمة لموظف (لكل موظف حالته لوحده)
+model TaskAssignment {
+  id          String    @id @default(cuid())
+  taskId      String
+  userId      String                            // الموظف المسنَدة له
+  status      String    @default("pending")     // pending | done
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([taskId])
 }

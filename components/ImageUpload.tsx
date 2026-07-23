@@ -127,41 +127,43 @@ export default function ImageUpload({
       )}
 
       <div className="flex flex-col items-center gap-4">
-        <div className="relative w-48 h-48 rounded-2xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-100 dark:bg-gray-700">
-          {preview ? (
-            <>
+        <div className="relative w-48 h-48">
+          {/*  صورة البروفايل دايرة (سيركل) — بطاقة الهوية تفضل مستطيلة */}
+          <div className={`w-full h-full overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-100 dark:bg-gray-700 ${variant === 'profile' ? 'rounded-full' : 'rounded-2xl'}`}>
+            {preview ? (
               <img
                 src={preview}
                 alt={t('members.form.profilePicture')}
                 className="w-full h-full object-cover"
               />
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute top-2 end-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-md transition-colors duration-200"
-                  aria-label={t('members.form.removeImage') || 'Remove image'}
-                  title={t('members.form.removeImage') || 'Remove image'}
-                >
-                  <svg className="w-5 h-5" {...stroke}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
+                {variant === 'idCard' ? (
+                  <svg className="w-20 h-20 mb-2" {...stroke}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                   </svg>
-                </button>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
-              {variant === 'idCard' ? (
-                <svg className="w-20 h-20 mb-2" {...stroke}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                </svg>
-              ) : (
-                <svg className="w-16 h-16 mb-2" {...stroke}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              )}
-              <p className="text-sm">{t('members.form.noImage')}</p>
-            </div>
+                ) : (
+                  <svg className="w-16 h-16 mb-2" {...stroke}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
+                <p className="text-sm">{t('members.form.noImage')}</p>
+              </div>
+            )}
+          </div>
+          {/*  زر الحذف بره الـ overflow-hidden عشان مايتقصّش على حافة الدايرة */}
+          {preview && !disabled && (
+            <button
+              type="button"
+              onClick={handleRemoveImage}
+              className={`absolute bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-md ring-2 ring-white dark:ring-gray-800 transition-colors duration-200 ${variant === 'profile' ? 'top-2 end-2' : 'top-1 end-1'}`}
+              aria-label={t('members.form.removeImage') || 'Remove image'}
+              title={t('members.form.removeImage') || 'Remove image'}
+            >
+              <svg className="w-4 h-4" {...stroke}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           )}
         </div>
 

@@ -145,6 +145,7 @@ export default function HomePage() {
   const [salesCalls, setSalesCalls] = useState<any>(null)
   const [editingTarget, setEditingTarget] = useState(false)
   const [targetInput, setTargetInput] = useState('')
+  const [quickOpen, setQuickOpen] = useState(false) //  فتح/قفل الإجراءات السريعة
 
   const saveCallTarget = async () => {
     const t = Math.max(0, parseInt(targetInput) || 0)
@@ -426,45 +427,47 @@ export default function HomePage() {
 
         {/* Quick Actions */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 mb-6">
-          <div className="flex items-center gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => setQuickOpen((o) => !o)}
+            aria-expanded={quickOpen}
+            className="w-full flex items-center gap-2 text-start group"
+          >
             <span className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
               <IconBolt className="w-5 h-5" />
             </span>
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('dashboard.quickActions')}</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Link
-              href="/members?action=new"
-              className="bg-gray-50 dark:bg-gray-900/40 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-gray-900 dark:text-gray-100 p-4 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 transition-colors duration-200 flex flex-col items-center gap-2"
-            >
-              <IconUser className="w-7 h-7 text-primary-700 dark:text-primary-400" />
-              <span className="font-bold text-sm text-center">{t('dashboard.newMember')}</span>
-            </Link>
-
-            <Link
-              href="/pt?action=new"
-              className="bg-gray-50 dark:bg-gray-900/40 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-gray-900 dark:text-gray-100 p-4 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 transition-colors duration-200 flex flex-col items-center gap-2"
-            >
-              <IconDumbbell className="w-7 h-7 text-primary-700 dark:text-primary-400" />
-              <span className="font-bold text-sm text-center">{t('dashboard.newPT')}</span>
-            </Link>
-
-            <Link
-              href="/receipts"
-              className="bg-gray-50 dark:bg-gray-900/40 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-gray-900 dark:text-gray-100 p-4 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 transition-colors duration-200 flex flex-col items-center gap-2"
-            >
-              <IconReceipt className="w-7 h-7 text-primary-700 dark:text-primary-400" />
-              <span className="font-bold text-sm text-center">{t('dashboard.receiptsLink')}</span>
-            </Link>
-
-            <Link
-              href="/member-attendance"
-              className="bg-gray-50 dark:bg-gray-900/40 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-gray-900 dark:text-gray-100 p-4 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 transition-colors duration-200 flex flex-col items-center gap-2"
-            >
-              <IconChartBar className="w-7 h-7 text-primary-700 dark:text-primary-400" />
-              <span className="font-bold text-sm text-center">{t('dashboard.attendanceLink')}</span>
-            </Link>
-          </div>
+            <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className={`ms-auto w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200 transition-all duration-200 ${quickOpen ? 'rotate-180' : ''}`} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+          {quickOpen && (
+            <div className="flex flex-col gap-1 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/60">
+              {[
+                { href: '/members?action=new', label: t('dashboard.newMember'), icon: <IconUser className="w-5 h-5" /> },
+                { href: '/pt?action=new', label: t('dashboard.newPT'), icon: <IconDumbbell className="w-5 h-5" /> },
+                { href: '/receipts', label: t('dashboard.receiptsLink'), icon: <IconReceipt className="w-5 h-5" /> },
+                { href: '/member-attendance', label: t('dashboard.attendanceLink'), icon: <IconChartBar className="w-5 h-5" /> },
+                { href: '/maintenance', label: locale === 'ar' ? 'الصيانة' : 'Maintenance', icon: (
+                  <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437" /></svg>
+                ) },
+              ].map((a) => (
+                <Link
+                  key={a.href}
+                  href={a.href}
+                  className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-200"
+                >
+                  <span className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
+                    {a.icon}
+                  </span>
+                  <span className="font-bold text-sm flex-1 truncate text-gray-900 dark:text-gray-100">{a.label}</span>
+                  <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-primary-500 shrink-0 rtl:rotate-180 transition-all duration-200 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                  </svg>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Smart Alerts */}
@@ -762,18 +765,26 @@ export default function HomePage() {
                   const pct = target > 0 ? Math.min(100, Math.round((done / target) * 100)) : 0
                   const reached = target > 0 && done >= target
                   return (
-                    <div>
-                      <div className="flex items-center justify-between text-sm mb-1.5">
-                        <span className="font-bold text-gray-700 dark:text-gray-200">
-                          {reached
-                            ? (locale === 'ar' ? '🎉 خلّصت تارجت النهاردة!' : '🎉 Target reached!')
-                            : (locale === 'ar' ? `المطلوب اليومي · باقي ${remaining} مكالمة` : `Daily target · ${remaining} left`)}
-                        </span>
-                        <span className="font-bold text-gray-900 dark:text-gray-100 tabular-nums">{done} / {target}</span>
+                    <div className="flex flex-col items-center gap-2.5">
+                      <div className="relative w-28 h-28">
+                        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                          <circle cx="18" cy="18" r="15.9155" fill="none" strokeWidth="3" className="stroke-gray-200/80 dark:stroke-gray-600/60" />
+                          <circle cx="18" cy="18" r="15.9155" fill="none" strokeWidth="3" strokeLinecap="round"
+                            className={`${reached ? 'text-emerald-500' : 'text-primary-500'} transition-all duration-700 ease-out`}
+                            stroke="currentColor" strokeDasharray={`${pct} 100`} />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className={`text-2xl font-black tabular-nums ${reached ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-gray-100'}`}>{pct}%</span>
+                        </div>
+                        {reached && (
+                          <span className="absolute top-0 end-1 w-6 h-6 rounded-full bg-emerald-500 text-white text-sm flex items-center justify-center shadow ring-2 ring-white dark:ring-gray-800">✓</span>
+                        )}
                       </div>
-                      <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className={`h-3 rounded-full transition-all ${reached ? 'bg-emerald-500' : 'bg-primary-500'}`} style={{ width: `${pct}%` }} />
-                      </div>
+                      <p className="text-sm font-bold text-center text-gray-700 dark:text-gray-200">
+                        {reached
+                          ? (locale === 'ar' ? '🎉 خلّصت تارجت النهاردة!' : '🎉 Target reached!')
+                          : (locale === 'ar' ? `المطلوب اليومي · باقي ${remaining} مكالمة` : `Daily target · ${remaining} left`)}
+                      </p>
                     </div>
                   )
                 })()}
@@ -809,9 +820,8 @@ export default function HomePage() {
                                     stroke="currentColor"
                                     strokeDasharray={`${pct} 100`} />
                                 </svg>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                  <span className="text-xl font-black text-gray-900 dark:text-gray-100 tabular-nums leading-none">{rep.calls}</span>
-                                  <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tabular-nums mt-0.5">/ {target}</span>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className={`text-lg font-black tabular-nums leading-none ${reached ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-gray-100'}`}>{pctLabel}%</span>
                                 </div>
                                 {reached && (
                                   <span className="absolute -top-0.5 -end-0.5 w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] flex items-center justify-center shadow ring-2 ring-white dark:ring-gray-800">✓</span>
@@ -822,7 +832,7 @@ export default function HomePage() {
                                 <p className={`text-[11px] font-semibold mt-0.5 ${reached ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                   {reached
                                     ? (locale === 'ar' ? 'اكتمل 🎉' : 'Done 🎉')
-                                    : (locale === 'ar' ? `باقي ${remaining} · ${pctLabel}%` : `${remaining} left · ${pctLabel}%`)}
+                                    : (locale === 'ar' ? `باقي ${remaining} مكالمة` : `${remaining} left`)}
                                 </p>
                               </div>
                             </div>

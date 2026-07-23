@@ -88,6 +88,12 @@ const NavIcons: Record<string, ReactNode> = {
   complaints: (
     <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.019Z"/></svg>
   ),
+  maintenance: (
+    <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437"/></svg>
+  ),
+  tasks: (
+    <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z"/></svg>
+  ),
   logout: (
     <svg className={iconClass} {...strokeProps}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
   ),
@@ -117,19 +123,18 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
-  //  عدد رسائل الوارد غير المقروءة (بادج على لينك صندوق الوارد)
+  //  بادجات: رسائل الوارد غير المقروءة + المهام المفتوحة
   const [inboxUnread, setInboxUnread] = useState(0)
+  const [tasksPending, setTasksPending] = useState(0)
   useEffect(() => {
     if (!user) return
     let active = true
-    const fetchUnread = () => {
-      fetch('/api/inbox/unread-count')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (active && d) setInboxUnread(d.count || 0) })
-        .catch(() => {})
+    const fetchCounts = () => {
+      fetch('/api/inbox/unread-count').then((r) => (r.ok ? r.json() : null)).then((d) => { if (active && d) setInboxUnread(d.count || 0) }).catch(() => {})
+      fetch('/api/tasks/pending-count').then((r) => (r.ok ? r.json() : null)).then((d) => { if (active && d) setTasksPending(d.count || 0) }).catch(() => {})
     }
-    fetchUnread()
-    const iv = setInterval(fetchUnread, 60000) //  تحديث كل دقيقة
+    fetchCounts()
+    const iv = setInterval(fetchCounts, 60000) //  تحديث كل دقيقة
     return () => { active = false; clearInterval(iv) }
   }, [user, pathname])
 
@@ -158,7 +163,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       title: t('nav.overview'),
       links: [
         { href: isCoach ? '/coach' : '/', label: t('nav.dashboard'), icon: NavIcons.dashboard, permission: null },
-        { href: '/inbox', label: locale === 'ar' ? 'صندوق الوارد' : 'Inbox', icon: NavIcons.mail, permission: null },
+        //  صندوق الوارد للمستقبِلين بس (الأدمن/الأونر بيبعتوا مش بيستقبلوا)
+        ...(user?.role !== 'OWNER' && user?.role !== 'ADMIN'
+          ? [{ href: '/inbox', label: locale === 'ar' ? 'صندوق الوارد' : 'Inbox', icon: NavIcons.mail, permission: null }]
+          : []),
+        //  مهامي — لكل موظف غير الأدمن/الأونر (اللي بيسندوا مش بيتسند لهم)
+        ...(user?.role !== 'OWNER' && user?.role !== 'ADMIN'
+          ? [{ href: '/tasks', label: locale === 'ar' ? 'مهامي' : 'My Tasks', icon: NavIcons.tasks, permission: null }]
+          : []),
         ...(isCoach ? [
           { href: '/coach/my-members', label: locale === 'ar' ? 'أعضاء محتملين' : 'Potential Members', icon: NavIcons.members, permission: null },
           { href: '/coach/more', label: locale === 'ar' ? 'اشتراكات More' : 'My More', icon: NavIcons.more, permission: null },
@@ -171,7 +183,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
       links: [
         { href: '/members', label: t('nav.members'), icon: NavIcons.members, permission: 'canViewMembers' as keyof Permissions },
         { href: '/followups', label: t('nav.followups'), icon: NavIcons.followups, permission: 'canViewFollowUps' as keyof Permissions },
-        { href: '/complaints', label: locale === 'ar' ? 'الشكاوى' : 'Complaints', icon: NavIcons.complaints, permission: null },
       ]
     },
     {
@@ -184,7 +195,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
         { href: '/more', label: t('nav.more'), icon: NavIcons.more, permission: 'canViewMore' as keyof Permissions, enabled: settings.moreEnabled },
         { href: '/spa-bookings', label: t('nav.spaBookings'), icon: NavIcons.spa, permission: 'canViewSpaBookings' as keyof Permissions, enabled: settings.spaEnabled },
         { href: '/dayuse', label: t('nav.dayUse'), icon: NavIcons.dayuse, permission: 'canViewDayUse' as keyof Permissions },
-        ...(!isCoach ? [{ href: '/lost-and-found', label: locale === 'ar' ? 'المتعلقات المفقودة' : 'Lost & Found', icon: NavIcons.lostFound, permission: null, enabled: settings.lostFoundEnabled }] : []),
       ]
     },
     {
@@ -333,6 +343,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
               <div className="space-y-1">
                 {group.links.map((link) => {
                   const isActive = pathname === link.href
+                  const badgeCount = link.href === '/inbox' ? inboxUnread : link.href === '/tasks' ? tasksPending : 0
 
                   return (
                     <Link
@@ -356,8 +367,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                       {link.icon && (
                         <span className={`relative ${isActive ? 'text-primary-700 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'} transition-colors`}>
                           {link.icon}
-                          {/*  نقطة حمراء على الأيقونة في وضع الطي لما فيه رسائل غير مقروءة */}
-                          {isCollapsed && link.href === '/inbox' && inboxUnread > 0 && (
+                          {/*  نقطة حمراء على الأيقونة في وضع الطي لما فيه عناصر غير مقروءة/مفتوحة */}
+                          {isCollapsed && badgeCount > 0 && (
                             <span className="absolute -top-1 -end-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900" aria-hidden="true" />
                           )}
                         </span>
@@ -369,10 +380,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                         </span>
                       )}
 
-                      {/*  بادج عدد الرسائل غير المقروءة على لينك صندوق الوارد */}
-                      {!isCollapsed && link.href === '/inbox' && inboxUnread > 0 && (
+                      {/*  بادج العدد (صندوق الوارد / المهام المفتوحة) */}
+                      {!isCollapsed && badgeCount > 0 && (
                         <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold">
-                          {inboxUnread > 99 ? '99+' : inboxUnread}
+                          {badgeCount > 99 ? '99+' : badgeCount}
                         </span>
                       )}
 
@@ -443,6 +454,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                               <span className="text-sm">{locale === 'ar' ? 'الإيميل الداخلي' : 'Internal Mail'}</span>
                             </Link>
                             <Link
+                              href="/admin/tasks"
+                              onClick={() => { setShowUserMenu(false); onClose(); }}
+                              className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                              role="menuitem"
+                            >
+                              <span className="text-gray-500 dark:text-gray-400">{NavIcons.tasks}</span>
+                              <span className="text-sm">{locale === 'ar' ? 'المهام' : 'Tasks'}</span>
+                            </Link>
+                            <Link
                               href="/admin/audit"
                               onClick={() => { setShowUserMenu(false); onClose(); }}
                               className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
@@ -511,6 +531,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, setIsCollapsed }
                             >
                               <span className="text-gray-500 dark:text-gray-400">{NavIcons.mail}</span>
                               <span className="text-sm">{locale === 'ar' ? 'الإيميل الداخلي' : 'Internal Mail'}</span>
+                            </Link>
+                            <Link
+                              href="/admin/tasks"
+                              onClick={() => { setShowUserMenu(false); onClose(); }}
+                              className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                              role="menuitem"
+                            >
+                              <span className="text-gray-500 dark:text-gray-400">{NavIcons.tasks}</span>
+                              <span className="text-sm">{locale === 'ar' ? 'المهام' : 'Tasks'}</span>
                             </Link>
                             <Link
                               href="/admin/audit"

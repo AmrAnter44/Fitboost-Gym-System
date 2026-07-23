@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       where: { userId: user.userId },
       orderBy: { createdAt: 'desc' },
       take: 200,
-      include: { message: true },
+      include: { message: { include: { replies: { orderBy: { createdAt: 'asc' } } } } },
     })
 
     const messages = rows.map((r) => ({
@@ -26,6 +26,13 @@ export async function GET(request: Request) {
       body: r.message.body,
       senderName: r.message.senderName,
       createdAt: r.message.createdAt,
+      replies: r.message.replies.map((rp) => ({
+        id: rp.id,
+        userName: rp.userName,
+        body: rp.body,
+        createdAt: rp.createdAt,
+        mine: rp.userId === user.userId,
+      })),
     }))
 
     return NextResponse.json({ messages })

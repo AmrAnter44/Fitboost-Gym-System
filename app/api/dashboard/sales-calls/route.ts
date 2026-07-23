@@ -36,10 +36,11 @@ export async function GET(request: Request) {
     }) as any
     const target = Number(settings?.salesDailyCallTarget) || 0
 
-    //  عدد مكالمات كل موظف النهاردة (groupBy على المتابعات المسجّلة النهاردة)
+    //  عدد المكالمات الفعلية لكل موظف النهاردة — المتواصَلة بس (contacted=true)
+    //  عشان صفوف الإسناد الأولية (غير المتواصَلة) ما تتحسبش كمكالمة
     const grouped = await prisma.followUp.groupBy({
       by: ['assignedTo'],
-      where: { createdAt: { gte: startOfToday, lt: endOfToday } },
+      where: { createdAt: { gte: startOfToday, lt: endOfToday }, contacted: true },
       _count: { _all: true },
     })
     const countByStaff = new Map<string, number>()

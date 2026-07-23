@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDarkMode } from '@/contexts/DarkModeContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -21,6 +20,7 @@ interface SentMessage {
   createdAt: string
   total: number
   readCount: number
+  replies?: { id: string; userName: string; body: string; createdAt: string }[]
 }
 
 export default function InternalMailPage() {
@@ -37,11 +37,20 @@ export default function InternalMailPage() {
     { value: 'all', label: ar ? 'الكل' : 'Everyone', depts: ['coaches', 'reception', 'sales'] },
   ]
 
+  const [mode, setMode] = useState<'dept' | 'people'>('dept')
   const [target, setTarget] = useState('')
+  const [selected, setSelected] = useState<string[]>([])
+  const [empSearch, setEmpSearch] = useState('')
+  const [showEmpResults, setShowEmpResults] = useState(false)
+  const [employees, setEmployees] = useState<Array<{ id: string; name: string; role: string; position: string | null }>>([])
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState<SentMessage[]>([])
+  const [openId, setOpenId] = useState<string | null>(null)
+
+  const toggleEmp = (id: string) => setSelected((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
+  const roleLabel = (e: { role: string; position: string | null }) => e.position || (e.role === 'COACH' ? (ar ? 'كابتن' : 'Coach') : e.role)
 
   const loadSent = useCallback(async () => {
     try {
@@ -49,14 +58,22 @@ export default function InternalMailPage() {
       if (!res.ok) return
       const data = await res.json()
       setSent(data.messages || [])
+      setEmployees(data.employees || [])
     } catch { /* ignore */ }
   }, [])
 
   useEffect(() => { if (isAdmin) loadSent() }, [isAdmin, loadSent])
 
   const send = async () => {
-    const opt = TARGET_OPTIONS.find((o) => o.value === target)
-    if (!opt) { toast.warning(ar ? 'اختار القسم' : 'Select a department'); return }
+    let payload: any = { subject, body }
+    if (mode === 'dept') {
+      const opt = TARGET_OPTIONS.find((o) => o.value === target)
+      if (!opt) { toast.warning(ar ? 'اختار القسم' : 'Select a department'); return }
+      payload.departments = opt.depts
+    } else {
+      if (selected.length === 0) { toast.warning(ar ? 'اختار شخص واحد على الأقل' : 'Select at least one person'); return }
+      payload.userIds = selected
+    }
     if (!subject.trim()) { toast.warning(ar ? 'اكتب العنوان' : 'Enter subject'); return }
     if (!body.trim()) { toast.warning(ar ? 'اكتب الرسالة' : 'Enter message'); return }
     setSending(true)
@@ -64,12 +81,12 @@ export default function InternalMailPage() {
       const res = await fetch('/api/admin/internal-mail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, body, departments: opt.depts }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error || (ar ? 'فشل الإرسال' : 'Failed')); return }
       toast.success(ar ? `اتبعتت لـ ${data.recipientCount} شخص` : `Sent to ${data.recipientCount}`)
-      setSubject(''); setBody(''); setTarget('')
+      setSubject(''); setBody(''); setTarget(''); setSelected([]); setEmpSearch('')
       loadSent()
     } catch {
       toast.error(ar ? 'فشل الإرسال' : 'Failed to send')
@@ -78,10 +95,20 @@ export default function InternalMailPage() {
     }
   }
 
+  const filteredEmps = employees.filter((e) => !empSearch.trim() || e.name.toLowerCase().includes(empSearch.toLowerCase()) || (e.position || '').toLowerCase().includes(empSearch.toLowerCase()))
+
   const deptLabel = (raw: string) =>
     raw.split(',').map((d) => (d === 'coaches' ? (ar ? 'الكباتن' : 'Coaches') : d === 'reception' ? (ar ? 'الريسبشن' : 'Reception') : d === 'sales' ? (ar ? 'السيلز' : 'Sales') : d)).join(' + ')
 
   const fmtDate = (iso: string) => new Date(iso).toLocaleString(ar ? 'ar-EG' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  //  تاريخ مختصر لصفوف الإنبوكس: النهاردة → الساعة، غير كده → يوم/شهر
+  const fmtShort = (iso: string) => {
+    const d = new Date(iso); const now = new Date()
+    const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+    return sameDay
+      ? d.toLocaleTimeString(ar ? 'ar-EG' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString(ar ? 'ar-EG' : 'en-GB', { day: '2-digit', month: '2-digit' })
+  }
 
   if (permLoading) return <LoadingScreen fullScreen />
   if (!isAdmin) {
@@ -111,65 +138,175 @@ export default function InternalMailPage() {
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{ar ? 'ابعت رسالة لقسم داخل السيستم' : 'Send a message to a department'}</p>
             </div>
           </div>
-          <Link href="/inbox" className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2.5 rounded-lg font-bold transition-colors text-sm">
-            {ar ? 'صندوق الوارد' : 'Inbox'}
-          </Link>
         </div>
 
         {/* Compose */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 mb-6">
-          <div className="mb-4">
-            <label className={labelCls}>{ar ? 'القسم' : 'Department'}</label>
-            <select value={target} onChange={(e) => setTarget(e.target.value)} className={inputCls}>
-              <option value="">{ar ? 'اختر القسم' : 'Select department'}</option>
-              {TARGET_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden mb-6">
+          <div className="flex items-center gap-2 px-5 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700/60">
+            <span className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center flex-shrink-0">
+              <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
+            </span>
+            <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">{ar ? 'رسالة جديدة' : 'New message'}</h2>
           </div>
-          <div className="mb-4">
-            <label className={labelCls}>{ar ? 'العنوان' : 'Subject'}</label>
-            <input value={subject} onChange={(e) => setSubject(e.target.value)} className={inputCls} placeholder={ar ? 'عنوان الرسالة' : 'Subject'} />
-          </div>
-          <div className="mb-4">
-            <label className={labelCls}>{ar ? 'الرسالة' : 'Message'}</label>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} className={inputCls} placeholder={ar ? 'اكتب رسالتك...' : 'Write your message...'} />
-          </div>
-          <div className="flex justify-end">
-            <button onClick={send} disabled={sending} className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-primary-contrast font-bold px-5 py-2.5 rounded-lg text-sm">
-              <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>
-              {ar ? 'إرسال' : 'Send'}
-            </button>
+
+          <div className="p-5 sm:p-6 space-y-4">
+            {/* المستهدَف: قسم أو أشخاص */}
+            <div>
+              <label className={labelCls}>{ar ? 'المستهدَف' : 'Send to'} <span className="text-red-500">*</span></label>
+              <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-700/50 p-1 mb-2">
+                {[{ v: 'dept', l: ar ? 'قسم' : 'Department' }, { v: 'people', l: ar ? 'أشخاص محددين' : 'Specific people' }].map((m) => (
+                  <button key={m.v} type="button" onClick={() => setMode(m.v as any)} className={`px-3.5 py-1.5 rounded-md text-sm font-bold transition-colors ${mode === m.v ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>{m.l}</button>
+                ))}
+              </div>
+
+              {mode === 'dept' ? (
+                <>
+                  <select value={target} onChange={(e) => setTarget(e.target.value)} className={inputCls}>
+                    <option value="">{ar ? 'اختر القسم' : 'Select department'}</option>
+                    {TARGET_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 min-h-[1rem]">
+                    {target ? `${ar ? 'هتوصل لـ ' : 'Goes to '}${TARGET_OPTIONS.find((o) => o.value === target)?.label}` : ''}
+                  </p>
+                </>
+              ) : (
+                <div className="relative">
+                  {/* المختارين chips */}
+                  {selected.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {employees.filter((e) => selected.includes(e.id)).map((e) => (
+                        <span key={e.id} className="inline-flex items-center gap-1.5 ps-1 pe-2.5 py-1 rounded-full text-xs font-bold bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
+                          <span className="w-5 h-5 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-primary-contrast flex items-center justify-center text-[10px]">{e.name.charAt(0).toUpperCase()}</span>
+                          {e.name}
+                          <button onClick={() => toggleEmp(e.id)} className="w-4 h-4 rounded-full hover:bg-primary-200/60 dark:hover:bg-primary-800 flex items-center justify-center" aria-label="remove">
+                            <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {/* بحث */}
+                  <input
+                    value={empSearch}
+                    onChange={(e) => { setEmpSearch(e.target.value); setShowEmpResults(true) }}
+                    onFocus={() => setShowEmpResults(true)}
+                    placeholder={ar ? 'ابحث بالاسم وأضِف...' : 'Search a name to add...'}
+                    className={inputCls}
+                  />
+                  {showEmpResults && empSearch.trim() && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowEmpResults(false)} aria-hidden="true" />
+                      <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-800 rounded-xl shadow-xl ring-1 ring-gray-200 dark:ring-gray-700 max-h-56 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                        {filteredEmps.filter((e) => !selected.includes(e.id)).length === 0 ? (
+                          <div className="p-3 text-sm text-center text-gray-400">{ar ? 'مفيش نتائج' : 'No results'}</div>
+                        ) : filteredEmps.filter((e) => !selected.includes(e.id)).map((e) => (
+                          <button key={e.id} type="button" onClick={() => { toggleEmp(e.id); setEmpSearch('') }} className="w-full flex items-center gap-3 px-3 py-2.5 text-start hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-primary-contrast flex items-center justify-center font-bold text-xs flex-shrink-0">{e.name.charAt(0).toUpperCase()}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">{e.name}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">{roleLabel(e)}</div>
+                            </div>
+                            <svg {...stroke} className="w-4 h-4 text-primary-500 flex-shrink-0" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className={labelCls}>{ar ? 'العنوان' : 'Subject'} <span className="text-red-500">*</span></label>
+              <input value={subject} onChange={(e) => setSubject(e.target.value)} className={inputCls} placeholder={ar ? 'عنوان الرسالة' : 'Subject'} />
+            </div>
+            <div>
+              <label className={labelCls}>{ar ? 'الرسالة' : 'Message'} <span className="text-red-500">*</span></label>
+              <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} className={inputCls} placeholder={ar ? 'اكتب رسالتك...' : 'Write your message...'} />
+            </div>
+            <div className="flex justify-end">
+              <button onClick={send} disabled={sending} className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-primary-contrast font-bold px-6 py-2.5 rounded-lg text-sm transition-colors">
+                <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>
+                {sending ? (ar ? 'جارٍ الإرسال...' : 'Sending...') : (ar ? 'إرسال' : 'Send')}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Sent */}
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">{ar ? 'الرسائل المُرسَلة' : 'Sent messages'}</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{ar ? 'الرسائل المُرسَلة' : 'Sent messages'}</h2>
+          {sent.length > 0 && <span className="text-xs font-bold text-gray-400 dark:text-gray-500">{sent.length}</span>}
+        </div>
         {sent.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
-            {ar ? 'لسه مفيش رسائل' : 'No messages yet'}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-10 text-center">
+            <svg {...stroke} className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">{ar ? 'لسه مفيش رسائل مُرسَلة' : 'No messages sent yet'}</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {sent.map((m) => (
-              <div key={m.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="min-w-0">
-                    <div className="font-bold text-gray-900 dark:text-gray-100">{m.subject}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap">{m.body}</div>
-                  </div>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 whitespace-nowrap">{deptLabel(m.targetDepts)}</span>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700/60">
+            {sent.map((m) => {
+              const open = openId === m.id
+              const allRead = m.total > 0 && m.readCount === m.total
+              return (
+                <div key={m.id}>
+                  {/* صف زي الإيميل */}
+                  <button
+                    onClick={() => setOpenId(open ? null : m.id)}
+                    className="w-full text-start px-3 sm:px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+                  >
+                    {/* أفاتار القسم */}
+                    <span className="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center flex-shrink-0">
+                      <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
+                    </span>
+                    {/* المحتوى */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-bold text-gray-900 dark:text-gray-100 truncate">{m.subject}</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex-shrink-0">{deptLabel(m.targetDepts)}</span>
+                      </div>
+                      {!open && <div className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">{m.body}</div>}
+                    </div>
+                    {/* الميتا على اليمين */}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{fmtShort(m.createdAt)}</span>
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${allRead ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                        <svg {...stroke} className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                        {m.readCount}/{m.total}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* المحتوى المفتوح */}
+                  {open && (
+                    <div className="px-4 sm:px-5 pb-4 pt-1">
+                      <div className="ms-12 border-s-2 border-gray-100 dark:border-gray-700 ps-4">
+                        <div className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{m.body}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-2">{fmtDate(m.createdAt)}</div>
+
+                        {/* الردود من الموظفين */}
+                        {m.replies && m.replies.length > 0 && (
+                          <div className="mt-4">
+                            <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">{ar ? `الردود (${m.replies.length})` : `Replies (${m.replies.length})`}</div>
+                            <div className="space-y-2">
+                              {m.replies.map((rp) => (
+                                <div key={rp.id} className="rounded-lg bg-gray-50 dark:bg-gray-700/40 p-2.5 text-sm">
+                                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                                    <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{rp.userName}</span>
+                                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(rp.createdAt)}</span>
+                                  </div>
+                                  <div className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{rp.body}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 mt-3 text-xs text-gray-500 dark:text-gray-400">
-                  <span>{fmtDate(m.createdAt)}</span>
-                  <span>·</span>
-                  <span className="inline-flex items-center gap-1">
-                    <svg {...stroke} className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                    {ar ? `قرأها ${m.readCount} من ${m.total}` : `Read ${m.readCount}/${m.total}`}
-                  </span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
