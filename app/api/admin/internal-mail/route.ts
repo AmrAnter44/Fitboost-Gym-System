@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 //  GET — قائمة الرسائل المرسلة + إحصائيات القراءة
 export async function GET(request: Request) {
   try {
-    await requireAdmin(request)
+    const admin = await requireAdmin(request)
     const messages = await prisma.internalMessage.findMany({
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
       createdAt: m.createdAt,
       total: m.recipients.length,
       readCount: m.recipients.filter((r) => r.isRead).length,
-      replies: m.replies.map((rp) => ({ id: rp.id, userName: rp.userName, body: rp.body, createdAt: rp.createdAt })),
+      replies: m.replies.map((rp) => ({ id: rp.id, userName: rp.userName, body: rp.body, createdAt: rp.createdAt, mine: rp.userId === admin.userId })),
     }))
 
     //  قائمة الموظفين للاختيار الفردي (كل النشطين ما عدا الأونر)

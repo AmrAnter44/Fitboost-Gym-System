@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDarkMode } from '@/contexts/DarkModeContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/hooks/useConfirm'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { LoadingScreen } from '@/components/Spinner'
 
 export const dynamic = 'force-dynamic'
@@ -36,6 +38,7 @@ export default function ComplaintsPage() {
   const { locale, direction } = useLanguage()
   useDarkMode()
   const toast = useToast()
+  const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const ar = locale === 'ar'
 
   const [complaints, setComplaints] = useState<Complaint[]>([])
@@ -159,7 +162,12 @@ export default function ComplaintsPage() {
   }
 
   const remove = async (c: Complaint) => {
-    if (!confirm(ar ? 'متأكد تمسح الشكوى دي؟' : 'Delete this complaint?')) return
+    const ok = await confirm({
+      title: ar ? 'حذف الشكوى' : 'Delete complaint',
+      message: ar ? `متأكد تمسح شكوى «${c.memberName}»؟ مش هينفع ترجع فيها.` : `Delete "${c.memberName}" complaint? This cannot be undone.`,
+      confirmText: ar ? 'حذف' : 'Delete', cancelText: ar ? 'إلغاء' : 'Cancel', type: 'danger',
+    })
+    if (!ok) return
     try {
       const res = await fetch(`/api/complaints/${c.id}`, { method: 'DELETE' })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || 'Failed'); return }
@@ -334,6 +342,8 @@ export default function ComplaintsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog isOpen={isOpen} title={options.title} message={options.message} confirmText={options.confirmText} cancelText={options.cancelText} onConfirm={handleConfirm} onCancel={handleCancel} type={options.type} />
     </div>
   )
 }

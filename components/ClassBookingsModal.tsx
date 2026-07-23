@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/hooks/useConfirm'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -32,6 +34,7 @@ const localDate = (d: Date) => {
 export default function ClassBookingsModal({ open, onClose, canRegister }: { open: boolean; onClose: () => void; canRegister: boolean }) {
   const { locale, direction } = useLanguage()
   const toast = useToast()
+  const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const ar = locale === 'ar'
   const DAYS = ar
     ? ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
@@ -185,7 +188,12 @@ export default function ClassBookingsModal({ open, onClose, canRegister }: { ope
   }
 
   const remove = async (b: Booking) => {
-    if (!confirm(ar ? 'تلغي الحجز ده؟' : 'Cancel this booking?')) return
+    const ok = await confirm({
+      title: ar ? 'إلغاء الحجز' : 'Cancel booking',
+      message: ar ? `تلغي حجز «${b.member?.name || ''}» في «${b.class?.className || ''}»؟` : 'Cancel this booking?',
+      confirmText: ar ? 'إلغاء الحجز' : 'Cancel booking', cancelText: ar ? 'رجوع' : 'Back', type: 'danger',
+    })
+    if (!ok) return
     try {
       const res = await fetch(`/api/group-classes/bookings/${b.id}`, { method: 'DELETE' })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || 'Failed'); return }
@@ -202,6 +210,7 @@ export default function ClassBookingsModal({ open, onClose, canRegister }: { ope
   const labelCls = 'block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5'
 
   return (
+    <>
     <div className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 max-w-4xl w-full my-4 max-h-[calc(100vh-2rem)] overflow-y-auto" dir={direction} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -463,5 +472,7 @@ export default function ClassBookingsModal({ open, onClose, canRegister }: { ope
         )}
       </div>
     </div>
+    <ConfirmDialog isOpen={isOpen} title={options.title} message={options.message} confirmText={options.confirmText} cancelText={options.cancelText} onConfirm={handleConfirm} onCancel={handleCancel} type={options.type} />
+    </>
   )
 }

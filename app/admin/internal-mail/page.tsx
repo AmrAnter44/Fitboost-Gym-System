@@ -5,6 +5,8 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useDarkMode } from '@/contexts/DarkModeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useConfirm } from '@/hooks/useConfirm'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { LoadingScreen } from '@/components/Spinner'
 
 export const dynamic = 'force-dynamic'
@@ -20,14 +22,16 @@ interface SentMessage {
   createdAt: string
   total: number
   readCount: number
-  replies?: { id: string; userName: string; body: string; createdAt: string }[]
+  replies?: { id: string; userName: string; body: string; createdAt: string; mine?: boolean }[]
 }
+type Reply = NonNullable<SentMessage['replies']>[number]
 
 export default function InternalMailPage() {
   const { locale, direction } = useLanguage()
   useDarkMode()
   const toast = useToast()
   const { user, loading: permLoading } = usePermissions()
+  const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const ar = locale === 'ar'
   const isAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
 
@@ -48,6 +52,87 @@ export default function InternalMailPage() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState<SentMessage[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editSubject, setEditSubject] = useState('')
+  const [editBody, setEditBody] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [replyText, setReplyText] = useState('')
+  const [sendingReply, setSendingReply] = useState(false)
+  const [editReplyId, setEditReplyId] = useState<string | null>(null)
+  const [editReplyText, setEditReplyText] = useState('')
+  const [savingReply, setSavingReply] = useState(false)
+
+  const startEdit = (m: SentMessage) => { setEditingId(m.id); setEditSubject(m.subject); setEditBody(m.body) }
+  const saveEdit = async (m: SentMessage) => {
+    if (!editSubject.trim() || !editBody.trim()) { toast.warning(ar ? 'العنوان والرسالة مطلوبين' : 'Subject and message required'); return }
+    setSavingEdit(true)
+    try {
+      const res = await fetch(`/api/admin/internal-mail/${m.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: editSubject, body: editBody }) })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error || 'Failed'); return }
+      toast.success(ar ? 'اتعدّلت' : 'Updated')
+      setEditingId(null)
+      loadSent()
+    } catch { toast.error(ar ? 'فشل التعديل' : 'Failed') } finally { setSavingEdit(false) }
+  }
+  const removeMessage = async (m: SentMessage) => {
+    const ok = await confirm({
+      title: ar ? 'حذف الرسالة' : 'Delete message',
+      message: ar ? `متأكد تمسح رسالة «${m.subject}»؟ هتتشال من كل المستقبلين. مش هينفع ترجع فيها.` : `Delete "${m.subject}"? It will be removed from all recipients.`,
+      confirmText: ar ? 'حذف' : 'Delete', cancelText: ar ? 'إلغاء' : 'Cancel', type: 'danger',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/admin/internal-mail/${m.id}`, { method: 'DELETE' })
+      if (!res.ok) { const d = await res.json(); toast.error(d.error || 'Failed'); return }
+      toast.success(ar ? 'اتمسحت' : 'Deleted')
+      if (openId === m.id) setOpenId(null)
+      loadSent()
+    } catch { toast.error('Failed') }
+  }
+
+  const sendReply = async (m: SentMessage) => {
+    const text = replyText.trim()
+    if (!text) return
+    setSendingReply(true)
+    try {
+      const res = await fetch(`/api/admin/internal-mail/${m.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: text }) })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error || 'Failed'); return }
+      const rp = data.reply
+      setSent((prev) => prev.map((x) => (x.id === m.id ? { ...x, replies: [...(x.replies || []), { id: rp.id, userName: rp.userName, body: rp.body, createdAt: rp.createdAt, mine: true }] } : x)))
+      setReplyText('')
+      toast.success(ar ? 'اتبعت الرد' : 'Reply sent')
+    } catch { toast.error(ar ? 'فشل الإرسال' : 'Failed') } finally { setSendingReply(false) }
+  }
+  const startEditReply = (rp: Reply) => { setEditReplyId(rp.id); setEditReplyText(rp.body) }
+  const saveEditReply = async (m: SentMessage, rp: Reply) => {
+    const text = editReplyText.trim()
+    if (!text) return
+    setSavingReply(true)
+    try {
+      const res = await fetch(`/api/inbox/reply/${rp.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: text }) })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error || 'Failed'); return }
+      setSent((prev) => prev.map((x) => (x.id === m.id ? { ...x, replies: (x.replies || []).map((r) => (r.id === rp.id ? { ...r, body: text } : r)) } : x)))
+      setEditReplyId(null)
+      toast.success(ar ? 'اتعدّل' : 'Updated')
+    } catch { toast.error(ar ? 'فشل التعديل' : 'Failed') } finally { setSavingReply(false) }
+  }
+  const deleteReply = async (m: SentMessage, rp: Reply) => {
+    const ok = await confirm({
+      title: ar ? 'حذف الرد' : 'Delete reply',
+      message: ar ? 'متأكد تمسح ردك؟ مش هينفع ترجع فيه.' : 'Delete your reply? This cannot be undone.',
+      confirmText: ar ? 'حذف' : 'Delete', cancelText: ar ? 'إلغاء' : 'Cancel', type: 'danger',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/inbox/reply/${rp.id}`, { method: 'DELETE' })
+      if (!res.ok) { const d = await res.json(); toast.error(d.error || 'Failed'); return }
+      setSent((prev) => prev.map((x) => (x.id === m.id ? { ...x, replies: (x.replies || []).filter((r) => r.id !== rp.id) } : x)))
+      toast.success(ar ? 'اتمسح' : 'Deleted')
+    } catch { toast.error('Failed') }
+  }
 
   const toggleEmp = (id: string) => setSelected((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
   const roleLabel = (e: { role: string; position: string | null }) => e.position || (e.role === 'COACH' ? (ar ? 'كابتن' : 'Coach') : e.role)
@@ -252,7 +337,7 @@ export default function InternalMailPage() {
                 <div key={m.id}>
                   {/* صف زي الإيميل */}
                   <button
-                    onClick={() => setOpenId(open ? null : m.id)}
+                    onClick={() => { setOpenId(open ? null : m.id); setReplyText(''); setEditReplyId(null); setEditingId(null) }}
                     className="w-full text-start px-3 sm:px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
                   >
                     {/* أفاتار القسم */}
@@ -281,25 +366,83 @@ export default function InternalMailPage() {
                   {open && (
                     <div className="px-4 sm:px-5 pb-4 pt-1">
                       <div className="ms-12 border-s-2 border-gray-100 dark:border-gray-700 ps-4">
-                        <div className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{m.body}</div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-2">{fmtDate(m.createdAt)}</div>
-
-                        {/* الردود من الموظفين */}
-                        {m.replies && m.replies.length > 0 && (
-                          <div className="mt-4">
-                            <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">{ar ? `الردود (${m.replies.length})` : `Replies (${m.replies.length})`}</div>
-                            <div className="space-y-2">
-                              {m.replies.map((rp) => (
-                                <div key={rp.id} className="rounded-lg bg-gray-50 dark:bg-gray-700/40 p-2.5 text-sm">
-                                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                                    <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{rp.userName}</span>
-                                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(rp.createdAt)}</span>
-                                  </div>
-                                  <div className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{rp.body}</div>
-                                </div>
-                              ))}
+                        {editingId === m.id ? (
+                          <div className="space-y-2">
+                            <input value={editSubject} onChange={(e) => setEditSubject(e.target.value)} className={inputCls} placeholder={ar ? 'العنوان' : 'Subject'} />
+                            <textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} rows={4} className={inputCls} placeholder={ar ? 'الرسالة' : 'Message'} />
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => setEditingId(null)} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-200 dark:hover:bg-gray-600">{ar ? 'إلغاء' : 'Cancel'}</button>
+                              <button onClick={() => saveEdit(m)} disabled={savingEdit} className="px-4 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-primary-contrast font-bold text-xs">{ar ? 'حفظ' : 'Save'}</button>
                             </div>
                           </div>
+                        ) : (
+                          <>
+                            <div className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{m.body}</div>
+
+                            {/* الردود من الموظفين والأدمن */}
+                            {m.replies && m.replies.length > 0 && (
+                              <div className="mt-4">
+                                <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">{ar ? `الردود (${m.replies.length})` : `Replies (${m.replies.length})`}</div>
+                                <div className="space-y-2">
+                                  {m.replies.map((rp) => (
+                                    <div key={rp.id} className={`rounded-lg p-2.5 text-sm ${rp.mine ? 'bg-primary-50 dark:bg-primary-900/25 ms-6' : 'bg-gray-50 dark:bg-gray-700/40 me-6'}`}>
+                                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{rp.mine ? (ar ? 'أنت' : 'You') : rp.userName}</span>
+                                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(rp.createdAt)}</span>
+                                      </div>
+                                      {editReplyId === rp.id ? (
+                                        <div className="mt-1 space-y-2">
+                                          <textarea value={editReplyText} onChange={(e) => setEditReplyText(e.target.value)} rows={2} className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none" />
+                                          <div className="flex justify-end gap-2">
+                                            <button onClick={() => setEditReplyId(null)} className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold text-xs">{ar ? 'إلغاء' : 'Cancel'}</button>
+                                            <button onClick={() => saveEditReply(m, rp)} disabled={savingReply} className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-primary-contrast font-bold text-xs">{ar ? 'حفظ' : 'Save'}</button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <div className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{rp.body}</div>
+                                          {rp.mine && (
+                                            <div className="flex items-center gap-3 mt-1.5">
+                                              <button onClick={() => startEditReply(rp)} className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                                                <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
+                                                {ar ? 'تعديل' : 'Edit'}
+                                              </button>
+                                              <button onClick={() => deleteReply(m, rp)} className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors">
+                                                <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                                {ar ? 'حذف' : 'Delete'}
+                                              </button>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* صندوق رد الأدمن */}
+                            <div className="mt-3 flex items-end gap-2">
+                              <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} rows={1} placeholder={ar ? 'اكتب ردك...' : 'Write a reply...'} className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none" />
+                              <button onClick={() => sendReply(m)} disabled={sendingReply || !replyText.trim()} className="inline-flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-primary-contrast font-bold px-4 py-2 rounded-lg text-sm transition-colors flex-shrink-0">
+                                <svg {...stroke} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>
+                                {ar ? 'رد' : 'Reply'}
+                              </button>
+                            </div>
+
+                            {/* التاريخ + أزرار التعديل والحذف — مكان ثابت آخر الرسالة */}
+                            <div className="flex items-center gap-3 mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                              <span className="text-xs text-gray-400 dark:text-gray-500">{fmtDate(m.createdAt)}</span>
+                              <button onClick={() => startEdit(m)} className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                                <svg {...stroke} className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
+                                {ar ? 'تعديل' : 'Edit'}
+                              </button>
+                              <button onClick={() => removeMessage(m)} className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors">
+                                <svg {...stroke} className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                {ar ? 'حذف' : 'Delete'}
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>
@@ -310,6 +453,17 @@ export default function InternalMailPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={isOpen}
+        title={options.title}
+        message={options.message}
+        confirmText={options.confirmText}
+        cancelText={options.cancelText}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+        type={options.type}
+      />
     </div>
   )
 }

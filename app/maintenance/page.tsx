@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDarkMode } from '@/contexts/DarkModeContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/hooks/useConfirm'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { LoadingScreen } from '@/components/Spinner'
 
 export const dynamic = 'force-dynamic'
@@ -34,6 +36,7 @@ export default function MaintenancePage() {
   const { locale, direction } = useLanguage()
   useDarkMode()
   const toast = useToast()
+  const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const ar = locale === 'ar'
 
   const [records, setRecords] = useState<Rec[]>([])
@@ -135,7 +138,12 @@ export default function MaintenancePage() {
   }
 
   const remove = async (r: Rec) => {
-    if (!confirm(ar ? 'متأكد تمسح السجل ده؟' : 'Delete this record?')) return
+    const ok = await confirm({
+      title: ar ? 'حذف السجل' : 'Delete record',
+      message: ar ? `متأكد تمسح صيانة «${r.deviceName}»؟ مش هينفع ترجع فيها.` : `Delete "${r.deviceName}" record? This cannot be undone.`,
+      confirmText: ar ? 'حذف' : 'Delete', cancelText: ar ? 'إلغاء' : 'Cancel', type: 'danger',
+    })
+    if (!ok) return
     try {
       const res = await fetch(`/api/maintenance/${r.id}`, { method: 'DELETE' })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || 'Failed'); return }
@@ -361,6 +369,8 @@ export default function MaintenancePage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog isOpen={isOpen} title={options.title} message={options.message} confirmText={options.confirmText} cancelText={options.cancelText} onConfirm={handleConfirm} onCancel={handleCancel} type={options.type} />
     </div>
   )
 }

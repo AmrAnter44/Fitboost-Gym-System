@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDarkMode } from '@/contexts/DarkModeContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/hooks/useConfirm'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { LoadingScreen } from '@/components/Spinner'
 
 export const dynamic = 'force-dynamic'
@@ -27,6 +29,7 @@ export default function InboxPage() {
   const { locale, direction } = useLanguage()
   useDarkMode()
   const toast = useToast()
+  const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm()
   const ar = locale === 'ar'
 
   const [messages, setMessages] = useState<InboxMessage[]>([])
@@ -34,6 +37,9 @@ export default function InboxPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [sendingReply, setSendingReply] = useState(false)
+  const [editReplyId, setEditReplyId] = useState<string | null>(null)
+  const [editReplyText, setEditReplyText] = useState('')
+  const [savingReply, setSavingReply] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -85,6 +91,35 @@ export default function InboxPage() {
       setReplyText('')
       toast.success(ar ? 'اتبعت الرد' : 'Reply sent')
     } catch { toast.error(ar ? 'فشل الإرسال' : 'Failed') } finally { setSendingReply(false) }
+  }
+
+  const startEditReply = (rp: Reply) => { setEditReplyId(rp.id); setEditReplyText(rp.body) }
+  const saveEditReply = async (m: InboxMessage, rp: Reply) => {
+    const text = editReplyText.trim()
+    if (!text) return
+    setSavingReply(true)
+    try {
+      const res = await fetch(`/api/inbox/reply/${rp.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: text }) })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error || 'Failed'); return }
+      setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, replies: (x.replies || []).map((r) => (r.id === rp.id ? { ...r, body: text } : r)) } : x)))
+      setEditReplyId(null)
+      toast.success(ar ? 'اتعدّل' : 'Updated')
+    } catch { toast.error(ar ? 'فشل التعديل' : 'Failed') } finally { setSavingReply(false) }
+  }
+  const deleteReply = async (m: InboxMessage, rp: Reply) => {
+    const ok = await confirm({
+      title: ar ? 'حذف الرد' : 'Delete reply',
+      message: ar ? 'متأكد تمسح ردك؟ مش هينفع ترجع فيه.' : 'Delete your reply? This cannot be undone.',
+      confirmText: ar ? 'حذف' : 'Delete', cancelText: ar ? 'إلغاء' : 'Cancel', type: 'danger',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/inbox/reply/${rp.id}`, { method: 'DELETE' })
+      if (!res.ok) { const d = await res.json(); toast.error(d.error || 'Failed'); return }
+      setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, replies: (x.replies || []).filter((r) => r.id !== rp.id) } : x)))
+      toast.success(ar ? 'اتمسح' : 'Deleted')
+    } catch { toast.error('Failed') }
   }
 
   const unread = messages.filter((m) => !m.isRead).length
@@ -145,7 +180,31 @@ export default function InboxPage() {
                                 <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{rp.mine ? (ar ? 'أنت' : 'You') : rp.userName}</span>
                                 <span className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(rp.createdAt)}</span>
                               </div>
-                              <div className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{rp.body}</div>
+                              {editReplyId === rp.id ? (
+                                <div className="mt-1 space-y-2">
+                                  <textarea value={editReplyText} onChange={(e) => setEditReplyText(e.target.value)} rows={2} className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none" />
+                                  <div className="flex justify-end gap-2">
+                                    <button onClick={() => setEditReplyId(null)} className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold text-xs">{ar ? 'إلغاء' : 'Cancel'}</button>
+                                    <button onClick={() => saveEditReply(m, rp)} disabled={savingReply} className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-primary-contrast font-bold text-xs">{ar ? 'حفظ' : 'Save'}</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{rp.body}</div>
+                                  {rp.mine && (
+                                    <div className="flex items-center gap-3 mt-1.5">
+                                      <button onClick={() => startEditReply(rp)} className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                                        <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
+                                        {ar ? 'تعديل' : 'Edit'}
+                                      </button>
+                                      <button onClick={() => deleteReply(m, rp)} className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors">
+                                        <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                        {ar ? 'حذف' : 'Delete'}
+                                      </button>
+                                    </div>
+                                  )}
+                                </>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -177,6 +236,17 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={isOpen}
+        title={options.title}
+        message={options.message}
+        confirmText={options.confirmText}
+        cancelText={options.cancelText}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+        type={options.type}
+      />
     </div>
   )
 }
