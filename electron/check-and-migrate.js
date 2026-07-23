@@ -552,6 +552,11 @@ function migrateDatabase(dbPath) {
       { col: 'pointsValueInEGP',           def: 'REAL DEFAULT 0.1' },
       { col: 'salesDailyCallTarget',       def: 'INTEGER NOT NULL DEFAULT 30' },
       { col: 'updatedBy',                  def: 'TEXT' },
+      // ☁️ أعمدة النسخ الاحتياطي السحابي (إصدار 6.10.0) — غيابها كان بيفشّل أي قراءة للإعدادات (إضافة عضو/PT)
+      { col: 'cloudBackupEnabled',         def: 'INTEGER NOT NULL DEFAULT 0' },
+      { col: 'lastCloudBackupAt',          def: 'DATETIME' },
+      { col: 'lastCloudBackupError',       def: 'TEXT' },
+      { col: 'lastCloudBackupSize',        def: 'INTEGER' },
     ];
     for (const { col, def } of settingsCols) {
       if (!columnExists(db, 'SystemSettings', col)) {
