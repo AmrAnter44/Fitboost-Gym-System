@@ -557,6 +557,11 @@ function migrateDatabase(dbPath) {
       { col: 'lastCloudBackupAt',          def: 'DATETIME' },
       { col: 'lastCloudBackupError',       def: 'TEXT' },
       { col: 'lastCloudBackupSize',        def: 'INTEGER' },
+      // 💼 إعدادات الرواتب — أيام العمل الشهرية الافتراضية 30 يوم
+      { col: 'payrollWorkingDaysPerMonth', def: 'INTEGER NOT NULL DEFAULT 30' },
+      { col: 'payrollLateGraceMinutes',    def: 'INTEGER NOT NULL DEFAULT 0' },
+      { col: 'payrollMonthEndDay',         def: 'INTEGER NOT NULL DEFAULT 1' },
+      { col: 'payrollSuggestedLatePerMinute', def: 'REAL DEFAULT 0' },
     ];
     for (const { col, def } of settingsCols) {
       if (!columnExists(db, 'SystemSettings', col)) {

@@ -355,7 +355,7 @@ async function getPayrollSettings(): Promise<PayrollSettings> {
   const s = await prisma.systemSettings.findUnique({ where: { id: 'singleton' } })
   return {
     payrollLateGraceMinutes: s?.payrollLateGraceMinutes ?? 5,
-    payrollWorkingDaysPerMonth: s?.payrollWorkingDaysPerMonth ?? 26,
+    payrollWorkingDaysPerMonth: s?.payrollWorkingDaysPerMonth ?? 30,
     payrollMonthEndDay: s?.payrollMonthEndDay ?? 28,
     payrollSuggestedLatePerMinute: s?.payrollSuggestedLatePerMinute ?? 2,
   }

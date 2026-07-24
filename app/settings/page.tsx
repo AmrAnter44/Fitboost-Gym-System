@@ -371,7 +371,7 @@ export default function SettingsPage() {
     ptFreezeEnabled: false,
     ptUpgradeEnabled: false,
     payrollLateGraceMinutes: 5,
-    payrollWorkingDaysPerMonth: 26,
+    payrollWorkingDaysPerMonth: 30,
     payrollMonthEndDay: 28,
     payrollSuggestedLatePerMinute: 2,
     requireSelfieOnCheckIn: false, //  Anti buddy-punching

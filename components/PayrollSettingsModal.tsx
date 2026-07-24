@@ -16,7 +16,7 @@ interface PayrollFields {
 }
 
 const DEFAULTS: PayrollFields = {
-  payrollWorkingDaysPerMonth: 26,
+  payrollWorkingDaysPerMonth: 30,
   payrollLateGraceMinutes: 5,
   payrollSuggestedLatePerMinute: 2,
   payrollMonthEndDay: 28,
@@ -108,7 +108,7 @@ export default function PayrollSettingsModal({ onClose }: { onClose: () => void 
               </label>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{locale === 'ar' ? 'يُستخدم لما الموظف ما عندوش Rotation محدد' : 'Used when the staff has no Rotation set'}</p>
               <input type="number" min={20} max={31} value={fields.payrollWorkingDaysPerMonth}
-                onChange={e => set('payrollWorkingDaysPerMonth', parseInt(e.target.value) || 26)} className={inputClass} />
+                onChange={e => set('payrollWorkingDaysPerMonth', parseInt(e.target.value) || 30)} className={inputClass} />
             </div>
 
             <div>
