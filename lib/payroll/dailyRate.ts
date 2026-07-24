@@ -5,7 +5,7 @@ import { prisma } from '../prisma'
  * feature (بونص يوم / خصم يوم).
  *
  * Formula: monthlySalary / workingDaysPerMonth
- *  - workingDaysPerMonth = SystemSettings.payrollWorkingDaysPerMonth (default 26),
+ *  - workingDaysPerMonth = SystemSettings.payrollWorkingDaysPerMonth (default 30),
  *    the same configurable denominator the payroll uses as its fallback.
  *
  * Kept intentionally simple (settings-based, not month/rotation specific) so that
@@ -23,7 +23,7 @@ export async function getStaffDailyRate(
   ])
 
   const monthlySalary = staff?.salary ?? 0
-  let workingDays = settings?.payrollWorkingDaysPerMonth ?? 26
+  let workingDays = settings?.payrollWorkingDaysPerMonth ?? 30
   if (workingDays < 1) workingDays = 1
 
   return { dailyRate: monthlySalary / workingDays, workingDays, monthlySalary }

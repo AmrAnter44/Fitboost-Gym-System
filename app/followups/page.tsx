@@ -52,6 +52,7 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { normalizeArabic } from '@/lib/arabicNormalization'
 import { createWhatsAppUrl } from '@/lib/whatsappHelper'
 import AssignSalesButton, { type AssignEntityType } from '../../components/AssignSalesButton'
+import SocialMediaFilter from '../../components/SocialMediaFilter'
 import { useBulkSender } from '../../contexts/BulkSenderContext'
 import {
   getDailyCount,
@@ -441,6 +442,7 @@ function FollowUpsPageContent() {
   const [contactedFilter, setContactedFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all') //  فلتر المصدر
+  const [socialFilter, setSocialFilter] = useState<string[]>([]) //  فلتر السوشيال ميديا (بوب-أب)
   const [salesFilter, setSalesFilter] = useState('all') //  فلتر السيلز (all, my-followups, my-overdue, today)
   const [assignedStaffFilter, setAssignedStaffFilter] = useState('all') //  فلتر بموظف سيلز محدد
   const [dateFromFilter, setDateFromFilter] = useState('') //  فلتر تاريخ من (YYYY-MM-DD)
@@ -1321,6 +1323,9 @@ function FollowUpsPageContent() {
           }
         }
 
+        //  فلتر السوشيال ميديا (بوب-أب) — لو فيه منصّات مختارة، اعرض بس اللي مصدرها منهم
+        const matchesSocial = socialFilter.length === 0 || socialFilter.includes(fu.visitor.source)
+
         //  فلتر موظف السيلز المحدد
         const matchesAssignedStaff = assignedStaffFilter === 'all'
           || (assignedStaffFilter === '__unassigned__' ? !fu.assignedTo : fu.assignedTo === assignedStaffFilter)
@@ -1341,7 +1346,7 @@ function FollowUpsPageContent() {
           }
         }
 
-        return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesSales && matchesAssignedStaff && matchesDateRange
+        return matchesSearch && matchesResult && matchesContacted && matchesPriority && matchesSource && matchesSocial && matchesSales && matchesAssignedStaff && matchesDateRange
       })
       .sort((a, b) => {
         if (sortByPriority) {
@@ -1358,12 +1363,12 @@ function FollowUpsPageContent() {
         //  ترتيب حسب تاريخ الإضافة: الأحدث أولاً
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
+  }, [allFollowUps, debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority, getFollowUpPriority, user, isMyFollowUp])
 
   // إعادة تعيين الصفحة للأولى عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority])
+  }, [debouncedSearchTerm, resultFilter, contactedFilter, priorityFilter, sourceFilter, socialFilter, salesFilter, assignedStaffFilter, dateFromFilter, dateToFilter, sortByPriority])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredFollowUps.length / itemsPerPage)
@@ -2902,6 +2907,8 @@ function FollowUpsPageContent() {
             <svg className={`w-3 h-3 ${websiteSyncing ? 'animate-spin' : ''}`} {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             {locale === 'ar' ? 'جلب الـ leads' : 'Pull leads'}
           </button>
+          {/*  فلتر السوشيال ميديا (بوب-أب يفتح ويقفل) */}
+          <SocialMediaFilter selected={socialFilter} onChange={setSocialFilter} locale={locale} />
         </div>
 
         {/* Row 3: Search + dropdowns + smart script */}

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import PermissionDenied from '../../components/PermissionDenied'
@@ -32,6 +33,7 @@ interface StaffDeduction {
 
 export default function StaffDeductionsPage() {
   const { t, locale, direction } = useLanguage()
+  const router = useRouter()
   const { hasPermission, loading: permissionsLoading } = usePermissions()
   const localeString = locale === 'ar' ? 'ar-EG' : 'en-US'
 
@@ -42,11 +44,12 @@ export default function StaffDeductionsPage() {
 
   const [filterStaffId, setFilterStaffId] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'applied'>('all')
+  const [filterMonth, setFilterMonth] = useState<string>('all')
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null) // id الخصم اللي بيتعدّل (null = إضافة)
   // عدد أيام العمل الشهرية (لحساب "خصم يوم" = المرتب ÷ أيام العمل) — من إعدادات الرواتب
-  const [workingDays, setWorkingDays] = useState(26)
+  const [workingDays, setWorkingDays] = useState(30)
   const [formData, setFormData] = useState({
     staffId: '',
     kind: 'amount' as 'amount' | 'days',
@@ -247,12 +250,45 @@ export default function StaffDeductionsPage() {
     }
   }
 
+  //  مفتاح الشهر (YYYY-MM) من تاريخ إنشاء الخصم — أساس فصل الشهور عن بعض
+  const monthKey = (iso: string) => {
+    const d = new Date(iso)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  }
+  const monthLabel = (key: string) => {
+    const [y, m] = key.split('-').map(Number)
+    return new Date(y, m - 1, 1).toLocaleDateString(localeString, { month: 'long', year: 'numeric' })
+  }
+
   const filteredDeductions = deductions.filter(d => {
     if (filterStaffId !== 'all' && d.staffId !== filterStaffId) return false
     if (filterStatus === 'pending' && d.isApplied) return false
     if (filterStatus === 'applied' && !d.isApplied) return false
+    if (filterMonth !== 'all' && monthKey(d.createdAt) !== filterMonth) return false
     return true
   })
+
+  //  كل الشهور الموجودة في البيانات (للفلتر) — الأحدث الأول
+  const availableMonths = useMemo(() => {
+    const keys = new Set(deductions.map(d => monthKey(d.createdAt)))
+    return [...keys].sort((a, b) => b.localeCompare(a))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deductions])
+
+  //  تجميع الخصومات: كل شهر لوحده بإجماليه — الأحدث الأول
+  const monthGroups = useMemo(() => {
+    const map = new Map<string, { key: string; items: StaffDeduction[]; total: number; pending: number }>()
+    for (const d of filteredDeductions) {
+      const key = monthKey(d.createdAt)
+      if (!map.has(key)) map.set(key, { key, items: [], total: 0, pending: 0 })
+      const g = map.get(key)!
+      g.items.push(d)
+      g.total += d.amount
+      if (!d.isApplied) g.pending += d.amount
+    }
+    return [...map.values()].sort((a, b) => b.key.localeCompare(a.key))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredDeductions])
 
   const pendingTotal = deductions.filter(d => !d.isApplied).reduce((sum, d) => sum + d.amount, 0)
   const pendingCount = deductions.filter(d => !d.isApplied).length
@@ -271,6 +307,18 @@ export default function StaffDeductionsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
+          {/*  زرار رجوع — يرجع للصفحة اللي جه منها */}
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center flex-shrink-0 transition-colors duration-200"
+            aria-label={direction === 'rtl' ? 'رجوع' : 'Back'}
+            title={direction === 'rtl' ? 'رجوع' : 'Back'}
+          >
+            <svg {...stroke} className={`w-5 h-5 ${direction === 'rtl' ? 'rotate-180' : ''}`} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
           <div className="w-11 h-11 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center justify-center flex-shrink-0">
             <svg {...stroke} className="w-6 h-6" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181" />
@@ -508,6 +556,17 @@ export default function StaffDeductionsPage() {
           <option value="pending">{t('deductions.pending')}</option>
           <option value="applied">{t('deductions.applied')}</option>
         </select>
+        <select
+          value={filterMonth}
+          onChange={e => setFilterMonth(e.target.value)}
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200 text-sm"
+          aria-label={locale === 'ar' ? 'كل الشهور' : 'All months'}
+        >
+          <option value="all">{locale === 'ar' ? 'كل الشهور' : 'All months'}</option>
+          {availableMonths.map(m => (
+            <option key={m} value={m}>{monthLabel(m)}</option>
+          ))}
+        </select>
         <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 self-center">
           {filteredDeductions.length} {t('deductions.deductionCount')}
         </span>
@@ -527,10 +586,37 @@ export default function StaffDeductionsPage() {
           </p>
         </div>
       ) : (
-        <>
-          {/* Mobile Cards */}
-          <div className="md:hidden space-y-3">
-            {filteredDeductions.map(d => (
+        <div className="space-y-8">
+          {monthGroups.map(g => (
+          <section key={g.key}>
+            {/* ── عنوان الشهر: كل شهر مفصول لوحده بإجماليه ── */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b-2 border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center flex-shrink-0">
+                  <svg {...stroke} className="w-4 h-4" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                  </svg>
+                </span>
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{monthLabel(g.key)}</h3>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                  {g.items.length} {t('deductions.deductionCount')}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                {g.pending > 0 && (
+                  <span className="font-bold text-amber-600 dark:text-amber-400">
+                    {locale === 'ar' ? 'معلّق' : 'Pending'}: {g.pending.toLocaleString(localeString)}
+                  </span>
+                )}
+                <span className="font-bold text-red-600 dark:text-red-400">
+                  {locale === 'ar' ? 'إجمالي الشهر' : 'Month total'}: - {g.total.toLocaleString(localeString)} {t('deductions.currency')}
+                </span>
+              </div>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-3">
+              {g.items.map(d => (
               <div key={d.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
                 <div className="bg-gray-50 dark:bg-gray-900/40 px-4 py-2 flex justify-between items-center">
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${d.isApplied ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'}`}>
@@ -627,7 +713,7 @@ export default function StaffDeductionsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {filteredDeductions.map(d => (
+                {g.items.map(d => (
                   <tr key={d.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
                     <td className="px-4 py-3">
                       <Link href={`/staff-hr-assistant?staffId=${d.staffId}`} className="font-bold text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400 hover:underline block">{d.staff.name}</Link>
@@ -715,7 +801,9 @@ export default function StaffDeductionsPage() {
               </tbody>
             </table>
           </div>
-        </>
+          </section>
+          ))}
+        </div>
       )}
 
       {/* Delete Confirm Modal */}

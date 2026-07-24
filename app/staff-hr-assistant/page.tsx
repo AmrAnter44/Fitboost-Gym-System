@@ -266,6 +266,8 @@ export default function StaffHRAssistantPage() {
         setAdvanceAmount('')
         setAdvanceNotes('')
         fetchAnalytics()
+        //  حدّث حساب المرتب عشان السلفة تتخصم فورًا من الصافي المعروض
+        if (advanceStaffId && advanceStaffId === selectedStaffId) fetchPayroll(advanceStaffId)
       } else {
         toast.error(direction === 'rtl' ? 'فشل إضافة السلفة' : 'Failed to add advance')
       }
@@ -391,6 +393,8 @@ export default function StaffHRAssistantPage() {
       if (res.ok) {
         toast.success(direction === 'rtl' ? 'تم تحديث حالة السلفة' : 'Advance status updated')
         fetchAnalytics()
+        //  دفع/إلغاء دفع السلفة بيغيّر الخصم — حدّث المرتب المعروض
+        if (selectedStaffId) fetchPayroll(selectedStaffId)
       }
     } catch {
       toast.error(direction === 'rtl' ? 'فشل تحديث الحالة' : 'Failed to update status')

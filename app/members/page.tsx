@@ -19,6 +19,7 @@ import { LoadingScreen } from '../../components/Spinner'
 import { useDebounce } from '../../hooks/useDebounce'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import SocialMediaFilter from '../../components/SocialMediaFilter'
 
 // Dynamic imports - تحميل المكونات الثقيلة عند الحاجة فقط
 const MemberForm = nextDynamic(() => import('../../components/MemberForm'), {
@@ -197,6 +198,7 @@ function MembersPageContent() {
   const [filterPackage, setFilterPackage] = useState<'all' | 'month' | '3-months' | '6-months' | 'year'>('all')
   const [filterSalesId, setFilterSalesId] = useState<string>('all') // فلتر السيلز ('all' / '__none__' / staff.id)
   const [filterCoachId, setFilterCoachId] = useState<string>('all') // ‍ فلتر الكوتش ('all' / '__none__' / staff.id)
+  const [socialFilter, setSocialFilter] = useState<string[]>([]) //  فلتر السوشيال ميديا (المصدر)
   // فلتر تاريخ الاشتراك — مدى (من/إلى) يحدده المستخدم (YYYY-MM-DD)
   const [filterSubFrom, setFilterSubFrom] = useState<string>('')
   const [filterSubTo, setFilterSubTo] = useState<string>('')
@@ -358,6 +360,11 @@ function MembersPageContent() {
       })
     }
 
+    //  فلتر السوشيال ميديا (بوب-أب) — لو فيه منصّات مختارة، اعرض بس الأعضاء اللي مصدرهم منهم
+    if (socialFilter.length > 0) {
+      filtered = filtered.filter((member) => socialFilter.includes(member.source))
+    }
+
     //  فلتر تاريخ الاشتراك — مدى (من/إلى) حسب startDate
     if (filterSubFrom || filterSubTo) {
       filtered = filtered.filter((member) => {
@@ -399,7 +406,7 @@ function MembersPageContent() {
     })
 
     return sorted
-  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterSubFrom, filterSubTo, membersData])
+  }, [debouncedSearch, debouncedSearchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterSubFrom, filterSubTo, socialFilter, membersData])
 
   // جلب المحظورين عند التحميل (لو عنده صلاحية)
   useEffect(() => {
@@ -530,7 +537,7 @@ function MembersPageContent() {
   // إعادة تعيين الصفحة عند تغيير الفلاتر
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterSubFrom, filterSubTo])
+  }, [search, searchId, filterStatus, filterPackage, filterSalesId, filterCoachId, filterSubFrom, filterSubTo, socialFilter])
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
@@ -561,6 +568,7 @@ function MembersPageContent() {
     setFilterCoachId('all')
     setFilterSubFrom('')
     setFilterSubTo('')
+    setSocialFilter([])
   }
 
   // Active filters count (used by mobile filter button badge)
@@ -568,7 +576,8 @@ function MembersPageContent() {
     (filterStatus !== 'all' && filterStatus !== 'analytics' ? 1 : 0) +
     (filterPackage !== 'all' ? 1 : 0) +
     (filterSalesId !== 'all' ? 1 : 0) +
-    (filterCoachId !== 'all' ? 1 : 0)
+    (filterCoachId !== 'all' ? 1 : 0) +
+    (socialFilter.length > 0 ? 1 : 0)
 
   // Lock body scroll while mobile drawer is open
   useEffect(() => {
@@ -1193,6 +1202,14 @@ function MembersPageContent() {
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
             </select>
+          </div>
+
+          {/*  فلتر السوشيال ميديا — dropdown ثابت زي الباقة/السيلز/الكوتش */}
+          <div className="flex-1 min-w-0">
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+              {locale === 'ar' ? 'المصدر' : 'Source'}
+            </label>
+            <SocialMediaFilter selected={socialFilter} onChange={setSocialFilter} locale={locale} fullWidth />
           </div>
 
           {/* تاريخ الاشتراك — زرار جنب الفلاتر */}

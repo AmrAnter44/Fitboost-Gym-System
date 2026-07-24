@@ -54,7 +54,7 @@ export default function StaffBonusesPage() {
 
   const [showForm, setShowForm] = useState(false)
   // عدد أيام العمل الشهرية (لحساب "بونص يوم" = المرتب ÷ أيام العمل) — من إعدادات الرواتب
-  const [workingDays, setWorkingDays] = useState(26)
+  const [workingDays, setWorkingDays] = useState(30)
   const [formData, setFormData] = useState({
     staffId: '',
     kind: 'amount' as 'amount' | 'days',

@@ -1204,7 +1204,7 @@ model SystemSettings {
 
   // إعدادات نظام الـ Payroll
   payrollLateGraceMinutes     Int      @default(5)   // فترة السماحة للتأخير بالدقائق (للـ reporting فقط)
-  payrollWorkingDaysPerMonth  Int      @default(26)  // عدد أيام العمل الشهري الافتراضي (fallback لو الـ Rotation فاضي)
+  payrollWorkingDaysPerMonth  Int      @default(30)  // عدد أيام العمل الشهري الافتراضي (fallback لو الـ Rotation فاضي)
   payrollMonthEndDay          Int      @default(28)  // اليوم اللي بيتقفل عنده الشهر للـ payroll
   payrollSuggestedLatePerMinute Float  @default(2)   // السعر المقترح للدقيقة المتأخرة (suggested value في pre-payroll checklist، مش بيتطبق تلقائياً)
 
