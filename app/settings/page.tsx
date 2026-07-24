@@ -9,6 +9,7 @@ import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { useToast } from '../../contexts/ToastContext'
 import { LoadingScreen } from '../../components/Spinner'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import CloudBackupCard from '../../components/settings/CloudBackupCard'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -2773,6 +2774,9 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* ☁️ النسخ الاحتياطي السحابي (Backblaze B2) — كارت مستقل للأونر */}
+              <CloudBackupCard />
 
               {/* استعادة قاعدة البيانات */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5 space-y-5">
