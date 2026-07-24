@@ -5,6 +5,8 @@ import {
   isCloudBackupConfigured,
   cloudBackupEnv,
   runCloudBackup,
+  runPhotosBackup,
+  getPhotosBackupStatus,
   type CloudBackupResult,
 } from '../../../../../lib/cloudBackup'
 
@@ -58,6 +60,7 @@ export async function GET(request: Request) {
       lastCloudBackupAt: settings?.lastCloudBackupAt ?? null,
       lastCloudBackupError: settings?.lastCloudBackupError ?? null,
       lastCloudBackupSize: settings?.lastCloudBackupSize ?? null,
+      photos: getPhotosBackupStatus(),
     })
   } catch (error: any) {
     if (error?.message === 'Unauthorized') {
@@ -104,14 +107,22 @@ export async function POST(request: Request) {
     if (action === 'upload-now') {
       // رفع فوري للاختبار — بيتجاهل فحص "مفعّل؟" بس لازم يكون متظبط
       const result = await runCloudBackup({ force: true })
+      // ومعاه دفعة صور تزايدية (الجديد بس) — عشان زرار واحد يختبر الاتنين
+      const photos = result.ok ? await runPhotosBackup({ force: true }) : null
       const settings = await prisma.systemSettings.findUnique({ where: { id: 'singleton' } })
+
+      let message = messageFor(result)
+      if (photos?.ok && (photos.uploaded || 0) > 0) {
+        message += ` + اترفعت ${photos.uploaded} صورة جديدة${(photos.remaining || 0) > 0 ? ` (باقي ${photos.remaining} للدورة الجاية)` : ''}`
+      }
 
       return NextResponse.json(
         {
           success: result.ok,
-          message: messageFor(result),
+          message,
           remoteName: result.ok ? result.remoteName : null,
           size: result.ok ? result.size : null,
+          photos,
           lastCloudBackupAt: settings?.lastCloudBackupAt ?? null,
           lastCloudBackupError: settings?.lastCloudBackupError ?? null,
         },

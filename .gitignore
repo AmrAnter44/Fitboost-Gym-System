@@ -99,3 +99,6 @@ resources/
 # Rendered video output (must never be committed)
 FFOutput/
 *.mp4
+
+# مانيفست باكاب الصور السحابي (يتولد محليًا)
+cloud-photos-manifest.json

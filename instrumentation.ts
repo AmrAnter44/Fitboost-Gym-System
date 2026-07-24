@@ -50,7 +50,7 @@ export async function register() {
     // وبعد النسخة المحلية بنرفع نسخة سحابية لـ B2 (لو مفعّل ومتظبط ومستحق) —
     // بنعيد استخدام نفس الـ snapshot اللي اتعمل بدل VACUUM جديد.
     const { runDailyBackupIfDue } = await import('./lib/autoBackup')
-    const { runCloudBackupIfDue } = await import('./lib/cloudBackup')
+    const { runCloudBackupIfDue, runPhotosBackup } = await import('./lib/cloudBackup')
     const backupTick = async () => {
       try {
         const r = await runDailyBackupIfDue()
@@ -58,6 +58,13 @@ export async function register() {
         const cloud = await runCloudBackupIfDue(r.backed ? r.path : undefined)
         if (cloud.ok) console.log('[cloudBackup] uploaded to B2:', cloud.remoteName)
         else if (cloud.reason === 'error') console.error('[cloudBackup] upload failed:', cloud.error)
+        // صور الأعضاء — تزايدي: الجديد بس بيترفع، فالتكرار كل 6 ساعات رخيص
+        const photos = await runPhotosBackup()
+        if (photos.ok && (photos.uploaded || 0) > 0) {
+          console.log(`[cloudBackup] photos: uploaded ${photos.uploaded} new, ${photos.remaining || 0} remaining`)
+        } else if (photos.reason === 'error') {
+          console.error('[cloudBackup] photos failed:', photos.error)
+        }
       } catch (err: any) {
         console.error('[autoBackup] worker error:', err?.message || err)
       }

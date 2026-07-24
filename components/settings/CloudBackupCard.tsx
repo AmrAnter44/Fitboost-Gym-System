@@ -20,6 +20,12 @@ interface CloudStatus {
   lastCloudBackupAt: string | null;
   lastCloudBackupError: string | null;
   lastCloudBackupSize: number | null;
+  photos?: {
+    totalTracked: number;
+    lastRunAt: string | null;
+    lastError: string | null;
+    localCount: number;
+  };
 }
 
 const Spinner = ({ className = 'w-4 h-4' }: { className?: string }) => (
@@ -253,6 +259,17 @@ export default function CloudBackupCard() {
               <div className="p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-400">حجم آخر نسخة</p>
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{fmtSize(cloud.lastCloudBackupSize)}</p>
+              </div>
+              <div className="p-3 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700 sm:col-span-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400">📷 صور الأعضاء (تزايدي — الجديد بس بيترفع)</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">
+                  {cloud.photos
+                    ? `${cloud.photos.totalTracked} مرفوعة من ${cloud.photos.localCount} على الجهاز`
+                    : '—'}
+                  {cloud.photos?.lastError && (
+                    <span className="text-red-600 dark:text-red-400 font-normal text-xs mr-2">— آخر خطأ: {cloud.photos.lastError}</span>
+                  )}
+                </p>
               </div>
             </div>
 
