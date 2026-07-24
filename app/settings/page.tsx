@@ -10,10 +10,16 @@ import { useToast } from '../../contexts/ToastContext'
 import { LoadingScreen } from '../../components/Spinner'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import CloudBackupCard from '../../components/settings/CloudBackupCard'
+import ImageUpload from '../../components/ImageUpload'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
+//  أيقونات إظهار/إخفاء كلمة السر
+const EYE = (<svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>)
+const EYE_OFF = (<svg {...stroke} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>)
+
 const NAV_ICON_PATHS: Record<string, JSX.Element> = {
+  'profile': (<path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />),
   'quick-links': (<path strokeLinecap="round" strokeLinejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />),
   'services': (<path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3 2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75 2.25-1.313M12 21.75V19.5m0 2.25-2.25-1.313m0-16.875L12 2.25l2.25 1.313" />),
   'points': (<path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />),
@@ -302,6 +308,14 @@ export default function SettingsPage() {
   const toast = useToast()
   const [confirmState, setConfirmState] = useState<{ open: boolean; message: string; title?: string; type?: 'danger' | 'warning' | 'info'; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} })
   const [user, setUser] = useState<any>(null)
+
+  //  تاب البروفايل (لكل موظف) — صورة + تغيير كلمة السر
+  const [profileImg, setProfileImg] = useState<string | null>(null)
+  const [savingPhoto, setSavingPhoto] = useState(false)
+  const [pwForm, setPwForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
+  const [pwLoading, setPwLoading] = useState(false)
+  const [showPw, setShowPw] = useState({ old: false, new: false, confirm: false })
+
   //  بنقرأ الـ section من الـ URL hash (مثل /settings#quick-links)
   // عشان لما اليوزر يرجع من /admin/users يلاقي نفس الـ section مفتوحة
   const [activeSection, setActiveSection] = useState(() => {
@@ -332,6 +346,7 @@ export default function SettingsPage() {
     poolEnabled: true,
     padelEnabled: true,
     assessmentEnabled: true,
+    lostFoundEnabled: true,
     gymName: '',
     websiteUrl: 'https://www.xgym.website',
     showWebsiteOnReceipts: true,
@@ -497,6 +512,7 @@ export default function SettingsPage() {
         // السماح لجميع المستخدمين بالوصول لصفحة الإعدادات
         // (navigationItems تتحكم في الأقسام المتاحة لكل مستخدم)
         setUser(data.user)
+        setProfileImg(data.user?.profileImage ?? null)
       } else {
         router.push('/login')
       }
@@ -1242,10 +1258,71 @@ export default function SettingsPage() {
     }
   }
 
+  //  حفظ صورة البروفايل (self-service)
+  const handleProfileImageChange = async (imageUrl: string | null) => {
+    setSavingPhoto(true)
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileImage: imageUrl }),
+      })
+      if (res.ok) {
+        setProfileImg(imageUrl)
+        toast.success(imageUrl
+          ? (locale === 'ar' ? 'تم تحديث صورة البروفايل' : 'Profile photo updated')
+          : (locale === 'ar' ? 'تم حذف صورة البروفايل' : 'Profile photo removed'))
+      } else {
+        toast.error(locale === 'ar' ? 'فشل حفظ الصورة' : 'Failed to save photo')
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error')
+    } finally {
+      setSavingPhoto(false)
+    }
+  }
+
+  //  تغيير كلمة السر (self-service)
+  const handleChangePassword = async () => {
+    if (!pwForm.oldPassword || !pwForm.newPassword) {
+      toast.warning(locale === 'ar' ? 'اكتب كلمة السر القديمة والجديدة' : 'Enter old and new password')
+      return
+    }
+    if (pwForm.newPassword.length < 8) {
+      toast.error(locale === 'ar' ? 'كلمة السر الجديدة لازم 8 أحرف على الأقل' : 'New password must be at least 8 characters')
+      return
+    }
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      toast.error(locale === 'ar' ? 'تأكيد كلمة السر مش مطابق' : 'Password confirmation does not match')
+      return
+    }
+    setPwLoading(true)
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword: pwForm.oldPassword, newPassword: pwForm.newPassword }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message || (locale === 'ar' ? 'تم تغيير كلمة السر' : 'Password changed'))
+        setPwForm({ oldPassword: '', newPassword: '', confirmPassword: '' })
+      } else {
+        toast.error(data.error || (locale === 'ar' ? 'فشل تغيير كلمة السر' : 'Failed to change password'))
+      }
+    } catch {
+      toast.error(locale === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error')
+    } finally {
+      setPwLoading(false)
+    }
+  }
+
   // تحديد من يمتلك صلاحيات الإعدادات الإدارية
   const hasAdminAccess = user?.role === 'ADMIN' || user?.role === 'OWNER' || user?.permissions?.canAccessSettings === true
 
   const navigationItems: Array<{ id: string; label: string }> = [
+    //  البروفايل — متاح لكل المستخدمين (بما فيهم الأدمن/الأونر)
+    { id: 'profile', label: locale === 'ar' ? 'بروفايل' : 'Profile' },
     ...(user?.role === 'ADMIN' || user?.role === 'OWNER' ? [{ id: 'quick-links', label: t('settingsPage.navigation.quickLinks') }] : []),
     ...(hasAdminAccess ? [
       { id: 'services', label: t('settingsPage.navigation.services') },
@@ -1275,7 +1352,8 @@ export default function SettingsPage() {
     { id: 'inBody', name: t('settingsPage.services.inBody.name'), desc: t('settingsPage.services.inBody.desc') },
     { id: 'pool', name: t('settingsPage.services.pool.name'), desc: t('settingsPage.services.pool.desc') },
     { id: 'padel', name: t('settingsPage.services.padel.name'), desc: t('settingsPage.services.padel.desc') },
-    { id: 'assessment', name: t('settingsPage.services.assessment.name'), desc: t('settingsPage.services.assessment.desc') }
+    { id: 'assessment', name: t('settingsPage.services.assessment.name'), desc: t('settingsPage.services.assessment.desc') },
+    { id: 'lostFound', name: locale === 'ar' ? 'المتعلقات المفقودة' : 'Lost & Found', desc: locale === 'ar' ? 'تسجيل الحاجات المفقودة اللي بتتلاقى في الجيم' : 'Track items found in the gym' }
   ]
 
   if (!user) {
@@ -2139,6 +2217,94 @@ export default function SettingsPage() {
                     {isSaving ? t('settingsPage.saving') : t('settingsPage.saveChanges')}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'profile' && (
+            <div className="space-y-4 sm:space-y-6">
+              {/* Header */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-6 h-6" aria-hidden="true">{NAV_ICON_PATHS['profile']}</svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'البروفايل' : 'Profile'}</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {user?.name}{user?.email ? ` · ${user.email}` : ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* صورة البروفايل */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{locale === 'ar' ? 'صورة البروفايل' : 'Profile Photo'}</h3>
+                <ImageUpload
+                  variant="profile"
+                  currentImage={profileImg}
+                  onImageChange={handleProfileImageChange}
+                  disabled={savingPhoto}
+                  label={locale === 'ar' ? 'صورتك الشخصية' : 'Your photo'}
+                />
+              </div>
+
+              {/* تغيير كلمة السر */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+                <div className="flex items-center justify-center gap-3 px-5 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700/60 text-center">
+                  <span className="w-9 h-9 rounded-xl bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center flex-shrink-0">
+                    <svg {...stroke} className="w-5 h-5" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{locale === 'ar' ? 'تغيير كلمة السر' : 'Change Password'}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{locale === 'ar' ? 'اكتب كلمة السر القديمة ثم الجديدة' : 'Enter your current then new password'}</p>
+                  </div>
+                </div>
+                <form onSubmit={(e) => { e.preventDefault(); handleChangePassword() }} className="p-5 sm:p-6 space-y-4 max-w-md mx-auto">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{locale === 'ar' ? 'كلمة السر الحالية' : 'Current password'}</label>
+                    <div className="relative">
+                      <input type={showPw.old ? 'text' : 'password'} autoComplete="current-password" value={pwForm.oldPassword} onChange={(e) => setPwForm({ ...pwForm, oldPassword: e.target.value })} className="w-full ps-3 pe-11 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors" placeholder="••••••••" />
+                      <button type="button" onClick={() => setShowPw({ ...showPw, old: !showPw.old })} aria-label={showPw.old ? (locale === 'ar' ? 'إخفاء' : 'Hide') : (locale === 'ar' ? 'إظهار' : 'Show')} className="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        {showPw.old ? EYE_OFF : EYE}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-dashed border-gray-200 dark:border-gray-700 pt-4">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{locale === 'ar' ? 'كلمة السر الجديدة' : 'New password'}</label>
+                    <div className="relative">
+                      <input type={showPw.new ? 'text' : 'password'} autoComplete="new-password" value={pwForm.newPassword} onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })} className="w-full ps-3 pe-11 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors" placeholder="••••••••" />
+                      <button type="button" onClick={() => setShowPw({ ...showPw, new: !showPw.new })} aria-label={showPw.new ? (locale === 'ar' ? 'إخفاء' : 'Hide') : (locale === 'ar' ? 'إظهار' : 'Show')} className="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        {showPw.new ? EYE_OFF : EYE}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">{locale === 'ar' ? '8 أحرف على الأقل، وتحتوي على حروف وأرقام' : 'At least 8 chars, with letters and numbers'}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{locale === 'ar' ? 'تأكيد كلمة السر الجديدة' : 'Confirm new password'}</label>
+                    <div className="relative">
+                      <input type={showPw.confirm ? 'text' : 'password'} autoComplete="new-password" value={pwForm.confirmPassword} onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })} className={`w-full ps-3 pe-11 py-2.5 rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${pwForm.confirmPassword && pwForm.newPassword !== pwForm.confirmPassword ? 'border-red-400 dark:border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'}`} placeholder="••••••••" />
+                      <button type="button" onClick={() => setShowPw({ ...showPw, confirm: !showPw.confirm })} aria-label={showPw.confirm ? (locale === 'ar' ? 'إخفاء' : 'Hide') : (locale === 'ar' ? 'إظهار' : 'Show')} className="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        {showPw.confirm ? EYE_OFF : EYE}
+                      </button>
+                    </div>
+                    {pwForm.confirmPassword && (
+                      pwForm.newPassword === pwForm.confirmPassword ? (
+                        <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1.5">✓ {locale === 'ar' ? 'كلمتا السر متطابقتان' : 'Passwords match'}</p>
+                      ) : (
+                        <p className="text-[11px] font-bold text-red-500 mt-1.5">{locale === 'ar' ? 'كلمتا السر غير متطابقتين' : 'Passwords do not match'}</p>
+                      )
+                    )}
+                  </div>
+
+                  <button type="submit" disabled={pwLoading} className="w-full inline-flex items-center justify-center gap-2 bg-primary-600 text-primary-contrast px-6 py-2.5 rounded-lg hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed font-bold text-sm transition-colors">
+                    <svg {...stroke} className="w-4 h-4" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                    {pwLoading ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (locale === 'ar' ? 'حفظ كلمة السر' : 'Save Password')}
+                  </button>
+                </form>
               </div>
             </div>
           )}

@@ -35,6 +35,9 @@ export async function GET(request: Request) {
       yesterdayAgg,
       pendingFollowups,
       dailyRevenueRaw,
+      callsToday,
+      callsNotInterestedToday,
+      callsNoAnswerToday,
     ] = await Promise.all([
       prisma.member.count(),
       prisma.member.count({ where: { expiryDate: { gte: startOfToday, lt: endOfToday } } }),
@@ -64,6 +67,10 @@ export async function GET(request: Request) {
         GROUP BY day
         ORDER BY day
       `,
+      //  مكالمات السيلز النهاردة — المتواصَلة فقط (contacted=true) عشان صفوف الإسناد الأولية ما تتحسبش
+      prisma.followUp.count({ where: { createdAt: { gte: startOfToday, lt: endOfToday }, contacted: true } }),
+      prisma.followUp.count({ where: { createdAt: { gte: startOfToday, lt: endOfToday }, contacted: true, result: 'not-interested' } }),
+      prisma.followUp.count({ where: { createdAt: { gte: startOfToday, lt: endOfToday }, contacted: true, result: 'no-answer' } }),
     ])
 
     return NextResponse.json({
@@ -77,6 +84,10 @@ export async function GET(request: Request) {
       yesterdayRevenue: yesterdayAgg._sum.amount ?? 0,
       yesterdayReceiptsCount: yesterdayAgg._count,
       pendingFollowups,
+      //  مكالمات النهاردة
+      callsToday,
+      callsNotInterestedToday,
+      callsNoAnswerToday,
       // BigInt من SQLite لازم يتحول قبل الـ JSON
       revenueLast14Days: dailyRevenueRaw.map(row => ({
         day: row.day,

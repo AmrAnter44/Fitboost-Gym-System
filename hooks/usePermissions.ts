@@ -12,6 +12,7 @@ export interface User {
   role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'COACH'
   staffId?: string | null
   isSales?: boolean
+  profileImage?: string | null
 }
 
 // استخدام نفس interface الـ Permissions من types/permissions.ts

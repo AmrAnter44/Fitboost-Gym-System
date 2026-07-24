@@ -20,9 +20,10 @@ export async function GET(request: Request) {
       where: { id: user.userId },
       select: {
         darkMode: true,
-        locale: true
-      }
-    })
+        locale: true,
+        profileImage: true,
+      } as any
+    }) as any
 
     // إذا المستخدم غير موجود (مثل fallback account)، أنشئ سجل له
     if (!userSettings) {
@@ -34,8 +35,8 @@ export async function GET(request: Request) {
           password: '---',
           role: user.role || 'OWNER',
         },
-        select: { darkMode: true, locale: true }
-      })
+        select: { darkMode: true, locale: true, profileImage: true } as any
+      }) as any
       userSettings = newUser
     }
 
@@ -63,11 +64,13 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json()
-    const { darkMode, locale } = body
+    const { darkMode, locale, profileImage } = body
 
     const updateData: any = {}
     if (darkMode !== undefined) updateData.darkMode = darkMode
     if (locale !== undefined) updateData.locale = locale
+    //  الصورة: null = مسح الصورة · string = تحديثها
+    if (profileImage !== undefined) updateData.profileImage = profileImage || null
 
     const updatedUser = await prisma.user.upsert({
       where: { id: user.userId },
@@ -82,9 +85,10 @@ export async function PUT(request: Request) {
       },
       select: {
         darkMode: true,
-        locale: true
-      }
-    })
+        locale: true,
+        profileImage: true,
+      } as any
+    }) as any
 
     return NextResponse.json(updatedUser)
   } catch (error: any) {

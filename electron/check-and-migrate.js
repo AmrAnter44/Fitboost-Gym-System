@@ -348,6 +348,11 @@ function migrateDatabase(dbPath) {
     } else {
     }
 
+    // ✅ User.profileImage — صورة بروفايل الموظف (self-service)
+    if (!columnExists(db, 'User', 'profileImage')) {
+      db.prepare('ALTER TABLE User ADD COLUMN profileImage TEXT').run();
+    }
+
     // ✅ Staff.salesTarget — تارجت السيلز الشهري
     if (!columnExists(db, 'Staff', 'salesTarget')) {
       db.prepare('ALTER TABLE Staff ADD COLUMN salesTarget REAL DEFAULT 0').run();
@@ -545,7 +550,13 @@ function migrateDatabase(dbPath) {
       { col: 'pointsPerEGPSpent',          def: 'REAL DEFAULT 0.1' },
       { col: 'pointsPerBirthday',          def: 'INTEGER NOT NULL DEFAULT 10' },
       { col: 'pointsValueInEGP',           def: 'REAL DEFAULT 0.1' },
+      { col: 'salesDailyCallTarget',       def: 'INTEGER NOT NULL DEFAULT 30' },
       { col: 'updatedBy',                  def: 'TEXT' },
+      // ☁️ أعمدة النسخ الاحتياطي السحابي (إصدار 6.10.0) — غيابها كان بيفشّل أي قراءة للإعدادات (إضافة عضو/PT)
+      { col: 'cloudBackupEnabled',         def: 'INTEGER NOT NULL DEFAULT 0' },
+      { col: 'lastCloudBackupAt',          def: 'DATETIME' },
+      { col: 'lastCloudBackupError',       def: 'TEXT' },
+      { col: 'lastCloudBackupSize',        def: 'INTEGER' },
     ];
     for (const { col, def } of settingsCols) {
       if (!columnExists(db, 'SystemSettings', col)) {
@@ -636,6 +647,152 @@ function migrateDatabase(dbPath) {
       if (!columnExists(db, 'FreezeRequest', 'isBack')) {
         db.prepare("ALTER TABLE FreezeRequest ADD COLUMN isBack INTEGER NOT NULL DEFAULT 0").run();
       }
+    }
+
+    // LostAndFound — المتعلقات المفقودة
+    if (!tableExists(db, 'LostAndFound')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS LostAndFound (
+          id TEXT PRIMARY KEY,
+          itemName TEXT NOT NULL,
+          category TEXT NOT NULL DEFAULT 'A',
+          location TEXT,
+          foundByType TEXT NOT NULL DEFAULT 'staff',
+          foundByName TEXT,
+          status TEXT NOT NULL DEFAULT 'stored',
+          claimedBy TEXT,
+          notes TEXT,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS LostAndFound_category_idx ON LostAndFound(category);
+        CREATE INDEX IF NOT EXISTS LostAndFound_status_idx ON LostAndFound(status);
+        CREATE INDEX IF NOT EXISTS LostAndFound_createdAt_idx ON LostAndFound(createdAt);
+      `);
+    } else {
+    }
+
+    // Task + TaskAssignment — المهام (To-Do)
+    if (!tableExists(db, 'Task')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Task (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          dueDate DATETIME,
+          priority TEXT NOT NULL DEFAULT 'normal',
+          createdBy TEXT NOT NULL,
+          createdByName TEXT NOT NULL,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS Task_createdBy_idx ON Task(createdBy);
+        CREATE INDEX IF NOT EXISTS Task_dueDate_idx ON Task(dueDate);
+        CREATE INDEX IF NOT EXISTS Task_createdAt_idx ON Task(createdAt);
+      `);
+    }
+    if (!tableExists(db, 'TaskAssignment')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS TaskAssignment (
+          id TEXT PRIMARY KEY,
+          taskId TEXT NOT NULL,
+          userId TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          completedAt DATETIME,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS TaskAssignment_userId_status_idx ON TaskAssignment(userId, status);
+        CREATE INDEX IF NOT EXISTS TaskAssignment_taskId_idx ON TaskAssignment(taskId);
+      `);
+    }
+
+    // MaintenanceRecord — صيانة الأجهزة
+    if (!tableExists(db, 'MaintenanceRecord')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS MaintenanceRecord (
+          id TEXT PRIMARY KEY,
+          deviceName TEXT NOT NULL,
+          issue TEXT NOT NULL,
+          cost REAL NOT NULL DEFAULT 0,
+          status TEXT NOT NULL DEFAULT 'fixed',
+          fixedAt DATETIME,
+          notes TEXT,
+          createdBy TEXT,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS MaintenanceRecord_deviceName_idx ON MaintenanceRecord(deviceName);
+        CREATE INDEX IF NOT EXISTS MaintenanceRecord_status_idx ON MaintenanceRecord(status);
+        CREATE INDEX IF NOT EXISTS MaintenanceRecord_createdAt_idx ON MaintenanceRecord(createdAt);
+      `);
+    }
+
+    // Complaint — قسم الشكاوى
+    if (!tableExists(db, 'Complaint')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Complaint (
+          id TEXT PRIMARY KEY,
+          memberId TEXT NOT NULL,
+          memberName TEXT NOT NULL,
+          memberNumber TEXT,
+          memberPhone TEXT,
+          subject TEXT,
+          body TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'open',
+          priority TEXT NOT NULL DEFAULT 'normal',
+          resolution TEXT,
+          createdBy TEXT,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
+          updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS Complaint_memberId_idx ON Complaint(memberId);
+        CREATE INDEX IF NOT EXISTS Complaint_status_idx ON Complaint(status);
+        CREATE INDEX IF NOT EXISTS Complaint_createdAt_idx ON Complaint(createdAt);
+      `);
+    }
+
+    // InternalMessage + InternalMessageRecipient — الإيميل الداخلي
+    if (!tableExists(db, 'InternalMessage')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS InternalMessage (
+          id TEXT PRIMARY KEY,
+          senderId TEXT NOT NULL,
+          senderName TEXT NOT NULL,
+          subject TEXT NOT NULL,
+          body TEXT NOT NULL,
+          targetDepts TEXT NOT NULL,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS InternalMessage_senderId_idx ON InternalMessage(senderId);
+        CREATE INDEX IF NOT EXISTS InternalMessage_createdAt_idx ON InternalMessage(createdAt);
+      `);
+    }
+    if (!tableExists(db, 'InternalMessageRecipient')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS InternalMessageRecipient (
+          id TEXT PRIMARY KEY,
+          messageId TEXT NOT NULL,
+          userId TEXT NOT NULL,
+          isRead INTEGER NOT NULL DEFAULT 0,
+          readAt DATETIME,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS InternalMessageRecipient_userId_isRead_idx ON InternalMessageRecipient(userId, isRead);
+        CREATE INDEX IF NOT EXISTS InternalMessageRecipient_messageId_idx ON InternalMessageRecipient(messageId);
+      `);
+    }
+    if (!tableExists(db, 'InternalMessageReply')) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS InternalMessageReply (
+          id TEXT PRIMARY KEY,
+          messageId TEXT NOT NULL,
+          userId TEXT NOT NULL,
+          userName TEXT NOT NULL,
+          body TEXT NOT NULL,
+          createdAt DATETIME NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS InternalMessageReply_messageId_idx ON InternalMessageReply(messageId);
+      `);
     }
 
     // PointsHistory — نظام النقاط
@@ -1435,6 +1592,7 @@ function migrateDatabase(dbPath) {
       { col: 'poolEnabled',          def: 'INTEGER NOT NULL DEFAULT 1' },
       { col: 'padelEnabled',         def: 'INTEGER NOT NULL DEFAULT 1' },
       { col: 'assessmentEnabled',    def: 'INTEGER NOT NULL DEFAULT 1' },
+      { col: 'lostFoundEnabled',     def: 'INTEGER NOT NULL DEFAULT 1' },
       { col: 'pointsEnabled',        def: 'INTEGER NOT NULL DEFAULT 1' },
       { col: 'pointsPerCheckIn',     def: 'INTEGER NOT NULL DEFAULT 1' },
       { col: 'pointsPerInvitation',  def: 'INTEGER NOT NULL DEFAULT 2' },
