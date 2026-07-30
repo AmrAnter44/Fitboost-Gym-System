@@ -24,6 +24,7 @@ interface Complaint {
   status: string
   priority: string
   resolution: string | null
+  source: string
   createdBy: string | null
   createdAt: string
 }
@@ -237,6 +238,12 @@ export default function ComplaintsPage() {
                       <span className="font-bold text-gray-900 dark:text-gray-100">{c.memberName}</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">{c.memberNumber ? `#${c.memberNumber}` : ''} {c.memberPhone || ''}</span>
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${PRIO_TONE[c.priority] || PRIO_TONE.normal}`}>{prioLabel(c.priority)}</span>
+                      {c.source === 'app' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
+                          <svg {...stroke} className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>
+                          {ar ? 'من التطبيق' : 'From app'}
+                        </span>
+                      )}
                       {c.status === 'resolved' ? (
                         <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">{ar ? 'اتحلّت' : 'Resolved'}</span>
                       ) : (
@@ -335,6 +342,11 @@ export default function ComplaintsPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{resolving.memberName}</p>
             <label className={labelCls}>{ar ? 'الحل / الرد (اختياري)' : 'Resolution (optional)'}</label>
             <textarea value={resolution} onChange={(e) => setResolution(e.target.value)} rows={3} className={inputCls} autoFocus />
+            {resolving.source === 'app' && (
+              <p className="text-xs text-violet-600 dark:text-violet-400 mt-1.5">
+                {ar ? 'العضو هيشوف الردّ ده في التطبيق' : 'The member will see this reply in the app'}
+              </p>
+            )}
             <div className="flex justify-end gap-2 mt-6">
               <button onClick={() => setResolving(null)} className="px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-200 dark:hover:bg-gray-600">{ar ? 'إلغاء' : 'Cancel'}</button>
               <button onClick={doResolve} className="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm">{ar ? 'تأكيد الحل' : 'Confirm'}</button>

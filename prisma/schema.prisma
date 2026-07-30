@@ -1548,7 +1548,8 @@ model Complaint {
   body         String                         // نص الشكوى
   status       String   @default("open")      // open (مفتوحة) | resolved (اتحلّت)
   priority     String   @default("normal")    // low | normal | high
-  resolution   String?                        // رد/حل الشكوى
+  resolution   String?                        // رد/حل الشكوى — ده اللي العضو بيشوفه كردّ في التطبيق
+  source       String   @default("staff")      // staff (سجّلها موظف) | app (العضو بعتها من التطبيق)
   createdBy    String?                         // اسم الموظف اللي سجّلها
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
