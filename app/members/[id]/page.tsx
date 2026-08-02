@@ -193,6 +193,7 @@ export default function MemberDetailPage() {
  | null
  >(null)
  const [missingImageUploading, setMissingImageUploading] = useState(false)
+ const [zoomedImage, setZoomedImage] = useState<string | null>(null) //  تكبير صورة العضو (لايتبوكس)
  const [nutritionSubscriptions, setNutritionSubscriptions] = useState<any[]>([])
  const [physioSubscriptions, setPhysioSubscriptions] = useState<any[]>([])
  const [groupClassSubscriptions, setGroupClassSubscriptions] = useState<any[]>([])
@@ -1763,7 +1764,9 @@ export default function MemberDetailPage() {
  <img
  src={member.profileImage}
  alt={member.name}
- className="w-full h-full object-cover"
+ onClick={() => setZoomedImage(member.profileImage!)}
+ className="w-full h-full object-cover cursor-zoom-in hover:opacity-90 transition"
+ title={locale === 'ar' ? 'اضغط للتكبير' : 'Click to enlarge'}
  />
  ) : (
  <>
@@ -5359,6 +5362,31 @@ export default function MemberDetailPage() {
  </div>
  )}
  </div>
+ </div>
+ )}
+
+ {/* لايتبوكس تكبير صورة العضو — يقفل بالضغط أو Escape */}
+ {zoomedImage && (
+ <div
+ className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-backdrop-in cursor-zoom-out"
+ onClick={() => setZoomedImage(null)}
+ role="dialog"
+ aria-modal="true"
+ >
+ <img
+ src={zoomedImage}
+ alt={member?.name || ''}
+ className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+ onClick={(e) => e.stopPropagation()}
+ />
+ <button
+ type="button"
+ onClick={() => setZoomedImage(null)}
+ aria-label={locale === 'ar' ? 'إغلاق' : 'Close'}
+ className="absolute top-4 end-4 w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-colors"
+ >
+ <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+ </button>
  </div>
  )}
  </div>

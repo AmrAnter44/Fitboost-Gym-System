@@ -99,6 +99,11 @@ export async function calculateNetSalary(
         staffId,
         type: 'staff_loan',
         isPaid: false,
+        //  السلفة تتخصم مرة واحدة بس — في الشهر اللي اتسجّلت فيه (مش بتتكرر كل شهر)
+        createdAt: {
+          gte: new Date(year, month - 1, 1),
+          lt: new Date(year, month, 1),
+        },
       },
       orderBy: { createdAt: 'asc' },
     }),

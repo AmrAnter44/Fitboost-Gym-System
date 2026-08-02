@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { PRIMARY_COLOR, THEME_COLORS } from '@/lib/theme/colors'
@@ -249,20 +250,7 @@ export default function MemberAttendancePage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
-                            {item.member?.profileImage ? (
-                              <img src={item.member.profileImage} alt={item.member?.name || ''} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                <svg {...stroke} className="w-5 h-5" aria-hidden="true">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                                </svg>
-                              </div>
-                            )}
-                          </div>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">{item.member?.name || t('memberAttendance.unknown')}</span>
-                        </div>
+                        <MemberCell member={item.member} unknownLabel={t('memberAttendance.unknown')} />
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
@@ -328,20 +316,7 @@ export default function MemberAttendancePage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
-                            {checkIn.member?.profileImage ? (
-                              <img src={checkIn.member.profileImage} alt={checkIn.member?.name || ''} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                <svg {...stroke} className="w-5 h-5" aria-hidden="true">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                                </svg>
-                              </div>
-                            )}
-                          </div>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">{checkIn.member?.name || t('memberAttendance.unknown')}</span>
-                        </div>
+                        <MemberCell member={checkIn.member} unknownLabel={t('memberAttendance.unknown')} />
                       </td>
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                         {checkInTime.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -369,4 +344,29 @@ export default function MemberAttendancePage() {
 
     </div>
   )
+}
+
+//  خلية العضو — تعرض الصورة والاسم، وتوديك على بروفايل العضو لو الـ id متاح
+function MemberCell({ member, unknownLabel }: { member: any; unknownLabel: string }) {
+  const inner = (
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+        {member?.profileImage ? (
+          <img src={member.profileImage} alt={member?.name || ''} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            </svg>
+          </div>
+        )}
+      </div>
+      <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:underline transition-colors">
+        {member?.name || unknownLabel}
+      </span>
+    </div>
+  )
+  return member?.id ? (
+    <Link href={`/members/${member.id}`} className="group inline-block" title="فتح ملف العضو">{inner}</Link>
+  ) : inner
 }
