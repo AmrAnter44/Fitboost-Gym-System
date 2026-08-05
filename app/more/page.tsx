@@ -104,6 +104,8 @@ export default function MorePage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [filterCoach, setFilterCoach] = useState('')
   const [filterSessions, setFilterSessions] = useState<'all' | 'low' | 'zero'>('all')
+  const [dateFrom, setDateFrom] = useState('') //  فلتر تاريخ من (YYYY-MM-DD)
+  const [dateTo, setDateTo] = useState('')     //  فلتر تاريخ إلى
 
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -193,7 +195,7 @@ export default function MorePage() {
 
   useEffect(() => {
     filterSubscriptions()
-  }, [searchTerm, statusFilter, moreSubscriptions, filterCoach, filterSessions])
+  }, [searchTerm, statusFilter, moreSubscriptions, filterCoach, filterSessions, dateFrom, dateTo])
 
   useEffect(() => {
     return () => {
@@ -294,6 +296,23 @@ export default function MorePage() {
       filtered = filtered.filter(sub => sub.sessionsRemaining > 0 && sub.sessionsRemaining <= 3)
     } else if (filterSessions === 'zero') {
       filtered = filtered.filter(sub => sub.sessionsRemaining === 0)
+    }
+
+    //  فلتر بمدى التاريخ (على تاريخ بداية الاشتراك، وإلا تاريخ الإنشاء)
+    if (dateFrom || dateTo) {
+      filtered = filtered.filter(sub => {
+        const d = new Date(sub.startDate || sub.createdAt)
+        if (isNaN(d.getTime())) return false
+        if (dateFrom) {
+          const [y, m, dd] = dateFrom.split('-').map(Number)
+          if (d < new Date(y, m - 1, dd, 0, 0, 0, 0)) return false
+        }
+        if (dateTo) {
+          const [y, m, dd] = dateTo.split('-').map(Number)
+          if (d > new Date(y, m - 1, dd, 23, 59, 59, 999)) return false
+        }
+        return true
+      })
     }
 
     setFilteredSubscriptions(filtered)
@@ -794,18 +813,6 @@ export default function MorePage() {
               {IconFilter}
               <span>{locale === 'ar' ? 'فلاتر سريعة' : 'Quick Filters'}</span>
             </h3>
-            {(statusFilter !== 'all' || filterSessions !== 'all') && (
-              <button
-                onClick={() => {
-                  setStatusFilter('all')
-                  setFilterSessions('all')
-                }}
-                className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-200"
-              >
-                {IconClose}
-                <span>{locale === 'ar' ? 'إعادة تعيين' : 'Reset'}</span>
-              </button>
-            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -933,6 +940,40 @@ export default function MorePage() {
               <option key={coach} value={coach}>{coach}</option>
             ))}
           </select>
+        </div>
+
+        {/*  فلتر بمدى التاريخ */}
+        <div>
+          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+            <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+            <span>{locale === 'ar' ? 'تصفية بالتاريخ (من / إلى)' : 'Filter by Date (From / To)'}</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+            />
+            <span className="text-gray-400 shrink-0">{locale === 'ar' ? '←' : '→'}</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-200"
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                onClick={() => { setDateFrom(''); setDateTo('') }}
+                aria-label={locale === 'ar' ? 'مسح' : 'Clear'}
+                title={locale === 'ar' ? 'مسح' : 'Clear'}
+                className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0"
+              >
+                <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
