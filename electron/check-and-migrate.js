@@ -501,6 +501,8 @@ function migrateDatabase(dbPath) {
       { col: 'invitations',             def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'points',                  def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'remainingCheckIns',       def: 'INTEGER' },  //  nullable = دخول غير محدود
+      { col: 'transferredFromMemberId', def: 'TEXT' },     //  📤 نقل العضوية: العضو اللي نقل للعضو ده
+      { col: 'transferredFromAt',       def: 'DATETIME' },
     ];
     for (const { col, def } of memberCols) {
       if (!columnExists(db, 'Member', col)) {

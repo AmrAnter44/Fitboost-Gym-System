@@ -61,6 +61,8 @@ model Member {
   salesStaffId      String?
   offerId           String?      // 📦 الباقة اللي اشترك فيها العضو (للرجوع لمميزاتها)
   referrerMemberNumber String?   // 👥 رقم العضو اللي جاب العضو ده (لما المصدر = friend_referral)
+  transferredFromMemberId String? // 📤 id العضو اللي نقل العضوية للعضو ده (نقل عضوية existing)
+  transferredFromAt       DateTime? // 📤 تاريخ استلام النقل
   createdAt         DateTime     @default(now())
   invitationRecords    Invitation[]
   receipts             Receipt[]

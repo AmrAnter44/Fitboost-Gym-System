@@ -47,6 +47,9 @@ interface Member {
  freePadelSessions: number
  freeAssessmentSessions: number
  freeMoreSessions: number
+ freePTSessionsUsed?: number
+ transferredFrom?: { id: string; name: string; memberNumber: string | null; profileImage: string | null } | null
+ transferredFromAt?: string | null
  remainingFreezeDays: number
  subscriptionPrice: number
  remainingAmount: number
@@ -522,10 +525,14 @@ export default function MemberDetailPage() {
  // شامل: كل إيصال متعلق بالعضو ده — سواء memberId/memberNumber في الـ FK
  // أو في تفاصيل الـ itemDetails (للداتا القديمة)
  const filtered = allReceipts.filter((receipt: any) => {
- // الـ FK المباشر
+ // الـ FK المباشر (إيصالات العضوية)
  if (receipt.memberId === m.id) return true
 
- // قديم: البحث في itemDetails بـ memberNumber
+ //  إيصالات الـ PT ويوم الاستخدام — السيرفر رجّعها مربوطة بالعضو ده بالفعل (بالهاتف/الـ id)
+ if (receipt.ptNumber !== null && receipt.ptNumber !== undefined) return true
+ if (receipt.dayUseId) return true
+
+ // قديم: البحث في itemDetails بـ memberNumber (تطابق دقيق)
  try {
  const itemDetails = typeof receipt.itemDetails === 'string'
  ? JSON.parse(receipt.itemDetails)
@@ -2154,18 +2161,47 @@ export default function MemberDetailPage() {
  </div>
  </div>
 
- {/* عرض الملاحظات */}
- {member.notes && (
+ {/* 📤 كارت نقل العضوية — لينك للعضو الناقل + تفاصيل النقل (بدل النص الوحش في الملاحظات) */}
+ {member.transferredFrom && (() => {
+ const m = member.notes?.match(/استلام نقل عضوية من[^\]]*?—\s*(\d+)\s*يوم/)
+ const days = m ? parseInt(m[1]) : null
+ return (
  <div className="mt-6 pt-6 border-t border-white dark:border-gray-400 border-opacity-20">
  <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
  <div className="flex items-center gap-2 mb-2">
- 
+ <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4 flex-shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+ <p className="text-sm opacity-90 font-semibold">{locale === 'ar' ? 'نقل العضوية' : 'Membership Transfer'}</p>
+ </div>
+ <Link href={`/members/${member.transferredFrom.id}`} className="group inline-flex items-center flex-wrap gap-2 cursor-pointer" title={locale === 'ar' ? 'فتح بروفايل العضو الناقل' : 'Open transferring member profile'}>
+ <span className="opacity-90">{locale === 'ar' ? 'استلمت العضوية من' : 'From'}:</span>
+ <span className="font-bold text-lg decoration-2 underline-offset-4 group-hover:underline group-hover:opacity-100 transition-all">{member.transferredFrom.name}</span>
+ {member.transferredFrom.memberNumber && <span className="opacity-80 group-hover:opacity-100">#{member.transferredFrom.memberNumber}</span>}
+ </Link>
+ <div className="text-xs opacity-80 mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+ {days != null && <span>{locale === 'ar' ? `الأيام المنقولة: ${days} يوم` : `Days transferred: ${days}`}</span>}
+ {member.transferredFromAt && <span>{locale === 'ar' ? 'بتاريخ' : 'On'}: {new Date(member.transferredFromAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>}
+ </div>
+ </div>
+ </div>
+ )
+ })()}
+
+ {/* عرض الملاحظات — بعد تنظيفها من سطور النقل التلقائية (شكلها وحش) */}
+ {(() => {
+ const cleanNotes = (member.notes || '').split('\n').filter(l => !l.includes('نقل عضوية')).join('\n').trim()
+ if (!cleanNotes) return null
+ return (
+ <div className="mt-6 pt-6 border-t border-white dark:border-gray-400 border-opacity-20">
+ <div className="bg-white dark:bg-gray-800 bg-opacity-20 rounded-lg p-4">
+ <div className="flex items-center gap-2 mb-2">
+
  <p className="text-sm opacity-90 font-semibold">{t('memberDetails.notes')}</p>
  </div>
- <p className="text-base leading-relaxed whitespace-pre-wrap">{member.notes}</p>
+ <p className="text-base leading-relaxed whitespace-pre-wrap">{cleanNotes}</p>
  </div>
  </div>
- )}
+ )
+ })()}
  </div>
 
  {/* المكافآت والخصائص */}
@@ -2204,9 +2240,12 @@ export default function MemberDetailPage() {
  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-s-4 border-primary-500`}>
  <div className="flex items-center justify-between mb-2">
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.invitations')}</p>
- 
+
  </div>
- <p className="text-3xl font-bold text-primary-600 mb-3">{member.invitations ?? 0}</p>
+ <p className="text-3xl font-bold text-primary-600 mb-1">{member.invitations ?? 0}</p>
+ <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">
+ {locale === 'ar' ? 'استخدم' : 'Used'} {invitationHistory.length} {locale === 'ar' ? 'من' : 'of'} {invitationHistory.length + (member.invitations ?? 0)}
+ </p>
  <button
  onClick={handleUseInvitation}
  disabled={(member.invitations ?? 0) <= 0 || loading}
@@ -2242,7 +2281,19 @@ export default function MemberDetailPage() {
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.inBody')}</p>
  
  </div>
- <p className="text-3xl font-bold text-green-600 mb-3">{member.inBodyScans ?? 0}</p>
+ <p className="text-3xl font-bold text-green-600 mb-1">{member.inBodyScans ?? 0}</p>
+ {(() => {
+ const total = Number((member as any).offerBenefits?.inBodyScans) || 0
+ const remaining = member.inBodyScans ?? 0
+ //  نعرض السطر بس لو الرقم منطقي (الباقة بتمنح انبودي والمتبقي مش أكبر من الممنوح)
+ if (total <= 0 || remaining > total) return null
+ const used = total - remaining
+ return (
+ <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">
+ {locale === 'ar' ? 'استخدم' : 'Used'} {used} {locale === 'ar' ? 'من' : 'of'} {total}
+ </p>
+ )
+ })()}
  <button
  onClick={handleUseInBody}
  disabled={(member.inBodyScans ?? 0) <= 0 || loading}
@@ -2259,6 +2310,9 @@ export default function MemberDetailPage() {
  
  </div>
  <p className="text-3xl font-bold text-orange-600 mb-1">{member.freePTSessions ?? 0}</p>
+ <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
+ {locale === 'ar' ? 'استخدم' : 'Used'} {member.freePTSessionsUsed ?? 0} {locale === 'ar' ? 'من' : 'of'} {(member.freePTSessionsUsed ?? 0) + (member.freePTSessions ?? 0)}
+ </p>
  {paidSessionCounts.pt > 0 && (
  <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold mb-2">
  + {paidSessionCounts.pt} {locale === 'ar' ? 'مدفوعة' : 'paid'}
@@ -2439,7 +2493,15 @@ export default function MemberDetailPage() {
  <p className="text-xs text-gray-600 dark:text-white font-semibold">{t('memberDetails.freezeDays')}</p>
  <span className="text-2xl">{member.isFrozen ? '' : ''}</span>
  </div>
- <p className="text-3xl font-bold text-cyan-600 mb-3">{member.remainingFreezeDays ?? 0}</p>
+ <p className="text-3xl font-bold text-cyan-600 mb-1">{member.remainingFreezeDays ?? 0}</p>
+ {(() => {
+ const usedFreezeDays = freezeHistory.reduce((s: number, f: any) => s + (Number(f?.days) || 0), 0)
+ return (
+ <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
+ {locale === 'ar' ? 'خد' : 'Used'} {usedFreezeDays} {locale === 'ar' ? 'يوم من' : 'days of'} {usedFreezeDays + (member.remainingFreezeDays ?? 0)}
+ </p>
+ )
+ })()}
  {member.isFrozen ? (
  <button
  onClick={handleUnfreeze}
@@ -4659,7 +4721,29 @@ export default function MemberDetailPage() {
  ) : (
  <div className="space-y-3">
  {memberReceipts.map((receipt) => {
- const itemDetails = JSON.parse(receipt.itemDetails)
+ let itemDetails: any = {}
+ let rawDetailsText: string | null = null
+ try {
+ itemDetails = receipt.itemDetails ? JSON.parse(receipt.itemDetails) : {}
+ } catch {
+ //  إيصالات يوم الاستخدام القديمة بتخزّن itemDetails كنص عادي (مثلاً "InBody - أحمد") مش JSON
+ itemDetails = {}
+ rawDetailsText = typeof receipt.itemDetails === 'string' ? receipt.itemDetails : null
+ }
+ //  شارة نوع الإيصال (عضوية / PT / يوم استخدام / تغذية...)
+ const typeInfo = (() => {
+ const tp = String(receipt.type || '').toLowerCase()
+ const has = (s: string) => tp.includes(s)
+ if (has('transfer')) return { label: locale === 'ar' ? 'نقل عضوية' : 'Transfer', cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' }
+ if (has('pt')) return { label: 'PT', cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' }
+ if (has('dayuse') || has('day_use')) return { label: locale === 'ar' ? 'يوم استخدام' : 'Day Use', cls: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300' }
+ if (has('nutrition')) return { label: locale === 'ar' ? 'تغذية' : 'Nutrition', cls: 'bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-300' }
+ if (has('physio')) return { label: locale === 'ar' ? 'علاج طبيعي' : 'Physio', cls: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300' }
+ if (has('groupclass') || has('group_class')) return { label: locale === 'ar' ? 'كلاسات' : 'Classes', cls: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300' }
+ if (has('more')) return { label: locale === 'ar' ? 'مور' : 'More', cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' }
+ if (has('inbody')) return { label: 'InBody', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' }
+ return { label: locale === 'ar' ? 'عضوية' : 'Membership', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' }
+ })()
  const paymentMethodLabel = receipt.paymentMethod === 'cash' ? (locale === 'ar' ? 'كاش ' : 'Cash ')
  : receipt.paymentMethod === 'visa' ? (locale === 'ar' ? 'فيزا ' : 'Visa ')
  : receipt.paymentMethod === 'instapay' ? (locale === 'ar' ? 'إنستاباي ' : 'Instapay ')
@@ -4707,6 +4791,9 @@ export default function MemberDetailPage() {
  <span className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-sm font-bold">
  #{receipt.receiptNumber}
  </span>
+ <span className={`px-3 py-1 rounded-full text-xs font-bold ${typeInfo.cls}`}>
+ {typeInfo.label}
+ </span>
  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
  receipt.isCancelled
  ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
@@ -4719,6 +4806,10 @@ export default function MemberDetailPage() {
  </span>
  </div>
  <div className="grid grid-cols-2 gap-2 text-sm">
+ <div className="col-span-2">
+ <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'البند:' : 'Item:'}</span>
+ <span className="font-semibold dark:text-white mr-2">{rawDetailsText || itemDetails.packageType || itemDetails.serviceType || itemDetails.description || typeInfo.label}</span>
+ </div>
  <div>
  <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
  <span className="font-bold text-green-600 dark:text-green-400 mr-2">{receipt.amount} {t('memberDetails.egp')}</span>

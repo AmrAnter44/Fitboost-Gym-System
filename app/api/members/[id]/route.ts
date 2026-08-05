@@ -107,11 +107,49 @@ export async function GET(
       })
     }
 
+    // 🏋️ عدد حصص الـ PT المجانية اللي العضو استخدمها فعلاً (من سجلات PTSession المجانية)
+    const freePTSessionsUsed = await prisma.pTSession.count({
+      where: { memberId: member.id, isFreeSession: true }
+    })
+
+    // 📦 الأصل الممنوح من الباقة — للخدمات اللي مبيتعملهاش سجل استخدام (زي الانبودي)
+    //    عشان نقدر نعرض "استخدم X من Y" تقريبيًا. مفيش علاقة رسمية فبنجيبها بالـ id.
+    let offerBenefits: any = null
+    if ((member as any).offerId) {
+      offerBenefits = await prisma.offer.findUnique({
+        where: { id: (member as any).offerId },
+        select: {
+          inBodyScans: true,
+          freeNutritionSessions: true,
+          freePhysioSessions: true,
+          freeGroupClassSessions: true,
+          freePoolSessions: true,
+          freePadelSessions: true,
+          freeAssessmentSessions: true,
+          freeMoreSessions: true,
+        }
+      })
+    }
+
+    // 📤 لو العضوية دي منقولة من عضو تاني، نجيب بياناته للعرض كلينك في البروفايل
+    let transferredFrom: { id: string; name: string; memberNumber: string | null; profileImage: string | null } | null = null
+    const fromId = (member as any).transferredFromMemberId as string | null
+    if (fromId) {
+      const src = await prisma.member.findUnique({
+        where: { id: fromId },
+        select: { id: true, name: true, memberNumber: true, profileImage: true }
+      })
+      if (src) transferredFrom = src
+    }
+
     return NextResponse.json({
       ...member,
       referrerInfo,
       referredMembers,
       referredMembersCount: referredMembers.length,
+      freePTSessionsUsed,
+      offerBenefits,
+      transferredFrom,
     }, { status: 200 })
   } catch (error: any) {
     console.error('❌ Error fetching member:', error)
