@@ -5,8 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import ExcelJS from 'exceljs'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { usePermissions } from '../../hooks/usePermissions'
-import { fetchReceipts } from '../../lib/api/receipts'
-import { fetchFollowUpsData } from '../../lib/api/followups'
+import { fetchReceiptsByDateRange } from '../../lib/api/receipts'
+import { fetchFollowUpsByDateRange } from '../../lib/api/followups'
 import { fetchPTSessions } from '../../lib/api/pt'
 import { fetchStaff } from '../../lib/api/staff'
 import { useToast } from '../../contexts/ToastContext'
@@ -185,7 +185,11 @@ const tableTrCls = 'hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors
 // =========== REVENUE TAB ===========
 function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFilter, setTypeFilter, formatDate, formatCurrency, direction, locale, t }: any) {
   const toast = useToast()
-  const { data: receipts = [], isLoading } = useQuery({ queryKey: ['receipts'], queryFn: fetchReceipts })
+  // 🗓️ جلب الإيصالات في النطاق المحدد بس — بدل تحميل كل إيصالات التاريخ كله
+  const { data: receipts = [], isLoading } = useQuery({
+    queryKey: ['receipts-report', dateFrom, dateTo],
+    queryFn: () => fetchReceiptsByDateRange(dateFrom, dateTo),
+  })
 
   const filtered = useMemo(() => {
     const from = new Date(dateFrom); from.setHours(0, 0, 0, 0)
@@ -361,7 +365,10 @@ function RevenueTab({ dateFrom, dateTo, paymentFilter, setPaymentFilter, typeFil
 // =========== FOLLOWUPS TAB ===========
 function FollowupsTab({ dateFrom, dateTo, formatDate, direction, locale, t }: any) {
   const toast = useToast()
-  const { data: followups = [], isLoading } = useQuery({ queryKey: ['followups-report'], queryFn: fetchFollowUpsData })
+  const { data: followups = [], isLoading } = useQuery({
+    queryKey: ['followups-report', dateFrom, dateTo],
+    queryFn: () => fetchFollowUpsByDateRange(dateFrom, dateTo),
+  })
 
   //  formatter بيعرض التاريخ + الساعة (مهم في تقارير المتابعات لمعرفة وقت التواصل)
   const dateLocale = direction === 'rtl' ? 'ar-EG' : 'en-US'
@@ -456,7 +463,10 @@ function PTTab({ dateFrom, dateTo, formatDate, formatCurrency, direction, locale
   const toast = useToast()
   const { data: ptList = [], isLoading } = useQuery({ queryKey: ['pt-report'], queryFn: fetchPTSessions })
   //  جلب الإيصالات كمان عشان نحسب الـ revenue الفعلي (مطابق للتقفيل الشهري)
-  const { data: receipts = [], isLoading: receiptsLoading } = useQuery({ queryKey: ['pt-report-receipts'], queryFn: fetchReceipts })
+  const { data: receipts = [], isLoading: receiptsLoading } = useQuery({
+    queryKey: ['pt-report-receipts', dateFrom, dateTo],
+    queryFn: () => fetchReceiptsByDateRange(dateFrom, dateTo),
+  })
 
   //  فلتر الكوتش — عشان نعرف كل كوتش عمل إيه
   const [coachFilter, setCoachFilter] = useState('')

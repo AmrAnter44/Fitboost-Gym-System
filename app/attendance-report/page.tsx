@@ -261,6 +261,8 @@ export default function AttendanceReportPage() {
   }, [])
 
   useEffect(() => {
+    // من غير الشرط ده أول render بيعمل fetch بتواريخ فاضية → بيسحب سجل الحضور كله
+    if (!dateFrom && !dateTo) return
     fetchAttendance()
   }, [dateFrom, dateTo, selectedStaff])
 

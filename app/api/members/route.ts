@@ -13,6 +13,7 @@ import { addPointsForPayment, addPoints } from '../../../lib/points'
 import { getNextReceiptNumberDirect } from '../../../lib/receiptHelpers'
 import { createAuditLog, getIpAddress, getUserAgent } from '../../../lib/auditLog'
 import { memberCreateSchema, formatZodError } from '../../../lib/schemas/memberSchema'
+import { memberPhotoUrl } from '../../../lib/memberPhoto'
 
 export const dynamic = 'force-dynamic'
 
@@ -199,9 +200,11 @@ export async function GET(request: Request) {
     }
 
     // 🚀 تصفية الحقول الثقيلة الغير مستخدمة في القائمة
+    //    + استبدال صور الـ base64 القديمة بلينك — بدل ما كل صفحة أعضاء تشيل
+    //    ميجابايتس صور في الـ JSON وتقعد في رامات المتصفح
     const lightMembers = members.map((m: any) => {
       const { idCardFront, idCardBack, ...rest } = m
-      return rest
+      return { ...rest, profileImage: memberPhotoUrl(m.id, m.profileImage) }
     })
 
     if (isPaginated) {
@@ -1009,7 +1012,13 @@ export async function PUT(request: Request) {
     }
 
     if (profileImage !== undefined) {
-      updateData.profileImage = profileImage
+      // لينك /api/members/<id>/photo هو شكل العرض اللي بيرجع من القوايم —
+      // لو رجع لنا في التعديل معناه "الصورة زي ما هي"، ماينفعش يتكتب مكان الأصل
+      const isPhotoEndpointUrl =
+        typeof profileImage === 'string' && /^\/api\/members\/[^/]+\/photo$/.test(profileImage)
+      if (!isPhotoEndpointUrl) {
+        updateData.profileImage = profileImage
+      }
     }
 
     if (idCardFront !== undefined) {

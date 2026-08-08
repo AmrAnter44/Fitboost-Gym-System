@@ -71,6 +71,25 @@ export async function GET(request: Request) {
       },
     } as const
 
+    // 🗓️ فلتر بالتاريخ — لصفحة التقارير: بدل تحميل كل المتابعات وفلترتها عند الكلاينت
+    const startDateParam = searchParams.get('startDate')
+    const endDateParam = searchParams.get('endDate')
+    if (startDateParam || endDateParam) {
+      const createdAt: Record<string, Date> = {}
+      if (startDateParam) createdAt.gte = new Date(startDateParam)
+      if (endDateParam) {
+        // تاريخ من غير وقت → لغاية آخر اليوم
+        const endRaw = endDateParam.length === 10 ? `${endDateParam}T23:59:59.999` : endDateParam
+        createdAt.lte = new Date(endRaw)
+      }
+      const followUps = await prisma.followUp.findMany({
+        where: { createdAt },
+        orderBy: { createdAt: 'desc' },
+        include: includes,
+      })
+      return NextResponse.json(followUps)
+    }
+
     // 🚀 Paginated mode — لو الـ client بعت ?page=N، نرجّع dataset مقسّم
     const isPaginated = pageParam !== null
     if (isPaginated) {

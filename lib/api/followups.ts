@@ -31,6 +31,22 @@ export async function fetchFollowUpsData() {
   return Array.isArray(data) ? data : []
 }
 
+// 🗓️ جلب المتابعات في نطاق تاريخ — لصفحة التقارير بدل تحميل كل المتابعات
+export async function fetchFollowUpsByDateRange(startDate: string, endDate: string) {
+  const params = new URLSearchParams()
+  if (startDate) params.set('startDate', startDate)
+  if (endDate) params.set('endDate', endDate)
+  const response = await fetch(`/api/visitors/followups?${params.toString()}`)
+  await checkAuth(response)
+
+  if (!response.ok) {
+    throw new Error(await safeErrorMsg(response, 'فشل جلب بيانات المتابعات'))
+  }
+
+  const data = await response.json()
+  return Array.isArray(data) ? data : []
+}
+
 export interface FollowUpsPage {
   followUps: any[]
   total: number

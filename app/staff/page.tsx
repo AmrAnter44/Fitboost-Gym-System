@@ -17,6 +17,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useServiceSettings } from '../../contexts/ServiceSettingsContext'
 import { fetchStaff } from '../../lib/api/staff'
+import { compressImage } from '../../lib/imageCompress'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -371,12 +372,13 @@ const handleScan = async (staffCode: string) => {
 const handleSelfieCapture = async (file: File) => {
   if (!pendingAttendanceId) return;
   try {
-    // تحويل الـ File لـ base64
+    // ضغط السيلفي قبل التحويل لـ base64 — بيتخزن كل يوم لكل موظف فالمساحة بتفرق
+    const compressed = await compressImage(file, 800, 0.8);
     const reader = new FileReader();
     const base64 = await new Promise<string>((resolve, reject) => {
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(compressed);
     });
 
     await fetch('/api/attendance/upload-selfie', {

@@ -4,6 +4,7 @@
 import { useState, useRef, useId } from 'react'
 import CameraModal from './CameraModal'
 import { useLanguage } from '../contexts/LanguageContext'
+import { compressImage } from '../lib/imageCompress'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, viewBox: '0 0 24 24' } as const
 
@@ -41,8 +42,10 @@ export default function ImageUpload({
 
     setUploading(true)
     try {
+      // ضغط الصورة قبل الرفع — صورة الموبايل 3-5MB بتنزل لـ ~100KB
+      const compressed = await compressImage(file)
       const formData = new FormData()
-      formData.append('image', file)
+      formData.append('image', compressed)
 
       const response = await fetch('/api/upload-image', {
         method: 'POST',
@@ -93,8 +96,9 @@ export default function ImageUpload({
 
     setUploading(true)
     try {
+      const compressed = await compressImage(file)
       const formData = new FormData()
-      formData.append('image', file)
+      formData.append('image', compressed)
 
       const response = await fetch('/api/upload-image', {
         method: 'POST',

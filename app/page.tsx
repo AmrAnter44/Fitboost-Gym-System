@@ -255,8 +255,9 @@ export default function HomePage() {
       const [summaryRes, statsRes, yesterdayCheckInsRes, historyRes, salesCallsRes] = await Promise.all([
         fetch('/api/dashboard/summary'),
         fetch('/api/member-checkin/stats'),
-        fetch(`/api/member-checkin/history?startDate=${yesterdayDateFormatted}&endDate=${yesterdayDateFormatted}`),
-        fetch(`/api/member-checkin/history?startDate=${weekStart.toISOString().split('T')[0]}&endDate=${todayFormatted}`),
+        // statsOnly=1 → الأرقام بس من غير قايمة الحضور التفصيلية (كانت آلاف الصفوف بتترمي)
+        fetch(`/api/member-checkin/history?startDate=${yesterdayDateFormatted}&endDate=${yesterdayDateFormatted}&statsOnly=1`),
+        fetch(`/api/member-checkin/history?startDate=${weekStart.toISOString().split('T')[0]}&endDate=${todayFormatted}&statsOnly=1`),
         fetch('/api/dashboard/sales-calls'),
       ])
 

@@ -51,8 +51,11 @@ export async function register() {
     // بنعيد استخدام نفس الـ snapshot اللي اتعمل بدل VACUUM جديد.
     const { runDailyBackupIfDue } = await import('./lib/autoBackup')
     const { runCloudBackupIfDue, runPhotosBackup } = await import('./lib/cloudBackup')
+    const { runDbMaintenanceIfDue } = await import('./lib/dbMaintenance')
     const backupTick = async () => {
       try {
+        // تنظيف الجداول اللوجية/المؤقتة (مرة كل 24h) — قبل الباك أب عشان النسخة تطلع أصغر
+        await runDbMaintenanceIfDue()
         const r = await runDailyBackupIfDue()
         if (r.backed) console.log('[autoBackup] daily backup created')
         const cloud = await runCloudBackupIfDue(r.backed ? r.path : undefined)

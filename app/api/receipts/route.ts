@@ -123,22 +123,67 @@ export async function GET(request: Request) {
       return NextResponse.json(receipts)
     }
 
-    // 🚀 Paginated mode — لو الـ client بعت ?page=N، نرجّع dataset مقسّم
-    // أول صفحة بتظهر فوراً في الـ UI، والباقي بيكمل في الـ background
+    // 🚀 Paginated mode — لو الـ client بعت ?page=N، نرجّع صفحة واحدة بس
+    //    + البحث والفلاتر بتتنفذ في SQL هنا بدل ما الصفحة تسحب كل الإيصالات وتفلتر محليًا
     const isPaginated = pageParam !== null
     if (isPaginated) {
       const page = Math.max(1, parseInt(pageParam || '1', 10) || 1)
       const pageSize = Math.min(1000, Math.max(1, parseInt(pageSizeParam || '300', 10) || 300))
-      const [receipts, total] = await Promise.all([
+
+      const search = (searchParams.get('search') || '').trim()
+      const typesParam = searchParams.get('types') // قائمة مفصولة بفواصل (فلتر النوع)
+      const payment = (searchParams.get('payment') || '').trim()
+
+      const where: Record<string, unknown> = {}
+      if (typesParam) {
+        const types = typesParam.split(',').filter(Boolean)
+        if (types.length > 0) where.type = { in: types }
+      }
+      // contains بدل التطابق التام — إيصالات الدفع المتعدد بتخزن طرق الدفع كسلسلة مركبة
+      if (payment) where.paymentMethod = { contains: payment }
+      if (search) {
+        const or: Array<Record<string, unknown>> = [
+          // بيغطي الاسم/التليفون/رقم العضوية/رقم الـ PT — كلهم جوه الـ JSON
+          { itemDetails: { contains: search } },
+          { staffName: { contains: search } },
+        ]
+        const asNumber = parseInt(search, 10)
+        if (!isNaN(asNumber) && String(asNumber) === search) {
+          or.push({ receiptNumber: asNumber })
+        }
+        where.OR = or
+      }
+
+      // أرقام كروت "النهاردة" بنفس فلاتر العرض (زي حسبة الصفحة القديمة بالظبط)
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+      const endOfToday = new Date(startOfToday)
+      endOfToday.setDate(endOfToday.getDate() + 1)
+
+      const [receipts, total, todayAgg] = await Promise.all([
         prisma.receipt.findMany({
+          where,
           orderBy: { receiptNumber: 'desc' },
           skip: (page - 1) * pageSize,
           take: pageSize,
         }),
-        prisma.receipt.count()
+        prisma.receipt.count({ where }),
+        prisma.receipt.aggregate({
+          _sum: { amount: true },
+          _count: true,
+          where: { ...where, isCancelled: false, createdAt: { gte: startOfToday, lt: endOfToday } },
+        }),
       ])
       const hasMore = page * pageSize < total
-      return NextResponse.json({ receipts, total, page, pageSize, hasMore })
+      return NextResponse.json({
+        receipts,
+        total,
+        page,
+        pageSize,
+        hasMore,
+        todayCount: todayAgg._count,
+        todayRevenue: todayAgg._sum.amount ?? 0,
+      })
     }
 
     // backward-compat: بدون pagination → array (للـ callers القديمة)

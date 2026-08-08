@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import PaymentMethodSelector from '../components/Paymentmethodselector'
 import CoachSelector from './CoachSelector'
@@ -57,7 +57,6 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
   const [idCardFrontPreview, setIdCardFrontPreview] = useState<string>('')
   const [idCardBackPreview, setIdCardBackPreview] = useState<string>('')
   const [offers, setOffers] = useState<any[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Referral validation states
   const [referrerInfo, setReferrerInfo] = useState<{ name: string; memberNumber: string } | null>(null)
@@ -297,92 +296,6 @@ export default function MemberForm({ onSuccess, onCancel, customCreatedAt, prefi
       isOther: checked,
       memberNumber: checked ? '' : (nextMemberNumber?.toString() || '')
     }))
-  }
-
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = (event) => {
-        const img = new Image()
-        img.src = event.target?.result as string
-        img.onload = () => {
-          const canvas = document.createElement('canvas')
-          let width = img.width
-          let height = img.height
-
-          // تصغير الصورة إذا كانت كبيرة جداً
-          const maxDimension = 1200
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = (height / width) * maxDimension
-              width = maxDimension
-            } else {
-              width = (width / height) * maxDimension
-              height = maxDimension
-            }
-          }
-
-          canvas.width = width
-          canvas.height = height
-
-          const ctx = canvas.getContext('2d')
-          ctx?.drawImage(img, 0, 0, width, height)
-
-          // ضغط الصورة بجودة 0.7
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const reader = new FileReader()
-                reader.readAsDataURL(blob)
-                reader.onloadend = () => {
-                  resolve(reader.result as string)
-                }
-              } else {
-                reject(new Error('فشل ضغط الصورة'))
-              }
-            },
-            'image/jpeg',
-            0.7
-          )
-        }
-        img.onerror = () => reject(new Error('فشل تحميل الصورة'))
-      }
-      reader.onerror = () => reject(new Error('فشل قراءة الملف'))
-    })
-  }
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      toast.error(t('members.form.selectImageOnly'))
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error(t('members.form.imageSizeTooLarge'))
-      return
-    }
-
-    try {
-      toast.info(t('members.form.compressingImage'))
-      const compressedBase64 = await compressImage(file)
-      setImagePreview(compressedBase64)
-      setFormData(prev => ({ ...prev, profileImage: compressedBase64 }))
-    } catch (error) {
-      console.error('خطأ في ضغط الصورة:', error)
-      toast.error(t('members.form.imageCompressionFailed'))
-    }
-  }
-
-  const removeImage = () => {
-    setImagePreview('')
-    setFormData(prev => ({ ...prev, profileImage: '' }))
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
   }
 
   const calculateExpiryFromMonths = (months: number) => {

@@ -5,14 +5,13 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import nextDynamic from 'next/dynamic'
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import PermissionDenied from '../../components/PermissionDenied'
 import { printReceiptFromData } from '../../lib/printSystem'
 import { useConfirm } from '../../hooks/useConfirm'
 import ConfirmDialog from '../../components/ConfirmDialog'
-import { normalizeArabic } from '@/lib/arabicNormalization'
 
 // Dynamic imports - تحميل عند الحاجة فقط
 const ReceiptWhatsApp = nextDynamic(() => import('../../components/ReceiptWhatsApp'), { ssr: false })
@@ -22,7 +21,7 @@ const ReceiptDetailModal = nextDynamic(
 )
 import { normalizePaymentMethod, isMultiPayment, getPaymentMethodLabel as getPaymentLabel, serializePaymentMethods, deserializePaymentMethods, type PaymentMethod } from '../../lib/paymentHelpers'
 import { useToast } from '../../contexts/ToastContext'
-import { fetchReceiptsPage } from '../../lib/api/receipts'
+import { fetchReceiptsServerPage } from '../../lib/api/receipts'
 import LoadingSkeleton from '../../components/LoadingSkeleton'
 import { LoadingScreen } from '../../components/Spinner'
 import { useDebounce } from '../../hooks/useDebounce'
@@ -100,42 +99,6 @@ export default function ReceiptsPage() {
  const [cancelForm, setCancelForm] = useState<{ refundMethod: 'cash' | 'instapay'; reason: string; amount: number }>({ refundMethod: 'cash', reason: '', amount: 0 })
  const [cancelling, setCancelling] = useState(false)
 
- // Pagination + Streaming — تحميل الإيصالات على دفعات
- // - أول 300 إيصال بيظهروا فوراً → الـ skeleton يختفي بسرعة
- // - الباقي بيتحمّل في الـ background ويتضاف للقايمة تلقائياً
- const RECEIPTS_PAGE_SIZE = 300
- const {
- data: receiptsPages,
- isLoading: loading,
- isFetchingNextPage: receiptsFetchingNext,
- fetchNextPage: receiptsFetchNext,
- hasNextPage: receiptsHasNext,
- error: receiptsError,
- refetch: refetchReceipts
- } = useInfiniteQuery({
- queryKey: ['receipts', 'paged', RECEIPTS_PAGE_SIZE],
- queryFn: ({ pageParam }) => fetchReceiptsPage(pageParam as number, RECEIPTS_PAGE_SIZE),
- initialPageParam: 1,
- getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
- enabled: !permissionsLoading && hasPermission('canViewReceipts'),
- retry: 1,
- staleTime: 30 * 1000,
- refetchOnWindowFocus: true,
- })
-
- // Auto-stream: لما أول صفحة تيجي، نكمّل تحميل الباقي في الـ background
- useEffect(() => {
- if (!loading && receiptsHasNext && !receiptsFetchingNext) {
- receiptsFetchNext()
- }
- }, [loading, receiptsHasNext, receiptsFetchingNext, receiptsFetchNext])
-
- const receipts = useMemo<any[]>(
- () => receiptsPages?.pages?.flatMap((p: any) => p.receipts) ?? [],
- [receiptsPages]
- )
- const totalReceiptsCount = receiptsPages?.pages?.[0]?.total ?? receipts.length
-
  const [searchTerm, setSearchTerm] = useState('')
  const [filterType, setFilterType] = useState('all')
  const [filterPayment, setFilterPayment] = useState('all')
@@ -189,6 +152,45 @@ export default function ReceiptsPage() {
  const [currentPage, setCurrentPage] = useState(1)
  const [itemsPerPage, setItemsPerPage] = useState(20)
 
+ // فلتر النوع في الـ UI بيقابل مجموعة أنواع في الداتابيز (أنواع PT القديمة والجديدة...)
+ const serverTypes = useMemo(() => {
+ if (filterType === 'all') return undefined
+ if (filterType === 'PT') return PT_RECEIPT_TYPES
+ if (filterType === 'Nutrition') return NUTRITION_RECEIPT_TYPES
+ if (filterType === 'Physiotherapy') return PHYSIOTHERAPY_RECEIPT_TYPES
+ if (filterType === 'GroupClass') return GROUP_CLASS_RECEIPT_TYPES
+ return [filterType]
+ }, [filterType])
+
+ // 🚀 صفحة واحدة بس من السيرفر — البحث والفلاتر والترقيم كلهم SQL
+ // (قبل كده الصفحة كانت بتسحب كل الإيصالات في الخلفية وتحتفظ بيهم في الرام وتفلتر محليًا —
+ //  مع السنين ده بيبقى عشرات الآلاف من الصفوف وبيتقل المتصفح والجهاز)
+ const {
+ data: receiptsPage,
+ isLoading: loading,
+ error: receiptsError,
+ refetch: refetchReceipts
+ } = useQuery({
+ queryKey: ['receipts', 'server', debouncedSearchTerm, filterType, filterPayment, currentPage, itemsPerPage],
+ queryFn: () => fetchReceiptsServerPage({
+ page: currentPage,
+ pageSize: itemsPerPage,
+ search: debouncedSearchTerm || undefined,
+ types: serverTypes,
+ payment: filterPayment !== 'all' ? filterPayment : undefined,
+ }),
+ placeholderData: keepPreviousData,
+ enabled: !permissionsLoading && hasPermission('canViewReceipts'),
+ retry: 1,
+ staleTime: 30 * 1000,
+ refetchOnWindowFocus: true,
+ })
+
+ const currentReceipts = receiptsPage?.receipts ?? []
+ const filteredCount = receiptsPage?.total ?? 0
+ const todayCount = receiptsPage?.todayCount ?? 0
+ const todayRevenue = receiptsPage?.todayRevenue ?? 0
+
  // جميع الـ hooks يجب أن تكون قبل أي return
  const canEdit = hasPermission('canEditReceipts')
  const canDelete = hasPermission('canDeleteReceipts')
@@ -210,73 +212,15 @@ export default function ReceiptsPage() {
  }
  }, [receiptsError, toast, router])
 
- // استخدام useMemo بدل useState + useEffect لتجنب infinite loop
- const filteredReceipts = useMemo(() => {
- if (!Array.isArray(receipts)) {
- return []
- }
-
- let filtered = [...receipts]
-
- // فلتر البحث
- if (debouncedSearchTerm) {
- const searchNormalized = normalizeArabic(debouncedSearchTerm)
- filtered = filtered.filter(r => {
- try {
- const details = JSON.parse(r.itemDetails)
- return (
- r.receiptNumber.toString().includes(debouncedSearchTerm) ||
- normalizeArabic(details.memberName || '').includes(searchNormalized) ||
- normalizeArabic(details.clientName || '').includes(searchNormalized) ||
- normalizeArabic(details.name || '').includes(searchNormalized) ||
- details.memberNumber?.toString().includes(debouncedSearchTerm) ||
- details.ptNumber?.toString().includes(debouncedSearchTerm) ||
- details.phone?.includes(debouncedSearchTerm) ||
- normalizeArabic(r.staffName || '').includes(searchNormalized)
- )
- } catch {
- return false
- }
- })
- }
-
- // فلتر النوع
- if (filterType !== 'all') {
- if (filterType === 'PT') {
- // فلتر PT: يعرض كل أنواع إيصالات PT
- filtered = filtered.filter(r => PT_RECEIPT_TYPES.includes(r.type))
- } else if (filterType === 'Nutrition') {
- // فلتر التغذية: يعرض كل أنواع إيصالات التغذية
- filtered = filtered.filter(r => NUTRITION_RECEIPT_TYPES.includes(r.type))
- } else if (filterType === 'Physiotherapy') {
- // فلتر العلاج الطبيعي: يعرض كل أنواع إيصالات العلاج الطبيعي
- filtered = filtered.filter(r => PHYSIOTHERAPY_RECEIPT_TYPES.includes(r.type))
- } else if (filterType === 'GroupClass') {
- // فلتر الحصص الجماعية: يعرض كل أنواع إيصالات الحصص الجماعية
- filtered = filtered.filter(r => GROUP_CLASS_RECEIPT_TYPES.includes(r.type))
- } else {
- filtered = filtered.filter(r => r.type === filterType)
- }
- }
-
- // فلتر طريقة الدفع
- if (filterPayment !== 'all') {
- filtered = filtered.filter(r => r.paymentMethod === filterPayment)
- }
-
- return filtered
- }, [receipts, debouncedSearchTerm, filterType, filterPayment])
-
  // useEffect منفصل لإعادة ضبط الصفحة عند تغيير الفلاتر
  useEffect(() => {
  setCurrentPage(1)
  }, [debouncedSearchTerm, filterType, filterPayment])
 
- // حساب الصفحات
- const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage)
+ // حساب الصفحات — العدد الكلي جاي من السيرفر (بعد الفلاتر)
+ const totalPages = Math.ceil(filteredCount / itemsPerPage)
  const startIndex = (currentPage - 1) * itemsPerPage
- const endIndex = startIndex + itemsPerPage
- const currentReceipts = filteredReceipts.slice(startIndex, endIndex)
+ const endIndex = Math.min(startIndex + itemsPerPage, filteredCount)
 
  const goToPage = (page: number) => {
  setCurrentPage(page)
@@ -293,28 +237,9 @@ export default function ReceiptsPage() {
  return <PermissionDenied message={t('receipts.noPermission')} />
  }
 
- const getTotalRevenue = () => {
- if (!Array.isArray(filteredReceipts)) return 0
- return filteredReceipts
- .filter(r => !r.isCancelled)
- .reduce((sum, r) => sum + r.amount, 0)
- }
-
- const getTodayCount = () => {
- if (!Array.isArray(filteredReceipts)) return 0
- const today = new Date().toDateString()
- return filteredReceipts.filter(r =>
- !r.isCancelled && new Date(r.createdAt).toDateString() === today
- ).length
- }
-
- const getTodayRevenue = () => {
- if (!Array.isArray(filteredReceipts)) return 0
- const today = new Date().toDateString()
- return filteredReceipts
- .filter(r => !r.isCancelled && new Date(r.createdAt).toDateString() === today)
- .reduce((sum, r) => sum + r.amount, 0)
- }
+ // أرقام "النهاردة" محسوبة في السيرفر بنفس فلاتر العرض
+ const getTodayCount = () => todayCount
+ const getTodayRevenue = () => todayRevenue
 
  const getTypeLabel = (type: string) => {
  const labels: Record<string, string> = {
@@ -410,7 +335,7 @@ export default function ReceiptsPage() {
  toast.error('ليس لديك صلاحية إلغاء الإيصالات')
  return
  }
- const receipt = receipts.find(r => r.id === receiptId)
+ const receipt = currentReceipts.find((r: any) => r.id === receiptId)
  //  المبلغ الافتراضي = كامل مبلغ الإيصال، وتقدر تعدّله (استرجاع جزئي)
  setCancelForm({ refundMethod: 'cash', reason: '', amount: receipt?.amount ?? 0 })
  setCancelModal({
@@ -792,10 +717,30 @@ export default function ReceiptsPage() {
  }
  }
 
- // تصدير CSV للإيصالات
- const exportReceiptsCSV = () => {
+ // تصدير CSV للإيصالات — بيجيب كل النتايج المطابقة للفلاتر من السيرفر على دفعات
+ // (القايمة المحلية بقت صفحة واحدة بس، والتصدير محتاج الكل)
+ const exportReceiptsCSV = async () => {
+ const all: any[] = []
+ try {
+ let page = 1
+ while (true) {
+ const res = await fetchReceiptsServerPage({
+ page,
+ pageSize: 1000,
+ search: debouncedSearchTerm || undefined,
+ types: serverTypes,
+ payment: filterPayment !== 'all' ? filterPayment : undefined,
+ })
+ all.push(...res.receipts)
+ if (!res.hasMore || page >= 500) break
+ page++
+ }
+ } catch {
+ toast.error(direction === 'rtl' ? 'فشل تجهيز ملف التصدير' : 'Failed to prepare export')
+ return
+ }
  const headers = ['رقم الإيصال', 'النوع', 'العميل', 'المبلغ', 'طريقة الدفع', 'الموظف', 'التاريخ', 'ملغي']
- const rows = filteredReceipts.map(r => {
+ const rows = all.map(r => {
  let clientName = ''
  try {
  const d = JSON.parse(r.itemDetails)
@@ -880,33 +825,13 @@ export default function ReceiptsPage() {
  </div>
  </div>
 
- {/* Streaming progress — يظهر بس وقت تحميل دفعات الـ background */}
- {(receiptsFetchingNext || receiptsHasNext) && totalReceiptsCount > receipts.length && (
- <div className="bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900/50 p-3 rounded-xl mb-4 flex items-center gap-3" dir={direction} aria-busy="true" aria-live="polite">
- <svg className="animate-spin h-4 w-4 text-blue-500 shrink-0" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-4.992 4.992l3.181-3.183a8.25 8.25 0 00-13.803 3.7M4.031 9.865v-4.992m0 0H8.99M3 12a9 9 0 0015.357 6.364l-1.06-1.06"/></svg>
- <div className="flex-1 min-w-0">
- <div className="text-sm font-bold text-blue-800 dark:text-blue-300">
- {direction === 'rtl'
- ? `جارٍ تحميل باقي الإيصالات في الخلفية... ${receipts.length} / ${totalReceiptsCount}`
- : `Loading remaining receipts in background... ${receipts.length} / ${totalReceiptsCount}`}
- </div>
- <div className="mt-1 h-1.5 w-full bg-blue-100 dark:bg-blue-900/40 rounded-full overflow-hidden">
- <div
- className="h-full bg-blue-500 dark:bg-blue-400 transition-colors duration-200"
- style={{ width: `${Math.min(100, Math.round((receipts.length / Math.max(1, totalReceiptsCount)) * 100))}%` }}
- />
- </div>
- </div>
- </div>
- )}
-
  {/* Statistics */}
  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-5">
  <div className="flex items-center justify-between">
  <div>
  <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('receipts.stats.totalReceipts')}</div>
- <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{filteredReceipts.length}</div>
+ <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{filteredCount}</div>
  </div>
  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center">
  <svg className="w-5 h-5" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6m0 13l-3-3m3 3l3-3m6 3V10m0 9l3-3m-3 3l-3-3"/></svg>
@@ -1563,7 +1488,7 @@ export default function ReceiptsPage() {
  )
  })}
 
- {filteredReceipts.length === 0 && !loading && (
+ {filteredCount === 0 && !loading && (
  <div className="flex flex-col items-center justify-center py-12 text-center col-span-full">
  <svg className="w-12 h-12 text-gray-400 mb-3" {...stroke}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4m6-4V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3-2 3 2 3-2 3 2v-4"/></svg>
  <p className="text-xl font-medium mb-2">
@@ -1588,14 +1513,14 @@ export default function ReceiptsPage() {
  </div>
 
  {/* Pagination Controls */}
- {filteredReceipts.length > 0 && totalPages > 1 && (
+ {filteredCount > 0 && totalPages > 1 && (
  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg" dir={direction}>
  {/* معلومات الصفحة */}
  <div className="text-sm text-gray-600 dark:text-gray-300">
  {t('receipts.pagination.showing', {
  start: (startIndex + 1).toString(),
- end: Math.min(endIndex, filteredReceipts.length).toString(),
- total: filteredReceipts.length.toString()
+ end: endIndex.toString(),
+ total: filteredCount.toString()
  })}
  </div>
 
