@@ -194,9 +194,12 @@ export async function POST(request: Request) {
             data: {
               expiryDate: toNewExpiryDate!,
               isActive: true,
+              //  📤 نربط المستلم بالعضو المصدر عشان يظهر كلينك في البروفايل
+              transferredFromMemberId: fromMember.id,
+              transferredFromAt: today,
               notes: (toMember!.notes || '') +
                 `\n[تم استلام نقل عضوية من ${fromMember.name} (#${fromMember.memberNumber || 'Other'}) — ${remainingDays} يوم]`
-            }
+            } as any
           })
         } else {
           // mode='new' — تغيير ملكية على نفس الـ record

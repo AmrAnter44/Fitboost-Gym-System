@@ -1,7 +1,7 @@
 // app/members/page.tsx - إصلاح الأرقام العشرية
 'use client'
 
-import { Suspense, useEffect, useState, useMemo, useCallback } from 'react'
+import { Suspense, useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
@@ -199,9 +199,18 @@ function MembersPageContent() {
   const [filterSalesId, setFilterSalesId] = useState<string>('all') // فلتر السيلز ('all' / '__none__' / staff.id)
   const [filterCoachId, setFilterCoachId] = useState<string>('all') // ‍ فلتر الكوتش ('all' / '__none__' / staff.id)
   const [socialFilter, setSocialFilter] = useState<string[]>([]) //  فلتر السوشيال ميديا (المصدر)
+  const [filtersOpen, setFiltersOpen] = useState(false) //  دراج الفلاتر المجمّع (الباقة/السيلز/الكوتش/المصدر/التاريخ)
   // فلتر تاريخ الاشتراك — مدى (من/إلى) يحدده المستخدم (YYYY-MM-DD)
   const [filterSubFrom, setFilterSubFrom] = useState<string>('')
   const [filterSubTo, setFilterSubTo] = useState<string>('')
+  //  قفل دراج الفلاتر بزر Escape
+  useEffect(() => {
+    if (!filtersOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFiltersOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [filtersOpen])
+
   // بوب أب اختيار مدى تاريخ الاشتراك — بنختار من/إلى وندوس حفظ
   const [showDateRangeModal, setShowDateRangeModal] = useState(false)
   const [tempSubFrom, setTempSubFrom] = useState<string>('')
@@ -578,6 +587,14 @@ function MembersPageContent() {
     (filterSalesId !== 'all' ? 1 : 0) +
     (filterCoachId !== 'all' ? 1 : 0) +
     (socialFilter.length > 0 ? 1 : 0)
+
+  //  عدد الفلاتر النشطة جوّه الدراج (الباقة/السيلز/الكوتش/المصدر/التاريخ)
+  const drawerFiltersCount =
+    (filterPackage !== 'all' ? 1 : 0) +
+    (filterSalesId !== 'all' ? 1 : 0) +
+    (filterCoachId !== 'all' ? 1 : 0) +
+    (socialFilter.length > 0 ? 1 : 0) +
+    ((filterSubFrom || filterSubTo) ? 1 : 0)
 
   // Lock body scroll while mobile drawer is open
   useEffect(() => {
@@ -1036,12 +1053,34 @@ function MembersPageContent() {
 
       <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 p-3 sm:p-5 mb-5 sm:mb-6" dir={direction}>
         <div className="flex items-center justify-between gap-2 mb-4">
-          <h3 className="text-base sm:text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100 min-w-0">
-            <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5 text-primary-700 dark:text-primary-400 shrink-0" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-            <span className="truncate">{t('members.quickFilters')}</span>
-          </h3>
+          <div className="flex items-center gap-3 min-w-0">
+            <h3 className="text-base sm:text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100 min-w-0">
+              <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-5 h-5 text-primary-700 dark:text-primary-400 shrink-0" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              <span className="truncate">{t('members.quickFilters')}</span>
+            </h3>
+            {/*  زرار «الفلاتر» المجمّع — جنب العنوان، يفتح الدراج تحت */}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(o => !o)}
+              aria-expanded={filtersOpen}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-bold transition-colors duration-200 flex-shrink-0 ${
+                filtersOpen || drawerFiltersCount > 0
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+            >
+              <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M6 12h12m-9 5.25h6" /></svg>
+              <span>{locale === 'ar' ? 'الفلاتر' : 'Filters'}</span>
+              {drawerFiltersCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary-500 text-primary-contrast text-[11px] font-bold">
+                  {drawerFiltersCount}
+                </span>
+              )}
+              <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className={`w-4 h-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+            </button>
+          </div>
           {(filterStatus !== 'all' || filterPackage !== 'all' || filterSalesId !== 'all' || filterCoachId !== 'all') && (
             <button
               onClick={() => {
@@ -1144,8 +1183,11 @@ function MembersPageContent() {
           })}
         </div>
 
-        {/* Package + Sales + Coach + Date filters */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 flex flex-col md:flex-row md:items-end gap-3">
+        {/* دراج الفلاتر — بيفتح من زرار «الفلاتر» اللي جنب عنوان «فلاتر سريعة» فوق */}
+        {filtersOpen && (
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/30 p-4 animate-modal-in">
+          <div className="flex flex-col md:flex-row md:items-end gap-3">
           <div className="flex-1 min-w-0">
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
               {locale === 'ar' ? 'الباقة' : 'Package'}
@@ -1237,7 +1279,19 @@ function MembersPageContent() {
               )}
             </div>
           </div>
-        </div>
+          </div>
+          <div className="flex justify-end mt-3">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(false)}
+              className="px-5 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-primary-contrast font-bold text-sm transition-colors duration-200"
+            >
+              {locale === 'ar' ? 'تم' : 'Done'}
+            </button>
+          </div>
+          </div>
+          </div>
+        )}
       </div>
 
       {/* ============ Mobile-only horizontal status chips (visible always for quick tap) ============ */}

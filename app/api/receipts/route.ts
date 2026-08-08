@@ -72,20 +72,45 @@ export async function GET(request: Request) {
 
     if (memberId || memberNumber) {
       // إيصالات عضو معيّن: بالـ FK المباشر + الداتا القديمة اللي رقم العضوية فيها جوه itemDetails
-      // (الكلاينت بيعمل الفلترة الدقيقة النهائية — إحنا بنضيّق النطاق بدل تحميل كل الإيصالات)
+      // + إيصالات الـ PT (بالهاتف) و DayUse (بالـ memberId/الهاتف) المربوطة بالعضو
       const or: Array<Record<string, unknown>> = []
-      if (memberId) or.push({ memberId })
-      if (memberNumber) {
-        or.push({ itemDetails: { contains: `"memberNumber":"${memberNumber}"` } })
-        or.push({ itemDetails: { contains: `"memberNumber":${memberNumber}` } })
-        if (!memberId) {
-          const memberRow = await prisma.member.findUnique({
-            where: { memberNumber },
-            select: { id: true }
-          })
-          if (memberRow) or.push({ memberId: memberRow.id })
-        }
+
+      // 🔎 نجيب بيانات العضو (الهاتف + رقم العضوية) عشان نربط إيصالات PT و DayUse
+      let resolvedId: string | null = memberId
+      let resolvedPhone: string | null = null
+      let resolvedNumber: string | null = memberNumber
+      if (memberId) {
+        const m = await prisma.member.findUnique({ where: { id: memberId }, select: { phone: true, memberNumber: true } })
+        resolvedPhone = m?.phone ?? null
+        if (m?.memberNumber) resolvedNumber = m.memberNumber
+      } else if (memberNumber) {
+        const m = await prisma.member.findUnique({ where: { memberNumber }, select: { id: true, phone: true } })
+        resolvedId = m?.id ?? null
+        resolvedPhone = m?.phone ?? null
       }
+
+      if (resolvedId) or.push({ memberId: resolvedId })
+      if (resolvedNumber) {
+        or.push({ itemDetails: { contains: `"memberNumber":"${resolvedNumber}"` } })
+        or.push({ itemDetails: { contains: `"memberNumber":${resolvedNumber}` } })
+      }
+
+      // 🎟️ إيصالات يوم الاستخدام / InBody المربوطة بالعضو (بالـ id أو الهاتف)
+      const dayUseOr: Array<Record<string, unknown>> = []
+      if (resolvedId) dayUseOr.push({ memberId: resolvedId })
+      if (resolvedPhone) dayUseOr.push({ phone: resolvedPhone })
+      if (dayUseOr.length > 0) {
+        const dayUses = await prisma.dayUseInBody.findMany({ where: { OR: dayUseOr }, select: { id: true } })
+        if (dayUses.length > 0) or.push({ dayUseId: { in: dayUses.map(d => d.id) } })
+      }
+
+      // 🏋️ إيصالات الـ PT المربوطة بالعضو (بالهاتف)
+      if (resolvedPhone) {
+        const pts = await prisma.pT.findMany({ where: { phone: resolvedPhone }, select: { ptNumber: true } })
+        if (pts.length > 0) or.push({ ptNumber: { in: pts.map(p => p.ptNumber) } })
+      }
+
+      if (or.length === 0) return NextResponse.json([])
       const receipts = await prisma.receipt.findMany({
         where: { OR: or },
         orderBy: { receiptNumber: 'desc' }

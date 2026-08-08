@@ -154,6 +154,7 @@ export default function StaffPage() {
   })
 
   const [todayAttendance, setTodayAttendance] = useState<Attendance[]>([])
+  const [showCreatedIds, setShowCreatedIds] = useState<Set<string>>(new Set()) //  كروت اللي تاريخ إنشائها ظاهر
   const [showForm, setShowForm] = useState(false)
   const [showPayrollSettings, setShowPayrollSettings] = useState(false)
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null)
@@ -1517,6 +1518,25 @@ const handleSelfieCapture = async (file: File) => {
                         <div className="text-gray-600 dark:text-gray-400 text-xs">
                           #{toNineDigitCode(staffMember.staffCode)} {staffMember.phone ? `• ${staffMember.phone}` : ''}
                         </div>
+                        {staffMember.createdAt && (
+                          <div className="mt-1">
+                            <button
+                              type="button"
+                              onClick={() => setShowCreatedIds(prev => { const n = new Set(prev); n.has(staffMember.id) ? n.delete(staffMember.id) : n.add(staffMember.id); return n })}
+                              className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                              title={locale === 'ar' ? 'تاريخ إنشاء الحساب' : 'Account creation date'}
+                            >
+                              <svg {...stroke} className="w-3 h-3 flex-shrink-0" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+                              <span>{locale === 'ar' ? 'تاريخ الإنشاء' : 'Created'}</span>
+                              <svg {...stroke} className={`w-3 h-3 flex-shrink-0 transition-transform ${showCreatedIds.has(staffMember.id) ? 'rotate-180' : ''}`} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                            </button>
+                            {showCreatedIds.has(staffMember.id) && (
+                              <div className="text-[11px] text-gray-700 dark:text-gray-200 font-semibold mt-0.5 ps-4">
+                                {new Date(staffMember.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

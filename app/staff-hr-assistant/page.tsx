@@ -972,13 +972,16 @@ export default function StaffHRAssistantPage() {
                                 amount={payroll.earnings.bonuses.total}
                                 sign="+"
                                 tone="emerald"
-                                href={`/staff-bonuses?staffId=${staff.staffId}&month=${selectedMonth}&year=${selectedYear}`}
+                                details={payroll.earnings.bonuses.items.map(it => `${it.reason} — ${it.amount.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${direction === 'rtl' ? 'ج' : 'EGP'}`)}
+                                detailsHref={`/staff-bonuses?staffId=${staff.staffId}&month=${selectedMonth}&year=${selectedYear}`}
+                                detailsLinkText={direction === 'rtl' ? 'إدارة البونصات' : 'Manage bonuses'}
                               />
                               <BreakdownRow
                                 label={direction === 'rtl' ? `العمولات (${payroll.earnings.commission.items.length})` : `Commission (${payroll.earnings.commission.items.length})`}
                                 amount={payroll.earnings.commission.total}
                                 sign="+"
                                 tone="emerald"
+                                details={payroll.earnings.commission.items.map(it => `${it.description || (direction === 'rtl' ? 'عمولة' : 'Commission')} — ${it.amount.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${direction === 'rtl' ? 'ج' : 'EGP'}`)}
                               />
                               <div className="p-3 bg-emerald-50/30 dark:bg-emerald-900/5 flex justify-between font-bold text-emerald-700 dark:text-emerald-300">
                                 <span>{direction === 'rtl' ? 'إجمالي الدخل' : 'Total Earnings'}</span>
@@ -996,7 +999,9 @@ export default function StaffHRAssistantPage() {
                                 amount={payroll.deductions.absences.amount}
                                 sign="−"
                                 tone="red"
-                                href={`/staff/schedule?staffId=${staff.staffId}&year=${selectedYear}&month=${selectedMonth}`}
+                                details={(payroll.deductions.absences.dates || []).map(d => new Date(d).toLocaleDateString(direction === 'rtl' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' }))}
+                                detailsHref={`/staff/schedule?staffId=${staff.staffId}&year=${selectedYear}&month=${selectedMonth}`}
+                                detailsLinkText={direction === 'rtl' ? 'عرض على الجدول' : 'View on schedule'}
                               />
                               {/*  إجازة بدون راتب — صف منفصل عن الغياب */}
                               {payroll.deductions.unpaidLeave && payroll.deductions.unpaidLeave.days > 0 && (
@@ -1012,13 +1017,18 @@ export default function StaffHRAssistantPage() {
                                 amount={payroll.deductions.manual.total}
                                 sign="−"
                                 tone="red"
-                                href={`/staff-deductions?staffId=${staff.staffId}`}
+                                details={payroll.deductions.manual.items.map(it => `${it.reason} — ${it.amount.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${direction === 'rtl' ? 'ج' : 'EGP'}`)}
+                                detailsHref={`/staff-deductions?staffId=${staff.staffId}`}
+                                detailsLinkText={direction === 'rtl' ? 'إدارة الخصومات' : 'Manage deductions'}
                               />
                               <BreakdownRow
                                 label={direction === 'rtl' ? `سلف هذا الشهر (${payroll.deductions.loans.items.length})` : `Loans This Month (${payroll.deductions.loans.items.length})`}
                                 amount={payroll.deductions.loans.total}
                                 sign="−"
                                 tone="red"
+                                details={payroll.deductions.loans.items.map(it => `${it.description || (direction === 'rtl' ? 'سلفة' : 'Advance')} — ${it.willDeductThisMonth.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${direction === 'rtl' ? 'ج' : 'EGP'}`)}
+                                detailsHref={`/staff-hr-assistant?staffId=${staff.staffId}`}
+                                detailsLinkText={direction === 'rtl' ? 'إدارة السلف' : 'Manage advances'}
                               />
                               <div className="p-3 bg-red-50/30 dark:bg-red-900/5 flex justify-between font-bold text-red-700 dark:text-red-300">
                                 <span>{direction === 'rtl' ? 'إجمالي الخصومات' : 'Total Deductions'}</span>
@@ -1567,14 +1577,17 @@ export default function StaffHRAssistantPage() {
   )
 }
 
-function BreakdownRow({ label, amount, sign, tone, href }: { label: string; amount: number; sign: '+' | '−'; tone: 'emerald' | 'red'; href?: string }) {
+function BreakdownRow({ label, amount, sign, tone, href, details, detailsHref, detailsLinkText }: { label: string; amount: number; sign: '+' | '−'; tone: 'emerald' | 'red'; href?: string; details?: string[]; detailsHref?: string; detailsLinkText?: string }) {
+  const [open, setOpen] = useState(false)
   const toneCls = tone === 'emerald' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'
+  const hasDetails = !!details && details.length > 0
+  const showChevron = href || hasDetails
   const content = (
     <div className="px-4 py-2.5 flex justify-between items-center hover:bg-gray-100/60 dark:hover:bg-gray-800/60 transition-colors">
       <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
         {label}
-        {href && (
-          <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="w-3 h-3 text-gray-400">
+        {showChevron && (
+          <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className={`w-3 h-3 text-gray-400 transition-transform ${hasDetails && open ? 'rotate-90' : ''}`}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" />
           </svg>
         )}
@@ -1584,5 +1597,31 @@ function BreakdownRow({ label, amount, sign, tone, href }: { label: string; amou
       </span>
     </div>
   )
+  //  لو فيه تفاصيل (زي تواريخ الغياب) → السطر يفتح ويعرضها بدل ما يوديك على صفحة تانية
+  if (hasDetails) {
+    return (
+      <div>
+        <button type="button" onClick={() => setOpen(o => !o)} className="block w-full text-start">{content}</button>
+        {open && (
+          <div className="px-4 pb-2.5 -mt-1">
+            <div className={`ms-2 border-s-2 ps-3 space-y-1 ${tone === 'emerald' ? 'border-emerald-200 dark:border-emerald-900/40' : 'border-red-200 dark:border-red-900/40'}`}>
+              {details!.map((d, i) => (
+                <div key={i} className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tone === 'emerald' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                  {d}
+                </div>
+              ))}
+              {detailsHref && (
+                <Link href={detailsHref} className="inline-flex items-center gap-1 text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline pt-1">
+                  {detailsLinkText || 'عرض على الجدول'}
+                  <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" /></svg>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
   return href ? <Link href={href} className="block">{content}</Link> : content
 }

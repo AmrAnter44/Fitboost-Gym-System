@@ -769,6 +769,9 @@ function setupAutoUpdater() {
   autoUpdater.autoDownload = false; // لا تحمل تلقائياً، نخلي المستخدم يوافق الأول
   autoUpdater.autoInstallOnAppQuit = true; // تثبيت عند إغلاق التطبيق
   autoUpdater.allowDowngrade = true; // السماح بالرجوع لإصدار أقدم لو حصلت مشكلة
+  // 🚫 نطفّي التحميل التفاضلي (delta/blockmap) — كان بيسبّب إعادة التحميل من الأول
+  //    (يحمّل الفرق → يوصل 100% → يفشل التحقق → يرجع يحمّل كامل). نخليه يحمّل كامل مرة واحدة بثبات.
+  autoUpdater.disableDifferentialDownload = true;
 
   // 🔑 لو الـ repo خاص (private)، لازم نمرر GH_TOKEN عشان autoUpdater يقدر يحمّل
   const ghToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;

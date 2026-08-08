@@ -501,6 +501,8 @@ function migrateDatabase(dbPath) {
       { col: 'invitations',             def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'points',                  def: 'INTEGER NOT NULL DEFAULT 0' },
       { col: 'remainingCheckIns',       def: 'INTEGER' },  //  nullable = دخول غير محدود
+      { col: 'transferredFromMemberId', def: 'TEXT' },     //  📤 نقل العضوية: العضو اللي نقل للعضو ده
+      { col: 'transferredFromAt',       def: 'DATETIME' },
     ];
     for (const { col, def } of memberCols) {
       if (!columnExists(db, 'Member', col)) {
@@ -746,6 +748,7 @@ function migrateDatabase(dbPath) {
           status TEXT NOT NULL DEFAULT 'open',
           priority TEXT NOT NULL DEFAULT 'normal',
           resolution TEXT,
+          source TEXT NOT NULL DEFAULT 'staff',
           createdBy TEXT,
           createdAt DATETIME NOT NULL DEFAULT (datetime('now')),
           updatedAt DATETIME NOT NULL DEFAULT (datetime('now'))
@@ -754,6 +757,11 @@ function migrateDatabase(dbPath) {
         CREATE INDEX IF NOT EXISTS Complaint_status_idx ON Complaint(status);
         CREATE INDEX IF NOT EXISTS Complaint_createdAt_idx ON Complaint(createdAt);
       `);
+    }
+
+    // ✅ Complaint — عمود source (staff | app) عشان نفرّق الشكاوى الجاية من تطبيق الأعضاء
+    if (tableExists(db, 'Complaint') && !columnExists(db, 'Complaint', 'source')) {
+      db.prepare(`ALTER TABLE Complaint ADD COLUMN source TEXT NOT NULL DEFAULT 'staff'`).run();
     }
 
     // InternalMessage + InternalMessageRecipient — الإيميل الداخلي
